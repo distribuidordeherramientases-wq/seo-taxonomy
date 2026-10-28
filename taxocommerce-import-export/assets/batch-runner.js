@@ -57,7 +57,7 @@
                 if (res.data && res.data.enabled) {
                     // As soon as one bounded request completes, issue the next.
                     // No artificial 1-15 second delays between successful lots.
-                    window.setTimeout(step, 0);
+                    window.setTimeout(step, res.data.busy ? 500 : 0);
                 } else {
                     stopped = true;
                 }
