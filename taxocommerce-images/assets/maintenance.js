@@ -25,6 +25,9 @@
         if (pause) {
             pause.addEventListener('click', function () {
                 paused = true;
+                if (typeof window.taxocommerceImagesBackgroundRequest === 'function') {
+                    window.taxocommerceImagesBackgroundRequest('assignment_' + scope, 'pause').catch(function () {});
+                }
             });
         }
 
@@ -75,10 +78,10 @@
                             return;
                         }
 
-                        operation = 'scan';
-                        await new Promise(function (resolve) {
-                            window.setTimeout(resolve, result.data.delay || config.delay || 4000);
-                        });
+                        // The server worker has taken over after this first batch.
+                        // Never make the browser responsible for the next batch.
+                        output.textContent += ' Continúa en segundo plano; puedes cerrar la pestaña.';
+                        return;
                     }
 
                     output.textContent += ' Pausado al finalizar el lote. Puedes continuar sin repetir lo ya revisado.';
@@ -98,7 +101,12 @@
         var output = section.querySelector('[data-tci-progress]');
         var buttons = section.querySelectorAll('[data-tci-operation]');
         var pause = section.querySelector('[data-tci-pause]');
-        if (pause) { pause.addEventListener('click', function () { paused = true; }); }
+        if (pause) { pause.addEventListener('click', function () {
+            paused = true;
+            if (typeof window.taxocommerceImagesBackgroundRequest === 'function') {
+                window.taxocommerceImagesBackgroundRequest(section.dataset.tciMaintenance, 'pause').catch(function () {});
+            }
+        }); }
         buttons.forEach(function (button) {
             button.addEventListener('click', async function () {
                 if (busy) { return; }
@@ -138,8 +146,9 @@
                         }
                         output.textContent = 'Escaneo completo: ' + scanned + ' / ' + total + ' (' + percent + ' %)' + summary + '. Último lote interno: ' + (load.items || 0) + ' elementos · ' + cpu + ' · ' + (load.elapsed || 0) + ' s · siguiente lote ' + next + '.';
                         if (result.data.done) { window.location.reload(); return; }
-                        operation = 'scan';
-                        await new Promise(function (resolve) { window.setTimeout(resolve, result.data.delay || config.delay || 4000); });
+                        // The persistent cron worker owns all subsequent batches.
+                        output.textContent += ' Continúa en segundo plano; puedes cerrar la pestaña.';
+                        return;
                     }
                     output.textContent += ' Pausado al finalizar el lote. Puedes continuar sin repetir lo analizado.';
                 } catch (error) {

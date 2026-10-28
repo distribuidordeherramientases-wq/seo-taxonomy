@@ -72,6 +72,7 @@ final class TaxoCommerce_Images_Audit {
 			try {
 				update_option( self::STATE_OPTION, $this->new_state(), false );
 				$this->process_batch();
+				TaxoCommerce_Images_Background::start( 'audit', get_current_user_id() );
 			} finally {
 				$this->release_lock();
 			}
@@ -90,6 +91,7 @@ final class TaxoCommerce_Images_Audit {
 		if ( $this->acquire_lock() ) {
 			try {
 				$this->process_batch();
+				TaxoCommerce_Images_Background::start( 'audit', get_current_user_id() );
 			} finally {
 				$this->release_lock();
 			}
@@ -108,6 +110,7 @@ final class TaxoCommerce_Images_Audit {
 		if ( $this->acquire_lock() ) {
 			try {
 				delete_option( self::STATE_OPTION );
+				TaxoCommerce_Images_Background::stop( 'audit' );
 			} finally {
 				$this->release_lock();
 			}
@@ -142,6 +145,25 @@ final class TaxoCommerce_Images_Audit {
 				'paused' => false,
 			)
 		);
+	}
+
+	/**
+	 * Server-side continuation without an open administrator browser.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function run_background_batch() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error( 'tci_audit_background_permission', 'Permisos insuficientes.' );
+		}
+		if ( ! $this->acquire_lock() ) {
+			return new WP_Error( 'tci_audit_background_busy', 'Otro lote de auditoría está activo.' );
+		}
+		try {
+			return $this->process_batch();
+		} finally {
+			$this->release_lock();
+		}
 	}
 
 	/**
