@@ -4,7 +4,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 class WP_Error { public $message; public function __construct( $code, $message ) { $this->message = $message; } public function get_error_message() { return $this->message; } }
 class WP_Post { public $ID; public $post_type = 'page'; public $post_status = 'publish'; public $post_password = ''; public $post_title; public $post_name = ''; public function __construct( $id, $title ) { $this->ID=$id; $this->post_title=$title; } }
 class TaxoCommerce_Core_Logger { public function info( $a, $b ) {} }
-class TaxoCommerce_Core_Hierarchy_Classic { public static function map( $kind ) { return array(); } public static function role_pages( $role ) { return array(); } }
+class TaxoCommerce_Core_Hierarchy_Classic { public static function map( $kind, $country = '' ) { return array(); } public static function role_pages( $role ) { return array(); } public static function country_pages( $role, $country ) { return array(); } }
 class WP_Query { public $posts; public function __construct( $args ) { $GLOBALS['last_query']=$args; $rows=array_values( array_filter( $GLOBALS['posts'], static function( $post ) use ( $args ) { return $post->post_type===$args['post_type'] && 'publish'===$post->post_status && ''===$post->post_password && ( ''===$args['s'] || false!==stripos( $post->post_title, $args['s'] ) ); } ) ); $this->posts=array_slice( $rows, $args['offset'], $args['posts_per_page'] ); } }
 $GLOBALS['hooks']=array(); $GLOBALS['options']=array('taxocommerce_core_menu_id'=>99,'taxocommerce_core_menu_location_backup'=>array('locations'=>array('primary'=>1)));
 $GLOBALS['menus']=array(99=>(object)array('term_id'=>99)); $GLOBALS['items']=array(); $GLOBALS['meta']=array(); $GLOBALS['writes']=0; $GLOBALS['allowed']=true;
