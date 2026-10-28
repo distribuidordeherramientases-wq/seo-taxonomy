@@ -38,6 +38,10 @@ final class TaxoCommerce_Import_Export_Batch {
 		add_action( 'admin_post_taxocommerce_ie_batch_upload', array( $this, 'handle_upload' ) );
 		add_action( 'admin_post_taxocommerce_ie_batch_control', array( $this, 'handle_control' ) );
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_batch_step', array( $this, 'ajax_step' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
+		add_action( 'wp_ajax_nopriv_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_runner' ) );
 	}
 
 	const INDIVIDUAL_STATE = 'taxocommerce_ie_individual_last';
@@ -78,12 +82,14 @@ final class TaxoCommerce_Import_Export_Batch {
 		update_option( self::INDIVIDUAL_STATE, $record, false );
 		$state['enabled'] = true;
 		$state['user_id'] = get_current_user_id();
+		$state['dispatch_token'] = wp_generate_password( 48, false, false );
 		$state['pause_after_file'] = true;
 		$state['stop_requested'] = false;
 		$state['status'] = 'waiting_next';
 		$state['message'] = __( 'Archivo individual recibido: se procesará por bloques.', 'taxocommerce-import-export' );
 		$this->store_state( $state );
-		$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+		// Start processing immediately instead of waiting for WP-Cron.
+		$this->worker();
 		return true;
 	}
 
@@ -302,6 +308,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state                     = $this->state();
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
+			$state['dispatch_token']   = wp_generate_password( 48, false, false );
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : ( $state['status'] ?? 'processing' );
@@ -346,6 +353,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		if ( 'start' === $action ) {
 			$state['enabled']          = true;
 			$state['user_id']          = get_current_user_id();
+			$state['dispatch_token']   = wp_generate_password( 48, false, false );
 			$state['pause_after_file'] = false;
 			$state['stop_requested']   = false;
 			$state['status']           = empty( $state['current_file'] ) ? 'waiting_next' : 'processing';
@@ -369,6 +377,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		} elseif ( 'tick' === $action ) {
 			$state['enabled']        = true;
 			$state['user_id']        = get_current_user_id();
+			$state['dispatch_token'] = wp_generate_password( 48, false, false );
 			$state['stop_requested'] = false;
 			$this->store_state( $state );
 			$this->worker();
@@ -402,6 +411,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		}
 
 		$previous_user = get_current_user_id();
+		$continue = false;
 
 		try {
 			$state = $this->state();
@@ -450,7 +460,7 @@ final class TaxoCommerce_Import_Export_Batch {
 					if ( ! empty( $remaining ) && ! empty( $state['enabled'] ) ) {
 						$state['status'] = 'waiting_next';
 						$this->store_state( $state );
-						$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
+						$continue = true;
 						return;
 					}
 
@@ -471,16 +481,17 @@ final class TaxoCommerce_Import_Export_Batch {
 			$state = $result;
 			$this->store_state( $state );
 
-			if ( 'processing' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
-			} elseif ( 'waiting_next' === ( $state['status'] ?? '' ) && ! empty( $state['enabled'] ) ) {
-				$this->schedule( TaxoCommerce_IE_Load::delay( 'import' ) );
-			}
+			$continue = ! empty( $state['enabled'] )
+				&& in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true );
 		} finally {
 			if ( get_current_user_id() !== $previous_user ) {
 				wp_set_current_user( $previous_user );
 			}
 			$this->release_lock( $token );
+			// Next request starts only after the previous lock is released.
+			if ( $continue ) {
+				$this->dispatch_next();
+			}
 		}
 	}
 
@@ -988,22 +999,106 @@ Deny from all
 	}
 
 	/**
-	 * Schedule next bounded block using this plugin's own worker.
-	 *
-	 * @param int $delay Delay in seconds.
-	 * @return void
+	 * Watchdog only: normal CSV blocks never wait for Action Scheduler.
+	 * This path can recover a failed loopback when cron eventually runs.
 	 */
-	private function schedule( $delay = 2 ) {
-		$delay = max( 1, absint( $delay ) );
-		if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::WORKER_HOOK, array(), self::AS_GROUP ) ) {
-			return;
-		}
-		if ( function_exists( 'as_schedule_single_action' ) ) {
+	private function schedule( $delay = 60 ) {
+		$delay = max( 60, absint( $delay ) );
+		if ( function_exists( 'as_schedule_single_action' )
+			&& ( ! function_exists( 'as_has_scheduled_action' )
+				|| ! as_has_scheduled_action( self::WORKER_HOOK, array(), self::AS_GROUP ) ) ) {
 			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, array(), self::AS_GROUP, true, 10 );
 		}
 		if ( false === wp_next_scheduled( self::WORKER_HOOK ) ) {
-			wp_schedule_single_event( time() + max( 30, $delay ), self::WORKER_HOOK );
+			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK );
 		}
+	}
+
+	/** Dispatch the next bounded request immediately via local loopback. */
+	private function dispatch_next() {
+		$state = $this->state();
+		if ( empty( $state['enabled'] )
+			|| ! in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true ) ) {
+			return;
+		}
+		$token = (string) ( $state['dispatch_token'] ?? '' );
+		$this->schedule( 60 ); // Backup only.
+		if ( '' === $token ) {
+			return;
+		}
+		$response = wp_remote_post( admin_url( 'admin-ajax.php' ), array(
+			'blocking'    => false,
+			'timeout'     => 1,
+			'redirection' => 0,
+			'sslverify'   => true,
+			'body'        => array(
+				'action' => 'taxocommerce_ie_batch_continue',
+				'token'  => $token,
+			),
+		) );
+		if ( is_wp_error( $response ) ) {
+			$state['message'] = __( 'Falló la autollamada; la recuperación por cron y desde el administrador sigue disponible.', 'taxocommerce-import-export' );
+			$this->store_state( $state );
+		}
+	}
+
+	/** Restricted internal continuation, no front-end nonce disclosed. */
+	public function internal_continue() {
+		$state = $this->state();
+		$expected = (string) ( $state['dispatch_token'] ?? '' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Secret internal bearer token checked with hash_equals.
+		$submitted = isset( $_POST['token'] ) && is_string( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+		if ( '' === $expected || strlen( $submitted ) > 64 || ! hash_equals( $expected, $submitted )
+			|| empty( $state['enabled'] ) ) {
+			wp_die( 'Acceso denegado', '', array( 'response' => 403 ) );
+		}
+		$this->worker();
+		wp_die( '', '', array( 'response' => 200 ) );
+	}
+
+	/** Browser-assisted continuation with explicit WordPress permissions. */
+	public function ajax_step() {
+		check_ajax_referer( 'taxocommerce_ie_batch_step', 'nonce' );
+		$this->guard();
+		$state = $this->state();
+		if ( ! empty( $state['enabled'] ) ) {
+			$this->worker();
+		}
+		$state = $this->state();
+		$sample = TaxoCommerce_IE_Load::last_sample( 'import' );
+		wp_send_json_success( array(
+			'enabled' => ! empty( $state['enabled'] ),
+			'status'  => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
+			'file'    => sanitize_file_name( (string) ( $state['current_file'] ?? '' ) ),
+			'rows'    => absint( $state['processed_rows'] ?? 0 ),
+			'errors'  => absint( $state['error_rows'] ?? 0 ),
+			'message' => sanitize_text_field( (string) ( $state['message'] ?? '' ) ),
+			'last_batch' => absint( $sample['items'] ?? 0 ),
+			'next_batch' => TaxoCommerce_IE_Load::batch_size( 'import' ),
+			'elapsed' => (float) ( $sample['elapsed'] ?? 0 ),
+			'rows_per_second' => (float) ( $sample['rows_per_second'] ?? 0 ),
+			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
+		) );
+	}
+
+	/** Only load the browser helper on the Import-Export admin screen. */
+	public function enqueue_runner() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page selector.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 'taxocommerce-import-export' !== $page ) {
+			return;
+		}
+		wp_enqueue_script(
+			'taxocommerce-ie-batch-runner',
+			plugin_dir_url( TAXOCOMMERCE_IMPORT_EXPORT_FILE ) . 'assets/batch-runner.js',
+			array(),
+			TAXOCOMMERCE_IMPORT_EXPORT_VERSION,
+			true
+		);
+		wp_add_inline_script( 'taxocommerce-ie-batch-runner', 'window.tcIeBatchRunner = ' . wp_json_encode( array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'taxocommerce_ie_batch_step' ),
+		) ) . ';', 'before' );
 	}
 
 	/**
