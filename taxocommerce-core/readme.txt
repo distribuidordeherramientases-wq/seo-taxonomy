@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.31
+Stable tag: 0.4.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.32 =
+* Fix existing SEO hierarchy tables that missed the country_code migration: both seo_nodes and seo_relations are checked, without deleting or replacing existing records.
+* Persist page country_code when saving or reusing a role node; synchronize active role country when page country metadata changes.
+* Keep legacy relations and Spanish hierarchy intact. Relation country is also independently checked when both SEO tables already exist.
+* Add isolated QA for the pre-existing-table migration and country-aware node saves.
 
 = 0.4.31 =
 * Adds a market-country selector to Core content editors for posts, pages, products and WooCommerce categories, preserving existing country metadata.
