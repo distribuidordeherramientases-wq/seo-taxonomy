@@ -143,9 +143,16 @@ final class TaxoCommerce_Core_Country {
 		if ( ! current_user_can( 'edit_post', $id ) || ! self::valid( $country ) ) {
 			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de este contenido.', 'taxocommerce-core' ) );
 		}
-		if ( self::normalize( get_post_meta( $id, self::META, true ) ) === $country ) { return true; }
-		return false !== update_post_meta( $id, self::META, $country )
-			? true : new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+		if ( self::normalize( get_post_meta( $id, self::META, true ) ) !== $country
+			&& false === update_post_meta( $id, self::META, $country ) ) {
+			return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+		}
+		// The role form can change the country and SEO role in one submission.
+		// Synchronise the country of the existing role node after saving postmeta.
+		if ( 'page' === get_post_type( $id ) && class_exists( 'TaxoCommerce_Core_Hierarchy_Classic', false ) ) {
+			TaxoCommerce_Core_Hierarchy_Classic::sync_role_country( $id );
+		}
+		return true;
 	}
 
 	public static function set_term( $id, $country ) {
