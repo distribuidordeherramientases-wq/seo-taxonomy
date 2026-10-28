@@ -666,7 +666,11 @@ final class TaxoCommerce_Import_Export_CSV {
 			);
 		}
 
-		return $this->import_row( $data );
+		if ( in_array( $type, array( 'page', 'post' ), true ) ) {
+            if ( ! isset( $data['title'] ) && isset( $data['name'] ) ) { $data['title'] = $data['name']; }
+            if ( ! isset( $data['excerpt'] ) && isset( $data['short_description'] ) ) { $data['excerpt'] = $data['short_description']; }
+        }
+        return $this->import_row( $data );
 	}
 
 	/**
@@ -712,6 +716,8 @@ final class TaxoCommerce_Import_Export_CSV {
 		$has_sku      = array_key_exists( 'sku', $data );
 		$sku          = $has_sku ? sanitize_text_field( (string) $data['sku'] ) : '';
 		$partial      = ! empty( $data['_partial_update'] );
+        $country = $this->country_from_row( $data, $partial );
+        if ( is_wp_error( $country ) ) { return $country; }
 		$product_type = sanitize_key( (string) ( isset( $data['product_type'] ) ? $data['product_type'] : 'simple' ) );
 
 		if ( $partial && ! $id && ! $sku ) {
@@ -823,7 +829,8 @@ final class TaxoCommerce_Import_Export_CSV {
 				return new WP_Error( 'taxocommerce_ie_product_save_id', __( 'WooCommerce no devolvió un ID al guardar el producto.', 'taxocommerce-import-export' ) );
 			}
 
-			$brand_provider = $this->apply_brand_provider_fields( $product_id, $data );
+			$this->save_country( $product_id, $country );
+            $brand_provider = $this->apply_brand_provider_fields( $product_id, $data );
 			if ( is_wp_error( $brand_provider ) ) {
 				return $brand_provider;
 			}
@@ -1005,6 +1012,8 @@ final class TaxoCommerce_Import_Export_CSV {
 		$parent_id   = absint( isset( $data['parent_id'] ) ? $data['parent_id'] : 0 );
 		$description = wp_kses_post( (string) ( isset( $data['description'] ) ? $data['description'] : '' ) );
 		$image_id    = absint( isset( $data['image_id'] ) ? $data['image_id'] : 0 );
+        $country = $this->country_from_row( $data );
+        if ( is_wp_error( $country ) ) { return $country; }
 
 		if ( ! $name ) {
 			return new WP_Error( 'taxocommerce_ie_category_name', __( 'La categoría necesita nombre.', 'taxocommerce-import-export' ) );
@@ -1022,7 +1031,8 @@ final class TaxoCommerce_Import_Export_CSV {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-		if ( $term_id && $image_id ) {
+		$this->save_country( $term_id, $country, true );
+        if ( $term_id && $image_id ) {
 			update_term_meta( $term_id, 'thumbnail_id', $image_id );
 		}
 		return true;
@@ -1036,6 +1046,8 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return true|WP_Error
 	 */
 	private function import_post( $data, $post_type ) {
+        $country = $this->country_from_row( $data );
+        if ( is_wp_error( $country ) ) { return $country; }
 		$id     = absint( isset( $data['id'] ) ? $data['id'] : 0 );
 		$status = sanitize_key( (string) ( isset( $data['status'] ) ? $data['status'] : 'draft' ) );
 
@@ -1070,8 +1082,9 @@ final class TaxoCommerce_Import_Export_CSV {
 			return $result;
 		}
 
-		if ( 'post' === $post_type ) {
-			wp_set_post_terms( $result, $this->resolve_terms_from_json( isset( $data['categories_json'] ) ? $data['categories_json'] : '', 'category' ), 'category', false );
+		$this->save_country( $result, $country );
+        if ( 'post' === $post_type ) {
+            wp_set_post_terms( $result, $this->resolve_terms_from_json( isset( $data['categories_json'] ) ? $data['categories_json'] : '', 'category' ), 'category', false );
 			wp_set_post_terms( $result, $this->resolve_terms_from_json( isset( $data['tags_json'] ) ? $data['tags_json'] : '', 'post_tag' ), 'post_tag', false );
 		}
 		return true;
@@ -1294,7 +1307,11 @@ final class TaxoCommerce_Import_Export_CSV {
 		$key    = sanitize_key( trim( $header ) );
 
 		$aliases = array(
-			'product_id'            => 'id',
+			'country'               => 'country_code',
+            'pais'                  => 'country_code',
+            'pais_origen'           => 'country_code',
+            '_seo_pais_origen'      => 'country_code',
+            'product_id'            => 'id',
 			'producto_id'           => 'id',
 			'post_id'               => 'id',
 			'titulo'                => 'name',
