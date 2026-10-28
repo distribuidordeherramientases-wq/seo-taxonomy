@@ -215,6 +215,7 @@ final class TaxoCommerce_Images_Background {
 		} finally {
 			wp_set_current_user( $previous_user );
 			TaxoCommerce_Images_Maintenance::unlock( 'background_worker' );
+			self::watchdog();
 		}
 	}
 
