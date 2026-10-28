@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.5
+Stable tag: 0.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,12 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.6 =
+* Added a throttled watchdog for active queues that have not advanced for 90 seconds; attempts a safe loopback re-dispatch from normal WordPress requests without an open admin tab.
+* Stored Unix heartbeat times independently of the dashboard timezone and exposed an explicit stalled-queue message.
+* File uploads must still be in the private import queue and explicitly started; no arbitrary server files are imported automatically.
+
 
 = 0.4.5 =
 * Add country_code to complete/reduced products, categories, posts and pages CSV exports.
