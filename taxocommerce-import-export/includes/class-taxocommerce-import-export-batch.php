@@ -223,11 +223,18 @@ final class TaxoCommerce_Import_Export_Batch {
 								<li style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0;">
 									<code><?php echo esc_html( basename( $path ) ); ?></code>
 									<?php if ( 'pending' === $bucket ) : ?>
+										<?php
+										$delete_label = sprintf(
+											/* translators: %s: exact CSV filename waiting in the import queue. */
+											__( 'Eliminar CSV pendiente %s', 'taxocommerce-import-export' ),
+											basename( $path )
+										);
+										?>
 										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return window.confirm('¿Eliminar este CSV pendiente? No se puede deshacer.');" style="display:inline;margin:0;">
 											<input type="hidden" name="action" value="taxocommerce_ie_batch_delete_pending">
 											<input type="hidden" name="pending_file" value="<?php echo esc_attr( basename( $path ) ); ?>">
 											<?php wp_nonce_field( 'taxocommerce_ie_batch_delete_pending_' . basename( $path ), 'taxocommerce_ie_batch_nonce' ); ?>
-											<button type="submit" class="button button-small button-link-delete" aria-label="<?php echo esc_attr( sprintf( __( 'Eliminar CSV pendiente %s', 'taxocommerce-import-export' ), basename( $path ) ) ); ?>"><?php esc_html_e( 'Eliminar', 'taxocommerce-import-export' ); ?></button>
+											<button type="submit" class="button button-small button-link-delete" aria-label="<?php echo esc_attr( $delete_label ); ?>"><?php esc_html_e( 'Eliminar', 'taxocommerce-import-export' ); ?></button>
 										</form>
 									<?php endif; ?>
 								</li>
