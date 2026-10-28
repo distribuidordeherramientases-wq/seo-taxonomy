@@ -14,6 +14,7 @@ function __( $v, $domain = '' ) { return $v; }
 $GLOBALS['post_meta'] = array( 1 => array( '_seo_pais_origen' => 'FR' ) );
 $GLOBALS['term_meta'] = array( 10 => array( '_seo_pais_origen' => 'DE' ) );
 function get_post_meta( $id, $key, $single = true ) { return $GLOBALS['post_meta'][ $id ][ $key ] ?? ''; }
+function metadata_exists( $type, $id, $key ) { return array_key_exists( $key, $GLOBALS['post_meta'][ $id ] ?? array() ); }
 function get_term_meta( $id, $key, $single = true ) { return $GLOBALS['term_meta'][ $id ][ $key ] ?? ''; }
 function update_post_meta( $id, $key, $value ) { $GLOBALS['post_meta'][ $id ][ $key ] = $value; }
 function update_term_meta( $id, $key, $value ) { $GLOBALS['term_meta'][ $id ][ $key ] = $value; }

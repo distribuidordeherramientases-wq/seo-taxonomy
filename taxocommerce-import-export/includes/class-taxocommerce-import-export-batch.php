@@ -175,6 +175,8 @@ final class TaxoCommerce_Import_Export_Batch {
 							echo esc_html( sprintf( __( '%s filas previstas por bloque; limitadas por tiempo y memoria.', 'taxocommerce-import-export' ), number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) ) );
 						?></td></tr>
 						<tr><th><?php esc_html_e( 'Rendimiento real', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( (float) ( $tc_ie_last['rows_per_second'] ?? 0 ), 2 ) . ' filas/s · ' . number_format_i18n( (float) ( $tc_ie_last['average_row_seconds'] ?? 0 ), 2 ) . ' s/fila · ' . number_format_i18n( (float) ( $tc_ie_last['db_queries_per_row'] ?? 0 ), 1 ) . ' consultas SQL/fila' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Guardados omitidos sin cambios', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $tc_ie_last['product_skipped_unchanged_save'] ?? 0 ) ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Consultas SQL por fase (lote)', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( absint( $tc_ie_last['product_lookup_sql'] ?? 0 ) . ' búsqueda · ' . absint( $tc_ie_last['product_save_sql'] ?? 0 ) . ' guardado · ' . absint( $tc_ie_last['product_meta_sql'] ?? 0 ) . ' metadatos' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -369,8 +371,10 @@ final class TaxoCommerce_Import_Export_Batch {
 
 
 	/**
-	 * Delete exactly one queued CSV before any importer starts processing it.
-	 * Rejects traversal, symlinks, other queue buckets and concurrent workers.
+	 * Delete exactly one CSV from the pending bucket, even while the worker
+	 * processes a different file. File claim and deletion share a short-lived
+	 * filesystem mutex; the 25-second product worker lock is NOT used.
+	 * Rejects traversal, symlinks and every other queue bucket.
 	 *
 	 * @param string $filename Exact basename in the pending directory.
 	 * @return true|WP_Error
@@ -387,9 +391,9 @@ final class TaxoCommerce_Import_Export_Batch {
 			return new WP_Error( 'tc_ie_delete_invalid', __( 'El nombre de archivo pendiente no es válido.', 'taxocommerce-import-export' ) );
 		}
 
-		$lock = $this->acquire_lock();
-		if ( '' === $lock ) {
-			return new WP_Error( 'tc_ie_delete_busy', __( 'Se está procesando otro bloque. Vuelve a intentar borrar este archivo cuando finalice.', 'taxocommerce-import-export' ) );
+		$lock = $this->acquire_pending_mutex();
+		if ( ! is_resource( $lock ) ) {
+			return new WP_Error( 'tc_ie_delete_busy', __( 'No se pudo obtener el bloqueo breve de archivos pendientes. Reintenta la operación.', 'taxocommerce-import-export' ) );
 		}
 
 		try {
@@ -425,7 +429,9 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$state = $this->state();
 			if ( ! empty( $state['enabled'] ) && empty( $state['current_file'] )
-				&& ! $this->files( $pending ) ) {
+				&& ! $this->files( $pending )
+				&& ! $this->files( $this->paths()['processing'] )
+				&& ! get_transient( self::LOCK_KEY ) ) {
 				$state['enabled'] = false;
 				$state['status'] = 'idle';
 				$state['message'] = __( 'Se ha eliminado el último CSV pendiente; la cola está vacía.', 'taxocommerce-import-export' );
@@ -433,7 +439,7 @@ final class TaxoCommerce_Import_Export_Batch {
 			}
 			return true;
 		} finally {
-			$this->release_lock( $lock );
+			$this->release_pending_mutex( $lock );
 		}
 	}
 
@@ -638,18 +644,29 @@ final class TaxoCommerce_Import_Export_Batch {
 	 * @return array|WP_Error
 	 */
 	private function start_next_file( $state ) {
-		$paths   = $this->paths();
-		$pending = $this->files( $paths['pending'] );
-		if ( empty( $pending ) ) {
+		$paths = $this->paths();
+		// Hold the pending mutex ONLY while selecting and moving the next CSV.
+		// Admin deletion may safely run while an unrelated CSV is processing.
+		$pending_lock = $this->acquire_pending_mutex();
+		if ( ! is_resource( $pending_lock ) ) {
 			$state['current_file'] = '';
+			$state['status'] = 'waiting_next';
 			return $state;
 		}
-
-		$source   = $pending[0];
-		$filename = basename( $source );
-		$target   = $this->unique_path( $paths['processing'], $filename );
-		if ( ! $this->move_file( $source, $target ) ) {
-			return new WP_Error( 'tc_ie_batch_move', __( 'No se pudo mover el siguiente CSV a processing.', 'taxocommerce-import-export' ) );
+		try {
+			$pending = $this->files( $paths['pending'] );
+			if ( empty( $pending ) ) {
+				$state['current_file'] = '';
+				return $state;
+			}
+			$source = $pending[0];
+			$filename = basename( $source );
+			$target = $this->unique_path( $paths['processing'], $filename );
+			if ( ! $this->move_file( $source, $target ) ) {
+				return new WP_Error( 'tc_ie_batch_move', __( 'No se pudo mover el siguiente CSV a processing.', 'taxocommerce-import-export' ) );
+			}
+		} finally {
+			$this->release_pending_mutex( $pending_lock );
 		}
 
 		$detected = $this->detect_importer( $target );
@@ -769,7 +786,21 @@ final class TaxoCommerce_Import_Export_Batch {
 		$slowest_row_seconds = 0.0;
 		$queries_start = isset( $GLOBALS['wpdb']->num_queries )
 			? absint( $GLOBALS['wpdb']->num_queries ) : null;
+		$phase_totals = array(
+			'lookup_seconds' => 0, 'lookup_sql' => 0,
+			'save_seconds' => 0, 'save_sql' => 0,
+			'meta_seconds' => 0, 'meta_sql' => 0,
+			'skipped_unchanged_save' => 0, 'saved' => 0,
+		);
+		// Defer taxonomy recounts for one product block and always flush.
+		$restore_term_counts = false;
+		if ( 'product' === $type && function_exists( 'wp_defer_term_counting' )
+			&& ! wp_defer_term_counting() ) {
+			wp_defer_term_counting( true );
+			$restore_term_counts = true;
+		}
 
+		try {
 		while ( $done < $limit && microtime( true ) < $deadline ) {
 			if ( ! empty( $this->state()['stop_requested'] ) ) {
 				break;
@@ -795,6 +826,12 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$row_started = microtime( true );
 			$result = call_user_func( $importers[ $type ]['import_row'], $data, array( 'file' => basename( $path ), 'type' => $type ) );
+			if ( 'product' === $type && method_exists( $this->csv, 'last_product_profile' ) ) {
+				$profile = $this->csv->last_product_profile();
+				foreach ( $phase_totals as $metric => $total ) {
+					$phase_totals[ $metric ] += (float) ( $profile[ $metric ] ?? 0 );
+				}
+			}
 			$row_seconds = microtime( true ) - $row_started;
 			$row_save_seconds += $row_seconds;
 			$slowest_row_seconds = max( $slowest_row_seconds, $row_seconds );
@@ -821,8 +858,16 @@ final class TaxoCommerce_Import_Export_Batch {
 				}
 			}
 		}
+		} finally {
+			if ( $restore_term_counts ) {
+				wp_defer_term_counting( false );
+			}
+		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		foreach ( $phase_totals as $metric => $amount ) {
+			$measure['product_' . $metric] = $amount;
+		}
 		$measure['row_save_seconds'] = $row_save_seconds;
 		$measure['slowest_row_seconds'] = $slowest_row_seconds;
 		$measure['db_queries'] = null !== $queries_start && isset( $GLOBALS['wpdb']->num_queries )
@@ -1287,6 +1332,14 @@ Deny from all
 			'row_save_seconds' => (float) ( $sample['row_save_seconds'] ?? 0 ),
 			'slowest_row_seconds' => (float) ( $sample['slowest_row_seconds'] ?? 0 ),
 			'db_queries_per_row' => (float) ( $sample['db_queries_per_row'] ?? 0 ),
+			'product_skipped_unchanged_save' => absint( $sample['product_skipped_unchanged_save'] ?? 0 ),
+			'product_saved' => absint( $sample['product_saved'] ?? 0 ),
+			'product_lookup_sql' => absint( $sample['product_lookup_sql'] ?? 0 ),
+			'product_save_sql' => absint( $sample['product_save_sql'] ?? 0 ),
+			'product_meta_sql' => absint( $sample['product_meta_sql'] ?? 0 ),
+			'product_lookup_seconds' => (float) ( $sample['product_lookup_seconds'] ?? 0 ),
+			'product_save_seconds' => (float) ( $sample['product_save_seconds'] ?? 0 ),
+			'product_meta_seconds' => (float) ( $sample['product_meta_seconds'] ?? 0 ),
 			'memory_percent' => (float) ( $sample['memory_percent'] ?? 0 ),
 			'cpu_percent' => (float) ( $sample['cpu_percent'] ?? 0 ),
 			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
@@ -1311,6 +1364,43 @@ Deny from all
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'taxocommerce_ie_batch_step' ),
 		) ) . ';', 'before' );
+	}
+
+	/**
+	 * Short, cross-request filesystem mutex for pending-file mutations.
+	 *
+	 * Unlike the main import worker lock, this lock is held only for a
+	 * directory read + rename or unlink; an active product block does not
+	 * prevent deleting an unrelated CSV that is still pending.
+	 *
+	 * @return resource|false
+	 */
+	private function acquire_pending_mutex() {
+		$pending = $this->paths()['pending'];
+		if ( ! $pending || ! is_dir( $pending ) ) {
+			return false;
+		}
+		$path = trailingslashit( $pending ) . '.pending-mutex.lock';
+		$handle = fopen( $path, 'c' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Cross-request local filesystem mutex.
+		if ( false === $handle ) {
+			return false;
+		}
+		for ( $attempt = 0; $attempt < 50; ++$attempt ) {
+			if ( flock( $handle, LOCK_EX | LOCK_NB ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_flock -- Atomic per-directory file lock.
+				return $handle;
+			}
+			usleep( 20000 );
+		}
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		return false;
+	}
+
+	/** @param resource $handle Held pending mutex. */
+	private function release_pending_mutex( $handle ) {
+		if ( is_resource( $handle ) ) {
+			flock( $handle, LOCK_UN ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_flock
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		}
 	}
 
 	/**

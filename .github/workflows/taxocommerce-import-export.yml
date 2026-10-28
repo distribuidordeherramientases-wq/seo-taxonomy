@@ -30,6 +30,8 @@ jobs:
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
       - name: Country CSV import/export smoke
         run: php taxocommerce-import-export/tests/country-csv-smoke.php
+      - name: Product no-op vs modified saving
+        run: php taxocommerce-import-export/tests/product-noop-smoke.php
       - name: Adaptive import regulator smoke
         run: php taxocommerce-import-export/tests/adaptive-import-smoke.php
 
@@ -73,7 +75,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.4.5
+          name: taxocommerce-import-export-0.4.7
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
