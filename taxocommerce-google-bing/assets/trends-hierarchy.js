@@ -1,16 +1,14 @@
 /* global URL, URLSearchParams */
 /**
- * On-demand, sequential Google Trends visual explorer.
- * Browser-side load management only: no server CPU measurements or scraping.
+ * Automatic, Spanish-only Google Trends comparisons.
+ * Sequential iframe navigation with five browser load speeds. No Google
+ * JSON scraping and no claim of a numeric growth analysis.
  */
 (function () {
     'use strict';
     const root = document.getElementById('tgb-hierarchy');
     if (!root) { return; }
 
-    const chart = root.querySelector('#tgb-h-chart');
-    const title = root.querySelector('#tgb-h-chart-title');
-    const link = root.querySelector('#tgb-h-explore');
     const period = root.querySelector('#tgb-h-period');
     const speed = root.querySelector('#tgb-h-speed');
     const speedLabel = root.querySelector('#tgb-h-speed-label');
@@ -21,16 +19,52 @@
     const pause = root.querySelector('#tgb-h-pause');
     const resume = root.querySelector('#tgb-h-resume');
     const stop = root.querySelector('#tgb-h-stop');
-
+    const detailChart = root.querySelector('#tgb-h-chart');
+    const detailTitle = root.querySelector('#tgb-h-chart-title');
+    const detailLink = root.querySelector('#tgb-h-explore');
+    const cards = Array.from(root.querySelectorAll('.tgb-h-compare-card'));
     const delays = {1: 15000, 2: 8000, 3: 4000, 4: 2000, 5: 1000};
+
     let queue = [];
-    let done = 0;
+    let completed = 0;
+    let total = 0;
     let running = false;
     let paused = false;
-    let timer = null;
+    let busy = false;
     let waitTimer = null;
+    let activeTimer = null;
+    let activeFrame = null;
+    let activeCard = null;
     let generation = 0;
-    let active = null;
+
+    function periodValue() {
+        const valid = ['today 1-m', 'today 3-m', 'today 12-m', 'today 5-y'];
+        return valid.includes(period.value) ? period.value : 'today 12-m';
+    }
+
+    function comparisonUrls(terms) {
+        const periodString = periodValue();
+        const config = terms.map(function (term) {
+            return {keyword: term, geo: 'ES', time: periodString};
+        });
+        const explore = new URL('https://trends.google.com/trends/explore');
+        explore.searchParams.set('geo', 'ES');
+        explore.searchParams.set('date', periodString);
+        explore.searchParams.set('q', terms.join(','));
+
+        const embed = new URL('https://trends.google.com/trends/embed/explore/TIMESERIES');
+        embed.searchParams.set('req', JSON.stringify({
+            comparisonItem: config, category: 0, property: ''
+        }));
+        embed.searchParams.set('tz', String(new Date().getTimezoneOffset()));
+        embed.searchParams.set('hl', 'es');
+        const eq = new URLSearchParams();
+        eq.set('geo', 'ES');
+        eq.set('date', periodString);
+        eq.set('q', terms.join(','));
+        embed.searchParams.set('eq', eq.toString());
+        return {explore: explore.toString(), embed: embed.toString()};
+    }
 
     function appendLog(message) {
         const entry = document.createElement('li');
@@ -44,190 +78,210 @@
         pause.disabled = !running || paused;
         resume.disabled = !running || !paused;
         stop.disabled = !running;
+        period.disabled = false; // A period change starts a fresh report.
         root.querySelectorAll('.tgb-h-check, .tgb-h-cat-check').forEach(function (button) {
             button.disabled = running;
         });
-        period.disabled = running;
     }
 
-    function periodValue() {
-        const allowed = ['today 1-m', 'today 3-m', 'today 12-m', 'today 5-y'];
-        return allowed.includes(period.value) ? period.value : 'today 12-m';
-    }
-
-    function urls(query) {
-        const config = {keyword: query, geo: 'ES', time: periodValue()};
-        const explore = new URL('https://trends.google.com/trends/explore');
-        explore.searchParams.set('geo', 'ES');
-        explore.searchParams.set('q', query);
-        explore.searchParams.set('date', config.time);
-
-        const embed = new URL('https://trends.google.com/trends/embed/explore/TIMESERIES');
-        embed.searchParams.set('req', JSON.stringify({
-            comparisonItem: [config],
-            category: 0,
-            property: ''
-        }));
-        embed.searchParams.set('tz', String(new Date().getTimezoneOffset()));
-        embed.searchParams.set('hl', 'es');
-        const eq = new URLSearchParams();
-        eq.set('q', query);
-        eq.set('geo', 'ES');
-        eq.set('date', config.time);
-        embed.searchParams.set('eq', eq.toString());
-        return {explore: explore.toString(), embed: embed.toString()};
-    }
-
-    function cancelActive() {
-        if (timer !== null) { clearTimeout(timer); timer = null; }
-        if (waitTimer !== null) { clearTimeout(waitTimer); waitTimer = null; }
+    function cancelInFlight() {
         generation += 1;
-        if (active) {
-            active.onload = null;
-            active.onerror = null;
-            active.removeAttribute('src');
-            active.remove();
-            active = null;
+        if (waitTimer !== null) { clearTimeout(waitTimer); waitTimer = null; }
+        if (activeTimer !== null) { clearTimeout(activeTimer); activeTimer = null; }
+        if (activeFrame) {
+            activeFrame.onload = null;
+            activeFrame.onerror = null;
+            activeFrame.removeAttribute('src');
+            activeFrame.remove();
+            activeFrame = null;
+        }
+        if (activeCard) {
+            const label = activeCard.querySelector('.tgb-h-compare-state');
+            if (label) { label.textContent = 'Interrumpido'; }
+            activeCard = null;
+        }
+        busy = false;
+    }
+
+    function cardTerms(card) {
+        try {
+            const parsed = JSON.parse(card.dataset.terms || '[]');
+            return Array.isArray(parsed)
+                ? parsed.filter(function (term) { return typeof term === 'string' && term.trim().length; }).slice(0, 5)
+                : [];
+        } catch (error) {
+            return [];
         }
     }
 
-    function show(query, label, onFinished) {
-        cancelActive();
-        const token = generation;
-        const dest = urls(query);
-        title.textContent = 'Interés de búsqueda: ' + label;
-        link.href = dest.explore;
-        link.hidden = false;
-        chart.replaceChildren();
+    function loadCard(card) {
+        const terms = cardTerms(card);
+        const target = card.querySelector('.tgb-h-compare-chart');
+        const label = card.querySelector('.tgb-h-compare-state');
+        const link = card.querySelector('.tgb-h-compare-link');
+        if (!target || !label || !terms.length) { return; }
 
+        const urls = comparisonUrls(terms);
+        link.href = urls.explore;
         const iframe = document.createElement('iframe');
-        iframe.title = 'Google Trends España: ' + label;
+        iframe.title = 'Google Trends España: ' + terms.join(', ');
         iframe.width = '100%';
         iframe.height = '440';
         iframe.loading = 'eager';
         iframe.referrerPolicy = 'strict-origin-when-cross-origin';
         iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation');
-        active = iframe;
-        chart.appendChild(iframe);
 
-        let fired = false;
-        function finish(outcome) {
-            if (fired || token !== generation) { return; }
-            fired = true;
-            if (timer !== null) { clearTimeout(timer); timer = null; }
-            if (onFinished) { onFinished(outcome); }
+        target.replaceChildren(iframe);
+        label.textContent = 'Solicitando gráfico a Google…';
+        activeCard = card;
+        activeFrame = iframe;
+        const token = generation;
+        let settled = false;
+
+        function settle(outcome) {
+            if (settled || token !== generation) { return; }
+            settled = true;
+            if (activeTimer !== null) { clearTimeout(activeTimer); activeTimer = null; }
+            iframe.onload = null;
+            iframe.onerror = null;
+            activeFrame = null;
+            activeCard = null;
+            busy = false;
+            completed += 1;
+            progress.value = Math.round(100 * completed / Math.max(1, total));
+            label.textContent = outcome === 'navegado'
+                ? 'Gráfico solicitado; comprueba los datos en Google'
+                : 'Google no ha confirmado la carga; utiliza el enlace oficial';
+            appendLog('Gráfico ' + completed + '/' + total + ' · ' + outcome + ' · ' + terms.join(' / '));
+            status.textContent = 'Gráficos solicitados: ' + completed + '/' + total;
+            if (running && !paused) { scheduleNext(); }
         }
+
         iframe.onload = function () {
-            // Cross-origin Google charts cannot be inspected. Load means only
-            // the iframe finished navigating, not that it showed trend data.
-            finish('solicitado');
+            // The event does not verify that the cross-origin chart has data.
+            settle('navegado');
         };
-        iframe.onerror = function () { finish('sin confirmar'); };
-        timer = setTimeout(function () { finish('sin confirmar'); }, 18000);
-        iframe.src = dest.embed;
+        iframe.onerror = function () { settle('sin confirmar'); };
+        activeTimer = setTimeout(function () { settle('sin confirmar'); }, 18000);
+        iframe.src = urls.embed;
     }
 
-    function badge(button, message) {
-        const node = button.closest('.tgb-h-node');
-        if (!node) { return; }
-        const badgeElement = node.querySelector('.tgb-h-status');
-        if (badgeElement) { badgeElement.textContent = message; }
-    }
-
-    function finishRun(message) {
-        running = false;
-        paused = false;
-        queue = [];
-        controls();
-        status.textContent = message;
-        appendLog(message);
+    function scheduleNext() {
+        if (!running || paused || busy) { return; }
+        if (!queue.length) {
+            running = false;
+            controls();
+            status.textContent = 'Informe visual solicitado: ' + completed + ' gráficos de ' + total + '. Verifica sus contenidos en Google.';
+            appendLog('Fin del informe automático. No se han calculado volúmenes ni crecimientos.');
+            return;
+        }
+        if (waitTimer !== null) { clearTimeout(waitTimer); }
+        waitTimer = setTimeout(function () { waitTimer = null; next(); },
+            delays[Number(speed.value)] || delays[2]);
     }
 
     function next() {
-        if (!running || paused) { return; }
+        if (!running || paused || busy) { return; }
         if (!queue.length) {
-            finishRun('Recorrido visual completado: ' + done + ' nodos solicitados. Sin medición numérica de crecimiento.');
+            scheduleNext();
             return;
         }
-        const item = queue.shift();
-        badge(item.button, 'Consultando…');
-        status.textContent = 'Solicitando ' + (done + 1) + ' de ' + (done + queue.length + 1) + ' · ' + item.label;
-        show(item.query, item.label, function (outcome) {
-            done += 1;
-            progress.value = Math.round(100 * done / Math.max(1, done + queue.length));
-            badge(item.button, outcome === 'solicitado' ? 'Gráfico solicitado' : 'Sin confirmar');
-            appendLog(item.kind + ' · ' + item.label + ' · ' + outcome + ' (sin datos numéricos)');
-            if (!running) { return; }
-            // Preserve a single iframe and enforce a pause before the next.
-            waitTimer = setTimeout(next, delays[Number(speed.value)] || delays[2]);
-        });
+        busy = true;
+        const card = queue.shift();
+        const heading = card.querySelector('h4');
+        status.textContent = 'Cargando ' + (completed + 1) + '/' + total + ': ' + (heading ? heading.textContent : 'Comparación');
+        loadCard(card);
     }
 
-    start.addEventListener('click', function () {
-        if (running) { return; }
-        cancelActive();
-        const seen = new Set();
-        queue = [];
-        root.querySelectorAll('.tgb-h-check').forEach(function (button) {
-            const kind = button.dataset.kind || '';
-            const id = button.dataset.id || '';
-            const query = button.dataset.query || '';
-            if (!query || seen.has(kind + ':' + id)) { return; }
-            seen.add(kind + ':' + id);
-            queue.push({button: button, kind: kind, label: query, query: query});
-            badge(button, 'En cola');
+    function startAutomatic() {
+        // Restarting a report must not leave timers or stale embedded charts.
+        cancelInFlight();
+        running = false;
+        paused = false;
+        cards.forEach(function (card) {
+            const graph = card.querySelector('.tgb-h-compare-chart');
+            if (graph) { graph.replaceChildren(); }
+            const state = card.querySelector('.tgb-h-compare-state');
+            if (state) { state.textContent = 'En cola'; }
         });
-        if (!queue.length) {
-            status.textContent = 'Sin clústeres o hubs disponibles.';
+        const single = detailChart.querySelector('iframe');
+        if (single) { single.remove(); }
+        queue = cards.filter(function (card) { return cardTerms(card).length > 0; });
+        completed = 0;
+        total = queue.length;
+        progress.value = 0;
+        if (!total) {
+            status.textContent = 'Sin clústeres ni hubs primarios españoles para comparar.';
+            controls();
             return;
         }
-        done = 0;
         running = true;
-        paused = false;
-        progress.value = 0;
         controls();
-        appendLog('Recorrido iniciado: ' + queue.length + ' nodos únicos; solo España; categorías excluidas.');
+        appendLog('Inicio automático: ' + total + ' gráficos · España · ' + period.options[period.selectedIndex].textContent + '.');
+        // First graph is immediate; following graphs use the selected speed.
         next();
-    });
+    }
 
+    start.addEventListener('click', startAutomatic);
+    period.addEventListener('change', startAutomatic);
+    speed.addEventListener('input', function () { speedLabel.textContent = speed.value; });
     pause.addEventListener('click', function () {
         if (!running || paused) { return; }
         paused = true;
         if (waitTimer !== null) { clearTimeout(waitTimer); waitTimer = null; }
-        status.textContent = 'En pausa; la visualización activa puede terminar de cargar.';
-        controls();
+        status.textContent = 'Pausado (' + completed + '/' + total + '); puede finalizar el gráfico en curso.';
         appendLog('Pausa solicitada.');
+        controls();
     });
-
     resume.addEventListener('click', function () {
         if (!running || !paused) { return; }
         paused = false;
+        appendLog('Reanudado.');
         controls();
-        appendLog('Proceso reanudado.');
-        waitTimer = setTimeout(next, delays[Number(speed.value)] || delays[2]);
+        if (!busy) { scheduleNext(); }
     });
-
     stop.addEventListener('click', function () {
         if (!running) { return; }
-        cancelActive();
-        finishRun('Detenido. ' + done + ' consultas visuales solicitadas. No se consultaron categorías.');
+        cancelInFlight();
+        running = false;
+        paused = false;
+        queue = [];
+        status.textContent = 'Detenido: ' + completed + '/' + total + ' gráficos solicitados.';
+        appendLog('Proceso detenido.');
+        controls();
     });
 
-    speed.addEventListener('input', function () {
-        speedLabel.textContent = speed.value;
-    });
+    // Secondary manual exploration preserves the previous hierarchy.
+    function singleQuery(name) {
+        if (running || !name) { return; }
+        const urls = comparisonUrls([name]);
+        detailTitle.textContent = 'Interés de búsqueda: ' + name;
+        detailLink.href = urls.explore;
+        detailLink.hidden = false;
+        detailChart.replaceChildren();
+        const iframe = document.createElement('iframe');
+        iframe.title = 'Google Trends España: ' + name;
+        iframe.width = '100%';
+        iframe.height = '440';
+        iframe.loading = 'lazy';
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation');
+        detailChart.appendChild(iframe);
+        iframe.src = urls.embed;
+        appendLog('Exploración manual: ' + name);
+    }
 
     root.querySelectorAll('.tgb-h-check').forEach(function (button) {
         button.addEventListener('click', function () {
             if (running) { return; }
             const name = button.dataset.query || '';
             if (!name) { return; }
-            badge(button, 'Gráfico solicitado');
-            appendLog('Consulta individual · ' + name);
-            show(name, name);
+            singleQuery(name);
+            const node = button.closest('.tgb-h-node');
+            const state = node ? node.querySelector('.tgb-h-status') : null;
+            if (state) { state.textContent = 'Gráfico solicitado'; }
         });
     });
-
     root.querySelectorAll('.tgb-h-cat-check').forEach(function (button) {
         button.addEventListener('click', function () {
             if (running) { return; }
@@ -237,11 +291,11 @@
                 status.textContent = 'Selecciona una categoría antes de consultar.';
                 return;
             }
-            const name = option.dataset.query || option.textContent;
-            appendLog('Categoría consultada manualmente · ' + name);
-            show(name, name);
+            singleQuery(option.dataset.query || option.textContent);
         });
     });
 
+    // The key behavior: no button press is required to obtain the charts.
     controls();
+    startAutomatic();
 }());
