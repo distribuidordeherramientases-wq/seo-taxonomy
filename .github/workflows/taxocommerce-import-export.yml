@@ -28,6 +28,11 @@ jobs:
 
       - name: Batch queue smoke
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
+      - name: Adaptive import regulator smoke
+        run: php taxocommerce-import-export/tests/adaptive-import-smoke.php
+
+      - name: Browser importer runner syntax
+        run: node --check taxocommerce-import-export/assets/batch-runner.js
 
       - name: Build distributable package
         run: |
@@ -61,7 +66,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.4.1
+          name: taxocommerce-import-export-0.4.2
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
