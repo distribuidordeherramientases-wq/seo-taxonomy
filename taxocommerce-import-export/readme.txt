@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.7
+Stable tag: 0.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -123,3 +123,8 @@ The package transports original image files plus title, ALT, caption, descriptio
 * Defers WordPress taxonomy recounts for each product block and flushes in a finally block; never disables WooCommerce hooks or product lookup synchronization.
 * Records actual lookup, save and metadata SQL queries/time per batch, including skipped unchanged saves, for diagnosing slow imports. x10 row-size targets remain but do not imply x10 throughput.
 * Adds filesystem regression for deletion during another worker, mutex races and queue stability, plus product no-op smoke.
+
+== 0.4.8 ==
+* The batch importer now displays a read-only progress bar for the CSV currently being processed, based on its saved byte offset and actual file size, with the bytes left and number of CSVs pending.
+* The progress bar updates on each existing AJAX response. No extra worker, extra row queries, cursor reset or import scheduling changes are introduced.
+* The UI distinguishes file bytes read from products actually created or updated. A byte-based estimate cannot guarantee that the processed-row counter is correct.

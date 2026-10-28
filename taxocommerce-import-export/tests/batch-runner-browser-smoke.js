@@ -10,11 +10,18 @@ async function run(sequence, expectedDelays) {
     const timers = [];
     const observed = [];
     const status = {textContent: ''};
+    const progressLabel = {textContent: ''};
+    const progressBar = {value:0, setAttribute(name,value) {this[name]=value;}};
     const window = {
         tcIeBatchRunner: {ajaxUrl:'https://example.test/wp-admin/admin-ajax.php',nonce:'testing'},
         setTimeout(fn, ms) {timers.push({fn,ms}); return timers.length;}
     };
-    const document = {getElementById(id) {return id === 'tc-ie-batch-live' ? status : null;}};
+    const document = {getElementById(id) {
+        if (id === 'tc-ie-batch-live') return status;
+        if (id === 'tc-ie-import-progress-text') return progressLabel;
+        if (id === 'tc-ie-import-progress-bar') return progressBar;
+        return null;
+    }};
     let requests = 0;
     const fetch = (url, options) => {
         requests++;
@@ -28,7 +35,10 @@ async function run(sequence, expectedDelays) {
             ok:true,
             json: () => Promise.resolve({success:true,data:{
                 enabled:row.enabled,busy:row.busy, status:row.enabled?'processing':'idle',
-                last_batch:10, next_batch:14, elapsed:0.2, rows_per_second:50
+                last_batch:10, next_batch:14, elapsed:0.2, rows_per_second:50,
+                pending_files:row.pending === undefined ? 2 : row.pending,
+                progress:row.progress || {available:true, bytes_read:80,bytes_total:100,
+                    bytes_remaining:20,percent:80}
             }})
         });
     };
@@ -44,6 +54,10 @@ async function run(sequence, expectedDelays) {
     assert.deepStrictEqual(observed,expectedDelays);
     assert.strictEqual(requests, expectedDelays.length);
     assert(status.textContent.includes('Siguiente lote: 14 filas'));
+    assert.strictEqual(progressBar.value, 80);
+    assert(progressLabel.textContent.includes('80.0%'), 'progress bar percent is visible');
+    assert(progressLabel.textContent.includes('20 bytes restantes'), 'remaining bytes shown');
+    assert(progressLabel.textContent.includes('CSV pendientes'), 'pending queue count shown');
 }
 (async ()=>{
     await run([
