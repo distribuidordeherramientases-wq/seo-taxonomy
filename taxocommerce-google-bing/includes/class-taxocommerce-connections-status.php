@@ -188,40 +188,93 @@ final class TaxoCommerce_Connections_Status {
 
     private static function verify( $id ) {
         $google = TaxoCommerce_Connections_Google_Bing::google_settings();
-        if ( 'gsc' === $id || 'ga4' === $id || 'merchant' === $id || 'oauth' === $id ) {
-            if ( 'oauth' === $id ) {
-                $properties = TaxoCommerce_Google_Bing_OAuth::properties( true );
-                return is_wp_error( $properties ) ? $properties : true;
+        if ( 'oauth' === $id ) {
+            $properties = TaxoCommerce_Google_Bing_OAuth::properties( true );
+            return is_wp_error( $properties ) ? $properties : true;
+        }
+        if ( 'gsc' === $id ) {
+            // Use the same credential/property combinations as the report downloader.
+            $oauth = TaxoCommerce_Google_Bing_OAuth::settings();
+            $legacy = get_option( 'seo_google_intelligence_settings', array() );
+            $legacy_site = is_array( $legacy ) ? trim( (string) ( $legacy['property_id'] ?? '' ) ) : '';
+            $oauth_site = trim( (string) ( $oauth['property_id'] ?? '' ) );
+            $service_site = trim( (string) ( $google['search_console_site_url'] ?? '' ) );
+            $candidates = array();
+            if ( '' !== $oauth_site ) { $candidates[] = array( 'oauth', $oauth_site ); }
+            if ( '' !== $legacy_site && $legacy_site !== $oauth_site ) { $candidates[] = array( 'oauth', $legacy_site ); }
+            if ( '' !== $legacy_site && function_exists( 'seo_google_get_access_token' ) ) {
+                $candidates[] = array( 'legacy_oauth', $legacy_site );
             }
-            $scope = 'merchant' === $id ? 'https://www.googleapis.com/auth/content'
-                : ( 'ga4' === $id ? 'https://www.googleapis.com/auth/analytics.readonly' : 'https://www.googleapis.com/auth/webmasters.readonly' );
+            if ( '' !== $service_site && ! empty( $google['service_account_json'] ) ) {
+                $candidates[] = array( 'service_account', $service_site );
+            }
+            if ( '' === $oauth_site && '' !== $service_site ) { $candidates[] = array( 'oauth', $service_site ); }
+            if ( '' === $service_site && '' !== $oauth_site && ! empty( $google['service_account_json'] ) ) {
+                $candidates[] = array( 'service_account', $oauth_site );
+            }
+            $tokens = array();
+            $last_error = new WP_Error( 'property_access_denied', 'No authorized Search Console property was found.' );
+            foreach ( $candidates as $candidate ) {
+                list( $method, $site ) = $candidate;
+                if ( ! array_key_exists( $method, $tokens ) ) {
+                    if ( 'oauth' === $method ) {
+                        $tokens[ $method ] = TaxoCommerce_Google_Bing_OAuth::access_token();
+                    } elseif ( 'legacy_oauth' === $method ) {
+                        $tokens[ $method ] = seo_google_get_access_token();
+                    } else {
+                        $tokens[ $method ] = TaxoCommerce_Google_Bing_Connections::access_token( 'https://www.googleapis.com/auth/webmasters.readonly' );
+                    }
+                }
+                $token = $tokens[ $method ];
+                if ( is_wp_error( $token ) ) { $last_error = $token; continue; }
+                if ( ! is_string( $token ) || '' === $token ) { continue; }
+                $url = 'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode( $site ) . '/searchAnalytics/query';
+                $response = wp_remote_post( $url, array(
+                    'timeout' => 20,
+                    'headers' => array( 'Accept' => 'application/json', 'Authorization' => 'Bearer ' . $token, 'Content-Type' => 'application/json' ),
+                    'body' => wp_json_encode( array( 'startDate' => gmdate( 'Y-m-d', strtotime( '-4 days' ) ), 'endDate' => gmdate( 'Y-m-d', strtotime( '-3 days' ) ), 'rowLimit' => 1 ) ),
+                ) );
+                if ( is_wp_error( $response ) ) { $last_error = $response; continue; }
+                $code = (int) wp_remote_retrieve_response_code( $response );
+                if ( $code >= 200 && $code < 300 ) {
+                    $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+                    if ( is_array( $data ) ) { return true; }
+                }
+                $last_error = new WP_Error( 'http_' . $code, 'Search Console rejected the selected credential/property combination.' );
+            }
+            return $last_error;
+        }
+        if ( 'ga4' === $id || 'merchant' === $id ) {
+            $scope = 'ga4' === $id ? 'https://www.googleapis.com/auth/analytics.readonly' : 'https://www.googleapis.com/auth/content';
             $service = (string) ( $google['service_account_json'] ?? '' );
-            if ( '' !== $service ) {
-                $token = TaxoCommerce_Google_Bing_Connections::access_token( $scope, true );
-            } elseif ( 'gsc' === $id ) {
-                $token = TaxoCommerce_Google_Bing_OAuth::access_token( true );
-            } else {
-                return new WP_Error( 'no_credentials', 'Credenciales no configuradas.' );
-            }
-            if ( is_wp_error( $token ) ) {
-                return $token;
-            }
-            if ( 'gsc' === $id ) {
-                $site = trim( (string) ( $google['search_console_site_url'] ?? '' ) );
-                if ( '' === $site ) {
-                    $o = TaxoCommerce_Google_Bing_OAuth::settings();
-                    $site = trim( (string) ( $o['property_id'] ?? '' ) );
-                }
-                $result = self::request( 'https://www.googleapis.com/webmasters/v3/sites', $token );
-                if ( is_wp_error( $result ) ) { return $result; }
-                foreach ( (array) ( $result['siteEntry'] ?? array() ) as $entry ) {
-                    if ( $site === (string) ( $entry['siteUrl'] ?? '' ) ) { return true; }
-                }
-                return new WP_Error( 'property_access_denied', 'La propiedad no está autorizada.' );
-            }
+            if ( '' === $service ) { return new WP_Error( 'no_credentials', 'Credenciales no configuradas.' ); }
+            $token = TaxoCommerce_Google_Bing_Connections::access_token( $scope, true );
+            if ( is_wp_error( $token ) ) { return $token; }
             if ( 'ga4' === $id ) {
-                $idnum = preg_replace( '/\D+/', '', (string) ( $google['analytics_property_id'] ?? '' ) );
-                return self::request( 'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $idnum ) . '/metadata', $token );
+                $idnum = preg_replace( '/\\D+/', '', (string) ( $google['analytics_property_id'] ?? '' ) );
+                $response = wp_remote_post(
+                    'https://analyticsdata.googleapis.com/v1beta/properties/' . rawurlencode( $idnum ) . ':runReport',
+                    array(
+                        'timeout' => 20,
+                        'headers' => array(
+                            'Authorization' => 'Bearer ' . $token,
+                            'Content-Type' => 'application/json',
+                            'Accept' => 'application/json',
+                        ),
+                        'body' => wp_json_encode( array(
+                            'dateRanges' => array( array( 'startDate' => '4daysAgo', 'endDate' => '3daysAgo' ) ),
+                            'metrics' => array( array( 'name' => 'sessions' ) ),
+                            'limit' => 1,
+                        ) ),
+                    )
+                );
+                if ( is_wp_error( $response ) ) { return $response; }
+                $code = (int) wp_remote_retrieve_response_code( $response );
+                if ( $code < 200 || $code >= 300 ) {
+                    return new WP_Error( 'http_' . $code, 'GA4 rejected the report request.' );
+                }
+                $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+                return is_array( $data ) ? true : new WP_Error( 'invalid_response', 'Invalid GA4 report response.' );
             }
             $merchant = TaxoCommerce_Connections_Google_Bing::merchant_account();
             return self::request( 'https://merchantapi.googleapis.com/accounts/v1/accounts/' . rawurlencode( $merchant ), $token );
