@@ -31,6 +31,9 @@ jobs:
       - name: Adaptive import regulator smoke
         run: php taxocommerce-import-export/tests/adaptive-import-smoke.php
 
+      - name: Pending CSV delete filesystem smoke
+        run: php taxocommerce-import-export/tests/delete-pending-smoke.php
+
       - name: Browser importer runner syntax
         run: node --check taxocommerce-import-export/assets/batch-runner.js
       - name: Browser importer immediate chaining smoke
@@ -68,7 +71,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.4.2
+          name: taxocommerce-import-export-0.4.3
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
