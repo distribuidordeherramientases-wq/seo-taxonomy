@@ -201,6 +201,9 @@
         cards.forEach(function (card) {
             const graph = card.querySelector('.tgb-h-compare-chart');
             if (graph) { graph.replaceChildren(); }
+            const terms = cardTerms(card);
+            const link = card.querySelector('.tgb-h-compare-link');
+            if (link && terms.length) { link.href = comparisonUrls(terms).explore; }
             const state = card.querySelector('.tgb-h-compare-state');
             if (state) { state.textContent = 'En cola'; }
         });
