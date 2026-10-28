@@ -169,6 +169,11 @@ final class TaxoCommerce_Import_Export_Batch {
 						<tr><th><?php esc_html_e( 'Tipo', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['entity'] ?? '—' ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Velocidad', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( TaxoCommerce_IE_Load::priority( 'import' ) . ' · ' . TaxoCommerce_IE_Load::labels()[ TaxoCommerce_IE_Load::priority( 'import' ) ] ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Último lote', 'taxocommerce-import-export' ); ?></th><td><?php $tc_ie_last = TaxoCommerce_IE_Load::last_sample( 'import' ); echo esc_html( absint( $tc_ie_last['items'] ?? 0 ) . ' filas · ' . number_format_i18n( (float) ( $tc_ie_last['elapsed'] ?? 0 ), 2 ) . ' s · siguiente lote ' . TaxoCommerce_IE_Load::batch_size( 'import' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Objetivo actual', 'taxocommerce-import-export' ); ?></th><td><?php
+							/* translators: %s: current target number of CSV rows in one import batch. */
+							echo esc_html( sprintf( __( '%s filas previstas por bloque; limitadas por tiempo y memoria.', 'taxocommerce-import-export' ), number_format_i18n( TaxoCommerce_IE_Load::batch_size( 'import' ) ) ) );
+						?></td></tr>
+						<tr><th><?php esc_html_e( 'Rendimiento real', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( (float) ( $tc_ie_last['rows_per_second'] ?? 0 ), 2 ) . ' filas/s · ' . number_format_i18n( (float) ( $tc_ie_last['average_row_seconds'] ?? 0 ), 2 ) . ' s/fila · ' . number_format_i18n( (float) ( $tc_ie_last['db_queries_per_row'] ?? 0 ), 1 ) . ' consultas SQL/fila' ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Filas procesadas', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['processed_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( number_format_i18n( absint( $state['error_rows'] ?? 0 ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Mensaje', 'taxocommerce-import-export' ); ?></th><td><?php echo esc_html( (string) ( $state['message'] ?? '' ) ); ?></td></tr>
@@ -734,11 +739,26 @@ final class TaxoCommerce_Import_Export_Batch {
 			fseek( $handle, $offset );
 		}
 
-		$limit    = min( TaxoCommerce_IE_Load::batch_size( 'import' ), max( 1, min( 250, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 200 ) ) ) ) );
-		$measure  = TaxoCommerce_IE_Load::begin();
-		$deadline = microtime( true ) + max( 2, min( 20, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 8 ) ) );
-		$done     = 0;
-		$eof      = false;
+		// Ten times the previous row limits. Preserve a finite execution
+		// window: PHP/WooCommerce still writes each product individually.
+		$limit = min(
+			TaxoCommerce_IE_Load::batch_size( 'import' ),
+			max( 1, min( 2500, absint( apply_filters( 'taxocommerce_import_export_batch_rows_per_tick', 2000 ) ) ) )
+		);
+		$runtime = max( 3, min( 30, (float) apply_filters( 'taxocommerce_import_export_batch_runtime_seconds', 25 ) ) );
+		$php_limit = (int) ini_get( 'max_execution_time' );
+		if ( $php_limit > 0 ) {
+			$runtime = min( $runtime, max( 2, $php_limit - 8 ) );
+		}
+		$measure = TaxoCommerce_IE_Load::begin();
+		$measure['budget'] = $runtime;
+		$deadline = microtime( true ) + $runtime;
+		$done = 0;
+		$eof = false;
+		$row_save_seconds = 0.0;
+		$slowest_row_seconds = 0.0;
+		$queries_start = isset( $GLOBALS['wpdb']->num_queries )
+			? absint( $GLOBALS['wpdb']->num_queries ) : null;
 
 		while ( $done < $limit && microtime( true ) < $deadline ) {
 			if ( ! empty( $this->state()['stop_requested'] ) ) {
@@ -763,7 +783,11 @@ final class TaxoCommerce_Import_Export_Batch {
 				continue;
 			}
 
+			$row_started = microtime( true );
 			$result = call_user_func( $importers[ $type ]['import_row'], $data, array( 'file' => basename( $path ), 'type' => $type ) );
+			$row_seconds = microtime( true ) - $row_started;
+			$row_save_seconds += $row_seconds;
+			$slowest_row_seconds = max( $slowest_row_seconds, $row_seconds );
 			$state['processed_rows'] = absint( $state['processed_rows'] ?? 0 ) + 1;
 			if ( is_wp_error( $result ) ) {
 				$state['error_rows'] = absint( $state['error_rows'] ?? 0 ) + 1;
@@ -779,9 +803,20 @@ final class TaxoCommerce_Import_Export_Batch {
 
 			$state['offset'] = ftell( $handle );
 			$done++;
+			// Stop a large batch early when PHP memory is under pressure.
+			if ( 0 === $done % 10 ) {
+				$memory_percent = TaxoCommerce_IE_Load::memory_percent();
+				if ( null !== $memory_percent && $memory_percent >= 80 ) {
+					break;
+				}
+			}
 		}
 
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$measure['row_save_seconds'] = $row_save_seconds;
+		$measure['slowest_row_seconds'] = $slowest_row_seconds;
+		$measure['db_queries'] = null !== $queries_start && isset( $GLOBALS['wpdb']->num_queries )
+			? max( 0, absint( $GLOBALS['wpdb']->num_queries ) - $queries_start ) : 0;
 		TaxoCommerce_IE_Load::finish( 'import', $measure, $done );
 		$state['updated_at'] = current_time( 'mysql' );
 
@@ -1197,9 +1232,16 @@ Deny from all
 			'errors'  => absint( $state['error_rows'] ?? 0 ),
 			'message' => sanitize_text_field( (string) ( $state['message'] ?? '' ) ),
 			'last_batch' => absint( $sample['items'] ?? 0 ),
+			'target_batch' => absint( $sample['batch'] ?? 0 ),
 			'next_batch' => TaxoCommerce_IE_Load::batch_size( 'import' ),
 			'elapsed' => (float) ( $sample['elapsed'] ?? 0 ),
 			'rows_per_second' => (float) ( $sample['rows_per_second'] ?? 0 ),
+			'average_row_seconds' => (float) ( $sample['average_row_seconds'] ?? 0 ),
+			'row_save_seconds' => (float) ( $sample['row_save_seconds'] ?? 0 ),
+			'slowest_row_seconds' => (float) ( $sample['slowest_row_seconds'] ?? 0 ),
+			'db_queries_per_row' => (float) ( $sample['db_queries_per_row'] ?? 0 ),
+			'memory_percent' => (float) ( $sample['memory_percent'] ?? 0 ),
+			'cpu_percent' => (float) ( $sample['cpu_percent'] ?? 0 ),
 			'reason' => sanitize_text_field( (string) ( $sample['reason'] ?? '' ) ),
 		) );
 	}

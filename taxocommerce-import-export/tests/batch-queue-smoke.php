@@ -8,10 +8,14 @@ $exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-expo
 $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.4.3" ) !== false,
+    strpos( $main, "Version: 0.4.5" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
     strpos( $main, "class-taxocommerce-ie-load.php" ) !== false,
     strpos( $batch, "TaxoCommerce_IE_Load::batch_size( 'import' )" ) !== false,
+    strpos( $batch, "taxocommerce_import_export_batch_rows_per_tick', 2000" ) !== false,
+    strpos( $batch, "taxocommerce_import_export_batch_runtime_seconds', 25" ) !== false,
+    strpos( $batch, "row_save_seconds" ) !== false,
+    strpos( $batch, "db_queries_per_row" ) !== false,
     strpos( $batch, "TaxoCommerce_IE_Load::delay( 'import' )" ) === false,
     strpos( $exporter, "TaxoCommerce_IE_Load::batch_size( 'export' )" ) !== false,
     strpos( $exporter, "tc-ie-export-priority" ) !== false,

@@ -18,7 +18,6 @@ final class TaxoCommerce_Images_Audit {
 	const STATE_OPTION = 'taxocommerce_images_audit_state';
 	const LOCK_OPTION  = 'taxocommerce_images_audit_lock';
 	const SCHEMA       = 3;
-	const BATCH_SIZE   = 75;
 	const FINDING_CAP  = 300;
 
 	/**
@@ -138,6 +137,8 @@ final class TaxoCommerce_Images_Audit {
 				'scanned' => absint( $state['scanned'] ?? 0 ),
 				'total' => absint( $state['total'] ?? 0 ),
 				'last_id' => absint( $state['last_id'] ?? 0 ),
+				'priority' => TaxoCommerce_Images_Load::priority( 'audit' ),
+				'load' => TaxoCommerce_Images_Load::last_sample( 'audit' ),
 				'paused' => false,
 			)
 		);
@@ -209,7 +210,8 @@ final class TaxoCommerce_Images_Audit {
 	}
 
 	/**
-	 * Scan at most BATCH_SIZE image IDs, without OFFSET pagination.
+	 * Audit images in adaptive, deadline-bounded batches without OFFSET pagination.
+	 * The existing cursor and findings remain unchanged when speed is adjusted.
 	 *
 	 * @return array
 	 */
@@ -225,6 +227,17 @@ final class TaxoCommerce_Images_Audit {
 
 		$last_id = absint( $state['last_id'] ?? 0 );
 		$max_id = absint( $state['max_id'] ?? 0 );
+		$priority = TaxoCommerce_Images_Load::priority( 'audit' );
+		$batch_size = TaxoCommerce_Images_Load::batch_size( 'audit' );
+		// Leave a margin for PHP's hard timeout when one is configured.
+		$budget = array( 1 => 3.0, 2 => 5.0, 3 => 8.0, 4 => 12.0, 5 => 18.0 )[ $priority ];
+		$php_limit = (int) ini_get( 'max_execution_time' );
+		if ( $php_limit > 0 ) {
+			$budget = min( $budget, max( 1.0, $php_limit - 5.0 ) );
+		}
+		$measure = TaxoCommerce_Images_Load::begin();
+		$measure['budget'] = $budget;
+		$deadline = microtime( true ) + $budget;
 		$ids = $max_id > $last_id
 			? (array) $wpdb->get_col(
 				$wpdb->prepare(
@@ -238,7 +251,7 @@ final class TaxoCommerce_Images_Audit {
 					$wpdb->esc_like( 'image/' ) . '%',
 					$last_id,
 					$max_id,
-					self::BATCH_SIZE
+					$batch_size
 				)
 			)
 			: array();
@@ -248,7 +261,17 @@ final class TaxoCommerce_Images_Audit {
 		foreach ( TaxoCommerce_Images_Thumbnails::disabled_sizes() as $disabled_size ) {
 			unset( $sizes[ $disabled_size ] );
 		}
+		$all_ids_processed = true;
+		$processed = 0;
 		foreach ( $ids as $id ) {
+			// Stop before the hard PHP timeout or when this request's memory
+			// grows too high. The next call continues from the saved ID.
+			$memory = TaxoCommerce_Images_Load::memory_percent();
+			if ( $processed > 0 && ( microtime( true ) >= $deadline
+				|| ( null !== $memory && $memory >= 80 ) ) ) {
+				$all_ids_processed = false;
+				break;
+			}
 			$id = absint( $id );
 			if ( $id <= $last_id ) {
 				continue;
@@ -256,10 +279,15 @@ final class TaxoCommerce_Images_Audit {
 			$this->audit_attachment( $id, $state, $settings, $sizes );
 			$state['last_id'] = $id;
 			++$state['scanned'];
+			++$processed;
 		}
+		TaxoCommerce_Images_Load::finish( 'audit', $measure, $processed );
 
 		$state['updated_at'] = current_time( 'mysql' );
-		if ( empty( $ids ) || count( $ids ) < self::BATCH_SIZE || absint( $state['last_id'] ) >= $max_id ) {
+		// A short SQL page is not EOF when a deadline stopped processing it
+		// early; no IDs may be skipped or the audit falsely completed.
+		if ( $all_ids_processed
+			&& ( empty( $ids ) || count( $ids ) < $batch_size || absint( $state['last_id'] ) >= $max_id ) ) {
 			$state['status'] = 'completed';
 			$state['completed_at'] = current_time( 'mysql' );
 		}
