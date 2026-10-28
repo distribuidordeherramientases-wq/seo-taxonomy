@@ -237,51 +237,51 @@ final class TCD_Original_Interprete {
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px;">
                     <?php if ($ling_running) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="pause">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button">Pausar formación</button>
                         </form>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual y no se procesarán más lotes hasta reanudar.');">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="stop">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button">Detener formación</button>
                         </form>
                     <?php elseif (in_array($ling_status, array('paused','error'), true)) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="resume">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button button-primary">Reanudar formación</button>
                         </form>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Detener la formación del Intérprete? Se conservará el progreso actual.');">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="stop">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button">Detener formación</button>
                         </form>
                     <?php elseif ('stopped' === $ling_status && $ling_has_started) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="resume">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button button-primary">Reanudar formación</button>
                         </form>
                     <?php elseif ('completed' !== $ling_status) : ?>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="start">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button button-primary">Iniciar formación Lingüista</button>
                         </form>
                     <?php endif; ?>
                     <?php if ('completed' === $ling_status) : ?>
                         <a class="button button-primary" href="<?php echo esc_url(TCD_Original_Linguista::export_url('course')); ?>">Descargar evolución completa JSON</a>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('¿Reentrenar Lingüista desde L1? La memoria aprendida no se borra; se vuelve a validar.');">
-                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                             <input type="hidden" name="command" value="restart_course">
-                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                             <button type="submit" class="button">Reentrenar desde L1</button>
                         </form>
                     <?php endif; ?>
@@ -306,10 +306,10 @@ final class TCD_Original_Interprete {
                                     <?php endif; ?>
                                     <?php if (!$ling_running && in_array($row_status, array('completed','paused','error','pending'), true)) : ?>
                                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" onsubmit="return confirm('<?php echo 'pending' === $row_status ? '¿Iniciar esta lección conservando todo lo aprendido anteriormente?' : '¿Reentrenar desde esta lección? Los resultados posteriores se invalidarán, pero no se borrará la memoria lingüística ya aprendida.'; ?>');" style="margin:0;">
-                                            <input type="hidden" name="action" value="seo_dependiente_linguista_control">
+                                            <input type="hidden" name="action" value="tcd_original_linguista_control">
                                             <input type="hidden" name="command" value="retrain_from">
                                             <input type="hidden" name="lesson_key" value="<?php echo esc_attr((string) ($row['key'] ?? '')); ?>">
-                                            <?php wp_nonce_field('seo_dependiente_linguista_control'); ?>
+                                            <?php wp_nonce_field('tcd_original_linguista_control'); ?>
                                             <button type="submit" class="button button-small"><?php echo 'pending' === $row_status ? 'Iniciar esta lección' : 'Reentrenar desde aquí'; ?></button>
                                         </form>
                                     <?php elseif ('completed' !== $row_status) : ?>—<?php endif; ?>
