@@ -184,7 +184,11 @@ final class TaxoCommerce_Google_Bing_Trends {
         );
         echo '<div class="tgb-trends">';
         echo '<h2>Google Trends</h2>';
-        echo '<p>Explore search interest in Spain for the selected terms and period. <strong>Click “Search trends” to display the charts below.</strong></p>';
+        echo '<p>Consulta las tendencias de clústeres y hubs españoles. Las categorías se consultan únicamente bajo demanda.</p>';
+        if ( class_exists( 'TaxoCommerce_Google_Bing_Trends_Hierarchy' ) ) {
+            TaxoCommerce_Google_Bing_Trends_Hierarchy::render();
+        }
+        echo '<details class="tgb-trends-manual"><summary><strong>Búsqueda manual de términos</strong></summary>';
 
         echo '<section class="tgb-trends-query">';
         echo '<form id="tgb-trends-search-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
@@ -226,6 +230,7 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '<strong>No results for this query yet.</strong>';
         echo '<p>Enter terms and choose a period, then click “Search trends”. No automatic query is made when opening this tab.</p>';
         echo '</div>';
+        echo '</details>';
 
         echo '<p class="description tgb-trends-api"><strong>Source: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Embedded charts show relative interest indexes (0–100), not absolute volumes or store visits. Google may limit embedding for some charts. The <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">official API for downloadable series</a> remains in restricted alpha access.</p>';
         echo '<style>
