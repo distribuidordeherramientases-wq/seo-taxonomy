@@ -3165,6 +3165,9 @@ final class TCD_Intelligence {
             if ( ! $all_ids ) {
                 return new WP_Error( 'tcd_interpreter_no_sources', 'M11 no encuentra fuentes L9 aprendidas.' );
             }
+            // Read the sizeable active memory counters once per run; do not
+            // repeat six COUNT queries on every short M11 validation batch.
+            $memory_stats = TCD_Knowledge_Transfer::stats();
             $sample = self::representative_sample(
                 array_map( static function ( $id ) { return array( 'id'=>absint( $id ) ); }, $all_ids ),
                 180
@@ -3174,6 +3177,8 @@ final class TCD_Intelligence {
                 'l9_snapshot_id'=>$snapshot_id,
                 'sample_method'=>'distributed_deterministic',
                 'population'=>count( $all_ids ),
+                'rules'=>absint( $memory_stats['portable_rules'] ?? 0 ),
+                'l9_memory'=>absint( $memory_stats['l9_memory'] ?? 0 ),
                 'ids'=>array_values( array_map( static function ( $row ) { return absint( $row['id'] ); }, $sample ) ),
                 'cursor'=>0,
                 'passed'=>0,
@@ -3244,7 +3249,6 @@ final class TCD_Intelligence {
         $tested = $cursor;
         $passed = absint( $progress['passed'] ?? 0 );
         $ratio = $tested ? $passed / $tested : 0;
-        $stats = TCD_Knowledge_Transfer::stats();
         $done = $cursor >= $total;
         $state = array(
             'status'=>$done ? ( $ratio >= 0.88 ? 'ready' : 'degraded' ) : 'building',
@@ -3258,8 +3262,8 @@ final class TCD_Intelligence {
             'top3'=>absint( $progress['top3'] ?? 0 ),
             'pass_any_ratio'=>$ratio,
             'threshold'=>0.88,
-            'rules'=>absint( $stats['portable_rules'] ?? 0 ),
-            'l9_memory'=>absint( $stats['l9_memory'] ?? 0 ),
+            'rules'=>absint( $progress['rules'] ?? 0 ),
+            'l9_memory'=>absint( $progress['l9_memory'] ?? 0 ),
             'version'=>TAXOCOMMERCE_DEPENDIENTE_VERSION,
             'evaluator_revision'=>self::INTERPRETER_EVALUATOR_REVISION,
             'l9_snapshot_id'=>$snapshot_id,
