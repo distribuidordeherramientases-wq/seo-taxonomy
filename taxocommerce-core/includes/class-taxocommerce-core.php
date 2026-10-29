@@ -1218,9 +1218,9 @@ final class TaxoCommerce_Core {
 					<p><?php esc_html_e( 'Gestiona cada plugin independiente desde su tarjeta.', 'taxocommerce-core' ); ?></p>
 				</div>
 				<div class="tcc-extensions__summary">
-					<span><?php echo esc_html( sprintf( __( '%d activas', 'taxocommerce-core' ), $active_count ) ); ?></span>
-					<span><?php echo esc_html( sprintf( __( '%d inactivas', 'taxocommerce-core' ), $inactive_count ) ); ?></span>
-					<span><?php echo esc_html( sprintf( __( '%d no instaladas', 'taxocommerce-core' ), $available_count ) ); ?></span>
+					<span><?php echo esc_html( sprintf( /* translators: %d: número de extensiones activas. */ __( '%d activas', 'taxocommerce-core' ), $active_count ) ); ?></span>
+					<span><?php echo esc_html( sprintf( /* translators: %d: número de extensiones inactivas. */ __( '%d inactivas', 'taxocommerce-core' ), $inactive_count ) ); ?></span>
+					<span><?php echo esc_html( sprintf( /* translators: %d: número de extensiones no instaladas. */ __( '%d no instaladas', 'taxocommerce-core' ), $available_count ) ); ?></span>
 				</div>
 			</div>
 
