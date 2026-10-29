@@ -76,6 +76,7 @@ function seo_data_get_tables(): array
     global $wpdb;
 
     $pattern = $wpdb->esc_like($wpdb->prefix . 'seo_') . '%';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $names = $wpdb->get_col(
         $wpdb->prepare('SHOW TABLES LIKE %s', $pattern)
     );
@@ -93,6 +94,7 @@ function seo_data_get_tables(): array
             continue;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $status = $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, ENGINE, TABLE_COLLATION
@@ -303,11 +305,13 @@ function seo_data_render_explorer(array $tables): void
         $count_sql = $wpdb->prepare($count_sql, $where_args);
     }
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers are validated against detected table/column allowlists before this query.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $total_items = (int) $wpdb->get_var($count_sql);
 
     $query_sql = "SELECT * FROM `{$table_name}`{$where_sql} ORDER BY `{$orderby}` {$order} LIMIT %d OFFSET %d";
     $query_args = array_merge($where_args, [$per_page, $offset]);
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers/order are allowlisted; filter values, limit and offset are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $rows = $wpdb->get_results($wpdb->prepare($query_sql, $query_args), ARRAY_A);
 
     echo '<div class="seo-data-panel">';
@@ -473,6 +477,7 @@ function seo_data_get_columns(string $table_name): array
     }
 
     $table_name = esc_sql( $table_name );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $columns = $wpdb->get_results($wpdb->prepare('DESCRIBE %i', $table_name), ARRAY_A);
     return is_array($columns) ? $columns : [];
 }
@@ -661,6 +666,7 @@ function seo_data_export_table_sql(): void
 function seo_data_table_exists(string $table): bool
 {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
 }
 
@@ -800,6 +806,7 @@ function seo_data_write_table_csv(string $table_name, $handle): void
     $offset = 0;
 
     do {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM %i LIMIT %d OFFSET %d',
@@ -831,6 +838,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
     }
     $table_name = esc_sql( $table_name );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $create = $wpdb->get_row($wpdb->prepare('SHOW CREATE TABLE %i', $table_name), ARRAY_N);
     if (!$create || empty($create[1])) {
         return;
@@ -851,6 +859,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
     $offset = 0;
 
     do {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM %i LIMIT %d OFFSET %d',
