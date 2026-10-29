@@ -180,8 +180,38 @@ final class TaxoCommerce_Core_Menu {
 				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
-			<form method="get" style="display:flex;gap:10px;align-items:center;margin:15px 0;flex-wrap:wrap"><input type="hidden" name="page" value="taxocommerce-core-menu"><label for="tc-menu-country"><strong>País del menú</strong></label><select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select><button class="button">Seleccionar menú</button></form>
-            <p><strong><?php echo esc_html__( 'Menú de WordPress:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( self::menu_name( $country ) ); ?></p>
+            <?php
+            $menu_name = self::menu_name( $country );
+            $countries = TaxoCommerce_Core_Country::countries();
+            $country_label = isset( $countries[ $country ] ) ? $countries[ $country ] : $country;
+            $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
+            ?>
+            <form method="get" class="tc-menu-country-picker" data-tc-menu-country-form>
+                <input type="hidden" name="page" value="taxocommerce-core-menu">
+                <label for="tc-menu-country"><strong><?php esc_html_e( 'País del menú', 'taxocommerce-core' ); ?></strong></label>
+                <select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select>
+                <button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
+            </form>
+            <section class="tc-menu-identity" aria-labelledby="tc-menu-identity-title">
+                <p class="tc-menu-identity__label"><?php esc_html_e( 'MENÚ QUE ESTÁS EDITANDO O CREANDO', 'taxocommerce-core' ); ?></p>
+                <h2 id="tc-menu-identity-title"><?php echo esc_html( $menu_name ); ?></h2>
+                <p><strong><?php esc_html_e( 'País:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( $country_label . ' (' . $country . ')' ); ?></p>
+                <p><strong><?php esc_html_e( 'Identificador para llamar al menú desde una plantilla:', 'taxocommerce-core' ); ?></strong>
+                    <code><?php echo esc_html( "'menu' => '" . $menu_name . "'" ); ?></code>
+                </p>
+                <?php if ( $menu_id ) : ?>
+                    <p><strong><?php esc_html_e( 'ID del menú en WordPress:', 'taxocommerce-core' ); ?></strong> <code><?php echo esc_html( (string) absint( $menu_id ) ); ?></code>
+                    <?php if ( $native_menu && ! is_wp_error( $native_menu ) && (string) $native_menu->name !== $menu_name ) : ?>
+                        <span class="tc-menu-identity__notice"><?php echo esc_html( sprintf(
+                            /* translators: %s: current legacy WordPress menu name. */
+                            __( '(Nombre actual en WordPress: %s; se actualizará al sincronizar.)', 'taxocommerce-core' ),
+                            $native_menu->name
+                        ) ); ?></span>
+                    <?php endif; ?></p>
+                <?php else : ?>
+                    <p class="tc-menu-identity__notice"><?php esc_html_e( 'Este menú todavía no existe. Se creará con este nombre al sincronizar la propuesta.', 'taxocommerce-core' ); ?></p>
+                <?php endif; ?>
+            </section>
             <?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
 			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
 
