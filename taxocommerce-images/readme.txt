@@ -54,6 +54,14 @@ Current functionality includes:
 * No FTP or production deployment is implied by the GitHub change.
 
 
+= 0.2.10 =
+* Media audit in Images > Anomalías has a dedicated five-speed adaptive load regulator, independent from assignment, labels and cleanup jobs.
+* Automatically sizes batches from 25 to 1200 attachments depending on the selected speed and observed time, request-local CPU and memory pressure; no longer fixed at 75.
+* The audit keeps its scan cursor and existing findings when the administrator changes speed. No attachments are modified or removed.
+* With the audit tab open, a sequential AJAX continuation processes the next batch immediately. Pause and resume controls apply to this browser tab; the manual Next batch action remains available.
+* Live progress shows processed images, last batch size and duration, next batch goal, throughput and PHP load. Host-wide CPU is not estimated by the PHP worker.
+* Existing per-attachment anomaly checks remain unchanged.
+
 = 0.2.9 =
 * Changed unused/duplicate analysis and labels/attributes review into full-library jobs that continue automatically until the complete Media snapshot is scanned.
 * Kept adaptive 1-5 CPU/memory regulation as an internal batching mechanism only; batch size no longer reads as the scope of the report.
@@ -121,11 +129,3 @@ Current functionality includes:
 
 = 0.1.0 =
 * Initial modular pilot.
-
-== 0.2.10 ==
-* Media audit in Images > Anomalías has a dedicated five-speed adaptive load regulator, independent from assignment, labels and cleanup jobs.
-* Automatically sizes batches from 25 to 1200 attachments depending on the selected speed and observed time, request-local CPU and memory pressure; no longer fixed at 75.
-* The audit keeps its scan cursor and existing findings when the administrator changes speed. No attachments are modified or removed.
-* With the audit tab open, a sequential AJAX continuation processes the next batch immediately. Pause and resume controls apply to this browser tab; the manual Next batch action remains available.
-* Live progress shows processed images, last batch size and duration, next batch goal, throughput and PHP load. Host-wide CPU is not estimated by the PHP worker.
-* Existing per-attachment anomaly checks remain unchanged.
