@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: PHP syntax check (Images only)
         run: find taxocommerce-images -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Validate read-only user and developer manual
+        run: php taxocommerce-images/tests/manual-smoke.php
       - name: Ensure standalone package has no monolith includes
         run: |
           ! grep -R -nE 'require(_once)? .*seo-taxonomy|include(_once)? .*seo-taxonomy|SEO_SYSTEM_PATH|SEO_SYSTEM_URL|seo_images_[a-zA-Z0-9_]+\\(' taxocommerce-images --include='*.php'
