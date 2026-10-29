@@ -63,6 +63,7 @@ final class TaxoCommerce_Database {
         }
         $base = admin_url( 'admin.php?page=taxocommerce-database' );
         echo '<div class="wrap"><h1>TaxoCommerce Database</h1>';
+        echo '<style>.tcdb-flat-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:2px;max-width:100%;scrollbar-width:thin}.tcdb-flat-tabs .nav-tab{flex:0 0 auto;margin-left:0}@media(max-width:782px){.tcdb-flat-tabs{padding-bottom:4px}.tcdb-flat-tabs .nav-tab{font-size:13px;padding:9px 11px}}</style>';
         echo '<nav class="nav-tab-wrapper tcdb-flat-tabs" aria-label="Herramientas de base de datos">';
         foreach ( $tabs as $key => $tab ) {
             $url = add_query_arg( array( 'tcdb_screen' => $tab[1], $tab[2] => $tab[3] ), $base );
