@@ -2,21 +2,21 @@
 if (!defined('ABSPATH')) { exit; }
 if (!defined('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION')) define('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION','1.0.0');
 
-function seo_google_growth_tokens($text) {
+function taxocommerce_google_bing_growth_tokens($text) {
     $n=function_exists('seo_google_trends_normalize')?seo_google_trends_normalize($text):sanitize_title($text);
     $stop=array('de','del','la','las','el','los','para','y','en','con','sin','profesional','profesionales','industrial','industriales');
     return array_values(array_filter(explode(' ',$n),fn($t)=>strlen($t)>2&&!in_array($t,$stop,true)));
 }
-function seo_google_growth_similarity($a,$b) {
-    $ta=seo_google_growth_tokens($a); $tb=seo_google_growth_tokens($b); if(!$ta||!$tb)return 0;
+function taxocommerce_google_bing_growth_similarity($a,$b) {
+    $ta=taxocommerce_google_bing_growth_tokens($a); $tb=taxocommerce_google_bing_growth_tokens($b); if(!$ta||!$tb)return 0;
     $i=count(array_intersect($ta,$tb)); return $i/max(1,min(count($ta),count($tb)));
 }
-function seo_google_growth_trends_match($label,array $market) {
+function taxocommerce_google_bing_growth_trends_match($label,array $market) {
     $best=null;$bestSim=0;
-    foreach($market as $m){$sim=seo_google_growth_similarity($label,$m['query']); foreach((array)$m['seeds'] as $seed)$sim=max($sim,seo_google_growth_similarity($label,$seed)*0.92); if($sim>$bestSim){$bestSim=$sim;$best=$m;}}
+    foreach($market as $m){$sim=taxocommerce_google_bing_growth_similarity($label,$m['query']); foreach((array)$m['seeds'] as $seed)$sim=max($sim,taxocommerce_google_bing_growth_similarity($label,$seed)*0.92); if($sim>$bestSim){$bestSim=$sim;$best=$m;}}
     if($bestSim<0.45)return null; $best['similarity']=$bestSim; return $best;
 }
-function seo_google_growth_action($item,$trend) {
+function taxocommerce_google_bing_growth_action($item,$trend) {
     $strategy=$item['strategy']['primary']??'VALIDAR'; $products=(int)($item['products']??0); $position=(float)($item['position']??0);
     $marketScore=$trend?(float)$trend['score']:0; $scScore=(float)($item['score']??0);
     $catalogGap = $products<=0?90:($products<=5?80:($products<=15?60:($products<=50?35:15)));
@@ -36,7 +36,7 @@ function seo_google_growth_action($item,$trend) {
 function seo_google_growth_get_guidance($days=60,$limit=40) {
     $settings=function_exists('seo_google_get_settings')?seo_google_get_settings():array(); if(empty($settings['property_id'])||!function_exists('seo_google_demand_get_catalog_guidance'))return array();
     $base=seo_google_demand_get_catalog_guidance($settings['property_id'],$days,2,max(50,$limit)); $market=function_exists('seo_google_trends_market_summary')?seo_google_trends_market_summary(500):array();
-    $rows=array(); foreach((array)($base['items']??array()) as $item){ if(($item['catalog_relevance']??'catalog')==='corporate')continue; $trend=seo_google_growth_trends_match($item['label'],$market); $decision=seo_google_growth_action($item,$trend); $rows[]=array('item'=>$item,'trend'=>$trend,'decision'=>$decision); }
+    $rows=array(); foreach((array)($base['items']??array()) as $item){ if(($item['catalog_relevance']??'catalog')==='corporate')continue; $trend=taxocommerce_google_bing_growth_trends_match($item['label'],$market); $decision=taxocommerce_google_bing_growth_action($item,$trend); $rows[]=array('item'=>$item,'trend'=>$trend,'decision'=>$decision); }
     // Trends signals that do not match current guidance become discovery candidates.
     foreach($market as $m){$matched=false;foreach($rows as $r){if($r['trend']&&$r['trend']['query']===$m['query']){$matched=true;break;}}if($matched)continue; if($m['score']<55)continue; $rows[]=array('item'=>array('kind'=>'Mercado','label'=>$m['query'],'score'=>20,'strategy'=>array('primary'=>'NUEVA_FAMILIA'),'products'=>0,'position'=>0,'dimension_labels'=>array(),'evidence'=>array()),'trend'=>$m,'decision'=>array('priority'=>(int)min(88,35+$m['score']*0.55),'action'=>'DESCUBRIMIENTO: COMPARAR CON CATÁLOGO','confidence'=>$m['score']>=75?'MEDIA-ALTA':'MEDIA','catalog_gap'=>95,'seo_need'=>40,'market_score'=>(int)$m['score'],'search_score'=>0));}
     usort($rows,fn($a,$b)=>$b['decision']['priority']<=>$a['decision']['priority']); return array_slice($rows,0,max(10,min(100,$limit)));
