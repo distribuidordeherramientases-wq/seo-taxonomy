@@ -70,6 +70,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	public static function save_google() {
 		self::guard( 'taxocommerce_connections_save_google' );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() verifies action nonce and capability.
 		$old = self::google_settings();
 
 		$measurement = isset( $_POST['measurement_id'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['measurement_id'] ) ) ) : '';
@@ -77,8 +78,9 @@ final class TaxoCommerce_Connections_Google_Bing {
 			self::redirect( 'google_invalid' );
 		}
 
-		$property = isset( $_POST['analytics_property_id'] ) ? preg_replace( '/[^0-9]/', '', (string) wp_unslash( $_POST['analytics_property_id'] ) ) : '';
+		$property = isset( $_POST['analytics_property_id'] ) ? preg_replace( '/[^0-9]/', '', sanitize_text_field( wp_unslash( $_POST['analytics_property_id'] ) ) ) : '';
 		$site = isset( $_POST['search_console_site_url'] ) ? sanitize_text_field( wp_unslash( $_POST['search_console_site_url'] ) ) : '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Preserve PEM newlines; JSON structure validated before storage.
 		$json = isset( $_POST['service_account_json'] ) ? trim( (string) wp_unslash( $_POST['service_account_json'] ) ) : '';
 
 		if ( '' === $json ) {
@@ -101,6 +103,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 			),
 			false
 		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		self::redirect( 'google_saved' );
 	}
 
@@ -125,11 +128,13 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	public static function save_merchant() {
 		self::guard( 'taxocommerce_connections_save_merchant' );
-		$id = isset( $_POST['merchant_account'] ) ? preg_replace( '/[^0-9]/', '', (string) wp_unslash( $_POST['merchant_account'] ) ) : '';
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() verifies action nonce and capability.
+		$id = isset( $_POST['merchant_account'] ) ? preg_replace( '/[^0-9]/', '', sanitize_text_field( wp_unslash( $_POST['merchant_account'] ) ) ) : '';
 		if ( '' !== $id && ! preg_match( '/^[0-9]{5,20}$/', $id ) ) {
 			self::redirect( 'merchant_invalid' );
 		}
 		update_option( self::MERCHANT_ACCOUNT_OPTION, $id, false );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		self::redirect( 'merchant_saved' );
 	}
 
@@ -153,6 +158,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	public static function save_bing() {
 		self::guard( 'taxocommerce_connections_save_bing' );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() verifies action nonce and capability.
 		$old = self::bing_settings();
 		$key = (string) ( $old['api_key'] ?? '' );
 
@@ -178,6 +184,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 			),
 			false
 		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		self::redirect( 'bing_saved' );
 	}
 

@@ -17,5 +17,5 @@ $checks = array(
  'active analysis blocks' => strpos($guide,'once informes')!==false,
  'responsive styles' => strpos($css,'@media(max-width:600px)')!==false,
 );
-foreach ($checks as $label=>$ok) { if (!$ok) {fwrite(STDERR,'FAIL: '.$label.PHP_EOL);exit(1);} }
+foreach ($checks as $label=>$ok) { if (!$ok) {print( 'FAIL: '.$label.PHP_EOL);exit(1);} }
 echo "Insights User Guide smoke passed.\n";

@@ -87,9 +87,10 @@ final class TaxoCommerce_Google_Bing_User_Guide {
             wp_die( esc_html__( 'No tienes permisos para consultar esta documentación.', 'taxocommerce-google-bing' ) );
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Changes only the visible manual.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- GET selects read-only manual content; no state changes.
         $requested = isset( $_GET['tgb_manual'] ) && is_string( $_GET['tgb_manual'] )
             ? sanitize_key( wp_unslash( $_GET['tgb_manual'] ) ) : 'user';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $technical = 'technical' === $requested;
         $manual = $technical ? 'technical' : 'user';
         $prefix = $technical ? 'tgb-tech-' : 'tgb-user-';

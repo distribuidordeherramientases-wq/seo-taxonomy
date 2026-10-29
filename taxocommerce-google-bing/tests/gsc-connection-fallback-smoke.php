@@ -21,7 +21,7 @@ class WP_Error {
     }
 }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
-function sanitize_text_field( $value ) { return strip_tags( (string) $value ); }
+function sanitize_text_field( $value ) { return preg_replace( '/<[^>]*>/', '', (string) $value ); }
 function wp_json_encode( $value ) { return json_encode( $value ); }
 function wp_remote_retrieve_response_code( $value ) { return (int) $value['code']; }
 function wp_remote_retrieve_body( $value ) { return (string) $value['body']; }
@@ -74,7 +74,7 @@ function wp_remote_post( $url, $arguments ) {
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-gsc.php';
 function gsc_assert( $condition, $message ) {
     if ( ! $condition ) {
-        fwrite( STDERR, 'FAILED GSC credential regression: ' . $message . PHP_EOL );
+        print( 'FAILED GSC credential regression: ' . $message . PHP_EOL );
         exit( 1 );
     }
 }

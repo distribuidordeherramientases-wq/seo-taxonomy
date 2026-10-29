@@ -14,7 +14,7 @@ class WP_Error {
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function wp_timezone() { return new DateTimeZone( 'Europe/Madrid' ); }
 function wp_unslash( $value ) { return $value; }
-function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+function sanitize_text_field( $value ) { return trim( preg_replace( '/<[^>]*>/', '', (string) $value ) ); }
 function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); }
 function get_current_blog_id() { return 1; }
 function get_current_user_id() { return 1; }
@@ -33,7 +33,10 @@ function esc_url( $value ) { return esc_html( $value ); }
 function number_format_i18n( $number, $precision = 0 ) {
     return number_format( (float) $number, $precision, ',', '.' );
 }
-function wp_parse_url( $url, $part = -1 ) { return parse_url( $url, $part ); }
+function wp_parse_url( $url, $part = -1 ) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Standalone CLI mock of wp_parse_url(), not plugin runtime.
+    return parse_url( $url, $part );
+}
 function wp_remote_get() { throw new RuntimeException( 'Unexpected HTTP GET on report render' ); }
 function wp_remote_post() { throw new RuntimeException( 'Unexpected HTTP POST on report render' ); }
 
@@ -45,7 +48,7 @@ foreach ( array( 'analytics', 'search', 'bing' ) as $source ) {
     TaxoCommerce_Google_Bing_Reports::render( $source );
     $html = ob_get_clean();
     if ( false === strpos( $html, 'Actualizar datos' ) || false === strpos( $html, 'No hay datos guardados todavía' ) ) {
-        fwrite( STDERR, 'Unexpected empty state: ' . $source . "\n" );
+        print( 'Unexpected empty state: ' . $source . "\n" );
         exit( 1 );
     }
 }
@@ -59,7 +62,7 @@ ob_start();
 TaxoCommerce_Google_Bing_Reports::render( 'search' );
 $html = ob_get_clean();
 if ( false === strpos( $html, '01/09/2026' ) || false === strpos( $html, '25/08/2026' ) ) {
-    fwrite( STDERR, "Custom date range comparison failed\n" );
+    print( "Custom date range comparison failed\n" );
     exit( 1 );
 }
 
@@ -92,14 +95,14 @@ ob_start();
 TaxoCommerce_Google_Bing_Reports::render( 'bing' );
 $html = ob_get_clean();
 if ( false === strpos( $html, 'latest available snapshot' ) || false === strpos( $html, '01/08/2026' ) || false === strpos( $html, 'Export JSON copy' ) ) {
-    fwrite( STDERR, "Saved snapshot rendering failed\n" );
+    print( "Saved snapshot rendering failed\n" );
     exit( 1 );
 }
 $reports_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-reports.php' );
 if ( false === strpos( $reports_source, 'array_chunk( $requests, 5 )' )
     || false === strpos( $reports_source, 'array( \'requests\' => $request_chunk )' )
     || false === strpos( $reports_source, "'funnel' => array(" ) ) {
-    fwrite( STDERR, "GA4 batching/funnel regression guard failed\n" );
+    print( "GA4 batching/funnel regression guard failed\n" );
     exit( 1 );
 }
 // The Analytics summary may contain at most ten metrics per GA4 request.
@@ -107,12 +110,12 @@ if ( false === strpos( $reports_source, 'count( $current_reports ) < 9' )
     || false === strpos( $reports_source, 'self::ga4_summary( $current_reports[0], $current_reports[8] )' )
     || false === strpos( $reports_source, "array( 'name' => 'ecommercePurchases' )" )
     || false !== strpos( $reports_source, 'row_metric( $row, 10 )' ) ) {
-    fwrite( STDERR, "GA4 report shape regression failed\n" );
+    print( "GA4 report shape regression failed\n" );
     exit( 1 );
 }
 $gsc_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-google-bing-gsc.php' );
 if ( false === strpos( $gsc_source, 'Una conexión GA4 correcta no concede permisos de Search Console.' ) ) {
-    fwrite( STDERR, "GSC permissions guidance regression failed\n" );
+    print( "GSC permissions guidance regression failed\n" );
     exit( 1 );
 }
 echo "Report rendering smoke test: OK (no network requests, GA4 batches capped at five)\n";

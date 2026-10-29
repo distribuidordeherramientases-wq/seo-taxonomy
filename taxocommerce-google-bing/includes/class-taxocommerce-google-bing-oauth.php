@@ -221,6 +221,8 @@ final class TaxoCommerce_Google_Bing_OAuth {
         self::guard( 'tgb_google_oauth_save' );
         $settings = self::settings();
 
+        // The admin-post guard verifies capability and the action nonce before processing POST values.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked by self::guard() above.
         $client_id = isset( $_POST['client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) ) : '';
         $client_secret = isset( $_POST['client_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['client_secret'] ) ) : '';
         if ( '' !== $client_id ) {
@@ -235,6 +237,7 @@ final class TaxoCommerce_Google_Bing_OAuth {
 
         // Preserve the historical sync_frequency value. This connection-only plugin does not schedule synchronization.
         self::update_option( self::SETTINGS_OPTION, $settings );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'oauth_saved' );
     }
 
@@ -262,8 +265,17 @@ final class TaxoCommerce_Google_Bing_OAuth {
             'https://accounts.google.com/o/oauth2/v2/auth'
         );
 
-        wp_redirect( esc_url_raw( $url ) );
+        // Google is the only external redirect host permitted for this OAuth flow.
+        add_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_google_oauth_host' ) );
+        wp_safe_redirect( esc_url_raw( $url ), 302, 'TaxoCommerce Insights' );
+        remove_filter( 'allowed_redirect_hosts', array( __CLASS__, 'allow_google_oauth_host' ) );
         exit;
+    }
+
+    /** Safelist only the exact Google OAuth authorization endpoint host. */
+    public static function allow_google_oauth_host( $hosts ) {
+        $hosts[] = 'accounts.google.com';
+        return array_values( array_unique( $hosts ) );
     }
 
     public static function callback() {

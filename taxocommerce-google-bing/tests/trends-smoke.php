@@ -8,7 +8,7 @@ class WP_Error {
     public function get_error_message() { return $this->message; }
 }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
-function sanitize_text_field( $v ) { return trim( strip_tags( (string) $v ) ); }
+function sanitize_text_field( $v ) { return trim( preg_replace( '/<[^>]*>/', '', (string) $v ) ); }
 function get_option( $key, $fallback = array() ) { return $fallback; }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
@@ -32,7 +32,7 @@ foreach ( array( 'ES', 'DE', 'FR', 'NL', 'US' ) as $geo ) {
     TaxoCommerce_Google_Bing_Trends::render();
     $output = ob_get_clean();
     if ( false === strpos( $output, 'Search trends' ) || false === strpos( $output, 'tgb-trends-results' ) || false !== strpos( $output, 'Trending search' ) || false !== strpos( $output, 'Worldwide' ) || false === strpos( $output, 'name="explore_geo" value="ES"' ) ) {
-        fwrite( STDERR, "Trends tab failed: $geo\n" );
+        print( "Trends tab failed: $geo\n" );
         exit( 1 );
     }
 }
@@ -40,17 +40,17 @@ $rss = '<?xml version="1.0"?><rss xmlns:ht="https://trends.google.com/trending/r
 $parsed = TaxoCommerce_Google_Bing_Trends::parse_rss( $rss );
 if ( function_exists( 'simplexml_load_string' ) ) {
     if ( is_wp_error( $parsed ) || count( $parsed ) !== 1 || $parsed[0]['title'] !== 'taladros' || $parsed[0]['traffic_label'] !== '2K+' ) {
-        fwrite( STDERR, "Google Trends RSS parser failed\n" );
+        print( "Google Trends RSS parser failed\n" );
         exit( 1 );
     }
 } elseif ( ! is_wp_error( $parsed ) ) {
-    fwrite( STDERR, "Missing SimpleXML should return an error\n" );
+    print( "Missing SimpleXML should return an error\n" );
     exit( 1 );
 }
 $terms = TaxoCommerce_Google_Bing_Trends::parse_terms( "taladros a batería\namoladoras\ntaladros a batería" );
-if ( is_wp_error( $terms ) || count( $terms ) !== 2 ) { fwrite( STDERR, "Terms parsing failed\n" ); exit( 1 ); }
+if ( is_wp_error( $terms ) || count( $terms ) !== 2 ) { print( "Terms parsing failed\n" ); exit( 1 ); }
 $link = TaxoCommerce_Google_Bing_Trends::explore_link( $terms, '', 'today 12-m' );
-if ( strpos( $link, 'geo=ES' ) === false || strpos( $link, 'trends/explore' ) === false ) { fwrite( STDERR, "Spain-only explore failed\n" ); exit( 1 ); }
+if ( strpos( $link, 'geo=ES' ) === false || strpos( $link, 'trends/explore' ) === false ) { print( "Spain-only explore failed\n" ); exit( 1 ); }
 $over = TaxoCommerce_Google_Bing_Trends::parse_terms( "a,b,c,d,e,f" );
-if ( ! is_wp_error( $over ) ) { fwrite( STDERR, "Limit failed\n" ); exit( 1 ); }
+if ( ! is_wp_error( $over ) ) { print( "Limit failed\n" ); exit( 1 ); }
 echo "Trends smoke: OK - no remote call on rendering\n";

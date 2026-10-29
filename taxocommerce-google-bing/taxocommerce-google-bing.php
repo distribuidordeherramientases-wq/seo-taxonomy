@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.9
+ * Version: 1.1.10
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.9' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.10' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -186,8 +186,10 @@ function taxocommerce_google_bing_screen() {
  * The original admin_enqueue_scripts guard only targets seo-reports/analista.
  */
 function taxocommerce_google_bing_analysis_assets() {
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Admin asset selection is read-only.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
     $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
     if ( 'taxocommerce-google-bing' !== $page || 'analysis' !== $tab ) return;
     if ( ! function_exists( 'seo_analista_lazy_reports' ) || ! defined( 'SEO_SYSTEM_URL' ) ) return;
     $version = defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : TAXOCOMMERCE_GOOGLE_BING_VERSION;
@@ -212,9 +214,11 @@ function taxocommerce_google_bing_analysis_screen() {
         return;
     }
 
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only reporting-period selector.
     $days = isset( $_GET['analysis_days'] )
         ? absint( wp_unslash( $_GET['analysis_days'] ) )
         : 28;
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
     $days = in_array( $days, array( 28, 60, 90 ), true ) ? $days : 28;
 
     // Use the original CSS and AJAX client (the same renderer, same reports).

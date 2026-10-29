@@ -321,6 +321,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
     public static function save_google() {
         self::guard( 'tgb_save_google' );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() checked nonce and capability above.
         $current = self::google_settings();
 
         $site = isset( $_POST['search_console_site_url'] ) ? sanitize_text_field( wp_unslash( $_POST['search_console_site_url'] ) ) : '';
@@ -363,6 +364,7 @@ final class TaxoCommerce_Google_Bing_Connections {
             false
         );
 
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'google_saved', 'success' );
     }
 
@@ -441,6 +443,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
     public static function save_merchant() {
         self::guard( 'tgb_save_merchant' );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() checked nonce and capability above.
 
         $account = isset( $_POST['merchant_account'] )
             ? sanitize_text_field( wp_unslash( $_POST['merchant_account'] ) )
@@ -451,6 +454,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         }
 
         update_option( self::MERCHANT_ACCOUNT_OPTION, $account, false );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'merchant_saved', 'success' );
     }
 
@@ -502,6 +506,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
     public static function save_google_python() {
         self::guard( 'tgb_google_python_save' );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() checked nonce and capability above.
 
         $current = self::python_settings();
         $project = isset( $_POST['project_id'] ) ? sanitize_text_field( wp_unslash( $_POST['project_id'] ) ) : '';
@@ -536,6 +541,7 @@ final class TaxoCommerce_Google_Bing_Connections {
             false
         );
 
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'google_python_saved', 'success' );
     }
 
@@ -587,6 +593,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
     public static function save_bing() {
         self::guard( 'tgb_save_bing' );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() checked nonce and capability above.
         $current = self::bing_settings();
 
         $key = (string) $current['api_key'];
@@ -610,6 +617,7 @@ final class TaxoCommerce_Google_Bing_Connections {
             false
         );
 
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'bing_saved', 'success' );
     }
 
@@ -773,6 +781,7 @@ final class TaxoCommerce_Google_Bing_Connections {
 
     public static function save_market_providers() {
         self::guard( 'tgb_save_market_providers' );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- self::guard() checked nonce and capability above.
         foreach ( array( 'youtube', 'serpapi' ) as $provider ) {
             $option = 'tgb_market_' . $provider . '_key';
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above with self::guard().
@@ -787,6 +796,7 @@ final class TaxoCommerce_Google_Bing_Connections {
                 update_option( $option, $raw, false );
             }
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect( 'market_providers_saved', 'success' );
     }
 
