@@ -39,8 +39,9 @@ test_assert($report['totals']['pass']===0,'No accidental pass');
 $fake=array('write_uat'=>$cases['write_uat'],'missing'=>array('write','Unimplemented'));
 $report=TCD_Auto_Test::run_suite('all',$fake);
 test_assert($report['totals']['fail']===1 && $report['totals']['skip']===1,'Failure isolation and missing tests');
+$GLOBALS['quality_report']=array('status'=>'passed','evaluated'=>2,'pass_top1'=>5,'pass_top3'=>5,'pass_top8'=>5,'failed'=>0,'pass_any_ratio'=>0.9,'threshold'=>0.8);
 $report=TCD_Auto_Test::run_suite('quality',array('quality_l2'=>$cases['quality_l2'],'write_uat'=>$cases['write_uat']));
-test_assert($report['totals']['not_run']===1 && $report['totals']['fail']===1,'Group filtering, caught missing class');
+test_assert($report['totals']['not_run']===1 && $report['totals']['fail']===1,'Group filtering and detection of inconsistent quality metrics');
 // A failed examination is NOT a regression if its report is well-formed.
 $GLOBALS['quality_report']=array(
 	'status'=>'failed', 'evaluated'=>100, 'pass_top1'=>20, 'pass_top3'=>55,
