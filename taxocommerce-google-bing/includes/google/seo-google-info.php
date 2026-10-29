@@ -52,27 +52,27 @@ const SEO_GOOGLE_ROW_LIMIT              = 25000;
 const SEO_GOOGLE_MAX_ROWS_PER_DAY       = 50000;
 
 // Analisis separado de demanda vs. catalogo para mantener este archivo estable.
-$seo_google_demand_catalog_file = __DIR__ . '/seo-google-demand-catalog.php';
-if (file_exists($seo_google_demand_catalog_file)) {
-    require_once $seo_google_demand_catalog_file;
+$taxocommerce_google_bing_demand_catalog_file = __DIR__ . '/seo-google-demand-catalog.php';
+if (file_exists($taxocommerce_google_bing_demand_catalog_file)) {
+    require_once $taxocommerce_google_bing_demand_catalog_file;
 }
 
 // Mercado externo mediante Google Trends (datos importados/exportados).
-$seo_google_trends_file = __DIR__ . '/seo-google-trends.php';
-if (file_exists($seo_google_trends_file)) {
-    require_once $seo_google_trends_file;
+$taxocommerce_google_bing_trends_file = __DIR__ . '/seo-google-trends.php';
+if (file_exists($taxocommerce_google_bing_trends_file)) {
+    require_once $taxocommerce_google_bing_trends_file;
 }
 
 // Motor central: demanda externa -> cobertura interna -> decisiones.
-$seo_google_opportunity_engine_file = __DIR__ . '/seo-google-opportunity-engine.php';
-if (file_exists($seo_google_opportunity_engine_file)) {
-    require_once $seo_google_opportunity_engine_file;
+$taxocommerce_google_bing_opportunity_engine_file = __DIR__ . '/seo-google-opportunity-engine.php';
+if (file_exists($taxocommerce_google_bing_opportunity_engine_file)) {
+    require_once $taxocommerce_google_bing_opportunity_engine_file;
 }
 
 // Informe final legacy que cruza mercado, Search Console y catalogo.
-$seo_google_growth_guidance_file = __DIR__ . '/seo-google-growth-guidance.php';
-if (file_exists($seo_google_growth_guidance_file)) {
-    require_once $seo_google_growth_guidance_file;
+$taxocommerce_google_bing_growth_guidance_file = __DIR__ . '/seo-google-growth-guidance.php';
+if (file_exists($taxocommerce_google_bing_growth_guidance_file)) {
+    require_once $taxocommerce_google_bing_growth_guidance_file;
 }
 
 add_action('admin_post_seo_google_save_settings', 'seo_google_save_settings_handler');
@@ -1206,8 +1206,8 @@ function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows
  * WordPress o MySQL queda dentro de un búfer y no contamina el JSON.
  */
 function seo_google_ajax_begin() {
-    $GLOBALS['seo_google_ajax_active']   = true;
-    $GLOBALS['seo_google_ajax_ob_level'] = ob_get_level();
+    $GLOBALS['taxocommerce_google_bing_ajax_active']   = true;
+    $GLOBALS['taxocommerce_google_bing_ajax_ob_level'] = ob_get_level();
 
     if (function_exists('nocache_headers')) {
         nocache_headers();
@@ -1221,8 +1221,8 @@ function seo_google_ajax_begin() {
  * Limpia únicamente los búferes abiertos por el módulo.
  */
 function seo_google_ajax_clean_buffers() {
-    $base_level = isset($GLOBALS['seo_google_ajax_ob_level'])
-        ? (int) $GLOBALS['seo_google_ajax_ob_level']
+    $base_level = isset($GLOBALS['taxocommerce_google_bing_ajax_ob_level'])
+        ? (int) $GLOBALS['taxocommerce_google_bing_ajax_ob_level']
         : 0;
 
     while (ob_get_level() > $base_level) {
@@ -1234,7 +1234,7 @@ function seo_google_ajax_clean_buffers() {
  * Convierte un error fatal en JSON para evitar "Unexpected token <".
  */
 function seo_google_ajax_shutdown() {
-    if (empty($GLOBALS['seo_google_ajax_active'])) {
+    if (empty($GLOBALS['taxocommerce_google_bing_ajax_active'])) {
         return;
     }
 
@@ -1245,7 +1245,7 @@ function seo_google_ajax_shutdown() {
         return;
     }
 
-    $GLOBALS['seo_google_ajax_active'] = false;
+    $GLOBALS['taxocommerce_google_bing_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
 
     if (function_exists('seo_system_private_log')) {
@@ -1281,7 +1281,7 @@ function seo_google_ajax_shutdown() {
  * Envía JSON correcto descartando cualquier salida previa.
  */
 function seo_google_ajax_success($data = null, $status_code = null) {
-    $GLOBALS['seo_google_ajax_active'] = false;
+    $GLOBALS['taxocommerce_google_bing_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
     wp_send_json_success($data, $status_code);
 }
@@ -1290,7 +1290,7 @@ function seo_google_ajax_success($data = null, $status_code = null) {
  * Envía un error JSON correcto descartando cualquier salida previa.
  */
 function seo_google_ajax_error($data = null, $status_code = null) {
-    $GLOBALS['seo_google_ajax_active'] = false;
+    $GLOBALS['taxocommerce_google_bing_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
     wp_send_json_error($data, $status_code);
 }
