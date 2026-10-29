@@ -802,7 +802,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'taxonomy' => 'product_cat', 'hide_empty' => false,
             'search' => $query, 'orderby' => 'name', 'number' => 50,
         ) );
-        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( wp_unslash( $_GET['tc_country'] ) ) : 'ES';
+        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) ) : 'ES';
         $map = self::map( 'hub_secondary_to_category', $country );
         $taken = array();
         foreach ( $map as $parent => $items ) {
