@@ -1,6 +1,11 @@
 name: TaxoCommerce FAQs package and deployment
 
 on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-faqs/**'
+      - '.github/workflows/taxocommerce-faqs.yml'
   push:
     branches: [staging]
     paths:
@@ -26,10 +31,21 @@ jobs:
           test -f taxocommerce-faqs/uninstall.php
           find taxocommerce-faqs -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php taxocommerce-faqs/tests/admin-hook-smoke.php
+          php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-faqs/tests/lifecycle-smoke.php
           php taxocommerce-faqs/tests/lifecycle-smoke.php --cold-uninstall
-      - name: Build ZIP
-        run: zip -qr taxocommerce-faqs.zip taxocommerce-faqs
+      - name: Build ZIP (runtime only)
+        run: |
+          set -euo pipefail
+          rm -rf build/taxocommerce-faqs
+          mkdir -p build/taxocommerce-faqs
+          rsync -a --exclude='tests/' --exclude='.*' --exclude='*.md' --exclude='*.bak' taxocommerce-faqs/ build/taxocommerce-faqs/
+          test -f build/taxocommerce-faqs/taxocommerce-faqs.php
+          test -f build/taxocommerce-faqs/includes/class-taxocommerce-faqs-auto-test.php
+          test ! -e build/taxocommerce-faqs/tests
+          if find build/taxocommerce-faqs -name '.*' -print -quit | grep -q .; then echo 'Hidden files in FAQ ZIP'; exit 1; fi
+          ( cd build && zip -qr ../taxocommerce-faqs.zip taxocommerce-faqs )
+          unzip -t taxocommerce-faqs.zip
       - uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-faqs-${{ github.sha }}
@@ -52,3 +68,11 @@ jobs:
           server-dir: ./wp-content/plugins/taxocommerce-faqs/
           dry-run: false
           log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
