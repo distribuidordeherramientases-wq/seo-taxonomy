@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Logistics
  * Description: WooCommerce shipping weight, dimensions, and delivery-cost management.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.3' );
+define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.4' );
 define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_LOGISTICA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_LOGISTICA_URL', plugin_dir_url( __FILE__ ) );
@@ -27,8 +27,21 @@ TaxoCommerce_Logistica_User_Guide::register();
 function taxocommerce_logistica_register_menu() {
     $capability = class_exists( 'WooCommerce' ) ? 'manage_woocommerce' : 'manage_options';
 
-    // This plugin must not register the legacy monolith slug "seo-logistica".
-    // That page belongs to TaxoCommerce SEO's order/supplier view.
+    // Core owns the family sidebar. Preserve this plugin's unique page slug
+    // and callback; the SEO monolith keeps its separate legacy order screen.
+    if ( function_exists( 'taxocommerce_core' ) ) {
+        add_submenu_page(
+            'taxocommerce-core',
+            'TaxoCommerce Logistics',
+            'Logistics',
+            $capability,
+            'taxocommerce-logistica',
+            array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' )
+        );
+        return;
+    }
+
+    // Standalone fallback when the family Core plugin is not active.
     add_menu_page(
         'TaxoCommerce Logistics',
         'TaxoCommerce Logistics',
