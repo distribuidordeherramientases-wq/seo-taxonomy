@@ -642,6 +642,7 @@ final class TaxoCommerce_Core_Content_Manager {
             // Preserve compatibility with pre-0.4.6 forms.
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
             $category_ids = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] )
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified the form nonce.
                 ? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) ) : $product->get_category_ids();
             $tag_ids = $product->get_tag_ids();
         }
@@ -815,6 +816,7 @@ final class TaxoCommerce_Core_Content_Manager {
                 // Backward compatibility for earlier Core editor submissions.
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
                 if ( isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ) {
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified the form nonce.
                     $ids = array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['category_ids'] ) ) ) ) );
                     wp_set_post_categories( $item_id, $ids, false );
                 }
