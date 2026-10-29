@@ -26,6 +26,22 @@ jobs:
       - name: Validate Core FTPS cleanup Python syntax
         run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
 
+      - name: Validate Core readme and plugin version before production packaging
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          main_file = Path("taxocommerce-core/taxocommerce-core.php").read_text(encoding="utf-8")
+          readme = Path("taxocommerce-core/readme.txt").read_text(encoding="utf-8")
+          main_version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main_file)
+          stable_tag = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
+          if not main_version or not stable_tag or main_version.group(1) != stable_tag.group(1):
+              raise SystemExit("Core version and readme Stable tag differ; stop before production upload.")
+          print("Core plugin and readme version verified:", main_version.group(1))
+          PY
+
       - name: Subir TaxoCommerce SEO antiguo a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -182,6 +198,12 @@ jobs:
                  "$module/node_modules/*" \
                  "$module/*.bak"
 
+            if [ "$module" = "taxocommerce-core" ]; then
+              # Core's WordPress.org readme must not be left behind on the server.
+              zip -q "$package" "$module/readme.txt"
+              unzip -Z1 "$package" | grep -Fx "$module/readme.txt" >/dev/null
+            fi
+
             unzip -t "$package" >/dev/null
             unzip -Z1 "$package" | grep -Fx "$module/$module.php" >/dev/null
 
@@ -308,6 +330,12 @@ jobs:
                 -x 'node_modules/*' \
                 -x '*.bak'
             )
+
+            if [ "$module" = "taxocommerce-core" ]; then
+              # The delta installer updates existing files; ship the current readme too.
+              ( cd "$module" && zip -q "$package" readme.txt )
+              unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
+            fi
 
             echo "Subiendo un único paquete temporal para $module..."
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF

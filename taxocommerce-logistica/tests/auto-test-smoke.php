@@ -16,6 +16,10 @@ function add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $call
     $GLOBALS['test_menu'][] = array( 'slug' => $menu_slug, 'title' => $menu_title, 'capability' => $capability, 'callback' => $callback );
     return 'toplevel_page_' . $menu_slug;
 }
+function add_submenu_page( $parent, $page_title, $menu_title, $capability, $menu_slug, $callback ) {
+    $GLOBALS['test_submenu'][] = array( 'parent' => $parent, 'slug' => $menu_slug, 'title' => $menu_title, 'capability' => $capability, 'callback' => $callback );
+    return 'taxocommerce-core_page_' . $menu_slug;
+}
 function taxocommerce_core() { return null; } // Simulates Core installed without loading its unrelated implementation.
 function has_action( $hook, $callback = false ) {
     $all = $GLOBALS['hooks']['action'][ $hook ] ?? array();
@@ -80,10 +84,12 @@ function verify_log( $test, $message ) {
 $groups = TaxoCommerce_Logistica_Auto_Test::groups();
 $cases = TaxoCommerce_Logistica_Auto_Test::cases();
 taxocommerce_logistica_register_menu();
-verify_log( count( $GLOBALS['test_menu'] ?? array() ) === 1, 'Only one independent menu is registered' );
-verify_log( 'taxocommerce-logistica' === $GLOBALS['test_menu'][0]['slug'], 'No conflict with the legacy seo-logistica route' );
-verify_log( 'TaxoCommerce Logistics' === $GLOBALS['test_menu'][0]['title'], 'English plugin name in WordPress menu' );
-verify_log( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ) === $GLOBALS['test_menu'][0]['callback'], 'Menu points to new Logistics screen' );
+verify_log( empty( $GLOBALS['test_menu'] ), 'Core mode must not register an independent top-level menu' );
+verify_log( 1 === count( $GLOBALS['test_submenu'] ?? array() ), 'Logistics registered once in TaxoCommerce Core family' );
+verify_log( 'taxocommerce-core' === $GLOBALS['test_submenu'][0]['parent'], 'Core is the parent of Logistics' );
+verify_log( 'taxocommerce-logistica' === $GLOBALS['test_submenu'][0]['slug'], 'Unique Logistics page slug retained' );
+verify_log( 'Logistics' === $GLOBALS['test_submenu'][0]['title'], 'English family navigation label' );
+verify_log( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ) === $GLOBALS['test_submenu'][0]['callback'], 'Core submenu calls the same Logistics screen' );
 verify_log( 'taxocommerce-logistica' === TaxoCommerce_Logistica_Transporte_Costes::PAGE, 'Shipping, Auto Test and Manual use same independent route' );
 verify_log( false === TaxoCommerce_Logistica_Transporte_Costes::force_wc_shipping_enabled( false ), 'Legacy engine remains authoritative for shipping enabled flag' );
 $legacy_packages = array( array( 'destination' => array( 'country' => 'ES', 'postcode' => '28001' ) ) );
