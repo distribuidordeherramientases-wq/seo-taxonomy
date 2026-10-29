@@ -175,7 +175,25 @@ final class TaxoCommerce_Images_Maintenance {
 					$digest = hash_file( 'sha256', $file );
 					if ( false === $digest ) { $row['status'] = 'review'; $row['message'] = 'No se pudo calcular la huella.'; }
 					else {
-						$matches = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC', 'post__not_in' => array( $id ), 'meta_query' => array( array( 'key' => '_taxocommerce_images_cleanup_run', 'value' => $state['run'] ), array( 'key' => '_taxocommerce_images_digest', 'value' => $digest ) ) ) );
+						$matches = get_posts(
+							array(
+								'post_type'      => 'attachment',
+								'post_status'    => 'inherit',
+								'posts_per_page' => 2,
+								'fields'         => 'ids',
+								'orderby'        => 'ID',
+								'order'          => 'ASC',
+								// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Two exact metadata predicates restrict SHA-256 duplicate candidates to the active run; no custom lookup table.
+								'meta_query'     => array(
+									array( 'key' => '_taxocommerce_images_cleanup_run', 'value' => $state['run'] ),
+									array( 'key' => '_taxocommerce_images_digest', 'value' => $digest ),
+								),
+							)
+						);
+						// Reject a crash-retried image without post__not_in (which generates a costly exclusion).
+						$matches = array_values( array_filter( array_map( 'absint', $matches ), static function ( $candidate_id ) use ( $id ) {
+							return $candidate_id !== absint( $id );
+						} ) );
 						update_post_meta( $id, '_taxocommerce_images_digest', $digest );
 						if ( $matches ) {
 							$row['duplicate'] = absint( $matches[0] ); $row['status'] = 'duplicate';
@@ -220,7 +238,16 @@ final class TaxoCommerce_Images_Maintenance {
 	}
 	public static function rows( $mode, $statuses = array(), $page = 1, $limit = 25 ) {
 		$state = self::state( $mode );
-		$args = array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => $limit, 'paged' => max( 1, absint( $page ) ), 'orderby' => 'ID', 'order' => 'ASC', 'meta_query' => array( array( 'key' => '_taxocommerce_images_' . $mode . '_run', 'value' => $state['run'] ?? '-' ) ) );
+		$args = array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'posts_per_page' => min( 100, max( 1, absint( $limit ) ) ),
+			'paged'          => max( 1, absint( $page ) ),
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Results must be isolated to this run and filtered by metadata; native paged WP_Query returns the correct live total.
+			'meta_query'     => array( array( 'key' => '_taxocommerce_images_' . $mode . '_run', 'value' => $state['run'] ?? '-' ) ),
+		);
 		if ( $statuses ) { $args['meta_query'][] = array( 'key' => '_taxocommerce_images_' . $mode . '_status', 'value' => $statuses, 'compare' => 'IN' ); }
 		return new WP_Query( $args );
 	}
