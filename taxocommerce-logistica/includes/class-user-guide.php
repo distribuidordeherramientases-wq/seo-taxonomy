@@ -25,7 +25,7 @@ final class TaxoCommerce_Logistica_User_Guide {
         $tab = isset( $_GET['tc_logistica_tab'] ) && is_string( $_GET['tc_logistica_tab'] )
             ? sanitize_key( wp_unslash( $_GET['tc_logistica_tab'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( 'seo-logistica' === $page && 'user-guide' === $tab ) {
+        if ( 'taxocommerce-logistica' === $page && 'user-guide' === $tab ) {
             wp_enqueue_style(
                 'tc-logistica-user-guide',
                 TAXOCOMMERCE_LOGISTICA_URL . 'assets/user-guide.css',
@@ -38,7 +38,7 @@ final class TaxoCommerce_Logistica_User_Guide {
     private static function guide_url( $type = 'user' ) {
         return add_query_arg(
             array(
-                'page' => 'seo-logistica',
+                'page' => 'taxocommerce-logistica',
                 'tc_logistica_tab' => 'user-guide',
                 'tc_logistica_manual' => 'technical' === $type ? 'technical' : 'user',
             ),
@@ -47,7 +47,7 @@ final class TaxoCommerce_Logistica_User_Guide {
     }
 
     private static function section_url( $tab ) {
-        $args = array( 'page' => 'seo-logistica' );
+        $args = array( 'page' => 'taxocommerce-logistica' );
         if ( 'shipping' !== $tab ) { $args['tc_logistica_tab'] = $tab; }
         return add_query_arg( $args, admin_url( 'admin.php' ) );
     }
@@ -62,7 +62,7 @@ final class TaxoCommerce_Logistica_User_Guide {
                 'scope' => array(
                     'title' => __( '1. Alcance y requisitos', 'taxocommerce-logistica' ),
                     'blocks' => array(
-                        array( 'p', __( 'TaxoCommerce Logistics es un plugin independiente de gestión del transporte para WordPress 6.5+, PHP 7.4+ y WooCommerce. Con Core activo aparece como módulo de la familia TaxoCommerce; sin Core mantiene su propia entrada de administración.', 'taxocommerce-logistica' ) ),
+                        array( 'p', __( 'TaxoCommerce Logistics es un plugin independiente de gestión del transporte para WordPress 6.5+, PHP 7.4+ y WooCommerce. Mantiene su propio menú independiente, incluso con TaxoCommerce Core activo; Core puede mostrar un acceso adicional desde su catálogo de extensiones.', 'taxocommerce-logistica' ) ),
                         array( 'p', __( 'Controla exclusivamente el cálculo de las tarifas de envío y la auditoría logística de pedidos. El carrito, el checkout, los pedidos y la fiscalidad pertenecen a WooCommerce; las compras y relaciones con proveedores pertenecen a TaxoCommerce Suppliers.', 'taxocommerce-logistica' ) ),
                     ),
                 ),
@@ -174,7 +174,7 @@ final class TaxoCommerce_Logistica_User_Guide {
                 'title' => __( '2. Primeros pasos', 'taxocommerce-logistica' ),
                 'blocks' => array(
                     array( 'ol', array(
-                        __( 'Accede a Logistics desde TaxoCommerce Core o desde su menú propio si Core no está instalado.', 'taxocommerce-logistica' ),
+                        __( 'Accede a TaxoCommerce Logistics desde su menú independiente de WordPress, también si Core está activo.', 'taxocommerce-logistica' ),
                         __( 'En Shipping Rules, comprueba la configuración general y las reglas existentes antes de tocar nada.', 'taxocommerce-logistica' ),
                         __( 'Exporta una copia JSON de la configuración actual antes de introducir cambios.', 'taxocommerce-logistica' ),
                         __( 'Prueba una regla en staging con productos y direcciones representativas.', 'taxocommerce-logistica' ),
@@ -308,18 +308,18 @@ final class TaxoCommerce_Logistica_User_Guide {
         <section class="tc-log-guide" aria-labelledby="tc-log-guide-title">
             <header class="tc-log-guide__header">
                 <h2 id="tc-log-guide-title"><?php esc_html_e( 'Manual', 'taxocommerce-logistica' ); ?></h2>
-                <p><?php esc_html_e( 'Manual de usuario y manual técnico de TaxoCommerce Logistics, integrados en el propio plugin.', 'taxocommerce-logistica' ); ?></p>
+                <p><?php esc_html_e( 'User Manual and Technical Manual for TaxoCommerce Logistics, available within this plugin.', 'taxocommerce-logistica' ); ?></p>
             </header>
             <nav class="tc-log-guide__switch" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-logistica' ); ?>">
                 <a href="<?php echo esc_url( self::guide_url( 'user' ) ); ?>"
                     class="tc-log-guide__switch-link<?php echo $technical ? '' : ' is-active'; ?>"
                     <?php if ( ! $technical ) : ?>aria-current="page"<?php endif; ?>>
-                    <?php esc_html_e( 'Manual de usuario', 'taxocommerce-logistica' ); ?>
+                    <?php esc_html_e( 'User Manual', 'taxocommerce-logistica' ); ?>
                 </a>
                 <a href="<?php echo esc_url( self::guide_url( 'technical' ) ); ?>"
                     class="tc-log-guide__switch-link<?php echo $technical ? ' is-active' : ''; ?>"
                     <?php if ( $technical ) : ?>aria-current="page"<?php endif; ?>>
-                    <?php esc_html_e( 'Manual técnico', 'taxocommerce-logistica' ); ?>
+                    <?php esc_html_e( 'Technical Manual', 'taxocommerce-logistica' ); ?>
                 </a>
             </nav>
             <div class="tc-log-guide__layout">
