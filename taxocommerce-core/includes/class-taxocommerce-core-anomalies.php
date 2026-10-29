@@ -174,14 +174,14 @@ function taxocommerce_core_anomalies_delete_orphan_category_faqs() {
     }
 
     $orphan_ids = $wpdb->get_col(
-        "SELECT f.id
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT f.id
+         FROM %i f
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
          WHERE f.object_type = 2
            AND tt.term_id IS NULL
-         ORDER BY f.id ASC"
+         ORDER BY f.id ASC", $faq_table )
     );
 
     try {
@@ -234,13 +234,13 @@ function taxocommerce_core_anomalies_delete_orphan_product_faqs() {
     }
 
     $orphan_ids = $wpdb->get_col(
-        "SELECT f.id
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT f.id
+         FROM %i f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
            AND (p.ID IS NULL OR p.post_type <> 'product')
-         ORDER BY f.id ASC"
+         ORDER BY f.id ASC", $faq_table )
     );
 
     try {
@@ -295,75 +295,75 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
     }
 
     $category_total = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i f
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
          WHERE f.object_type = 2
-           AND tt.term_id IS NULL"
+           AND tt.term_id IS NULL", $faq_table )
     );
 
     $category_objects = (int) $wpdb->get_var(
-        "SELECT COUNT(DISTINCT f.object_id)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(DISTINCT f.object_id)
+         FROM %i f
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
          WHERE f.object_type = 2
-           AND tt.term_id IS NULL"
+           AND tt.term_id IS NULL", $faq_table )
     );
 
     $product_orphans = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
-           AND (p.ID IS NULL OR p.post_type <> 'product')"
+           AND (p.ID IS NULL OR p.post_type <> 'product')", $faq_table )
     );
 
     $product_objects = (int) $wpdb->get_var(
-        "SELECT COUNT(DISTINCT f.object_id)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(DISTINCT f.object_id)
+         FROM %i f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
-           AND (p.ID IS NULL OR p.post_type <> 'product')"
+           AND (p.ID IS NULL OR p.post_type <> 'product')", $faq_table )
     );
 
     $product_not_published = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i f
          INNER JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
            AND p.post_type = 'product'
-           AND p.post_status <> 'publish'"
+           AND p.post_status <> 'publish'", $faq_table )
     );
 
     $hub_orphans = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 1
-           AND p.ID IS NULL"
+           AND p.ID IS NULL", $faq_table )
     );
 
     $hub_trash = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table} f
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i f
          INNER JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 1
-           AND p.post_status = 'trash'"
+           AND p.post_status = 'trash'", $faq_table )
     );
 
     $unknown_type = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM {$faq_table}
-         WHERE object_type NOT IN (1, 2, 3)"
+        $wpdb->prepare( "SELECT COUNT(*)
+         FROM %i
+         WHERE object_type NOT IN (1, 2, 3)", $faq_table )
     );
 
     echo '<table class="widefat striped" style="margin:10px 0 20px;">';
@@ -382,14 +382,14 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
     }
 
     $category_summary = $wpdb->get_results(
-        "SELECT
+        $wpdb->prepare( "SELECT
             f.object_id AS lost_object_id,
             COUNT(*) AS total_faqs,
             SUM(f.active = 1) AS active_faqs,
             SUM(f.active = 0) AS inactive_faqs,
             MIN(f.created_at) AS first_created_at,
             MAX(f.updated_at) AS last_updated_at
-         FROM {$faq_table} f
+         FROM %i f
          LEFT JOIN {$wpdb->term_taxonomy} tt
             ON tt.term_id = f.object_id
            AND tt.taxonomy = 'product_cat'
@@ -397,7 +397,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND tt.term_id IS NULL
          GROUP BY f.object_id
          ORDER BY total_faqs DESC, f.object_id ASC
-         LIMIT 30"
+         LIMIT 30", $faq_table )
     );
 
     if (!empty($category_summary)) {
@@ -428,21 +428,21 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
     }
 
     $product_summary = $wpdb->get_results(
-        "SELECT
+        $wpdb->prepare( "SELECT
             f.object_id AS lost_object_id,
             COUNT(*) AS total_faqs,
             SUM(f.active = 1) AS active_faqs,
             SUM(f.active = 0) AS inactive_faqs,
             MIN(f.created_at) AS first_created_at,
             MAX(f.updated_at) AS last_updated_at
-         FROM {$faq_table} f
+         FROM %i f
          LEFT JOIN {$wpdb->posts} p
             ON p.ID = f.object_id
          WHERE f.object_type = 3
            AND (p.ID IS NULL OR p.post_type <> 'product')
          GROUP BY f.object_id
          ORDER BY total_faqs DESC, f.object_id ASC
-         LIMIT 30"
+         LIMIT 30", $faq_table )
     );
 
     if (!empty($product_summary)) {
