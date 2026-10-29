@@ -49,6 +49,7 @@ final class TCD_Admin {
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
         echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
+        echo '<a class="nav-tab '.esc_attr('auto-test'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('auto-test')).'">Auto Test</a>';
         echo '</nav>';
     }
 
@@ -260,11 +261,16 @@ final class TCD_Admin {
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
+        if('auto-test'===$tab){
+            TCD_Auto_Test::render();
+            echo '</div>';
+            return;
+        }
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
             echo '</div>';
