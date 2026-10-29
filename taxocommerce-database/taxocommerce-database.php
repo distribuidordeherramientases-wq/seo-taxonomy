@@ -40,6 +40,7 @@ final class TaxoCommerce_Database {
         // Read-only tab routing; writes remain nonce-protected in the original services.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
         $screen = isset( $_GET['tcdb_screen'] ) && is_string( $_GET['tcdb_screen'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['tcdb_screen'] ) ) : 'clean';
         if ( ! in_array( $screen, array( 'clean', 'table', 'manual', 'auto-test' ), true ) ) {
             $screen = 'clean';
@@ -47,9 +48,11 @@ final class TaxoCommerce_Database {
         // Existing routing parameters remain unchanged for filters, POST actions and export links.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
         $clean_tab = isset( $_GET['seo_clean_db_tab'] ) && is_string( $_GET['seo_clean_db_tab'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['seo_clean_db_tab'] ) ) : 'data_errors';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
         $table_section = isset( $_GET['section'] ) && is_string( $_GET['section'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'overview';
         $tabs = array(
             'clean:data_errors'     => array( 'Errores en datos', 'clean', 'seo_clean_db_tab', 'data_errors' ),
