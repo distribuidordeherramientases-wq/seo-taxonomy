@@ -1,6 +1,6 @@
 <?php
 /**
- * Read-only user guide for TaxoCommerce Core.
+ * Read-only user and technical guides for TaxoCommerce Core.
  *
  * @package TaxoCommerceCore
  */
@@ -18,6 +18,11 @@ final class TaxoCommerce_Core_User_Guide {
 		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
 			wp_die( esc_html__( 'No tienes permisos para consultar este manual.', 'taxocommerce-core' ) );
 		}
+		// Read-only navigation; no nonce is necessary for switching documents.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only manual selection.
+		$manual = isset( $_GET['manual'] ) && is_string( $_GET['manual'] ) ? sanitize_key( wp_unslash( $_GET['manual'] ) ) : 'user';
+		$manual = 'technical' === $manual ? 'technical' : 'user';
+		$base_url = add_query_arg( array( 'page' => self::PAGE_SLUG ), admin_url( 'admin.php' ) );
 		?>
 		<div class="wrap tcc-family-screen tcc-user-guide">
 			<header class="tcc-page-header">
@@ -25,13 +30,20 @@ final class TaxoCommerce_Core_User_Guide {
 				<div class="tcc-page-header__content">
 					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 					<h1><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></h1>
-					<p><?php esc_html_e( 'Manual de usuario: qué hace el plugin y cómo utilizar sus funciones principales.', 'taxocommerce-core' ); ?></p>
+					<p><?php esc_html_e( 'Documentación de Core: manual de usuario y manual técnico, en una misma sección.', 'taxocommerce-core' ); ?></p>
 				</div>
 			</header>
 			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
 			</nav>
+			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core' ); ?>">
+				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core' ); ?></a>
+				<a class="tcc-guide-manual-tab<?php echo 'technical' === $manual ? ' is-active' : ''; ?>" <?php echo 'technical' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( add_query_arg( 'manual', 'technical', $base_url ) ); ?>"><?php esc_html_e( 'Technical Manual', 'taxocommerce-core' ); ?></a>
+			</nav>
+			<?php if ( 'technical' === $manual ) : ?>
+				<?php TaxoCommerce_Core_Technical_Guide::render(); ?>
+			<?php else : ?>
 			<div class="tcc-guide-layout">
 				<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual', 'taxocommerce-core' ); ?>">
 					<strong><?php esc_html_e( 'En esta guía', 'taxocommerce-core' ); ?></strong>
@@ -118,6 +130,7 @@ final class TaxoCommerce_Core_User_Guide {
 					</section>
 				</main>
 			</div>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
