@@ -173,11 +173,17 @@ final class TCD_Knowledge_Transfer {
 		$lessons   = self::legacy_lessons_table();
 
 		return array(
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'modern_knowledge' => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $knowledge ) ) ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'modern_learned'   => absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status='learned'", $knowledge ) ) ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'modern_unlearned' => absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status='unlearned'", $knowledge ) ) ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'portable_rules'   => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $rules ) ) ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'l9_memory'        => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $l9 ) ) ),
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			'legacy_lessons'   => absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $lessons ) ) ),
 		);
 	}
@@ -484,6 +490,7 @@ final class TCD_Knowledge_Transfer {
 		$last  = 0;
 		$first = true;
 		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 250",
@@ -608,6 +615,7 @@ final class TCD_Knowledge_Transfer {
 	}
 
 	private static function read_uploaded_document() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se invoca desde analyze_upload/import_upload, que verifican check_admin_referer y permisos antes de leer $_FILES.
 		if ( empty( $_FILES['knowledge_file'] ) || ! is_array( $_FILES['knowledge_file'] ) ) {
 			return new WP_Error( 'tcd_knowledge_file_missing', 'No se ha recibido ningún archivo.' );
 		}
@@ -620,6 +628,7 @@ final class TCD_Knowledge_Transfer {
 			return new WP_Error( 'tcd_knowledge_file_invalid', 'El archivo no es válido o supera 128 MB.' );
 		}
 
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		$raw = file_get_contents( $tmp );
 		if ( ! is_string( $raw ) || '' === $raw ) {
 			return new WP_Error( 'tcd_knowledge_file_read', 'No se ha podido leer el archivo.' );
@@ -720,6 +729,7 @@ final class TCD_Knowledge_Transfer {
 
 		$started = false;
 		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
 				throw new RuntimeException( 'No se pudo iniciar la transacción.' );
 			}
@@ -732,6 +742,7 @@ final class TCD_Knowledge_Transfer {
 					throw new RuntimeException( $part->get_error_message() );
 				}
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->query( 'COMMIT' ) ) {
 				throw new RuntimeException( 'No se pudo confirmar la transacción.' );
 			}
@@ -744,6 +755,7 @@ final class TCD_Knowledge_Transfer {
 			);
 		} catch ( Throwable $error ) {
 			if ( $started ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 				$wpdb->query( 'ROLLBACK' );
 			}
 			return new WP_Error( 'tcd_legacy_import_failed', $error->getMessage() );
@@ -757,6 +769,7 @@ final class TCD_Knowledge_Transfer {
 		$checkpoint = sanitize_text_field( (string) ( $source['checkpoint_id'] ?? '' ) );
 		$started = false;
 		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
 				throw new RuntimeException( 'No se pudo iniciar la transacción.' );
 			}
@@ -770,6 +783,7 @@ final class TCD_Knowledge_Transfer {
 					throw new RuntimeException( $part->get_error_message() );
 				}
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->query( 'COMMIT' ) ) {
 				throw new RuntimeException( 'No se pudo confirmar la transacción.' );
 			}
@@ -782,6 +796,7 @@ final class TCD_Knowledge_Transfer {
 			);
 		} catch ( Throwable $error ) {
 			if ( $started ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 				$wpdb->query( 'ROLLBACK' );
 			}
 			return new WP_Error( 'tcd_native_import_failed', $error->getMessage() );
@@ -805,6 +820,7 @@ final class TCD_Knowledge_Transfer {
 				++$result['ignored'];
 				continue;
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$existing = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT signature FROM %i WHERE lesson=%d AND source_type=%s AND source_id=%d LIMIT 1",
@@ -828,6 +844,7 @@ final class TCD_Knowledge_Transfer {
 			if ( ! in_array( $status, array( 'learned', 'unlearned' ), true ) ) {
 				$status = 'learned';
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$ok = $wpdb->insert(
 				$table,
 				array(
@@ -860,6 +877,7 @@ final class TCD_Knowledge_Transfer {
 				++$result['ignored'];
 				continue;
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$existing = $wpdb->get_row(
 				$wpdb->prepare( "SELECT rule_hash FROM %i WHERE rule_key=%s LIMIT 1", $table, $rule['rule_key'] ),
 				ARRAY_A
@@ -872,6 +890,7 @@ final class TCD_Knowledge_Transfer {
 				}
 				continue;
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->insert( $table, $rule ) ) {
 				return new WP_Error( 'tcd_rule_insert', 'No se pudo importar la regla ' . $rule['rule_key'] . '.' );
 			}
@@ -958,6 +977,7 @@ final class TCD_Knowledge_Transfer {
 			if ( ! preg_match( '/^[a-f0-9]{64}$/i', $hash ) ) {
 				$hash = hash( 'sha256', $lesson_key . '|' . $product_id . '|' . sanitize_key( (string) ( $row['signal_type'] ?? 'term' ) ) . '|' . $signal );
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$existing = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT normalized_signal,weight FROM %i WHERE lesson_key=%s AND product_id=%d AND source_hash=%s LIMIT 1",
@@ -977,6 +997,7 @@ final class TCD_Knowledge_Transfer {
 				continue;
 			}
 			$metadata = isset( $row['metadata'] ) && is_array( $row['metadata'] ) ? $row['metadata'] : self::decode_json( $row['metadata'] ?? null );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$ok = $wpdb->insert(
 				$table,
 				array(
@@ -1034,6 +1055,7 @@ final class TCD_Knowledge_Transfer {
 				'completed_at'        => self::mysql_date( $row['completed_at'] ?? '' ),
 				'imported_at'         => current_time( 'mysql' ),
 			);
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			$existing = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT * FROM %i WHERE source_brain_id=%s AND lesson_key=%s LIMIT 1",
@@ -1054,6 +1076,7 @@ final class TCD_Knowledge_Transfer {
 				}
 				continue;
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Knowledge transfer uses plugin-owned tables and atomic import transactions; caching would return stale progress or records.
 			if ( false === $wpdb->insert( $table, $payload ) ) {
 				return new WP_Error( 'tcd_lesson_insert', 'No se pudo conservar el histórico de la lección ' . $key . '.' );
 			}

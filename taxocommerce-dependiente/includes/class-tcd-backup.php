@@ -320,6 +320,7 @@ final class TCD_Backup {
             $table = $meta['table'];
             $last = 0;
             do {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare(
                         'SELECT * FROM %i WHERE id > %d ORDER BY id ASC LIMIT 250',
@@ -438,10 +439,12 @@ final class TCD_Backup {
 
         $rows_restored = 0;
         $warnings = array();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
         $wpdb->query( 'START TRANSACTION' );
 
         try {
             foreach ( $tables as $dataset => $meta ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
                 $deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $meta['table'] ) );
                 if ( false === $deleted ) {
                     throw new Exception( 'No se pudo vaciar ' . $dataset . ': ' . $wpdb->last_error );
@@ -467,6 +470,7 @@ final class TCD_Backup {
                     if ( ! isset( $tables[ $dataset ] ) || ! is_array( $record['data'] ?? null ) ) {
                         throw new Exception( 'Dataset no reconocido en la línea ' . $line_no . '.' );
                     }
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
                     $ok = $wpdb->insert( $tables[ $dataset ]['table'], $record['data'] );
                     if ( false === $ok ) {
                         throw new Exception( 'Error restaurando ' . $dataset . ' en la línea ' . $line_no . ': ' . $wpdb->last_error );
@@ -480,8 +484,10 @@ final class TCD_Backup {
                 }
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
             $wpdb->query( 'COMMIT' );
         } catch ( Throwable $e ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
             $wpdb->query( 'ROLLBACK' );
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Administrator-validated JSONL backup is parsed in bounded records with a closed PHP temp-file handle.
             fclose( $handle );
@@ -679,6 +685,7 @@ final class TCD_Backup {
     }
 
     private static function uploaded_path() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se llama desde los handlers analyze_upload/restore con check_admin_referer y permisos.
         if ( empty( $_FILES['backup_file'] ) || ! is_array( $_FILES['backup_file'] ) ) {
             return new WP_Error( 'tcd_backup_missing', 'No se ha recibido ningún archivo de backup.' );
         }
@@ -692,6 +699,7 @@ final class TCD_Backup {
         if ( UPLOAD_ERR_OK !== $error || ! $size || $size > self::MAX_BYTES || '' === $tmp || ! is_uploaded_file( $tmp ) ) {
             return new WP_Error( 'tcd_backup_invalid', 'El archivo no es válido o supera 512 MB.' );
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         return $tmp;
     }
 
@@ -706,6 +714,7 @@ final class TCD_Backup {
         global $wpdb;
         $tables = array();
         foreach ( self::tables() as $key => $meta ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Backup/export and restore require an exact current view of plugin-owned tables and transactional writes; no safe read cache.
             $tables[ $key ] = absint( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $meta['table'] ) ) );
         }
 

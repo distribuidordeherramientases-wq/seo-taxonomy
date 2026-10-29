@@ -225,7 +225,7 @@ final class TCD_Academy {
         $state=self::state();
 
         if('priority'===$action){
-            $priority=isset($_POST['priority'])?wp_unslash($_POST['priority']):'';
+            $priority=isset($_POST['priority'])?sanitize_text_field( wp_unslash( $_POST['priority'] ) ):'';
             $updated=TCD_Load::set_priority($priority);
             if(is_wp_error($updated))self::log('priority_invalid',array('error'=>$updated->get_error_message()));
             else self::log('priority_saved',array('priority'=>$updated,'label'=>TCD_Load::label($updated)));
@@ -293,7 +293,8 @@ final class TCD_Academy {
         global $wpdb;
         foreach(array(self::knowledge_table(),self::items_table(),self::snapshots_table()) as $table){
             // Internal plugin tables. This never touches WooCommerce/WordPress source content.
-            $wpdb->query("DELETE FROM {$table}");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
         }
         if(class_exists('TCD_Intelligence'))TCD_Intelligence::reset_modern_generated();
         if(class_exists('TCD_Maintenance'))TCD_Maintenance::deactivate();
@@ -577,7 +578,7 @@ final class TCD_Academy {
                 self::exception_context($e)
             ));
             self::log('learning_error',array('lesson'=>$lesson,'phase'=>$state['phase'],'error'=>substr($e->getMessage(),0,240)));
-            error_log('[TaxoCommerce Dependiente] '.substr($e->getMessage(),0,400));
+            // El error ya queda registrado arriba en el log de aprendizaje y la traza diagnóstica.
         }
     }
 
@@ -598,6 +599,7 @@ final class TCD_Academy {
             'syllabus_json'=>wp_json_encode($definition,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
             'created_at'=>current_time('mysql'),
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         if(false===$wpdb->insert(self::snapshots_table(),$row)){
             self::trace_db_error('snapshot_create',self::snapshots_table());
             throw new RuntimeException( esc_html( 'No se pudo crear la foto fija de L'.$lesson.'.') );
@@ -647,6 +649,7 @@ final class TCD_Academy {
                 'payload_json'=>$payload,
                 'status'=>'pending',
             );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             if(false===$wpdb->replace(self::items_table(),$row)){
                 self::trace_db_error('snapshot_item_write',self::items_table());
                 throw new RuntimeException( esc_html( 'No se pudo guardar una fuente en la foto fija de L'.$lesson.'.') );
@@ -669,10 +672,13 @@ final class TCD_Academy {
         if($more){self::queue();return count((array)$batch['items']);}
 
         $items=self::items_table();
-        $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$items} WHERE snapshot_id=%d",$snapshot_id)));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
+        $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE snapshot_id=%d",$items, $snapshot_id)));
         if($count<1)throw new RuntimeException( esc_html( 'L'.$lesson.' no ha encontrado material formativo; no se inicia el aprendizaje.') );
-        $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM {$items} WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$snapshot_id));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
+        $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM %i WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$items, $snapshot_id));
         $signature=hash('sha256',implode('|',array_map('strval',(array)$signatures)));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'ready','source_count'=>$count,'source_signature'=>$signature,'sealed_at'=>current_time('mysql'),
         ),array('id'=>$snapshot_id));
@@ -697,9 +703,10 @@ final class TCD_Academy {
             'snapshot_id'=>$snapshot_id,'lesson'=>$lesson,'limit'=>$limit,
             'after_sequence'=>absint($state['learning_cursor']??0),
         ));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $rows=$wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$items} WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
-            $snapshot_id,$limit
+            "SELECT * FROM %i WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
+            $items, $snapshot_id,$limit
         ),ARRAY_A);
         if($wpdb->last_error)self::trace_db_error('knowledge_batch_read',$items);
         self::trace('INFO','knowledge_batch_read',array(
@@ -748,6 +755,7 @@ final class TCD_Academy {
                 'reason'=>$reason,
                 'learned_at'=>current_time('mysql'),
             );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             if(false===$wpdb->replace(self::knowledge_table(),$knowledge)){
                 self::trace_db_error('knowledge_write',self::knowledge_table());
                 throw new RuntimeException( esc_html( 'Error al guardar conocimiento de L'.$lesson.'.') );
@@ -767,6 +775,7 @@ final class TCD_Academy {
                     'lesson'=>$lesson,'source_type'=>$knowledge['source_type'],'source_id'=>$knowledge['source_id'],
                 ));
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             if(false===$wpdb->update($items,array('status'=>$status,'reason'=>$reason,'learned_at'=>current_time('mysql')),array('id'=>absint($row['id'])))){
                 self::trace_db_error('snapshot_item_mark',$items);
             }
@@ -777,6 +786,7 @@ final class TCD_Academy {
         $snapshot=self::snapshot($snapshot_id);
         $new_learned=absint($snapshot['learned_count']??0)+$learned;
         $new_unlearned=absint($snapshot['unlearned_count']??0)+$unlearned;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         if(false===$wpdb->update(self::snapshots_table(),array(
             'status'=>'learning',
             'learned_count'=>$new_learned,
@@ -880,6 +890,7 @@ final class TCD_Academy {
 
         $quality=(array)($step['report']??array());
         if(empty($step['passed'])){
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             $wpdb->update(self::snapshots_table(),array('status'=>'quality_failed'),array('id'=>$snapshot_id));
             throw new RuntimeException( esc_html( sprintf(
                 'L%d no supera el control de calidad: %.1f%%, mínimo %.1f%%.',
@@ -887,6 +898,7 @@ final class TCD_Academy {
             ) ) );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'completed','completed_at'=>current_time('mysql'),
         ),array('id'=>$snapshot_id));
@@ -912,12 +924,14 @@ final class TCD_Academy {
 
     private static function snapshot($id){
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $row=$wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE id=%d',self::snapshots_table(),absint($id)),ARRAY_A);
         return is_array($row)?$row:array();
     }
 
     public static function snapshots(){
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         return (array)$wpdb->get_results($wpdb->prepare('SELECT * FROM %i ORDER BY lesson ASC,id DESC',self::snapshots_table()),ARRAY_A);
     }
 
@@ -925,6 +939,7 @@ final class TCD_Academy {
         global $wpdb;
         $run=(string)(self::state()['run_id']??'');
         if(!$run)return array();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $row=$wpdb->get_row($wpdb->prepare(
             'SELECT * FROM %i WHERE run_id=%s AND lesson=%d ORDER BY id DESC LIMIT 1',
             self::snapshots_table(),$run,absint($lesson)
@@ -934,7 +949,8 @@ final class TCD_Academy {
 
     public static function counts(){
         global $wpdb;$table=self::knowledge_table();
-        return (array)$wpdb->get_results("SELECT lesson,status,COUNT(*) total FROM {$table} GROUP BY lesson,status ORDER BY lesson,status",ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
+        return (array)$wpdb->get_results($wpdb->prepare( "SELECT lesson,status,COUNT(*) total FROM %i GROUP BY lesson,status ORDER BY lesson,status", $table ),ARRAY_A);
     }
 
     public static function upsert_maintenance_item($lesson,$item){
@@ -958,13 +974,16 @@ final class TCD_Academy {
         // REPLACE deletes and re-inserts the row, changing its auto-increment
         // ID. Quality sampling used that ID and therefore drifted after a
         // retry. Preserve identity while refreshing the source snapshot.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $existing_id=absint($wpdb->get_var($wpdb->prepare(
             'SELECT id FROM %i WHERE lesson=%d AND source_type=%s AND source_id=%d LIMIT 1',
             self::knowledge_table(),$lesson,$row['source_type'],$row['source_id']
         )));
         if($existing_id){
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             return false!==$wpdb->update(self::knowledge_table(),$row,array('id'=>$existing_id));
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         return false!==$wpdb->insert(self::knowledge_table(),$row);
     }
 
@@ -1024,9 +1043,10 @@ final class TCD_Academy {
         $table=self::items_table();
         $last=0;$first=true;
         do{
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
             $rows=$wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE snapshot_id=%d AND id>%d ORDER BY id ASC LIMIT 200",
-                $snapshot_id,$last
+                "SELECT * FROM %i WHERE snapshot_id=%d AND id>%d ORDER BY id ASC LIMIT 200",
+                $table, $snapshot_id,$last
             ),ARRAY_A);
             foreach((array)$rows as $row){
                 $last=absint($row['id']);

@@ -60,6 +60,11 @@ No. Core provides optional grouped administration.
 
 == Changelog ==
 
+= 0.3.19 =
+* Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
+* Validate learning priority input and safely quote internal learning table identifiers.
+
+
 = 0.3.18 =
 * Add a responsive User Guide tab with separate User Manual and Technical Manual inside Dependiente.
 * Explain learning, quality recovery, Interpreter M11, M12, search and feedback, backups, plugin architecture and data contracts.

@@ -63,6 +63,7 @@ final class TCD_Admin {
         $lock=absint(get_option(TCD_Academy::LOCK,0));
         $lock_age=$lock?max(0,time()-$lock):0;
         $next=wp_next_scheduled(TCD_Academy::CRON_HOOK);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET de visualización del log; no modifica ningún dato.
         $auto=isset($_GET['auto']) && '1'===sanitize_text_field(wp_unslash((string)$_GET['auto']));
         $warnings=substr_count($log,' WARN ');
         $errors=substr_count($log,' ERROR ');
@@ -273,6 +274,7 @@ final class TCD_Admin {
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- La pestaña GET solo selecciona una vista de lectura, con una lista blanca.
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
         if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test','user-guide'),true))$tab='overview';
 

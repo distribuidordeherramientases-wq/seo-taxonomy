@@ -920,9 +920,10 @@ final class TCD_Original_Linguista {
             if (!self::table_exists($table)) {
                 return array('done' => false, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Vocabulary no disponible; se continúa con categorías.', 'state_changes' => array('lesson_phase' => 'categories', 'cursor' => 0));
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
-                "SELECT id,semantic_group,slug,label FROM {$table} WHERE active=1 AND id>%d AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo') ORDER BY id ASC LIMIT %d",
-                $cursor,
+                "SELECT id,semantic_group,slug,label FROM %i WHERE active=1 AND id>%d AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo') ORDER BY id ASC LIMIT %d",
+                $table, $cursor,
                 $batch
             ), ARRAY_A);
             if (!$rows) {
@@ -983,6 +984,7 @@ final class TCD_Original_Linguista {
         }
 
         if ('categories' === $phase) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT tt.term_taxonomy_id AS id,t.name,t.slug FROM {$wpdb->term_taxonomy} tt JOIN {$wpdb->terms} t ON t.term_id=tt.term_id WHERE tt.taxonomy='product_cat' AND tt.count>0 AND tt.term_taxonomy_id>%d ORDER BY tt.term_taxonomy_id ASC LIMIT %d",
                 $cursor,
@@ -1020,6 +1022,7 @@ final class TCD_Original_Linguista {
         }
 
         if ('tags' === $phase) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT tt.term_taxonomy_id AS id,t.name,t.slug FROM {$wpdb->term_taxonomy} tt JOIN {$wpdb->terms} t ON t.term_id=tt.term_id WHERE tt.taxonomy='product_tag' AND tt.count>0 AND tt.term_taxonomy_id>%d ORDER BY tt.term_taxonomy_id ASC LIMIT %d",
                 $cursor,
@@ -1064,6 +1067,7 @@ final class TCD_Original_Linguista {
         global $wpdb;
         $batch = self::batch_size($state);
         $cursor = absint($state['cursor'] ?? 0);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT ID,post_title,post_excerpt,post_content FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND ID>%d ORDER BY ID ASC LIMIT %d",
             $cursor,
@@ -1189,9 +1193,10 @@ final class TCD_Original_Linguista {
         if (!self::table_exists($vocabulary)) {
             return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Lección de sinónimos completada.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT id,semantic_group,slug,label FROM {$vocabulary} WHERE active=1 AND id>%d ORDER BY id ASC LIMIT %d",
-            $cursor,
+            "SELECT id,semantic_group,slug,label FROM %i WHERE active=1 AND id>%d ORDER BY id ASC LIMIT %d",
+            $vocabulary, $cursor,
             $batch
         ), ARRAY_A);
         if (!$rows) {
@@ -1235,9 +1240,10 @@ final class TCD_Original_Linguista {
         $batch = min(80, self::batch_size($state));
         $cursor = absint($state['cursor'] ?? 0);
         $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
-            $cursor,
+            "SELECT * FROM %i WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
+            $table, $cursor,
             $batch
         ), ARRAY_A);
         if (!$rows) {
@@ -1268,9 +1274,10 @@ final class TCD_Original_Linguista {
         $batch = min(100, self::batch_size($state));
         $cursor = absint($state['cursor'] ?? 0);
         $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
-            $cursor,
+            "SELECT * FROM %i WHERE id>%d AND lesson_key IN ('ling_l2_actions','ling_l3_synonyms') ORDER BY id ASC LIMIT %d",
+            $table, $cursor,
             $batch
         ), ARRAY_A);
         if (!$rows) {
@@ -1402,9 +1409,10 @@ final class TCD_Original_Linguista {
                 return array('done' => true, 'processed' => 0, 'learned' => 0, 'rejected' => 0, 'message' => 'Gramática instalada; no hay léxico para compilar morfología.');
             }
             $batch = min(150, self::batch_size($state));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
-                "SELECT id,normalized_expression FROM {$table} WHERE active=1 AND relation_type='verb_to_tool' AND id>%d ORDER BY id ASC LIMIT %d",
-                $cursor,
+                "SELECT id,normalized_expression FROM %i WHERE active=1 AND relation_type='verb_to_tool' AND id>%d ORDER BY id ASC LIMIT %d",
+                $table, $cursor,
                 $batch
             ), ARRAY_A);
             if (!$rows) {
@@ -1543,24 +1551,27 @@ final class TCD_Original_Linguista {
         if ('active_regression' === $phase) {
             $max_id = absint($state['exam_active_max_id'] ?? 0);
             if (!$max_id) {
-                $max_id = absint($wpdb->get_var("SELECT MAX(id) FROM {$table} WHERE active=1 AND language='es'"));
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+                $max_id = absint($wpdb->get_var($wpdb->prepare( "SELECT MAX(id) FROM %i WHERE active=1 AND language='es'", $table )));
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results($wpdb->prepare(
                 "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
-                   FROM {$table}
+                   FROM %i
                   WHERE active=1 AND language='es' AND id>%d AND id<=%d
                   ORDER BY id ASC LIMIT %d",
-                $cursor,
+                $table, $cursor,
                 $max_id,
                 $batch
             ), ARRAY_A);
 
             if (!$rows) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
                 $candidate_max = absint($wpdb->get_var(
-                    "SELECT MAX(id) FROM {$table}
+                    $wpdb->prepare( "SELECT MAX(id) FROM %i
                       WHERE active=0 AND language='es'
                         AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
-                        AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+                        AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')", $table )
                 ));
                 return array(
                     'done' => false,
@@ -1661,21 +1672,23 @@ final class TCD_Original_Linguista {
         // solo se aceptan hipotesis que ya tienen origen/evidencia Lingüista.
         $max_id = absint($state['exam_candidate_max_id'] ?? 0);
         if (!$max_id) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $max_id = absint($wpdb->get_var(
-                "SELECT MAX(id) FROM {$table}
+                $wpdb->prepare( "SELECT MAX(id) FROM %i
                   WHERE active=0 AND language='es'
                     AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
-                    AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"
+                    AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')", $table )
             ));
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,source,evidence_count,validated
-               FROM {$table}
+               FROM %i
               WHERE active=0 AND language='es' AND id>%d AND id<=%d
                 AND source IN ('linguista_catalog_actions','linguista_explicit_synonym')
                 AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')
               ORDER BY id ASC LIMIT %d",
-            $cursor,
+            $table, $cursor,
             $max_id,
             $batch
         ), ARRAY_A);
@@ -2138,27 +2151,36 @@ final class TCD_Original_Linguista {
             $total = 0;
             $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
             if (self::table_exists($vocabulary)) {
-                $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')"));
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+                $total += absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')", $vocabulary )));
             }
-            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_cat' AND count>0"));
-            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_tag' AND count>0"));
+            // WordPress taxonomy API handles term-count caching and invalidation.
+            $category_count = wp_count_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>true ) );
+            $tag_count = wp_count_terms( array( 'taxonomy'=>'product_tag', 'hide_empty'=>true ) );
+            $total += is_wp_error( $category_count ) ? 0 : absint( $category_count );
+            $total += is_wp_error( $tag_count ) ? 0 : absint( $tag_count );
             return $total;
         }
         if ('ling_l2_actions' === $key) {
-            return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"));
+            // WordPress caches post-type status counts and invalidates them when posts change.
+            $product_counts = wp_count_posts( 'product' );
+            return is_object( $product_counts ) ? absint( $product_counts->publish ?? 0 ) : 0;
         }
         if ('ling_l3_synonyms' === $key) {
             $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
-            return count(self::existing_synonym_pairs()) + (self::table_exists($vocabulary) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$vocabulary} WHERE active=1")) : 0);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+            return count(self::existing_synonym_pairs()) + (self::table_exists($vocabulary) ? absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $vocabulary ))) : 0);
         }
         if (in_array($key, array('ling_l4_context','ling_l5_ambiguity'), true)) {
             $table = esc_sql( TCD_Original_Interprete_DB::table() );
-            return self::table_exists($table) ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE lesson_key IN ('ling_l2_actions','ling_l3_synonyms')")) : 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+            return self::table_exists($table) ? absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE lesson_key IN ('ling_l2_actions','ling_l3_synonyms')", $table ))) : 0;
         }
         if ('ling_l6_natural_language' === $key) {
             $table = esc_sql( TCD_Original_Interprete_DB::table() );
             $verbs = self::table_exists($table)
-                ? absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND relation_type='verb_to_tool'"))
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+                ? absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND relation_type='verb_to_tool'", $table )))
                 : 0;
             return max(2, $verbs + 2);
         }
@@ -2170,8 +2192,10 @@ final class TCD_Original_Linguista {
             if (!self::table_exists($table)) {
                 return 0;
             }
-            $active = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND language='es'"));
-            $candidates = absint($wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND language='es' AND source IN ('linguista_catalog_actions','linguista_explicit_synonym') AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')"));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+            $active = absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND language='es'", $table )));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
+            $candidates = absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=0 AND language='es' AND source IN ('linguista_catalog_actions','linguista_explicit_synonym') AND relation_type IN ('synonym','catalog_variant','verb_to_tool','phrase_to_tool')", $table )));
             return $active + $candidates;
         }
         if ('ling_l9_dependiente_bridge' === $key) {
@@ -2192,18 +2216,21 @@ final class TCD_Original_Linguista {
         $out = array();
 
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT ov.object_id,v.id vocabulary_id,v.semantic_group,v.label,v.slug
-                 FROM {$objects} ov
-                 JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                 FROM %i ov
+                 JOIN %i v ON v.id=ov.vocabulary_id AND v.active=1
                  WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$placeholders})
                    AND v.semantic_group IN ('tipo','subtipo','aplicacion','rol')
                  ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'tipo','subtipo','aplicacion','rol'), v.id ASC",
-                    ...$ids
+                    array_merge( array( $objects, $vocabulary ), $ids )
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $product_id = absint($row['object_id'] ?? 0);
                 $label = trim((string) ($row['label'] ?? ''));
@@ -2224,16 +2251,22 @@ final class TCD_Original_Linguista {
 
         $missing = array_values(array_diff($ids, array_keys($out)));
         if ($missing) {
-            $missing_in = implode(',', array_map('absint', $missing));
+            $missing_in = implode(',', array_fill(0, count($missing), '%d'));
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results(
-                "SELECT tr.object_id,t.name
-                 FROM {$wpdb->term_relationships} tr
-                 JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
-                 JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                 WHERE tr.object_id IN ({$missing_in})
-                 ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
+                $wpdb->prepare(
+                    "SELECT tr.object_id,t.name
+                     FROM %i tr
+                     JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                     JOIN %i t ON t.term_id=tt.term_id
+                     WHERE tr.object_id IN ({$missing_in})
+                     ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
+                    array_merge( array( $wpdb->term_relationships, $wpdb->term_taxonomy, $wpdb->terms ), $missing )
+                ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $product_id = absint($row['object_id'] ?? 0);
                 $name = trim((string) ($row['name'] ?? ''));
@@ -2385,19 +2418,22 @@ final class TCD_Original_Linguista {
         if (!$product_ids) {
             return array();
         }
-        $in = implode(',', array_map('absint', $product_ids));
+        $in = implode(',', array_fill(0, count($product_ids), '%d'));
         $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $contexts = array();
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
             $rows = (array) $wpdb->get_results(
-                "SELECT v.label,COUNT(*) evidence_count
-                 FROM {$objects} ov JOIN {$vocabulary} v ON v.id=ov.vocabulary_id AND v.active=1
+                $wpdb->prepare( "SELECT v.label,COUNT(*) evidence_count
+                 FROM %i ov JOIN %i v ON v.id=ov.vocabulary_id AND v.active=1
                  WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$in})
                    AND v.semantic_group IN ('tipo','subtipo','aplicacion','plataforma','rol')
-                 GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16",
+                 GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16", array_merge( array( $objects, $vocabulary ), $product_ids ) ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $label = TCD_Original_Interprete_DB::normalize((string) ($row['label'] ?? ''));
                 if ($label) {
@@ -2415,6 +2451,7 @@ final class TCD_Original_Linguista {
 
     private static function table_exists($table) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist reads live plugin-managed vocabulary and learning state; read caching needs invalidation on every training write.
         return (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
     }
 
