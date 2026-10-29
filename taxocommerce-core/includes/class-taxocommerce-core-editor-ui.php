@@ -447,7 +447,7 @@ final class TaxoCommerce_Core_Editor_UI {
 
     public static function selected_terms( $taxonomy ) {
         if ( ! self::allowed_taxonomy( $taxonomy ) ) {
-            return new WP_Error( 'tc_core_taxonomy', 'Taxonomía no admitida: ' . $taxonomy );
+            return new WP_Error( 'tc_core_taxonomy', sprintf( __( 'Taxonomía no admitida: %s', 'taxocommerce-core' ), $taxonomy ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
         $values = isset( $_POST['tc_tax'][ $taxonomy ] ) && is_array( $_POST['tc_tax'][ $taxonomy ] )
@@ -463,7 +463,7 @@ final class TaxoCommerce_Core_Editor_UI {
         foreach ( $ids as $id ) {
             $term = get_term( $id, $taxonomy );
             if ( ! $term || is_wp_error( $term ) || $term->taxonomy !== $taxonomy ) {
-                return new WP_Error( 'tc_core_term_invalid', 'Se ha seleccionado un término inexistente en ' . $taxonomy . '.' );
+                return new WP_Error( 'tc_core_term_invalid', sprintf( __( 'Se ha seleccionado un término inexistente en %s.', 'taxocommerce-core' ), $taxonomy ) );
             }
         }
         return $ids;
@@ -544,7 +544,7 @@ final class TaxoCommerce_Core_Editor_UI {
                 $id = 0;
             }
             if ( isset( $result[ $name ] ) ) {
-                return new WP_Error( 'tc_core_attr_duplicate', 'Un atributo aparece más de una vez o pertenece a variaciones: ' . $name );
+                return new WP_Error( 'tc_core_attr_duplicate', sprintf( __( 'Un atributo aparece más de una vez o pertenece a variaciones: %s', 'taxocommerce-core' ), $name ) );
             }
             $attribute = new WC_Product_Attribute();
             $attribute->set_id( $id );
