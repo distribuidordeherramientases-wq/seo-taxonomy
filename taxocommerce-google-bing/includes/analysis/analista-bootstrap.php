@@ -13,7 +13,7 @@ if (!defined('SEO_ANALISTA_VERSION')) {
     define('SEO_ANALISTA_VERSION', '3.9.0');
 }
 
-$seo_analista_files = array(
+$taxocommerce_google_bing_analista_files = array(
     __DIR__ . '/analista-core.php',
     __DIR__ . '/analista-bing.php',
     __DIR__ . '/analista-mercado.php',
@@ -35,9 +35,9 @@ $seo_analista_files = array(
     __DIR__ . '/analista-lazy.php',
 );
 
-foreach ($seo_analista_files as $seo_analista_file) {
-    if (is_readable($seo_analista_file)) {
-        require_once $seo_analista_file;
+foreach ($taxocommerce_google_bing_analista_files as $taxocommerce_google_bing_analista_file) {
+    if (is_readable($taxocommerce_google_bing_analista_file)) {
+        require_once $taxocommerce_google_bing_analista_file;
     }
 }
 
