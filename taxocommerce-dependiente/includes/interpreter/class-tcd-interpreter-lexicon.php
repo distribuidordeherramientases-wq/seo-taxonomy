@@ -359,7 +359,7 @@ final class TCD_Original_Interprete_DB {
                 "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
                    FROM %i
                   WHERE active=1 AND language='es' AND id IN ({$placeholders})",
-                $table, $ids
+                array_merge( array( $table ), $ids )
             ),
             ARRAY_A
         );
@@ -452,7 +452,7 @@ final class TCD_Original_Interprete_DB {
             return false;
         }
         $table = esc_sql( self::table() );
-        $column = $wpdb->get_var($wpdb->prepare( "SHOW COLUMNS FROM %i LIKE 'usage_count'", $table ));
+        $column = $wpdb->get_var($wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'usage_count' ));
         self::$usage_columns_ready = 'usage_count' === (string) $column;
         return self::$usage_columns_ready;
     }
@@ -705,7 +705,7 @@ final class TCD_Original_Interprete_DB {
         }
         $table = esc_sql( self::table() );
         $stats['active'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $table ));
-        $stats['staged'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=0 AND source LIKE 'linguista%'", $table ));
+        $stats['staged'] = (int) $wpdb->get_var($wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=0 AND source LIKE %s', $table, $wpdb->esc_like( 'linguista' ) . '%' ));
         $stats['validated'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE validated=1", $table ));
         $stats['linked_vocabulary'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0", $table ));
         $stats['lesson_i1'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND lesson_key='i1_subject_action'", $table ));
