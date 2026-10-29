@@ -521,7 +521,28 @@ final class TaxoCommerce_FAQs {
 
     public static function render() {
         self::guard();
-        if ( ! self::exists( 'seo_faq' ) ) { echo '<div class="wrap"><h1>FAQs</h1><p>Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para instalarla.</p></div>'; return; }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin tab selector.
+        $tab = isset( $_GET['tc_faq_tab'] ) && is_string( $_GET['tc_faq_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_faq_tab'] ) ) : 'faqs';
+        echo '<div class="wrap">';
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Secciones de FAQs', 'taxocommerce-faqs' ) . '">';
+        foreach ( array( 'faqs' => __( 'FAQs', 'taxocommerce-faqs' ), 'auto-test' => __( 'Auto Test', 'taxocommerce-faqs' ), 'manual' => __( 'Manual', 'taxocommerce-faqs' ) ) as $key => $label ) {
+            echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( self::url( array( 'tc_faq_tab' => $key ) ) ) . '">' . esc_html( $label ) . '</a>';
+        }
+        echo '</nav>';
+        if ( 'auto-test' === $tab ) {
+            TaxoCommerce_FAQs_Auto_Test::render();
+            echo '</div>';
+            return;
+        }
+        if ( 'manual' === $tab ) {
+            TaxoCommerce_FAQs_Manual::render();
+            echo '</div>';
+            return;
+        }
+        if ( ! self::exists( 'seo_faq' ) ) {
+            echo '<h1>FAQs</h1><p>' . esc_html__( 'Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para instalarla.', 'taxocommerce-faqs' ) . '</p></div>';
+            return;
+        }
         global $wpdb;
         self::ensure_category();
         $table = self::table( 'seo_faq' );
@@ -548,7 +569,7 @@ final class TaxoCommerce_FAQs {
             ARRAY_A
         );
         $notice = get_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() );
-        echo '<div class="wrap"><h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
+        echo '<h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
         if ( $notice ) { delete_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() ); echo '<div class="notice notice-' . ( $notice[1] ? 'error' : 'success' ) . '"><p>' . esc_html( $notice[0] ) . '</p></div>'; }
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap">';
         foreach ( array( 'Total' => $summary['total'], 'Activas' => $summary['active_count'], 'Desactivadas' => $summary['inactive_count'], 'Destinos' => $summary['destinations'], 'Categorías' => $summary['categories'], 'Sin categoría' => $summary['uncategorized'], 'Aperturas' => $summary['opens'] ) as $label => $value ) {

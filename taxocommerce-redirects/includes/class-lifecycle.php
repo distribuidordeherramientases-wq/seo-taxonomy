@@ -49,6 +49,7 @@ final class Lifecycle {
         }
 
         $table = $wpdb->prefix . 'seo_redirects';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Explicit uninstall of the plugin-owned table, guarded by ownership markers.
         if ( false === $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) ) ) {
             return new \WP_Error(
                 'tc_redirects_remove_table',
@@ -58,6 +59,7 @@ final class Lifecycle {
 
         // Assisted-delete markers point to redirect IDs that no longer exist.
         if ( isset( $wpdb->postmeta ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Uninstall removes only plugin-owned assisted-delete post meta.
             $wpdb->delete( $wpdb->postmeta, array( 'meta_key' => '_tc_redirects_assisted_rule' ), array( '%s' ) );
         }
 
@@ -67,6 +69,7 @@ final class Lifecycle {
 
         // Remove only this plugin's short-lived admin notices.
         if ( isset( $wpdb->options ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time uninstall enumerates transient names owned by Redirects.
             $names = $wpdb->get_col( $wpdb->prepare(
                 'SELECT option_name FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',
                 $wpdb->options,

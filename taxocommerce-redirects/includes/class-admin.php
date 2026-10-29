@@ -67,6 +67,20 @@ final class Admin {
 
     public static function render() {
         self::can_manage();
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
+        $tab = isset( $_GET['tc_rd_tab'] ) && is_string( $_GET['tc_rd_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_rd_tab'] ) ) : 'redirects';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        if ( 'auto-test' === $tab || 'user-guide' === $tab ) {
+            echo '<div class="wrap tc-rd"><h1>TaxoCommerce Redirects</h1>';
+            self::tabs( $tab );
+            if ( 'auto-test' === $tab ) {
+                Auto_Test::render();
+            } else {
+                User_Guide::render();
+            }
+            echo '</div>';
+            return;
+        }
         $rows = Store::rows();
         $analysis = Store::diagnostics( $rows );
         $stats = $analysis['stats'];
@@ -105,6 +119,7 @@ final class Admin {
             <h1>Gestor de Redirecciones SEO</h1>
             <p>TaxoCommerce Redirects · gestor independiente de WordPress y WooCommerce.
                 <strong>Reglas compartidas con TaxoCommerce SEO antiguo</strong>, sin migrar ni duplicar tablas.</p>
+            <?php self::tabs( 'redirects' ); ?>
             <?php self::notice(); ?>
             <?php if ( ! Store::table_exists() ) : ?>
                 <div class="notice notice-error"><p>No existe la tabla de redirecciones. Desactiva y activa el plugin para crearla sin alterar las reglas antiguas.</p></div>
@@ -242,6 +257,15 @@ final class Admin {
             <p class="description">«Correcto» significa sin anomalías estructurales conocidas: no confirma por HTTP que el destino responda. Las pruebas abren la URL en otra pestaña.</p>
         </div>
         <?php
+    }
+
+    private static function tabs( $active ) {
+        echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Redirects">';
+        foreach ( array( 'redirects' => 'Redirects', 'auto-test' => 'Auto Test', 'user-guide' => 'User Guide' ) as $tab => $label ) {
+            $url = 'redirects' === $tab ? self::url() : self::url( array( 'tc_rd_tab' => $tab ) );
+            echo '<a class="nav-tab ' . ( $active === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+        }
+        echo '</nav>';
     }
 
     private static function kpi( $number, $title ) {
@@ -407,6 +431,7 @@ final class Admin {
             if ( $preserve_activity && isset( $item['last_hit'] ) && preg_match( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string) $item['last_hit'] ) ) {
                 $last = (string) $item['last_hit'];
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Import adds only validated redirect rows after duplicate and cycle checks.
             $ok = $wpdb->insert(
                 Store::table(),
                 array(

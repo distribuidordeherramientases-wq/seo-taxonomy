@@ -59,6 +59,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		}
 		global $wpdb;
 		$nodes = $wpdb->prefix . 'seo_nodes';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core hierarchy checks canonical node-table availability before operating.
 		$nodes_exists = $nodes === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $nodes ) ) );
 		if ( ! TaxoCommerce_Core_Hierarchy_Classic::available() || ! $nodes_exists ) {
 			TaxoCommerce_Core_Hierarchy_Classic::install();
@@ -455,6 +456,7 @@ final class TaxoCommerce_Core_Hierarchy {
 
 		$country = $this->country_request();
         if ( 'ES' !== $country ) {
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Admin hierarchy selector is limited to 50 pages; both country fields are indexed postmeta keys.
             $args['meta_query'] = array( 'relation' => 'OR',
                 array( 'key' => '_seo_pais_origen', 'value' => $country ),
                 array( 'key' => 'dht_pilot_market', 'value' => $country ),

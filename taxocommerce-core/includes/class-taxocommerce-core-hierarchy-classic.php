@@ -73,6 +73,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         ) );
         $now = current_time( 'mysql' );
         $country = TaxoCommerce_Core_Country::post( $page_id );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction coordinates updates in the canonical SEO node tables; no WordPress CRUD API exists.
         $wpdb->query( 'START TRANSACTION' );
         $disabled = $wpdb->update( $table, array( 'status' => 0, 'updated_at' => $now ), array( 'object_type' => 'page', 'object_id' => $page_id ) );
         $saved = true;
@@ -92,6 +93,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return new WP_Error( 'taxocommerce_core_node_save_failed', 'No se pudo guardar la clasificación en seo_nodes.' );
         }
         $wpdb->query( 'COMMIT' );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         return true;
     }
 
@@ -109,11 +111,14 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( ! self::$schema_verified ) {
             return false;
         }
-        return false !== $wpdb->update(
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required immediate write to canonical SEO node table.
+        $saved = false !== $wpdb->update(
             self::nodes_table(),
             array( 'country_code' => TaxoCommerce_Core_Country::post( $page_id ), 'updated_at' => current_time( 'mysql' ) ),
             array( 'object_type' => 'page', 'object_id' => $page_id, 'status' => 1 )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $saved;
     }
 
     /** Copy earlier Core meta-only classifications into seo_nodes once. */
@@ -121,9 +126,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( get_option( 'taxocommerce_core_nodes_bridge_v1', false ) ) {
             return;
         }
-        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off bridge migration, guarded by the persistent migration option.
+        // phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off migration guarded by a saved migration option; standard WP_Query meta-index lookup.
         $pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids',
             'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META ) );
+        // phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key
         foreach ( $pages as $id ) {
             $id = absint( $id );
             $role = sanitize_key( (string) get_post_meta( $id, TaxoCommerce_Core_Hierarchy::ROLE_META, true ) );
@@ -212,10 +218,11 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             $found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) );
             if ( ! $found ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Idempotent canonical country-column migration, only when missing.
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotent country schema migration only when a canonical column is missing.
                 $result = $wpdb->query(
                     $wpdb->prepare( "ALTER TABLE %i ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER %i", $table, $after_column )
                 );
+                // phpcs:enable WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
                 if ( false === $result ) {
                     return;
                 }
@@ -257,6 +264,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         } else {
             $types = array_keys( $defs );
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only fixed hierarchy relation types and generated %s placeholders can enter this query.
             if ( $has_country ) {
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
                 $sql = $wpdb->prepare(
@@ -270,6 +278,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                     array_merge( array( $table ), $types )
                 );
             }
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL prepared above; hierarchy snapshot must be current.
         $rows = $wpdb->get_results( $sql, ARRAY_A );
@@ -356,6 +365,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $to_add = array_diff( $ids, $old );
         $to_remove = array_diff( $old, $ids );
 
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom-table hierarchy writes must remain inside an atomic SQL transaction.
         $wpdb->query( 'START TRANSACTION' );
         $ok = true;
         foreach ( $to_remove as $id ) {
@@ -384,6 +394,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         } else {
             $wpdb->query( 'ROLLBACK' );
         }
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         if ( $ok ) {
             self::$map_cache = array();
         }
@@ -476,6 +487,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 foreach ( array_unique( array_filter( array_map( 'absint', (array) $parents ) ) ) as $source ) {
                     if ( ! isset( $already_taken[ $target ] ) && self::valid_source( $hierarchy, $def, $source ) ) {
                         global $wpdb;
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration writes one canonical hierarchy relation without an equivalent WP CRUD API.
                         $wpdb->insert( self::table(), array(
                             'source_type' => $def['source_type'], 'source_id' => $source,
                             'target_type' => $def['target_type'], 'target_id' => $target,
