@@ -32,7 +32,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
         $tab = isset( $_GET['tc_logistica_tab'] ) && is_string( $_GET['tc_logistica_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_logistica_tab'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( 'seo-logistica' === $page && 'auto-test' === $tab ) {
+        if ( 'taxocommerce-logistica' === $page && 'auto-test' === $tab ) {
             wp_enqueue_style( 'tc-logistica-auto-test', TAXOCOMMERCE_LOGISTICA_URL . 'assets/auto-test.css', array(), TAXOCOMMERCE_LOGISTICA_VERSION );
         }
     }
@@ -517,7 +517,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
 
     private static function url() {
         return add_query_arg(
-            array( 'page'=>'seo-logistica', 'tc_logistica_tab'=>'auto-test' ),
+            array( 'page'=>'taxocommerce-logistica', 'tc_logistica_tab'=>'auto-test' ),
             admin_url( 'admin.php' )
         );
     }
