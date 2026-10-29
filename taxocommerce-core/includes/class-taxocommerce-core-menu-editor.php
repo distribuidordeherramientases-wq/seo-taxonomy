@@ -250,8 +250,8 @@ final class TaxoCommerce_Core_Menu_Editor {
                 $result
             );
         } elseif ( 'custom' === $task ) {
-            $title = isset( $_POST['custom_title'] ) && is_string( $_POST['custom_title'] ) ? wp_unslash( $_POST['custom_title'] ) : '';
-            $url = isset( $_POST['custom_url'] ) && is_string( $_POST['custom_url'] ) ? wp_unslash( $_POST['custom_url'] ) : '';
+            $title = isset( $_POST['custom_title'] ) && is_string( $_POST['custom_title'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_title'] ) ) : '';
+            $url = isset( $_POST['custom_url'] ) && is_string( $_POST['custom_url'] ) ? esc_url_raw( wp_unslash( $_POST['custom_url'] ), array( 'http', 'https', 'mailto', 'tel' ) ) : '';
             $result = self::add_link( $title, $url );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Enlace personalizado añadido.', 'taxocommerce-core' );
         } elseif ( 'remove' === $task ) {
