@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Social
  * Description: Social network connections, publishing templates and calendar for the TaxoCommerce family.
  * Version: 0.1.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-social/
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
