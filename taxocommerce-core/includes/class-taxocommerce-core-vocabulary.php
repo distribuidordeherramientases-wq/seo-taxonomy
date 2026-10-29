@@ -35,6 +35,7 @@ final class TaxoCommerce_Core_Vocabulary {
         global $wpdb;
         $tables = self::tables();
         foreach ( $tables as $table ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
             $exists = $wpdb->get_var(
                 $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
             );
@@ -66,6 +67,7 @@ final class TaxoCommerce_Core_Vocabulary {
             return $selected;
         }
         $tables = self::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT v.id, v.semantic_group, v.slug, v.label, ov.source
@@ -161,6 +163,7 @@ final class TaxoCommerce_Core_Vocabulary {
         }
         $tables = self::tables();
         $search = '%' . $wpdb->esc_like( sanitize_text_field( $needle ) ) . '%';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, slug, label FROM %i
@@ -220,12 +223,15 @@ final class TaxoCommerce_Core_Vocabulary {
             }
             if ( $ids ) {
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- %d list is generated only from absint() IDs; every identifier uses %i.
                 $valid = $wpdb->get_col(
                     $wpdb->prepare(
                         "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
                         array_merge( array( $tables['vocabulary'], $group ), $ids )
                     )
                 );
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
                 if ( count( $valid ) !== count( $ids ) ) {
                     return new WP_Error( 'tc_core_vocab_invalid', 'Algunas etiquetas de ' . $label . ' no existen en el vocabulario.' );
                 }
@@ -248,6 +254,8 @@ final class TaxoCommerce_Core_Vocabulary {
             if ( $to_remove ) {
                 $ids = array_values( $to_remove );
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- %d list is generated only from absint() IDs.
                 $updated = $wpdb->query(
                     $wpdb->prepare(
                         "UPDATE %i SET status=0, updated_at=%s
@@ -255,12 +263,14 @@ final class TaxoCommerce_Core_Vocabulary {
                         array_merge( array( $tables['relations'], current_time( 'mysql', true ), $type, $object_id ), $ids )
                     )
                 );
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
                 if ( false === $updated ) {
                     return new WP_Error( 'tc_core_vocab_update', 'No se pudieron retirar etiquetas manuales.' );
                 }
             }
             $to_add = array_diff( $wanted[ $group ], $manual_ids, $protected_ids );
             foreach ( $to_add as $term_id ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
                 $updated = $wpdb->query(
                     $wpdb->prepare(
                         "INSERT INTO %i
