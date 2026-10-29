@@ -378,7 +378,7 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '</div><div class="tc-attribute-actions">';
         echo '<button class="button" type="button" data-tc-add-attribute="global">' . esc_html__( '+ Atributo global', 'taxocommerce-core' ) . '</button>';
         echo '<button class="button" type="button" data-tc-add-attribute="custom">' . esc_html__( '+ Atributo personalizado', 'taxocommerce-core' ) . '</button></div>';
-        echo '<p class="tc-field-help">Los atributos usados para variaciones se muestran bloqueados. No se borran ni se alteran desde este editor.</p>';
+        echo '<p class="tc-field-help">' . esc_html__( 'Los atributos usados para variaciones se muestran bloqueados. No se borran ni se alteran desde este editor.', 'taxocommerce-core' ) . '</p>';
         self::attribute_templates();
         echo '</section>';
     }
