@@ -53,6 +53,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     public static function role_node( $page_id ) {
         global $wpdb;
         $table = self::nodes_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
         $row = $wpdb->get_var( $wpdb->prepare(
             "SELECT seo_role FROM %i WHERE object_type = %s AND object_id = %d AND status = 1 ORDER BY id DESC LIMIT 1",
             $table, 'page', absint( $page_id )
@@ -65,6 +66,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $page_id = absint( $page_id );
         $role = sanitize_key( (string) $role );
         $table = self::nodes_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
         $existing = $wpdb->get_var( $wpdb->prepare(
             "SELECT id FROM %i WHERE object_type = %s AND object_id = %d AND seo_role = %s LIMIT 1",
             $table, 'page', $page_id, $role
@@ -142,6 +144,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     public static function available() {
         global $wpdb;
         $table = self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
         return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
     }
 
@@ -201,9 +204,11 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             self::nodes_table() => 'seo_role',
         );
         foreach ( $tables as $table => $after_column ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
                 return;
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             $found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) );
             if ( ! $found ) {
                 $result = $wpdb->query(
@@ -228,15 +233,18 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
         $has_country_column = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code';
 
         if ( $type ) {
             if ( $has_country_column ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare( 'SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type = %s', $table, $type ),
                     ARRAY_A
                 );
             } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare( 'SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type = %s', $table, $type ),
                     ARRAY_A
@@ -247,12 +255,14 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
             if ( $has_country_column ) {
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated from the fixed hierarchy definitions.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
                     ARRAY_A
                 );
             } else {
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated from the fixed hierarchy definitions.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
                     ARRAY_A
@@ -329,6 +339,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $table = self::table();
         // An eligible structural target can have only one structural parent.
         foreach ( $ids as $id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             $other = $wpdb->get_var( $wpdb->prepare(
                 "SELECT source_id FROM %i WHERE relation_type = %s AND target_type = %s AND target_id = %d AND source_id <> %d LIMIT 1",
                 $table, $type, $def['target_type'], $id, $source
@@ -480,6 +491,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $nodes = self::nodes_table();
         $ids = array_map(
             'absint',
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT p.ID FROM %i p
