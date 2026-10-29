@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Logistics
  * Description: WooCommerce shipping weight, dimensions, and delivery-cost management.
  * Version: 0.2.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-logistica/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
