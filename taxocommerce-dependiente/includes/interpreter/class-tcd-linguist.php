@@ -2223,12 +2223,15 @@ final class TCD_Original_Linguista {
         if ($missing) {
             $missing_in = implode(',', array_fill(0, count($missing), '%d'));
             $rows = (array) $wpdb->get_results(
-                "SELECT tr.object_id,t.name
-                 FROM %i tr
-                 JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
-                 JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                 WHERE tr.object_id IN ({$missing_in})
-                 ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
+                $wpdb->prepare(
+                    "SELECT tr.object_id,t.name
+                     FROM %i tr
+                     JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                     JOIN %i t ON t.term_id=tt.term_id
+                     WHERE tr.object_id IN ({$missing_in})
+                     ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
+                    array_merge( array( $wpdb->term_relationships, $wpdb->term_taxonomy, $wpdb->terms ), $missing )
+                ),
                 ARRAY_A
             );
             foreach ($rows as $row) {
