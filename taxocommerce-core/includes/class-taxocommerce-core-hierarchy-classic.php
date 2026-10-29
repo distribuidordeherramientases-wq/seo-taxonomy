@@ -121,6 +121,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( get_option( 'taxocommerce_core_nodes_bridge_v1', false ) ) {
             return;
         }
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-off bridge migration, guarded by the persistent migration option.
         $pages = get_posts( array( 'post_type' => 'page', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids',
             'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META ) );
         foreach ( $pages as $id ) {
@@ -211,6 +212,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
             $found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) );
             if ( ! $found ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Idempotent canonical country-column migration, only when missing.
                 $result = $wpdb->query(
                     $wpdb->prepare( "ALTER TABLE %i ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER %i", $table, $after_column )
                 );
@@ -454,6 +456,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             } else {
                 $targets = get_posts( array(
                     'post_type' => 'page', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids',
+                    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Narrow page-role selector; available roles are fixed by the hierarchy definitions.
                     'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META, 'meta_value' => $def['target_role'],
                 ) );
             }
