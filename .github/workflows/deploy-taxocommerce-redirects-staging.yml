@@ -32,6 +32,7 @@ jobs:
           php taxocommerce-redirects/tests/smoke.php
           php taxocommerce-redirects/tests/lifecycle-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
+          php taxocommerce-redirects/tests/user-guide-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
@@ -42,15 +43,15 @@ jobs:
         run: |
           set -euo pipefail
           test -s taxocommerce-redirects/taxocommerce-redirects.php
-          zip -q -r taxocommerce-redirects-0.1.6.zip taxocommerce-redirects/ -x '*/tests/*' '*/.git*' '*/.DS_Store'
-          unzip -t taxocommerce-redirects-0.1.6.zip
-          unzip -Z1 taxocommerce-redirects-0.1.6.zip | grep -Fx 'taxocommerce-redirects/taxocommerce-redirects.php'
+          zip -q -r taxocommerce-redirects-0.1.7.zip taxocommerce-redirects/ -x '*/tests/*' '*/.git*' '*/.DS_Store'
+          unzip -t taxocommerce-redirects-0.1.7.zip
+          unzip -Z1 taxocommerce-redirects-0.1.7.zip | grep -Fx 'taxocommerce-redirects/taxocommerce-redirects.php'
 
       - name: Publish independently installable ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-redirects-0.1.6
-          path: taxocommerce-redirects-0.1.6.zip
+          name: taxocommerce-redirects-0.1.7
+          path: taxocommerce-redirects-0.1.7.zip
           retention-days: 30
           if-no-files-found: error
 
