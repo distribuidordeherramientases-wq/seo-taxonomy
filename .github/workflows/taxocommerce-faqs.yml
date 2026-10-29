@@ -69,6 +69,8 @@ jobs:
           server-dir: ./wp-content/plugins/taxocommerce-faqs/
           dry-run: false
           log-level: verbose
+          # Store sync state outside the installed FAQ plugin.
+          state-name: ../.taxocommerce-faqs-ftp-state.json
           exclude: |
             **/.git*
             **/.git*/**
@@ -77,3 +79,39 @@ jobs:
             **/*.bak
             **/*.md
             **/*.pot
+
+      - name: Delete old FAQ test scripts and FTP state (STAGING only)
+        env:
+          TC_FAQ_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_FAQ_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_FAQ_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ['TC_FAQ_FTP_HOST'], 21)
+          ftp.login(os.environ['TC_FAQ_FTP_USER'], os.environ['TC_FAQ_FTP_PASSWORD'])
+          ftp.prot_p()
+          ftp.cwd('./wp-content/plugins/taxocommerce-faqs/')
+          for name in (
+              '.ftp-deploy-sync-state.json',
+              'tests/admin-hook-smoke.php',
+              'tests/lifecycle-smoke.php',
+              'tests/auto-test-smoke.php',
+              'tests/manual-smoke.php',
+          ):
+              try:
+                  ftp.delete(name)
+                  print('Removed obsolete FAQ artifact:', name)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith('550'):
+                      raise
+          try:
+              ftp.rmd('tests')
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith('550'):
+                  raise
+          ftp.quit()
+          PY
