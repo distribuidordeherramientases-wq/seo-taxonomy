@@ -41,12 +41,9 @@ final class TCDB_Maintenance {
             ? sanitize_text_field( wp_unslash( $_POST['table'] ) ) : '';
         $mode = isset( $_POST['mode'] ) && is_string( $_POST['mode'] )
             ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
-        $confirmation = isset( $_POST['confirmation'] ) && is_string( $_POST['confirmation'] )
-            ? sanitize_text_field( wp_unslash( $_POST['confirmation'] ) ) : '';
         $confirmed_backup = isset( $_POST['backup_ack'] ) && is_string( $_POST['backup_ack'] )
             && '1' === sanitize_text_field( wp_unslash( $_POST['backup_ack'] ) );
-        $word = 'analyze' === $mode ? 'ANALIZAR' : 'OPTIMIZAR';
-        if ( $confirmation !== $word || ! $confirmed_backup ) {
+        if ( ! $confirmed_backup ) {
             wp_die( 'Confirma el mantenimiento y la existencia de una copia de seguridad reciente.' );
         }
         $eligibility = self::eligibility( $table, $mode );
