@@ -10,10 +10,12 @@ defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_enqueue_report_assets')) {
     function seo_analista_enqueue_report_assets() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin asset routing.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
 
         $tgb_tab = isset($_GET['tgb_tab']) ? sanitize_key(wp_unslash($_GET['tgb_tab'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ('taxocommerce-google-bing' !== $page || 'analysis' !== $tgb_tab) {
             return;
         }
@@ -819,6 +821,7 @@ if (!function_exists('seo_analista_render_report')) {
     function seo_analista_render_report() {
         if (!current_user_can('manage_options')) return;
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only period selector; absint and whitelist in seo_analista_days().
         $days = isset($_GET['analista_days']) ? seo_analista_days(absint(wp_unslash($_GET['analista_days']))) : 28;
 
         echo '<div class="seo-analista-wrap">';
