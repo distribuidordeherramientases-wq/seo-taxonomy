@@ -1033,17 +1033,8 @@ function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by
  * Devuelve operaciones recientes de Clean Database.
  */
 
-/** Historical cross-plugin rollback was intentionally not migrated. */
-function seo_clean_db_render_operations_section() {
-    echo '<div class="seo-clean-card"><h2>Recuperación mediante backup</h2>';
-    echo '<p>Las limpiezas independientes no utilizan Data Layer ni rollback histórico. Descarga un backup SQL antes de reparar los datos SEO.</p></div>';
-}
-
-
-
 /**
- * Delete all requested IDs, with small individual SQL statements and one
- * caller-controlled transaction; never an overall 100-row deletion cap.
+ * Direct SEO table repairs replace only the absent cross-plugin Data Layer.
  */
 function seo_clean_db_delete_ids($table, $column, $ids) {
     global $wpdb;
@@ -1346,7 +1337,6 @@ function seo_clean_db_render_data_errors_tab() {
     }
     echo '</div>';
 
-    seo_clean_db_render_operations_section();
     seo_clean_db_render_relations_section($relation_analysis, $config);
     seo_clean_db_render_stale_nodes_section($stale_nodes, $config);
     seo_clean_db_render_duplicates_section($duplicate_relations, $duplicate_node_rows);
