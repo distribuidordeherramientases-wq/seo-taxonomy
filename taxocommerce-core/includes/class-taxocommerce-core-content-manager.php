@@ -666,9 +666,9 @@ final class TaxoCommerce_Core_Content_Manager {
             }
             if ( $product->is_type( 'simple' ) || $product->is_type( 'external' ) ) {
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
-                $regular_price = isset( $_POST['regular_price'] ) ? wc_format_decimal( wp_unslash( $_POST['regular_price'] ) ) : $product->get_regular_price( 'edit' );
+                $regular_price = isset( $_POST['regular_price'] ) ? wc_format_decimal( sanitize_text_field( wp_unslash( $_POST['regular_price'] ) ) ) : $product->get_regular_price( 'edit' );
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified in save_content().
-                $sale_price = isset( $_POST['sale_price'] ) ? wc_format_decimal( wp_unslash( $_POST['sale_price'] ) ) : $product->get_sale_price( 'edit' );
+                $sale_price = isset( $_POST['sale_price'] ) ? wc_format_decimal( sanitize_text_field( wp_unslash( $_POST['sale_price'] ) ) ) : $product->get_sale_price( 'edit' );
                 $product->set_regular_price( $regular_price );
                 $product->set_sale_price( $sale_price );
             }
