@@ -706,15 +706,32 @@ final class TCD_Original_Interprete_DB {
             return $stats;
         }
         $table = esc_sql( self::table() );
-        $stats['active'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $table ));
-        $stats['staged'] = (int) $wpdb->get_var($wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=0 AND source LIKE %s', $table, $wpdb->esc_like( 'linguista' ) . '%' ));
-        $stats['validated'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE validated=1", $table ));
-        $stats['linked_vocabulary'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0", $table ));
-        $stats['lesson_i1'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND lesson_key='i1_subject_action'", $table ));
+        // Count the mutable lexicon states in one scan, retaining the original conditions.
+        // Direct access is required for the plugin-owned table; avoid caching live learning counters.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One read of live plugin-managed lexicon statistics; a cache would mask recent learning.
+        $counts = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT
+                    SUM(CASE WHEN active=1 THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN active=0 AND source LIKE %s THEN 1 ELSE 0 END) AS staged,
+                    SUM(CASE WHEN validated=1 THEN 1 ELSE 0 END) AS validated,
+                    SUM(CASE WHEN active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0 THEN 1 ELSE 0 END) AS linked_vocabulary,
+                    SUM(CASE WHEN active=1 AND lesson_key='i1_subject_action' THEN 1 ELSE 0 END) AS lesson_i1,
+                    SUM(CASE WHEN active=1 AND source='linguista_l8_auto' THEN 1 ELSE 0 END) AS provisional
+                 FROM %i",
+                $wpdb->esc_like( 'linguista' ) . '%',
+                $table
+            ),
+            ARRAY_A
+        );
+        if (is_array($counts)) {
+            foreach (array('active', 'staged', 'validated', 'linked_vocabulary', 'lesson_i1', 'provisional') as $key) {
+                $stats[$key] = (int) ($counts[$key] ?? 0);
+            }
+        }
         if (self::usage_columns_ready()) {
             $stats['usage_total'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COALESCE(SUM(usage_count),0) FROM %i WHERE active=1", $table ));
         }
-        $stats['provisional'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND source='linguista_l8_auto'", $table ));
         if ($stats['evidence_ready']) {
             $evidence_table = esc_sql( self::evidence_table() );
             $stats['evidence'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $evidence_table ));
