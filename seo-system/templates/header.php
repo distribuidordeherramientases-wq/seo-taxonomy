@@ -9,6 +9,22 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
 require_once __DIR__ . '/template-pilot-country-switcher.php';
+require_once __DIR__ . '/template-pilot-navigation.php';
+
+// The content's country selects the native menu. Explicit international
+// template variants (such as US product/category) take precedence.
+$dht_header_country = strtoupper( trim( (string) ( $GLOBALS['dht_frontend_market'] ?? '' ) ) );
+if ( ! in_array( $dht_header_country, array( 'ES', 'US', 'DE', 'NL', 'FR' ), true ) ) {
+    $dht_header_country = 'ES';
+    if ( class_exists( 'TaxoCommerce_Core_Country', false ) ) {
+        if ( is_singular( array( 'page', 'post', 'product' ) ) ) {
+            $dht_header_country = TaxoCommerce_Core_Country::post( get_queried_object_id() );
+        } elseif ( is_tax( 'product_cat' ) ) {
+            $dht_header_country = TaxoCommerce_Core_Country::term( get_queried_object_id() );
+        }
+    }
+}
+
 
 /*
  * Hoja base y ajustes de cabecera mediante la API de estilos de WordPress.
@@ -635,7 +651,7 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
                     <span class="dht-header-action-label">WhatsApp</span>
                 </a>
             </nav>
-            <?php dht_pilot_render_country_switcher( 'ES' ); ?>
+            <?php dht_pilot_render_country_switcher( $dht_header_country ); ?>
         </div>
     </div>
 </header>
@@ -646,7 +662,32 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
  * GeneratePress controla menu horizontal, submenus y hamburguesa movil.
  */
 if (function_exists('generate_navigation_position')) {
-    generate_navigation_position();
+    $dht_header_menu_id = dht_pilot_managed_menu_id( $dht_header_country );
+    if ( $dht_header_menu_id && ! wp_get_nav_menu_items( $dht_header_menu_id ) ) {
+        $dht_header_menu_id = 0;
+    }
+
+    if ( $dht_header_menu_id ) {
+        // Preserve GeneratePress desktop/mobile markup: only override primary navigation.
+        $dht_header_menu_filter = static function ( $args ) use ( $dht_header_menu_id ) {
+            if ( is_array( $args ) && ( $args['theme_location'] ?? '' ) === 'primary' ) {
+                $args['menu'] = $dht_header_menu_id;
+                $args['fallback_cb'] = false;
+            }
+            return $args;
+        };
+        add_filter( 'wp_nav_menu_args', $dht_header_menu_filter, 100 );
+    }
+
+    // A missing international menu must not display the Spanish menu instead.
+    if ( $dht_header_menu_id || 'ES' === $dht_header_country ) {
+        generate_navigation_position();
+    }
+
+    if ( isset( $dht_header_menu_filter ) ) {
+        remove_filter( 'wp_nav_menu_args', $dht_header_menu_filter, 100 );
+    }
+    unset( $dht_header_menu_id, $dht_header_menu_filter );
 }
 
 /*
