@@ -257,6 +257,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         } else {
             $types = array_keys( $defs );
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only fixed hierarchy relation types and generated %s placeholders can enter this query.
             if ( $has_country ) {
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
                 $sql = $wpdb->prepare(
@@ -270,6 +271,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                     array_merge( array( $table ), $types )
                 );
             }
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL prepared above; hierarchy snapshot must be current.
         $rows = $wpdb->get_results( $sql, ARRAY_A );
