@@ -508,7 +508,7 @@ function seo_google_trends_relevance($text, array $universe, array $context_text
     return apply_filters('seo_google_trends_radar_relevance', $result, $text, $universe, $context_texts);
 }
 
-function seo_google_trends_parse_traffic($raw) {
+function taxocommerce_google_bing_trends_parse_traffic($raw) {
     $raw = trim((string) $raw);
     if ($raw === '') {
         return 0;
@@ -547,7 +547,7 @@ function seo_google_trends_parse_date($raw) {
     return wp_date('Y-m-d H:i:s', $timestamp, wp_timezone());
 }
 
-function seo_google_trends_xml_text($value) {
+function taxocommerce_google_bing_trends_xml_text($value) {
     return sanitize_text_field(trim(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8')));
 }
 
@@ -574,8 +574,8 @@ function seo_google_trends_parse_rss_simplexml($body) {
         if ($ht && isset($ht->news_item)) {
             foreach ($ht->news_item as $news_item) {
                 $news_children = $news_item->children($ht_uri);
-                $title = seo_google_trends_xml_text($news_children->news_item_title ?? '');
-                $source = seo_google_trends_xml_text($news_children->news_item_source ?? '');
+                $title = taxocommerce_google_bing_trends_xml_text($news_children->news_item_title ?? '');
+                $source = taxocommerce_google_bing_trends_xml_text($news_children->news_item_source ?? '');
                 $url = esc_url_raw((string) ($news_children->news_item_url ?? ''));
                 if ($title !== '' || $source !== '' || $url !== '') {
                     $news[] = array('title' => $title, 'source' => $source, 'url' => $url);
@@ -583,18 +583,18 @@ function seo_google_trends_parse_rss_simplexml($body) {
             }
         }
 
-        $title = seo_google_trends_xml_text($item->title ?? '');
+        $title = taxocommerce_google_bing_trends_xml_text($item->title ?? '');
         if ($title === '') {
             continue;
         }
 
-        $traffic_label = seo_google_trends_xml_text($ht->approx_traffic ?? '');
+        $traffic_label = taxocommerce_google_bing_trends_xml_text($ht->approx_traffic ?? '');
         $rows[] = array(
             'title'         => $title,
             'traffic_label' => $traffic_label,
-            'traffic'       => seo_google_trends_parse_traffic($traffic_label),
+            'traffic'       => taxocommerce_google_bing_trends_parse_traffic($traffic_label),
             'pub_date'      => seo_google_trends_parse_date($item->pubDate ?? ''),
-            'description'   => seo_google_trends_xml_text($item->description ?? ''),
+            'description'   => taxocommerce_google_bing_trends_xml_text($item->description ?? ''),
             'link'          => esc_url_raw((string) ($item->link ?? '')),
             'picture'       => esc_url_raw((string) ($ht->picture ?? '')),
             'news'          => $news,
@@ -604,23 +604,23 @@ function seo_google_trends_parse_rss_simplexml($body) {
     return $rows;
 }
 
-function seo_google_trends_regex_tag($xml, $tag) {
+function taxocommerce_google_bing_trends_regex_tag($xml, $tag) {
     $tag_pattern = preg_quote($tag, '/');
     if (!preg_match('/<' . $tag_pattern . '[^>]*>(.*?)<\/' . $tag_pattern . '>/si', (string) $xml, $match)) {
         return '';
     }
     $value = preg_replace('/<!\[CDATA\[(.*?)\]\]>/si', '$1', $match[1]);
-    return seo_google_trends_xml_text(wp_strip_all_tags((string) $value));
+    return taxocommerce_google_bing_trends_xml_text(wp_strip_all_tags((string) $value));
 }
 
-function seo_google_trends_parse_rss_regex($body) {
+function taxocommerce_google_bing_trends_parse_rss_regex($body) {
     if (!preg_match_all('/<item\b[^>]*>(.*?)<\/item>/si', (string) $body, $matches)) {
         return array();
     }
 
     $rows = array();
     foreach ($matches[1] as $item_xml) {
-        $title = seo_google_trends_regex_tag($item_xml, 'title');
+        $title = taxocommerce_google_bing_trends_regex_tag($item_xml, 'title');
         if ($title === '') {
             continue;
         }
@@ -628,24 +628,24 @@ function seo_google_trends_parse_rss_regex($body) {
         $news = array();
         if (preg_match_all('/<ht:news_item\b[^>]*>(.*?)<\/ht:news_item>/si', (string) $item_xml, $news_matches)) {
             foreach ($news_matches[1] as $news_xml) {
-                $news_title = seo_google_trends_regex_tag($news_xml, 'ht:news_item_title');
-                $news_source = seo_google_trends_regex_tag($news_xml, 'ht:news_item_source');
-                $news_url = esc_url_raw(seo_google_trends_regex_tag($news_xml, 'ht:news_item_url'));
+                $news_title = taxocommerce_google_bing_trends_regex_tag($news_xml, 'ht:news_item_title');
+                $news_source = taxocommerce_google_bing_trends_regex_tag($news_xml, 'ht:news_item_source');
+                $news_url = esc_url_raw(taxocommerce_google_bing_trends_regex_tag($news_xml, 'ht:news_item_url'));
                 if ($news_title !== '' || $news_source !== '' || $news_url !== '') {
                     $news[] = array('title' => $news_title, 'source' => $news_source, 'url' => $news_url);
                 }
             }
         }
 
-        $traffic_label = seo_google_trends_regex_tag($item_xml, 'ht:approx_traffic');
+        $traffic_label = taxocommerce_google_bing_trends_regex_tag($item_xml, 'ht:approx_traffic');
         $rows[] = array(
             'title'         => $title,
             'traffic_label' => $traffic_label,
-            'traffic'       => seo_google_trends_parse_traffic($traffic_label),
-            'pub_date'      => seo_google_trends_parse_date(seo_google_trends_regex_tag($item_xml, 'pubDate')),
-            'description'   => seo_google_trends_regex_tag($item_xml, 'description'),
-            'link'          => esc_url_raw(seo_google_trends_regex_tag($item_xml, 'link')),
-            'picture'       => esc_url_raw(seo_google_trends_regex_tag($item_xml, 'ht:picture')),
+            'traffic'       => taxocommerce_google_bing_trends_parse_traffic($traffic_label),
+            'pub_date'      => seo_google_trends_parse_date(taxocommerce_google_bing_trends_regex_tag($item_xml, 'pubDate')),
+            'description'   => taxocommerce_google_bing_trends_regex_tag($item_xml, 'description'),
+            'link'          => esc_url_raw(taxocommerce_google_bing_trends_regex_tag($item_xml, 'link')),
+            'picture'       => esc_url_raw(taxocommerce_google_bing_trends_regex_tag($item_xml, 'ht:picture')),
             'news'          => $news,
         );
     }
@@ -655,7 +655,7 @@ function seo_google_trends_parse_rss_regex($body) {
 function seo_google_trends_parse_rss($body) {
     $rows = seo_google_trends_parse_rss_simplexml($body);
     if (!$rows) {
-        $rows = seo_google_trends_parse_rss_regex($body);
+        $rows = taxocommerce_google_bing_trends_parse_rss_regex($body);
     }
     return $rows;
 }
@@ -899,7 +899,7 @@ function seo_google_trends_public_decode_json($body) {
     return $decoded;
 }
 
-function seo_google_trends_public_cookie_merge(array &$jar, $response) {
+function taxocommerce_google_bing_trends_public_cookie_merge(array &$jar, $response) {
     foreach ((array) wp_remote_retrieve_cookies($response) as $cookie) {
         if (is_object($cookie) && !empty($cookie->name)) {
             $jar[(string) $cookie->name] = $cookie;
@@ -959,7 +959,7 @@ function seo_google_trends_public_warmup($geo = 'ES') {
     $code = (int) wp_remote_retrieve_response_code($response);
     if ($code >= 200 && $code < 400) {
         $jar = array();
-        seo_google_trends_public_cookie_merge($jar, $response);
+        taxocommerce_google_bing_trends_public_cookie_merge($jar, $response);
         return $jar;
     }
 
@@ -1043,7 +1043,7 @@ function seo_google_trends_public_json_request($method, $endpoint, array $params
         );
     }
 
-    seo_google_trends_public_cookie_merge($cookies, $response);
+    taxocommerce_google_bing_trends_public_cookie_merge($cookies, $response);
     $code = (int) wp_remote_retrieve_response_code($response);
     if ($code < 200 || $code >= 300) {
         if (429 === $code) {
@@ -1273,14 +1273,14 @@ function seo_google_trends_public_select_seeds(array $settings, array $universe,
     );
 }
 
-function seo_google_trends_public_widget_keyword(array $widget) {
+function taxocommerce_google_bing_trends_public_widget_keyword(array $widget) {
     return sanitize_text_field((string) (
         $widget['request']['restriction']['complexKeywordsRestriction']['keyword'][0]['value']
         ?? ''
     ));
 }
 
-function seo_google_trends_public_find_widget(array $widgets, $kind, $keyword = '') {
+function taxocommerce_google_bing_trends_public_find_widget(array $widgets, $kind, $keyword = '') {
     $kind = strtoupper((string) $kind);
     $keyword_key = seo_google_trends_normalize($keyword);
     $fallback = array();
@@ -1295,7 +1295,7 @@ function seo_google_trends_public_find_widget(array $widgets, $kind, $keyword = 
         if ($keyword_key === '') {
             return $widget;
         }
-        $widget_keyword = seo_google_trends_public_widget_keyword($widget);
+        $widget_keyword = taxocommerce_google_bing_trends_public_widget_keyword($widget);
         if ($widget_keyword !== '' && seo_google_trends_normalize($widget_keyword) === $keyword_key) {
             return $widget;
         }
@@ -1306,7 +1306,7 @@ function seo_google_trends_public_find_widget(array $widgets, $kind, $keyword = 
     return $fallback;
 }
 
-function seo_google_trends_public_series_stats(array $values) {
+function taxocommerce_google_bing_trends_public_series_stats(array $values) {
     $values = array_values(array_filter(array_map('floatval', $values), static function ($value) {
         return is_finite($value) && $value >= 0;
     }));
@@ -1331,7 +1331,7 @@ function seo_google_trends_public_series_stats(array $values) {
     );
 }
 
-function seo_google_trends_public_parse_timeline(array $payload, array $terms) {
+function taxocommerce_google_bing_trends_public_parse_timeline(array $payload, array $terms) {
     $series = array();
     foreach ($terms as $index => $term) {
         $series[$index] = array();
@@ -1348,7 +1348,7 @@ function seo_google_trends_public_parse_timeline(array $payload, array $terms) {
     }
     $out = array();
     foreach ($terms as $index => $term) {
-        $out[$term] = seo_google_trends_public_series_stats($series[$index] ?? array());
+        $out[$term] = taxocommerce_google_bing_trends_public_series_stats($series[$index] ?? array());
     }
     return $out;
 }
@@ -1615,7 +1615,7 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
     $component_errors = array();
     $diagnostic = array();
 
-    $timeline_widget = seo_google_trends_public_find_widget($widgets, 'TIMESERIES');
+    $timeline_widget = taxocommerce_google_bing_trends_public_find_widget($widgets, 'TIMESERIES');
     if ($timeline_widget) {
         seo_google_trends_public_pause($settings);
         $timeline = seo_google_trends_public_json_request('GET', 'https://trends.google.com/trends/api/widgetdata/multiline', array(
@@ -1625,7 +1625,7 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
             'token' => (string) $timeline_widget['token'],
         ), $cookies, $geo, 'widget_timeline', true);
         if (!is_wp_error($timeline)) {
-            $stats = seo_google_trends_public_parse_timeline($timeline, $terms);
+            $stats = taxocommerce_google_bing_trends_public_parse_timeline($timeline, $terms);
             $interest_stored = seo_google_trends_public_store_interest($stats, $anchor, $geo, $timeframe);
         } else {
             $component_errors[] = 'Serie temporal: ' . $timeline->get_error_message();
@@ -1641,7 +1641,7 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
         );
     }
 
-    $related_widget = seo_google_trends_public_find_widget($widgets, 'RELATED_QUERIES', $focus);
+    $related_widget = taxocommerce_google_bing_trends_public_find_widget($widgets, 'RELATED_QUERIES', $focus);
     if ($related_widget) {
         seo_google_trends_public_pause($settings);
         $related = seo_google_trends_public_json_request('GET', 'https://trends.google.com/trends/api/widgetdata/relatedsearches', array(
