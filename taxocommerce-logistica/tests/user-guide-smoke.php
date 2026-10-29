@@ -55,7 +55,7 @@ assert_guide( isset( $GLOBALS['guide_styles']['tc-logistica-user-guide'] ), 'Onl
 ob_start();
 SEO_Transporte_Costes::render_page();
 $user = ob_get_clean();
-assert_guide( false !== strpos( $user, 'User Guide' ) && false !== strpos( $user, 'User Manual' ) && false !== strpos( $user, 'Technical Manual' ), 'Document navigation' );
+assert_guide( false !== strpos( $user, '>Manual</a>' ) && false !== strpos( $user, 'Manual de usuario' ) && false !== strpos( $user, 'Manual técnico' ), 'Homogeneous manual tab and document navigation' );
 assert_guide( false !== strpos( $user, 'Shipping Rules' ) && false !== strpos( $user, 'Auto Test' ), 'Existing tabs preserved' );
 assert_guide( 10 === substr_count( $user, '<section id="tc-log-user-' ), 'Ten user chapters' );
 assert_guide( false !== strpos( $user, '#tc-log-user-json' ) && false !== strpos( $user, '#tc-log-user-autotest' ), 'Linked index entries' );
