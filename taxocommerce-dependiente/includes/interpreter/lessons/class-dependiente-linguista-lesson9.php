@@ -218,6 +218,7 @@ final class TCD_Original_Linguista_Lesson9 {
             return 0;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         return absint($wpdb->get_var(
             $wpdb->prepare( "SELECT COUNT(*) FROM %i
               WHERE language='es'
@@ -246,6 +247,7 @@ final class TCD_Original_Linguista_Lesson9 {
         $cursor = absint($state['cursor'] ?? 0);
         $batch = self::batch_size($state);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             "SELECT id,expression,normalized_expression,canonical_term,target_search,relation_type,
                     semantic_group,vocabulary_id,context_terms,context_required,confidence,priority,
@@ -603,6 +605,7 @@ final class TCD_Original_Linguista_Lesson9 {
         }
 
         $table = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         $label = (string) $wpdb->get_var($wpdb->prepare(
             "SELECT label FROM %i WHERE active=1 AND semantic_group=%s AND slug=%s ORDER BY id ASC LIMIT 1",
             $table, $group,
@@ -784,6 +787,7 @@ final class TCD_Original_Linguista_Lesson9 {
         }
 
         $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         $before = $wpdb->get_row($wpdb->prepare(
             "SELECT id,active,evidence_count FROM %i
               WHERE normalized_expression=%s AND canonical_term=%s AND relation_type='noise'
@@ -823,6 +827,7 @@ final class TCD_Original_Linguista_Lesson9 {
 
         $promoted = false;
         if ($allow_promotion && !$was_active) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
             $row = $wpdb->get_row($wpdb->prepare(
                 "SELECT evidence_count,active FROM %i WHERE id=%d",
                 $table, $id
@@ -840,6 +845,7 @@ final class TCD_Original_Linguista_Lesson9 {
             }
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         $final = $wpdb->get_row($wpdb->prepare(
             "SELECT evidence_count,active FROM %i WHERE id=%d",
             $table, $id
@@ -857,6 +863,7 @@ final class TCD_Original_Linguista_Lesson9 {
     private static function has_conflicting_active_meaning($expression, $noise_id) {
         global $wpdb;
         $table = esc_sql( TCD_Original_Interprete_DB::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Linguist L9 reads live evolving lesson evidence and custom records; freshness is required during training.
         return absint($wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM %i
               WHERE normalized_expression=%s
