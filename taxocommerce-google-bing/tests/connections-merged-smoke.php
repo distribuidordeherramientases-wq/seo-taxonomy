@@ -51,7 +51,7 @@ $checks = array(
 
 foreach ( $checks as $index => $ok ) {
     if ( ! $ok ) {
-        fwrite( STDERR, 'FAIL merged Connections guard ' . ( $index + 1 ) . PHP_EOL );
+        print( 'FAIL merged Connections guard ' . ( $index + 1 ) . PHP_EOL );
         exit( 1 );
     }
 }
