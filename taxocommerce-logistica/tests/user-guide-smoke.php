@@ -53,7 +53,7 @@ TaxoCommerce_Logistica_User_Guide::assets();
 assert_guide( isset( $GLOBALS['guide_styles']['tc-logistica-user-guide'] ), 'Only manual CSS loaded' );
 
 ob_start();
-SEO_Transporte_Costes::render_page();
+TaxoCommerce_Logistica_Transporte_Costes::render_page();
 $user = ob_get_clean();
 assert_guide( false !== strpos( $user, '>Manual</a>' ) && false !== strpos( $user, 'User Manual' ) && false !== strpos( $user, 'Technical Manual' ), 'Homogeneous manual tab and document navigation' );
 assert_guide( false !== strpos( $user, 'Shipping Rules' ) && false !== strpos( $user, 'Auto Test' ), 'Existing tabs preserved' );
@@ -65,7 +65,7 @@ assert_guide( false === strpos( $user, 'name="seo_transporte[enabled]"' ), 'No o
 
 $_GET['tc_logistica_manual'] = 'technical';
 ob_start();
-SEO_Transporte_Costes::render_page();
+TaxoCommerce_Logistica_Transporte_Costes::render_page();
 $technical = ob_get_clean();
 assert_guide( 11 === substr_count( $technical, '<section id="tc-log-tech-' ), 'Eleven technical chapters' );
 assert_guide( false !== strpos( $technical, '#tc-log-tech-rules' ) && false !== strpos( $technical, '#tc-log-tech-security' ), 'Technical index links' );
@@ -75,13 +75,13 @@ assert_guide( false !== strpos( $technical, '<h3>' ), 'H3 headings rendered' );
 
 $_GET['tc_logistica_manual'] = 'unknown';
 ob_start();
-SEO_Transporte_Costes::render_page();
+TaxoCommerce_Logistica_Transporte_Costes::render_page();
 $default = ob_get_clean();
 assert_guide( false !== strpos( $default, 'tc-log-user-intro' ), 'Unknown selector safely defaults to user manual' );
 
 $GLOBALS['guide_denied'] = true;
 try {
-    SEO_Transporte_Costes::render_page();
+    TaxoCommerce_Logistica_Transporte_Costes::render_page();
     assert_guide( false, 'Unauthorized documentation screen must reject access' );
 } catch ( RuntimeException $e ) {
     assert_guide( false !== strpos( $e->getMessage(), 'permisos' ), 'Capability check is applied' );
