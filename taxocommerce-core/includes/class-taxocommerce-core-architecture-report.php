@@ -74,14 +74,14 @@ final class TaxoCommerce_Core_Architecture_Report {
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WP-owned identifiers, fixed predicates; no user input.
         $rows = $wpdb->get_results(
-            "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
-               FROM {$table} n
-               INNER JOIN {$wpdb->posts} p ON p.ID = n.object_id
+            $wpdb->prepare( "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
+               FROM %i n
+               INNER JOIN %i p ON p.ID = n.object_id
               WHERE n.object_type = 'page'
                 AND n.status = 1
                 AND p.post_type = 'page'
                 AND p.post_status = 'publish'
-                AND n.seo_role IN ('cluster','hub_primary','hub_secondary')",
+                AND n.seo_role IN ('cluster','hub_primary','hub_secondary')", $table, $wpdb->posts ),
             ARRAY_A
         );
         if ( ! is_array( $rows ) ) {
@@ -298,7 +298,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         // Match the historical panel: distinct linked landings, irrespective of page status.
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal Core-managed identifier and fixed predicate.
         $landings = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT target_id) FROM {$relations_table} WHERE target_type = 'landing_page'"
+            $wpdb->prepare( "SELECT COUNT(DISTINCT target_id) FROM %i WHERE target_type = 'landing_page'", $relations_table )
         );
 
         $titles = array();
