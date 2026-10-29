@@ -23,6 +23,9 @@ jobs:
         with:
           ref: main
 
+      - name: Validate Core FTPS cleanup Python syntax
+        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
       - name: Subir TaxoCommerce SEO antiguo a producción por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
