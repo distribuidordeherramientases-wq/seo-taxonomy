@@ -30,6 +30,11 @@ $checks = array(
     strpos( $main, "'google_analytics' => 'Google Analytics'" ) !== false,
     strpos( $main, "'bing'             => 'Bing'" ) !== false,
     strpos( $main, "'google_trends'    => 'Google Trends'" ) !== false,
+    // OAuth external redirect uses the WordPress safe redirect with a narrow Google host allowlist.
+    strpos( $oauth, "wp_safe_redirect( esc_url_raw( \u0024url ), 302" ) !== false,
+    strpos( $oauth, "'accounts.google.com'" ) !== false,
+    strpos( $oauth, 'remove_filter( \'allowed_redirect_hosts\'' ) !== false,
+    strpos( $oauth, 'wp_redirect( esc_url_raw' ) === false,
     strpos( $main, "'analyst'" ) === false,
     strpos( $main, "'mercado'" ) === false,
     strpos( $main, "'informe'" ) === false,
