@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Scrappers
  * Description: External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.
  * Version: 0.1.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-scrappers/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
