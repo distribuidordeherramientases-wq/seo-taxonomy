@@ -458,7 +458,7 @@ final class TaxoCommerce_Core_Editor_UI {
     private static function validate_term_ids( $taxonomy, $raw ) {
         $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $raw ) ) ) );
         if ( count( $ids ) > 250 ) {
-            return new WP_Error( 'tc_core_terms_limit', 'Demasiados términos seleccionados.' );
+            return new WP_Error( 'tc_core_terms_limit', __( 'Demasiados términos seleccionados.', 'taxocommerce-core' ) );
         }
         foreach ( $ids as $id ) {
             $term = get_term( $id, $taxonomy );
@@ -506,21 +506,21 @@ final class TaxoCommerce_Core_Editor_UI {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
         $raw = isset( $_POST['tc_attrs'] ) && is_array( $_POST['tc_attrs'] ) ? wp_unslash( $_POST['tc_attrs'] ) : array();
         if ( count( $raw ) > 50 ) {
-            return new WP_Error( 'tc_core_attr_limit', 'Se han enviado demasiados atributos.' );
+            return new WP_Error( 'tc_core_attr_limit', __( 'Se han enviado demasiados atributos.', 'taxocommerce-core' ) );
         }
         foreach ( $raw as $row ) {
             if ( ! is_array( $row ) ) {
-                return new WP_Error( 'tc_core_attr_invalid', 'Formato de atributo no válido.' );
+                return new WP_Error( 'tc_core_attr_invalid', __( 'Formato de atributo no válido.', 'taxocommerce-core' ) );
             }
             $kind = isset( $row['kind'] ) ? sanitize_key( $row['kind'] ) : '';
             $global = 'global' === $kind;
             if ( ! $global && 'custom' !== $kind ) {
-                return new WP_Error( 'tc_core_attr_kind', 'Tipo de atributo no admitido.' );
+                return new WP_Error( 'tc_core_attr_kind', __( 'Tipo de atributo no admitido.', 'taxocommerce-core' ) );
             }
             if ( $global ) {
                 $name = isset( $row['taxonomy'] ) ? sanitize_key( $row['taxonomy'] ) : '';
                 if ( ! self::allowed_taxonomy( $name ) || 0 !== strpos( $name, 'pa_' ) ) {
-                    return new WP_Error( 'tc_core_attr_tax', 'Atributo global no válido.' );
+                    return new WP_Error( 'tc_core_attr_tax', __( 'Atributo global no válido.', 'taxocommerce-core' ) );
                 }
                 $ids = self::validate_term_ids( $name, $row['terms'] ?? array() );
                 if ( is_wp_error( $ids ) ) {
@@ -528,18 +528,18 @@ final class TaxoCommerce_Core_Editor_UI {
                 }
                 $id = wc_attribute_taxonomy_id_by_name( $name );
                 if ( $id <= 0 ) {
-                    return new WP_Error( 'tc_core_attr_id', 'No se ha encontrado el atributo global.' );
+                    return new WP_Error( 'tc_core_attr_id', __( 'No se ha encontrado el atributo global.', 'taxocommerce-core' ) );
                 }
                 $options = $ids;
             } else {
                 $name = isset( $row['name'] ) ? sanitize_text_field( $row['name'] ) : '';
                 if ( '' === $name || strlen( $name ) > 190 ) {
-                    return new WP_Error( 'tc_core_attr_name', 'El atributo personalizado necesita un nombre válido.' );
+                    return new WP_Error( 'tc_core_attr_name', __( 'El atributo personalizado necesita un nombre válido.', 'taxocommerce-core' ) );
                 }
                 $values = isset( $row['values'] ) ? sanitize_textarea_field( $row['values'] ) : '';
                 $options = array_values( array_unique( array_filter( array_map( 'trim', explode( '|', $values ) ), 'strlen' ) ) );
                 if ( count( $options ) > 250 ) {
-                    return new WP_Error( 'tc_core_attr_values', 'Demasiados valores personalizados.' );
+                    return new WP_Error( 'tc_core_attr_values', __( 'Demasiados valores personalizados.', 'taxocommerce-core' ) );
                 }
                 $id = 0;
             }
@@ -565,7 +565,7 @@ final class TaxoCommerce_Core_Editor_UI {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
         $id = isset( $_POST['image_id'] ) ? absint( wp_unslash( $_POST['image_id'] ) ) : 0;
         if ( $id && ! wp_attachment_is_image( $id ) ) {
-            return new WP_Error( 'tc_core_image_invalid', 'La imagen seleccionada no pertenece a la biblioteca de medios.' );
+            return new WP_Error( 'tc_core_image_invalid', __( 'La imagen seleccionada no pertenece a la biblioteca de medios.', 'taxocommerce-core' ) );
         }
         return $id;
     }
