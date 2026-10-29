@@ -6,9 +6,13 @@ $transport = file_get_contents( $root . '/includes/seo-transporte.php' );
 
 $checks = array(
     strpos( $main, "Version: 0.2.3" ) !== false,
-    strpos( $main, "'seo-logistica'" ) !== false,
+    strpos( $main, "'taxocommerce-logistica'" ) !== false,
     strpos( $main, "SEO_Transporte_Costes" ) !== false,
     strpos( $main, "seo-logistica.php" ) === false,
+    strpos( $main, "add_submenu_page(" ) === false,
+    strpos( $main, "taxocommerce_logistica_force_core_parent" ) === false,
+    strpos( $transport, "const PAGE        = 'taxocommerce-logistica';" ) !== false,
+    strpos( $transport, "add_action('admin_menu', array(__CLASS__, 'register_legacy_page')" ) === false,
     strpos( $transport, 'seo_transporte_costes_settings' ) !== false,
     strpos( $transport, 'woocommerce_package_rates' ) !== false,
     strpos( $transport, 'package_metrics' ) !== false,
