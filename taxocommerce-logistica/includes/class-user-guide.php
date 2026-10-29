@@ -240,7 +240,7 @@ final class TaxoCommerce_Logistica_User_Guide {
                     array( 'h3', __( 'Exportar copia', 'taxocommerce-logistica' ) ),
                     array( 'p', __( 'En Importar / exportar reglas pulsa Exportar reglas (JSON). El archivo incluye opciones generales y todas las reglas de coste. Guárdalo antes de hacer cambios importantes.', 'taxocommerce-logistica' ) ),
                     array( 'h3', __( 'Importar copia', 'taxocommerce-logistica' ) ),
-                    array( 'p', __( 'Selecciona un JSON compatible de hasta 2 MiB y pulsa Importar reglas. ATENCIÓN: la importación reemplaza TODA la configuración actual; no añade ni fusiona reglas. Haz antes una copia de seguridad y comprueba el resultado en staging.', 'taxocommerce-logistica' ) ),
+                    array( 'p', __( 'Selecciona un JSON compatible de hasta 2 MiB y pulsa Importar reglas. ATENCIÓN: la importación REEMPLAZA TODA la configuración actual; no añade ni fusiona reglas. Haz antes una copia de seguridad y comprueba el resultado en staging.', 'taxocommerce-logistica' ) ),
                 ),
             ),
             'autotest' => array(
