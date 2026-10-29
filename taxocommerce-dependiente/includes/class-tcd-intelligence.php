@@ -68,8 +68,11 @@ final class TCD_Intelligence {
         $rules = TCD_Knowledge_Transfer::rules_table();
         $l9 = TCD_Knowledge_Transfer::l9_table();
         $quality = self::quality_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE source=%s', $rules, 'modern_learning' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source_brain_id LIKE %s OR source_brain_id LIKE %s", $l9, 'modern:%', 'maintenance:%' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $quality ) );
         delete_option( self::INTERPRETER_STATE );
         delete_option( self::INTERPRETER_PROGRESS );
@@ -106,6 +109,7 @@ final class TCD_Intelligence {
 
         $knowledge = TCD_Academy::knowledge_table();
         $memory = TCD_Knowledge_Transfer::l9_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $total = absint( $wpdb->get_var(
             $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE lesson=2 AND status='learned'", $knowledge )
         ) );
@@ -124,6 +128,7 @@ final class TCD_Intelligence {
         }
 
         $covered_count = static function () use ( $wpdb, $knowledge, $memory, $stage ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             return absint( $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT k.source_id)
@@ -156,6 +161,7 @@ final class TCD_Intelligence {
         $batch_sizes = array( 1=>40, 2=>70, 3=>120, 4=>180, 5=>250 );
         $limit = absint( $batch_sizes[ $priority ] ?? 120 );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT k.source_type,k.source_id,k.title,k.context_json
@@ -254,6 +260,7 @@ final class TCD_Intelligence {
                 $signal_type,
                 $normalized,
             ) ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $ok = $wpdb->replace( $table, array(
                 'lesson_key'=>'v2_l2_identity',
                 'product_id'=>$product_id,
@@ -412,6 +419,7 @@ final class TCD_Intelligence {
             'created_at'=>$now,
             'updated_at'=>$now,
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->replace( $table, $payload );
     }
 
@@ -456,6 +464,7 @@ final class TCD_Intelligence {
                 sanitize_key( (string) ( $signal['signal_type'] ?? 'identity' ) ),
                 $normalized,
             ) ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $wpdb->replace( $table, array(
                 'lesson_key'=>'v2_l2_identity',
                 'product_id'=>$product_id,
@@ -502,6 +511,7 @@ final class TCD_Intelligence {
                 sanitize_key( (string) ( $signal['semantic_group'] ?? '' ) ),
                 absint( $signal['vocabulary_id'] ?? 0 ),
             ) ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $wpdb->replace( $table, array(
                 'lesson_key'=>'v2_l9_product_language',
                 'product_id'=>$product_id,
@@ -613,6 +623,7 @@ final class TCD_Intelligence {
         $passed = $ratio >= $threshold;
         $report['threshold'] = $threshold;
         $report['passed'] = $passed;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->replace( self::quality_table(), array(
             'snapshot_id'=>$snapshot_id,
             'lesson'=>$lesson,
@@ -700,6 +711,7 @@ final class TCD_Intelligence {
             || absint( $state['snapshot_id'] ?? 0 ) !== $snapshot_id
         ) {
             $table = TCD_Academy::knowledge_table();
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT id FROM %i WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
                 $table, $lesson
@@ -764,6 +776,7 @@ final class TCD_Intelligence {
             $table = TCD_Academy::knowledge_table();
             $placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE id IN ({$placeholders})",
@@ -844,6 +857,7 @@ final class TCD_Intelligence {
         $report['passed'] = $passed;
         $report['recommendations'] = self::quality_recommendations( $lesson, $report );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->replace( self::quality_table(), array(
             'snapshot_id'=>$snapshot_id,
             'lesson'=>$lesson,
@@ -878,6 +892,7 @@ final class TCD_Intelligence {
     private static function evaluate_lesson( $lesson, $snapshot_id ) {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $all_rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
             $table, $lesson
@@ -1138,6 +1153,7 @@ final class TCD_Intelligence {
             $normalized_title = self::normalize( $title );
             $duplicates = 0;
             if ( $normalized_title && in_array( $source_type, array( 'product','post','page' ), true ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
                 $duplicates = absint( $wpdb->get_var( $wpdb->prepare(
                     "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type=%s AND post_status='publish' AND post_title=%s",
                     $source_type,
@@ -1578,6 +1594,7 @@ final class TCD_Intelligence {
         $table = TCD_Academy::knowledge_table();
         $last = 0;
         do {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status,reason
                  FROM %i
@@ -1698,6 +1715,7 @@ final class TCD_Intelligence {
         $last = 0;
 
         do {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status,reason
                  FROM %i
@@ -1864,6 +1882,7 @@ final class TCD_Intelligence {
                 $item = $fresh;
                 $refreshed++;
             } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
                 $stored = $wpdb->get_row( $wpdb->prepare(
                     "SELECT source_type,source_id,title,context_json
                      FROM %i
@@ -1887,12 +1906,14 @@ final class TCD_Intelligence {
             }
 
             if ( 2 === $lesson ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
                 $wpdb->delete( $l9, array(
                     'lesson_key'=>'v2_l2_identity',
                     'product_id'=>$source_id,
                     'source_brain_id'=>$stage,
                 ) );
             } elseif ( 9 === $lesson ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
                 $wpdb->delete( $l9, array(
                     'lesson_key'=>'v2_l9_product_language',
                     'product_id'=>$source_id,
@@ -2047,6 +2068,7 @@ final class TCD_Intelligence {
             $lesson_key, absint( $product_id ), $signal_type, $normalized, (string) $stage,
         ) ) );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $ok = $wpdb->replace( $table, array(
             'lesson_key'=>$lesson_key,
             'product_id'=>absint( $product_id ),
@@ -2083,6 +2105,7 @@ final class TCD_Intelligence {
             'quality_semantic', absint( $source_lesson ), $normalized, $group, $slug, (string) $stage,
         ) ) );
         $now = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $ok = $wpdb->replace( TCD_Knowledge_Transfer::rules_table(), array(
             'rule_key'=>sanitize_key( 'quality_repair_' . substr( $hash, 0, 40 ) ),
             'rule_type'=>'alias',
@@ -2133,6 +2156,7 @@ final class TCD_Intelligence {
             'quality_target', $source_lesson, $normalized, $target_id, (string) $stage,
         ) ) );
         $now = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $ok = $wpdb->replace( TCD_Knowledge_Transfer::rules_table(), array(
             'rule_key'=>sanitize_key( 'quality_target_' . substr( $hash, 0, 40 ) ),
             'rule_type'=>'quality_target',
@@ -2178,6 +2202,7 @@ final class TCD_Intelligence {
 
         $table = TCD_Knowledge_Transfer::rules_table();
         if ( $stage ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT metadata FROM %i
@@ -2191,6 +2216,7 @@ final class TCD_Intelligence {
                 )
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT metadata FROM %i
@@ -2244,7 +2270,9 @@ final class TCD_Intelligence {
 
     private static function activate_stage( $stage ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare( 'UPDATE %i SET active=1,updated_at=%s WHERE source_brain_id=%s', TCD_Knowledge_Transfer::rules_table(), current_time( 'mysql' ), $stage ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare( 'UPDATE %i SET active=1,updated_at=%s WHERE source_brain_id=%s', TCD_Knowledge_Transfer::l9_table(), current_time( 'mysql' ), $stage ) );
     }
 
@@ -2262,6 +2290,7 @@ final class TCD_Intelligence {
 
     public static function quality_for_lesson( $lesson ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $row = $wpdb->get_row( $wpdb->prepare(
             'SELECT * FROM %i WHERE lesson=%d ORDER BY id DESC LIMIT 1',
             self::quality_table(), absint( $lesson )
@@ -2294,6 +2323,7 @@ final class TCD_Intelligence {
         $placeholders = implode( ',', array_fill( 0, count( $ngrams ), '%s' ) );
         if ( $include_stage ) {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM %i WHERE (active=1 OR source_brain_id=%s) AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300",
@@ -2304,6 +2334,7 @@ final class TCD_Intelligence {
             // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM %i WHERE active=1 AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300",
@@ -2367,6 +2398,7 @@ final class TCD_Intelligence {
         $placeholders = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
         
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,semantic_group,slug,label FROM %i WHERE active=1 AND slug IN ({$placeholders}) ORDER BY id ASC LIMIT 150",
@@ -2438,6 +2470,7 @@ final class TCD_Intelligence {
         if ( empty( $result['groups'] ) ) return;
         $table = TCD_Knowledge_Transfer::rules_table();
         if ( $include_stage ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,source_group,source_slug,context_group,context_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source
@@ -2450,6 +2483,7 @@ final class TCD_Intelligence {
                 ARRAY_A
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,source_group,source_slug,context_group,context_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source
@@ -2507,6 +2541,7 @@ final class TCD_Intelligence {
         $current_lesson = min( 10, max( 1, absint( $current_lesson ) ) );
         for ( $lesson = 1; $lesson < $current_lesson; $lesson++ ) {
             if ( self::quality_for_lesson( $lesson ) ) continue;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $count = absint( $wpdb->get_var( $wpdb->prepare(
                 'SELECT COUNT(*) FROM %i WHERE lesson=%d AND status=%s',
                 TCD_Academy::knowledge_table(), $lesson, 'learned'
@@ -2516,6 +2551,7 @@ final class TCD_Intelligence {
             $snapshot_id = absint( $snapshot['id'] ?? 0 );
             $last = 0;
             do {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
                 $rows = (array) $wpdb->get_results( $wpdb->prepare(
                     'SELECT id,source_type,source_id,title,context_json FROM %i WHERE lesson=%d AND status=%s AND id>%d ORDER BY id ASC LIMIT 200',
                     TCD_Academy::knowledge_table(), $lesson, 'learned', $last
@@ -2851,6 +2887,7 @@ final class TCD_Intelligence {
 
         if ( $include_stage ) {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
@@ -2868,6 +2905,7 @@ final class TCD_Intelligence {
             // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
@@ -2936,6 +2974,7 @@ final class TCD_Intelligence {
         $placeholders = implode( ',', array_fill( 0, count( $terms ), '%s' ) );
         if ( $include_stage ) {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM %i WHERE (active=1 OR source_brain_id=%s) AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000",
@@ -2946,6 +2985,7 @@ final class TCD_Intelligence {
             // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM %i WHERE active=1 AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000",
@@ -3043,6 +3083,7 @@ final class TCD_Intelligence {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) return array();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $vocabulary_id = absint( $wpdb->get_var( $wpdb->prepare(
             "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN (%s,%s) ORDER BY id ASC LIMIT 1",
             $voc, $group, $slug, str_replace( '-', '_', $slug )
@@ -3053,12 +3094,14 @@ final class TCD_Intelligence {
             if ( ! $specific_ids ) return array();
             $placeholders = implode( ',', array_fill( 0, count( $specific_ids ), '%d' ) );
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
                 array_merge( array( $rel, $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
             ) ) );
             // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
             "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id ASC LIMIT %d",
             $rel, $vocabulary_id, absint( $limit )
@@ -3131,6 +3174,7 @@ final class TCD_Intelligence {
         if ( ! self::table_exists( $table ) ) return array();
         $out = array();
         foreach ( self::quality_target_hints( $query, 6, $stage ) as $id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $row = $wpdb->get_row( $wpdb->prepare(
                 "SELECT id,question FROM %i WHERE active=1 AND id=%d LIMIT 1",
                 $table, $id
@@ -3139,6 +3183,7 @@ final class TCD_Intelligence {
         }
 
         $like = '%' . $wpdb->esc_like( trim( (string) $query ) ) . '%';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT id,question FROM %i WHERE active=1 AND question LIKE %s ORDER BY CASE WHEN question=%s THEN 0 ELSE 1 END,id ASC LIMIT %d",
             $table, $like, trim( (string) $query ), absint( $limit )
@@ -3177,6 +3222,7 @@ final class TCD_Intelligence {
             || (string) ( $progress['revision'] ?? '' ) !== self::INTERPRETER_EVALUATOR_REVISION
             || absint( $progress['l9_snapshot_id'] ?? 0 ) !== $snapshot_id
         ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT id FROM %i WHERE lesson=%d AND status=%s ORDER BY source_type ASC,source_id ASC",
                 $knowledge, 9, 'learned'
@@ -3222,6 +3268,7 @@ final class TCD_Intelligence {
         if ( $batch ) {
             $placeholders = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=9 AND id IN ({$placeholders})",
                 array_merge( array( $knowledge ), $batch )
@@ -3353,6 +3400,7 @@ final class TCD_Intelligence {
         $item = TCD_Sources::product_item( 9, $product_id );
         if ( ! is_array( $item ) ) return;
         $table = TCD_Knowledge_Transfer::l9_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         $wpdb->query( $wpdb->prepare(
             "DELETE FROM %i WHERE product_id=%d AND (source_brain_id LIKE %s OR source_brain_id LIKE %s)",
             $table, $product_id, 'modern:%', 'maintenance:%'
@@ -3450,6 +3498,7 @@ final class TCD_Intelligence {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter learning and M11 assessment require exact live plugin-table reads and writes; results must not be cached.
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
     }
 
