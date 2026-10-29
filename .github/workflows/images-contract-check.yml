@@ -37,6 +37,8 @@ jobs:
           tools: wp-cli
       - name: PHP syntax
         run: find taxocommerce-images -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Images Auto Test smoke
+        run: php taxocommerce-images/tests/auto-test-smoke.php
       - name: Audit five-speed regulator smoke
         run: php taxocommerce-images/tests/audit-load-smoke.php
       - name: Audit JavaScript syntax and browser continuation
