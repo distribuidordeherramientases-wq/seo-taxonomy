@@ -228,7 +228,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
-        $field = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
+        $has_country_column = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code';
+        $field = $has_country_column ? 'country_code' : 'NULL AS country_code';
         if ( $type ) {
             $rows = $wpdb->get_results(
                 $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM %i WHERE relation_type = %s", $table, $type ),
