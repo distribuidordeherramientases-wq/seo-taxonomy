@@ -233,30 +233,76 @@ jobs:
           ftp.quit()
           PY
 
-      - name: Deploy TaxoCommerce Import-Export to STAGING
+      - name: Validate TaxoCommerce Import-Export before STAGING FTP
+        run: |
+          find taxocommerce-import-export -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/delete-pending-smoke.php
+
+      - name: Deploy TaxoCommerce Import-Export to STAGING (runtime only)
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
           username: ${{ secrets.STAGING_FTP_USERNAME }}
           password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
           local-dir: ./taxocommerce-import-export/
           server-dir: ./wp-content/plugins/taxocommerce-import-export/
-
+          # FTP synchronization state must never become an installed plugin file.
+          state-name: ../.taxocommerce-import-export-ftp-state.json
           dry-run: false
           log-level: verbose
-
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
             **/*.bak
             **/*.md
             **/*.pot
 
+      - name: Remove obsolete Import-Export tests and FTP state from STAGING
+        # Strictly allowlisted: do not touch runtime, uploaded CSVs or Media.
+        env:
+          TC_IE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_IE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_IE_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_IE_FTP_HOST"], 21)
+          ftp.login(os.environ["TC_IE_FTP_USER"], os.environ["TC_IE_FTP_PASSWORD"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-import-export/")
+          files = [
+              ".ftp-deploy-sync-state.json",
+              "tests/adaptive-import-smoke.php",
+              "tests/auto-test-smoke.php",
+              "tests/batch-queue-smoke.php",
+              "tests/batch-runner-browser-smoke.js",
+              "tests/country-csv-smoke.php",
+              "tests/delete-pending-smoke.php",
+              "tests/product-noop-smoke.php",
+              "tests/progress-smoke.php",
+          ]
+          for path in files:
+              try:
+                  ftp.delete(path)
+                  print("Removed obsolete Import-Export deployment artifact:", path)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+          try:
+              ftp.rmd("tests")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY
 
       - name: Validate TaxoCommerce Suppliers
         run: |
