@@ -262,7 +262,7 @@ final class Auto_Test {
     private static function check_targets() {
         $local = Store::normalize_target( '/nueva/?ref=x' );
         return '/nueva?ref=x' === $local
-            && is_wp_error( Store::normalize_target( 'https://otro-dominio.test/externa' ) )
+            && is_wp_error( Store::normalize_target( 'https://other-domain.invalid/externa' ) )
             ? self::pass( 'Destinos internos y parámetros conservados; dominio externo rechazado.' )
             : self::fail( 'La política de destinos locales no se cumple.' );
     }
