@@ -8,32 +8,32 @@ Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-El plugin independiente conserva Clean Database y SEO Data Table del monolito TaxoCommerce SEO.
+Standalone migration of the original Clean Database and SEO Data Table tools from TaxoCommerce SEO.
 
 == Description ==
 
-La version 0.4.0 contiene solamente los dos servicios que existian en el plugin anterior:
+Version 0.4.0 preserves the two original database tools:
 
-* Clean Database: Errores en datos, Limpieza BBDD, Exportar BBDD.
-* Validacion y reparacion de relaciones/nodos SEO, ambitos y categorias, y desbloqueo de aceptacion masiva de proveedores.
-* Las 17 acciones originales de limpieza de WordPress, WooCommerce y Action Scheduler. Sin limite total de 100 filas ni necesidad de escribir palabras de confirmacion. Las acciones se ejecutan manualmente y de forma sincrona, como el original.
-* Exportar SQL completo de WordPress o SQL de tablas SEO.
-* SEO Data Table: Resumen de tablas SEO, explorador con busqueda/orden/filtros, exportacion individual CSV/SQL y paquete ZIP de tablas SEO en CSV, SQL o ambos.
+* Clean Database: Data Errors, Database Cleanup and Database Export tabs.
+* Validation and repair of SEO nodes, relationships, scopes, categories and bulk supplier acceptance locks.
+* All 17 original WordPress, WooCommerce and Action Scheduler cleanup actions, without a total deletion limit of 100 records or typed confirmation words. Cleanup remains manual and synchronous as in the original plugin.
+* Full WordPress database SQL backup and SEO-only SQL backup.
+* SEO Data Table: SEO table inventory, searchable and sortable explorer, per-table CSV/SQL exports and ZIP archives of all SEO tables in CSV, SQL or both.
 
-La unica funcionalidad deliberadamente excluida es el Data Layer transversal y sus funciones de operaciones, historial y rollback. El plugin no crea dependencias para otros plugins. Los backups son el mecanismo previsto de recuperacion.
+The only deliberate omission is the cross-plugin Data Layer and its operation history and rollback features. SEO table repairs use standalone SQL transactions. No other plugin needs this module in order to record its database changes. Backups provide the recovery mechanism.
 
-No se incorporan los servicios posteriores de MySQL, Data Table nuevo, optimizacion, importador CSV, copias o mantenimiento duplicados. Se conservan los controles originales de acceso de administrador, nonces y confirmaciones normales de las acciones de borrado.
+The newer, additional MySQL diagnostics, replacement table explorer, optimization, CSV importer, separate backups and maintenance services have been removed. The original administrator permissions, nonce verification and normal delete confirmation dialogs remain.
 
 == Installation ==
 
-1. Instalar y activar TaxoCommerce Database.
-2. Abrir TaxoCommerce Database, desde su menu o desde Core.
-3. Usar las pantallas originales Clean Database o SEO Data Table.
-4. Descargar un backup SQL antes de las limpiezas irreversibles.
+1. Install and activate TaxoCommerce Database.
+2. Open Database in its own menu, or under TaxoCommerce Core if Core is active.
+3. Use the original Clean Database and SEO Data Table tools.
+4. Download an SQL backup before any irreversible cleanup operation.
 
 == Changelog ==
 
 = 0.4.0 =
-* Reemplaza los servicios inventados por los dos originales, Clean Database y SEO Data Table.
-* Restituye los chequeos, reparaciones, limpiezas y exportaciones existentes.
-* Excluye Data Layer y rollback historico, manteniendo la independencia de plugins.
+* Restored the two original database services and removed duplicated or non-original tools.
+* Kept the original diagnostics, repairs, cleanup actions and data exports.
+* Excluded the cross-plugin Data Layer and historical rollback support.
