@@ -766,7 +766,7 @@ final class TCD_Intelligence {
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE id IN ({$placeholders})",
-                    $table, $batch_ids
+                    array_merge( array( $table ), $batch_ids )
                 ),
                 ARRAY_A
             );
@@ -3037,7 +3037,7 @@ final class TCD_Intelligence {
             $placeholders = implode( ',', array_fill( 0, count( $specific_ids ), '%d' ) );
             return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
-                array_merge(array($rel),  array( $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
+                array_merge( array( $rel, $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
             ) ) );
         }
         return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
