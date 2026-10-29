@@ -39,7 +39,7 @@ $manual=wp_update_nav_menu_item(99,0,array('menu-item-title'=>'Manual <safe>','m
 $before=$GLOBALS['writes'];ob_start();$core->render();$html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'view never mutates menu');
 verify(strpos($html,'MENÚ QUE ESTÁS EDITANDO O CREANDO')!==false,'menu identity heading visible');
-verify(strpos($html,"'menu' =&gt; 'TaxoCommerce - ES'")!==false,'ES template selector escaped');
+verify(strpos($html,'&#039;menu&#039; =&gt; &#039;TaxoCommerce - ES&#039;')!==false,'ES template selector escaped');
 verify(strpos($html,'Nombre actual en WordPress: TaxoCommerce')!==false,'legacy ES menu name disclosed');
 
 verify(substr_count($html,'value="taxocommerce_core_sync_menu"')===2,'sync top and bottom');
@@ -83,7 +83,7 @@ $_GET['tc_country']='US';
 $before=$GLOBALS['writes'];ob_start();$core->render();$us_html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'US menu identity view does not write');
 verify(strpos($us_html,'TaxoCommerce - US')!==false,'US menu name clearly visible');
-verify(strpos($us_html,"'menu' =&gt; 'TaxoCommerce - US'")!==false,'US template selector visible');
+verify(strpos($us_html,'&#039;menu&#039; =&gt; &#039;TaxoCommerce - US&#039;')!==false,'US template selector visible');
 verify(strpos($us_html,'TaxoCommerce - ES')===false,'US identity does not claim ES menu');
 unset($_GET['tc_country']);
 
