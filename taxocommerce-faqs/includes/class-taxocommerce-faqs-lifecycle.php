@@ -20,6 +20,7 @@ final class TaxoCommerce_FAQs_Lifecycle {
         TaxoCommerce_FAQs::install();
         $table = $wpdb->prefix . 'seo_faq';
         $exists = self::table_exists( $table );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle migration or removal on optional custom FAQ tables; fresh DB state is required, never cache schema or destructive operations.
         $column = $exists ? $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'product_cat_id' ) ) : null;
         if ( ! $exists || 'product_cat_id' !== $column ) {
             delete_option( self::SCHEMA );
@@ -31,6 +32,7 @@ final class TaxoCommerce_FAQs_Lifecycle {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle migration or removal on optional custom FAQ tables; fresh DB state is required, never cache schema or destructive operations.
         return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
     }
 
@@ -54,14 +56,17 @@ final class TaxoCommerce_FAQs_Lifecycle {
         }
         $table = $wpdb->prefix . 'seo_faq';
         $relations = $wpdb->prefix . 'seo_object_vocabulary';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Lifecycle migration or removal on optional custom FAQ tables; fresh DB state is required, never cache schema or destructive operations.
         if ( false === $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) ) ) {
             return new WP_Error( 'taxocommerce_faqs_remove_table', 'No se pudo borrar la tabla de FAQs. La desinstalación no ha terminado.' );
         }
         // Delete FAQ assignments only. Never drop Vocabulary or its terms.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle migration or removal on optional custom FAQ tables; fresh DB state is required, never cache schema or destructive operations.
         if ( self::table_exists( $relations ) && false === $wpdb->delete( $relations, array( 'object_type' => 'faq' ), array( '%s' ) ) ) {
             return new WP_Error( 'taxocommerce_faqs_remove_relations', 'La tabla de FAQs se ha borrado, pero quedan relaciones de FAQs por limpiar. Repite la desinstalación.' );
         }
         // Delete only this module's short-lived notices, through WP cache APIs.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lifecycle migration or removal on optional custom FAQ tables; fresh DB state is required, never cache schema or destructive operations.
         $names = $wpdb->get_col( $wpdb->prepare(
             'SELECT option_name FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',
             $wpdb->options,

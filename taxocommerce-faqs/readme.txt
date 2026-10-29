@@ -4,7 +4,7 @@ Tags: faq, woocommerce, questions, csv, vocabulary
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,12 @@ No. Deactivation and ordinary plugin updates preserve FAQ records.
 On multisite, the cleanup is limited to sites marked as initialized by this module. Removing files manually by FTP does not run `uninstall.php`.
 
 == Changelog ==
+
+= 0.1.6 =
+* Correct prepared SQL identifiers and validation in the FAQ editor, CSV and Vocabulary operations.
+* Exclude development tests and FTP sync state from installed plugin, and clean obsolete files on staging.
+* Retain all FAQ records and existing editor, Auto Test and Manual functionality.
+
 
 = 0.1.5 =
 * Add an in-plugin Auto Test tab with 25 read-only checks across six groups.

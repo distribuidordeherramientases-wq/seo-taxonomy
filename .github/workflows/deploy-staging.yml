@@ -562,6 +562,8 @@ jobs:
           server-dir: ./wp-content/plugins/taxocommerce-faqs/
           dry-run: false
           log-level: verbose
+          # Store sync state outside the installed FAQ plugin.
+          state-name: ../.taxocommerce-faqs-ftp-state.json
           exclude: |
             **/.git*
             **/.git*/**
