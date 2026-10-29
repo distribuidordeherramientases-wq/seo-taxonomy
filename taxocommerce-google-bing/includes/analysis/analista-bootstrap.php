@@ -13,6 +13,7 @@ if (!defined('SEO_ANALISTA_VERSION')) {
     define('SEO_ANALISTA_VERSION', '3.9.0');
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_analista_files = array(
     __DIR__ . '/analista-core.php',
     __DIR__ . '/analista-bing.php',
@@ -35,6 +36,7 @@ $seo_analista_files = array(
     __DIR__ . '/analista-lazy.php',
 );
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 foreach ($seo_analista_files as $seo_analista_file) {
     if (is_readable($seo_analista_file)) {
         require_once $seo_analista_file;

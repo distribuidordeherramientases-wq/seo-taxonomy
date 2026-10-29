@@ -9,6 +9,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_market_signals')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_market_signals($limit = 20) {
         if (!function_exists('seo_google_trends_market_summary')) return array();
         $rows = (array) seo_google_trends_market_summary(500);
@@ -58,6 +59,7 @@ if (!function_exists('seo_analista_market_signals')) {
 }
 
 if (!function_exists('seo_analista_search_acceleration')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_search_acceleration($days = 28, $limit = 30) {
         $data = seo_analista_get_data($days);
         $previous = seo_analista_rows_map((array) ($data['previous_queries'] ?? array()), 'query_hash');
@@ -134,6 +136,7 @@ if (!function_exists('seo_analista_search_acceleration')) {
 
 
 if (!function_exists('seo_analista_trend_action_from_target')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_trend_action_from_target(array $target_row) {
         $type = (string) ($target_row['entity']['type'] ?? '');
         $issues = !empty($target_row['issues']);
@@ -143,6 +146,7 @@ if (!function_exists('seo_analista_trend_action_from_target')) {
 }
 
 if (!function_exists('seo_analista_trend_work_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_trend_work_row($query, $score, array $catalog, $days, $source, array $market = array(), array $extra_metrics = array()) {
         $query = seo_analista_clean_query($query);
         if ($query === '' || !seo_analista_query_is_actionable($query)) return array();
@@ -263,6 +267,7 @@ if (!function_exists('seo_analista_trend_work_row')) {
 
 
 if (!function_exists('seo_analista_consolidate_trend_rows')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_consolidate_trend_rows(array $rows) {
         $groups = array();
         foreach ($rows as $row) {
@@ -332,6 +337,7 @@ if (!function_exists('seo_analista_consolidate_trend_rows')) {
 }
 
 if (!function_exists('seo_analista_trend_work')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_trend_work($days = 28, $limit = 60) {
         $days = seo_analista_days($days);
         $out = array();
@@ -384,6 +390,7 @@ if (!function_exists('seo_analista_trend_work')) {
 }
 
 if (!function_exists('seo_analista_catalog_guidance')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_catalog_guidance($days = 28, $limit = 12) {
         if (!seo_analista_is_ready() || !function_exists('seo_google_demand_get_catalog_guidance')) return array();
         $property_id = function_exists('seo_analista_resolve_property_id') ? seo_analista_resolve_property_id() : '';
@@ -413,6 +420,7 @@ if (!function_exists('seo_analista_catalog_guidance')) {
 
 
 if (!function_exists('seo_analista_competitor_rankings')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitor_rankings(array $keywords, array $competitors) {
         $keywords = array_values(array_filter(array_map('sanitize_text_field', $keywords)));
         $competitors = seo_analista_sanitize_domains($competitors);
@@ -434,6 +442,7 @@ if (!function_exists('seo_analista_competitor_rankings')) {
          * ]
          */
         $rows = apply_filters(
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
             'seo_analista_competitor_rankings',
             array(),
             $keywords,
@@ -446,6 +455,7 @@ if (!function_exists('seo_analista_competitor_rankings')) {
 }
 
 if (!function_exists('seo_analista_competitor_summary')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitor_summary(array $opportunities, array $competitors) {
         $keywords = array();
         foreach (array_slice($opportunities, 0, 50) as $row) {
