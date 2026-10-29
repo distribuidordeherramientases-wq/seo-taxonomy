@@ -70,10 +70,14 @@ final class Admin {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
         $tab = isset( $_GET['tc_rd_tab'] ) && is_string( $_GET['tc_rd_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_rd_tab'] ) ) : 'redirects';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( 'auto-test' === $tab ) {
+        if ( 'auto-test' === $tab || 'user-guide' === $tab ) {
             echo '<div class="wrap tc-rd"><h1>TaxoCommerce Redirects</h1>';
-            self::tabs( 'auto-test' );
-            Auto_Test::render();
+            self::tabs( $tab );
+            if ( 'auto-test' === $tab ) {
+                Auto_Test::render();
+            } else {
+                User_Guide::render();
+            }
             echo '</div>';
             return;
         }
@@ -257,7 +261,7 @@ final class Admin {
 
     private static function tabs( $active ) {
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Redirects">';
-        foreach ( array( 'redirects' => 'Redirects', 'auto-test' => 'Auto Test' ) as $tab => $label ) {
+        foreach ( array( 'redirects' => 'Redirects', 'auto-test' => 'Auto Test', 'user-guide' => 'User Guide' ) as $tab => $label ) {
             $url = 'redirects' === $tab ? self::url() : self::url( array( 'tc_rd_tab' => $tab ) );
             echo '<a class="nav-tab ' . ( $active === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
         }
