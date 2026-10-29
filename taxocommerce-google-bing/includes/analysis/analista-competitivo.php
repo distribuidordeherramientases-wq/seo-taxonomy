@@ -898,6 +898,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
         $competitors = (array) ($settings['competitors'] ?? array());
         $tracked = (array) ($settings['tracked_keywords'] ?? array());
 
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only GET notice rendered with escaped output.
         if (isset($_GET['analista_notice'])) {
             $notice = sanitize_key(wp_unslash($_GET['analista_notice']));
             if ($notice === 'competitive_generated') {
@@ -910,6 +911,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
             }
         }
 
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         echo '<section class="seo-analista-section seo-analista-forms">';
         echo '<div class="seo-analista-section-head"><div><h2>Informe competitivo profundo</h2>';
         echo '<p>Compara dominios con una base homogénea de evidencia pública y añade, sólo para nuestra web, Search Console, GA4 y Bing. La generación es explícita: abrir esta pantalla no consume SerpApi/ScraperAPI ni rastrea competidores.</p></div></div>';
