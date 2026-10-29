@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.0
+ * Version: 0.4.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.0' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.1' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -42,11 +42,33 @@ final class TaxoCommerce_Database {
         if ( ! in_array( $screen, array( 'clean', 'table' ), true ) ) {
             $screen = 'clean';
         }
+        // Existing routing parameters remain unchanged for filters, POST actions and export links.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
+        $clean_tab = isset( $_GET['seo_clean_db_tab'] ) && is_string( $_GET['seo_clean_db_tab'] )
+            ? sanitize_key( wp_unslash( $_GET['seo_clean_db_tab'] ) ) : 'data_errors';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
+        $table_section = isset( $_GET['section'] ) && is_string( $_GET['section'] )
+            ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'overview';
+        $tabs = array(
+            'clean:data_errors'     => array( 'Errores en datos', 'clean', 'seo_clean_db_tab', 'data_errors' ),
+            'clean:database_cleanup'=> array( 'Limpieza BBDD', 'clean', 'seo_clean_db_tab', 'database_cleanup' ),
+            'clean:export'          => array( 'Exportar BBDD', 'clean', 'seo_clean_db_tab', 'export' ),
+            'table:overview'        => array( 'Resumen tablas', 'table', 'section', 'overview' ),
+            'table:explorer'        => array( 'Explorar tablas', 'table', 'section', 'explorer' ),
+            'table:export'          => array( 'Exportar tablas', 'table', 'section', 'export' ),
+        );
+        $active = 'table' === $screen ? 'table:' . $table_section : 'clean:' . $clean_tab;
+        if ( ! isset( $tabs[ $active ] ) ) {
+            $active = 'table' === $screen ? 'table:overview' : 'clean:data_errors';
+        }
         $base = admin_url( 'admin.php?page=taxocommerce-database' );
         echo '<div class="wrap"><h1>TaxoCommerce Database</h1>';
-        echo '<nav class="nav-tab-wrapper" aria-label="Servicios originales de base de datos">';
-        echo '<a class="nav-tab' . ( 'clean' === $screen ? ' nav-tab-active' : '' ) . '" href="' . esc_url( $base . '&tcdb_screen=clean' ) . '">Clean Database</a>';
-        echo '<a class="nav-tab' . ( 'table' === $screen ? ' nav-tab-active' : '' ) . '" href="' . esc_url( $base . '&tcdb_screen=table' ) . '">SEO Data Table</a>';
+        echo '<style>.tcdb-flat-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:2px;max-width:100%;scrollbar-width:thin}.tcdb-flat-tabs .nav-tab{flex:0 0 auto;margin-left:0}@media(max-width:782px){.tcdb-flat-tabs{padding-bottom:4px}.tcdb-flat-tabs .nav-tab{font-size:13px;padding:9px 11px}}</style>';
+        echo '<nav class="nav-tab-wrapper tcdb-flat-tabs" aria-label="Herramientas de base de datos">';
+        foreach ( $tabs as $key => $tab ) {
+            $url = add_query_arg( array( 'tcdb_screen' => $tab[1], $tab[2] => $tab[3] ), $base );
+            echo '<a class="nav-tab' . ( $active === $key ? ' nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '"' . ( $active === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $tab[0] ) . '</a>';
+        }
         echo '</nav></div>';
         if ( 'table' === $screen ) {
             \TCDB_Legacy\seo_data_table_page();

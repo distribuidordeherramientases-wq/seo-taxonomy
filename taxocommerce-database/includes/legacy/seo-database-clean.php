@@ -92,7 +92,6 @@ function seo_clean_db_page() {
     echo '<h1>Clean Database</h1>';
     echo '<p>Auditoría, reparación y limpieza controlada de datos del plugin, WordPress y WooCommerce.</p>';
 
-    seo_clean_db_render_tabs($active_tab);
 
     if ($notice) {
         seo_clean_db_render_notice($notice['type'], $notice['message']);

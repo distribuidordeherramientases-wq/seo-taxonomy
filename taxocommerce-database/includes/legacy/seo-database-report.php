@@ -56,11 +56,6 @@ function seo_data_table_page(): void
 
     seo_data_render_styles();
 
-    echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
-    echo '<a class="nav-tab ' . ($section === 'overview' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&section=overview') . '">Resumen</a>';
-    echo '<a class="nav-tab ' . ($section === 'explorer' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&section=explorer') . '">Explorar tablas</a>';
-    echo '<a class="nav-tab ' . ($section === 'export' ? 'nav-tab-active' : '') . '" href="' . esc_url($base_url . '&section=export') . '">Exportar / Backup</a>';
-    echo '</nav>';
 
     if ($section === 'overview') {
         seo_data_render_overview($tables);
