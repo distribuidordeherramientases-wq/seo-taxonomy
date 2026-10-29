@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.13
+Stable tag: 0.2.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,11 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.14 =
+* Correct plugin packaging: exclude developer tests and FTP synchronization metadata from installed plugin.
+* Sanitize submitted workload priority and explicitly verify nonces in the two image-assignment form handlers.
+* No changes to image processing, audits, WebP transformations or background jobs.
 
 = 0.2.13 =
 * Add read-only Manual tab with comprehensive administrator and developer documentation, headings and anchor index.
