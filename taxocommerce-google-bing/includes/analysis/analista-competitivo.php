@@ -828,7 +828,7 @@ if (!function_exists('seo_analista_competitive_save_report')) {
 if (!function_exists('seo_analista_generate_competitive_report_handler')) {
     function seo_analista_generate_competitive_report_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para generar el informe competitivo.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para generar el informe competitivo.', 'taxocommerce-google-bing'));
         }
         check_admin_referer('seo_analista_generate_competitive_report', 'seo_analista_competitive_nonce');
         $days = isset($_POST['analista_days']) ? absint(wp_unslash($_POST['analista_days'])) : 28;
@@ -859,13 +859,13 @@ add_action('admin_post_seo_analista_generate_competitive_report', 'seo_analista_
 if (!function_exists('seo_analista_export_competitive_report_handler')) {
     function seo_analista_export_competitive_report_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar el informe competitivo.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para exportar el informe competitivo.', 'taxocommerce-google-bing'));
         }
         check_admin_referer('seo_analista_export_competitive_report');
 
         $report = get_option(SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, array());
         if (!is_array($report) || !$report) {
-            wp_die(esc_html__('Todavía no existe un informe competitivo guardado.', 'taxocommerce-seo'));
+            wp_die(esc_html__('Todavía no existe un informe competitivo guardado.', 'taxocommerce-google-bing'));
         }
 
         $filename = 'analista-informe-competitivo-' . current_time('Ymd-His') . '.json';
