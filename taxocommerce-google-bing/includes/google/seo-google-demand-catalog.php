@@ -384,7 +384,7 @@ function seo_google_demand_get_query_page_rows($property_id, array $period, $min
 function seo_google_demand_get_storage_diagnostics($property_id, array $period) {
     global $wpdb;
 
-    $table = seo_google_table('search_data');
+    $table = esc_sql(seo_google_table('search_data'));
     $empty = array(
         'stored_rows'          => 0,
         'current_rows'         => 0,
