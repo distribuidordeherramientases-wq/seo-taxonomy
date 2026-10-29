@@ -525,12 +525,17 @@ final class TaxoCommerce_FAQs {
         $tab = isset( $_GET['tc_faq_tab'] ) && is_string( $_GET['tc_faq_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_faq_tab'] ) ) : 'faqs';
         echo '<div class="wrap">';
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Secciones de FAQs', 'taxocommerce-faqs' ) . '">';
-        foreach ( array( 'faqs' => __( 'FAQs', 'taxocommerce-faqs' ), 'auto-test' => __( 'Auto Test', 'taxocommerce-faqs' ) ) as $key => $label ) {
+        foreach ( array( 'faqs' => __( 'FAQs', 'taxocommerce-faqs' ), 'auto-test' => __( 'Auto Test', 'taxocommerce-faqs' ), 'manual' => __( 'Manual', 'taxocommerce-faqs' ) ) as $key => $label ) {
             echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( self::url( array( 'tc_faq_tab' => $key ) ) ) . '">' . esc_html( $label ) . '</a>';
         }
         echo '</nav>';
         if ( 'auto-test' === $tab ) {
             TaxoCommerce_FAQs_Auto_Test::render();
+            echo '</div>';
+            return;
+        }
+        if ( 'manual' === $tab ) {
+            TaxoCommerce_FAQs_Manual::render();
             echo '</div>';
             return;
         }
