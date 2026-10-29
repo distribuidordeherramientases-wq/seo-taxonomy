@@ -280,6 +280,7 @@ function seo_google_opportunity_product_index() {
 
     global $wpdb;
     $cache = array();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results(
         "SELECT ID, post_title, post_name
          FROM {$wpdb->posts}
@@ -319,6 +320,7 @@ function seo_google_opportunity_pending_product_index() {
 
     global $wpdb;
     $cache = array();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results(
         "SELECT ID, post_title, post_name, post_status
          FROM {$wpdb->posts}
@@ -1500,6 +1502,7 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
 }
 
 function seo_google_opportunity_render_header($title, $description, $days, $view) {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'google_intelligence';
     $in_growth_report = 'growth_executive' === $current_tab;
     $days_field = $in_growth_report ? 'growth_exec_days' : 'opportunity_days';

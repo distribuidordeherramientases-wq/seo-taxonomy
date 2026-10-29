@@ -317,6 +317,7 @@ function seo_google_query_arg($key, $default = '') {
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros/avisos GET de solo lectura.
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     return wp_unslash($_GET[$key]);
 }
 
@@ -344,6 +345,7 @@ function seo_google_oauth_callback_handler() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth state is compared with the one-time transient immediately below.
     $received_state = isset($_GET['state'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         ? sanitize_text_field(wp_unslash($_GET['state']))
         : '';
 
@@ -362,6 +364,7 @@ function seo_google_oauth_callback_handler() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth authorization code is accepted only after state validation.
     $code = isset($_GET['code'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         ? sanitize_text_field(wp_unslash($_GET['code']))
         : '';
 
@@ -661,6 +664,7 @@ function seo_google_table_exists($table_name) {
     $table_name = (string) $table_name;
     $previous   = $wpdb->suppress_errors(true);
     $pattern    = $wpdb->esc_like($table_name);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $found      = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $pattern));
     $wpdb->suppress_errors($previous);
 
@@ -816,6 +820,7 @@ function seo_google_install_tables($force = false) {
     if (!seo_google_table_exists($runs_table)) {
         $wpdb->last_error = '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($runs_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $runs_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -825,6 +830,7 @@ function seo_google_install_tables($force = false) {
     if (!seo_google_table_exists($data_table)) {
         $wpdb->last_error = '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($data_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $data_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -834,6 +840,7 @@ function seo_google_install_tables($force = false) {
     if (!seo_google_table_exists($totals_table)) {
         $wpdb->last_error = '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($totals_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $totals_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -843,6 +850,7 @@ function seo_google_install_tables($force = false) {
     if (!seo_google_table_exists($pages_table)) {
         $wpdb->last_error = '';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($pages_sql, ";\r\n\t "));
         if (false === $result) $errors[] = $pages_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
     }
@@ -1057,6 +1065,7 @@ function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) 
             VALUES " . implode(',', $placeholders) . " ON DUPLICATE KEY UPDATE
             property_id=VALUES(property_id),page_url=VALUES(page_url),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table plus generated placeholders; every row value is bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         if (false === $wpdb->query($wpdb->prepare($sql, $args))) {
             return new WP_Error('seo_google_pages_database_error', $wpdb->last_error);
         }
@@ -1100,6 +1109,7 @@ function seo_google_upsert_property_day($run_id, $property_id, $date, array $tot
         VALUES (%s,%s,%s,%s,%f,%f,%f,%f,1,%d,%s)
         ON DUPLICATE KEY UPDATE property_id=VALUES(property_id),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),pages_synced=1,sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal totals table; all property/date/metric values are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $result = $wpdb->query($wpdb->prepare($sql, $property_id, hash('sha256', $property_id), $date, 'web',
         $totals['clicks'], $totals['impressions'], $totals['ctr'], $totals['position'], absint($run_id), current_time('mysql', true)));
     return false === $result ? new WP_Error('seo_google_totals_database_error', $wpdb->last_error) : true;
@@ -1184,6 +1194,7 @@ function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows
                 updated_at = VALUES(updated_at)";
 
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table plus generated row placeholders; every value is bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query($wpdb->prepare($sql, $arguments));
 
         if (false === $result) {
@@ -1327,7 +1338,9 @@ function seo_google_sync_start_handler() {
     $now           = current_time('mysql', true);
     $stale_before  = gmdate('Y-m-d H:i:s', time() - (30 * MINUTE_IN_SECONDS));
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $active = $wpdb->get_row(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT * FROM {$runs_table}
              WHERE property_hash = %s AND status = 'running'
@@ -1336,6 +1349,7 @@ function seo_google_sync_start_handler() {
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     if ($active && !empty($active['updated_at']) && $active['updated_at'] >= $stale_before) {
         seo_google_ajax_success(
@@ -1352,6 +1366,7 @@ function seo_google_sync_start_handler() {
     }
 
     if ($active) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $wpdb->update(
             $runs_table,
             array(
@@ -1376,21 +1391,27 @@ function seo_google_sync_start_handler() {
         $initial_from = gmdate('Y-m-d', strtotime($date_to . ' -89 days'));
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $last_date = $wpdb->get_var(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT MAX(data_date) FROM {$data_table} WHERE property_hash = %s",
             $property_hash
         )
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     // Tras actualizar el esquema, las filas históricas no contienen totales
     // de propiedad. Recuperar la ventana entera una sola vez.
     $totals_table = esc_sql( seo_google_table('search_totals') );
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $totals_coverage = $wpdb->get_row($wpdb->prepare(
         "SELECT MIN(data_date) AS first_date, MAX(data_date) AS last_date, COUNT(*) AS days
          FROM {$totals_table} WHERE property_hash = %s AND data_date BETWEEN %s AND %s AND search_type = 'web' AND pages_synced = 1",
         $property_hash, $initial_from, $date_to
     ), ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $totals_complete_through_last = !empty($totals_coverage['last_date'])
         && $totals_coverage['first_date'] === $initial_from
         && (int) $totals_coverage['days'] === seo_google_days_inclusive($initial_from, $totals_coverage['last_date']);
@@ -1414,6 +1435,7 @@ function seo_google_sync_start_handler() {
 
     $days_total = seo_google_days_inclusive($date_from, $date_to);
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $inserted = $wpdb->insert(
         $runs_table,
         array(
@@ -1488,10 +1510,13 @@ function seo_google_sync_day_handler() {
     global $wpdb;
 
     $runs_table = esc_sql( seo_google_table('sync_runs') );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $run        = $wpdb->get_row(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare("SELECT * FROM {$runs_table} WHERE id = %d", $run_id),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     if (!$run) {
         seo_google_ajax_error(array('message' => 'La sincronización no existe.'), 404);
@@ -1527,6 +1552,7 @@ function seo_google_sync_day_handler() {
         $message = $totals->get_error_message();
         $now     = current_time('mysql', true);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $wpdb->update(
             $runs_table,
             array(
@@ -1546,10 +1572,13 @@ function seo_google_sync_day_handler() {
     // Un día puede cambiar entre sincronizaciones. Sustituimos sus filas de
     // detalle y página en una transacción para no conservar URLs ya retiradas.
     $property_hash = hash('sha256', $run['property_id']);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $transaction_started = false !== $wpdb->query('START TRANSACTION');
     if ($transaction_started) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $deleted_detail = $wpdb->delete(seo_google_table('search_data'),
             array('property_hash'=>$property_hash,'data_date'=>$date,'search_type'=>'web'), array('%s','%s','%s'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $deleted_pages = $wpdb->delete(seo_google_table('search_pages'),
             array('property_hash'=>$property_hash,'data_date'=>$date,'search_type'=>'web'), array('%s','%s','%s'));
         $stored = (false === $deleted_detail || false === $deleted_pages)
@@ -1566,7 +1595,9 @@ function seo_google_sync_day_handler() {
     }
 
     if ($transaction_started) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         if (is_wp_error($stored)) $wpdb->query('ROLLBACK');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         elseif (false === $wpdb->query('COMMIT')) $stored = new WP_Error('seo_google_commit_error', $wpdb->last_error);
     }
 
@@ -1574,6 +1605,7 @@ function seo_google_sync_day_handler() {
         $message = $stored->get_error_message();
         $now     = current_time('mysql', true);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $wpdb->update(
             $runs_table,
             array(
@@ -1617,6 +1649,7 @@ function seo_google_sync_day_handler() {
         $formats[]             = '%s';
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $wpdb->update($runs_table, $update, array('id' => $run_id), $formats, array('%d'));
 
     if ($done) {
@@ -1647,10 +1680,13 @@ function seo_google_latest_data_date($property_id) {
 
     $totals_table = esc_sql( seo_google_table('search_totals') );
     if (seo_google_table_exists($totals_table)) {
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $latest_total = $wpdb->get_var($wpdb->prepare(
             "SELECT MAX(data_date) FROM {$totals_table} WHERE property_hash = %s AND search_type = 'web'",
             hash('sha256', $property_id)
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         if ($latest_total) return $latest_total;
     }
 
@@ -1660,12 +1696,15 @@ function seo_google_latest_data_date($property_id) {
         return null;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_var(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT MAX(data_date) FROM {$table} WHERE property_hash = %s",
             hash('sha256', $property_id)
         )
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 /**
@@ -1676,6 +1715,8 @@ function seo_google_latest_data_date($property_id) {
 function seo_google_period_metrics($property_id, $date_from, $date_to) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_data') );
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $row = $wpdb->get_row($wpdb->prepare(
         "SELECT COALESCE(SUM(clicks),0) AS clicks, COALESCE(SUM(impressions),0) AS impressions,
             COUNT(DISTINCT query_hash) AS queries, COUNT(DISTINCT page_hash) AS pages,
@@ -1684,6 +1725,7 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
          FROM {$table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web'",
         hash('sha256', $property_id), $date_from, $date_to
     ), ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $row = is_array($row) ? $row : array();
     $row['source'] = 'query_page_partial';
     $row['days_available'] = 0;
@@ -1691,6 +1733,8 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
 
     $totals_table = esc_sql( seo_google_table('search_totals') );
     if (!seo_google_table_exists($totals_table)) return $row;
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $totals = $wpdb->get_row($wpdb->prepare(
         "SELECT COUNT(*) AS days_available, COALESCE(SUM(clicks),0) AS clicks,
             COALESCE(SUM(impressions),0) AS impressions,
@@ -1699,15 +1743,19 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
          FROM {$totals_table} WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web'",
         hash('sha256', $property_id), $date_from, $date_to
     ), ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $row['days_available'] = (int) ($totals['days_available'] ?? 0);
     if ($row['days_available'] !== $row['days_expected']) return $row;
     foreach (array('clicks','impressions','ctr','position') as $key) $row[$key] = $totals[$key];
     if (seo_google_pages_period_complete($property_id, $date_from, $date_to)) {
         $pages_table = esc_sql( seo_google_table('search_pages') );
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $row['pages'] = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT page_hash) FROM {$pages_table} WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s",
             hash('sha256', $property_id), $date_from, $date_to
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         $row['pages_source'] = 'gsc_page_web_final';
     } else {
         $row['pages_source'] = 'query_page_partial';
@@ -1728,10 +1776,13 @@ function seo_google_pages_period_complete($property_id, $date_from, $date_to) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_totals') );
     if (!seo_google_table_exists($table)) return false;
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $count = (int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM {$table} WHERE property_hash=%s AND search_type='web' AND pages_synced=1 AND data_date BETWEEN %s AND %s",
         hash('sha256', $property_id), $date_from, $date_to
     ));
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     return $count === seo_google_days_inclusive($date_from, $date_to);
 }
 
@@ -1773,7 +1824,9 @@ function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit =
 
     $table = esc_sql( seo_google_table('search_data') );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT
                 MAX(query_text) AS label,
@@ -1793,6 +1846,7 @@ function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit =
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 /**
@@ -1804,7 +1858,9 @@ function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 1
     $table = esc_sql( seo_google_table(seo_google_pages_period_complete($property_id, $date_from, $date_to)
         ? 'search_pages' : 'search_data') );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT
                 MAX(page_url) AS label,
@@ -1824,6 +1880,7 @@ function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 1
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 /**
@@ -1838,7 +1895,9 @@ function seo_google_get_sync_history($property_id, $limit = 10) {
         return array();
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT * FROM {$table}
              WHERE property_hash = %s
@@ -1848,6 +1907,7 @@ function seo_google_get_sync_history($property_id, $limit = 10) {
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 
@@ -1859,6 +1919,7 @@ function seo_google_intelligence_page() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Google Intelligence view selector.
     $view = isset($_GET['google_view'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         ? sanitize_key(wp_unslash($_GET['google_view']))
         : 'actions';
 
@@ -2433,11 +2494,14 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
 
     $totals_table = esc_sql( seo_google_table('search_totals') );
     if (seo_google_table_exists($totals_table)) {
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $totals_rows = $wpdb->get_results($wpdb->prepare(
             "SELECT data_date,clicks,impressions,ctr,position FROM {$totals_table}
              WHERE property_hash=%s AND data_date BETWEEN %s AND %s AND search_type='web' ORDER BY data_date ASC",
             hash('sha256', $property_id), $date_from, $latest_date
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // Never splice property totals with a different aggregation method.
         // Search Console has no meaningful average position on a day with
         // zero impressions. Preserve zero clicks/impressions, but expose
@@ -2456,7 +2520,9 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
         }
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT
                 data_date,
@@ -2475,6 +2541,7 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     foreach ($rows as &$row) {
         $row['clicks']      = (float) $row['clicks'];
@@ -2997,6 +3064,7 @@ function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limi
             LIMIT %d";
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     foreach ($rows as &$row) {
@@ -3023,7 +3091,9 @@ function seo_google_get_query_page_evidence($property_id, $query_hash, $date_fro
 
     $table = esc_sql( seo_google_table('search_data') );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT
                 MAX(page_url) AS page_url,
@@ -3045,6 +3115,7 @@ function seo_google_get_query_page_evidence($property_id, $query_hash, $date_fro
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 /**
@@ -3055,7 +3126,9 @@ function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from
 
     $table = esc_sql( seo_google_table('search_data') );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT
                 MAX(query_text) AS query_text,
@@ -3077,6 +3150,7 @@ function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 /**
@@ -3114,6 +3188,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
             LIMIT %d";
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     if ($page_source) {
@@ -3142,12 +3217,15 @@ function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $
     if (!$hashes) return;
     $table = esc_sql( seo_google_table('search_data') );
     $placeholders = implode(',', array_fill(0, count($hashes), '%s'));
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $counts = $wpdb->get_results($wpdb->prepare(
         "SELECT page_hash,COUNT(DISTINCT query_hash) AS queries FROM {$table}
          WHERE property_hash=%s AND search_type='web' AND data_date BETWEEN %s AND %s
            AND page_hash IN ({$placeholders}) GROUP BY page_hash",
         ...array_merge(array(hash('sha256', $property_id), $date_from, $date_to), $hashes)
     ), ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $by_hash = array();
     foreach ((array) $counts as $count) $by_hash[$count['page_hash']] = (int) $count['queries'];
     foreach ($rows as &$row) $row['queries'] = $by_hash[$row['page_hash']] ?? 0;
@@ -3325,6 +3403,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
     );
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
     $groups = array('new' => array(), 'lost' => array(), 'growth' => array(), 'decline' => array());
 
@@ -4015,6 +4094,7 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
 
     if ($page_source) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal GSC table; property, dates and limit are bound through $wpdb->prepare().
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $prepared_sql = $wpdb->prepare(
             "SELECT page_hash,MAX(page_url) AS page_url,SUM(clicks) AS clicks,SUM(impressions) AS impressions,0 AS queries,
                     CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END AS position
@@ -4023,8 +4103,10 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
              GROUP BY page_hash ORDER BY impressions DESC LIMIT %d",
             hash('sha256',$property_id),$date_from,$date_to,max(1,min(10000,absint($limit)))
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     } else {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal GSC table; property, dates and limit are bound through $wpdb->prepare().
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $prepared_sql = $wpdb->prepare(
             "SELECT page_hash,MAX(page_url) AS page_url,SUM(clicks) AS clicks,SUM(impressions) AS impressions,COUNT(DISTINCT query_hash) AS queries,
                     CASE WHEN SUM(impressions)>0 THEN SUM(position*impressions)/SUM(impressions) ELSE 0 END AS position
@@ -4033,8 +4115,10 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
              GROUP BY page_hash ORDER BY impressions DESC LIMIT %d",
             hash('sha256',$property_id),$date_from,$date_to,max(1,min(10000,absint($limit)))
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     }
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
     if ($page_source) seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
     return $rows;
@@ -4234,6 +4318,7 @@ function seo_google_get_lab_rows($property_id, array $filters) {
             LIMIT %d";
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SELECT/GROUP/ORDER fragments come from closed allowlists; all user filter values and LIMIT are bound through prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 }
 

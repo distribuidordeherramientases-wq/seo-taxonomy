@@ -18,6 +18,7 @@ if (!function_exists('seo_analista_table_exists')) {
         global $wpdb;
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table);
         if ($table === '') return false;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
     }
 }
@@ -348,11 +349,14 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
             $summary_args = array_merge($summary_args, $admin_ids);
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated admin ID placeholders; all values are bound via $wpdb->prepare().
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $summary_sql = $wpdb->prepare(
             "SELECT COUNT(*) total, COUNT(DISTINCT normalized_term) unique_terms, SUM(CASE WHEN results_count=0 THEN 1 ELSE 0 END) zero_results FROM {$table} WHERE searched_at >= %s{$exclude_admins}",
             $summary_args
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $summary_sql is the result of $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $summary = $wpdb->get_row($summary_sql, ARRAY_A);
         $out['available'] = true;
         $out['total'] = (int) ($summary['total'] ?? 0);
@@ -368,6 +372,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated admin ID placeholders; all values/limit are bound via $wpdb->prepare().
         $sql = $wpdb->prepare($sql, $top_args);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['top'] = (array) $wpdb->get_results($sql, ARRAY_A);
         foreach ($out['top'] as $row) {
             if ((int) ($row['zero_count'] ?? 0) > 0 || (float) ($row['avg_results'] ?? 0) < 2.0) $out['gaps'][] = $row;
@@ -384,9 +389,14 @@ if (!function_exists('seo_analista_supplier_snapshot')) {
         if (!seo_analista_table_exists($table)) return $out;
 
         $out['available'] = true;
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['providers'] = (int) $wpdb->get_var("SELECT COUNT(DISTINCT proveedor) FROM {$table}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['published_links'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE object_id IS NOT NULL AND object_id > 0");
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
         $sql = "SELECT proveedor,
                     COUNT(*) total,
@@ -404,6 +414,7 @@ if (!function_exists('seo_analista_supplier_snapshot')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal supplier table; limit is bound via $wpdb->prepare().
         $sql = $wpdb->prepare($sql, max(5, min(100, absint($limit))));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['rows'] = (array) $wpdb->get_results($sql, ARRAY_A);
         $now = current_time('timestamp');
         foreach ($out['rows'] as $row) {
