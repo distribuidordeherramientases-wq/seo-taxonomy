@@ -314,8 +314,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         // An eligible structural target can have only one structural parent.
         foreach ( $ids as $id ) {
             $other = $wpdb->get_var( $wpdb->prepare(
-                "SELECT source_id FROM {$table} WHERE relation_type = %s AND target_type = %s AND target_id = %d AND source_id <> %d LIMIT 1",
-                $type, $def['target_type'], $id, $source
+                "SELECT source_id FROM %i WHERE relation_type = %s AND target_type = %s AND target_id = %d AND source_id <> %d LIMIT 1",
+                $table, $type, $def['target_type'], $id, $source
             ) );
             if ( $other ) {
                 return new WP_Error( 'tc_relations_taken', sprintf( 'El elemento #%d ya pertenece a otro padre. Desvincúlalo primero.', $id ) );
