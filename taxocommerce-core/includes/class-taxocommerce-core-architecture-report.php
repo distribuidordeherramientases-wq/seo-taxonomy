@@ -389,7 +389,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<p class="description">Cluster → Hub primario → Hub secundario → Categoría. Cada nivel muestra elementos únicos; no representa un embudo de conversión.</p>';
         foreach ( $levels as $label => $count ) {
             $width = 100 * $count / $max_level;
-            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $label ) . '</span><strong>' . self::amount( $count ) . '</strong></div>';
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( self::amount( $count ) ) . '</strong></div>';
             echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) round( $width, 2 ) ) . '%"></span></div></div>';
         }
         echo '</section>';
@@ -404,7 +404,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<h3>Productos publicados por cluster</h3><p class="description">Cobertura de productos únicos dentro de cada cluster; un producto en varios clusters puede figurar en más de una barra.</p>';
         foreach ( $report['clusters'] as $cluster ) {
             $width = round( 100 * (int) $cluster['products'] / $max_products, 2 );
-            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $cluster['title'] ) . '</span><strong>' . self::amount( $cluster['products'] ) . '</strong></div>';
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $cluster['title'] ) . '</span><strong>' . esc_html( self::amount( $cluster['products'] ) ) . '</strong></div>';
             echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) $width ) . '%"></span></div></div>';
         }
         echo '</section>';
@@ -430,7 +430,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         foreach ( $report['clusters'] as $cluster ) {
             echo '<article class="tc-architecture-cluster">';
             echo '<div class="tc-architecture-cluster-head"><div><span>Cluster</span><h4>' . esc_html( $cluster['title'] ) . '</h4></div>';
-            echo '<strong>' . esc_html( self::amount( $cluster['products'] ) ) . ' <small>productos</small></strong></div>';
+            echo '<strong>' . esc_html( esc_html( self::amount( $cluster['products'] ) ) ) . ' <small>productos</small></strong></div>';
             echo '<div class="tc-architecture-cluster-stats">';
             foreach ( array(
                 'primary' => 'Hubs primarios',
