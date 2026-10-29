@@ -236,7 +236,7 @@ final class TaxoCommerce_Core_Editor_UI {
         }
         $field = $single ? 'parent' : 'tc_tax[' . $taxonomy . '][]';
         echo '<section class="tc-editor-card tc-taxonomy-card"><div class="tc-card-heading"><h2>' . esc_html( $label ) . '</h2></div>';
-        TaxoCommerce_Core_Vocabulary::render_picker( $field, 'taxonomy', $taxonomy, $selected, 'Buscar y seleccionar…', $single );
+        TaxoCommerce_Core_Vocabulary::render_picker( $field, 'taxonomy', $taxonomy, $selected, __( 'Buscar y seleccionar…', 'taxocommerce-core' ), $single );
         echo '<p class="tc-field-help">' . esc_html__( 'Busca por nombre y selecciona los términos. Los cambios se aplican al guardar.', 'taxocommerce-core' ) . '</p></section>';
     }
 
@@ -258,7 +258,7 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'DESCRIPCIÓN BREVE', 'taxocommerce-core' ) . '</span><h2>' . esc_html__( 'Resumen comercial', 'taxocommerce-core' ) . '</h2></div></div>';
         self::textarea( 'excerpt', __( 'Descripción corta', 'taxocommerce-core' ), $product->get_short_description( 'edit' ), 6 );
         echo '</section>';
-        self::rich_editor( $product->get_description( 'edit' ), 'Descripción del producto' );
+        self::rich_editor( $product->get_description( 'edit' ), __( 'Descripción del producto', 'taxocommerce-core' ) );
         self::attributes( $product );
         TaxoCommerce_Core_Vocabulary::render( 'products', $id );
         self::side();
@@ -298,7 +298,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::toolbar( $content_type, $id, $post->post_title, $score, $post->post_status, get_permalink( $id ) );
         self::open_form( $content_type, $id );
         self::content_card( $post->post_title, $post->post_name, false );
-        self::rich_editor( $post->post_content, 'Contenido principal', 18 );
+        self::rich_editor( $post->post_content, __( 'Contenido principal', 'taxocommerce-core' ), 18 );
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><h2>' . esc_html__( 'Extracto', 'taxocommerce-core' ) . '</h2></div>';
         self::textarea( 'excerpt', __( 'Resumen SEO / editorial', 'taxocommerce-core' ), $post->post_excerpt, 5 );
         echo '</section>';
@@ -320,7 +320,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::toolbar( 'categories', $id, $term->name, $score, 'publish', get_term_link( $term, 'product_cat' ) );
         self::open_form( 'categories', $id );
         self::content_card( $term->name, $term->slug, true );
-        self::rich_editor( $term->description, 'Descripción de categoría', 13 );
+        self::rich_editor( $term->description, __( 'Descripción de categoría', 'taxocommerce-core' ), 13 );
         TaxoCommerce_Core_Vocabulary::render( 'categories', $id );
         self::side();
         TaxoCommerce_Core_Country::field( TaxoCommerce_Core_Country::term( $id ) );
