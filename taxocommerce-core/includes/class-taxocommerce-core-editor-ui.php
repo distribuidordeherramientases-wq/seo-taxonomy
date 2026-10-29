@@ -186,11 +186,11 @@ final class TaxoCommerce_Core_Editor_UI {
 
     private static function status( $current ) {
         $statuses = array(
-            'publish' => 'Publicado',
-            'draft'   => 'Borrador',
-            'pending' => 'Pendiente de revisión',
-            'private' => 'Privado',
-            'trash'   => 'Papelera',
+            'publish' => __( 'Publicado', 'taxocommerce-core' ),
+            'draft'   => __( 'Borrador', 'taxocommerce-core' ),
+            'pending' => __( 'Pendiente de revisión', 'taxocommerce-core' ),
+            'private' => __( 'Privado', 'taxocommerce-core' ),
+            'trash'   => __( 'Papelera', 'taxocommerce-core' ),
         );
         echo '<section class="tc-editor-card tc-card-publish"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'CONTROL EDITORIAL', 'taxocommerce-core' ) . '</span><h2>' . esc_html__( 'Publicación', 'taxocommerce-core' ) . '</h2></div></div>';
         if ( ! isset( $statuses[ $current ] ) && $current ) {
@@ -242,10 +242,10 @@ final class TaxoCommerce_Core_Editor_UI {
 
     private static function content_card( $name, $slug, $is_category = false, $short = '' ) {
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'IDENTIDAD', 'taxocommerce-core' ) . '</span><h2>' . esc_html__( 'Información principal', 'taxocommerce-core' ) . '</h2></div></div>';
-        self::input( $is_category ? 'name' : 'title', $is_category ? 'Nombre' : 'Título', $name, true );
-        self::input( 'slug', 'Slug / URL amigable', $slug, false, 'Modifícalo únicamente si también tienes prevista la redirección SEO correspondiente.' );
+        self::input( $is_category ? 'name' : 'title', $is_category ? __( 'Nombre', 'taxocommerce-core' ) : __( 'Título', 'taxocommerce-core' ), $name, true );
+        self::input( 'slug', __( 'Slug / URL amigable', 'taxocommerce-core' ), $slug, false, __( 'Modifícalo únicamente si también tienes prevista la redirección SEO correspondiente.', 'taxocommerce-core' ) );
         if ( '' !== $short ) {
-            self::textarea( 'excerpt', $is_category ? 'Resumen' : 'Extracto / descripción corta', $short, 5 );
+            self::textarea( 'excerpt', $is_category ? __( 'Resumen', 'taxocommerce-core' ) : __( 'Extracto / descripción corta', 'taxocommerce-core' ), $short, 5 );
         }
         echo '</section>';
     }
@@ -256,7 +256,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::open_form( 'products', $id );
         self::content_card( $product->get_name( 'edit' ), $product->get_slug( 'edit' ), false );
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'DESCRIPCIÓN BREVE', 'taxocommerce-core' ) . '</span><h2>' . esc_html__( 'Resumen comercial', 'taxocommerce-core' ) . '</h2></div></div>';
-        self::textarea( 'excerpt', 'Descripción corta', $product->get_short_description( 'edit' ), 6 );
+        self::textarea( 'excerpt', __( 'Descripción corta', 'taxocommerce-core' ), $product->get_short_description( 'edit' ), 6 );
         echo '</section>';
         self::rich_editor( $product->get_description( 'edit' ), 'Descripción del producto' );
         self::attributes( $product );
@@ -268,19 +268,19 @@ final class TaxoCommerce_Core_Editor_UI {
         self::input( 'sku', 'SKU', $product->get_sku( 'edit' ) );
         if ( $product->is_type( 'simple' ) || $product->is_type( 'external' ) ) {
             echo '<div class="tc-field-pair">';
-            self::input( 'regular_price', 'Precio normal', $product->get_regular_price( 'edit' ) );
-            self::input( 'sale_price', 'Precio de oferta', $product->get_sale_price( 'edit' ) );
+            self::input( 'regular_price', __( 'Precio normal', 'taxocommerce-core' ), $product->get_regular_price( 'edit' ) );
+            self::input( 'sale_price', __( 'Precio de oferta', 'taxocommerce-core' ), $product->get_sale_price( 'edit' ) );
             echo '</div>';
         } else {
             echo '<div class="tc-editor-note">' . esc_html( sprintf( __( 'Precio gestionado por el tipo de producto (%s). Edítalo desde el editor nativo de WooCommerce.', 'taxocommerce-core' ), $product->get_type() ) ) . '</div>';
         }
         if ( $product->is_type( 'external' ) ) {
-            self::input( 'product_url', 'URL de producto externo / afiliación', $product->get_product_url( 'edit' ), false, 'Conserva el enlace afiliado del proveedor.', 'url' );
-            self::input( 'button_text', 'Texto del botón externo', $product->get_button_text( 'edit' ) );
+            self::input( 'product_url', __( 'URL de producto externo / afiliación', 'taxocommerce-core' ), $product->get_product_url( 'edit' ), false, __( 'Conserva el enlace afiliado del proveedor.', 'taxocommerce-core' ), 'url' );
+            self::input( 'button_text', __( 'Texto del botón externo', 'taxocommerce-core' ), $product->get_button_text( 'edit' ) );
         }
         if ( method_exists( $product, 'get_stock_status' ) ) {
             echo '<div class="tc-field"><label class="tc-field-label" for="tc-stock-status">' . esc_html__( 'Disponibilidad', 'taxocommerce-core' ) . '</label><select class="tc-input" name="stock_status" id="tc-stock-status">';
-            foreach ( array( 'instock' => 'En stock', 'outofstock' => 'Agotado', 'onbackorder' => 'Bajo pedido' ) as $key => $text ) {
+            foreach ( array( 'instock' => __( 'En stock', 'taxocommerce-core' ), 'outofstock' => __( 'Agotado', 'taxocommerce-core' ), 'onbackorder' => __( 'Bajo pedido', 'taxocommerce-core' ) ) as $key => $text ) {
                 echo '<option value="' . esc_attr( $key ) . '" ' . selected( $product->get_stock_status( 'edit' ), $key, false ) . '>' . esc_html( $text ) . '</option>';
             }
             echo '</select></div>';
@@ -300,7 +300,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::content_card( $post->post_title, $post->post_name, false );
         self::rich_editor( $post->post_content, 'Contenido principal', 18 );
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><h2>' . esc_html__( 'Extracto', 'taxocommerce-core' ) . '</h2></div>';
-        self::textarea( 'excerpt', 'Resumen SEO / editorial', $post->post_excerpt, 5 );
+        self::textarea( 'excerpt', __( 'Resumen SEO / editorial', 'taxocommerce-core' ), $post->post_excerpt, 5 );
         echo '</section>';
         TaxoCommerce_Core_Vocabulary::render( $content_type, $id );
         self::side();
@@ -416,7 +416,7 @@ final class TaxoCommerce_Core_Editor_UI {
 
     private static function attribute_custom_fields( $index, $name, $options ) {
         echo '<div class="tc-field-pair">';
-        echo '<div class="tc-field"><label class="tc-field-label">' . esc_html__( 'Nombre', 'taxocommerce-core' ) . '</label><input class="tc-input" name="tc_attrs[' . esc_attr( (string) $index ) . '][name]" value="' . esc_attr( $name ) . '" required></div>';
+        echo '<div class="tc-field"><label class="tc-field-label">' . esc_html__( __( 'Nombre', 'taxocommerce-core' ), 'taxocommerce-core' ) . '</label><input class="tc-input" name="tc_attrs[' . esc_attr( (string) $index ) . '][name]" value="' . esc_attr( $name ) . '" required></div>';
         echo '<div class="tc-field"><label class="tc-field-label">' . esc_html__( 'Valores (separados por |)', 'taxocommerce-core' ) . '</label><textarea rows="2" class="tc-input" name="tc_attrs[' . esc_attr( (string) $index ) . '][values]">' . esc_textarea( implode( ' | ', (array) $options ) ) . '</textarea></div>';
         echo '</div>';
     }
