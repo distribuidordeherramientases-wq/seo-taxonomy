@@ -68,7 +68,9 @@ final class TaxoCommerce_Core_User_Guide {
 					<section id="tc-guide-start">
 						<h2><?php esc_html_e( '2. Primeros pasos', 'taxocommerce-core' ); ?></h2>
 						<ol>
-							<li><?php echo wp_kses_post( sprintf( __( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
+							<li><?php echo wp_kses_post( sprintf(
+								/* translators: %s: enlace al panel de TaxoCommerce Core. */
+								__( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
 							<li><?php esc_html_e( 'Entra en Content y revisa los contenidos y sus países antes de hacer cambios.', 'taxocommerce-core' ); ?></li>
 							<li><?php esc_html_e( 'Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager.', 'taxocommerce-core' ); ?></li>
 							<li><?php esc_html_e( 'Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos.', 'taxocommerce-core' ); ?></li>
@@ -85,7 +87,7 @@ final class TaxoCommerce_Core_User_Guide {
 						</ol>
 						<h3><?php esc_html_e( 'Países e internacionalización', 'taxocommerce-core' ); ?></h3>
 						<p><?php esc_html_e( 'El selector de país distingue ES, US, FR, DE y NL. Elegir un país identifica el mercado del contenido, pero no traduce textos ni cambia automáticamente su URL o sus relaciones SEO. Comprueba el país antes de guardar contenidos internacionales.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo self::link( 'taxocommerce-core-content', __( 'Abrir Content', 'taxocommerce-core' ) ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-content', __( 'Abrir Content', 'taxocommerce-core' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-hierarchy">
 						<h2><?php esc_html_e( '4. SEO Hierarchy: organizar la arquitectura', 'taxocommerce-core' ); ?></h2>
@@ -93,7 +95,7 @@ final class TaxoCommerce_Core_User_Guide {
 						<div class="tcc-guide-chain" role="img" aria-label="<?php esc_attr_e( 'Cluster, Hub primario, Hub secundario, Categoría, Producto', 'taxocommerce-core' ); ?>"><?php esc_html_e( 'Cluster → Hub primario → Hub secundario → Categoría → Producto', 'taxocommerce-core' ); ?></div>
 						<h3><?php esc_html_e( 'Cómo utilizarla', 'taxocommerce-core' ); ?></h3>
 						<p><?php esc_html_e( 'Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo self::link( 'taxocommerce-core-hierarchy', __( 'Abrir SEO Hierarchy', 'taxocommerce-core' ) ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-hierarchy', __( 'Abrir SEO Hierarchy', 'taxocommerce-core' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-menus">
 						<h2><?php esc_html_e( '5. Menu Manager: construir la navegación', 'taxocommerce-core' ); ?></h2>
@@ -106,7 +108,7 @@ final class TaxoCommerce_Core_User_Guide {
 							<li><?php esc_html_e( 'Selecciona una ubicación del tema y pulsa Activar en esta ubicación si deseas mostrarlo en la web.', 'taxocommerce-core' ); ?></li>
 						</ol>
 						<p><?php esc_html_e( 'Abrir esta pantalla no crea ni publica un menú. Los elementos generados automáticamente se organizan desde SEO Hierarchy. Puedes restaurar las ubicaciones anteriores si se ha guardado una copia válida.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo self::link( 'taxocommerce-core-menu', __( 'Abrir Menu Manager', 'taxocommerce-core' ) ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-menu', __( 'Abrir Menu Manager', 'taxocommerce-core' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-test">
 						<h2><?php esc_html_e( '6. Auto Test: comprobar el sistema', 'taxocommerce-core' ); ?></h2>
