@@ -176,6 +176,7 @@ add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\seo_clean_db_enqueue_styl
 function seo_clean_db_table_exists($table_name) {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $found = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
     );
@@ -316,6 +317,7 @@ function seo_clean_db_stream_sql_export($type) {
 function seo_clean_db_get_export_tables($type) {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $all_tables = $wpdb->get_col('SHOW TABLES');
 
     if ($type === 'full') {
@@ -335,6 +337,7 @@ function seo_clean_db_get_export_tables($type) {
 function seo_clean_db_stream_table_sql($table) {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $create = $wpdb->get_row('SHOW CREATE TABLE `' . esc_sql($table) . '`', ARRAY_N);
 
     if (!$create || empty($create[1])) {
@@ -350,6 +353,7 @@ function seo_clean_db_stream_table_sql($table) {
     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SQL backup stream must remain raw SQL; values and identifiers are escaped for SQL above.
     echo $create[1] . ";\n\n";
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $count = (int) $wpdb->get_var('SELECT COUNT(*) FROM `' . esc_sql($table) . '`');
 
     if ($count <= 0) {
@@ -363,6 +367,7 @@ function seo_clean_db_stream_table_sql($table) {
     $offset = 0;
 
     while ($offset < $count) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $rows = $wpdb->get_results(
             $wpdb->prepare('SELECT * FROM `' . esc_sql($table) . '` LIMIT %d OFFSET %d', $limit, $offset),
             ARRAY_A
@@ -628,6 +633,7 @@ function seo_clean_db_get_nodes($nodes_table) {
 
     $nodes_table = esc_sql( $nodes_table );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_results(
         $wpdb->prepare('SELECT id, object_type, object_id, seo_role, status FROM %i ORDER BY id ASC', $nodes_table)
     );
@@ -768,6 +774,7 @@ function seo_clean_db_analyze_relations($relations_table, $node_index, $config) 
 
     $relations_table = esc_sql( $relations_table );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $relations = $wpdb->get_results(
         $wpdb->prepare('SELECT id, source_type, source_id, target_type, target_id, relation_type, created_at FROM %i ORDER BY id ASC', $relations_table)
     );
@@ -853,6 +860,7 @@ function seo_clean_db_get_duplicate_relations($relations_table) {
 
     $relations_table = esc_sql( $relations_table );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_results(
         $wpdb->prepare("SELECT MIN(id) AS keep_id, GROUP_CONCAT(id ORDER BY id ASC SEPARATOR ',') AS relation_ids,
             source_type, source_id, target_type, target_id, relation_type, COUNT(*) AS total
@@ -874,6 +882,7 @@ function seo_clean_db_get_duplicate_node_rows($nodes_table) {
 
     $nodes_table = esc_sql( $nodes_table );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_results(
         $wpdb->prepare("SELECT MAX(id) AS keep_id, GROUP_CONCAT(id ORDER BY id ASC SEPARATOR ',') AS node_ids,
             object_type, object_id, seo_role, COUNT(*) AS total
@@ -896,6 +905,7 @@ function seo_clean_db_get_multiple_ambito_products($nodes_table) {
 
     $nodes_table = esc_sql( $nodes_table );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_results(
         $wpdb->prepare("SELECT object_type, object_id,
             COUNT(*) AS total_ambitos,
@@ -916,6 +926,7 @@ function seo_clean_db_get_multiple_ambito_products($nodes_table) {
 function seo_clean_db_get_broken_categories() {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return $wpdb->get_results(
         "SELECT t.term_id, t.name, t.slug, tt.parent
          FROM {$wpdb->term_taxonomy} tt
@@ -946,6 +957,7 @@ function seo_clean_db_transactional_delete_ids($table_key, $ids, $operation_args
     if (!$ids) {
         return array('deleted' => 0);
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     if (false === $wpdb->query('START TRANSACTION')) {
         throw new RuntimeException('No se pudo iniciar la transacción.');
     }
@@ -954,11 +966,13 @@ function seo_clean_db_transactional_delete_ids($table_key, $ids, $operation_args
         if (false === $count) {
             throw new RuntimeException('Fallo al eliminar registros SEO.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
         if (false === $wpdb->query('COMMIT')) {
             throw new RuntimeException('No se pudo confirmar la limpieza.');
         }
         return array('deleted' => (int) $count);
     } catch (Throwable $error) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
         $wpdb->query('ROLLBACK');
         throw $error;
     }
@@ -970,6 +984,7 @@ function seo_clean_db_delete_relation_node_ids($relation_ids, $node_ids) {
     if (!$relation_ids && !$node_ids) {
         return array('relations' => 0, 'nodes' => 0);
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     if (false === $wpdb->query('START TRANSACTION')) {
         throw new RuntimeException('No se pudo iniciar la transacción.');
     }
@@ -979,11 +994,13 @@ function seo_clean_db_delete_relation_node_ids($relation_ids, $node_ids) {
         if (false === $relations || false === $nodes) {
             throw new RuntimeException('No se pudieron eliminar los registros SEO.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
         if (false === $wpdb->query('COMMIT')) {
             throw new RuntimeException('No se pudo confirmar la limpieza.');
         }
         return array('relations' => (int) $relations, 'nodes' => (int) $nodes);
     } catch (Throwable $error) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
         $wpdb->query('ROLLBACK');
         throw $error;
     }
@@ -1012,6 +1029,7 @@ function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by
 
         $args = array_merge(array($role), $object_ids, array($role), $object_ids);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all role/ID values are bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $found = $wpdb->get_col($wpdb->prepare($sql, $args));
 
         foreach ((array) $found as $id) {
@@ -1042,6 +1060,7 @@ function seo_clean_db_delete_ids($table, $column, $ids) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table is strictly allowlisted, IDs are absint, %i/%d placeholders are generated by count and passed to prepare().
         $sql = $wpdb->prepare('DELETE FROM %i WHERE id IN (' . $holders . ')', $values);
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL is the already prepared statement above.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
         $affected = $wpdb->query($sql);
         if (false === $affected) {
             return false;
@@ -1175,6 +1194,7 @@ function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table
         // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.NotPrepared -- Dynamic role count: one %s per supplied role; all values passed to prepare().
         $sql = $wpdb->prepare('SELECT id FROM %i WHERE object_id=%d AND seo_role IN (' . $holders . ')', ...array_merge(array($nodes_table, $object_id), $roles));
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared on the preceding line.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $node_ids = array_merge($node_ids, array_map('absint', (array) $wpdb->get_col($sql)));
     }
     $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role);
@@ -1185,6 +1205,7 @@ function seo_clean_db_reset_registered_object($relations_table, $nodes_table, $s
     global $wpdb;
     $object_id = absint($object_id);
     $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, array($seo_role => array($object_id)));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $node_ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM %i WHERE object_id=%d AND seo_role=%s', $nodes_table, $object_id, $seo_role));
     return seo_clean_db_delete_relation_node_ids($relation_ids, array_map('absint', (array) $node_ids));
 }
@@ -1193,6 +1214,7 @@ function seo_clean_db_reset_registered_object($relations_table, $nodes_table, $s
 function seo_clean_db_fix_category_hierarchy() {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query(
         "UPDATE {$wpdb->term_taxonomy} child
          LEFT JOIN {$wpdb->term_taxonomy} parent
@@ -1527,17 +1549,27 @@ function seo_clean_db_get_cleanup_stats() {
     global $wpdb;
 
     $stats = array();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['revisions'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['auto_drafts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'auto-draft'");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['trashed_posts'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'trash'");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['spam_comments'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved = 'spam'");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['trashed_comments'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved = 'trash'");
     $stats['expired_transients'] = seo_clean_db_count_expired_transients();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['orphan_postmeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} pm LEFT JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE p.ID IS NULL");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['orphan_commentmeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->commentmeta} cm LEFT JOIN {$wpdb->comments} c ON c.comment_ID = cm.comment_id WHERE c.comment_ID IS NULL");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['orphan_termmeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->termmeta} tm LEFT JOIN {$wpdb->terms} t ON t.term_id = tm.term_id WHERE t.term_id IS NULL");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['orphan_term_relationships'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id WHERE p.ID IS NULL");
     $stats['wc_sessions'] = seo_clean_db_count_wc_expired_sessions();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $stats['orphan_usermeta'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->usermeta} um LEFT JOIN {$wpdb->users} u ON u.ID = um.user_id WHERE u.ID IS NULL");
     $stats['as_orphan_logs'] = seo_clean_db_count_as_orphan_logs();
     $stats['as_old_completed_logs'] = seo_clean_db_count_as_old_completed_logs();
@@ -1556,6 +1588,7 @@ function seo_clean_db_count_expired_transients() {
 
     $now = time();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*)
@@ -1580,6 +1613,7 @@ function seo_clean_db_count_wc_expired_sessions() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare('SELECT COUNT(*) FROM %i WHERE session_expiry < %d', $table, time())
     );
@@ -1599,6 +1633,7 @@ function seo_clean_db_count_as_orphan_logs() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i l
@@ -1621,6 +1656,7 @@ function seo_clean_db_count_as_old_completed_logs() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i l
@@ -1644,6 +1680,7 @@ function seo_clean_db_count_as_orphan_claims() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Action Scheduler table names; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i c
@@ -1666,6 +1703,7 @@ function seo_clean_db_count_wc_expired_reserved_stock() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table name; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*) FROM %i WHERE expires < UTC_TIMESTAMP()", $table)
     );
@@ -1685,6 +1723,7 @@ function seo_clean_db_count_wc_orphan_order_itemmeta() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table names; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i m
@@ -1701,10 +1740,12 @@ function seo_clean_db_handle_database_cleanup_action($action) {
 
     switch ($action) {
         case 'clean_revisions':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_type = 'revision'");
             return seo_clean_db_cleanup_result($deleted, 'Revisiones eliminadas');
 
         case 'clean_auto_drafts':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE FROM {$wpdb->posts} WHERE post_status = 'auto-draft'");
             return seo_clean_db_cleanup_result($deleted, 'Autoguardados y borradores automáticos eliminados');
 
@@ -1713,10 +1754,12 @@ function seo_clean_db_handle_database_cleanup_action($action) {
             return seo_clean_db_cleanup_result($deleted, 'Entradas, páginas y productos en papelera eliminados');
 
         case 'clean_spam_comments':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE FROM {$wpdb->comments} WHERE comment_approved = 'spam'");
             return seo_clean_db_cleanup_result($deleted, 'Comentarios spam eliminados');
 
         case 'clean_trashed_comments':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE FROM {$wpdb->comments} WHERE comment_approved = 'trash'");
             return seo_clean_db_cleanup_result($deleted, 'Comentarios en papelera eliminados');
 
@@ -1725,18 +1768,22 @@ function seo_clean_db_handle_database_cleanup_action($action) {
             return seo_clean_db_cleanup_result($deleted, 'Transients expirados eliminados');
 
         case 'clean_orphan_postmeta':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE pm FROM {$wpdb->postmeta} pm LEFT JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE p.ID IS NULL");
             return seo_clean_db_cleanup_result($deleted, 'Metadatos de posts huérfanos eliminados');
 
         case 'clean_orphan_commentmeta':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE cm FROM {$wpdb->commentmeta} cm LEFT JOIN {$wpdb->comments} c ON c.comment_ID = cm.comment_id WHERE c.comment_ID IS NULL");
             return seo_clean_db_cleanup_result($deleted, 'Metadatos de comentarios huérfanos eliminados');
 
         case 'clean_orphan_termmeta':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE tm FROM {$wpdb->termmeta} tm LEFT JOIN {$wpdb->terms} t ON t.term_id = tm.term_id WHERE t.term_id IS NULL");
             return seo_clean_db_cleanup_result($deleted, 'Metadatos de términos huérfanos eliminados');
 
         case 'clean_orphan_term_relationships':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE tr FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id WHERE p.ID IS NULL");
             return seo_clean_db_cleanup_result($deleted, 'Relaciones de términos huérfanas eliminadas');
 
@@ -1745,6 +1792,7 @@ function seo_clean_db_handle_database_cleanup_action($action) {
             return seo_clean_db_cleanup_result($deleted, 'Sesiones WooCommerce expiradas eliminadas');
 
         case 'clean_orphan_usermeta':
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
             $deleted = $wpdb->query("DELETE um FROM {$wpdb->usermeta} um LEFT JOIN {$wpdb->users} u ON u.ID = um.user_id WHERE u.ID IS NULL");
             return seo_clean_db_cleanup_result($deleted, 'Metadatos de usuarios huérfanos eliminados');
 
@@ -1813,6 +1861,7 @@ function seo_clean_db_delete_expired_transients() {
     global $wpdb;
 
     $now = time();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     $timeouts = $wpdb->get_col(
         $wpdb->prepare(
             "SELECT option_name
@@ -1847,6 +1896,7 @@ function seo_clean_db_delete_wc_expired_sessions() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query($wpdb->prepare('DELETE FROM %i WHERE session_expiry < %d', $table, time()));
 }
 
@@ -1864,6 +1914,7 @@ function seo_clean_db_delete_as_orphan_logs() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query(
         $wpdb->prepare("DELETE l
          FROM %i l
@@ -1886,6 +1937,7 @@ function seo_clean_db_delete_as_old_completed_logs() {
         return 0;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query(
         $wpdb->prepare("DELETE l
          FROM %i l
@@ -1909,6 +1961,7 @@ function seo_clean_db_delete_as_orphan_claims() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal Action Scheduler table names; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query(
         $wpdb->prepare("DELETE c
          FROM %i c
@@ -1931,6 +1984,7 @@ function seo_clean_db_delete_wc_expired_reserved_stock() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table name; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE expires < UTC_TIMESTAMP()", $table));
 }
 
@@ -1948,6 +2002,7 @@ function seo_clean_db_delete_wc_orphan_order_itemmeta() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table names; query has no external values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
     return $wpdb->query(
         $wpdb->prepare("DELETE m
          FROM %i m
