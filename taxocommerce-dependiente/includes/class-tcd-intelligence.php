@@ -3205,7 +3205,7 @@ final class TCD_Intelligence {
             $placeholders = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=9 AND id IN ({$placeholders})",
-                $knowledge, $batch
+                array_merge( array( $knowledge ), $batch )
             ), ARRAY_A );
             $by_id = array();
             foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
