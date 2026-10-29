@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 define( 'ABSPATH', __DIR__ );
 define( 'MINUTE_IN_SECONDS', 60 );
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.1' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.3.0' );
 class WP_Error {
     private $code;
     private $message;
@@ -30,8 +30,6 @@ $wpdb = new TCDB_Test_WPDB();
 require dirname( __DIR__ ) . '/includes/class-tcdb-storage.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-export.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-import.php';
-require dirname( __DIR__ ) . '/includes/class-tcdb-cleanup.php';
-require dirname( __DIR__ ) . '/includes/class-tcdb-diagnostics.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-maintenance.php';
 require dirname( __DIR__ ) . '/includes/class-tcdb-admin.php';
 
@@ -205,13 +203,6 @@ $export_source = file_get_contents( $root . '/includes/class-tcdb-export.php' );
 assert_tcdb( false !== strpos( $storage_source, "'SHOW COLUMNS FROM %i'" ), 'schema column query prepared' );
 assert_tcdb( false !== strpos( $export_source, "'SHOW CREATE TABLE %i'" ), 'DDL query prepared' );
 
-// Regression: expiry cleanup is bounded, prepared and uses native transient deletion.
-$cleanup_source = file_get_contents( $root . '/includes/class-tcdb-cleanup.php' );
-assert_tcdb( false !== strpos( $cleanup_source, "'DELETE FROM %i WHERE session_expiry < %d LIMIT %d'" ), 'session cleanup identifiers and limit prepared' );
-assert_tcdb( false !== strpos( $cleanup_source, "status='pending' AND scheduled_date_gmt < UTC_TIMESTAMP()" ), 'Action Scheduler overdue jobs remain read-only' );
-assert_tcdb( false === strpos( $cleanup_source, 'DELETE FROM ' . chr( 96 ) ), 'no direct interpolated deletion table' );
-assert_tcdb( false !== strpos( $cleanup_source, 'delete_transient( $transient )' ), 'WP API used for expired transient removal' );
-
 $legacy_clean = file_get_contents( $root . '/includes/legacy/seo-database-clean.php' );
 assert_tcdb( false !== strpos( $legacy_clean, 'namespace TCDB_Legacy;' ), 'legacy diagnostics isolated from monolith' );
 assert_tcdb( false !== strpos( $legacy_clean, "'data_errors' => 'Errores en datos'" ), 'full SEO integrity screen retained' );
@@ -221,7 +212,7 @@ assert_tcdb( false !== strpos( $legacy_clean, "case 'clean_wc_orphan_order_itemm
 assert_tcdb( false === strpos( $legacy_clean, 'SEO_Data_Layer' ), 'no legacy cross-plugin Data Layer dependency' );
 assert_tcdb( false === strpos( $legacy_clean, 'SEO_Data_Rollback' ), 'no historical rollback dependency' );
 assert_tcdb( false === strpos( $legacy_clean, 'Escribe LIMPIAR' ), 'no typed cleanup words' );
-assert_tcdb( false !== strpos( $legacy_clean, "array_chunk($ids, 500)" ), 'SQL chunks are not total deletion limits' );
+assert_tcdb( false !== strpos( $legacy_clean, 'array_chunk($ids, 500)' ), 'SQL chunks are not total deletion limits' );
 assert_tcdb( false !== strpos( $entry, 'includes/legacy/seo-database-clean.php' ), 'new module loads original complete cleanup' );
 
 echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, prepared export pagination and family independence.\n";
