@@ -30,6 +30,8 @@ jobs:
 
       - name: Auto Test regression
         run: php taxocommerce-import-export/tests/auto-test-smoke.php
+      - name: Manual user and technical contract
+        run: php taxocommerce-import-export/tests/manual-smoke.php
       - name: Batch queue smoke
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
       - name: Read-only progress bar smoke
@@ -103,7 +105,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.4.9
+          name: taxocommerce-import-export-0.4.10
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error
