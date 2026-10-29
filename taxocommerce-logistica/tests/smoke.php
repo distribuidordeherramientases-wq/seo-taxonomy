@@ -5,7 +5,7 @@ $main = file_get_contents( $root . '/taxocommerce-logistica.php' );
 $transport = file_get_contents( $root . '/includes/seo-transporte.php' );
 
 $checks = array(
-    strpos( $main, "Version: 0.2.2" ) !== false,
+    strpos( $main, "Version: 0.2.3" ) !== false,
     strpos( $main, "'seo-logistica'" ) !== false,
     strpos( $main, "SEO_Transporte_Costes" ) !== false,
     strpos( $main, "seo-logistica.php" ) === false,

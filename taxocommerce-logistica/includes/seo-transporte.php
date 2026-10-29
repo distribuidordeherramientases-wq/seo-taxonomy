@@ -622,7 +622,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
         private static function render_tabs($current) {
             echo '<nav class="nav-tab-wrapper" aria-label="Logistics sections">';
-            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => 'Auto Test', 'user-guide' => 'User Guide') as $tab => $label) {
+            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => 'Auto Test', 'user-guide' => 'Manual') as $tab => $label) {
                 $args = array('page' => self::PAGE);
                 if ('shipping' !== $tab) { $args['tc_logistica_tab'] = $tab; }
                 $url = add_query_arg($args, admin_url('admin.php'));
