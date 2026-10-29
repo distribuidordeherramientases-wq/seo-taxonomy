@@ -37,6 +37,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: PHP with ZIP support
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip
       - name: Validate self-contained must-use provider
         run: |
           php -l .github/updates/taxocommerce-upload-update-provider.php
