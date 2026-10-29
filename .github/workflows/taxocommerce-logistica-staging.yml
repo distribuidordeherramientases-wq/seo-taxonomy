@@ -1,0 +1,94 @@
+name: TaxoCommerce Logistics standalone STAGING deployment
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-logistica/**'
+      - '.github/workflows/taxocommerce-logistica-staging.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-logistica/**'
+      - '.github/workflows/taxocommerce-logistica-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-logistica-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+      - name: Validate logistics PHP and contracts
+        run: |
+          set -euo pipefail
+          find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-logistica/tests/smoke.php
+          php taxocommerce-logistica/tests/auto-test-smoke.php
+          php taxocommerce-logistica/tests/user-guide-smoke.php
+      - name: Build clean Logistics runtime package
+        run: |
+          set -euo pipefail
+          mkdir -p build/taxocommerce-logistica
+          rsync -a --exclude='tests/' --exclude='.*' --exclude='*.md' --exclude='*.bak' taxocommerce-logistica/ build/taxocommerce-logistica/
+          test -f build/taxocommerce-logistica/includes/class-auto-test.php
+          test -f build/taxocommerce-logistica/includes/class-user-guide.php
+          test ! -e build/taxocommerce-logistica/tests
+          if find build/taxocommerce-logistica -name '.*' -print -quit | grep -q .; then
+            echo 'Unexpected hidden files in Logistics package'
+            exit 1
+          fi
+          ( cd build && zip -qr ../taxocommerce-logistica-staging.zip taxocommerce-logistica )
+          unzip -t taxocommerce-logistica-staging.zip
+      - name: WordPress Plugin Check for Logistics runtime
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./build/taxocommerce-logistica
+          slug: taxocommerce-logistica
+          wp-version: latest
+          ignore-warnings: true
+          ignore-errors: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-logistica-staging
+          path: taxocommerce-logistica-staging.zip
+          retention-days: 14
+
+  deploy:
+    needs: validate
+    # Never deploy on a PR; merge into staging or explicit dispatch is required.
+    if: github.ref == 'refs/heads/staging' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy only TaxoCommerce Logistics to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-logistica/
+          server-dir: ./wp-content/plugins/taxocommerce-logistica/
+          state-name: ../.taxocommerce-logistica-staging-ftp-state.json
+          dry-run: false
+          log-level: verbose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
