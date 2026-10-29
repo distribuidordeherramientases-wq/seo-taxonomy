@@ -195,6 +195,9 @@ $navigation = (array) $country_navigation['featured'];
 $navigation_roots = (array) $country_navigation['roots'];
 $navigation_children = (array) $country_navigation['children'];
 $navigation_market_root = $country_navigation['market_root'];
+$pilot_menu_id = dht_pilot_managed_menu_id( $market );
+$pilot_menu_items = $pilot_menu_id ? wp_get_nav_menu_items( $pilot_menu_id ) : array();
+$pilot_has_menu = is_array( $pilot_menu_items ) && ! empty( $pilot_menu_items );
 
 $category_items = array();
 $category_excerpt = '';
@@ -378,6 +381,9 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-menu-list--depth-0>li>a{font-weight:700}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){margin:0 3px 3px;padding-left:7px;border-left:2px solid #dce7f7}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0) a{padding:5px 7px;font-weight:450;font-size:12px}
+.dht-pilot-nav .sub-menu{list-style:none;margin:0 3px 3px;padding-left:7px;border-left:2px solid #dce7f7}
+.dht-pilot-nav .sub-menu a{padding:5px 7px;font-weight:450;font-size:12px}
+.dht-pilot-nav .current-menu-item>a,.dht-pilot-nav .current-menu-ancestor>a{background:#eaf1fc;font-weight:750}
 .dht-pilot-breadcrumb{padding:24px 0 10px;font-size:13px;color:#66758a}
 .dht-pilot-breadcrumb a{text-decoration:none}
 .dht-pilot-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center;margin:12px 0 28px;padding:34px;background:#fff;border:1px solid #e7edf4;border-radius:18px}
@@ -428,15 +434,24 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <?php dht_pilot_render_country_switcher( $market ); ?>
             </div>
         </div>
-        <?php if ($navigation_roots) : ?>
-        <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->
+        <?php if ( $pilot_has_menu || $navigation_roots ) : ?>
+        <!-- Regional navigation: prefer the native WordPress menu for this market. -->
         <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories'] . ' · ' . $t['country']); ?>">
             <div class="dht-pilot-nav-heading">
                 <span class="dht-pilot-nav-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span>
                 <span><?php echo esc_html($t['all_categories']); ?></span>
                 <a class="dht-pilot-nav-home" href="<?php echo esc_url($main_url); ?>"><?php echo esc_html($t['country']); ?></a>
             </div>
-            <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
+            <?php if ( $pilot_has_menu ) : ?>
+                <?php wp_nav_menu( array(
+                    'menu'        => $pilot_menu_id,
+                    'container'   => false,
+                    'menu_class'  => 'dht-pilot-menu-list dht-pilot-menu-list--depth-0',
+                    'fallback_cb' => false,
+                ) ); ?>
+            <?php else : ?>
+                <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
+            <?php endif; ?>
         </nav>
         <?php endif; ?>
     </div>
