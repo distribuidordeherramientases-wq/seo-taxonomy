@@ -1013,7 +1013,11 @@ final class TCD_Sources {
 
         $params[] = $limit + 1;
         $params[] = $cursor;
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query uses fixed UNION clauses of %i/%d markers, all bound via $params; live lesson state must not be cached.
+        // The UNION includes only fixed SQL subqueries with %i/%d placeholders, and
+        // $params contains the identifier and lesson for each clause followed by
+        // the global LIMIT and OFFSET. No user-supplied SQL is concatenated.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Static analysis cannot infer placeholder counts for fixed repeated SQL fragments and their matching parameter array.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy review requires live plugin-owned learning state; cached results would conceal progress.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
@@ -1022,6 +1026,7 @@ final class TCD_Sources {
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         $more = count( $rows ) > $limit;
         $rows = array_slice( $rows, 0, $limit );
         $items = array();

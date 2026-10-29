@@ -450,6 +450,7 @@ final class TCD_Academy {
         if(''===(string)$owner)return false;
         // Compare-and-delete prevents an expired worker from releasing a
         // newer worker's lock. A plain delete_option() is not owner-safe.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic owner-checked delete is essential to avoid releasing another worker's lock; the write cannot be cached.
         $deleted=$wpdb->query($wpdb->prepare(
             'DELETE FROM %i WHERE option_name=%s AND option_value=%s',
             $wpdb->options,self::LOCK,(string)$owner
