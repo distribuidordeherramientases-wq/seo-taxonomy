@@ -2137,12 +2137,17 @@ final class TCD_Original_Linguista {
             if (self::table_exists($vocabulary)) {
                 $total += absint($wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')", $vocabulary )));
             }
-            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_cat' AND count>0"));
-            $total += absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy='product_tag' AND count>0"));
+            // WordPress taxonomy API handles term-count caching and invalidation.
+            $category_count = wp_count_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>true ) );
+            $tag_count = wp_count_terms( array( 'taxonomy'=>'product_tag', 'hide_empty'=>true ) );
+            $total += is_wp_error( $category_count ) ? 0 : absint( $category_count );
+            $total += is_wp_error( $tag_count ) ? 0 : absint( $tag_count );
             return $total;
         }
         if ('ling_l2_actions' === $key) {
-            return absint($wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish'"));
+            // WordPress caches post-type status counts and invalidates them when posts change.
+            $product_counts = wp_count_posts( 'product' );
+            return is_object( $product_counts ) ? absint( $product_counts->publish ?? 0 ) : 0;
         }
         if ('ling_l3_synonyms' === $key) {
             $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
