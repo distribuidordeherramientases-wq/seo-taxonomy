@@ -538,7 +538,7 @@ final class TCDB_Admin {
             } elseif ( $counts[ $key ] > 0 ) {
                 self::form_start( 'tcdb_cleanup', 'tcdb_cleanup' );
                 echo '<input type="hidden" name="cleanup" value="' . esc_attr( $key ) . '">';
-                echo '<label>Escribe LIMPIAR <input type="text" name="tcdb_confirm" autocomplete="off" required class="small-text"></label> ';
+
                 echo '<button class="button" type="submit">' . esc_html( $info[1] ) . '</button></form>';
             } else {
                 echo 'Nada que limpiar';
@@ -563,7 +563,7 @@ final class TCDB_Admin {
                 if ( null !== $value && $value > 0 && in_array( $key, TCDB_Diagnostics::cleanable(), true ) ) {
                     self::form_start( 'tcdb_advanced_cleanup', 'tcdb_advanced_cleanup' );
                     echo '<input type="hidden" name="kind" value="' . esc_attr( $key ) . '">';
-                    echo '<label>Escribe ELIMINAR <input type="text" name="confirmation" required autocomplete="off" class="small-text"></label> ';
+
                     echo '<button class="button" type="submit">Eliminar hasta 100</button></form>';
                 } else {
                     echo '<span class="description">Sin borrado directo</span>';
