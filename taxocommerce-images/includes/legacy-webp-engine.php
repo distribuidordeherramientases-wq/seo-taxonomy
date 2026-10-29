@@ -617,8 +617,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     ORDER BY ID ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the next live reference-update page with dynamic prepared LIKE predicates; results cannot safely be cached across mutations.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the next live reference-update page with dynamic prepared LIKE predicates; results cannot safely be cached across mutations. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['ID']);
@@ -670,8 +669,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                         ORDER BY {$set['id_col']} ASC LIMIT %d";
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live metadata references for this batch; update_metadata_by_mid() may mutate them between pages.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live metadata references for this batch; update_metadata_by_mid() may mutate them between pages. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
@@ -713,8 +711,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     ORDER BY option_id ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live option references across plugins; caching risks replacing or missing stale URLs.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live option references across plugins; caching risks replacing or missing stale URLs. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['option_id']);
@@ -745,8 +742,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     ORDER BY term_taxonomy_id ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live taxonomy description references before selective replacement; no persistent cache for changing terms.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live taxonomy description references before selective replacement; no persistent cache for changing terms. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['term_taxonomy_id']);
@@ -782,8 +778,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     ORDER BY comment_ID ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live comment references for selective replacement; stale cached data could invalidate rollback.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live comment references for selective replacement; stale cached data could invalidate rollback. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['comment_ID']);
@@ -895,8 +890,7 @@ if (!function_exists('taxocommerce_images_webp_remaining_references')) {
                     . ' ORDER BY ' . $check['id'] . ' ASC LIMIT %d';
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify remaining references from live data before retiring original image files; stale cache could cause data loss.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify remaining references from live data before retiring original image files; stale cache could cause data loss. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
