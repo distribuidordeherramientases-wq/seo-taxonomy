@@ -33,6 +33,9 @@ jobs:
       - name: Verify Core content inventory before deploy
         run: php taxocommerce-core/tests/content-inventory-smoke.php
 
+      - name: Validate User Guide integration
+        run: php taxocommerce-core/tests/user-guide-smoke.php
+
       - name: Validate Extensions cards on Core home
         run: php taxocommerce-core/tests/extensions-dashboard-smoke.php
 

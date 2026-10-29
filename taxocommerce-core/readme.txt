@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.34
+Stable tag: 0.4.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
 * Optional extension discovery for the other TaxoCommerce modules.
+* Built-in, read-only User Guide tab with step-by-step help for Core features.
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
 
@@ -49,7 +50,12 @@ Yes. Administrators may explicitly upload a verified module ZIP through Core's e
 
 == Changelog ==
 
-= 0.4.34 =
+= 0.4.35 =
+* Add a User Guide tab with semantic H1/H2/H3 headings, table of contents, direct links and responsive presentation.
+* Document Content, SEO Hierarchy, country menus, Auto Test and optional extensions without changing existing operations.
+
+
+= 0.4.35 =
 * Add a native Auto Test screen and dashboard shortcut for administrator-triggered, read-only functional checks.
 * Report individual pass/fail/skipped results with error details, timings and version, isolating failures between checks.
 * Cover runtime, WP/WooCommerce content reads, country metadata, SEO roles and relation samples, country menus, modules, vocabulary and architecture summary. Never create, delete or sync real content during tests.

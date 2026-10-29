@@ -58,6 +58,14 @@ final class TaxoCommerce_Core_Dashboard {
 
 		$navigation = array(
 			array(
+				'title'       => __( 'User Guide', 'taxocommerce-core' ),
+				'icon'        => 'dashicons-book',
+				'description' => __( 'Aprende para qué sirve Core y cómo utilizar los contenidos, la jerarquía SEO, los menús y las extensiones.', 'taxocommerce-core' ),
+				'state'       => __( 'Manual de usuario', 'taxocommerce-core' ),
+				'tone'        => 'info',
+				'slug'        => TaxoCommerce_Core_User_Guide::PAGE_SLUG,
+			),
+			array(
 				'title'       => __( 'Contenidos', 'taxocommerce-core' ),
 				'icon'        => 'dashicons-text-page',
 				'description' => __( 'Edita productos, categorías de WooCommerce, entradas y páginas desde un entorno unificado.', 'taxocommerce-core' ),
@@ -106,6 +114,11 @@ final class TaxoCommerce_Core_Dashboard {
 				</div>
 				<div class="tcc-hero__art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 			</header>
+
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
+				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
+				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
+			</nav>
 
 			<section class="tcc-metrics" aria-label="<?php esc_attr_e( 'Estado del sistema', 'taxocommerce-core' ); ?>">
 				<?php foreach ( $metrics as $metric ) : ?>
