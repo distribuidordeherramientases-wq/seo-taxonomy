@@ -520,62 +520,10 @@ final class TCDB_Admin {
     }
 
     private static function render_cleanup() {
-        self::heading( 'Clean DB', 'Diagnóstico y limpieza manual por lotes de hasta 100 registros. Ninguna operación se lanza en segundo plano.' );
-        $counts = TCDB_Cleanup::candidates();
-        echo '<section class="tcdb-panel"><h3>Datos caducados</h3><div class="tcdb-scroll">';
-        echo '<table class="widefat striped"><thead><tr><th>Control</th><th>Encontrados</th><th>Acción disponible</th></tr></thead><tbody>';
-        $types = array(
-            'expired_transients' => array( 'Transients de WordPress caducados', 'Eliminar caducados (máximo 100)' ),
-            'expired_wc_sessions' => array( 'Sesiones WooCommerce caducadas', 'Eliminar caducadas (máximo 100)' ),
-            'as_overdue_pending' => array( 'Acciones pendientes vencidas de Action Scheduler', 'Solo diagnóstico: no se tocan colas, pagos ni pedidos' ),
-        );
-        foreach ( $types as $key => $info ) {
-            echo '<tr><th>' . esc_html( $info[0] ) . '</th><td>';
-            echo null === $counts[ $key ] ? 'No disponible' : esc_html( number_format_i18n( $counts[ $key ] ) );
-            echo '</td><td>';
-            if ( 'as_overdue_pending' === $key ) {
-                echo '<span class="description">' . esc_html( $info[1] ) . '</span>';
-            } elseif ( $counts[ $key ] > 0 ) {
-                self::form_start( 'tcdb_cleanup', 'tcdb_cleanup' );
-                echo '<input type="hidden" name="cleanup" value="' . esc_attr( $key ) . '">';
-                echo '<label>Escribe LIMPIAR <input type="text" name="tcdb_confirm" autocomplete="off" required class="small-text"></label> ';
-                echo '<button class="button" type="submit">' . esc_html( $info[1] ) . '</button></form>';
-            } else {
-                echo 'Nada que limpiar';
-            }
-            echo '</td></tr>';
-        }
-        echo '</tbody></table></div></section>';
-
-        echo '<section class="tcdb-panel"><h3>Diagnóstico avanzado (Clean DB antiguo)</h3>';
-        echo '<p>Consulta manualmente revisiones, papelera, metadatos huérfanos, logs de Action Scheduler, reservas de stock y metadatos de pedidos. No se ejecutan esas consultas al abrir la pestaña.</p>';
-        self::form_start( 'tcdb_advanced_audit', 'tcdb_advanced_audit' );
-        echo '<p><button class="button button-primary" type="submit">Ejecutar diagnóstico avanzado</button></p></form>';
-        $saved = get_option( TCDB_Diagnostics::OPTION, array() );
-        if ( is_array( $saved ) && isset( $saved['metrics'], $saved['at'] ) ) {
-            echo '<p><strong>Último diagnóstico:</strong> ' . esc_html( $saved['at'] ) . '</p><div class="tcdb-scroll">';
-            echo '<table class="widefat striped"><thead><tr><th>Control</th><th>Encontrados</th><th>Política</th><th>Acción</th></tr></thead><tbody>';
-            foreach ( TCDB_Diagnostics::definitions() as $key => $info ) {
-                $value = $saved['metrics'][ $key ] ?? null;
-                echo '<tr><th>' . esc_html( $info['label'] ) . '</th><td>';
-                echo null === $value ? 'No disponible' : esc_html( number_format_i18n( $value ) );
-                echo '</td><td>' . esc_html( $info['risk'] ) . '</td><td>';
-                if ( null !== $value && $value > 0 && in_array( $key, TCDB_Diagnostics::cleanable(), true ) ) {
-                    self::form_start( 'tcdb_advanced_cleanup', 'tcdb_advanced_cleanup' );
-                    echo '<input type="hidden" name="kind" value="' . esc_attr( $key ) . '">';
-                    echo '<label>Escribe ELIMINAR <input type="text" name="confirmation" required autocomplete="off" class="small-text"></label> ';
-                    echo '<button class="button" type="submit">Eliminar hasta 100</button></form>';
-                } else {
-                    echo '<span class="description">Sin borrado directo</span>';
-                }
-                echo '</td></tr>';
-            }
-            echo '</tbody></table></div>';
-            echo '<p class="description">Las limpiezas se limitan a 100 registros caducados por ejecución. No eliminan contenidos, pedidos ni entidades de WordPress o WooCommerce.</p>';
-        } else {
-            echo '<p class="description">Todavía no hay un diagnóstico avanzado guardado.</p>';
-        }
-        echo '</section>';
+        // Full legacy Clean Database screens are bundled under a separate namespace.
+        // This retains every diagnostic, original deletion action and backup screen,
+        // except the deliberately retired cross-plugin Data Layer/rollback.
+        \TCDB_Legacy\seo_clean_db_page();
     }
 
     private static function render_operations() {
