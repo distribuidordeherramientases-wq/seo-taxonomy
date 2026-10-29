@@ -24,22 +24,22 @@ class CountrySchemaFakeDb {
 
     public function esc_like( $s ) { return $s; }
     public function prepare( $sql, ...$values ) {
-        return preg_replace_callback( '/%[sd]/', static function ( $match ) use ( &$values ) {
+        return preg_replace_callback( '/%[sdi]/', static function ( $match ) use ( &$values ) {
             $v = array_shift( $values );
-            return '%d' === $match[0] ? (string) (int) $v : "'" . str_replace( "'", "''", (string) $v ) . "'";
+            return '%i' === $match[0] ? '`' . str_replace( '`', '``', (string) $v ) . '`' : ( '%d' === $match[0] ? (string) (int) $v : "'" . str_replace( "'", "''", (string) $v ) . "'" );
         }, $sql );
     }
     public function get_var( $sql ) {
         if ( preg_match( "/SHOW TABLES LIKE '([^']+)'/", $sql, $m ) ) {
             return array_key_exists( $m[1], $this->columns ) ? $m[1] : null;
         }
-        if ( preg_match( "/SHOW COLUMNS FROM (wp_seo_[a-z]+) LIKE 'country_code'/", $sql, $m ) ) {
+        if ( preg_match( "/SHOW COLUMNS FROM `?(wp_seo_[a-z]+)`? LIKE 'country_code'/", $sql, $m ) ) {
             return in_array( 'country_code', $this->columns[ $m[1] ], true ) ? 'country_code' : null;
         }
         return null;
     }
     public function query( $sql ) {
-        if ( preg_match( '/^ALTER TABLE (wp_seo_(?:nodes|relations)) ADD COLUMN country_code CHAR\\(2\\)/', $sql, $m ) ) {
+        if ( preg_match( '/^ALTER TABLE `?(wp_seo_(?:nodes|relations))`? ADD COLUMN `?country_code`? CHAR\\(2\\)/', $sql, $m ) ) {
             $this->columns[ $m[1] ][] = 'country_code';
             $this->alterations[] = $sql;
         }
