@@ -85,6 +85,11 @@ verify_log( 'taxocommerce-logistica' === $GLOBALS['test_menu'][0]['slug'], 'No c
 verify_log( 'TaxoCommerce Logistics' === $GLOBALS['test_menu'][0]['title'], 'English plugin name in WordPress menu' );
 verify_log( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ) === $GLOBALS['test_menu'][0]['callback'], 'Menu points to new Logistics screen' );
 verify_log( 'taxocommerce-logistica' === TaxoCommerce_Logistica_Transporte_Costes::PAGE, 'Shipping, Auto Test and Manual use same independent route' );
+verify_log( false === TaxoCommerce_Logistica_Transporte_Costes::force_wc_shipping_enabled( false ), 'Legacy engine remains authoritative for shipping enabled flag' );
+$legacy_packages = array( array( 'destination' => array( 'country' => 'ES', 'postcode' => '28001' ) ) );
+verify_log( $legacy_packages === TaxoCommerce_Logistica_Transporte_Costes::filter_shipping_packages_destination( $legacy_packages ), 'Legacy shipping destinations are not recalculated by standalone Logistics' );
+$legacy_rates = array( 'seo-legacy' => 'unchanged' );
+verify_log( $legacy_rates === TaxoCommerce_Logistica_Transporte_Costes::filter_package_rates( $legacy_rates, array() ), 'Legacy shipping rates are not overwritten by standalone Logistics' );
 
 verify_log( count( $groups ) === 8, 'Eight groups present' );
 verify_log( count( $cases ) === 35, 'Thirty-five tests present' );
