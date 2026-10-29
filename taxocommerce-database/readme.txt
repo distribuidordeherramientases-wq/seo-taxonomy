@@ -4,7 +4,7 @@ Tags: woocommerce, database, mysql, backup, csv
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.2
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,10 +19,10 @@ TaxoCommerce Database is a standalone MySQL administration module that optionall
 * Backups: streamed SQL dumps for internal or full WordPress tables, plus CSV for eligible internal tables.
 * Optimize: manual ANALYZE and OPTIMIZE on eligible small internal InnoDB tables, requiring administrator confirmation.
 * CSV import: INSERT-only, maximum 1 MiB and 250 rows, with validation, preview and transactional rollback on failure.
-* Cleanup: bounded manual handling of eligible expired technical records.
+* Clean DB: full former SEO data-integrity checks and repairs, all 17 WordPress/WooCommerce cleanup types, full legacy SQL backup selection and optional direct action confirmations; no 100-row overall deletion limit.
 * Operations: local activity reporting without a historical rollback engine.
 
-Neither uploaded SQL execution nor automatic deletion of orders or products is supported. There are no background maintenance operations.
+Neither uploaded SQL execution nor automatic deletion of orders or products is supported. Clean DB actions are manual and may take time with large tables; no cross-plugin Data Layer or historical rollback is installed.
 
 == Security and Privacy ==
 
@@ -38,6 +38,11 @@ CSV preserves original cells, potentially including spreadsheet formulas. Append
 4. Review every confirmation and use verified hosting backups for full restoration.
 
 == Changelog ==
+
+= 0.3.0 =
+* Restore all three former Clean Database screens in isolated namespace, including SEO relations/nodes/category integrity and 17 cleanup actions.
+* Remove typed cleanup words, overall 100-row deletion cap, and cross-plugin Data Layer/rollback dependency; SQL backups remain available.
+* Keep standalone MySQL, Data Table, Backups, Optimize, CSV import and Operations.
 
 = 0.2.2 =
 * Refresh WordPress.org readiness against the current standalone database tools.
