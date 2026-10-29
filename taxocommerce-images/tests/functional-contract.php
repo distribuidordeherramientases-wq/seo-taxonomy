@@ -30,6 +30,39 @@ function taxocommerce_images_test_image( $name, $seed, $bytes = null, $mime = 'i
 $admin = get_user_by( 'login', 'imagesadmin' );
 wp_set_current_user( $admin->ID );
 
+// WordPress.org prefix corrections must preserve the real conversion API and
+// existing extension hooks, including sites upgrading from the standalone plugin.
+taxocommerce_images_test_assert(
+	function_exists( 'taxocommerce_images_webp_process_attachment' )
+		&& function_exists( 'taxocommerce_images_optimizer_process_attachment' )
+		&& function_exists( 'taxocommerce_images_refs_build_usage_report' ),
+	'prefixed legacy conversion and reference helpers are all available'
+);
+$legacy_webp_quality = static function ( $quality ) { return 67; };
+add_filter( 'tci_webp_quality', $legacy_webp_quality );
+taxocommerce_images_test_assert( 67 === taxocommerce_images_webp_quality(), 'legacy WebP quality filter remains functional' );
+remove_filter( 'tci_webp_quality', $legacy_webp_quality );
+
+$modern_webp_quality = static function ( $quality ) { return 77; };
+add_filter( 'taxocommerce_images_webp_quality', $modern_webp_quality );
+taxocommerce_images_test_assert( 77 === taxocommerce_images_webp_quality(), 'new prefixed WebP quality filter is functional' );
+remove_filter( 'taxocommerce_images_webp_quality', $modern_webp_quality );
+
+$legacy_webp_mimes = static function ( $mimes ) { return array( 'image/png' ); };
+add_filter( 'tci_webp_source_mimes', $legacy_webp_mimes );
+taxocommerce_images_test_assert( array( 'image/png' ) === taxocommerce_images_webp_source_mimes(), 'legacy WebP source MIME filter remains functional' );
+remove_filter( 'tci_webp_source_mimes', $legacy_webp_mimes );
+
+$legacy_optimizer_mimes = static function ( $mimes ) { return array( 'image/jpeg' ); };
+add_filter( 'tci_optimizer_supported_mimes', $legacy_optimizer_mimes );
+taxocommerce_images_test_assert( array( 'image/jpeg' ) === taxocommerce_images_optimizer_supported_mimes(), 'legacy optimizer MIME filter remains functional' );
+remove_filter( 'tci_optimizer_supported_mimes', $legacy_optimizer_mimes );
+
+$legacy_optimizer_quality = static function ( $quality, $mime ) { return 'image/jpeg' === $mime ? 74 : $quality; };
+add_filter( 'tci_optimizer_quality', $legacy_optimizer_quality, 10, 2 );
+taxocommerce_images_test_assert( 74 === taxocommerce_images_optimizer_quality( 'image/jpeg' ), 'legacy optimizer quality filter remains functional' );
+remove_filter( 'tci_optimizer_quality', $legacy_optimizer_quality );
+
 update_option( 'tcd_work_priority', 5, false );
 $priority_result = TaxoCommerce_Images_Load::set_priority( 1, 'cleanup' );
 TaxoCommerce_Images_Load::set_priority( 4, 'labels' );
