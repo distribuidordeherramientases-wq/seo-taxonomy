@@ -451,6 +451,7 @@ final class TaxoCommerce_Core_Editor_UI {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
         $values = isset( $_POST['tc_tax'][ $taxonomy ] ) && is_array( $_POST['tc_tax'][ $taxonomy ] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- selected_terms() is called after save_content() verifies its nonce.
             ? array_map( 'absint', wp_unslash( $_POST['tc_tax'][ $taxonomy ] ) ) : array();
         return self::validate_term_ids( $taxonomy, $values );
     }
@@ -504,7 +505,7 @@ final class TaxoCommerce_Core_Editor_UI {
             }
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
-        $raw = isset( $_POST['tc_attrs'] ) && is_array( $_POST['tc_attrs'] ) ? wp_unslash( $_POST['tc_attrs'] ) : array();
+        $raw = isset( $_POST['tc_attrs'] ) && is_array( $_POST['tc_attrs'] ) ? map_deep( wp_unslash( $_POST['tc_attrs'] ), 'sanitize_textarea_field' ) : array();
         if ( count( $raw ) > 50 ) {
             return new WP_Error( 'tc_core_attr_limit', 'Se han enviado demasiados atributos.' );
         }
