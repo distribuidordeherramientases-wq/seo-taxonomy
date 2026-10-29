@@ -104,6 +104,8 @@ jobs:
           wp-version: latest
           ignore-warnings: false
           ignore-errors: false
+          # Treat FAQ warnings as blocking without changing the policy for other modules.
+          strict: ${{ matrix.slug == 'taxocommerce-faqs' }}
 
       - name: Save findings in job summary
         if: always()
