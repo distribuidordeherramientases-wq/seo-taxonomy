@@ -96,7 +96,7 @@ final class TCD_Sources {
             $voc = $wpdb->prefix . 'seo_vocabulary';
             if ( ! self::table_exists( $voc ) ) return 0;
             return absint( $wpdb->get_var(
-                "SELECT COUNT(*) FROM {$voc} WHERE active=1 AND semantic_group IN ('tipo','rol')"
+                $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND semantic_group IN ('tipo','rol')", $voc )
             ) );
         }
         if ( 5 === $lesson ) {
@@ -107,21 +107,21 @@ final class TCD_Sources {
         if ( 6 === $lesson ) {
             $faq = $wpdb->prefix . 'seo_faq';
             if ( ! self::table_exists( $faq ) ) return 0;
-            return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$faq} WHERE active=1" ) );
+            return absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $faq ) ) );
         }
         if ( 7 === $lesson ) {
             $voc=$wpdb->prefix.'seo_vocabulary';
             $rel=$wpdb->prefix.'seo_object_vocabulary';
             if(!self::table_exists($voc)||!self::table_exists($rel))return 0;
             return absint($wpdb->get_var(
-                "SELECT COUNT(*) FROM (
+                $wpdb->prepare( "SELECT COUNT(*) FROM (
                     SELECT v.id
-                    FROM {$voc} v INNER JOIN {$rel} r ON r.vocabulary_id=v.id
+                    FROM %i v INNER JOIN %i r ON r.vocabulary_id=v.id
                     WHERE v.active=1
                     GROUP BY v.id
                     HAVING SUM(r.object_type='product' AND r.status=1)>0
                        AND SUM(r.object_type IN ('post','page') AND r.status=1)>0
-                ) tc_cross"
+                ) tc_cross", $voc, $rel )
             ));
         }
         if ( in_array( $lesson, array( 8, 10 ), true ) ) {
@@ -194,17 +194,17 @@ final class TCD_Sources {
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) ) return null;
         $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id,semantic_group,slug,label FROM {$voc} WHERE id=%d AND active=1 LIMIT 1",
-            absint( $id )
+            "SELECT id,semantic_group,slug,label FROM %i WHERE id=%d AND active=1 LIMIT 1",
+            $voc, absint( $id )
         ), ARRAY_A );
         if ( ! is_array( $row ) ) return null;
         $product_ids = array();
         if ( self::table_exists( $rel ) ) {
             $product_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                "SELECT object_id FROM {$rel}
+                "SELECT object_id FROM %i
                  WHERE object_type='product' AND vocabulary_id=%d AND status=1
                  ORDER BY object_id ASC LIMIT 200",
-                absint( $row['id'] ?? 0 )
+                $rel, absint( $row['id'] ?? 0 )
             ) ) );
         }
         $facts = array(
@@ -229,12 +229,12 @@ final class TCD_Sources {
             "SELECT v.id,v.semantic_group,v.slug,v.label,
                     SUM(r.object_type='product' AND r.status=1) product_uses,
                     SUM(r.object_type IN ('post','page') AND r.status=1) editorial_uses
-             FROM {$voc} v
-             INNER JOIN {$rel} r ON r.vocabulary_id=v.id
+             FROM %i v
+             INNER JOIN %i r ON r.vocabulary_id=v.id
              WHERE v.id=%d AND v.active=1
              GROUP BY v.id,v.semantic_group,v.slug,v.label
              LIMIT 1",
-            $id
+            $voc, $rel, $id
         ), ARRAY_A );
         if ( ! is_array( $row ) ) return null;
 
@@ -256,8 +256,8 @@ final class TCD_Sources {
         $table = TCD_Academy::knowledge_table();
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT id,lesson,source_type,source_id,title,context_json,status
-             FROM {$table} WHERE id=%d LIMIT 1",
-            $knowledge_id
+             FROM %i WHERE id=%d LIMIT 1",
+            $table, $knowledge_id
         ), ARRAY_A );
         if ( ! is_array( $row ) ) return null;
 
@@ -499,10 +499,10 @@ final class TCD_Sources {
             return new WP_Error( 'tcd_vocabulary_missing', 'Vocabulary no está disponible para L3.' );
         }
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,semantic_group,slug,label FROM {$voc}
+            "SELECT id,semantic_group,slug,label FROM %i
              WHERE active=1 AND semantic_group IN ('tipo','rol')
              ORDER BY id ASC LIMIT %d OFFSET %d",
-            $limit + 1, $cursor
+            $voc, $limit + 1, $cursor
         ), ARRAY_A );
         $more = count( (array) $rows ) > $limit;
         $rows = array_slice( (array) $rows, 0, $limit );
@@ -510,8 +510,8 @@ final class TCD_Sources {
         foreach ( $rows as $row ) {
             $id=absint($row['id']??0); if(!$id)continue;
             $product_ids=$wpdb->get_col($wpdb->prepare(
-                "SELECT object_id FROM {$rel} WHERE object_type='product' AND vocabulary_id=%d AND status=1 ORDER BY object_id ASC LIMIT 200",
-                $id
+                "SELECT object_id FROM %i WHERE object_type='product' AND vocabulary_id=%d AND status=1 ORDER BY object_id ASC LIMIT 200",
+                $rel, $id
             ));
             $facts=array(
                 'group'=>sanitize_key((string)$row['semantic_group']),
@@ -535,12 +535,12 @@ final class TCD_Sources {
             "SELECT v.id,v.semantic_group,v.slug,v.label,
                     SUM(r.object_type='product' AND r.status=1) product_uses,
                     SUM(r.object_type IN ('post','page') AND r.status=1) editorial_uses
-             FROM {$voc} v INNER JOIN {$rel} r ON r.vocabulary_id=v.id
+             FROM %i v INNER JOIN %i r ON r.vocabulary_id=v.id
              WHERE v.active=1
              GROUP BY v.id,v.semantic_group,v.slug,v.label
              HAVING product_uses>0 AND editorial_uses>0
              ORDER BY v.id ASC LIMIT %d OFFSET %d",
-            $limit + 1,$cursor
+            $voc, $rel, $limit + 1,$cursor
         ),ARRAY_A);
         $more=count((array)$rows)>$limit;
         $rows=array_slice((array)$rows,0,$limit);
@@ -569,10 +569,10 @@ final class TCD_Sources {
         if(!self::table_exists($voc)||!self::table_exists($rel))return array();
         $rows=$wpdb->get_results($wpdb->prepare(
             "SELECT v.id,v.semantic_group,v.slug,v.label
-             FROM {$rel} r INNER JOIN {$voc} v ON v.id=r.vocabulary_id
+             FROM %i r INNER JOIN %i v ON v.id=r.vocabulary_id
              WHERE r.object_type=%s AND r.object_id=%d AND r.status=1 AND v.active=1
              ORDER BY v.semantic_group,v.id",
-            sanitize_key($object_type),absint($object_id)
+            $rel, $voc, sanitize_key($object_type),absint($object_id)
         ),ARRAY_A);
         $out=array();
         foreach((array)$rows as $row){
@@ -955,8 +955,8 @@ final class TCD_Sources {
         $total = 0;
         foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
             $count = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE lesson=%d",
-                absint( $source_lesson )
+                "SELECT COUNT(*) FROM %i WHERE lesson=%d",
+                $table, absint( $source_lesson )
             ) ) );
             $total += min( 110, $count );
         }
