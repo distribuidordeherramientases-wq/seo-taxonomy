@@ -70,10 +70,10 @@ final class TaxoCommerce_Logistica_User_Guide {
                     'title' => __( '2. Arquitectura y registro', 'taxocommerce-logistica' ),
                     'blocks' => array(
                         array( 'h3', __( 'Componentes y carga', 'taxocommerce-logistica' ) ),
-                        array( 'p', __( 'taxocommerce-logistica.php registra el menú, la integración opcional con Core y carga includes/seo-transporte.php, class-auto-test.php y class-user-guide.php. SEO_Transporte_Costes::init registra las acciones de configuración y los filtros WooCommerce. La documentación no llama al motor operativo.', 'taxocommerce-logistica' ) ),
+                        array( 'p', __( 'taxocommerce-logistica.php registra el menú, la integración opcional con Core y carga includes/seo-transporte.php, class-auto-test.php y class-user-guide.php. TaxoCommerce_Logistica_Transporte_Costes::init registra las acciones de configuración y los filtros WooCommerce. La documentación no llama al motor operativo.', 'taxocommerce-logistica' ) ),
                         array( 'h3', __( 'Integraciones y hooks', 'taxocommerce-logistica' ) ),
                         array( 'ul', array(
-                            __( 'admin_post_seo_transporte_save, _export e _import: acciones protegidas para configuración y copias JSON.', 'taxocommerce-logistica' ),
+                            __( 'admin_post_taxocommerce_logistica_save, _export e _import: acciones protegidas para configuración y copias JSON.', 'taxocommerce-logistica' ),
                             __( 'wc_shipping_enabled: permite que WooCommerce calcule envíos si el gestor propio está activo.', 'taxocommerce-logistica' ),
                             __( 'woocommerce_shipping_methods: método interno seo_transporte_bridge, sin coste propio.', 'taxocommerce-logistica' ),
                             __( 'woocommerce_cart_shipping_packages: completa el destino utilizado por las tarifas.', 'taxocommerce-logistica' ),
