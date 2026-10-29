@@ -220,6 +220,7 @@ final class TaxoCommerce_Google_Bing_Reports {
             'data'          => $data,
         );
         update_option( self::STORE_PREFIX . $source, $entries, false );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         do_action( 'tgb_manual_report_saved', $source, $ranges, $entries[ $key ] );
         self::finish_download( $source, $selection, 'Datos actualizados y guardados correctamente.', false );
     }

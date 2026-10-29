@@ -14,6 +14,7 @@ if (!defined('SEO_ANALISTA_OPTION_COMPETITION_HISTORY')) {
 }
 
 if (!function_exists('seo_analista_table_exists')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_table_exists($table) {
         global $wpdb;
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table);
@@ -34,6 +35,7 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
      * Importante: eventos del embudo son recuentos de eventos, no usuarios
      * únicos. Por eso las tasas derivadas se etiquetan como tasas de eventos.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_ga4_snapshot($days = 28, $end_date = '') {
         $days = seo_analista_days($days);
         $start_offset = max(0, $days - 1);
@@ -330,6 +332,7 @@ if (!function_exists('seo_analista_ga4_snapshot')) {
 }
 
 if (!function_exists('seo_analista_internal_search_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_internal_search_snapshot($days = 28, $limit = 20) {
         global $wpdb;
         $days = seo_analista_days($days);
@@ -380,6 +383,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
 }
 
 if (!function_exists('seo_analista_supplier_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_supplier_snapshot($limit = 20) {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_proveedores_productos';
@@ -430,6 +434,7 @@ if (!function_exists('seo_analista_supplier_snapshot')) {
 }
 
 if (!function_exists('seo_analista_competition_source_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competition_source_snapshot() {
         $data = get_option(SEO_ANALISTA_OPTION_COMPETITION, array());
         return is_array($data) ? $data : array();
@@ -437,6 +442,7 @@ if (!function_exists('seo_analista_competition_source_snapshot')) {
 }
 
 if (!function_exists('seo_analista_competition_history')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competition_history() {
         $history = get_option(SEO_ANALISTA_OPTION_COMPETITION_HISTORY, array());
         return is_array($history) ? $history : array();
@@ -444,6 +450,7 @@ if (!function_exists('seo_analista_competition_history')) {
 }
 
 if (!function_exists('seo_analista_store_competition_history')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_store_competition_history() {
         if (!function_exists('seo_analista_competition_snapshot')) return;
         $competition = seo_analista_competition_snapshot(20);
