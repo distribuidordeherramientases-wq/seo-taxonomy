@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int $limit Page size (capped at 2).
  * @return int[]
  */
-function tci_images_optimizer_next_ids( $after_id, $limit = 2 ) {
+function taxocommerce_images_optimizer_next_ids( $after_id, $limit = 2 ) {
 	$after_id = absint( $after_id );
 	$limit    = max( 1, min( 2, absint( $limit ) ) );
 
@@ -56,14 +56,14 @@ function tci_images_optimizer_next_ids( $after_id, $limit = 2 ) {
  *
  * @return void
  */
-function tci_images_optimizer_ajax_batch() {
+function taxocommerce_images_optimizer_ajax_batch() {
 	if ( ! current_user_can( 'manage_options' ) || ! current_user_can( 'upload_files' ) ) {
 		wp_send_json_error( array( 'message' => __( 'No tienes permisos para optimizar las imágenes.', 'taxocommerce-images' ) ), 403 );
 	}
 	check_ajax_referer( 'tci_optimizer_run', 'nonce' );
 
 	$after_id = isset( $_POST['after_id'] ) && is_scalar( $_POST['after_id'] ) ? absint( $_POST['after_id'] ) : 0;
-	$ids      = tci_images_optimizer_next_ids( $after_id, 2 );
+	$ids      = taxocommerce_images_optimizer_next_ids( $after_id, 2 );
 	$result   = array(
 		'processed' => 0,
 		'next_after_id' => $after_id,
@@ -76,7 +76,7 @@ function tci_images_optimizer_ajax_batch() {
 	foreach ( $ids as $id ) {
 		$result['next_after_id'] = max( $result['next_after_id'], $id );
 		try {
-			$item = tci_optimizer_process_attachment( $id );
+			$item = taxocommerce_images_optimizer_process_attachment( $id );
 			++$result['processed'];
 			$result['optimized_files'] += absint( $item['optimized'] ?? 0 );
 			$result['bytes_saved'] += absint( $item['saved'] ?? 0 );
@@ -92,4 +92,4 @@ function tci_images_optimizer_ajax_batch() {
 	$result['errors'] = array_slice( array_values( array_unique( $result['errors'] ) ), 0, 6 );
 	wp_send_json_success( $result );
 }
-add_action( 'wp_ajax_tci_optimizer_batch', 'tci_images_optimizer_ajax_batch' );
+add_action( 'wp_ajax_tci_optimizer_batch', 'taxocommerce_images_optimizer_ajax_batch' );
