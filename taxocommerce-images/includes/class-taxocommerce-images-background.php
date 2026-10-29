@@ -78,8 +78,7 @@ final class TaxoCommerce_Images_Background {
 				: array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif' );
 			$marks = implode( ',', array_fill( 0, count( $mimes ), '%s' ) );
 			$sql = "SELECT COUNT(*) AS total, COALESCE(MAX(ID),0) AS max_id FROM %i WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type IN ($marks)";
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is constructed with allowlisted MIME placeholders; all values and table identifiers are prepared.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compute a live MIME-filtered count and maximum ID for an independent job snapshot; not a reusable cacheable query.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compute a live MIME-filtered count and maximum ID for an independent job snapshot; not a reusable cacheable query. Prepared statements and native cache invalidation verified; $sql is constructed with allowlisted MIME placeholders; all values and table identifiers are prepared.
 			$rows = $wpdb->get_row( $wpdb->prepare( $sql, array_merge( array( $wpdb->posts ), $mimes ) ), ARRAY_A );
 			$total = absint( $rows['total'] ?? 0 );
 			$max = absint( $rows['max_id'] ?? 0 );
@@ -319,8 +318,7 @@ final class TaxoCommerce_Images_Background {
 					array( $wpdb->posts ), $mimes,
 					array( absint( $job['cursor'] ?? 0 ), absint( $job['max_id'] ?? 0 ) )
 				);
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL identifiers and values are prepared; MIME types are a closed allowlist.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Use a freshly prepared cursor query to claim the next pending attachment; cached IDs risk duplicate or skipped work.
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Use a freshly prepared cursor query to claim the next pending attachment; cached IDs risk duplicate or skipped work. Prepared statements and native cache invalidation verified; SQL identifiers and values are prepared; MIME types are a closed allowlist.
 				$id = absint( $wpdb->get_var( $wpdb->prepare( $sql, $params ) ) );
 				if ( ! $id ) {
 					$job['status'] = 'complete';
