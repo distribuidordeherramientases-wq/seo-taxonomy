@@ -15,7 +15,7 @@ if (!defined('TCI_IMAGES_OPTIMIZER_VERSION')) {
     define('TCI_IMAGES_OPTIMIZER_VERSION', '1');
 }
 
-if (!function_exists('tci_optimizer_read_head')) {
+if (!function_exists('taxocommerce_images_optimizer_read_head')) {
     /**
      * Lee un prefijo binario de un archivo local de uploads.
      *
@@ -23,7 +23,7 @@ if (!function_exists('tci_optimizer_read_head')) {
      * @param int    $length Bytes máximos.
      * @return string|false
      */
-    function tci_optimizer_read_head($path, $length) {
+    function taxocommerce_images_optimizer_read_head($path, $length) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Lectura binaria parcial; se limita a uploads y evita cargar archivos completos.
         $handle = @fopen($path, 'rb');
         if (!$handle) {
@@ -38,20 +38,20 @@ if (!function_exists('tci_optimizer_read_head')) {
     }
 }
 
-if (!function_exists('tci_optimizer_file_is_writable')) {
+if (!function_exists('taxocommerce_images_optimizer_file_is_writable')) {
     /**
      * Comprueba si el archivo puede sustituirse sin cambiar la semántica actual.
      *
      * @param string $path Ruta del archivo.
      * @return bool
      */
-    function tci_optimizer_file_is_writable($path) {
+    function taxocommerce_images_optimizer_file_is_writable($path) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- La comprobación aplica al archivo concreto de uploads antes de una sustitución atómica.
         return is_writable($path);
     }
 }
 
-if (!function_exists('tci_optimizer_rename')) {
+if (!function_exists('taxocommerce_images_optimizer_rename')) {
     /**
      * Renombra un archivo local conservando la operación atómica usada por el optimizador.
      *
@@ -59,13 +59,13 @@ if (!function_exists('tci_optimizer_rename')) {
      * @param string $target Destino.
      * @return bool
      */
-    function tci_optimizer_rename($source, $target) {
+    function taxocommerce_images_optimizer_rename($source, $target) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- El optimizador necesita renombrado atómico para backup/restauración dentro de uploads.
         return @rename($source, $target);
     }
 }
 
-if (!function_exists('tci_optimizer_chmod')) {
+if (!function_exists('taxocommerce_images_optimizer_chmod')) {
     /**
      * Restaura permisos del archivo reemplazado.
      *
@@ -73,23 +73,22 @@ if (!function_exists('tci_optimizer_chmod')) {
      * @param int    $mode Permisos.
      * @return bool
      */
-    function tci_optimizer_chmod($path, $mode) {
+    function taxocommerce_images_optimizer_chmod($path, $mode) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Se restauran exactamente los permisos previos del archivo local optimizado.
         return @chmod($path, $mode);
     }
 }
 
-if (!function_exists('tci_optimizer_supported_mimes')) {
-    function tci_optimizer_supported_mimes() {
-        return (array) apply_filters(
-            'tci_optimizer_supported_mimes',
-            array('image/jpeg', 'image/png', 'image/webp', 'image/avif')
-        );
+if (!function_exists('taxocommerce_images_optimizer_supported_mimes')) {
+    function taxocommerce_images_optimizer_supported_mimes() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Preserve older custom MIME hooks without removing them.
+        $legacy_mimes = apply_filters('tci_optimizer_supported_mimes', array('image/jpeg', 'image/png', 'image/webp', 'image/avif'));
+        return (array) apply_filters('taxocommerce_images_optimizer_supported_mimes', $legacy_mimes);
     }
 }
 
-if (!function_exists('tci_optimizer_quality')) {
-    function tci_optimizer_quality($mime_type) {
+if (!function_exists('taxocommerce_images_optimizer_quality')) {
+    function taxocommerce_images_optimizer_quality($mime_type) {
         $qualities = array(
             'image/jpeg' => 80,
             'image/png'  => 50,
@@ -98,12 +97,14 @@ if (!function_exists('tci_optimizer_quality')) {
         );
 
         $quality = isset($qualities[$mime_type]) ? $qualities[$mime_type] : 80;
-        return max(1, min(100, (int) apply_filters('tci_optimizer_quality', $quality, $mime_type)));
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing quality filters are retained for compatibility.
+        $legacy_quality = apply_filters('tci_optimizer_quality', $quality, $mime_type);
+        return max(1, min(100, (int) apply_filters('taxocommerce_images_optimizer_quality', $legacy_quality, $mime_type)));
     }
 }
 
-if (!function_exists('tci_optimizer_is_safe_upload_path')) {
-    function tci_optimizer_is_safe_upload_path($path) {
+if (!function_exists('taxocommerce_images_optimizer_is_safe_upload_path')) {
+    function taxocommerce_images_optimizer_is_safe_upload_path($path) {
         $uploads = wp_get_upload_dir();
         if (empty($uploads['basedir'])) {
             return false;
@@ -121,8 +122,8 @@ if (!function_exists('tci_optimizer_is_safe_upload_path')) {
     }
 }
 
-if (!function_exists('tci_optimizer_file_mime')) {
-    function tci_optimizer_file_mime($path) {
+if (!function_exists('taxocommerce_images_optimizer_file_mime')) {
+    function taxocommerce_images_optimizer_file_mime($path) {
         if (function_exists('wp_get_image_mime')) {
             $mime = wp_get_image_mime($path);
             if (is_string($mime) && $mime !== '') {
@@ -135,8 +136,8 @@ if (!function_exists('tci_optimizer_file_mime')) {
     }
 }
 
-if (!function_exists('tci_optimizer_has_unsafe_orientation')) {
-    function tci_optimizer_has_unsafe_orientation($path, $mime_type) {
+if (!function_exists('taxocommerce_images_optimizer_has_unsafe_orientation')) {
+    function taxocommerce_images_optimizer_has_unsafe_orientation($path, $mime_type) {
         if ($mime_type !== 'image/jpeg') {
             return false;
         }
@@ -157,8 +158,8 @@ if (!function_exists('tci_optimizer_has_unsafe_orientation')) {
     }
 }
 
-if (!function_exists('tci_optimizer_is_animated_file')) {
-    function tci_optimizer_is_animated_file($path, $mime_type) {
+if (!function_exists('taxocommerce_images_optimizer_is_animated_file')) {
+    function taxocommerce_images_optimizer_is_animated_file($path, $mime_type) {
         if (!in_array($mime_type, array('image/webp', 'image/png'), true)) {
             return false;
         }
@@ -169,7 +170,7 @@ if (!function_exists('tci_optimizer_is_animated_file')) {
         }
 
         $read_length = min((int) $size, 2 * MB_IN_BYTES);
-        $head = tci_optimizer_read_head($path, $read_length);
+        $head = taxocommerce_images_optimizer_read_head($path, $read_length);
         if (!is_string($head) || $head === '') {
             return false;
         }
@@ -183,8 +184,8 @@ if (!function_exists('tci_optimizer_is_animated_file')) {
     }
 }
 
-if (!function_exists('tci_optimizer_attachment_files')) {
-    function tci_optimizer_attachment_files($attachment_id) {
+if (!function_exists('taxocommerce_images_optimizer_attachment_files')) {
+    function taxocommerce_images_optimizer_attachment_files($attachment_id) {
         $attachment_id = absint($attachment_id);
         $attached_file = get_attached_file($attachment_id, true);
         if (!$attached_file) {
@@ -236,7 +237,7 @@ if (!function_exists('tci_optimizer_attachment_files')) {
             if (isset($unique[$normalized])) {
                 continue;
             }
-            if (!tci_optimizer_is_safe_upload_path($real)) {
+            if (!taxocommerce_images_optimizer_is_safe_upload_path($real)) {
                 continue;
             }
             $file['path'] = $real;
@@ -247,8 +248,8 @@ if (!function_exists('tci_optimizer_attachment_files')) {
     }
 }
 
-if (!function_exists('tci_optimizer_signature')) {
-    function tci_optimizer_signature($files) {
+if (!function_exists('taxocommerce_images_optimizer_signature')) {
+    function taxocommerce_images_optimizer_signature($files) {
         $parts = array();
         foreach ((array) $files as $file) {
             if (empty($file['path']) || !is_file($file['path'])) {
@@ -262,8 +263,8 @@ if (!function_exists('tci_optimizer_signature')) {
     }
 }
 
-if (!function_exists('tci_optimizer_recompress_file')) {
-    function tci_optimizer_recompress_file($path) {
+if (!function_exists('taxocommerce_images_optimizer_recompress_file')) {
+    function taxocommerce_images_optimizer_recompress_file($path) {
         $result = array(
             'status' => 'skipped',
             'before' => 0,
@@ -272,11 +273,11 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             'error'  => '',
         );
 
-        if (!is_file($path) || !is_readable($path) || !tci_optimizer_file_is_writable($path)) {
+        if (!is_file($path) || !is_readable($path) || !taxocommerce_images_optimizer_file_is_writable($path)) {
             $result['error'] = 'El archivo no es legible o escribible.';
             return $result;
         }
-        if (!tci_optimizer_is_safe_upload_path($path)) {
+        if (!taxocommerce_images_optimizer_is_safe_upload_path($path)) {
             $result['error'] = 'El archivo esta fuera de uploads.';
             return $result;
         }
@@ -290,15 +291,15 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             return $result;
         }
 
-        $mime_type = tci_optimizer_file_mime($path);
-        if (!in_array($mime_type, tci_optimizer_supported_mimes(), true)) {
+        $mime_type = taxocommerce_images_optimizer_file_mime($path);
+        if (!in_array($mime_type, taxocommerce_images_optimizer_supported_mimes(), true)) {
             return $result;
         }
-        if (tci_optimizer_is_animated_file($path, $mime_type)) {
+        if (taxocommerce_images_optimizer_is_animated_file($path, $mime_type)) {
             $result['error'] = 'Imagen animada omitida para no perder fotogramas.';
             return $result;
         }
-        if (tci_optimizer_has_unsafe_orientation($path, $mime_type)) {
+        if (taxocommerce_images_optimizer_has_unsafe_orientation($path, $mime_type)) {
             $result['error'] = 'JPEG con orientacion EXIF pendiente; se omite para no alterar su visualizacion.';
             return $result;
         }
@@ -319,7 +320,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             return $result;
         }
 
-        $editor->set_quality(tci_optimizer_quality($mime_type));
+        $editor->set_quality(taxocommerce_images_optimizer_quality($mime_type));
 
         $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
         $suffix = wp_generate_password(10, false, false);
@@ -353,7 +354,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             return $result;
         }
 
-        $candidate_mime = tci_optimizer_file_mime($candidate);
+        $candidate_mime = taxocommerce_images_optimizer_file_mime($candidate);
         if ($candidate_mime !== $mime_type) {
             wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
@@ -376,7 +377,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
         $permissions = @fileperms($path);
         $backup = $path . '.seo-opt-backup-' . $suffix;
 
-        if (!tci_optimizer_rename($path, $backup)) {
+        if (!taxocommerce_images_optimizer_rename($path, $backup)) {
             wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
                 wp_delete_file($temp_path);
@@ -385,8 +386,8 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             return $result;
         }
 
-        if (!tci_optimizer_rename($candidate, $path)) {
-            tci_optimizer_rename($backup, $path);
+        if (!taxocommerce_images_optimizer_rename($candidate, $path)) {
+            taxocommerce_images_optimizer_rename($backup, $path);
             wp_delete_file($candidate);
             if ($candidate !== $temp_path) {
                 wp_delete_file($temp_path);
@@ -396,7 +397,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
         }
 
         if ($permissions !== false) {
-            tci_optimizer_chmod($path, $permissions & 0777);
+            taxocommerce_images_optimizer_chmod($path, $permissions & 0777);
         }
         if ($candidate !== $temp_path) {
             wp_delete_file($temp_path);
@@ -405,7 +406,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
         clearstatcache(true, $path);
         $final_size = (int) @filesize($path);
         $final_dimensions = @getimagesize($path);
-        $final_mime = tci_optimizer_file_mime($path);
+        $final_mime = taxocommerce_images_optimizer_file_mime($path);
         if (
             $final_size < 1
             || !is_array($final_dimensions)
@@ -414,7 +415,7 @@ if (!function_exists('tci_optimizer_recompress_file')) {
             || $final_mime !== $mime_type
         ) {
             wp_delete_file($path);
-            tci_optimizer_rename($backup, $path);
+            taxocommerce_images_optimizer_rename($backup, $path);
             $result['error'] = 'El archivo optimizado no pudo validarse; se restauro el original.';
             return $result;
         }
@@ -427,8 +428,8 @@ if (!function_exists('tci_optimizer_recompress_file')) {
     }
 }
 
-if (!function_exists('tci_optimizer_update_filesizes_metadata')) {
-    function tci_optimizer_update_filesizes_metadata($attachment_id, $files) {
+if (!function_exists('taxocommerce_images_optimizer_update_filesizes_metadata')) {
+    function taxocommerce_images_optimizer_update_filesizes_metadata($attachment_id, $files) {
         $metadata = wp_get_attachment_metadata($attachment_id);
         if (!is_array($metadata)) {
             return;
@@ -464,8 +465,8 @@ if (!function_exists('tci_optimizer_update_filesizes_metadata')) {
     }
 }
 
-if (!function_exists('tci_optimizer_process_attachment')) {
-    function tci_optimizer_process_attachment($attachment_id) {
+if (!function_exists('taxocommerce_images_optimizer_process_attachment')) {
+    function taxocommerce_images_optimizer_process_attachment($attachment_id) {
         $attachment_id = absint($attachment_id);
         $result = array(
             'attachment_id' => $attachment_id,
@@ -479,14 +480,14 @@ if (!function_exists('tci_optimizer_process_attachment')) {
             'unchanged'     => false,
         );
 
-        $files = tci_optimizer_attachment_files($attachment_id);
+        $files = taxocommerce_images_optimizer_attachment_files($attachment_id);
         $result['files'] = count($files);
         if (empty($files)) {
             $result['errors'][] = 'Attachment #' . $attachment_id . ': no se encontraron archivos locales.';
             return $result;
         }
 
-        $current_signature = tci_optimizer_signature($files);
+        $current_signature = taxocommerce_images_optimizer_signature($files);
         $stored_signature = (string) get_post_meta($attachment_id, '_tci_optimizer_signature', true);
         if ($stored_signature !== '' && hash_equals($stored_signature, $current_signature)) {
             foreach ($files as $file) {
@@ -501,7 +502,7 @@ if (!function_exists('tci_optimizer_process_attachment')) {
         }
 
         foreach ($files as $file) {
-            $file_result = tci_optimizer_recompress_file($file['path']);
+            $file_result = taxocommerce_images_optimizer_recompress_file($file['path']);
             $result['before'] += (int) $file_result['before'];
             $result['after'] += (int) $file_result['after'];
             $result['saved'] += (int) $file_result['saved'];
@@ -517,9 +518,9 @@ if (!function_exists('tci_optimizer_process_attachment')) {
             }
         }
 
-        tci_optimizer_update_filesizes_metadata($attachment_id, $files);
-        $files_after = tci_optimizer_attachment_files($attachment_id);
-        update_post_meta($attachment_id, '_tci_optimizer_signature', tci_optimizer_signature($files_after));
+        taxocommerce_images_optimizer_update_filesizes_metadata($attachment_id, $files);
+        $files_after = taxocommerce_images_optimizer_attachment_files($attachment_id);
+        update_post_meta($attachment_id, '_tci_optimizer_signature', taxocommerce_images_optimizer_signature($files_after));
         update_post_meta($attachment_id, '_tci_optimizer_last_run', current_time('mysql'));
         update_post_meta($attachment_id, '_tci_optimizer_saved_bytes', max(0, (int) $result['saved']));
 
