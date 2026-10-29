@@ -219,4 +219,7 @@ expect( null !== Store::get( $edited_id ), 'Untrash never deletes a rule manuall
 Store::install();
 expect( '1' === get_option( 'tc_redirects_schema_ready' ), 'Existing legacy table reused without migration' );
 
+$auto_rules = \TaxoCommerce\Redirects\Auto_Test::suite( 'rules' );
+expect( 4 === $auto_rules['totals']['pass'] && 0 === $auto_rules['totals']['fail'], 'Auto Test verifies origins, destinations, paths and diagnostics without database writes' );
+
 echo "TaxoCommerce Redirects rules/integration smoke tests passed.\n";
