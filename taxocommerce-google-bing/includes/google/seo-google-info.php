@@ -345,7 +345,7 @@ function seo_google_oauth_callback_handler() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth state is compared with the one-time transient immediately below.
     $received_state = isset($_GET['state'])
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth callback state value is validated against the one-time transient before exchanging tokens.
         ? sanitize_text_field(wp_unslash($_GET['state']))
         : '';
 
@@ -364,7 +364,7 @@ function seo_google_oauth_callback_handler() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth authorization code is accepted only after state validation.
     $code = isset($_GET['code'])
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- OAuth authorization code is accepted only following the verified one-time state comparison.
         ? sanitize_text_field(wp_unslash($_GET['code']))
         : '';
 
