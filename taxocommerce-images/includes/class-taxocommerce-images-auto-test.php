@@ -295,7 +295,7 @@ final class TaxoCommerce_Images_Auto_Test {
 		foreach ( array( 'wp_ajax_tci_webp_batch', 'wp_ajax_tci_optimizer_batch' ) as $hook ) {
 			if ( ! has_action( $hook ) ) { $missing[] = $hook; }
 		}
-		if ( ! function_exists( 'tci_webp_ajax_batch' ) || ! function_exists( 'tci_images_optimizer_ajax_batch' ) ) {
+		if ( ! function_exists( 'taxocommerce_images_webp_ajax_batch' ) || ! function_exists( 'taxocommerce_images_optimizer_ajax_batch' ) ) {
 			$missing[] = 'motor de conversión u optimización';
 		}
 		return $missing ? self::bad( 'No disponibles: ' . implode( ', ', $missing ) )

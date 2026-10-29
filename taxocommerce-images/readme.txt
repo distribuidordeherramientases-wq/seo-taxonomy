@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.14
+Stable tag: 0.2.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,14 @@ Current functionality includes:
 * Upload scaling and image quality settings.
 * Optional integration into TaxoCommerce Core.
 
+== Installation ==
+
+1. Upload the TaxoCommerce Images ZIP from Plugins > Add New > Upload Plugin, or install it from WordPress.org after approval.
+2. Activate the standalone plugin in Plugins. WooCommerce and TaxoCommerce Core are optional integrations.
+3. Open the Images administration menu to review the Media inventory and run the read-only Auto Test.
+4. Before starting real image transformations, inspect the workload settings and back up the WordPress Media library.
+5. For independent execution after closing the browser, enable WP-Cron or configure a hosting cron calling wp-cron.php.
+
 == Background execution ==
 
 * Scans and image transformations now use independent persisted WordPress Cron tasks. The browser only starts a task or displays its status.
@@ -42,6 +50,13 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.15 =
+* Updated the prefixes of 64 internal legacy helper functions and their callers to avoid namespace collisions.
+* Preserved four previous WebP and optimizer filter hooks for third-party compatibility, adding new fully prefixed alternatives.
+* Removed the costly post ID exclusion from duplicate lookup and kept protection against retrying the same attachment.
+* Reviewed and documented the live and atomic SQL operations used for Media reference auditing, conversion rollback, cursor control and safe locks; these operations must not reuse stale cached results.
+* Added WordPress.org installation instructions without removing image-management functionality.
 
 = 0.2.14 =
 * Correct plugin packaging: exclude developer tests and FTP synchronization metadata from installed plugin.
@@ -62,6 +77,14 @@ Current functionality includes:
 * Added independent state polling, pause, resume and stop controls.
 * No FTP or production deployment is implied by the GitHub change.
 
+
+= 0.2.10 =
+* Media audit in Images > Anomalías has a dedicated five-speed adaptive load regulator, independent from assignment, labels and cleanup jobs.
+* Automatically sizes batches from 25 to 1200 attachments depending on the selected speed and observed time, request-local CPU and memory pressure; no longer fixed at 75.
+* The audit keeps its scan cursor and existing findings when the administrator changes speed. No attachments are modified or removed.
+* With the audit tab open, a sequential AJAX continuation processes the next batch immediately. Pause and resume controls apply to this browser tab; the manual Next batch action remains available.
+* Live progress shows processed images, last batch size and duration, next batch goal, throughput and PHP load. Host-wide CPU is not estimated by the PHP worker.
+* Existing per-attachment anomaly checks remain unchanged.
 
 = 0.2.9 =
 * Changed unused/duplicate analysis and labels/attributes review into full-library jobs that continue automatically until the complete Media snapshot is scanned.
@@ -130,11 +153,3 @@ Current functionality includes:
 
 = 0.1.0 =
 * Initial modular pilot.
-
-== 0.2.10 ==
-* Media audit in Images > Anomalías has a dedicated five-speed adaptive load regulator, independent from assignment, labels and cleanup jobs.
-* Automatically sizes batches from 25 to 1200 attachments depending on the selected speed and observed time, request-local CPU and memory pressure; no longer fixed at 75.
-* The audit keeps its scan cursor and existing findings when the administrator changes speed. No attachments are modified or removed.
-* With the audit tab open, a sequential AJAX continuation processes the next batch immediately. Pause and resume controls apply to this browser tab; the manual Next batch action remains available.
-* Live progress shows processed images, last batch size and duration, next batch goal, throughput and PHP load. Host-wide CPU is not estimated by the PHP worker.
-* Existing per-attachment anomaly checks remain unchanged.
