@@ -389,7 +389,7 @@ final class TaxoCommerce_Core_Editor_UI {
         $variation = (bool) $attribute->get_variation();
         echo '<article class="tc-attribute-row" data-tc-attribute-row>';
         echo '<div class="tc-attribute-heading"><strong>' . esc_html( $global ? wc_attribute_label( $name ) : $name ) . '</strong>';
-        echo '<span class="tc-mini-label">' . ( $global ? 'GLOBAL' : 'PERSONALIZADO' ) . '</span>';
+        echo '<span class="tc-mini-label">' . ( $global ? esc_html__( 'GLOBAL', 'taxocommerce-core' ) : esc_html__( 'PERSONALIZADO', 'taxocommerce-core' ) ) . '</span>';
         if ( $variation ) {
             echo '<span class="tc-mini-label tc-mini-label--warn">USADO EN VARIACIONES</span>';
         } else {
@@ -405,7 +405,7 @@ final class TaxoCommerce_Core_Editor_UI {
             echo '<input type="hidden" name="tc_attrs[' . esc_attr( (string) $index ) . '][taxonomy]" value="' . esc_attr( $name ) . '">';
             $selected = self::terms_for_ids( $name, $attribute->get_options() );
             TaxoCommerce_Core_Vocabulary::render_picker(
-                'tc_attrs[' . $index . '][terms][]', 'taxonomy', $name, $selected, 'Buscar valores…'
+                'tc_attrs[' . $index . '][terms][]', 'taxonomy', $name, $selected, __( 'Buscar valores…', 'taxocommerce-core' )
             );
         } else {
             self::attribute_custom_fields( $index, $name, $attribute->get_options() );
@@ -433,7 +433,7 @@ final class TaxoCommerce_Core_Editor_UI {
         }
         echo '</select></div>';
         TaxoCommerce_Core_Vocabulary::render_picker(
-            'tc_attrs[__index__][terms][]', 'taxonomy', '', array(), 'Buscar valores…'
+            'tc_attrs[__index__][terms][]', 'taxonomy', '', array(), __( 'Buscar valores…', 'taxocommerce-core' )
         );
         echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[__index__][visible]" value="1" checked> Visible en la ficha del producto</label>';
         echo '</article></template>';
