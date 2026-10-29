@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.11
+Stable tag: 0.2.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,7 @@ Core principles:
 Current functionality includes:
 
 * Media dashboard.
+* On-demand read-only Auto Test, 17 checks, user-specific temporary report (no new tables).
 * Bounded image audit in batches.
 * Reports for missing ALT text, unattached images, missing physical files, oversized dimensions/bytes, missing registered thumbnails and generic titles.
 * Product-without-image KPI when WooCommerce is active.
@@ -41,6 +42,10 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.12 =
+* Added an Auto Test tab with 17 independent image-management checks, the Core-style traffic-light display and a temporary per-user result.
+* Checks do not mutate images, jobs, attachments or image metadata.
 
 = 0.2.11 =
 * Added server-side persistent background jobs for audit, labels, duplicates, assignment, optimizer and WebP.

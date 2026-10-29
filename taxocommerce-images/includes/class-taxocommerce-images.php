@@ -255,6 +255,7 @@ final class TaxoCommerce_Images {
 			'library'    => __( 'Media local', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
+			'auto-test'  => __( 'Auto Test', 'taxocommerce-images' ),
 		);
 		if ( ! isset( $tabs[ $tab ] ) ) {
 			$tab = 'summary';
@@ -294,6 +295,9 @@ final class TaxoCommerce_Images {
 					break;
 				case 'thumbnails':
 					$this->render_thumbnails();
+					break;
+				case 'auto-test':
+					TaxoCommerce_Images_Auto_Test::render();
 					break;
 				case 'settings':
 					$this->render_settings();
