@@ -387,7 +387,9 @@ jobs:
                   print(f"  ACTUALIZADO: {path}")
           PY
 
+          # On HTTP 2xx the WordPress REST handler has already removed the
+          # handoff directory. Avoid a second FTP rm that reports spurious 550.
+          # The EXIT trap above still cleans the handoff on failures.
           trap - EXIT
-          cleanup_handoff
 
           echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
