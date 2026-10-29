@@ -767,6 +767,7 @@ final class TCD_Original_Linguista {
             return false;
         }
 
+        if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('INFO','linguist_window_started',array('source'=>$source,'lesson'=>(string)($state['current_lesson']??''),'cursor'=>absint($state['cursor']??0),'status'=>(string)($state['status']??'')));
         $max_runtime = max(5, min(50, absint($max_runtime)));
         $started = microtime(true);
         $did_work = false;
@@ -823,6 +824,7 @@ final class TCD_Original_Linguista {
                 break;
             }
         } catch (Throwable $e) {
+            if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('ERROR','linguist_exception',array('message'=>$e->getMessage(),'file'=>wp_basename($e->getFile()),'line'=>$e->getLine(),'lesson'=>(string)($state['current_lesson']??'')));
             self::save_state(array(
                 'status' => 'error',
                 'enabled' => 0,
@@ -842,6 +844,7 @@ final class TCD_Original_Linguista {
         }
 
         $state = self::state();
+        if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('INFO','linguist_window_finished',array('lesson'=>(string)($state['current_lesson']??''),'cursor'=>absint($state['cursor']??0),'status'=>(string)($state['status']??''),'processed'=>$processed_window,'learned'=>$learned_window,'rejected'=>$rejected_window));
         if (self::is_pending()) {
             $delay = max(1, absint($state['next_delay'] ?? 1));
             self::save_state(array('not_before' => time() + $delay));
