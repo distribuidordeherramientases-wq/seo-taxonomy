@@ -160,4 +160,18 @@ foreach (array(
         'Ruta antigua no conserva archivo: ' . $key);
 }
 
+
+// Country header isolation: international template views must not load the ES header.
+$us_helpers = file_get_contents(TCT_DIR . 'templates/template-helpers.php');
+$us_header = file_get_contents(TCT_DIR . 'templates/header-us.php');
+$us_pilot = file_get_contents(TCT_DIR . 'templates/template-pilot-vevor.php');
+tct_assert(is_file(TCT_DIR . 'templates/header-us.php'), 'US header must exist.');
+tct_assert(is_file(TCT_DIR . 'templates/footer-us.php'), 'US footer must exist.');
+tct_assert(is_file(TCT_DIR . 'templates/assets/market-us.css'), 'US responsive styles must exist.');
+tct_assert(strpos($us_helpers, "'/header-us.php'") !== false, 'US needs independent header routing.');
+tct_assert(strpos($us_helpers, "'/footer-us.php'") !== false, 'US needs independent footer routing.');
+tct_assert(strpos($us_header, "managed_menu_id('US', false)") !== false, 'US header must use Core native menu.');
+tct_assert(strpos($us_header, "generate_navigation_position(") === false, 'US cannot use ES navigation location.');
+tct_assert(strpos($us_pilot, "'US' === \$market && \$us_managed_menu_id") !== false, 'US pilot must render its native menu.');
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";
