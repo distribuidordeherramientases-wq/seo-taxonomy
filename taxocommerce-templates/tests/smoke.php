@@ -161,17 +161,17 @@ foreach (array(
 }
 
 
-// Country header isolation: international template views must not load the ES header.
-$us_helpers = file_get_contents(TCT_DIR . 'templates/template-helpers.php');
-$us_header = file_get_contents(TCT_DIR . 'templates/header-us.php');
-$us_pilot = file_get_contents(TCT_DIR . 'templates/template-pilot-vevor.php');
-tct_assert(is_file(TCT_DIR . 'templates/header-us.php'), 'US header must exist.');
-tct_assert(is_file(TCT_DIR . 'templates/footer-us.php'), 'US footer must exist.');
-tct_assert(is_file(TCT_DIR . 'templates/assets/market-us.css'), 'US responsive styles must exist.');
-tct_assert(strpos($us_helpers, "'/header-us.php'") !== false, 'US needs independent header routing.');
-tct_assert(strpos($us_helpers, "'/footer-us.php'") !== false, 'US needs independent footer routing.');
-tct_assert(strpos($us_header, "managed_menu_id('US', false)") !== false, 'US header must use Core native menu.');
-tct_assert(strpos($us_header, "generate_navigation_position(") === false, 'US cannot use ES navigation location.');
-tct_assert(strpos($us_pilot, "'US' === \$market && \$us_managed_menu_id") !== false, 'US pilot must render its native menu.');
+// All pilot markets must use a single international view and their own native menus.
+$pilot_router = file_get_contents(TCT_DIR . 'includes/class-tct-pilot-router.php');
+$pilot_view = file_get_contents(TCT_DIR . 'templates/template-pilot-vevor.php');
+$pilot_nav = file_get_contents(TCT_DIR . 'templates/template-pilot-navigation.php');
+tct_assert(strpos($pilot_view, 'dht_pilot_country_managed_menu_id( $market )') !== false, 'The pilot header must resolve each country menu.');
+tct_assert(strpos($pilot_view, "'menu' => \$managed_menu_id") !== false, 'The shared header must render the selected menu.');
+tct_assert(strpos($pilot_router, "if (\$market === 'FR')") === false, 'All pilot markets must use one router.');
+foreach (array('US','DE','NL','FR') as $market) {
+    tct_assert(strpos($pilot_nav, "'TaxoCommerce - ' . \$market") !== false, 'Country menu lookup must be shared.');
+}
+tct_assert(!is_file(TCT_DIR . 'templates/header-us.php'), 'US must not have a separate header.');
+tct_assert(!is_file(TCT_DIR . 'templates/footer-us.php'), 'US must not have a separate footer.');
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";
