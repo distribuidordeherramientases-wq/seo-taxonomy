@@ -640,6 +640,8 @@ final class TaxoCommerce_Images_Assignment {
 	 * @return void
 	 */
 	public static function handle_assign_one() {
+		// Explicit verification is repeated in guard(); both are intentionally kept.
+		check_admin_referer( 'taxocommerce_images_assign_one', 'taxocommerce_images_nonce' );
 		$data = self::guard( 'taxocommerce_images_assign_one' );
 		$scope = $data['scope'];
 		$id = $data['id'];
@@ -662,6 +664,7 @@ final class TaxoCommerce_Images_Assignment {
 	 * @return void
 	 */
 	public static function handle_assign_media() {
+		check_admin_referer( 'taxocommerce_images_assign_media', 'taxocommerce_images_nonce' );
 		$data = self::guard( 'taxocommerce_images_assign_media' );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
 		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
