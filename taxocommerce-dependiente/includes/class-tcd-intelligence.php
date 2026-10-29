@@ -763,6 +763,7 @@ final class TCD_Intelligence {
         if ( $batch_ids ) {
             $table = TCD_Academy::knowledge_table();
             $placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE id IN ({$placeholders})",
@@ -770,6 +771,7 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             $by_id = array();
             foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
 
@@ -2291,6 +2293,7 @@ final class TCD_Intelligence {
         $table = TCD_Knowledge_Transfer::rules_table();
         $placeholders = implode( ',', array_fill( 0, count( $ngrams ), '%s' ) );
         if ( $include_stage ) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM %i WHERE (active=1 OR source_brain_id=%s) AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300",
@@ -2298,7 +2301,9 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,rule_type,expression,normalized_expression,canonical_expression,semantic_role,source_group,source_slug,target_group,target_slug,relation_type,result_role,weight,priority,confidence,source FROM %i WHERE active=1 AND language='es' AND normalized_expression IN ({$placeholders}) ORDER BY LENGTH(normalized_expression) DESC,priority ASC,weight DESC,id ASC LIMIT 300",
@@ -2306,6 +2311,7 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
         foreach ( $rows as $row ) {
             $hit = array(
@@ -2360,12 +2366,14 @@ final class TCD_Intelligence {
         if ( ! $slugs ) return;
         $placeholders = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
         
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,semantic_group,slug,label FROM %i WHERE active=1 AND slug IN ({$placeholders}) ORDER BY id ASC LIMIT 150",
                 array_merge( array( $table ), $slugs )
             ), ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         foreach ( $rows as $row ) {
             $group = sanitize_key( (string) ( $row['semantic_group'] ?? '' ) );
             $slug = sanitize_title( (string) ( $row['slug'] ?? '' ) );
@@ -2842,6 +2850,7 @@ final class TCD_Intelligence {
         $full_normalized = self::shorten( $normalized, 250 );
 
         if ( $include_stage ) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
@@ -2856,7 +2865,9 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT product_id,lesson_key,signal_type,signal_text,normalized_signal,weight,source_brain_id
@@ -2871,6 +2882,7 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
         if ( ! $rows ) return array();
 
@@ -2923,6 +2935,7 @@ final class TCD_Intelligence {
         $table = TCD_Knowledge_Transfer::l9_table();
         $placeholders = implode( ',', array_fill( 0, count( $terms ), '%s' ) );
         if ( $include_stage ) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM %i WHERE (active=1 OR source_brain_id=%s) AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000",
@@ -2930,7 +2943,9 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         } else {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT lesson_key,product_id,signal_type,signal_text,normalized_signal,semantic_group,weight FROM %i WHERE active=1 AND normalized_signal IN ({$placeholders}) ORDER BY weight DESC LIMIT 8000",
@@ -2938,6 +2953,7 @@ final class TCD_Intelligence {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
         $products = array();
         foreach ( $rows as $row ) {
@@ -3036,10 +3052,12 @@ final class TCD_Intelligence {
             $specific_ids = array_values( array_filter( array_unique( array_map( 'absint', $specific_ids ) ) ) );
             if ( ! $specific_ids ) return array();
             $placeholders = implode( ',', array_fill( 0, count( $specific_ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
                 array_merge( array( $rel, $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
             ) ) );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
         return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
             "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id ASC LIMIT %d",
@@ -3203,10 +3221,12 @@ final class TCD_Intelligence {
 
         if ( $batch ) {
             $placeholders = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=9 AND id IN ({$placeholders})",
                 array_merge( array( $knowledge ), $batch )
             ), ARRAY_A );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             $by_id = array();
             foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
             $started = microtime( true );
