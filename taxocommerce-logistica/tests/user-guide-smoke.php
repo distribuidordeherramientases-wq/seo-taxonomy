@@ -44,7 +44,7 @@ function assert_guide( $condition, $message ) {
         exit( 1 );
     }
 }
-assert_guide( defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' ) && '0.2.2' === TAXOCOMMERCE_LOGISTICA_VERSION, 'Version 0.2.2' );
+assert_guide( defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' ) && '0.2.3' === TAXOCOMMERCE_LOGISTICA_VERSION, 'Version 0.2.3' );
 assert_guide( isset( $GLOBALS['guide_actions']['admin_enqueue_scripts'] ), 'Manual CSS registered' );
 $_GET['page'] = 'seo-logistica';
 $_GET['tc_logistica_tab'] = 'user-guide';
