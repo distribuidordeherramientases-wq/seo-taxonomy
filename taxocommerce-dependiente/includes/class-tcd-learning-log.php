@@ -12,6 +12,7 @@ final class TCD_Learning_Log {
     const KEEP_BYTES = 786432;
     const DIR_NAME = 'taxocommerce-dependiente-private';
     const FILE_NAME = 'learning.log';
+    const INTERPRETER_FILE = 'interpreter.log';
 
     private static $reserve = '';
 
@@ -52,7 +53,19 @@ final class TCD_Learning_Log {
         if ( strlen( $json ) > 16384 ) $json = substr( $json, 0, 16300 ) . '...[truncated]';
 
         $line = sprintf( "%s %-5s %-32s %s\n", gmdate( 'c' ), $level, $event, $json );
-        return self::append_bounded( $path, $line );
+        $ok = self::append_bounded( $path, $line );
+        if ( 0 === strpos( $event, 'm11_' ) || 0 === strpos( $event, 'linguist_' ) ) {
+            $interpreter_path = self::path( true, true );
+            if ( $interpreter_path ) self::append_bounded( $interpreter_path, $line );
+        }
+        return $ok;
+    }
+
+    public static function interpreter_read() {
+        $path = self::path( false, true );
+        if ( ! $path || ! is_readable( $path ) ) return '';
+        $data = file_get_contents( $path );
+        return is_string( $data ) ? $data : '';
     }
 
     public static function read() {
@@ -155,7 +168,7 @@ final class TCD_Learning_Log {
         );
     }
 
-    private static function path( $create = true ) {
+    private static function path( $create = true, $interpreter = false ) {
         $uploads = wp_upload_dir();
         if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) return '';
         $dir = trailingslashit( (string) $uploads['basedir'] ) . self::DIR_NAME;
@@ -163,7 +176,7 @@ final class TCD_Learning_Log {
             if ( ! wp_mkdir_p( $dir ) ) return '';
         }
         if ( $create ) self::protect_dir( $dir );
-        $path = trailingslashit( $dir ) . self::FILE_NAME;
+        $path = trailingslashit( $dir ) . ( $interpreter ? self::INTERPRETER_FILE : self::FILE_NAME );
         if ( $create && ! file_exists( $path ) ) {
             file_put_contents(
                 $path,
