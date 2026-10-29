@@ -994,11 +994,16 @@ final class TCD_Sources {
         }
         if ( ! $parts ) return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
 
-        $sql = 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
-                ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d';
         $params[] = $limit + 1;
         $params[] = $cursor;
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+        $rows = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
+                 ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d',
+                $params
+            ),
+            ARRAY_A
+        );
         $more = count( $rows ) > $limit;
         $rows = array_slice( $rows, 0, $limit );
         $items = array();
