@@ -229,18 +229,20 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         $table = self::table();
         $has_country_column = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code';
-        $field = $has_country_column ? 'country_code' : 'NULL AS country_code';
+
         if ( $type ) {
+            $projection = $has_country_column ? "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type = %s" : "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type = %s";
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM %i WHERE relation_type = %s", $table, $type ),
+                $wpdb->prepare( $projection, $table, $type ),
                 ARRAY_A
             );
         } else {
             $types = array_keys( $defs );
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Whitelisted SQL placeholders and known table name.
+            $projection = $has_country_column ? "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type IN ({$placeholders})" : "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type IN ({$placeholders})";
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
+                $wpdb->prepare( $projection, array_merge( array( $table ), $types ) ),
                 ARRAY_A
             );
         }
