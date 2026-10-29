@@ -539,7 +539,7 @@ final class TCD_Academy {
                 self::exception_context($e)
             ));
             self::log('learning_error',array('lesson'=>$lesson,'phase'=>$state['phase'],'error'=>substr($e->getMessage(),0,240)));
-            error_log('[TaxoCommerce Dependiente] '.substr($e->getMessage(),0,400));
+            // El error ya queda registrado arriba en el log de aprendizaje y la traza diagnóstica.
         }
     }
 
