@@ -124,3 +124,32 @@ if ( ! function_exists( 'dht_pilot_render_category_menu_tree' ) ) {
         echo '</ul>';
     }
 }
+
+/**
+ * Resolve the country menu built by the TaxoCommerce menu manager.
+ * A missing or incorrectly assigned menu never falls back to ES or to
+ * another market. Core is optional: use the native menu name as a fallback.
+ */
+if ( ! function_exists( 'dht_pilot_country_managed_menu_id' ) ) {
+    function dht_pilot_country_managed_menu_id( $market ) {
+        $market = strtoupper( trim( (string) $market ) );
+        if ( ! in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
+            return 0;
+        }
+
+        $name = 'TaxoCommerce - ' . $market;
+        $menu_id = 0;
+        if ( class_exists( 'TaxoCommerce_Core_Menu', false )
+            && is_callable( array( 'TaxoCommerce_Core_Menu', 'managed_menu_id' ) ) ) {
+            $menu_id = absint( TaxoCommerce_Core_Menu::managed_menu_id( $market, false ) );
+        }
+
+        $menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
+        if ( ! ( $menu instanceof WP_Term ) || (string) $menu->name !== $name ) {
+            $menu = wp_get_nav_menu_object( $name );
+        }
+
+        return $menu instanceof WP_Term && (string) $menu->name === $name
+            ? absint( $menu->term_id ) : 0;
+    }
+}
