@@ -230,6 +230,7 @@ final class Auto_Test {
     private static function check_columns() {
         if ( ! Store::table_exists() ) { return self::skip( 'La tabla no existe; no se pueden validar columnas.' ); }
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read-only schema verification must detect recent table changes in the manually run self-test.
         $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', Store::table() ) );
         if ( ! is_array( $columns ) ) { return self::fail( 'No es posible inspeccionar la estructura de la tabla.' ); }
         $required = array( 'id', 'origin_url', 'target_url', 'status_code', 'hits', 'last_hit', 'created_at', 'updated_at' );

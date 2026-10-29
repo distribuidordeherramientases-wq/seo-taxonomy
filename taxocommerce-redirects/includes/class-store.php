@@ -27,6 +27,7 @@ final class Store {
         }
         global $wpdb;
         $name = self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema existence is checked in memory and refreshed on installation.
         $result = $wpdb->get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $name ) )
         );
@@ -198,6 +199,7 @@ final class Store {
         if ( ! self::table_exists() ) {
             return array();
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only bounded list must immediately reflect edits to redirect rules.
         return (array) $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT id, origin_url, target_url, status_code, hits, last_hit, created_at, updated_at FROM %i ORDER BY id DESC LIMIT %d',
@@ -212,6 +214,7 @@ final class Store {
         if ( ! self::table_exists() ) {
             return null;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A changed or deleted redirect cannot be served from stale cache.
         return $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT id, origin_url, target_url, status_code, hits, last_hit FROM %i WHERE id = %d LIMIT 1',
@@ -228,6 +231,7 @@ final class Store {
             return null;
         }
         $alternate = '/' === $path ? $path : $path . '/';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live public redirect matching requires current rules, without stale cache.
         return $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT id, origin_url, target_url, status_code, hits, last_hit FROM %i WHERE origin_url IN (%s,%s) ORDER BY id ASC LIMIT 1',
@@ -313,12 +317,14 @@ final class Store {
             'updated_at' => current_time( 'mysql', true ),
         );
         if ( $id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Native immediate update to this plugin-owned table must remain consistent.
             $ok = $wpdb->update( self::table(), $fields, array( 'id' => $id ), array( '%s', '%s', '%d', '%s' ), array( '%d' ) );
             return false === $ok ? new \WP_Error( 'tc_redirects_db_update', 'Error al modificar la regla.' ) : $id;
         }
         $fields['hits'] = 0;
         $fields['last_hit'] = null;
         $fields['created_at'] = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert a validated redirect into this plugin-owned table.
         $ok = $wpdb->insert(
             self::table(),
             $fields,
@@ -332,6 +338,7 @@ final class Store {
         if ( ! self::table_exists() || ! self::get( $id ) ) {
             return false;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deleting a rule must be immediately effective.
         return 1 === (int) $wpdb->delete( self::table(), array( 'id' => absint( $id ) ), array( '%d' ) );
     }
 
@@ -340,6 +347,7 @@ final class Store {
         if ( ! self::table_exists() ) {
             return;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic hit increments must not lose concurrent accesses.
         $wpdb->query(
             $wpdb->prepare(
                 'UPDATE %i SET hits = hits + 1, last_hit = %s WHERE id = %d',
