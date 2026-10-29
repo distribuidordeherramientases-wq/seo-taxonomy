@@ -982,20 +982,23 @@ final class TCD_Sources {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
         $parts = array();
+        $params = array();
         foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
-            $source_lesson = absint( $source_lesson );
-            $parts[] = "(SELECT id,lesson,source_type,source_id,title,context_json,status
-                         FROM {$table}
-                         WHERE lesson={$source_lesson}
+            $parts[] = '(SELECT id,lesson,source_type,source_id,title,context_json,status
+                         FROM %i
+                         WHERE lesson=%d
                          ORDER BY id ASC
-                         LIMIT 110)";
+                         LIMIT 110)';
+            $params[] = $table;
+            $params[] = absint( $source_lesson );
         }
         if ( ! $parts ) return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
 
-        $sql = "SELECT * FROM (" . implode( " UNION ALL ", $parts ) . ") tcd_review_sample
-                ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d";
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table and lesson numbers are internal; only limit/offset are mutable and bound.
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $limit + 1, $cursor ), ARRAY_A );
+        $sql = 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
+                ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d';
+        $params[] = $limit + 1;
+        $params[] = $cursor;
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
         $more = count( $rows ) > $limit;
         $rows = array_slice( $rows, 0, $limit );
         $items = array();
