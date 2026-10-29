@@ -473,7 +473,7 @@ function seo_data_get_columns(string $table_name): array
     }
 
     $table_name = esc_sql( $table_name );
-    $columns = $wpdb->get_results("DESCRIBE `{$table_name}`", ARRAY_A);
+    $columns = $wpdb->get_results($wpdb->prepare('DESCRIBE %i', $table_name), ARRAY_A);
     return is_array($columns) ? $columns : [];
 }
 
@@ -830,7 +830,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
     }
     $table_name = esc_sql( $table_name );
 
-    $create = $wpdb->get_row("SHOW CREATE TABLE `{$table_name}`", ARRAY_N);
+    $create = $wpdb->get_row($wpdb->prepare('SHOW CREATE TABLE %i', $table_name), ARRAY_N);
     if (!$create || empty($create[1])) {
         return;
     }
