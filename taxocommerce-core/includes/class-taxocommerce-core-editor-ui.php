@@ -110,7 +110,7 @@ final class TaxoCommerce_Core_Editor_UI {
             $permalink = '';
         }
         echo '<div class="tc-editor-shell">';
-        echo '<div class="tc-editor-top"><a class="tc-back-link" href="' . esc_url( $back ) . '">← Volver a contenidos</a><div class="tc-editor-top-actions">';
+        echo '<div class="tc-editor-top"><a class="tc-back-link" href="' . esc_url( $back ) . '">' . esc_html__( '← Volver a contenidos', 'taxocommerce-core' ) . '</a><div class="tc-editor-top-actions">';
         if ( $permalink ) {
             echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">Ver en la tienda ↗</a>';
         }
@@ -123,7 +123,7 @@ final class TaxoCommerce_Core_Editor_UI {
         $status_name = $status_obj ? $status_obj->label : ucfirst( $status );
         echo '<header class="tc-editor-hero"><div><p class="tc-eyebrow">' . esc_html( $types[ $type ] ?? '' ) . ' · ID ' . esc_html( (string) $id ) . '</p>';
         echo '<h2>' . esc_html( wp_trim_words( $title, 14 ) ) . '</h2>';
-        echo '<p>Edición centralizada: los cambios se guardan en las tablas nativas de WordPress y WooCommerce.</p></div>';
+        echo '<p>' . esc_html__( 'Edición centralizada: los cambios se guardan en las tablas nativas de WordPress y WooCommerce.', 'taxocommerce-core' ) . '</p></div>';
         echo '<div class="tc-hero-metrics"><span class="tc-status-indicator">' . esc_html( $status_name ) . '</span><span class="tc-score"><strong>' . esc_html( (string) $score ) . '%</strong> Completitud</span></div></header>';
         // Read-only help outside the form; never alters the edited object.
         TaxoCommerce_Core_Editorial_Guide::render( $type, 'editor' );
@@ -149,7 +149,7 @@ final class TaxoCommerce_Core_Editor_UI {
 
     private static function rich_editor( $value, $label, $rows = 14 ) {
         echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">EDITOR VISUAL</span><h2>' . esc_html( $label ) . '</h2>';
-        echo '<p>Utiliza negritas, listas, enlaces y medios para estructurar el contenido.</p></div></div>';
+        echo '<p>' . esc_html__( 'Utiliza negritas, listas, enlaces y medios para estructurar el contenido.', 'taxocommerce-core' ) . '</p></div></div>';
         wp_editor(
             $value,
             'tc_core_content',
