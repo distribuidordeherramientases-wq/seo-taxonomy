@@ -30,6 +30,8 @@ jobs:
 
       - name: Auto Test regression
         run: php taxocommerce-import-export/tests/auto-test-smoke.php
+      - name: Manual user and technical contract
+        run: php taxocommerce-import-export/tests/manual-smoke.php
       - name: Batch queue smoke
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
       - name: Read-only progress bar smoke
