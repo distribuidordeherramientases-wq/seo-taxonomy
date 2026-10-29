@@ -67,21 +67,26 @@ final class TaxoCommerce_Core_Architecture_Report {
         $table = $wpdb->prefix . 'seo_nodes';
 
         // The table is maintained by Core; it can be absent on a new install.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
         $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
         if ( $exists !== $table ) {
             return new WP_Error( 'tc_arch_no_nodes', 'Todavía no está disponible la tabla de roles SEO del Core.' );
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WP-owned identifiers, fixed predicates; no user input.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
         $rows = $wpdb->get_results(
-            "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
-               FROM {$table} n
-               INNER JOIN {$wpdb->posts} p ON p.ID = n.object_id
+            $wpdb->prepare(
+                "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
+               FROM %i n
+               INNER JOIN %i p ON p.ID = n.object_id
               WHERE n.object_type = 'page'
                 AND n.status = 1
                 AND p.post_type = 'page'
                 AND p.post_status = 'publish'
                 AND n.seo_role IN ('cluster','hub_primary','hub_secondary')",
+                $table,
+                $wpdb->posts
+            ),
             ARRAY_A
         );
         if ( ! is_array( $rows ) ) {
@@ -159,6 +164,7 @@ final class TaxoCommerce_Core_Architecture_Report {
                 $ids
             );
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is fully prepared with integer placeholders.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
             $rows = $wpdb->get_results( $query, ARRAY_A );
             if ( ! is_array( $rows ) ) {
                 return new WP_Error( 'tc_arch_query_products', 'No se han podido consultar las categorías de los productos.' );
@@ -296,9 +302,9 @@ final class TaxoCommerce_Core_Architecture_Report {
         global $wpdb;
         $relations_table = $wpdb->prefix . 'seo_relations';
         // Match the historical panel: distinct linked landings, irrespective of page status.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal Core-managed identifier and fixed predicate.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
         $landings = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT target_id) FROM {$relations_table} WHERE target_type = 'landing_page'"
+            $wpdb->prepare( "SELECT COUNT(DISTINCT target_id) FROM %i WHERE target_type = 'landing_page'", $relations_table )
         );
 
         $titles = array();
@@ -389,7 +395,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<p class="description">Cluster → Hub primario → Hub secundario → Categoría. Cada nivel muestra elementos únicos; no representa un embudo de conversión.</p>';
         foreach ( $levels as $label => $count ) {
             $width = 100 * $count / $max_level;
-            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $label ) . '</span><strong>' . esc_html( self::amount( $count ) ) . '</strong></div>';
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $label )  . '</span><strong>' . esc_html( self::amount( $count ) ) . '</strong></div>';
             echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) round( $width, 2 ) ) . '%"></span></div></div>';
         }
         echo '</section>';
@@ -404,7 +410,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<h3>Productos publicados por cluster</h3><p class="description">Cobertura de productos únicos dentro de cada cluster; un producto en varios clusters puede figurar en más de una barra.</p>';
         foreach ( $report['clusters'] as $cluster ) {
             $width = round( 100 * (int) $cluster['products'] / $max_products, 2 );
-            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $cluster['title'] ) . '</span><strong>' . esc_html( self::amount( $cluster['products'] ) ) . '</strong></div>';
+            echo '<div class="tc-architecture-level"><div class="tc-architecture-level-label"><span>' . esc_html( $cluster['title'] )  . '</span><strong>' . esc_html( self::amount( $cluster['products'] ) ) . '</strong></div>';
             echo '<div class="tc-architecture-level-track"><span style="width:' . esc_attr( (string) $width ) . '%"></span></div></div>';
         }
         echo '</section>';
@@ -430,7 +436,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         foreach ( $report['clusters'] as $cluster ) {
             echo '<article class="tc-architecture-cluster">';
             echo '<div class="tc-architecture-cluster-head"><div><span>Cluster</span><h4>' . esc_html( $cluster['title'] ) . '</h4></div>';
-            echo '<strong>' . esc_html( esc_html( self::amount( $cluster['products'] ) ) ) . ' <small>productos</small></strong></div>';
+            echo '<strong>' . esc_html( self::amount( $cluster['products'] ) ) . ' <small>productos</small></strong></div>';
             echo '<div class="tc-architecture-cluster-stats">';
             foreach ( array(
                 'primary' => 'Hubs primarios',

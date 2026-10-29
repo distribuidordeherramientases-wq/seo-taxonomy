@@ -160,4 +160,18 @@ foreach (array(
         'Ruta antigua no conserva archivo: ' . $key);
 }
 
+
+// All pilot markets must use a single international view and their own native menus.
+$pilot_router = file_get_contents(TCT_DIR . 'includes/class-tct-pilot-router.php');
+$pilot_view = file_get_contents(TCT_DIR . 'templates/template-pilot-vevor.php');
+$pilot_nav = file_get_contents(TCT_DIR . 'templates/template-pilot-navigation.php');
+tct_assert(strpos($pilot_view, 'dht_pilot_country_managed_menu_id( $market )') !== false, 'The pilot header must resolve each country menu.');
+tct_assert(strpos($pilot_view, "'menu' => \$managed_menu_id") !== false, 'The shared header must render the selected menu.');
+tct_assert(strpos($pilot_router, "if (\$market === 'FR')") === false, 'All pilot markets must use one router.');
+foreach (array('US','DE','NL','FR') as $market) {
+    tct_assert(strpos($pilot_nav, "'TaxoCommerce - ' . \$market") !== false, 'Country menu lookup must be shared.');
+}
+tct_assert(!is_file(TCT_DIR . 'templates/header-us.php'), 'US must not have a separate header.');
+tct_assert(!is_file(TCT_DIR . 'templates/footer-us.php'), 'US must not have a separate footer.');
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";

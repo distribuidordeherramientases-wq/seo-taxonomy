@@ -5,6 +5,12 @@ on:
     paths:
       - 'taxocommerce-images/**'
       - '.github/workflows/images-standalone-check.yml'
+  # Catch warning regressions in the exact commit deployed to STAGING.
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-standalone-check.yml'
   workflow_dispatch:
 
 permissions:
@@ -45,7 +51,8 @@ jobs:
           build-dir: './build/taxocommerce-images'
           slug: taxocommerce-images
           wp-version: latest
-          # Keep real Plugin Check errors blocking. Warnings stay visible but
-          # do not block an internal TaxoCommerce release.
-          ignore-warnings: true
+          # WordPress.org submission gate: ALL categories, zero errors and zero warnings.
+          # Unlike the default action behavior, strict=true fails on any warning.
+          ignore-warnings: false
           ignore-errors: false
+          strict: true

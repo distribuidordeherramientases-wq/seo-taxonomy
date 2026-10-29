@@ -4,7 +4,7 @@ Tags: woocommerce, mysql, database, backup, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.3
+Stable tag: 0.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Standalone migration of the original Clean Database and SEO Data Table tools fro
 
 == Description ==
 
-Version 0.4.3 preserves the two original database tools:
+Version 0.4.5 preserves the two original database tools:
 
 * Clean Database: Data Errors, Database Cleanup and Database Export tabs.
 * Validation and repair of SEO nodes, relationships, scopes, categories and bulk supplier acceptance locks.
@@ -32,6 +32,15 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 4. Download an SQL backup before any irreversible cleanup operation.
 
 == Changelog ==
+
+= 0.4.5 =
+* Fixed Auto Test false positives: an empty complete backup is a failure; absent SEO tables are reported as not executed instead of success.
+* Improved the 17-cleanup-action regression contract and documented the Auto Test in the user/developer manuals.
+* No changes to cleanup, repair, export engines or SQL operations.
+
+= 0.4.4 =
+* Use prepared SQL identifier placeholders for critical Database queries and fix the dynamic-role prepared statement.
+* Verify nonce in the object-reset action handler; keep all original cleanups, exports and Auto Test.
 
 = 0.4.3 =
 * Added read-only Database Auto Test: 17 independent checks of original services, MySQL connectivity, SEO schemas, read-only sampling, export availability, hooks, and developer manual.

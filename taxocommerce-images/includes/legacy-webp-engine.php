@@ -17,14 +17,16 @@ if (!defined('TCI_IMAGES_WEBP_VERSION')) {
     define('TCI_IMAGES_WEBP_VERSION', '1');
 }
 
-if (!function_exists('tci_webp_quality')) {
-    function tci_webp_quality() {
-        return max(1, min(100, (int) apply_filters('tci_webp_quality', 80)));
+if (!function_exists('taxocommerce_images_webp_quality')) {
+    function taxocommerce_images_webp_quality() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- The historic filter remains callable by existing integrations.
+        $legacy_quality = apply_filters('tci_webp_quality', 80);
+        return max(1, min(100, (int) apply_filters('taxocommerce_images_webp_quality', $legacy_quality)));
     }
 }
 
-if (!function_exists('tci_webp_supported')) {
-    function tci_webp_supported() {
+if (!function_exists('taxocommerce_images_webp_supported')) {
+    function taxocommerce_images_webp_supported() {
         if (!function_exists('wp_image_editor_supports')) {
             require_once ABSPATH . 'wp-admin/includes/image.php';
         }
@@ -34,14 +36,16 @@ if (!function_exists('tci_webp_supported')) {
     }
 }
 
-if (!function_exists('tci_webp_source_mimes')) {
-    function tci_webp_source_mimes() {
-        return (array) apply_filters('tci_webp_source_mimes', array('image/jpeg', 'image/png'));
+if (!function_exists('taxocommerce_images_webp_source_mimes')) {
+    function taxocommerce_images_webp_source_mimes() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Preserve the existing third-party MIME customization filter.
+        $legacy_mimes = apply_filters('tci_webp_source_mimes', array('image/jpeg', 'image/png'));
+        return (array) apply_filters('taxocommerce_images_webp_source_mimes', $legacy_mimes);
     }
 }
 
-if (!function_exists('tci_webp_relative_upload_path')) {
-    function tci_webp_relative_upload_path($path) {
+if (!function_exists('taxocommerce_images_webp_relative_upload_path')) {
+    function taxocommerce_images_webp_relative_upload_path($path) {
         $uploads = wp_get_upload_dir();
         if (empty($uploads['basedir'])) {
             return '';
@@ -57,14 +61,14 @@ if (!function_exists('tci_webp_relative_upload_path')) {
     }
 }
 
-if (!function_exists('tci_webp_add_file_entry')) {
-    function tci_webp_add_file_entry(&$entries, $path, $reference) {
+if (!function_exists('taxocommerce_images_webp_add_file_entry')) {
+    function taxocommerce_images_webp_add_file_entry(&$entries, $path, $reference) {
         if (!$path || !is_file($path) || !is_readable($path)) {
             return;
         }
 
         $real = realpath($path);
-        if (!$real || !tci_optimizer_is_safe_upload_path($real)) {
+        if (!$real || !taxocommerce_images_optimizer_is_safe_upload_path($real)) {
             return;
         }
 
@@ -79,16 +83,16 @@ if (!function_exists('tci_webp_add_file_entry')) {
     }
 }
 
-if (!function_exists('tci_webp_attachment_entries')) {
-    function tci_webp_attachment_entries($attachment_id) {
+if (!function_exists('taxocommerce_images_webp_attachment_entries')) {
+    function taxocommerce_images_webp_attachment_entries($attachment_id) {
         $attachment_id = absint($attachment_id);
         $attached_file = get_attached_file($attachment_id, true);
         if (!$attached_file || !is_file($attached_file)) {
             return new WP_Error('missing_attached_file', 'No se encuentra el archivo principal del attachment.');
         }
 
-        $source_mime = tci_optimizer_file_mime($attached_file);
-        if (!in_array($source_mime, tci_webp_source_mimes(), true)) {
+        $source_mime = taxocommerce_images_optimizer_file_mime($attached_file);
+        if (!in_array($source_mime, taxocommerce_images_webp_source_mimes(), true)) {
             return new WP_Error('unsupported_source', 'El archivo principal no es JPG/JPEG ni PNG.');
         }
 
@@ -105,14 +109,14 @@ if (!function_exists('tci_webp_attachment_entries')) {
         $directory = dirname($attached_file);
         $entries   = array();
 
-        tci_webp_add_file_entry(
+        taxocommerce_images_webp_add_file_entry(
             $entries,
             $attached_file,
             array('kind' => 'full', 'key' => '')
         );
 
         if (!empty($metadata['original_image'])) {
-            tci_webp_add_file_entry(
+            taxocommerce_images_webp_add_file_entry(
                 $entries,
                 path_join($directory, wp_basename($metadata['original_image'])),
                 array('kind' => 'original_image', 'key' => '')
@@ -124,7 +128,7 @@ if (!function_exists('tci_webp_attachment_entries')) {
                 if (!is_array($size_data) || empty($size_data['file'])) {
                     continue;
                 }
-                tci_webp_add_file_entry(
+                taxocommerce_images_webp_add_file_entry(
                     $entries,
                     path_join($directory, wp_basename($size_data['file'])),
                     array('kind' => 'size', 'key' => (string) $size_key)
@@ -136,7 +140,7 @@ if (!function_exists('tci_webp_attachment_entries')) {
             if (!is_array($backup_data) || empty($backup_data['file'])) {
                 continue;
             }
-            tci_webp_add_file_entry(
+            taxocommerce_images_webp_add_file_entry(
                 $entries,
                 path_join($directory, wp_basename($backup_data['file'])),
                 array('kind' => 'backup', 'key' => (string) $backup_key)
@@ -151,7 +155,7 @@ if (!function_exists('tci_webp_attachment_entries')) {
     }
 }
 
-if (!function_exists('tci_webp_stream_open')) {
+if (!function_exists('taxocommerce_images_webp_stream_open')) {
     /**
      * Abre un recurso local para lectura parcial de cabeceras de imagen.
      *
@@ -162,13 +166,13 @@ if (!function_exists('tci_webp_stream_open')) {
      * @param string $mode Modo de apertura.
      * @return resource|false
      */
-    function tci_webp_stream_open($path, $mode) {
+    function taxocommerce_images_webp_stream_open($path, $mode) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Partial binary inspection requires a native stream resource.
         return @fopen($path, $mode);
     }
 }
 
-if (!function_exists('tci_webp_stream_read')) {
+if (!function_exists('taxocommerce_images_webp_stream_read')) {
     /**
      * Lee un bloque de un recurso binario de imagen.
      *
@@ -176,29 +180,29 @@ if (!function_exists('tci_webp_stream_read')) {
      * @param int      $length Bytes máximos.
      * @return string|false
      */
-    function tci_webp_stream_read($stream, $length) {
+    function taxocommerce_images_webp_stream_read($stream, $length) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Paired with native stream for bounded binary inspection.
         return @fread($stream, $length);
     }
 }
 
-if (!function_exists('tci_webp_stream_close')) {
+if (!function_exists('taxocommerce_images_webp_stream_close')) {
     /**
      * Cierra un recurso de lectura de imagen.
      *
      * @param resource $stream Recurso abierto.
      * @return bool
      */
-    function tci_webp_stream_close($stream) {
+    function taxocommerce_images_webp_stream_close($stream) {
         if (!is_resource($stream)) {
             return false;
         }
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with tci_webp_stream_open().
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Paired with taxocommerce_images_webp_stream_open().
         return @fclose($stream);
     }
 }
 
-if (!function_exists('tci_webp_atomic_rename')) {
+if (!function_exists('taxocommerce_images_webp_atomic_rename')) {
     /**
      * Renombra un archivo local preservando semántica atómica para commit/rollback.
      *
@@ -206,13 +210,13 @@ if (!function_exists('tci_webp_atomic_rename')) {
      * @param string $target Destino.
      * @return bool
      */
-    function tci_webp_atomic_rename($source, $target) {
+    function taxocommerce_images_webp_atomic_rename($source, $target) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WebP commit/rollback requires local atomic rename semantics.
         return @rename($source, $target);
     }
 }
 
-if (!function_exists('tci_webp_set_permissions')) {
+if (!function_exists('taxocommerce_images_webp_set_permissions')) {
     /**
      * Conserva permisos del original en el WebP publicado.
      *
@@ -220,14 +224,14 @@ if (!function_exists('tci_webp_set_permissions')) {
      * @param int    $mode Permisos POSIX.
      * @return bool
      */
-    function tci_webp_set_permissions($path, $mode) {
+    function taxocommerce_images_webp_set_permissions($path, $mode) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Preserve source permissions after local atomic publish.
         return @chmod($path, $mode);
     }
 }
 
-if (!function_exists('tci_webp_is_ultrahdr_jpeg')) {
-    function tci_webp_is_ultrahdr_jpeg($path, $mime_type) {
+if (!function_exists('taxocommerce_images_webp_is_ultrahdr_jpeg')) {
+    function taxocommerce_images_webp_is_ultrahdr_jpeg($path, $mime_type) {
         if ($mime_type !== 'image/jpeg' || !is_file($path)) {
             return false;
         }
@@ -237,12 +241,12 @@ if (!function_exists('tci_webp_is_ultrahdr_jpeg')) {
             return false;
         }
 
-        $handle = tci_webp_stream_open($path, 'rb');
+        $handle = taxocommerce_images_webp_stream_open($path, 'rb');
         if (!$handle) {
             return false;
         }
-        $head = tci_webp_stream_read($handle, min($size, 2 * MB_IN_BYTES));
-        tci_webp_stream_close($handle);
+        $head = taxocommerce_images_webp_stream_read($handle, min($size, 2 * MB_IN_BYTES));
+        taxocommerce_images_webp_stream_close($handle);
         if (!is_string($head) || $head === '') {
             return false;
         }
@@ -261,8 +265,8 @@ if (!function_exists('tci_webp_is_ultrahdr_jpeg')) {
     }
 }
 
-if (!function_exists('tci_webp_unique_target')) {
-    function tci_webp_unique_target($old_path, $reserved = array()) {
+if (!function_exists('taxocommerce_images_webp_unique_target')) {
+    function taxocommerce_images_webp_unique_target($old_path, $reserved = array()) {
         $directory = dirname($old_path);
         $stem      = (string) pathinfo(wp_basename($old_path), PATHINFO_FILENAME);
         $filename  = sanitize_file_name($stem . '.webp');
@@ -289,27 +293,27 @@ if (!function_exists('tci_webp_unique_target')) {
     }
 }
 
-if (!function_exists('tci_webp_convert_file')) {
-    function tci_webp_convert_file($old_path, $reserved = array()) {
+if (!function_exists('taxocommerce_images_webp_convert_file')) {
+    function taxocommerce_images_webp_convert_file($old_path, $reserved = array()) {
         if (!is_file($old_path) || !is_readable($old_path) || !wp_is_writable($old_path)) {
             return new WP_Error('file_permissions', 'El archivo no es legible o escribible.');
         }
-        if (!tci_optimizer_is_safe_upload_path($old_path)) {
+        if (!taxocommerce_images_optimizer_is_safe_upload_path($old_path)) {
             return new WP_Error('unsafe_path', 'El archivo esta fuera del directorio uploads.');
         }
 
-        $source_mime = tci_optimizer_file_mime($old_path);
-        if (!in_array($source_mime, tci_webp_source_mimes(), true)) {
+        $source_mime = taxocommerce_images_optimizer_file_mime($old_path);
+        if (!in_array($source_mime, taxocommerce_images_webp_source_mimes(), true)) {
             return new WP_Error('unsupported_source_file', 'Uno de los derivados no es JPG/JPEG ni PNG.');
         }
-        if (tci_optimizer_is_animated_file($old_path, $source_mime)) {
+        if (taxocommerce_images_optimizer_is_animated_file($old_path, $source_mime)) {
             return new WP_Error('animated_image', 'Se ha detectado una imagen animada; no se convierte para no perder fotogramas.');
         }
-        if (tci_optimizer_has_unsafe_orientation($old_path, $source_mime)) {
+        if (taxocommerce_images_optimizer_has_unsafe_orientation($old_path, $source_mime)) {
             return new WP_Error('unsafe_orientation', 'JPEG con orientacion EXIF pendiente; se omite para no girar la imagen.');
         }
 
-        if (tci_webp_is_ultrahdr_jpeg($old_path, $source_mime)) {
+        if (taxocommerce_images_webp_is_ultrahdr_jpeg($old_path, $source_mime)) {
             return new WP_Error('ultrahdr_jpeg', 'JPEG UltraHDR con gain map detectado; WordPress 7.1 evita convertirlo porque WebP perderia la informacion HDR.');
         }
 
@@ -326,9 +330,9 @@ if (!function_exists('tci_webp_convert_file')) {
         if (is_wp_error($editor)) {
             return $editor;
         }
-        $editor->set_quality(tci_webp_quality());
+        $editor->set_quality(taxocommerce_images_webp_quality());
 
-        $target = tci_webp_unique_target($old_path, $reserved);
+        $target = taxocommerce_images_webp_unique_target($old_path, $reserved);
         $suffix = wp_generate_password(12, false, false);
         $temp   = dirname($old_path) . '/.' . wp_basename($target) . '.seo-webp-' . $suffix . '.webp';
 
@@ -345,7 +349,7 @@ if (!function_exists('tci_webp_convert_file')) {
         }
 
         $after_dimensions = @getimagesize($candidate);
-        $candidate_mime   = tci_optimizer_file_mime($candidate);
+        $candidate_mime   = taxocommerce_images_optimizer_file_mime($candidate);
         if (
             !is_array($after_dimensions)
             || (int) $after_dimensions[0] !== (int) $before_dimensions[0]
@@ -379,7 +383,7 @@ if (!function_exists('tci_webp_convert_file')) {
             return new WP_Error('target_collision', 'El nombre WebP de destino ya existe y no se sobrescribira.');
         }
 
-        if (!tci_webp_atomic_rename($candidate, $target)) {
+        if (!taxocommerce_images_webp_atomic_rename($candidate, $target)) {
             wp_delete_file($candidate);
             if ($candidate !== $temp) {
                 wp_delete_file($temp);
@@ -392,11 +396,11 @@ if (!function_exists('tci_webp_convert_file')) {
 
         $permissions = @fileperms($old_path);
         if ($permissions !== false) {
-            tci_webp_set_permissions($target, $permissions & 0777);
+            taxocommerce_images_webp_set_permissions($target, $permissions & 0777);
         }
 
         clearstatcache(true, $target);
-        $final_mime = tci_optimizer_file_mime($target);
+        $final_mime = taxocommerce_images_optimizer_file_mime($target);
         $final_size = (int) @filesize($target);
         $final_dims = @getimagesize($target);
         if (
@@ -419,8 +423,8 @@ if (!function_exists('tci_webp_convert_file')) {
     }
 }
 
-if (!function_exists('tci_webp_delete_candidates')) {
-    function tci_webp_delete_candidates($maps) {
+if (!function_exists('taxocommerce_images_webp_delete_candidates')) {
+    function taxocommerce_images_webp_delete_candidates($maps) {
         foreach ((array) $maps as $map) {
             if (!empty($map['new_path']) && is_file($map['new_path'])) {
                 wp_delete_file($map['new_path']);
@@ -432,8 +436,8 @@ if (!function_exists('tci_webp_delete_candidates')) {
     }
 }
 
-if (!function_exists('tci_webp_add_pair')) {
-    function tci_webp_add_pair(&$pairs, $old, $new) {
+if (!function_exists('taxocommerce_images_webp_add_pair')) {
+    function taxocommerce_images_webp_add_pair(&$pairs, $old, $new) {
         $old = (string) $old;
         $new = (string) $new;
         if ($old === '' || $new === '' || $old === $new) {
@@ -451,8 +455,8 @@ if (!function_exists('tci_webp_add_pair')) {
     }
 }
 
-if (!function_exists('tci_webp_reference_pairs')) {
-    function tci_webp_reference_pairs($maps) {
+if (!function_exists('taxocommerce_images_webp_reference_pairs')) {
+    function taxocommerce_images_webp_reference_pairs($maps) {
         $uploads = wp_get_upload_dir();
         $pairs   = array();
         $base_dir = !empty($uploads['basedir']) ? trailingslashit(wp_normalize_path($uploads['basedir'])) : '';
@@ -465,29 +469,29 @@ if (!function_exists('tci_webp_reference_pairs')) {
 
             $old_path = wp_normalize_path($map['old_path']);
             $new_path = wp_normalize_path($map['new_path']);
-            $old_rel  = tci_webp_relative_upload_path($old_path);
-            $new_rel  = tci_webp_relative_upload_path($new_path);
+            $old_rel  = taxocommerce_images_webp_relative_upload_path($old_path);
+            $new_rel  = taxocommerce_images_webp_relative_upload_path($new_path);
 
-            tci_webp_add_pair($pairs, $old_path, $new_path);
+            taxocommerce_images_webp_add_pair($pairs, $old_path, $new_path);
 
             if ($old_rel !== '' && $new_rel !== '') {
                 if (strpos($old_rel, '/') !== false) {
-                    tci_webp_add_pair($pairs, $old_rel, $new_rel);
+                    taxocommerce_images_webp_add_pair($pairs, $old_rel, $new_rel);
                 }
                 if ($base_dir !== '') {
-                    tci_webp_add_pair($pairs, $base_dir . $old_rel, $base_dir . $new_rel);
+                    taxocommerce_images_webp_add_pair($pairs, $base_dir . $old_rel, $base_dir . $new_rel);
                 }
                 if ($base_url !== '') {
                     $old_url = $base_url . str_replace('%2F', '/', rawurlencode($old_rel));
                     $new_url = $base_url . str_replace('%2F', '/', rawurlencode($new_rel));
                     // WordPress suele devolver nombres ya saneados; mantenemos tambien la variante sin rawurlencode.
-                    tci_webp_add_pair($pairs, $base_url . $old_rel, $base_url . $new_rel);
-                    tci_webp_add_pair($pairs, $old_url, $new_url);
+                    taxocommerce_images_webp_add_pair($pairs, $base_url . $old_rel, $base_url . $new_rel);
+                    taxocommerce_images_webp_add_pair($pairs, $old_url, $new_url);
 
                     $old_url_path = wp_parse_url($base_url . $old_rel, PHP_URL_PATH);
                     $new_url_path = wp_parse_url($base_url . $new_rel, PHP_URL_PATH);
                     if (is_string($old_url_path) && is_string($new_url_path)) {
-                        tci_webp_add_pair($pairs, $old_url_path, $new_url_path);
+                        taxocommerce_images_webp_add_pair($pairs, $old_url_path, $new_url_path);
                     }
                 }
             }
@@ -501,8 +505,8 @@ if (!function_exists('tci_webp_reference_pairs')) {
     }
 }
 
-if (!function_exists('tci_webp_reference_terms')) {
-    function tci_webp_reference_terms($maps) {
+if (!function_exists('taxocommerce_images_webp_reference_terms')) {
+    function taxocommerce_images_webp_reference_terms($maps) {
         $terms = array();
         foreach ((array) $maps as $map) {
             if (empty($map['old_path'])) {
@@ -514,8 +518,8 @@ if (!function_exists('tci_webp_reference_terms')) {
     }
 }
 
-if (!function_exists('tci_webp_replace_typed')) {
-    function tci_webp_replace_typed($value, $pairs, &$changed, &$unsupported_object) {
+if (!function_exists('taxocommerce_images_webp_replace_typed')) {
+    function taxocommerce_images_webp_replace_typed($value, $pairs, &$changed, &$unsupported_object) {
         if (is_string($value)) {
             $new = str_replace(array_keys($pairs), array_values($pairs), $value, $count);
             if ($count > 0) {
@@ -526,7 +530,7 @@ if (!function_exists('tci_webp_replace_typed')) {
 
         if (is_array($value)) {
             foreach ($value as $key => $item) {
-                $value[$key] = tci_webp_replace_typed($item, $pairs, $changed, $unsupported_object);
+                $value[$key] = taxocommerce_images_webp_replace_typed($item, $pairs, $changed, $unsupported_object);
             }
             return $value;
         }
@@ -539,8 +543,8 @@ if (!function_exists('tci_webp_replace_typed')) {
     }
 }
 
-if (!function_exists('tci_webp_prepare_value_update')) {
-    function tci_webp_prepare_value_update($raw_value, $pairs) {
+if (!function_exists('taxocommerce_images_webp_prepare_value_update')) {
+    function taxocommerce_images_webp_prepare_value_update($raw_value, $pairs) {
         $result = array(
             'changed'     => false,
             'unsupported' => false,
@@ -556,7 +560,7 @@ if (!function_exists('tci_webp_prepare_value_update')) {
             $typed = maybe_unserialize($raw_value);
             $unsupported = false;
             $changed = false;
-            $new_typed = tci_webp_replace_typed($typed, $pairs, $changed, $unsupported);
+            $new_typed = taxocommerce_images_webp_replace_typed($typed, $pairs, $changed, $unsupported);
             $result['unsupported'] = $unsupported;
             if ($unsupported) {
                 return $result;
@@ -578,8 +582,8 @@ if (!function_exists('tci_webp_prepare_value_update')) {
     }
 }
 
-if (!function_exists('tci_webp_like_clause')) {
-    function tci_webp_like_clause($column, $terms, &$args) {
+if (!function_exists('taxocommerce_images_webp_like_clause')) {
+    function taxocommerce_images_webp_like_clause($column, $terms, &$args) {
         global $wpdb;
         $parts = array();
         foreach ((array) $terms as $term) {
@@ -590,8 +594,8 @@ if (!function_exists('tci_webp_like_clause')) {
     }
 }
 
-if (!function_exists('tci_webp_apply_reference_updates')) {
-    function tci_webp_apply_reference_updates($attachment_id, $pairs, $terms) {
+if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
+    function taxocommerce_images_webp_apply_reference_updates($attachment_id, $pairs, $terms) {
         global $wpdb;
 
         $changes = array();
@@ -603,9 +607,9 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
         $after = 0;
         do {
             $args = array();
-            $where_content = tci_webp_like_clause('post_content', $terms, $args);
-            $where_excerpt = tci_webp_like_clause('post_excerpt', $terms, $args);
-            $where_filtered = tci_webp_like_clause('post_content_filtered', $terms, $args);
+            $where_content = taxocommerce_images_webp_like_clause('post_content', $terms, $args);
+            $where_excerpt = taxocommerce_images_webp_like_clause('post_excerpt', $terms, $args);
+            $where_filtered = taxocommerce_images_webp_like_clause('post_content_filtered', $terms, $args);
             array_unshift($args, $after);
             $args[] = $limit;
             $sql = "SELECT ID, post_content, post_excerpt, post_content_filtered FROM {$wpdb->posts}
@@ -613,7 +617,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                     ORDER BY ID ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the next live reference-update page with dynamic prepared LIKE predicates; results cannot safely be cached across mutations. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['ID']);
@@ -624,6 +628,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                     continue;
                 }
                 $changes[] = array('kind' => 'post', 'id' => (int) $row['ID'], 'content' => $row['post_content'], 'excerpt' => $row['post_excerpt'], 'filtered' => $row['post_content_filtered']);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Change exactly the matched post reference columns and retain the original values for rollback; native post hooks could change unrelated data.
                 $ok = $wpdb->update(
                     $wpdb->posts,
                     array('post_content' => $content, 'post_excerpt' => $excerpt, 'post_content_filtered' => $filtered),
@@ -652,7 +657,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
             $after = 0;
             do {
                 $args = array($after);
-                $like = tci_webp_like_clause($set['value_col'], $terms, $args);
+                $like = taxocommerce_images_webp_like_clause($set['value_col'], $terms, $args);
                 $exclude = '';
                 if ($set['exclude_attachment_meta']) {
                     $exclude = " AND {$set['key_col']} NOT IN ('_wp_attached_file','_wp_attachment_metadata','_wp_attachment_backup_sizes')";
@@ -664,11 +669,11 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                         ORDER BY {$set['id_col']} ASC LIMIT %d";
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live metadata references for this batch; update_metadata_by_mid() may mutate them between pages. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
-                    $prepared = tci_webp_prepare_value_update($row['meta_value'], $pairs);
+                    $prepared = taxocommerce_images_webp_prepare_value_update($row['meta_value'], $pairs);
                     if (!empty($prepared['unsupported'])) {
                         $unsupported[] = $set['table'] . '#' . (int) $row['row_id'];
                         continue;
@@ -680,6 +685,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                         'kind'      => 'meta',
                         'meta_type' => $set['type'],
                         'meta_id'   => (int) $row['row_id'],
+                        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- This is a field in the in-memory rollback log, not an SQL meta_key query.
                         'meta_key'  => (string) $row['meta_key'],
                         'old_value' => $prepared['old_value'],
                     );
@@ -696,7 +702,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
         $after = 0;
         do {
             $args = array($after);
-            $like = tci_webp_like_clause('option_value', $terms, $args);
+            $like = taxocommerce_images_webp_like_clause('option_value', $terms, $args);
             $args[] = $limit;
             $sql = "SELECT option_id, option_name, option_value FROM {$wpdb->options}
                     WHERE option_id > %d AND {$like}
@@ -705,11 +711,11 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                     ORDER BY option_id ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live option references across plugins; caching risks replacing or missing stale URLs. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['option_id']);
-                $prepared = tci_webp_prepare_value_update($row['option_value'], $pairs);
+                $prepared = taxocommerce_images_webp_prepare_value_update($row['option_value'], $pairs);
                 if (!empty($prepared['unsupported'])) {
                     $unsupported[] = $wpdb->options . '#' . (int) $row['option_id'];
                     continue;
@@ -729,14 +735,14 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
         $after = 0;
         do {
             $args = array($after);
-            $like = tci_webp_like_clause('description', $terms, $args);
+            $like = taxocommerce_images_webp_like_clause('description', $terms, $args);
             $args[] = $limit;
             $sql = "SELECT term_taxonomy_id, term_id, taxonomy, description FROM {$wpdb->term_taxonomy}
                     WHERE term_taxonomy_id > %d AND {$like}
                     ORDER BY term_taxonomy_id ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live taxonomy description references before selective replacement; no persistent cache for changing terms. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['term_taxonomy_id']);
@@ -751,6 +757,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                     'taxonomy' => (string) $row['taxonomy'],
                     'old_value' => (string) $row['description'],
                 );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Update the exact taxonomy-description row while retaining undo data; manual cache invalidation follows the write.
                 $ok = $wpdb->update($wpdb->term_taxonomy, array('description' => $new), array('term_taxonomy_id' => (int) $row['term_taxonomy_id']), array('%s'), array('%d'));
                 if ($ok === false) {
                     return new WP_Error('reference_update_term', 'No se pudo actualizar una referencia en una descripcion de taxonomia.', array('changes' => $changes));
@@ -764,14 +771,14 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
         $after = 0;
         do {
             $args = array($after);
-            $like = tci_webp_like_clause('comment_content', $terms, $args);
+            $like = taxocommerce_images_webp_like_clause('comment_content', $terms, $args);
             $args[] = $limit;
             $sql = "SELECT comment_ID, comment_content FROM {$wpdb->comments}
                     WHERE comment_ID > %d AND {$like}
                     ORDER BY comment_ID ASC LIMIT %d";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live comment references for selective replacement; stale cached data could invalidate rollback. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['comment_ID']);
@@ -780,6 +787,7 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
                     continue;
                 }
                 $changes[] = array('kind' => 'comment', 'id' => (int) $row['comment_ID'], 'old_value' => (string) $row['comment_content']);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Update only the matching comment text in the controlled conversion transaction; clean_comment_cache() follows.
                 $ok = $wpdb->update($wpdb->comments, array('comment_content' => $new), array('comment_ID' => (int) $row['comment_ID']), array('%s'), array('%d'));
                 if ($ok === false) {
                     return new WP_Error('reference_update_comment', 'No se pudo actualizar una referencia en un comentario.', array('changes' => $changes));
@@ -797,8 +805,8 @@ if (!function_exists('tci_webp_apply_reference_updates')) {
     }
 }
 
-if (!function_exists('tci_webp_rollback_reference_updates')) {
-    function tci_webp_rollback_reference_updates($changes) {
+if (!function_exists('taxocommerce_images_webp_rollback_reference_updates')) {
+    function taxocommerce_images_webp_rollback_reference_updates($changes) {
         global $wpdb;
         foreach (array_reverse((array) $changes) as $change) {
             if (empty($change['kind'])) {
@@ -806,6 +814,7 @@ if (!function_exists('tci_webp_rollback_reference_updates')) {
             }
             switch ($change['kind']) {
                 case 'post':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore the original post fields on failed conversion without triggering unrelated save hooks; clean_post_cache() follows.
                     $wpdb->update(
                         $wpdb->posts,
                         array('post_content' => $change['content'], 'post_excerpt' => $change['excerpt'], 'post_content_filtered' => isset($change['filtered']) ? $change['filtered'] : ''),
@@ -822,10 +831,12 @@ if (!function_exists('tci_webp_rollback_reference_updates')) {
                     update_option((string) $change['name'], $change['old_value']);
                     break;
                 case 'term_description':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore a term description directly from the rollback log; clean_term_cache() follows.
                     $wpdb->update($wpdb->term_taxonomy, array('description' => $change['old_value']), array('term_taxonomy_id' => (int) $change['tt_id']), array('%s'), array('%d'));
                     clean_term_cache((int) $change['term_id'], (string) $change['taxonomy']);
                     break;
                 case 'comment':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore comment contents from rollback log; clean_comment_cache() follows.
                     $wpdb->update($wpdb->comments, array('comment_content' => $change['old_value']), array('comment_ID' => (int) $change['id']), array('%s'), array('%d'));
                     clean_comment_cache((int) $change['id']);
                     break;
@@ -834,8 +845,8 @@ if (!function_exists('tci_webp_rollback_reference_updates')) {
     }
 }
 
-if (!function_exists('tci_webp_raw_contains_old_reference')) {
-    function tci_webp_raw_contains_old_reference($raw, $pairs) {
+if (!function_exists('taxocommerce_images_webp_raw_contains_old_reference')) {
+    function taxocommerce_images_webp_raw_contains_old_reference($raw, $pairs) {
         if (!is_string($raw) || $raw === '') {
             return false;
         }
@@ -848,8 +859,8 @@ if (!function_exists('tci_webp_raw_contains_old_reference')) {
     }
 }
 
-if (!function_exists('tci_webp_remaining_references')) {
-    function tci_webp_remaining_references($pairs, $terms) {
+if (!function_exists('taxocommerce_images_webp_remaining_references')) {
+    function taxocommerce_images_webp_remaining_references($pairs, $terms) {
         global $wpdb;
         $remaining = array();
         $limit = 250;
@@ -871,7 +882,7 @@ if (!function_exists('tci_webp_remaining_references')) {
                 $args = array($after);
                 $likes = array();
                 foreach ($check['cols'] as $column) {
-                    $likes[] = tci_webp_like_clause($column, $terms, $args);
+                    $likes[] = taxocommerce_images_webp_like_clause($column, $terms, $args);
                 }
                 $args[] = $limit;
                 $sql = 'SELECT ' . $check['id'] . ' AS row_id, ' . implode(', ', $check['cols']) . ' FROM ' . $check['table']
@@ -879,12 +890,12 @@ if (!function_exists('tci_webp_remaining_references')) {
                     . ' ORDER BY ' . $check['id'] . ' ASC LIMIT %d';
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify remaining references from live data before retiring original image files; stale cache could cause data loss. Prepared statements and native cache invalidation verified; $prepared_sql is the direct result of $wpdb->prepare().
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
                     foreach ($check['cols'] as $column) {
-                        if (tci_webp_raw_contains_old_reference(isset($row[$column]) ? (string) $row[$column] : '', $pairs)) {
+                        if (taxocommerce_images_webp_raw_contains_old_reference(isset($row[$column]) ? (string) $row[$column] : '', $pairs)) {
                             $remaining[] = $check['table'] . '#' . (int) $row['row_id'];
                             break;
                         }
@@ -900,14 +911,14 @@ if (!function_exists('tci_webp_remaining_references')) {
     }
 }
 
-if (!function_exists('tci_webp_prepare_attachment')) {
-    function tci_webp_prepare_attachment($attachment_id) {
+if (!function_exists('taxocommerce_images_webp_prepare_attachment')) {
+    function taxocommerce_images_webp_prepare_attachment($attachment_id) {
         $attachment_id = absint($attachment_id);
         $post = get_post($attachment_id);
         if (!$post || $post->post_type !== 'attachment') {
             return new WP_Error('invalid_attachment', 'El ID no corresponde a un attachment.');
         }
-        if (!in_array((string) $post->post_mime_type, tci_webp_source_mimes(), true)) {
+        if (!in_array((string) $post->post_mime_type, taxocommerce_images_webp_source_mimes(), true)) {
             return new WP_Error('already_converted', 'El attachment ya no es JPG/PNG.');
         }
 
@@ -922,7 +933,7 @@ if (!function_exists('tci_webp_prepare_attachment')) {
             $old_backup_sizes = array();
         }
 
-        $entries = tci_webp_attachment_entries($attachment_id);
+        $entries = taxocommerce_images_webp_attachment_entries($attachment_id);
         if (is_wp_error($entries)) {
             return $entries;
         }
@@ -932,9 +943,9 @@ if (!function_exists('tci_webp_prepare_attachment')) {
         $before_total = 0;
         $after_total = 0;
         foreach ($entries as $entry) {
-            $converted = tci_webp_convert_file($entry['old_path'], $reserved);
+            $converted = taxocommerce_images_webp_convert_file($entry['old_path'], $reserved);
             if (is_wp_error($converted)) {
-                tci_webp_delete_candidates($maps);
+                taxocommerce_images_webp_delete_candidates($maps);
                 return $converted;
             }
             $converted['refs'] = $entry['refs'];
@@ -945,7 +956,7 @@ if (!function_exists('tci_webp_prepare_attachment')) {
         }
 
         if ($after_total >= $before_total) {
-            tci_webp_delete_candidates($maps);
+            taxocommerce_images_webp_delete_candidates($maps);
             return new WP_Error('no_disk_saving', 'El conjunto WebP no ocupa menos que los JPG/PNG actuales; no se modifica el attachment.');
         }
 
@@ -955,9 +966,9 @@ if (!function_exists('tci_webp_prepare_attachment')) {
         $new_full_path = '';
 
         foreach ($maps as $map) {
-            $new_rel = tci_webp_relative_upload_path($map['new_path']);
+            $new_rel = taxocommerce_images_webp_relative_upload_path($map['new_path']);
             if ($new_rel === '') {
-                tci_webp_delete_candidates($maps);
+                taxocommerce_images_webp_delete_candidates($maps);
                 return new WP_Error('new_path_outside_uploads', 'No se pudo obtener la ruta relativa del WebP.');
             }
 
@@ -993,7 +1004,7 @@ if (!function_exists('tci_webp_prepare_attachment')) {
         }
 
         if ($new_attached_rel === '' || $new_full_path === '' || !is_file($new_full_path)) {
-            tci_webp_delete_candidates($maps);
+            taxocommerce_images_webp_delete_candidates($maps);
             return new WP_Error('missing_new_full', 'No se pudo identificar el WebP principal generado.');
         }
 
@@ -1009,8 +1020,8 @@ if (!function_exists('tci_webp_prepare_attachment')) {
             'new_metadata'        => $new_metadata,
             'new_backup_sizes'    => $new_backup_sizes,
             'maps'                => $maps,
-            'pairs'               => tci_webp_reference_pairs($maps),
-            'terms'               => tci_webp_reference_terms($maps),
+            'pairs'               => taxocommerce_images_webp_reference_pairs($maps),
+            'terms'               => taxocommerce_images_webp_reference_terms($maps),
             'before'              => $before_total,
             'after'               => $after_total,
             'saved'               => max(0, $before_total - $after_total),
@@ -1018,8 +1029,8 @@ if (!function_exists('tci_webp_prepare_attachment')) {
     }
 }
 
-if (!function_exists('tci_webp_commit_attachment')) {
-    function tci_webp_commit_attachment($plan) {
+if (!function_exists('taxocommerce_images_webp_commit_attachment')) {
+    function taxocommerce_images_webp_commit_attachment($plan) {
         $attachment_id = absint($plan['attachment_id']);
 
         update_attached_file($attachment_id, $plan['new_attached_rel']);
@@ -1056,7 +1067,7 @@ if (!function_exists('tci_webp_commit_attachment')) {
             || (string) $current_post->post_mime_type !== 'image/webp'
             || !$current_file
             || !is_file($current_file)
-            || tci_optimizer_file_mime($current_file) !== 'image/webp'
+            || taxocommerce_images_optimizer_file_mime($current_file) !== 'image/webp'
         ) {
             return new WP_Error('attachment_commit_validation', 'WordPress no confirmo correctamente el nuevo archivo WebP.');
         }
@@ -1065,8 +1076,8 @@ if (!function_exists('tci_webp_commit_attachment')) {
     }
 }
 
-if (!function_exists('tci_webp_rollback_attachment')) {
-    function tci_webp_rollback_attachment($plan) {
+if (!function_exists('taxocommerce_images_webp_rollback_attachment')) {
+    function taxocommerce_images_webp_rollback_attachment($plan) {
         $attachment_id = absint($plan['attachment_id']);
         update_attached_file($attachment_id, $plan['old_attached_rel']);
 
@@ -1087,8 +1098,8 @@ if (!function_exists('tci_webp_rollback_attachment')) {
     }
 }
 
-if (!function_exists('tci_webp_retire_originals')) {
-    function tci_webp_retire_originals($maps) {
+if (!function_exists('taxocommerce_images_webp_retire_originals')) {
+    function taxocommerce_images_webp_retire_originals($maps) {
         $token = wp_generate_password(12, false, false);
         $renamed = array();
 
@@ -1096,15 +1107,15 @@ if (!function_exists('tci_webp_retire_originals')) {
             $old = isset($map['old_path']) ? $map['old_path'] : '';
             if (!$old || !is_file($old)) {
                 foreach (array_reverse($renamed) as $item) {
-                    tci_webp_atomic_rename($item['backup'], $item['old']);
+                    taxocommerce_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_missing', 'Un original desaparecio antes de poder retirarlo; se cancela el attachment.');
             }
 
             $backup = dirname($old) . '/.' . wp_basename($old) . '.seo-webp-delete-' . $token;
-            if (file_exists($backup) || !tci_webp_atomic_rename($old, $backup)) {
+            if (file_exists($backup) || !taxocommerce_images_webp_atomic_rename($old, $backup)) {
                 foreach (array_reverse($renamed) as $item) {
-                    tci_webp_atomic_rename($item['backup'], $item['old']);
+                    taxocommerce_images_webp_atomic_rename($item['backup'], $item['old']);
                 }
                 return new WP_Error('old_file_rename', 'No se pudo retirar uno de los JPG/PNG originales; se restaura el attachment.');
             }
@@ -1129,8 +1140,8 @@ if (!function_exists('tci_webp_retire_originals')) {
     }
 }
 
-if (!function_exists('tci_webp_store_legacy_redirects')) {
-    function tci_webp_store_legacy_redirects($maps) {
+if (!function_exists('taxocommerce_images_webp_store_legacy_redirects')) {
+    function taxocommerce_images_webp_store_legacy_redirects($maps) {
         $redirects = get_option('tci_webp_legacy_redirects', array());
         if (!is_array($redirects)) {
             $redirects = array();
@@ -1140,8 +1151,8 @@ if (!function_exists('tci_webp_store_legacy_redirects')) {
             if (empty($map['old_path']) || empty($map['new_path'])) {
                 continue;
             }
-            $old_rel = tci_webp_relative_upload_path($map['old_path']);
-            $new_rel = tci_webp_relative_upload_path($map['new_path']);
+            $old_rel = taxocommerce_images_webp_relative_upload_path($map['old_path']);
+            $new_rel = taxocommerce_images_webp_relative_upload_path($map['new_path']);
             if ($old_rel === '' || $new_rel === '' || $old_rel === $new_rel) {
                 continue;
             }
@@ -1156,8 +1167,8 @@ if (!function_exists('tci_webp_store_legacy_redirects')) {
     }
 }
 
-if (!function_exists('tci_webp_maybe_redirect_legacy_request')) {
-    function tci_webp_maybe_redirect_legacy_request() {
+if (!function_exists('taxocommerce_images_webp_maybe_redirect_legacy_request')) {
+    function taxocommerce_images_webp_maybe_redirect_legacy_request() {
         if (is_admin() || wp_doing_ajax()
             || !isset($_SERVER['REQUEST_URI'])
             || !is_string($_SERVER['REQUEST_URI'])) {
@@ -1213,10 +1224,10 @@ if (!function_exists('tci_webp_maybe_redirect_legacy_request')) {
         exit;
     }
 }
-add_action('template_redirect', 'tci_webp_maybe_redirect_legacy_request', 0);
+add_action('template_redirect', 'taxocommerce_images_webp_maybe_redirect_legacy_request', 0);
 
-if (!function_exists('tci_webp_process_attachment')) {
-    function tci_webp_process_attachment($attachment_id) {
+if (!function_exists('taxocommerce_images_webp_process_attachment')) {
+    function taxocommerce_images_webp_process_attachment($attachment_id) {
         $result = array(
             'attachment_id' => absint($attachment_id),
             'converted'     => 0,
@@ -1229,7 +1240,7 @@ if (!function_exists('tci_webp_process_attachment')) {
             'errors'        => array(),
         );
 
-        $plan = tci_webp_prepare_attachment($attachment_id);
+        $plan = taxocommerce_images_webp_prepare_attachment($attachment_id);
         if (is_wp_error($plan)) {
             $result['skipped'] = 1;
             if ($plan->get_error_code() !== 'no_disk_saving' && $plan->get_error_code() !== 'already_converted') {
@@ -1241,13 +1252,13 @@ if (!function_exists('tci_webp_process_attachment')) {
         $result['before'] = (int) $plan['before'];
         $result['after']  = (int) $plan['before'];
 
-        $reference_result = tci_webp_apply_reference_updates($attachment_id, $plan['pairs'], $plan['terms']);
+        $reference_result = taxocommerce_images_webp_apply_reference_updates($attachment_id, $plan['pairs'], $plan['terms']);
         if (is_wp_error($reference_result)) {
             $data = $reference_result->get_error_data();
             if (is_array($data) && !empty($data['changes'])) {
-                tci_webp_rollback_reference_updates($data['changes']);
+                taxocommerce_images_webp_rollback_reference_updates($data['changes']);
             }
-            tci_webp_delete_candidates($plan['maps']);
+            taxocommerce_images_webp_delete_candidates($plan['maps']);
             $result['skipped'] = 1;
             $result['errors'][] = 'Attachment #' . absint($attachment_id) . ': ' . $reference_result->get_error_message();
             return $result;
@@ -1256,42 +1267,42 @@ if (!function_exists('tci_webp_process_attachment')) {
         $changes = isset($reference_result['changes']) ? $reference_result['changes'] : array();
         $result['refs_updated'] = isset($reference_result['updated']) ? (int) $reference_result['updated'] : 0;
         if (!empty($reference_result['unsupported'])) {
-            tci_webp_rollback_reference_updates($changes);
-            tci_webp_delete_candidates($plan['maps']);
+            taxocommerce_images_webp_rollback_reference_updates($changes);
+            taxocommerce_images_webp_delete_candidates($plan['maps']);
             $result['skipped'] = 1;
             $result['errors'][] = 'Attachment #' . absint($attachment_id) . ': hay referencias serializadas con objetos que no se modifican automaticamente (' . implode(', ', array_slice($reference_result['unsupported'], 0, 3)) . ').';
             return $result;
         }
 
-        $remaining = tci_webp_remaining_references($plan['pairs'], $plan['terms']);
+        $remaining = taxocommerce_images_webp_remaining_references($plan['pairs'], $plan['terms']);
         if (!empty($remaining)) {
-            tci_webp_rollback_reference_updates($changes);
-            tci_webp_delete_candidates($plan['maps']);
+            taxocommerce_images_webp_rollback_reference_updates($changes);
+            taxocommerce_images_webp_delete_candidates($plan['maps']);
             $result['skipped'] = 1;
             $result['errors'][] = 'Attachment #' . absint($attachment_id) . ': quedan referencias internas al JPG/PNG y no se borrara el original (' . implode(', ', array_slice($remaining, 0, 3)) . ').';
             return $result;
         }
 
-        $commit = tci_webp_commit_attachment($plan);
+        $commit = taxocommerce_images_webp_commit_attachment($plan);
         if (is_wp_error($commit)) {
-            tci_webp_rollback_attachment($plan);
-            tci_webp_rollback_reference_updates($changes);
-            tci_webp_delete_candidates($plan['maps']);
+            taxocommerce_images_webp_rollback_attachment($plan);
+            taxocommerce_images_webp_rollback_reference_updates($changes);
+            taxocommerce_images_webp_delete_candidates($plan['maps']);
             $result['skipped'] = 1;
             $result['errors'][] = 'Attachment #' . absint($attachment_id) . ': ' . $commit->get_error_message();
             return $result;
         }
 
-        $retired = tci_webp_retire_originals($plan['maps']);
+        $retired = taxocommerce_images_webp_retire_originals($plan['maps']);
         if (is_wp_error($retired)) {
-            tci_webp_rollback_attachment($plan);
-            tci_webp_rollback_reference_updates($changes);
-            tci_webp_delete_candidates($plan['maps']);
+            taxocommerce_images_webp_rollback_attachment($plan);
+            taxocommerce_images_webp_rollback_reference_updates($changes);
+            taxocommerce_images_webp_delete_candidates($plan['maps']);
             $result['skipped'] = 1;
             $result['errors'][] = 'Attachment #' . absint($attachment_id) . ': ' . $retired->get_error_message();
             return $result;
         }
-        tci_webp_store_legacy_redirects($plan['maps']);
+        taxocommerce_images_webp_store_legacy_redirects($plan['maps']);
         delete_post_meta($attachment_id, '_tci_optimizer_signature');
         update_post_meta($attachment_id, '_tci_webp_converted_at', current_time('mysql'));
         update_post_meta($attachment_id, '_tci_webp_source_mime', $plan['old_mime']);
@@ -1312,12 +1323,13 @@ if (!function_exists('tci_webp_process_attachment')) {
     }
 }
 
-if (!function_exists('tci_webp_attachment_batch')) {
-    function tci_webp_attachment_batch($after_id, $limit) {
+if (!function_exists('taxocommerce_images_webp_attachment_batch')) {
+    function taxocommerce_images_webp_attachment_batch($after_id, $limit) {
         global $wpdb;
         $after_id = max(0, absint($after_id));
         $limit    = max(1, min(3, absint($limit)));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count current JPG/PNG candidates for a live conversion progress snapshot; read fresh per operation.
         $total = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts}
              WHERE post_type = 'attachment'
@@ -1325,6 +1337,7 @@ if (!function_exists('tci_webp_attachment_batch')) {
                AND post_mime_type IN ('image/jpeg','image/png')"
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read a strict ID-cursor slice of outstanding JPEG/PNG attachments; jobs must not reuse stale IDs.
         $ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->posts}
@@ -1346,15 +1359,15 @@ if (!function_exists('tci_webp_attachment_batch')) {
     }
 }
 
-if (!function_exists('tci_webp_ajax_batch')) {
-    function tci_webp_ajax_batch() {
+if (!function_exists('taxocommerce_images_webp_ajax_batch')) {
+    function taxocommerce_images_webp_ajax_batch() {
         if (!current_user_can('manage_options') || !current_user_can('upload_files')) {
             wp_send_json_error(array('message' => 'No tienes permisos para convertir Media.'), 403);
         }
 
         check_ajax_referer('tci_webp_run', 'nonce');
 
-        if (!tci_webp_supported()) {
+        if (!taxocommerce_images_webp_supported()) {
             wp_send_json_error(array('message' => 'El editor de imagenes de este servidor no puede generar WebP.'), 409);
         }
 
@@ -1368,7 +1381,7 @@ if (!function_exists('tci_webp_ajax_batch')) {
 
         $after_id = isset($_POST['after_id']) ? absint($_POST['after_id']) : 0;
         $limit    = isset($_POST['limit']) ? absint($_POST['limit']) : 1;
-        $batch    = tci_webp_attachment_batch($after_id, $limit);
+        $batch    = taxocommerce_images_webp_attachment_batch($after_id, $limit);
 
         $response = array(
             'processed'      => 0,
@@ -1388,7 +1401,7 @@ if (!function_exists('tci_webp_ajax_batch')) {
         foreach ($batch['ids'] as $attachment_id) {
             $response['next_after_id'] = max($response['next_after_id'], (int) $attachment_id);
             try {
-                $item = tci_webp_process_attachment($attachment_id);
+                $item = taxocommerce_images_webp_process_attachment($attachment_id);
                 $response['processed']++;
                 $response['converted'] += (int) $item['converted'];
                 $response['skipped'] += (int) $item['skipped'];
@@ -1419,5 +1432,5 @@ if (!function_exists('tci_webp_ajax_batch')) {
         wp_send_json_success($response);
     }
 }
-add_action('wp_ajax_tci_webp_batch', 'tci_webp_ajax_batch');
+add_action('wp_ajax_tci_webp_batch', 'taxocommerce_images_webp_ajax_batch');
 

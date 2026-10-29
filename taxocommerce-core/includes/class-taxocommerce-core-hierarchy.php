@@ -82,7 +82,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	public function handle_replace_relations() {
 		$this->guard();
 		$type = isset( $_POST['relation_type'] ) ? sanitize_key( wp_unslash( $_POST['relation_type'] ) ) : '';
-		$source = isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
+		$source = isset( $_POST['source_id'] ) ? absint( wp_unslash( $_POST['source_id'] ) ) : 0;
 		check_admin_referer( 'taxocommerce_core_replace_hierarchy_' . $type . '_' . $source, 'taxocommerce_core_nonce' );
 		$ids = isset( $_POST['targets'] ) && is_array( $_POST['targets'] )
 			? array_map( 'absint', wp_unslash( $_POST['targets'] ) ) : array();
@@ -717,6 +717,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	private function country_request( $write = false ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
         $source = $write ? $_POST : $_GET;
         $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : 'ES';
         return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
@@ -724,6 +725,7 @@ final class TaxoCommerce_Core_Hierarchy {
 
 	private function redirect_with_result( $result, $context ) {
 		$tab = 'role' === $context ? 'roles' : 'hierarchy';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
 		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',

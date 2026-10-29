@@ -28,6 +28,7 @@ final class TaxoCommerce_Images_Inventory {
 			'total' => 0,
 			'convertible' => 0,
 		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One grouped MIME count is cheaper than loading each attachment through WP_Query; read fresh on dashboard request.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT post_mime_type AS mime, COUNT(*) AS qty
@@ -99,6 +100,7 @@ final class TaxoCommerce_Images_Inventory {
 		if ( $parent && get_post_status( $parent ) && 'trash' !== get_post_status( $parent ) ) {
 			return true;
 		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Check native product/gallery IDs across all posts using exact and delimited values; stale cache would mislabel media unused.
 		$native_meta = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT meta_id FROM {$wpdb->postmeta}
@@ -113,6 +115,7 @@ final class TaxoCommerce_Images_Inventory {
 			return true;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Resolve taxonomy image references across all terms; cache cannot safely track every external meta update.
 		$term_meta = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT meta_id FROM {$wpdb->termmeta}
@@ -130,6 +133,7 @@ final class TaxoCommerce_Images_Inventory {
 		$filename = $url ? wp_basename( wp_parse_url( $url, PHP_URL_PATH ) ) : '';
 		$needle = '%' . $wpdb->esc_like( 'wp-image-' . $id ) . '%';
 		$secondary = $filename ? '%' . $wpdb->esc_like( $filename ) . '%' : $needle;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Conservative search through live Gutenberg/HTML content for a specific attachment; cached negatives would be unsafe.
 		$content_ref = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->posts}
@@ -148,6 +152,7 @@ final class TaxoCommerce_Images_Inventory {
 		}
 
 		// Customizer logo, site icon, widgets and most serialized theme settings.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Check current serialized theme and widget options; caching a negative result could permit a false unused classification.
 		$opt = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT option_id FROM {$wpdb->options}

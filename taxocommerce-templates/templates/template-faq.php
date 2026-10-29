@@ -41,12 +41,12 @@ if($faq_ambito !== ''){
                 id,
                 question,
                 answer
-             FROM {$faq_table}
+             FROM %i
              WHERE object_type = %d
              AND object_id = %d
              AND ambito = %s
              AND active = 1
-             ORDER BY sort_order ASC, id ASC",
+             ORDER BY sort_order ASC, id ASC", $faq_table,
 
             $faq_object_type,
             $faq_object_id,
@@ -66,11 +66,11 @@ if($faq_ambito !== ''){
                 id,
                 question,
                 answer
-             FROM {$faq_table}
+             FROM %i
              WHERE object_type = %d
              AND object_id = %d
              AND active = 1
-             ORDER BY sort_order ASC, id ASC",
+             ORDER BY sort_order ASC, id ASC", $faq_table,
 
             $faq_object_type,
             $faq_object_id

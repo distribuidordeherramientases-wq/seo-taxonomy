@@ -6,11 +6,13 @@ on:
     paths:
       - 'taxocommerce-import-export/**'
       - '.github/workflows/taxocommerce-import-export.yml'
+      - '.github/workflows/deploy-staging.yml'
   push:
     branches: [staging]
     paths:
       - 'taxocommerce-import-export/**'
       - '.github/workflows/taxocommerce-import-export.yml'
+      - '.github/workflows/deploy-staging.yml'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +28,8 @@ jobs:
         run: |
           find taxocommerce-import-export -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
+      - name: Auto Test regression
+        run: php taxocommerce-import-export/tests/auto-test-smoke.php
       - name: Batch queue smoke
         run: php taxocommerce-import-export/tests/batch-queue-smoke.php
       - name: Read-only progress bar smoke
@@ -44,6 +48,22 @@ jobs:
         run: node --check taxocommerce-import-export/assets/batch-runner.js
       - name: Browser importer immediate chaining smoke
         run: node taxocommerce-import-export/tests/batch-runner-browser-smoke.js
+
+      - name: Assert Import-Export STAGING deploy excludes development files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          config = Path('.github/workflows/deploy-staging.yml').read_text()
+          start = config.index('      - name: Deploy TaxoCommerce Import-Export to STAGING (runtime only)')
+          end = config.index('      - name: Validate TaxoCommerce Suppliers', start)
+          deploy = config[start:end]
+          assert 'state-name: ../.taxocommerce-import-export-ftp-state.json' in deploy
+          assert 'tests/**' in deploy
+          assert 'ftp.delete(path)' in deploy
+          for artifact in ('.ftp-deploy-sync-state.json', 'tests/auto-test-smoke.php', 'tests/delete-pending-smoke.php'):
+              assert artifact in deploy, artifact
+          print('Import-Export deployment excludes development files and cleans prior FTP artifacts')
+          PY
 
       - name: Build distributable package
         run: |
@@ -77,7 +97,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-import-export-0.4.8
+          name: taxocommerce-import-export-0.4.9
           path: taxocommerce-import-export.zip
           retention-days: 30
           if-no-files-found: error

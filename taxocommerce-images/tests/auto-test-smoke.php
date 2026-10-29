@@ -1,7 +1,7 @@
 <?php
 /** Offline smoke test for Images Auto Test, with no WordPress or database. */
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_IMAGES_VERSION', '0.2.12' );
+define( 'TAXOCOMMERCE_IMAGES_VERSION', '0.2.15' );
 define( 'DAY_IN_SECONDS', 86400 );
 class WP_Error {}
 function current_time( $format ) { return '2026-10-29 12:00:00'; }
@@ -25,7 +25,7 @@ $report = TaxoCommerce_Images_Auto_Test::run_suite( array(
 assert_auto( 1 === $report['totals']['skip'], 'Write UAT must not claim success' );
 assert_auto( 2 === $report['totals']['fail'], 'Missing method and missing runtime fail individually' );
 assert_auto( count( $report['rows'] ) === 3, 'No failure hides subsequent rows' );
-assert_auto( $report['version'] === '0.2.12', 'Report carries version' );
+assert_auto( $report['version'] === '0.2.15', 'Report carries version' );
 $GLOBALS['allowed'] = false;
 try {
 	TaxoCommerce_Images_Auto_Test::handle_run();

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.3
+ * Version: 0.4.5
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.3' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.5' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -40,6 +40,7 @@ final class TaxoCommerce_Database {
         // Read-only tab routing; writes remain nonce-protected in the original services.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
         $screen = isset( $_GET['tcdb_screen'] ) && is_string( $_GET['tcdb_screen'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['tcdb_screen'] ) ) : 'clean';
         if ( ! in_array( $screen, array( 'clean', 'table', 'manual', 'auto-test' ), true ) ) {
             $screen = 'clean';
@@ -47,9 +48,11 @@ final class TaxoCommerce_Database {
         // Existing routing parameters remain unchanged for filters, POST actions and export links.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
         $clean_tab = isset( $_GET['seo_clean_db_tab'] ) && is_string( $_GET['seo_clean_db_tab'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['seo_clean_db_tab'] ) ) : 'data_errors';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
         $table_section = isset( $_GET['section'] ) && is_string( $_GET['section'] )
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'overview';
         $tabs = array(
             'clean:data_errors'     => array( 'Errores en datos', 'clean', 'seo_clean_db_tab', 'data_errors' ),

@@ -69,6 +69,7 @@ final class TCDB_Auto_Test {
     }
     private static function test_db() {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $value = $wpdb->get_var( 'SELECT 1' );
         return '1' === (string) $value ? self::pass( 'MySQL responde a SELECT 1.' ) : self::fail( 'MySQL no responde correctamente.' );
     }
@@ -82,6 +83,7 @@ final class TCDB_Auto_Test {
         foreach ( $needed as $suffix => $columns ) {
             $table = $wpdb->prefix . $suffix;
             if ( ! self::table_exists( $table ) ) { $missing[] = $table; continue; }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
             $existing = (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
             foreach ( $columns as $column ) { if ( ! in_array( $column, $existing, true ) ) { $missing[] = $table . '.' . $column; } }
         }
@@ -99,8 +101,10 @@ final class TCDB_Auto_Test {
     }
     private static function test_nodes() {
         global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator database inventory/diagnostics must show current data; cached results can hide recent cleanup.
         $table = $wpdb->prefix . 'seo_nodes';
         if ( ! self::table_exists( $table ) ) { return self::skip( 'Tabla de nodos no disponible; revisar esquema.' ); }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, object_type, object_id, seo_role, status FROM %i ORDER BY id ASC LIMIT %d', $table, 2 ) );
         return is_array( $rows ) ? self::pass( count( $rows ) . ' nodos leídos (máximo 2).' ) : self::fail( 'No se pueden leer nodos.' );
     }
@@ -108,21 +112,24 @@ final class TCDB_Auto_Test {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_relations';
         if ( ! self::table_exists( $table ) ) { return self::skip( 'Tabla de relaciones no disponible; revisar esquema.' ); }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, source_type, source_id, target_type, target_id, relation_type FROM %i ORDER BY id ASC LIMIT %d', $table, 2 ) );
         return is_array( $rows ) ? self::pass( count( $rows ) . ' relaciones leídas (máximo 2).' ) : self::fail( 'No se pueden leer relaciones.' );
     }
     private static function test_categories() {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $value = $wpdb->get_var( $wpdb->prepare( 'SELECT term_taxonomy_id FROM %i WHERE taxonomy = %s LIMIT 1', $wpdb->term_taxonomy, 'product_cat' ) );
         return '' === $wpdb->last_error ? self::pass( 'Consulta limitada de categorías WooCommerce correcta' . ( null === $value ? ' (sin categorías).' : '.' ) ) : self::fail( 'Error de consulta: ' . $wpdb->last_error );
     }
     private static function test_cleanup() {
         $functions = array( 'seo_clean_db_get_cleanup_stats', 'seo_clean_db_handle_database_cleanup_action', 'seo_clean_db_delete_trashed_posts', 'seo_clean_db_delete_expired_transients', 'seo_clean_db_delete_wc_expired_sessions', 'seo_clean_db_delete_as_orphan_logs', 'seo_clean_db_delete_as_old_completed_logs', 'seo_clean_db_delete_as_orphan_claims', 'seo_clean_db_delete_wc_expired_reserved_stock', 'seo_clean_db_delete_wc_orphan_order_itemmeta' );
         foreach ( $functions as $name ) { if ( ! function_exists( 'TCDB_Legacy\\' . $name ) ) { return self::fail( 'Función ausente: ' . $name ); } }
-        return self::pass( 'Controlador de 17 limpiezas y funciones auxiliares disponibles; sin ejecutar borrados.' );
+        return self::pass( 'Controlador de limpieza y funciones auxiliares presentes. Las 17 rutas se verifican estructuralmente en CI; sin ejecutar borrados.' );
     }
     private static function test_cleanup_counts() {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
         $n = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM (SELECT ID FROM %i WHERE post_type = %s LIMIT 2) tcdb_sample', $wpdb->posts, 'revision' ) );
         return '' === $wpdb->last_error && is_numeric( $n ) ? self::pass( 'Lectura acotada de candidatos de limpieza: ' . $n . ' revisiones muestreadas.' ) : self::fail( 'Consulta de candidatos no disponible: ' . $wpdb->last_error );
     }
@@ -130,12 +137,15 @@ final class TCDB_Auto_Test {
         $full = \TCDB_Legacy\seo_clean_db_get_export_tables( 'full' );
         $seo = \TCDB_Legacy\seo_clean_db_get_export_tables( 'seo' );
         if ( ! is_array( $full ) || ! is_array( $seo ) ) { return self::fail( 'Selección de tablas de backup inválida.' ); }
+        if ( empty( $full ) ) { return self::fail( 'La selección del backup completo está vacía. No se puede validar una exportación sin tablas.' ); }
         foreach ( $seo as $name ) { if ( ! in_array( $name, $full, true ) ) { return self::fail( 'Una tabla SEO no está incluida en el backup completo.' ); } }
+        if ( empty( $seo ) ) { return self::skip( 'Se detectan tablas WordPress, pero no hay tablas SEO para verificar el backup SEO.' ); }
         return self::pass( count( $full ) . ' tablas elegibles para backup completo y ' . count( $seo ) . ' SEO; no se genera el archivo.' );
     }
     private static function test_inventory() {
         $tables = \TCDB_Legacy\seo_data_get_tables();
         if ( ! is_array( $tables ) ) { return self::fail( 'Inventario no válido.' ); }
+        if ( empty( $tables ) ) { return self::skip( 'No existen tablas SEO para validar el inventario.' ); }
         foreach ( $tables as $name => $row ) { if ( ! \TCDB_Legacy\seo_data_is_valid_table_name( $name ) || ! isset( $row['name'], $row['rows'], $row['engine'] ) ) { return self::fail( 'Metadatos de tabla incorrectos.' ); } }
         return self::pass( count( $tables ) . ' tablas SEO accesibles desde el inventario.' );
     }
