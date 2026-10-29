@@ -344,10 +344,16 @@ final class TaxoCommerce_Logistica_Auto_Test {
             'contents_cost' => 90,
             'contents' => array( array( 'data' => $product, 'quantity' => 3 ) ),
         ) ) );
+        $kg = function_exists( 'wc_get_weight' ) ? (float) wc_get_weight( 2, 'kg' ) : 2.0;
+        $length = function_exists( 'wc_get_dimension' ) ? (float) wc_get_dimension( 20, 'cm' ) : 20.0;
+        $width = function_exists( 'wc_get_dimension' ) ? (float) wc_get_dimension( 10, 'cm' ) : 10.0;
+        $height = function_exists( 'wc_get_dimension' ) ? (float) wc_get_dimension( 5, 'cm' ) : 5.0;
+        $expected_volume = $length * $width * $height * 3 / 1000;
         return 90.0 === (float) $m['subtotal'] && 3.0 === (float) $m['units']
-            && 6.0 === (float) $m['weight'] && 20.0 === (float) $m['max_length']
-            && 3.0 === (float) $m['volume_dm3']
-            ? self::pass( 'Subtotal, 3 unidades, 6 kg y volumen de 3 dm³ correctos con unidades estándar.' )
+            && abs( (float) $m['weight'] - $kg * 3 ) < 0.000001
+            && abs( (float) $m['max_length'] - $length ) < 0.000001
+            && abs( (float) $m['volume_dm3'] - $expected_volume ) < 0.000001
+            ? self::pass( 'Unidades, peso y volumen calculados según las unidades configuradas en WooCommerce.' )
             : self::fail( 'El cálculo simulado de peso/volumen ha cambiado.' );
     }
     private static function test_missing_metrics() {
