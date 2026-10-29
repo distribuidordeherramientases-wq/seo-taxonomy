@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Assistant
  * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
  * Version: 0.3.19
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-dependiente/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
