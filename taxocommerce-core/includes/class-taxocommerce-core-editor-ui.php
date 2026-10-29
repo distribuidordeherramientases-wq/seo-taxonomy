@@ -272,7 +272,7 @@ final class TaxoCommerce_Core_Editor_UI {
             self::input( 'sale_price', 'Precio de oferta', $product->get_sale_price( 'edit' ) );
             echo '</div>';
         } else {
-            echo '<div class="tc-editor-note">Precio gestionado por el tipo de producto (' . esc_html( $product->get_type() ) . '). Edítalo desde el editor nativo de WooCommerce.</div>';
+            echo '<div class="tc-editor-note">' . esc_html( sprintf( __( 'Precio gestionado por el tipo de producto (%s). Edítalo desde el editor nativo de WooCommerce.', 'taxocommerce-core' ), $product->get_type() ) ) . '</div>';
         }
         if ( $product->is_type( 'external' ) ) {
             self::input( 'product_url', 'URL de producto externo / afiliación', $product->get_product_url( 'edit' ), false, 'Conserva el enlace afiliado del proveedor.', 'url' );
