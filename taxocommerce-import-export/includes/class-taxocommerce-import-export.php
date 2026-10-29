@@ -204,7 +204,7 @@ final class TaxoCommerce_Import_Export {
 		$kind    = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$tab     = isset( $_GET['tc_ie_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_tab'] ) ) : 'export'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
 		$message = isset( $_GET['tc_ie_message'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['tc_ie_message'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
-		if ( ! in_array( $tab, array( 'export', 'individual', 'batch' ), true ) ) {
+		if ( ! in_array( $tab, array( 'export', 'individual', 'batch', 'auto-test' ), true ) ) {
 			$tab = 'export';
 		}
 		?>
@@ -222,10 +222,17 @@ final class TaxoCommerce_Import_Export {
 				<a class="nav-tab <?php echo esc_attr( 'export' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'export' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Exportación', 'taxocommerce-import-export' ); ?></a>
 				<a class="nav-tab <?php echo esc_attr( 'individual' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'individual' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Importación individual', 'taxocommerce-import-export' ); ?></a>
 				<a class="nav-tab <?php echo esc_attr( 'batch' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'batch' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Importación por lotes', 'taxocommerce-import-export' ); ?></a>
+				<a class="nav-tab <?php echo esc_attr( 'auto-test' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-import-export' ); ?></a>
 			</nav>
 
 			<?php if ( $message ) : ?>
 				<div class="notice <?php echo esc_attr( 'error' === $result ? 'notice-error' : 'notice-success' ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
+			<?php endif; ?>
+
+			<?php if ( 'auto-test' === $tab ) : ?>
+				<?php TaxoCommerce_Import_Export_Auto_Test::render(); ?>
+				</div>
+				<?php return; ?>
 			<?php endif; ?>
 
 			<?php if ( 'export' === $tab && $this->exporter ) : ?>
