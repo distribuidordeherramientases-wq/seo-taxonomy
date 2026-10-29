@@ -28,6 +28,7 @@ require_once TAXOCOMMERCE_IMPORT_EXPORT_PATH . 'includes/class-taxocommerce-impo
 require_once TAXOCOMMERCE_IMPORT_EXPORT_PATH . 'includes/class-taxocommerce-import-export-media.php';
 require_once TAXOCOMMERCE_IMPORT_EXPORT_PATH . 'includes/class-taxocommerce-import-export-batch.php';
 require_once TAXOCOMMERCE_IMPORT_EXPORT_PATH . 'includes/class-taxocommerce-import-export-auto-test.php';
+require_once TAXOCOMMERCE_IMPORT_EXPORT_PATH . 'includes/class-taxocommerce-import-export-manual.php';
 
 /*
  * Register with Core without invoking translations before init.
