@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
  * Version: 0.4.5
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-database/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
