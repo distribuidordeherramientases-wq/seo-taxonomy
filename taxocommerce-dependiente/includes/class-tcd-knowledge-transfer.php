@@ -608,6 +608,7 @@ final class TCD_Knowledge_Transfer {
 	}
 
 	private static function read_uploaded_document() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se invoca desde analyze_upload/import_upload, que verifican check_admin_referer y permisos antes de leer $_FILES.
 		if ( empty( $_FILES['knowledge_file'] ) || ! is_array( $_FILES['knowledge_file'] ) ) {
 			return new WP_Error( 'tcd_knowledge_file_missing', 'No se ha recibido ningún archivo.' );
 		}
@@ -620,6 +621,7 @@ final class TCD_Knowledge_Transfer {
 			return new WP_Error( 'tcd_knowledge_file_invalid', 'El archivo no es válido o supera 128 MB.' );
 		}
 
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		$raw = file_get_contents( $tmp );
 		if ( ! is_string( $raw ) || '' === $raw ) {
 			return new WP_Error( 'tcd_knowledge_file_read', 'No se ha podido leer el archivo.' );
