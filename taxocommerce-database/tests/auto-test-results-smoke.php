@@ -55,7 +55,9 @@ namespace {
     preg_match_all( "/case '((?:clean_)[a-z_]+)':/", $route[0], $route_matches );
     preg_match_all( "/case '((?:clean_)[a-z_]+)':/", $handler[0], $handler_matches );
     $ui_actions = array_unique( $ui_matches[1] );
-    $route_actions = array_unique( $route_matches[1] );
+    // The POST router also handles four SEO repairs named clean_*; they are not database cleanup buttons.
+    $seo_repairs = array( 'clean_invalid_relations', 'clean_stale_nodes', 'clean_duplicate_relations', 'clean_duplicate_node_rows' );
+    $route_actions = array_values( array_diff( array_unique( $route_matches[1] ), $seo_repairs ) );
     $handler_actions = array_unique( $handler_matches[1] );
     sort( $ui_actions ); sort( $route_actions ); sort( $handler_actions );
     if ( 17 !== count( $ui_actions ) || $ui_actions !== $route_actions || $route_actions !== $handler_actions ) {
