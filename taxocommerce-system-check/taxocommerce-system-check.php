@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
  * Version: 0.2.9
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-system-check/
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
