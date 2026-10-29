@@ -308,6 +308,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     private static function check_db_read() {
         global $wpdb;
         if ( ! isset( $wpdb ) || ! is_object( $wpdb ) ) { return self::fail( 'No está disponible wpdb.' ); }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live SELECT 1 intentionally tests MySQL availability without cached results.
         $value = $wpdb->get_var( 'SELECT 1' );
         return '1' === (string) $value ? self::pass( 'MySQL responde a SELECT 1 (solo lectura).' )
             : self::fail( 'Error en la consulta mínima de MySQL.' );
