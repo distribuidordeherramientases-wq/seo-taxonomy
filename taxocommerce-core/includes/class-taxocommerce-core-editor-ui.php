@@ -118,13 +118,13 @@ final class TaxoCommerce_Core_Editor_UI {
             echo '<a class="button" href="' . esc_url( $native ) . '">' . esc_html__( 'Editor WordPress / WooCommerce ↗', 'taxocommerce-core' ) . '</a>';
         }
         echo '</div></div>';
-        $types = array( 'products' => 'PRODUCTO', 'categories' => 'CATEGORÍA', 'posts' => 'POST', 'pages' => 'PÁGINA' );
+        $types = array( 'products' => __( 'PRODUCTO', 'taxocommerce-core' ), 'categories' => __( 'CATEGORÍA', 'taxocommerce-core' ), 'posts' => __( 'POST', 'taxocommerce-core' ), 'pages' => __( 'PÁGINA', 'taxocommerce-core' ) );
         $status_obj = get_post_status_object( $status );
         $status_name = $status_obj ? $status_obj->label : ucfirst( $status );
         echo '<header class="tc-editor-hero"><div><p class="tc-eyebrow">' . esc_html( $types[ $type ] ?? '' ) . ' · ID ' . esc_html( (string) $id ) . '</p>';
         echo '<h2>' . esc_html( wp_trim_words( $title, 14 ) ) . '</h2>';
         echo '<p>' . esc_html__( 'Edición centralizada: los cambios se guardan en las tablas nativas de WordPress y WooCommerce.', 'taxocommerce-core' ) . '</p></div>';
-        echo '<div class="tc-hero-metrics"><span class="tc-status-indicator">' . esc_html( $status_name ) . '</span><span class="tc-score"><strong>' . esc_html( (string) $score ) . '%</strong> Completitud</span></div></header>';
+        echo '<div class="tc-hero-metrics"><span class="tc-status-indicator">' . esc_html( $status_name ) . '</span><span class="tc-score"><strong>' . esc_html( (string) $score ) . %</strong> ' . esc_html__( 'Completitud', 'taxocommerce-core' ) . '</span></div></header>';
         // Read-only help outside the form; never alters the edited object.
         TaxoCommerce_Core_Editorial_Guide::render( $type, 'editor' );
     }
@@ -143,12 +143,12 @@ final class TaxoCommerce_Core_Editor_UI {
     }
 
     private static function close_form( $type ) {
-        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span>Los cambios se aplican al contenido original, sin crear copias.</span></div>';
+        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>' . esc_html__( '¿Todo correcto?', 'taxocommerce-core' ) . '</strong><span>' . esc_html__( 'Los cambios se aplican al contenido original, sin crear copias.', 'taxocommerce-core' ) . '</span></div>';
         echo '<button type="submit" class="button button-primary button-hero">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></footer></form></div>';
     }
 
     private static function rich_editor( $value, $label, $rows = 14 ) {
-        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">EDITOR VISUAL</span><h2>' . esc_html( $label ) . '</h2>';
+        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'EDITOR VISUAL', 'taxocommerce-core' ) . '</span><h2>' . esc_html( $label ) . '</h2>';
         echo '<p>' . esc_html__( 'Utiliza negritas, listas, enlaces y medios para estructurar el contenido.', 'taxocommerce-core' ) . '</p></div></div>';
         wp_editor(
             $value,
@@ -410,7 +410,7 @@ final class TaxoCommerce_Core_Editor_UI {
         } else {
             self::attribute_custom_fields( $index, $name, $attribute->get_options() );
         }
-        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[' . esc_attr( (string) $index ) . '][visible]" value="1" ' . checked( $attribute->get_visible(), true, false ) . '> Visible en la ficha del producto</label>';
+        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[' . esc_attr( (string) $index ) . '][visible]" value="1" ' . checked( $attribute->get_visible(), true, false ) . '>' . esc_html__( 'Visible en la ficha del producto', 'taxocommerce-core' ) . '</label>';
         echo '</article>';
     }
 
@@ -426,7 +426,7 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '<template id="tc-template-global-attribute"><article class="tc-attribute-row" data-tc-attribute-row>';
         echo '<div class="tc-attribute-heading"><strong>' . esc_html__( 'Nuevo atributo global', 'taxocommerce-core' ) . '</strong><button type="button" class="button-link-delete" data-tc-remove-attribute>' . esc_html__( 'Quitar', 'taxocommerce-core' ) . '</button></div>';
         echo '<input type="hidden" name="tc_attrs[__index__][kind]" value="global">';
-        echo '<div class="tc-field"><label class="tc-field-label">Atributo</label><select class="tc-input" name="tc_attrs[__index__][taxonomy]" data-tc-taxonomy-select required>';
+        echo '<div class="tc-field"><label class="tc-field-label">' . esc_html__( 'Atributo', 'taxocommerce-core' ) . '</label><select class="tc-input" name="tc_attrs[__index__][taxonomy]" data-tc-taxonomy-select required>';
         echo '<option value="">' . esc_html__( 'Seleccionar atributo…', 'taxocommerce-core' ) . '</option>';
         foreach ( (array) $global as $attribute ) {
             echo '<option value="' . esc_attr( wc_attribute_taxonomy_name( $attribute->attribute_name ) ) . '">' . esc_html( $attribute->attribute_label ?: $attribute->attribute_name ) . '</option>';
@@ -435,13 +435,13 @@ final class TaxoCommerce_Core_Editor_UI {
         TaxoCommerce_Core_Vocabulary::render_picker(
             'tc_attrs[__index__][terms][]', 'taxonomy', '', array(), __( 'Buscar valores…', 'taxocommerce-core' )
         );
-        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[__index__][visible]" value="1" checked> Visible en la ficha del producto</label>';
+        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[__index__][visible]" value="1" checked>' . esc_html__( 'Visible en la ficha del producto', 'taxocommerce-core' ) . '</label>';
         echo '</article></template>';
         echo '<template id="tc-template-custom-attribute"><article class="tc-attribute-row" data-tc-attribute-row>';
         echo '<div class="tc-attribute-heading"><strong>' . esc_html__( 'Nuevo atributo personalizado', 'taxocommerce-core' ) . '</strong><button type="button" class="button-link-delete" data-tc-remove-attribute>' . esc_html__( 'Quitar', 'taxocommerce-core' ) . '</button></div>';
         echo '<input type="hidden" name="tc_attrs[__index__][kind]" value="custom">';
         self::attribute_custom_fields( '__index__', '', array() );
-        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[__index__][visible]" value="1" checked> Visible en la ficha del producto</label>';
+        echo '<label class="tc-toggle"><input type="checkbox" name="tc_attrs[__index__][visible]" value="1" checked>' . esc_html__( 'Visible en la ficha del producto', 'taxocommerce-core' ) . '</label>';
         echo '</article></template>';
     }
 
