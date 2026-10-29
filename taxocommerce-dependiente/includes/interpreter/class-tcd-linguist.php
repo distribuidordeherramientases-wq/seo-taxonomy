@@ -2443,7 +2443,17 @@ final class TCD_Original_Linguista {
 
     private static function batch_size($state) {
         $control = self::control_config();
-        return max(absint($control['min_batch']), min(absint($control['max_batch']), absint($state['batch_size'] ?? $control['initial_batch'])));
+        $batch = max(absint($control['min_batch']), min(absint($control['max_batch']), absint($state['batch_size'] ?? $control['initial_batch'])));
+        // M11 previously left large linguistic batches running for minutes,
+        // outliving the request. Keep the same course and cursor, but process
+        // small resumable windows under the Academy supervisor.
+        if (class_exists('TCD_Academy', false)) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0) && 'running' === (string)($academy['status'] ?? '')) {
+                return min($batch, 10);
+            }
+        }
+        return $batch;
     }
 
     private static function adapt_speed($duration) {
