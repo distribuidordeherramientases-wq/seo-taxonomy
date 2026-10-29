@@ -17,6 +17,10 @@ function get_user_meta( $user, $key, $single = true ) { return false; }
 function update_user_meta( $user, $key, $value ) { throw new RuntimeException( 'Unexpected write in read-only check' ); }
 function wp_remote_get() { throw new RuntimeException( 'Unexpected external GET in read-only check' ); }
 function wp_remote_post() { throw new RuntimeException( 'Unexpected external POST in read-only check' ); }
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-csv.php';
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-exporter.php';
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-batch.php';
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-ie-load.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-auto-test.php';
 function verify( $value, $label ) {
     if ( ! $value ) { echo 'FAIL Auto Test: ' . $label . PHP_EOL; exit( 1 ); }
@@ -35,6 +39,12 @@ verify( $report['totals']['skip'] === 5 && $report['totals']['not_run'] === 26, 
 verify( 0 === $report['totals']['pass'] && 0 === $report['totals']['fail'], 'No invented success' );
 verify( $report['plugin_version'] === TAXOCOMMERCE_IMPORT_EXPORT_VERSION, 'Plugin version recorded' );
 verify( $report['site_hash'] === hash( 'sha256', 'https://example.test/' ), 'Site identity recorded' );
+
+$csv = TaxoCommerce_Import_Export_Auto_Test::execute( 'csv' );
+verify( $csv['totals']['pass'] === 5 && $csv['totals']['fail'] === 0, 'CSV, country, headers and inference work' );
+$load = TaxoCommerce_Import_Export_Auto_Test::execute( 'load' );
+verify( $load['totals']['pass'] === 3 && $load['totals']['fail'] === 0, 'Adaptive load and progress remain functional' );
+
 $before = array(
     'site_hash' => 'same', 'phase' => 'before', 'group' => 'all',
     'rows' => array(
