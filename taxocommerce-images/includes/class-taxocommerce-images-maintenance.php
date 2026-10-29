@@ -54,6 +54,7 @@ final class TaxoCommerce_Images_Maintenance {
 		}
 		$old = get_option( $key );
 		if ( is_array( $old ) && (int) ( $old['time'] ?? 0 ) < time() - 900 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic compare-and-delete by stored lock token/value prevents stealing a renewed lock; delete_option() is not equivalent.
 			$deleted = $wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
 			wp_cache_delete( $key, 'options' );
 			if ( $deleted && add_option( $key, $value, '', false ) ) {
@@ -71,6 +72,7 @@ final class TaxoCommerce_Images_Maintenance {
 		$token = (string) ( self::$tokens[ $process ] ?? '' );
 		$old = get_option( $key );
 		if ( $token && is_array( $old ) && hash_equals( $token, (string) ( $old['token'] ?? '' ) ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Release only the exact lock value owned by this worker; direct conditional delete prevents concurrent-owner races.
 			$wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
 			wp_cache_delete( $key, 'options' );
 		}
