@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,12 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.9 =
+* Add grouped read-only Auto Test tab with before/after deployment comparison and JSON reports.
+* Cover CSV, countries, queue, workers, Media ZIP, export handlers, adaptive load, and unsafe active-work deployment warnings.
+* Preserve all existing import/export operations and exclude tests from the public ZIP.
+
 
 = 0.4.6 =
 * Added a throttled watchdog for active queues that have not advanced for 90 seconds; attempts a safe loopback re-dispatch from normal WordPress requests without an open admin tab.
