@@ -631,6 +631,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-dependiente/
           server-dir: ./wp-content/plugins/taxocommerce-dependiente/
+          # Keep the FTP sync marker outside the installed plugin.
+          state-name: ../.taxocommerce-dependiente-ftp-state.json
           dry-run: false
           log-level: standard
           exclude: |
@@ -643,6 +645,51 @@ jobs:
             **/*.bak
             **/*.md
             **/*.pot
+
+      - name: Remove obsolete Assistant test files and FTP state from STAGING
+        # Strictly allowlisted cleanup of old deploy artifacts; leave runtime, uploads, and training data untouched.
+        env:
+          TC_ASSISTANT_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_ASSISTANT_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_ASSISTANT_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_ASSISTANT_FTP_HOST"], 21)
+          ftp.login(os.environ["TC_ASSISTANT_FTP_USER"], os.environ["TC_ASSISTANT_FTP_PASSWORD"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-dependiente/")
+          obsolete = (
+              ".ftp-deploy-sync-state.json",
+              "tests/auto-test-smoke.php",
+              "tests/faq-source-smoke.php",
+              "tests/l9-query-regression.php",
+              "tests/l10-evaluator-provenance.php",
+              "tests/learning-smoke.php",
+              "tests/load-boost-smoke.php",
+              "tests/m11-observability-smoke.php",
+              "tests/m11-runtime-regression.php",
+              "tests/m11-scheduler-smoke.php",
+              "tests/manual-smoke.php",
+              "tests/original-interpreter-parity.php",
+          )
+          for path in obsolete:
+              try:
+                  ftp.delete(path)
+                  print("Removed obsolete Assistant deployment artifact:", path)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+          try:
+              ftp.rmd("tests")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY
 
       - name: Validate TaxoCommerce Vocabulary source
         run: |

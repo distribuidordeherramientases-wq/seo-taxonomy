@@ -70,12 +70,18 @@ jobs:
           set -euo pipefail
           rm -rf build/taxocommerce-import-export
           mkdir -p build/taxocommerce-import-export
-          rsync -a             --exclude='tests/'             --exclude='*.md'             --exclude='*.bak'             taxocommerce-import-export/ build/taxocommerce-import-export/
+          rsync -a \
+            --exclude='tests/' \
+            --exclude='.*' \
+            --exclude='*.md' \
+            --exclude='*.bak' \
+            taxocommerce-import-export/ build/taxocommerce-import-export/
           test -f build/taxocommerce-import-export/taxocommerce-import-export.php
           test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-batch.php
           test -f build/taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
           test -f build/taxocommerce-import-export/assets/exporter.js
           test ! -e build/taxocommerce-import-export/tests
+          if find build/taxocommerce-import-export -name '.*' -print -quit | grep -q .; then echo 'Hidden files found in release'; exit 1; fi
 
       - name: WordPress Plugin Check
         uses: wordpress/plugin-check-action@v1
@@ -83,7 +89,7 @@ jobs:
           build-dir: './build/taxocommerce-import-export'
           slug: taxocommerce-import-export
           wp-version: latest
-          ignore-warnings: true
+          ignore-warnings: false
           ignore-errors: false
 
       - name: Package ZIP

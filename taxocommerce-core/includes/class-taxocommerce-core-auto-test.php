@@ -102,13 +102,14 @@ final class TaxoCommerce_Core_Auto_Test {
 
     private static function exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
         return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
     }
 
     private static function missing( $table, $columns ) {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Trusted WordPress prefix and fixed Core suffix.
-        $available = $wpdb->get_col( 'SHOW COLUMNS FROM ' . esc_sql( $table ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test must inspect live table columns.
+        $available = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
         return is_array( $available ) ? array_diff( $columns, $available ) : $columns;
     }
 
@@ -185,6 +186,7 @@ final class TaxoCommerce_Core_Auto_Test {
 
     private static function check_post_country() {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT ID, post_name FROM {$wpdb->posts} WHERE post_type=%s AND post_status NOT IN ('trash','auto-draft')
              AND post_name LIKE %s ORDER BY ID DESC LIMIT 100",
@@ -213,6 +215,7 @@ final class TaxoCommerce_Core_Auto_Test {
         if ( ! taxonomy_exists( 'product_cat' ) ) {
             return self::skip( 'No existe la taxonomía product_cat.' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT t.term_id, t.slug FROM {$wpdb->terms} t
              JOIN {$wpdb->term_taxonomy} tt ON tt.term_id=t.term_id AND tt.taxonomy=%s
@@ -248,7 +251,8 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'Columnas ausentes en seo_nodes: ' . implode( ', ', $missing ) );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table, fixed predicate.
-        $count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE object_type='page' AND status=1" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
+        $count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE object_type='page' AND status=1", $table ) );
         return null === $count ? self::bad( 'Error leyendo nodos: ' . $wpdb->last_error ) :
             self::ok( absint( $count ) . ' nodos activos; columnas obligatorias disponibles.' );
     }
@@ -260,7 +264,8 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No existe seo_nodes.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table, fixed predicate.
-        $row = $wpdb->get_row( "SELECT object_id,seo_role FROM {$table} WHERE object_type='page' AND status=1 ORDER BY id DESC LIMIT 1", ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT object_id,seo_role FROM %i WHERE object_type='page' AND status=1 ORDER BY id DESC LIMIT 1", $table ), ARRAY_A );
         if ( ! is_array( $row ) ) {
             return $wpdb->last_error ? self::bad( 'Error leyendo roles: ' . $wpdb->last_error ) :
                 self::skip( 'No hay nodos activos para comprobar lectura.' );
@@ -285,7 +290,8 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No está disponible el lector de jerarquía.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table identifier.
-        $count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
+        $count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
         return null === $count ? self::bad( 'Error leyendo relaciones: ' . $wpdb->last_error ) :
             self::ok( absint( $count ) . ' relaciones en tabla; lector cargado.' );
     }
@@ -297,7 +303,8 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No existe seo_relations.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed, bounded read of Core table.
-        $rows = $wpdb->get_results( "SELECT id,source_type,source_id,target_type,target_id,relation_type FROM {$table} ORDER BY id DESC LIMIT 60", ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,source_type,source_id,target_type,target_id,relation_type FROM %i ORDER BY id DESC LIMIT 60', $table ), ARRAY_A );
         if ( ! is_array( $rows ) ) {
             return self::bad( 'Error leyendo relaciones: ' . $wpdb->last_error );
         }

@@ -206,7 +206,7 @@ final class TaxoCommerce_Core_Vocabulary {
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Request guarded by Core.
-        $posted = isset( $_POST['tc_vocab'] ) && is_array( $_POST['tc_vocab'] ) ? wp_unslash( $_POST['tc_vocab'] ) : array();
+        $posted = isset( $_POST['tc_vocab'] ) && is_array( $_POST['tc_vocab'] ) ? map_deep( wp_unslash( $_POST['tc_vocab'] ), 'sanitize_text_field' ) : array();
         global $wpdb;
         $tables = self::tables();
 

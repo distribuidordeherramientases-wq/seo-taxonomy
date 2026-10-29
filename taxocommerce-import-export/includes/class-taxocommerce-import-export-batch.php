@@ -461,7 +461,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$this->guard();
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce action includes the exact file name and is verified below.
 		$raw = isset( $_POST['pending_file'] ) && is_string( $_POST['pending_file'] )
-			? wp_unslash( $_POST['pending_file'] ) : '';
+			? sanitize_text_field( wp_unslash( $_POST['pending_file'] ) ) : '';
 		if ( '' === $raw || strlen( $raw ) > 255 ) {
 			$this->redirect( 'error', __( 'No se ha indicado un CSV pendiente válido.', 'taxocommerce-import-export' ) );
 		}
@@ -490,7 +490,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		$state  = $this->state();
 
 		if ( 'priority' === $action ) {
-			$raw = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
+			$raw = isset( $_POST['priority'] ) && is_scalar( $_POST['priority'] ) ? sanitize_text_field( wp_unslash( $_POST['priority'] ) ) : '';
 			$updated = TaxoCommerce_IE_Load::set_priority( 'import', $raw );
 			$this->redirect( is_wp_error( $updated ) ? 'error' : 'ok', is_wp_error( $updated ) ? $updated->get_error_message() : __( 'Velocidad de importación actualizada.', 'taxocommerce-import-export' ) );
 		}

@@ -258,7 +258,8 @@ final class TaxoCommerce_Import_Export_Exporter {
 			wp_send_json_error( array( 'message' => __( 'Tipo de exportación no válido.', 'taxocommerce-import-export' ) ), 400 );
 		}
 
-		$priority = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : TaxoCommerce_IE_Load::priority( 'export' );
+		$priority = isset( $_POST['priority'] ) && is_scalar( $_POST['priority'] )
+			? sanitize_text_field( wp_unslash( $_POST['priority'] ) ) : TaxoCommerce_IE_Load::priority( 'export' );
 		$saved = TaxoCommerce_IE_Load::set_priority( 'export', $priority );
 		if ( is_wp_error( $saved ) ) {
 			wp_send_json_error( array( 'message' => $saved->get_error_message() ), 400 );
@@ -645,10 +646,14 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 * @return array
 	 */
 	private function filters_from_request( $type ) {
+		// This private helper is currently reached only after the AJAX guard; verifying
+		// here too keeps the CSRF boundary explicit for future callers.
+		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
 		$product_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 		$content_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' );
 		$allowed_statuses = in_array( $type, array( 'products', 'products_reduced' ), true ) ? $product_statuses : $content_statuses;
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The array is scalar-filtered, sanitized by sanitize_key and intersected with the fixed status allowlist below.
 		$raw_statuses = isset( $_POST['statuses'] ) && is_array( $_POST['statuses'] ) ? wp_unslash( $_POST['statuses'] ) : array();
 		$raw_statuses = array_map( 'sanitize_key', array_filter( $raw_statuses, 'is_scalar' ) );
 		$statuses = array_values( array_intersect( $allowed_statuses, array_unique( $raw_statuses ) ) );
@@ -656,6 +661,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			$statuses = $allowed_statuses;
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every scalar category ID is normalized with absint directly below.
 		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? wp_unslash( $_POST['category_ids'] ) : array();
 		$raw_categories = array_map( 'absint', array_filter( $raw_categories, 'is_scalar' ) );
 
