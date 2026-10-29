@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_movement_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_movement_snapshot(array $current_rows, array $previous_rows) {
         $current = seo_analista_rows_map($current_rows, 'query_hash');
         $previous = seo_analista_rows_map($previous_rows, 'query_hash');
@@ -98,6 +99,7 @@ if (!function_exists('seo_analista_movement_snapshot')) {
 }
 
 if (!function_exists('seo_analista_trend_series')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_trend_series($days = 180) {
         $days = max(28, min(365, absint($days)));
         $property_id = seo_analista_resolve_property_id();
@@ -107,6 +109,7 @@ if (!function_exists('seo_analista_trend_series')) {
 }
 
 if (!function_exists('seo_analista_evolution_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_evolution_snapshot($days = 28) {
         $data = seo_analista_get_data($days);
         return array(
