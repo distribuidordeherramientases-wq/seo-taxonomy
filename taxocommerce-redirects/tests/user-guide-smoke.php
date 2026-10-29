@@ -22,8 +22,8 @@ function plugins_url( $path, $plugin = '' ) { return 'https://example.test/wp-co
 function wp_enqueue_style( $handle, $src, $deps, $version ) { $GLOBALS['guide_styles'][ $handle ] = $src; }
 function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['guide_hooks'][ $hook ][] = $callback; }
 
-require dirname( __DIR__ ) . '/includes/class-user-guide.php';
-require dirname( __DIR__ ) . '/includes/class-admin.php';
+function register_activation_hook( $file, $callback ) { /* Loading the plugin must not activate it. */ }
+require dirname( __DIR__ ) . '/taxocommerce-redirects.php';
 
 function verify_guide( $condition, $description ) {
     if ( ! $condition ) {
