@@ -184,7 +184,7 @@ final class TaxoCommerce_FAQs {
             $valid = array();
             if ( $requested ) {
                 $ph = implode( ',', array_fill( 0, count( $requested ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh bounded custom-table lookup; no native WP data API and result must not be stale.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Fresh FAQ/Vocabulary lookup. Parameter count is variable (1..50 IDs) but generated %d placeholders and all values are bound via prepare.
                 $valid = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
                     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The IN placeholders are generated from 1..50 integers; all values bind through prepare.
                     'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN (' . $ph . ')',
