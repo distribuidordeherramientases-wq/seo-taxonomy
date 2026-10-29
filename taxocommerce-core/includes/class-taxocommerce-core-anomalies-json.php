@@ -13,6 +13,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_excluded_post_slugs')) {
         return array_values(array_unique(array_filter(array_map(
             'sanitize_title',
             (array) apply_filters(
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
                 'seo_reports_non_editorial_post_slugs',
                 array(
                     'carrito',
