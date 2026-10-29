@@ -717,6 +717,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 * @return void
 	 */
 	private function country_request( $write = false ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- GET selects a view; POST follows the caller's nonce verification.
         $source = $write ? $_POST : $_GET;
         $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : 'ES';
         return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
@@ -724,6 +725,7 @@ final class TaxoCommerce_Core_Hierarchy {
 
 	private function redirect_with_result( $result, $context ) {
 		$tab = 'role' === $context ? 'roles' : 'hierarchy';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- redirect_with_result() follows the action-specific nonce check.
 		$focus = 'hierarchy' === $tab && isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;
 		$args = array(
 			'page'       => 'taxocommerce-core-hierarchy',
