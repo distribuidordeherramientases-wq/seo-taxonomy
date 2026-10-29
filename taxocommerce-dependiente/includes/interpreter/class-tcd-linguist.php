@@ -2395,7 +2395,7 @@ final class TCD_Original_Linguista {
                  FROM %i ov JOIN %i v ON v.id=ov.vocabulary_id AND v.active=1
                  WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$in})
                    AND v.semantic_group IN ('tipo','subtipo','aplicacion','plataforma','rol')
-                 GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16", $objects, $vocabulary ),
+                 GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16", array_merge( array( $objects, $vocabulary ), $product_ids ) ),
                 ARRAY_A
             );
             foreach ($rows as $row) {
