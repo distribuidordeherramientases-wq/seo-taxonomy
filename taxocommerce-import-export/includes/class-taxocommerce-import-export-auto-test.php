@@ -69,6 +69,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'media'    => 'Media ZIP',
             'load'     => 'Carga y ejecución',
             'security' => 'Seguridad y diagnóstico',
+            'deployment' => 'Seguridad previa al despliegue',
             'uat'      => 'Operaciones reales (validación manual)',
         );
     }
@@ -104,6 +105,8 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'load_state'       => array( 'load', 'Configuración actual del regulador' ),
             'security_actions' => array( 'security', 'Rutas protegidas del Auto Test' ),
             'reports'          => array( 'security', 'Persistencia aislada por usuario y sitio' ),
+            'safe_queue_upgrade' => array( 'deployment', 'Cola de importación sin procesos activos' ),
+            'safe_export_upgrade' => array( 'deployment', 'Exportación del administrador no activa' ),
             'real_import'      => array( 'uat', 'Importación CSV real y comprobación posterior' ),
             'real_export'      => array( 'uat', 'Exportación real y apertura del archivo' ),
             'real_media'       => array( 'uat', 'ZIP Media real y restauración de relaciones' ),
@@ -400,6 +403,30 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             return self::fail( 'El estado actual de la cola tiene tipo incorrecto.' );
         }
         return self::pass( 'Estado de cola legible, sin revelar CSV ni alterar offsets.' );
+    }
+
+    private static function check_safe_queue_upgrade() {
+        $state = get_option( TaxoCommerce_Import_Export_Batch::OPTION_STATE, array() );
+        if ( ! is_array( $state ) ) {
+            return self::fail( 'Estado de cola ilegible: revisar antes de desplegar.' );
+        }
+        if ( ! empty( $state['enabled'] ) || ! empty( $state['current_file'] )
+            || in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next' ), true ) ) {
+            return self::fail( 'COLA ACTIVA: termina o pausa la importación antes de actualizar.' );
+        }
+        return self::pass( 'Sin cola activa; no se han alterado archivos ni registros.' );
+    }
+
+    private static function check_safe_export_upgrade() {
+        $state = get_transient( TaxoCommerce_Import_Export_Exporter::STATE_PREFIX . get_current_user_id() );
+        if ( false !== $state && ! is_array( $state ) ) {
+            return self::fail( 'Estado de exportación ilegible: revisar antes de desplegar.' );
+        }
+        if ( is_array( $state ) && in_array( (string) ( $state['status'] ?? '' ),
+            array( 'running', 'processing', 'pending', 'active' ), true ) ) {
+            return self::fail( 'Exportación de este usuario activa; no desplegar todavía.' );
+        }
+        return self::pass( 'Sin exportación activa de este usuario; revisar otros administradores por separado.' );
     }
 
     private static function check_queue_progress() {
