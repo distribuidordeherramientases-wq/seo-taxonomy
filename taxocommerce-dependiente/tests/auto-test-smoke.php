@@ -1,7 +1,7 @@
 <?php
 /** Isolated smoke for grouped Dependiente Auto Test; no WordPress, DB or network. */
 define('ABSPATH',__DIR__);
-define('TAXOCOMMERCE_DEPENDIENTE_VERSION','0.3.18');
+define('TAXOCOMMERCE_DEPENDIENTE_VERSION','0.3.19');
 class TCD_Academy {
 	const CRON_HOOK='tcd_learning_tick';
 	public static function state(){return $GLOBALS['academy_state'];}
