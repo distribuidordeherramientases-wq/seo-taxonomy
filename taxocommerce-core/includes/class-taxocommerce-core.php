@@ -127,6 +127,7 @@ final class TaxoCommerce_Core {
 		$this->hierarchy->register_hooks();
 		$this->menu->register_hooks();
 		$this->content->register_hooks();
+		TaxoCommerce_Core_Auto_Test::register_hooks();
 		$this->booted = true;
 
 		/**
@@ -209,6 +210,14 @@ final class TaxoCommerce_Core {
 			array( $this->menu, 'render' )
 		);
 
+		add_submenu_page(
+			'taxocommerce-core',
+			__( 'Auto Test', 'taxocommerce-core' ),
+			__( 'Auto Test', 'taxocommerce-core' ),
+			$capability,
+			TaxoCommerce_Core_Auto_Test::PAGE_SLUG,
+			array( 'TaxoCommerce_Core_Auto_Test', 'render' )
+		);
 	}
 
 
@@ -233,6 +242,7 @@ final class TaxoCommerce_Core {
 			'taxocommerce-core-content'  => 'Content',
 			'taxocommerce-core-hierarchy'=> 'SEO Hierarchy',
 			'taxocommerce-core-menu'     => 'Menu Manager',
+			'taxocommerce-core-auto-test'=> 'Auto Test',
 			'taxocommerce-vocabulary'    => 'Vocabulary',
 			'taxocommerce-dependiente'   => 'Sales Assistant',
 			'taxocommerce-import-export' => 'Import / Export',
@@ -280,7 +290,7 @@ final class TaxoCommerce_Core {
 		// WordPress flyout, including Core's own pages and that extension.
 		global $submenu;
 		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
-		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu' );
+		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-auto-test' );
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
 				continue;
