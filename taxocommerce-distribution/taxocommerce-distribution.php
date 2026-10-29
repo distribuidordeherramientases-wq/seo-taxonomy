@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
  * Description: Publishes commercial feeds and professional XML sitemaps through independent bounded processes.
  * Version: 0.1.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-distribution/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
