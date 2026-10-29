@@ -152,6 +152,7 @@ final class TaxoCommerce_Core_Architecture_Report {
             }
             $holders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only WP table identifiers and generated %d placeholders.
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholder list is generated from absint() taxonomy IDs.
             $query = $wpdb->prepare(
                 "SELECT DISTINCT p.ID AS product_id, tt.term_id AS category_id
                    FROM {$wpdb->posts} p
@@ -163,6 +164,7 @@ final class TaxoCommerce_Core_Architecture_Report {
                     AND tt.term_id IN ({$holders})",
                 $ids
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is fully prepared with integer placeholders.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
             $rows = $wpdb->get_results( $query, ARRAY_A );
