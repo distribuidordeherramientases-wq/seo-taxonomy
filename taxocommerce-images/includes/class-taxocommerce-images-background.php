@@ -325,8 +325,8 @@ final class TaxoCommerce_Images_Background {
 					break;
 				}
 				$item = 'webp' === $mode
-					? tci_webp_process_attachment( $id )
-					: tci_optimizer_process_attachment( $id );
+					? taxocommerce_images_webp_process_attachment( $id )
+					: taxocommerce_images_optimizer_process_attachment( $id );
 				$job['cursor'] = $id;
 				++$job['processed'];
 				++$processed;
