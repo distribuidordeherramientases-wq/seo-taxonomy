@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Standalone MySQL diagnostics, table browsing, streamed SQL/CSV backups and controlled maintenance for WordPress.
- * Version: 0.2.2
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.2.2' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.3.0' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -21,10 +21,9 @@ define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-storage.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-export.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-import.php';
-require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-cleanup.php';
-require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-diagnostics.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-maintenance.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-admin.php';
+require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/legacy/seo-database-clean.php';
 
 final class TaxoCommerce_Database {
     public static function boot() {
@@ -34,9 +33,6 @@ final class TaxoCommerce_Database {
         add_action( 'admin_post_tcdb_export', array( 'TCDB_Export', 'handle' ) );
         add_action( 'admin_post_tcdb_import_preview', array( 'TCDB_Import', 'preview' ) );
         add_action( 'admin_post_tcdb_import_apply', array( 'TCDB_Import', 'apply' ) );
-        add_action( 'admin_post_tcdb_cleanup', array( 'TCDB_Cleanup', 'handle' ) );
-        add_action( 'admin_post_tcdb_advanced_audit', array( 'TCDB_Diagnostics', 'handle_audit' ) );
-        add_action( 'admin_post_tcdb_advanced_cleanup', array( 'TCDB_Diagnostics', 'handle_cleanup' ) );
         add_action( 'admin_post_tcdb_maintenance', array( 'TCDB_Maintenance', 'handle' ) );
         add_action( 'taxocommerce_core_register_modules', array( __CLASS__, 'register_core' ) );
 

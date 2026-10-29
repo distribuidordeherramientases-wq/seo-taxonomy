@@ -21,12 +21,6 @@ final class TCDB_Export {
             }
             $selected = array( $table );
         } elseif ( in_array( $mode, array( 'family', 'all' ), true ) && 'sql' === $format ) {
-            if ( 'all' === $mode ) {
-                $ack = isset( $_POST['confirm_sensitive'] ) ? sanitize_text_field( wp_unslash( $_POST['confirm_sensitive'] ) ) : '';
-                if ( 'EXPORTAR' !== $ack ) {
-                    wp_die( 'El backup completo incluye datos personales y credenciales; escribe EXPORTAR para confirmar.' );
-                }
-            }
             $selected = array();
             foreach ( $tables as $meta ) {
                 if ( 'all' === $mode || $meta['family'] ) {
