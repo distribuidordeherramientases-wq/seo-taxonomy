@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
  * Version: 1.1.11
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-google-bing/
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
