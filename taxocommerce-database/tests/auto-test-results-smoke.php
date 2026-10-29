@@ -47,7 +47,7 @@ namespace {
     $clean = file_get_contents( dirname( __DIR__ ) . '/includes/legacy/seo-database-clean.php' );
     preg_match( '/function seo_clean_db_render_database_cleanup_tab\(\).*?(?=\nfunction )/s', $clean, $render );
     preg_match( '/function seo_clean_db_handle_post_actions\(\).*?(?=\nfunction )/s', $clean, $route );
-    preg_match( '/function seo_clean_db_handle_database_cleanup_action\(\).*?(?=\nfunction )/s', $clean, $handler );
+    preg_match( '/function seo_clean_db_handle_database_cleanup_action\(\$action\).*?(?=\nfunction )/s', $clean, $handler );
     foreach ( array( 'render' => $render, 'route' => $route, 'handler' => $handler ) as $label => $part ) {
         if ( ! isset( $part[0] ) ) { fwrite( STDERR, "FAIL: missing cleanup {$label}\n" ); exit( 1 ); }
     }
