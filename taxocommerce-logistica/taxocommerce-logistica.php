@@ -27,23 +27,13 @@ TaxoCommerce_Logistica_User_Guide::register();
 function taxocommerce_logistica_register_menu() {
     $capability = class_exists( 'WooCommerce' ) ? 'manage_woocommerce' : 'manage_options';
 
-    if ( function_exists( 'taxocommerce_core' ) ) {
-        add_submenu_page(
-            'taxocommerce-core',
-            'Logistics',
-            'Logistics',
-            $capability,
-            'seo-logistica',
-            array( 'SEO_Transporte_Costes', 'render_page' )
-        );
-        return;
-    }
-
+    // This plugin must not register the legacy monolith slug "seo-logistica".
+    // That page belongs to TaxoCommerce SEO's order/supplier view.
     add_menu_page(
         'TaxoCommerce Logistics',
         'TaxoCommerce Logistics',
         $capability,
-        'seo-logistica',
+        'taxocommerce-logistica',
         array( 'SEO_Transporte_Costes', 'render_page' ),
         'dashicons-cart',
         59
@@ -63,7 +53,7 @@ function taxocommerce_logistica_register_core( $core ) {
             'version'     => TAXOCOMMERCE_LOGISTICA_VERSION,
             'status'      => 'active',
             'description' => 'Shipping weight, dimensions, and delivery-cost rules for WooCommerce.',
-            'admin_url'   => admin_url( 'admin.php?page=seo-logistica' ),
+            'admin_url'   => admin_url( 'admin.php?page=taxocommerce-logistica' ),
         )
     );
 }
@@ -81,29 +71,9 @@ function taxocommerce_logistica_family_catalog( $extensions ) {
         'org_slug'      => 'taxocommerce-logistica',
         'search_term'   => 'TaxoCommerce Logistics',
         'wordpress_org' => false,
-        'admin_url'     => admin_url( 'admin.php?page=seo-logistica' ),
+        'admin_url'     => admin_url( 'admin.php?page=taxocommerce-logistica' ),
         'description'   => 'Shipping weight, dimensions, and delivery-cost rules for WooCommerce.',
     );
     return $extensions;
 }
 add_filter( 'taxocommerce_core_family_extensions', 'taxocommerce_logistica_family_catalog' );
-
-function taxocommerce_logistica_force_core_parent( $parent_file ) {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
-    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( function_exists( 'taxocommerce_core' ) && in_array( $page, array( 'seo-logistica', 'seo-transporte' ), true ) ) {
-        return 'taxocommerce-core';
-    }
-    return $parent_file;
-}
-add_filter( 'parent_file', 'taxocommerce_logistica_force_core_parent', 999 );
-
-function taxocommerce_logistica_force_core_submenu( $submenu_file ) {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
-    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( function_exists( 'taxocommerce_core' ) && in_array( $page, array( 'seo-logistica', 'seo-transporte' ), true ) ) {
-        return 'seo-logistica';
-    }
-    return $submenu_file;
-}
-add_filter( 'submenu_file', 'taxocommerce_logistica_force_core_submenu', 999 );
