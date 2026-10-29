@@ -57,6 +57,72 @@ final class TaxoCommerce_Images_Assignment {
 		return isset( self::scopes()[ $scope ] );
 	}
 
+
+	/**
+	 * Read the optional supplier image registry without depending on Suppliers.
+	 * This is a request-local schema snapshot, not a cached image classification.
+	 *
+	 * @return array|null Table and supported product ID columns.
+	 */
+	private static function supplier_image_schema() {
+		static $schema = false;
+		if ( false !== $schema ) {
+			return $schema;
+		}
+		global $wpdb;
+		$schema = null;
+		$table = $wpdb->prefix . 'seo_supplier_images';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live optional table-existence check; no database writes or migrations.
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+		if ( $exists !== $table ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Runtime schema compatibility for optional historical supplier tables.
+		$columns = (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ), 0 );
+		if ( ! in_array( 'image_url', $columns, true ) || ! in_array( 'status', $columns, true ) ) {
+			return null;
+		}
+		$keys = array_values( array_intersect( array( 'product_id', 'object_id' ), $columns ) );
+		if ( ! $keys ) {
+			return null;
+		}
+		$schema = array( 'table' => $table, 'keys' => $keys );
+		return $schema;
+	}
+
+	/**
+	 * Product with a registered active HTTP(S) supplier image.
+	 *
+	 * An external URL is only registration evidence, not an HTTP health check.
+	 * Re-query on each call: assigning an image may occur after inventory changed.
+	 *
+	 * @param int $product_id WooCommerce product ID.
+	 * @return bool
+	 */
+	public static function has_active_supplier_image( $product_id ) {
+		$product_id = absint( $product_id );
+		$schema = self::supplier_image_schema();
+		if ( ! $product_id || ! $schema ) {
+			return false;
+		}
+		global $wpdb;
+		foreach ( $schema['keys'] as $key ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live supplier image presence guard; stale caches could overwrite a product's external image.
+			$found = $wpdb->get_var( $wpdb->prepare(
+				'SELECT 1 FROM %i WHERE %i = %d AND status = %s AND image_url REGEXP %s LIMIT 1',
+				$schema['table'],
+				$key,
+				$product_id,
+				'active',
+				'^[[:space:]]*https?://'
+			) );
+			if ( null !== $found ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Only objects with no featured/term image *assigned* are listed.
 	 * Broken non-zero references remain an Anomalías responsibility.
@@ -70,7 +136,8 @@ final class TaxoCommerce_Images_Assignment {
 		if ( in_array( $scope, array( 'product_cat', 'category' ), true ) ) {
 			return absint( get_term_meta( $id, 'thumbnail_id', true ) ) > 0;
 		}
-		return absint( get_post_thumbnail_id( $id ) ) > 0;
+		return absint( get_post_thumbnail_id( $id ) ) > 0
+			|| ( 'product' === $scope && self::has_active_supplier_image( $id ) );
 	}
 
 	/**
@@ -119,8 +186,34 @@ final class TaxoCommerce_Images_Assignment {
 		if ( ! post_type_exists( $scope ) ) {
 			return array( 'items' => array(), 'total' => 0, 'pages' => 0 );
 		}
+		// Exclude products already served by supplier images from the missing-image
+		// query itself, so pagination, totals and background cursors remain aligned.
+		$supplier_schema = 'product' === $scope ? self::supplier_image_schema() : null;
+		$supplier_filter = static function ( $where, $query ) use ( $supplier_schema ) {
+			if ( ! $supplier_schema || ! $query->get( 'taxocommerce_images_supplier_exclusion' ) ) {
+				return $where;
+			}
+			global $wpdb;
+			$matches = array();
+			foreach ( $supplier_schema['keys'] as $key ) {
+				$matches[] = $wpdb->prepare( 'ext.%i = %i.ID', $key, $wpdb->posts );
+			}
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- All table/column identifiers and the active URL pattern use $wpdb->prepare().
+			$where .= $wpdb->prepare(
+				' AND NOT EXISTS (SELECT 1 FROM %i ext WHERE (' . implode( ' OR ', $matches ) . ') AND ext.status = %s AND ext.image_url REGEXP %s)',
+				$supplier_schema['table'],
+				'active',
+				'^[[:space:]]*https?://'
+			);
+			return $where;
+		};
+		if ( $supplier_schema ) {
+			add_filter( 'posts_where', $supplier_filter, 20, 2 );
+		}
+		try {
 		$query = new WP_Query(
 			array(
+				'taxocommerce_images_supplier_exclusion' => (bool) $supplier_schema,
 				'post_type' => $scope,
 				'post_status' => array( 'publish', 'future', 'private', 'draft', 'pending' ),
 				'posts_per_page' => $limit,
@@ -141,6 +234,11 @@ final class TaxoCommerce_Images_Assignment {
 				),
 			)
 		);
+		} finally {
+			if ( $supplier_schema ) {
+				remove_filter( 'posts_where', $supplier_filter, 20 );
+			}
+		}
 		$items = array();
 		foreach ( (array) $query->posts as $id ) {
 			$items[] = array( 'id' => absint( $id ), 'title' => get_the_title( $id ) );
