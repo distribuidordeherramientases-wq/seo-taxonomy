@@ -2189,6 +2189,7 @@ final class TCD_Original_Linguista {
         $out = array();
 
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT ov.object_id,v.id vocabulary_id,v.semantic_group,v.label,v.slug
@@ -2201,6 +2202,7 @@ final class TCD_Original_Linguista {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $product_id = absint($row['object_id'] ?? 0);
                 $label = trim((string) ($row['label'] ?? ''));
@@ -2222,6 +2224,7 @@ final class TCD_Original_Linguista {
         $missing = array_values(array_diff($ids, array_keys($out)));
         if ($missing) {
             $missing_in = implode(',', array_fill(0, count($missing), '%d'));
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT tr.object_id,t.name
@@ -2234,6 +2237,7 @@ final class TCD_Original_Linguista {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $product_id = absint($row['object_id'] ?? 0);
                 $name = trim((string) ($row['name'] ?? ''));
@@ -2390,6 +2394,7 @@ final class TCD_Original_Linguista {
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $contexts = array();
         if (self::table_exists($vocabulary) && self::table_exists($objects)) {
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare( "SELECT v.label,COUNT(*) evidence_count
                  FROM %i ov JOIN %i v ON v.id=ov.vocabulary_id AND v.active=1
@@ -2398,6 +2403,7 @@ final class TCD_Original_Linguista {
                  GROUP BY v.id,v.label ORDER BY evidence_count DESC,v.id ASC LIMIT 16", array_merge( array( $objects, $vocabulary ), $product_ids ) ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             foreach ($rows as $row) {
                 $label = TCD_Original_Interprete_DB::normalize((string) ($row['label'] ?? ''));
                 if ($label) {
