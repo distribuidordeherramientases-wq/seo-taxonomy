@@ -34,6 +34,7 @@ require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-lin
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/lessons/class-dependiente-linguista-lesson9.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-auto-test.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-admin.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-manual.php';
 
 add_action( 'plugins_loaded', static function () {
     if ( ! class_exists( 'WooCommerce' ) ) {
@@ -78,6 +79,7 @@ add_action( 'plugins_loaded', static function () {
     }
     TCD_Search::boot();
     TCD_Admin::boot();
+    TCD_Manual::boot();
     TCD_Auto_Test::boot();
 }, 30 );
 
