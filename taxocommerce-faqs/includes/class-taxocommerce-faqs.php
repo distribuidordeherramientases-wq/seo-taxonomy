@@ -154,6 +154,7 @@ final class TaxoCommerce_FAQs {
         if ( ! self::tags_available() || ! $faq_id ) { return $data; }
         $voc = self::table( 'seo_vocabulary' );
         $rel = self::table( 'seo_object_vocabulary' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh optional FAQ tag links; values may have just been edited in this request.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM %i r
              INNER JOIN %i v ON v.id=r.vocabulary_id
@@ -241,7 +242,8 @@ final class TaxoCommerce_FAQs {
         if ( false === $ok || ! $id ) { self::notice( 'Error guardando FAQ.', true ); }
         if ( isset( $_POST['vocab_present'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above.
-            $groups = isset( $_POST['vocab'] ) && is_array( $_POST['vocab'] ) ? wp_unslash( $_POST['vocab'] ) : array();
+            $groups = isset( $_POST['vocab'] ) && is_array( $_POST['vocab'] )
+                ? map_deep( wp_unslash( $_POST['vocab'] ), 'absint' ) : array();
             self::save_tags( $id, $groups );
         }
         if ( function_exists( 'seo_faq_clear_cache' ) ) { seo_faq_clear_cache( $type, $target ); }
@@ -386,6 +388,7 @@ final class TaxoCommerce_FAQs {
         self::guard();
         check_admin_referer( 'taxocommerce_faqs_import' );
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Uploaded metadata is validated with is_uploaded_file(), UPLOAD_ERR_OK and size limits before reading; sanitizing tmp_name can invalidate server paths.
         $upload = isset( $_FILES['faqs_csv'] ) && is_array( $_FILES['faqs_csv'] )
             ? $_FILES['faqs_csv']
             : array();
@@ -558,7 +561,7 @@ final class TaxoCommerce_FAQs {
         ), ARRAY_A );
         $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0;
+        $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only category filter.
         // Use one static, fully prepared query; both filters are optional.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
@@ -601,7 +604,7 @@ final class TaxoCommerce_FAQs {
             echo '<h3>Etiquetas de Vocabulary</h3><input type="hidden" name="vocab_present" value="1"><p>Selecciona las etiquetas existentes. No se crean etiquetas nuevas.</p>';
             $voc = self::table( 'seo_vocabulary' );
             foreach ( self::GROUPS as $group ) {
-                $options = $wpdb->get_results( $wpdb->prepare( 'SELECT id,label FROM %i WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300', $group ), ARRAY_A );
+                $options = $wpdb->get_results( $wpdb->prepare( 'SELECT id,label FROM %i WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300', $voc, $group ), ARRAY_A );
                 $ids = array_map( 'intval', array_column( $selected[ $group ] ?? array(), 'id' ) );
                 echo '<p><label><strong>' . esc_html( strtoupper( $group ) ) . '</strong><br><select multiple name="vocab[' . esc_attr( $group ) . '][]" style="min-width:300px;max-width:100%;" size="4">';
                 foreach ( (array) $options as $option ) {
