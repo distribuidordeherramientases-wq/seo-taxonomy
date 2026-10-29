@@ -53,11 +53,6 @@ final class TCDB_Cleanup {
         TCDB_Storage::authorize( 'tcdb_cleanup' );
         $action = isset( $_POST['cleanup'] ) && is_string( $_POST['cleanup'] )
             ? sanitize_key( wp_unslash( $_POST['cleanup'] ) ) : '';
-        $confirm = isset( $_POST['tcdb_confirm'] ) && is_string( $_POST['tcdb_confirm'] )
-            ? sanitize_text_field( wp_unslash( $_POST['tcdb_confirm'] ) ) : '';
-        if ( 'LIMPIAR' !== $confirm ) {
-            wp_die( 'Introduce LIMPIAR para confirmar la operación.' );
-        }
         global $wpdb;
         $deleted = 0;
         if ( 'expired_transients' === $action ) {
