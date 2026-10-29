@@ -172,6 +172,6 @@ tct_assert(strpos($us_helpers, "'/header-us.php'") !== false, 'US needs independ
 tct_assert(strpos($us_helpers, "'/footer-us.php'") !== false, 'US needs independent footer routing.');
 tct_assert(strpos($us_header, "managed_menu_id('US', false)") !== false, 'US header must use Core native menu.');
 tct_assert(strpos($us_header, "generate_navigation_position(") === false, 'US cannot use ES navigation location.');
-tct_assert(strpos($us_pilot, "'US' === $market && $us_managed_menu_id") !== false, 'US pilot must render its native menu.');
+tct_assert(strpos($us_pilot, "'US' === \$market && \$us_managed_menu_id") !== false, 'US pilot must render its native menu.');
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";
