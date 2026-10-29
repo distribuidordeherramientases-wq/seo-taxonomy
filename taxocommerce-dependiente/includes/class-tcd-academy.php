@@ -224,7 +224,7 @@ final class TCD_Academy {
         $state=self::state();
 
         if('priority'===$action){
-            $priority=isset($_POST['priority'])?wp_unslash($_POST['priority']):'';
+            $priority=isset($_POST['priority'])?sanitize_text_field( wp_unslash( $_POST['priority'] ) ):'';
             $updated=TCD_Load::set_priority($priority);
             if(is_wp_error($updated))self::log('priority_invalid',array('error'=>$updated->get_error_message()));
             else self::log('priority_saved',array('priority'=>$updated,'label'=>TCD_Load::label($updated)));
@@ -287,7 +287,7 @@ final class TCD_Academy {
         global $wpdb;
         foreach(array(self::knowledge_table(),self::items_table(),self::snapshots_table()) as $table){
             // Internal plugin tables. This never touches WooCommerce/WordPress source content.
-            $wpdb->query("DELETE FROM {$table}");
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
         }
         if(class_exists('TCD_Intelligence'))TCD_Intelligence::reset_modern_generated();
         if(class_exists('TCD_Maintenance'))TCD_Maintenance::deactivate();
