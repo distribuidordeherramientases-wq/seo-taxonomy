@@ -66,6 +66,7 @@ final class TaxoCommerce_Google_Bing_User_Guide {
                 'performance' => 'Caché y límites de ejecución',
                 'tests'       => 'Pruebas y despliegue',
                 'support'     => 'Diagnóstico y mantenimiento',
+                'autotest'    => 'Auto Test y despliegues',
             );
         }
         return array(
@@ -78,6 +79,7 @@ final class TaxoCommerce_Google_Bing_User_Guide {
             'trends'     => 'Google Trends',
             'analysis'   => 'Analysis',
             'export'     => 'Actualización y exportación',
+            'autotest'   => 'Auto Test: antes y después',
             'questions'  => 'Preguntas habituales',
         );
     }
@@ -214,6 +216,12 @@ final class TaxoCommerce_Google_Bing_User_Guide {
             <h3><?php esc_html_e( 'Exportar el resultado', 'taxocommerce-google-bing' ); ?></h3>
             <p><?php esc_html_e( 'Cuando haya datos guardados, utiliza Export JSON copy en la pantalla del proveedor correspondiente. El fichero representa una foto de los datos descargados y lleva sus fechas; no garantiza datos actuales si la descarga es antigua.', 'taxocommerce-google-bing' ); ?></p>
         </section>
+        <section id="tgb-user-autotest">
+            <h2>Auto Test: antes y después del despliegue</h2>
+            <p>En la pestaña Auto Test, ejecuta «Guardar estado ANTES» en cada sitio antes de actualizar. Tras la actualización ejecuta «Comprobar DESPUÉS» en el mismo sitio y con el mismo administrador. Revisa nuevos errores, pruebas corregidas y pérdida de cobertura. Descarga ambos informes JSON si necesitas trazabilidad. Los informes se conservan por usuario y sitio, incluso al cambiar la versión del plugin, siempre que no se eliminen sus metadatos.</p>
+            <p>El chequeo no contacta con las APIs ni ejecuta descargas. Los proveedores configurados sin una comprobación externa reciente quedan como no verificados. Para completar la aceptación de producción ejecuta las pruebas de conexión en Connections y comprueba los gráficos en el navegador.</p>
+            <p><a href="<?php echo esc_url( self::section_url( 'auto_test' ) ); ?>">Abrir Auto Test</a></p>
+        </section>
         <section id="tgb-user-questions">
             <h2><?php esc_html_e( '10. Preguntas habituales', 'taxocommerce-google-bing' ); ?></h2>
             <h3><?php esc_html_e( '¿Abrir Insights inicia descargas?', 'taxocommerce-google-bing' ); ?></h3>
@@ -330,6 +338,12 @@ final class TaxoCommerce_Google_Bing_User_Guide {
                 <li><?php esc_html_e( 'En staging se usa un workflow con FTPS para desplegar la carpeta taxocommerce-google-bing. Verifica el resultado real en WordPress; un merge no demuestra por sí mismo que el FTP haya terminado.', 'taxocommerce-google-bing' ); ?></li>
                 <li><?php esc_html_e( 'Para producción utiliza el procedimiento independiente autorizado, con copia recuperable y comprobación de conexiones y credenciales.', 'taxocommerce-google-bing' ); ?></li>
             </ol>
+        </section>
+        <section id="tgb-tech-autotest">
+            <h2>Auto Test: diagnóstico técnico y regresiones</h2>
+            <p>TaxoCommerce_Google_Bing_Auto_Test registra dos acciones admin-post protegidas con manage_options y nonce. Agrupa controles de arranque, conexiones, Search Console, GA4, Bing, Trends, Analysis, almacenamiento, seguridad y UAT. Solo hace lecturas locales y pruebas deterministas; no modifica tokens, informes ni fuentes externas.</p>
+            <p>Los informes por usuario y sitio se guardan en usermeta mediante las claves tgb_auto_test_before_{blog_id} y tgb_auto_test_last_{blog_id}. El identificador SHA-256 del sitio impide comparar distintas instalaciones; no se incluyen credenciales ni mensajes de excepciones potencialmente sensibles. La comparación solo se activa para dos ejecuciones completas, siendo la segunda «DESPUÉS», y distingue errores nuevos, corregidos, existentes, pruebas nuevas y cobertura perdida.</p>
+            <p>La evaluación no sustituye pruebas de integraciones en vivo, reconexión OAuth, descargas ni renderizado externo. Los estados skip/not_run son explícitos y no equivalen a pass. Se valida en CI con tests/auto-test-smoke.php, que se excluye del ZIP público.</p>
         </section>
         <section id="tgb-tech-support">
             <h2><?php esc_html_e( '11. Diagnóstico y mantenimiento', 'taxocommerce-google-bing' ); ?></h2>
