@@ -394,28 +394,28 @@ final class TCD_Feedback {
 
         if ( 'product' === $target_type ) {
             $click_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(DISTINCT session_hash) FROM %i
                  WHERE query_hash=%s AND event_type='click' AND product_id=%d",
-                $query_hash, $product_id
+                $events, $query_hash, $product_id
             ) ) );
             $clarification_sessions = 0;
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$events}
+                "SELECT COUNT(*) FROM %i
                  WHERE query_hash=%s AND event_type='click'",
-                $query_hash
+                $events, $query_hash
             ) ) );
         } else {
             $click_sessions = 0;
             $clarification_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(DISTINCT session_hash) FROM %i
                  WHERE query_hash=%s AND event_type='clarification'
                    AND semantic_group=%s AND semantic_slug=%s",
-                $query_hash, $group, $slug
+                $events, $query_hash, $group, $slug
             ) ) );
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$events}
+                "SELECT COUNT(*) FROM %i
                  WHERE query_hash=%s AND event_type='clarification'",
-                $query_hash
+                $events, $query_hash
             ) ) );
         }
 
@@ -447,8 +447,8 @@ final class TCD_Feedback {
         );
 
         $existing = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id,status,promoted_at,first_seen FROM {$learning} WHERE query_hash=%s AND target_key=%s LIMIT 1",
-            $query_hash, $target_key
+            "SELECT id,status,promoted_at,first_seen FROM %i WHERE query_hash=%s AND target_key=%s LIMIT 1",
+            $learning, $query_hash, $target_key
         ), ARRAY_A );
 
         $now = current_time( 'mysql' );
@@ -643,10 +643,10 @@ final class TCD_Feedback {
         global $wpdb;
         $table = self::learning_table();
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE query_hash=%s AND target_key<>%s
              ORDER BY id ASC LIMIT 50",
-            (string) $query_hash,
+            $table, (string) $query_hash,
             (string) $except_target_key
         ), ARRAY_A );
 
@@ -670,10 +670,10 @@ final class TCD_Feedback {
         $table = self::learning_table();
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT product_id,click_sessions,evidence_share,confidence
-             FROM {$table}
+             FROM %i
              WHERE query_hash=%s AND target_type='product' AND status='active'
              ORDER BY confidence DESC,click_sessions DESC,id ASC LIMIT 20",
-            $hash
+            $table, $hash
         ), ARRAY_A );
 
         $out = array();
@@ -696,10 +696,10 @@ final class TCD_Feedback {
         $table = self::learning_table();
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT semantic_group,semantic_slug,semantic_label,clarification_sessions,evidence_share,confidence
-             FROM {$table}
+             FROM %i
              WHERE query_hash=%s AND target_type='semantic' AND status='active'
              ORDER BY confidence DESC,clarification_sessions DESC,id ASC LIMIT 12",
-            $hash
+            $table, $hash
         ), ARRAY_A );
 
         $out = array();
@@ -841,10 +841,10 @@ final class TCD_Feedback {
         $table = self::learning_table();
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table}
+                "SELECT * FROM %i
                  WHERE status IN ('staged','validated','active')
                  ORDER BY last_seen ASC,id ASC LIMIT %d",
-                min( 500, max( 1, absint( $limit ) ) )
+                $table, min( 500, max( 1, absint( $limit ) ) )
             ),
             ARRAY_A
         );
@@ -894,7 +894,7 @@ final class TCD_Feedback {
         );
 
         foreach ( (array) $wpdb->get_results(
-            "SELECT event_type,COUNT(*) total FROM {$events} GROUP BY event_type",
+            $wpdb->prepare( "SELECT event_type,COUNT(*) total FROM %i GROUP BY event_type", $events ),
             ARRAY_A
         ) as $row ) {
             $total = absint( $row['total'] ?? 0 );
@@ -907,7 +907,7 @@ final class TCD_Feedback {
         }
 
         foreach ( (array) $wpdb->get_results(
-            "SELECT status,target_type,COUNT(*) total FROM {$learning} GROUP BY status,target_type",
+            $wpdb->prepare( "SELECT status,target_type,COUNT(*) total FROM %i GROUP BY status,target_type", $learning ),
             ARRAY_A
         ) as $row ) {
             $status = sanitize_key( (string) ( $row['status'] ?? '' ) );
@@ -930,10 +930,10 @@ final class TCD_Feedback {
         $learning = self::learning_table();
         $cutoff = gmdate( 'Y-m-d H:i:s', time() - ( self::RETENTION_DAYS * DAY_IN_SECONDS ) );
 
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$events} WHERE created_at<%s", $cutoff ) );
+        $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE created_at<%s", $events, $cutoff ) );
         $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$learning} WHERE status<>'active' AND last_seen<%s",
-            $cutoff
+            "DELETE FROM %i WHERE status<>'active' AND last_seen<%s",
+            $learning, $cutoff
         ) );
 
         update_option( 'tcd_feedback_last_prune', time(), false );
