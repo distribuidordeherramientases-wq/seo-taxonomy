@@ -101,6 +101,7 @@ final class TCDB_Auto_Test {
     }
     private static function test_nodes() {
         global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator database inventory/diagnostics must show current data; cached results can hide recent cleanup.
         $table = $wpdb->prefix . 'seo_nodes';
         if ( ! self::table_exists( $table ) ) { return self::skip( 'Tabla de nodos no disponible; revisar esquema.' ); }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
