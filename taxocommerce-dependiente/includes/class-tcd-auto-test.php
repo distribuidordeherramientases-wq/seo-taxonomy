@@ -294,8 +294,13 @@ final class TCD_Auto_Test {
 		if ( $lesson < 1 || $lesson > 12 ) {
 			return self::fail( 'Módulo fuera de rango: ' . $lesson );
 		}
+		if ( 'error' === $status ) {
+			return self::skip( 'Estado de Academia legible, pero el último curso terminó en error: ' .
+				substr( (string) ( $state['last_error'] ?? '' ), 0, 160 ) .
+				'. No indica necesariamente una regresión técnica; revisar el log y las pruebas de ejecución.' );
+		}
 		return self::pass( 'Estado ' . $status . ', módulo ' . $lesson . ', fase ' . (string) $state['phase'] .
-			'. Lectura correcta; el resultado pedagógico y posibles errores del curso no se evalúan aquí.' );
+			'. Lectura correcta; el resultado pedagógico del curso se evalúa por separado.' );
 	}
 
 	private static function check_snapshot() {
@@ -383,6 +388,17 @@ final class TCD_Auto_Test {
 	}
 
 	private static function check_linguist_state() {
+		// Validate the executable start/resume/worker contract without starting
+		// M11 or changing its live progress.
+		foreach ( array( 'process_control_start', 'process_manager_slice', 'is_pending', 'cron_batch' ) as $method ) {
+			if ( ! is_callable( array( 'TCD_Original_Linguista', $method ) ) ) {
+				return self::fail( 'M11 sin capacidad de ejecución: ' . $method );
+			}
+		}
+		if ( ! has_action( 'admin_post_tcd_original_linguista_control' ) ||
+			! has_action( 'tcd_original_linguista_worker' ) ) {
+			return self::fail( 'M11 no registra su control o su trabajador de formación.' );
+		}
 		$state = TCD_Original_Linguista::state();
 		$course = TCD_Original_Linguista::course_progress();
 		if ( ! is_array( $state ) || ! isset( $state['status'] ) || ! is_numeric( $course ) ||
@@ -392,8 +408,13 @@ final class TCD_Auto_Test {
 		if ( ! in_array( (string) $state['status'], array( 'stopped', 'paused', 'running', 'completed', 'error' ), true ) ) {
 			return self::fail( 'Estado M11 desconocido: ' . (string) $state['status'] );
 		}
-		return self::pass( 'Estado M11 legible: ' . (string) $state['status'] . '; curso al ' .
-			round( (float) $course, 1 ) . '%. Los resultados del curso se diagnostican por separado: no condicionan la salud del intérprete.' );
+		if ( 'error' === (string) $state['status'] ) {
+			return self::skip( 'M11 puede iniciarse y tiene worker registrado, pero el último curso registró error: ' .
+				substr( (string) ( $state['last_error'] ?? '' ), 0, 160 ) .
+				'. No se ha ejecutado una lección real ni se considera automáticamente una regresión.' );
+		}
+		return self::pass( 'Control y worker M11 disponibles; estado ' . (string) $state['status'] .
+			'; curso al ' . round( (float) $course, 1 ) . '%. No se exige completar ni aprobar la formación.' );
 	}
 
 	private static function check_lexicon_read() {
@@ -520,8 +541,13 @@ final class TCD_Auto_Test {
 		if ( ! in_array( (string) $state['status'], array( 'idle', 'active', 'running', 'paused', 'stopped', 'error', 'completed' ), true ) ) {
 			return self::fail( 'Estado de M12 desconocido: ' . (string) $state['status'] );
 		}
+		if ( 'error' === (string) $state['status'] || ! empty( $state['last_error'] ) ) {
+			return self::skip( 'M12 accesible, pero existe una incidencia de ejecución anterior: ' .
+				substr( (string) ( $state['last_error'] ?? '' ), 0, 160 ) .
+				'. Revisar el proceso; los hooks y Cron se validan por separado.' );
+		}
 		return self::pass( 'Estado M12 legible: ' . (string) $state['status'] . '; productos actualizados ' .
-			absint( $state['products_updated'] ) . '. Los errores registrados se consultan en el log; los hooks y cron se prueban aparte.' );
+			absint( $state['products_updated'] ) . '. Los hooks y Cron se validan aparte.' );
 	}
 
 	private static function check_cron() {
