@@ -71,13 +71,13 @@ if ( count( $tree ) !== 3
     || count( $tree[0]['primaries'][2]['secondaries'] ) !== 1
     || count( $tree[0]['primaries'][2]['secondaries'][0]['categories'] ) !== 1
     || $tree[0]['primaries'][2]['secondaries'][0]['categories'][0]['name'] !== 'Llaves de impacto' ) {
-    fwrite( STDERR, 'Spanish-only hierarchy relations or market filtering failed' . PHP_EOL );
+    print( 'Spanish-only hierarchy relations or market filtering failed' . PHP_EOL );
     exit( 1 );
 }
 if ( TaxoCommerce_Google_Bing_Trends_Hierarchy::is_spanish( 'de-DE', '' )
     || TaxoCommerce_Google_Bing_Trends_Hierarchy::is_spanish( '', 'FR' )
     || ! TaxoCommerce_Google_Bing_Trends_Hierarchy::is_spanish( 'es-ES', '' ) ) {
-    fwrite( STDERR, 'Locale filter failed' . PHP_EOL );
+    print( 'Locale filter failed' . PHP_EOL );
     exit( 1 );
 }
 $groups = TaxoCommerce_Google_Bing_Trends_Hierarchy::comparison_groups( $tree );
@@ -87,7 +87,7 @@ if ( count( $groups ) !== 4
     || $groups[1]['terms'] !== array( 'Herramientas de taller', 'Herramientas neumáticas', 'Mecánica' )
     || $groups[2]['terms'] !== array( 'Herramientas de taller' )
     || $groups[3]['terms'] !== array() ) {
-    fwrite( STDERR, "Automatic comparison grouping failed" . PHP_EOL );
+    print( "Automatic comparison grouping failed" . PHP_EOL );
     exit( 1 );
 }
 $many = array();
@@ -105,7 +105,7 @@ if ( count( $many_groups ) !== 10
     || count( $many_groups[1]['terms'] ) !== 2
     || count( $many_groups[2]['terms'] ) !== 5
     || count( $many_groups[3]['terms'] ) !== 1 ) {
-    fwrite( STDERR, "Google five-term grouping boundary failed" . PHP_EOL );
+    print( "Google five-term grouping boundary failed" . PHP_EOL );
     exit( 1 );
 }
 ob_start();
@@ -115,20 +115,20 @@ foreach ( array( 'Automoción', 'Mecánica', 'Llaves', 'Llaves de impacto', 'tgb
     'tgb-h-pause', 'tgb-h-resume', 'tgb-h-stop', 'tgb-h-cat-check', 'Región: España',
     'tgb-h-comparisons', 'tgb-h-compare-card', 'Bricolaje', 'Equipamiento profesional' ) as $required ) {
     if ( false === strpos( $html, $required ) ) {
-        fwrite( STDERR, 'Missing tree/control: ' . $required . PHP_EOL );
+        print( 'Missing tree/control: ' . $required . PHP_EOL );
         exit( 1 );
     }
 }
 foreach ( array( 'Foreign Cluster', 'Foreign Primary', 'Foreign Secondary', 'Foreign category', '<iframe' ) as $forbidden ) {
     if ( false !== strpos( $html, $forbidden ) ) {
-        fwrite( STDERR, 'Foreign data or automatic iframe rendered: ' . $forbidden . PHP_EOL );
+        print( 'Foreign data or automatic iframe rendered: ' . $forbidden . PHP_EOL );
         exit( 1 );
     }
 }
 if ( substr_count( $html, 'class="tgb-h-compare-card"' ) !== 4
     || false === strpos( $html, 'data-kind="cluster"' )
     || false === strpos( $html, 'data-terms="[' ) ) {
-    fwrite( STDERR, "Automatic HTML chart cards missing" . PHP_EOL );
+    print( "Automatic HTML chart cards missing" . PHP_EOL );
     exit( 1 );
 }
 echo "Spanish automatic comparison hierarchy: OK, no PHP remote request" . PHP_EOL;
