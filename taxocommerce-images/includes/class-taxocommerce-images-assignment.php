@@ -615,7 +615,7 @@ final class TaxoCommerce_Images_Assignment {
 	 * Validate the submitted scope and target before any write action.
 	 *
 	 * @param string $action Nonce action.
-	 * @return array{scope:string,id:int}
+	 * @return array{scope:string,id:int,attachment_id:int}
 	 */
 	private static function guard( $action ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -628,10 +628,12 @@ final class TaxoCommerce_Images_Assignment {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
 		$id = isset( $_POST['object_id'] ) && is_scalar( $_POST['object_id'] )
 			? absint( $_POST['object_id'] ) : 0;
+		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
+			? absint( wp_unslash( $_POST['attachment_id'] ) ) : 0;
 		if ( ! self::valid_scope( $scope ) ) {
 			wp_die( esc_html__( 'Tipo de contenido no válido.', 'taxocommerce-images' ) );
 		}
-		return array( 'scope' => $scope, 'id' => $id );
+		return array( 'scope' => $scope, 'id' => $id, 'attachment_id' => $attachment_id );
 	}
 
 	/**
@@ -643,9 +645,7 @@ final class TaxoCommerce_Images_Assignment {
 		$data = self::guard( 'taxocommerce_images_assign_one' );
 		$scope = $data['scope'];
 		$id = $data['id'];
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
-		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
-			? absint( $_POST['attachment_id'] ) : 0;
+		$attachment_id = $data['attachment_id'];
 		$allowed = wp_list_pluck( self::candidates( $scope, $id, 8 ), 'id' );
 		if ( ! in_array( $attachment_id, $allowed, true ) ) {
 			self::redirect( $scope, 'error', __( 'La imagen no pertenece a las categorías relacionadas o ya no está disponible.', 'taxocommerce-images' ) );
@@ -663,9 +663,7 @@ final class TaxoCommerce_Images_Assignment {
 	 */
 	public static function handle_assign_media() {
 		$data = self::guard( 'taxocommerce_images_assign_media' );
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by guard() before POST access.
-		$attachment_id = isset( $_POST['attachment_id'] ) && is_scalar( $_POST['attachment_id'] )
-			? absint( $_POST['attachment_id'] ) : 0;
+		$attachment_id = $data['attachment_id'];
 		$result = self::assign_from_media( $data['scope'], $data['id'], $attachment_id );
 		if ( is_wp_error( $result ) ) {
 			self::redirect( $data['scope'], 'error', $result->get_error_message() );
