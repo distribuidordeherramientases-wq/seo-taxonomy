@@ -201,6 +201,7 @@ final class TaxoCommerce_Images_Audit {
 	 */
 	private function new_state() {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Take a fresh count and maximum attachment ID at scan start; the snapshot is not reused or cacheable.
 		$counts = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT COUNT(*) AS total, COALESCE(MAX(ID),0) AS max_id
@@ -261,6 +262,7 @@ final class TaxoCommerce_Images_Audit {
 		$measure['budget'] = $budget;
 		$deadline = microtime( true ) + $budget;
 		$ids = $max_id > $last_id
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cursor-bounded attachment IDs must be freshly selected after every worker batch to avoid skipping new state.
 			? (array) $wpdb->get_col(
 				$wpdb->prepare(
 					'SELECT ID FROM %i
