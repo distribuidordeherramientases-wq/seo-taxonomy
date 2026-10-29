@@ -249,10 +249,8 @@ final class TCDB_Diagnostics {
         TCDB_Storage::authorize( 'tcdb_advanced_cleanup' );
         $kind = isset( $_POST['kind'] ) && is_string( $_POST['kind'] )
             ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
-        $confirm = isset( $_POST['confirmation'] ) && is_string( $_POST['confirmation'] )
-            ? sanitize_text_field( wp_unslash( $_POST['confirmation'] ) ) : '';
-        if ( ! in_array( $kind, self::cleanable(), true ) || 'ELIMINAR' !== $confirm ) {
-            wp_die( 'Acción o confirmación de limpieza inválida.' );
+        if ( ! in_array( $kind, self::cleanable(), true ) ) {
+            wp_die( 'Acción de limpieza inválida.' );
         }
         $result = self::cleanup( $kind );
         $status = is_wp_error( $result ) ? 'cleanup_error' : 'cleanup_ok';
