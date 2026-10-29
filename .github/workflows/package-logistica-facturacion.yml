@@ -30,6 +30,7 @@ jobs:
         run: |
           find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-logistica/tests/smoke.php
+          php taxocommerce-logistica/tests/auto-test-smoke.php
 
       - name: Validate Billing
         run: |
@@ -55,11 +56,11 @@ jobs:
 
           (
             cd build
-            zip -qr ../taxocommerce-logistica-0.2.0.zip taxocommerce-logistica
+            zip -qr ../taxocommerce-logistica-0.2.1.zip taxocommerce-logistica
             zip -qr ../taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion
           )
 
-          cp taxocommerce-logistica-0.2.0.zip taxocommerce-logistica.zip
+          cp taxocommerce-logistica-0.2.1.zip taxocommerce-logistica.zip
           cp taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion.zip
 
           unzip -t taxocommerce-logistica.zip
@@ -87,9 +88,9 @@ jobs:
       - name: Upload Logística ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-logistica-0.2.0
+          name: taxocommerce-logistica-0.2.1
           path: |
-            taxocommerce-logistica-0.2.0.zip
+            taxocommerce-logistica-0.2.1.zip
             taxocommerce-logistica.zip
           retention-days: 30
           if-no-files-found: error
