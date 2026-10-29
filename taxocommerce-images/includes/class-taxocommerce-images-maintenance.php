@@ -159,14 +159,14 @@ final class TaxoCommerce_Images_Maintenance {
 		$usage = array();
 		if ( 'cleanup' === $mode && $ids ) {
 			$posts = array_map( 'get_post', $ids );
-			$usage = tci_refs_build_usage_report( $posts );
+			$usage = taxocommerce_images_refs_build_usage_report( $posts );
 		}
 		foreach ( $ids as $id ) {
 			if ( 'labels' === $mode ) {
 				$flags = self::label_flags( $id );
 				self::record( $mode, $id, array( 'status' => $flags ? 'review' : 'ok', 'flags' => $flags ? $flags : array( 'ok' ) ) );
 			} else {
-				$row = array( 'status' => empty( $usage[ $id ] ) ? 'unused' : 'used', 'duplicate' => 0, 'message' => '', 'bytes' => tci_refs_get_attachment_size( $id ) );
+				$row = array( 'status' => empty( $usage[ $id ] ) ? 'unused' : 'used', 'duplicate' => 0, 'message' => '', 'bytes' => taxocommerce_images_refs_get_attachment_size( $id ) );
 				$file = get_attached_file( $id );
 				if ( ! self::local_file( $file ) ) { $row['status'] = 'review'; $row['message'] = 'Archivo no local, ausente o ilegible.'; }
 				else {
