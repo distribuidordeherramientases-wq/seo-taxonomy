@@ -400,8 +400,8 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
  * Se carga despues del tag base para reutilizar exactamente la misma
  * Measurement ID y las mismas reglas de consentimiento/medicion.
  */
-$seo_google_ecommerce_module = __DIR__ . '/google-ecommerce.php';
-if ( is_readable( $seo_google_ecommerce_module ) ) {
-    require_once $seo_google_ecommerce_module;
+$taxocommerce_google_bing_ecommerce_module = __DIR__ . '/google-ecommerce.php';
+if ( is_readable( $taxocommerce_google_bing_ecommerce_module ) ) {
+    require_once $taxocommerce_google_bing_ecommerce_module;
 }
-unset( $seo_google_ecommerce_module );
+unset( $taxocommerce_google_bing_ecommerce_module );
