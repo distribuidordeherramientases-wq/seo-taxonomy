@@ -276,10 +276,19 @@ final class TaxoCommerce_Logistica_User_Guide {
             } elseif ( 'p' === $block[0] ) {
                 echo '<p>' . esc_html( $block[1] ) . '</p>';
             } elseif ( 'ol' === $block[0] || 'ul' === $block[0] ) {
-                $tag = $block[0];
-                echo '<' . $tag . '>';
-                foreach ( $block[1] as $item ) { echo '<li>' . esc_html( $item ) . '</li>'; }
-                echo '</' . $tag . '>';
+                if ( 'ol' === $block[0] ) {
+                    echo '<ol>';
+                } else {
+                    echo '<ul>';
+                }
+                foreach ( $block[1] as $item ) {
+                    echo '<li>' . esc_html( $item ) . '</li>';
+                }
+                if ( 'ol' === $block[0] ) {
+                    echo '</ol>';
+                } else {
+                    echo '</ul>';
+                }
             }
         }
     }
@@ -298,19 +307,19 @@ final class TaxoCommerce_Logistica_User_Guide {
         ?>
         <section class="tc-log-guide" aria-labelledby="tc-log-guide-title">
             <header class="tc-log-guide__header">
-                <h2 id="tc-log-guide-title"><?php esc_html_e( 'User Guide', 'taxocommerce-logistica' ); ?></h2>
+                <h2 id="tc-log-guide-title"><?php esc_html_e( 'Manual', 'taxocommerce-logistica' ); ?></h2>
                 <p><?php esc_html_e( 'Manual de usuario y manual técnico de TaxoCommerce Logistics, integrados en el propio plugin.', 'taxocommerce-logistica' ); ?></p>
             </header>
             <nav class="tc-log-guide__switch" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-logistica' ); ?>">
                 <a href="<?php echo esc_url( self::guide_url( 'user' ) ); ?>"
                     class="tc-log-guide__switch-link<?php echo $technical ? '' : ' is-active'; ?>"
                     <?php if ( ! $technical ) : ?>aria-current="page"<?php endif; ?>>
-                    <?php esc_html_e( 'User Manual', 'taxocommerce-logistica' ); ?>
+                    <?php esc_html_e( 'Manual de usuario', 'taxocommerce-logistica' ); ?>
                 </a>
                 <a href="<?php echo esc_url( self::guide_url( 'technical' ) ); ?>"
                     class="tc-log-guide__switch-link<?php echo $technical ? ' is-active' : ''; ?>"
                     <?php if ( $technical ) : ?>aria-current="page"<?php endif; ?>>
-                    <?php esc_html_e( 'Technical Manual', 'taxocommerce-logistica' ); ?>
+                    <?php esc_html_e( 'Manual técnico', 'taxocommerce-logistica' ); ?>
                 </a>
             </nav>
             <div class="tc-log-guide__layout">
