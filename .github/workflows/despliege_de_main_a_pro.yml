@@ -256,7 +256,15 @@ jobs:
           done
           deploy_token="$(openssl rand -hex 32)"
           token_hash="$(printf '%s' "$deploy_token" | sha256sum | awk '{print $1}')"
-          handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"
+          # lftp starts at the FTP account root (site webroot), while the
+          # WordPress REST handler resolves the marker inside seo-taxonomy:
+          # dirname( __DIR__ ) . '/.taxocommerce-deploy'.
+          # Keep both sides on exactly the same physical directory.
+          if ! grep -Fq "return dirname( __DIR__ ) . '/.taxocommerce-deploy';" includes/seo-deploy-status.php; then
+            echo "::error::El directorio REST del token ha cambiado; revisar el contrato FTPS antes de desplegar."
+            exit 1
+          fi
+          handoff="wp-content/plugins/seo-taxonomy/.taxocommerce-deploy/$GITHUB_RUN_ID"
 
           cleanup_handoff() {
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF || true
