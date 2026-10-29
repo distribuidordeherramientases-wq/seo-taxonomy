@@ -478,9 +478,14 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           zipfile="taxocommerce-dependiente-${version}.zip"
           rm -f "$zipfile"
-          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
+          # Release packages never contain local CI tests or FTP synchronization state.
+          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.*" "*/.ftp-deploy-sync-state.json" "*/.DS_Store"
           unzip -t "$zipfile"
           unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
+          if unzip -Z1 "$zipfile" | grep -E '(^|/)(tests/|\\.ftp-deploy-sync-state\\.json|\\.[^/]+)'; then
+            echo "ERROR: Assistant ZIP contains test or hidden deployment files" >&2
+            exit 1
+          fi
 
       - name: Publish Assistant installable ZIP
         uses: actions/upload-artifact@v4
@@ -506,9 +511,20 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/tests/**
+            **/tests
+            **/.ftp-deploy-sync-state.json
             **/*.bak
             **/*.md
             **/*.pot
+
+      - name: Remove obsolete Assistant test files and FTP state from STAGING
+        if: success()
+        env:
+          FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/clean-assistant-staging.py
 
       - name: Validate TaxoCommerce Vocabulary source
         run: |
