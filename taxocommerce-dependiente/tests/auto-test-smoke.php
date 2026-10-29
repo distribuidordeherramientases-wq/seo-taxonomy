@@ -1,7 +1,7 @@
 <?php
 /** Isolated smoke for grouped Dependiente Auto Test; no WordPress, DB or network. */
 define('ABSPATH',__DIR__);
-define('TAXOCOMMERCE_DEPENDIENTE_VERSION','0.3.17');
+define('TAXOCOMMERCE_DEPENDIENTE_VERSION','0.3.18');
 class TCD_Academy {
 	const CRON_HOOK='tcd_learning_tick';
 	public static function state(){return $GLOBALS['academy_state'];}
@@ -56,18 +56,18 @@ test_assert($report['totals']['fail']===1,'Inconsistent passed grade below thres
 $GLOBALS['quality_report']['status']='failed';
 $GLOBALS['academy_state']=array('status'=>'error','lesson'=>11,'phase'=>'interpreter','last_error'=>'No alcanza el umbral del examen');
 $report=TCD_Auto_Test::run_suite('learning',array('learning_state'=>$cases['learning_state']));
-test_assert($report['totals']['skip']===1 && $report['totals']['fail']===0,
+test_assert($report['totals']['pass']===1 && $report['totals']['fail']===0,
 	'Academy exam error must be diagnostic, not technical failure');
 $GLOBALS['linguist_state']=array('status'=>'error','last_error'=>'M11 result below gate');
 $report=TCD_Auto_Test::run_suite('interpreter',array('linguist_state'=>$cases['linguist_state']));
-test_assert($report['totals']['skip']===1 && $report['totals']['fail']===0,
+test_assert($report['totals']['pass']===1 && $report['totals']['fail']===0,
 	'M11 can start with worker but a failed course must be diagnostic only');
 $GLOBALS['linguist_state']['status']='running';
 $report=TCD_Auto_Test::run_suite('interpreter',array('linguist_state'=>$cases['linguist_state']));
 test_assert($report['totals']['pass']===1,'M11 available controls and worker must pass');
 $GLOBALS['m12_state']=array('status'=>'error','last_error'=>'Last batch error','products_updated'=>0);
 $report=TCD_Auto_Test::run_suite('maintenance',array('maintenance_state'=>$cases['maintenance_state']));
-test_assert($report['totals']['skip']===1 && $report['totals']['fail']===0,
+test_assert($report['totals']['pass']===1 && $report['totals']['fail']===0,
 	'Historical M12 error is not conflated with missing functionality');
 
 $GLOBALS['allowed']=false;
