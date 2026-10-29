@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Auditor - Content Quality for WooCommerce
  * Description: Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.
  * Version: 0.3.1
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-auditor/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
