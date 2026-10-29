@@ -25,6 +25,7 @@ function seo_data_query_arg($key, $default = '') {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación/filtros GET de solo lectura.
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Typed sanitation is applied by each caller; query helper reads only navigation/filter input.
     return wp_unslash($_GET[$key]);
 }
 
@@ -307,12 +308,14 @@ function seo_data_render_explorer(array $tables): void
     }
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers are validated against detected table/column allowlists before this query.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- Table and column names come from allowlisted schema; live count must reflect current data.
     $total_items = (int) $wpdb->get_var($count_sql);
 
     $query_sql = "SELECT * FROM `{$table_name}`{$where_sql} ORDER BY `{$orderby}` {$order} LIMIT %d OFFSET %d";
     $query_args = array_merge($where_args, [$per_page, $offset]);
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Explorer identifiers/order are allowlisted; filter values, limit and offset are bound through prepare().
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- Explorer SQL uses validated identifiers and prepared filter values, paging parameters.
     $rows = $wpdb->get_results($wpdb->prepare($query_sql, $query_args), ARRAY_A);
 
     echo '<div class="seo-data-panel">';
@@ -840,6 +843,7 @@ function seo_data_write_table_sql(string $table_name, $handle): void
     $table_name = esc_sql( $table_name );
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- SHOW CREATE TABLE is read-only schema inspection necessary for SQL export.
     $create = $wpdb->get_row($wpdb->prepare('SHOW CREATE TABLE %i', $table_name), ARRAY_N);
     if (!$create || empty($create[1])) {
         return;
