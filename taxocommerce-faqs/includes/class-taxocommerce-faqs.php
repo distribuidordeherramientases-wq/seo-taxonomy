@@ -49,14 +49,17 @@ final class TaxoCommerce_FAQs {
         global $wpdb;
         if ( ! self::exists( 'seo_faq' ) ) { return false; }
         $table = self::table( 'seo_faq' );
-        $column = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'product_cat_id' ) );
+        $column = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'product_cat_id' ) );
         if ( ! $column ) {
-            $updated = $wpdb->query( "ALTER TABLE {$table} ADD COLUMN product_cat_id bigint unsigned NOT NULL DEFAULT 0, ADD INDEX product_cat (product_cat_id)" );
+            $updated = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN product_cat_id bigint unsigned NOT NULL DEFAULT 0, ADD INDEX product_cat (product_cat_id)', $table ) );
             if ( false === $updated ) { return false; }
         }
         // Only unambiguous existing category relationships are migrated automatically.
-        $wpdb->query( "UPDATE {$table} SET product_cat_id=object_id WHERE object_type=2 AND product_cat_id=0 AND EXISTS
-            (SELECT 1 FROM {$wpdb->term_taxonomy} tt WHERE tt.term_id={$table}.object_id AND tt.taxonomy='product_cat')" );
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE %i SET product_cat_id=object_id WHERE object_type=2 AND product_cat_id=0 AND EXISTS
+            (SELECT 1 FROM %i tt WHERE tt.term_id=%i.object_id AND tt.taxonomy='product_cat')",
+            $table, $wpdb->term_taxonomy, $table
+        ) );
         update_option( 'taxocommerce_faqs_category_schema', '1', false );
         return true;
     }
@@ -152,10 +155,10 @@ final class TaxoCommerce_FAQs {
         $voc = self::table( 'seo_vocabulary' );
         $rel = self::table( 'seo_object_vocabulary' );
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM {$rel} r
-             INNER JOIN {$voc} v ON v.id=r.vocabulary_id
+            "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM %i r
+             INNER JOIN %i v ON v.id=r.vocabulary_id
              WHERE r.object_type='faq' AND r.object_id=%d AND r.status=1 AND v.active=1",
-            $faq_id
+            $rel, $voc, $faq_id
         ), ARRAY_A );
         foreach ( (array) $rows as $row ) {
             if ( isset( $data[ $row['semantic_group'] ] ) ) { $data[ $row['semantic_group'] ][] = $row; }
@@ -176,8 +179,8 @@ final class TaxoCommerce_FAQs {
             if ( $requested ) {
                 $ph = implode( ',', array_fill( 0, count( $requested ), '%d' ) );
                 $valid = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-                    "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
-                    array_merge( array( $group ), $requested )
+                    'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN (' . $ph . ')',
+                    array_merge( array( $voc, $group ), $requested )
                 ) ) );
             }
             $existing = self::tags( $faq_id )[ $group ];
@@ -190,7 +193,7 @@ final class TaxoCommerce_FAQs {
             }
             foreach ( $valid as $id ) {
                 $already = $wpdb->get_row( $wpdb->prepare(
-                    "SELECT source,status FROM {$rel} WHERE object_type='faq' AND object_id=%d AND vocabulary_id=%d", $faq_id, $id
+                    'SELECT source,status FROM %i WHERE object_type=%s AND object_id=%d AND vocabulary_id=%d', $rel, 'faq', $faq_id, $id
                 ), ARRAY_A );
                 if ( $already && 'manual' !== $already['source'] ) { continue; }
                 if ( $already ) {
@@ -227,7 +230,7 @@ final class TaxoCommerce_FAQs {
             'sort_order' => isset( $_POST['sort_order'] ) ? absint( wp_unslash( $_POST['sort_order'] ) ) : 0,
             'active' => empty( $_POST['active'] ) ? 0 : 1, 'updated_at' => current_time( 'mysql', true ) );
         if ( $id ) {
-            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id=%d", $id ) );
+            $exists = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id=%d', $table, $id ) );
             if ( ! $exists ) { self::notice( 'FAQ inexistente.', true ); }
             $ok = $wpdb->update( $table, $data, array( 'id' => $id ) );
         } else {
@@ -499,7 +502,7 @@ final class TaxoCommerce_FAQs {
                     $ph = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
                     $groups[ $group ] = $wpdb->get_col(
                         $wpdb->prepare(
-                            "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN ({$ph})",
+                            'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN (' . $ph . ')',
                             array_merge( array( $voc, $group ), $slugs )
                         )
                     );
@@ -548,8 +551,11 @@ final class TaxoCommerce_FAQs {
         $table = self::table( 'seo_faq' );
         $id = isset( $_GET['faq_id'] ) ? absint( wp_unslash( $_GET['faq_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $editing = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A ) : null;
-        $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
-            COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM {$table}", ARRAY_A );
+        $summary = $wpdb->get_row( $wpdb->prepare(
+            "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
+            COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM %i",
+            $table
+        ), ARRAY_A );
         $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0;
@@ -595,7 +601,7 @@ final class TaxoCommerce_FAQs {
             echo '<h3>Etiquetas de Vocabulary</h3><input type="hidden" name="vocab_present" value="1"><p>Selecciona las etiquetas existentes. No se crean etiquetas nuevas.</p>';
             $voc = self::table( 'seo_vocabulary' );
             foreach ( self::GROUPS as $group ) {
-                $options = $wpdb->get_results( $wpdb->prepare( "SELECT id,label FROM {$voc} WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300", $group ), ARRAY_A );
+                $options = $wpdb->get_results( $wpdb->prepare( 'SELECT id,label FROM %i WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300', $group ), ARRAY_A );
                 $ids = array_map( 'intval', array_column( $selected[ $group ] ?? array(), 'id' ) );
                 echo '<p><label><strong>' . esc_html( strtoupper( $group ) ) . '</strong><br><select multiple name="vocab[' . esc_attr( $group ) . '][]" style="min-width:300px;max-width:100%;" size="4">';
                 foreach ( (array) $options as $option ) {
