@@ -25,6 +25,7 @@ require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-cleanup.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-diagnostics.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-maintenance.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-admin.php';
+require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/legacy/seo-database-clean.php';
 
 final class TaxoCommerce_Database {
     public static function boot() {
@@ -34,9 +35,6 @@ final class TaxoCommerce_Database {
         add_action( 'admin_post_tcdb_export', array( 'TCDB_Export', 'handle' ) );
         add_action( 'admin_post_tcdb_import_preview', array( 'TCDB_Import', 'preview' ) );
         add_action( 'admin_post_tcdb_import_apply', array( 'TCDB_Import', 'apply' ) );
-        add_action( 'admin_post_tcdb_cleanup', array( 'TCDB_Cleanup', 'handle' ) );
-        add_action( 'admin_post_tcdb_advanced_audit', array( 'TCDB_Diagnostics', 'handle_audit' ) );
-        add_action( 'admin_post_tcdb_advanced_cleanup', array( 'TCDB_Diagnostics', 'handle_cleanup' ) );
         add_action( 'admin_post_tcdb_maintenance', array( 'TCDB_Maintenance', 'handle' ) );
         add_action( 'taxocommerce_core_register_modules', array( __CLASS__, 'register_core' ) );
 
