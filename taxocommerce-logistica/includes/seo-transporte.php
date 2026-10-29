@@ -8,17 +8,16 @@
 
 defined('ABSPATH') || exit;
 
-if (!class_exists('SEO_Transporte_Costes')) {
-    final class SEO_Transporte_Costes {
+if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
+    final class TaxoCommerce_Logistica_Transporte_Costes {
         const OPTION = 'seo_transporte_costes_settings';
-        const PAGE        = 'seo-logistica';
+        const PAGE        = 'taxocommerce-logistica';
         const LEGACY_PAGE = 'seo-transporte';
 
         public static function init() {
-            add_action('admin_menu', array(__CLASS__, 'register_legacy_page'), 30);
-            add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
-            add_action('admin_post_seo_transporte_export', array(__CLASS__, 'export_settings'));
-            add_action('admin_post_seo_transporte_import', array(__CLASS__, 'import_settings'));
+            add_action('admin_post_taxocommerce_logistica_save', array(__CLASS__, 'save_settings'));
+            add_action('admin_post_taxocommerce_logistica_export', array(__CLASS__, 'export_settings'));
+            add_action('admin_post_taxocommerce_logistica_import', array(__CLASS__, 'import_settings'));
 
             /*
              * WooCommerce deja de calcular transporte si no detecta ningun metodo
@@ -32,16 +31,16 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
             add_filter('woocommerce_cart_shipping_packages', array(__CLASS__, 'filter_shipping_packages_destination'), 999, 1);
             add_filter('woocommerce_package_rates', array(__CLASS__, 'filter_package_rates'), 999, 2);
-            add_filter('parent_file', array(__CLASS__, 'admin_parent_file'));
-            add_filter('submenu_file', array(__CLASS__, 'admin_submenu_file'));
         }
 
         public static function force_wc_shipping_enabled($enabled) {
+            if (class_exists('SEO_Transporte_Costes', false)) { return $enabled; }
             $settings = self::settings();
             return !empty($settings['enabled']) ? true : $enabled;
         }
 
         public static function register_bridge_shipping_method($methods) {
+            if (class_exists('SEO_Transporte_Costes', false)) { return $methods; }
             if (!is_array($methods)) {
                 $methods = array();
             }
@@ -63,7 +62,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 }
 
                 public function calculate_shipping($package = array()) {
-                    // Sin tarifa propia: SEO_Transporte_Costes la inyecta al final.
+                    // Sin tarifa propia: TaxoCommerce_Logistica_Transporte_Costes la inyecta al final.
                 }
             };
 
@@ -683,13 +682,13 @@ if (!class_exists('SEO_Transporte_Costes')) {
                     <div class="seo-transport-transfer__actions">
                         <?php
                         $export_url = wp_nonce_url(
-                            admin_url('admin-post.php?action=seo_transporte_export'),
+                            admin_url('admin-post.php?action=taxocommerce_logistica_export'),
                             'seo_transporte_export'
                         );
                         ?>
                         <a class="button button-secondary" href="<?php echo esc_url($export_url); ?>">Exportar reglas (JSON)</a>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
-                            <input type="hidden" name="action" value="seo_transporte_import" />
+                            <input type="hidden" name="action" value="taxocommerce_logistica_import" />
                             <?php wp_nonce_field('seo_transporte_import'); ?>
                             <input type="file" name="seo_transporte_json" accept=".json,application/json" required />
                             <button type="submit" class="button button-primary">Importar reglas</button>
@@ -702,7 +701,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
                 <?php endif; ?>
 
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                    <input type="hidden" name="action" value="seo_transporte_save" />
+                    <input type="hidden" name="action" value="taxocommerce_logistica_save" />
                     <?php wp_nonce_field('seo_transporte_save'); ?>
 
                     <div class="seo-transport-panel">
@@ -870,6 +869,7 @@ if (did_action('admin_print_footer_scripts')) {
          * destination, el cambio de CP/provincia forma parte del hash del paquete.
          */
         public static function filter_shipping_packages_destination($packages) {
+            if (class_exists('SEO_Transporte_Costes', false)) { return $packages; }
             if (!is_array($packages)) {
                 return $packages;
             }
@@ -1044,6 +1044,7 @@ if (did_action('admin_print_footer_scripts')) {
         }
 
         public static function filter_package_rates($rates, $package) {
+            if (class_exists('SEO_Transporte_Costes', false)) { return $rates; }
             $settings = self::settings();
             if (empty($settings['enabled']) || !class_exists('WC_Shipping_Rate')) {
                 return $rates;
@@ -1097,5 +1098,5 @@ if (did_action('admin_print_footer_scripts')) {
         }
     }
 
-    SEO_Transporte_Costes::init();
+    TaxoCommerce_Logistica_Transporte_Costes::init();
 }

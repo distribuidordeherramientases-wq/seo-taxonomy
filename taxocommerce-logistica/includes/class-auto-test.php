@@ -32,7 +32,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
         $tab = isset( $_GET['tc_logistica_tab'] ) && is_string( $_GET['tc_logistica_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_logistica_tab'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( 'seo-logistica' === $page && 'auto-test' === $tab ) {
+        if ( 'taxocommerce-logistica' === $page && 'auto-test' === $tab ) {
             wp_enqueue_style( 'tc-logistica-auto-test', TAXOCOMMERCE_LOGISTICA_URL . 'assets/auto-test.css', array(), TAXOCOMMERCE_LOGISTICA_VERSION );
         }
     }
@@ -108,7 +108,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
 
     /** Used only with synthetic arrays; never calls shipping writes or live checkout. */
     private static function pure( $method, $args = array() ) {
-        $reflection = new ReflectionMethod( 'SEO_Transporte_Costes', $method );
+        $reflection = new ReflectionMethod( 'TaxoCommerce_Logistica_Transporte_Costes', $method );
         $reflection->setAccessible( true );
         return $reflection->invokeArgs( null, $args );
     }
@@ -215,8 +215,8 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
 
     private static function test_components() {
-        return class_exists( 'SEO_Transporte_Costes' ) && defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' )
-            && 'seo_transporte_costes_settings' === SEO_Transporte_Costes::OPTION
+        return class_exists( 'TaxoCommerce_Logistica_Transporte_Costes' ) && defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' )
+            && 'seo_transporte_costes_settings' === TaxoCommerce_Logistica_Transporte_Costes::OPTION
             ? self::pass( 'Servicio principal y opción histórica disponibles.' )
             : self::fail( 'Servicio o constantes del plugin incompletas.' );
     }
@@ -247,20 +247,20 @@ final class TaxoCommerce_Logistica_Auto_Test {
             : self::fail( 'Core está activo y el registro de Logistics no está disponible.' );
     }
     private static function test_defaults() {
-        $v = SEO_Transporte_Costes::defaults();
+        $v = TaxoCommerce_Logistica_Transporte_Costes::defaults();
         return 0 === $v['enabled'] && 1 === $v['only_spain']
             && 1 === $v['require_known_metrics'] && is_array( $v['rules'] )
             ? self::pass( 'Valores iniciales sin habilitar un checkout sin reglas.' )
             : self::fail( 'Los valores predeterminados de seguridad han cambiado.' );
     }
     private static function test_option() {
-        $raw = get_option( SEO_Transporte_Costes::OPTION, array() );
-        return is_array( $raw ) && is_array( SEO_Transporte_Costes::settings() )
+        $raw = get_option( TaxoCommerce_Logistica_Transporte_Costes::OPTION, array() );
+        return is_array( $raw ) && is_array( TaxoCommerce_Logistica_Transporte_Costes::settings() )
             ? self::pass( 'Configuración existente legible sin cambios ni migraciones.' )
             : self::fail( 'La opción histórica de transporte no tiene el formato esperado.' );
     }
     private static function test_active_rules() {
-        $settings = SEO_Transporte_Costes::settings();
+        $settings = TaxoCommerce_Logistica_Transporte_Costes::settings();
         if ( empty( $settings['enabled'] ) ) { return self::pass( 'Gestor desactivado; WooCommerce conserva su transporte estándar.' ); }
         $active = array_filter( (array) $settings['rules'], static function ( $rule ) {
             return is_array( $rule ) && ! empty( $rule['enabled'] );
@@ -278,7 +278,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         return self::pass( 'Contrato de los campos de peso, medidas, importes y tarifa sin cambios.' );
     }
     private static function test_priorities() {
-        $settings = SEO_Transporte_Costes::settings();
+        $settings = TaxoCommerce_Logistica_Transporte_Costes::settings();
         if ( count( (array) $settings['rules'] ) > 10000 ) {
             return self::fail( 'Más de 10.000 reglas: revisar datos antes de procesarlos.' );
         }
@@ -301,7 +301,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         if ( class_exists( 'SEO_Facturas_Tax' ) ) {
             return self::skip( 'Clasificación delegada en Facturación: verificarla también con su Auto Test.' );
         }
-        $settings = SEO_Transporte_Costes::defaults();
+        $settings = TaxoCommerce_Logistica_Transporte_Costes::defaults();
         $cases = array(
             array( array( 'country' => 'ES', 'state' => 'PM', 'postcode' => '07001' ), 'baleares' ),
             array( array( 'country' => 'ES', 'state' => 'GC', 'postcode' => '35001' ), 'canarias' ),
@@ -321,7 +321,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             return self::skip( 'Se delega la zona internacional en Facturación; requiere prueba de integración.' );
         }
         return 'foreign' === self::pure( 'classify_destination', array(
-            array( 'country' => 'FR', 'state' => '', 'postcode' => '75001' ), SEO_Transporte_Costes::defaults(),
+            array( 'country' => 'FR', 'state' => '', 'postcode' => '75001' ), TaxoCommerce_Logistica_Transporte_Costes::defaults(),
         ) ) ? self::pass( 'Francia se identifica como destino extranjero.' )
             : self::fail( 'No se identifica correctamente un destino extranjero.' );
     }
@@ -408,9 +408,9 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $m = array( 'subtotal'=>70, 'weight'=>8, 'units'=>1, 'max_length'=>10,
             'max_width'=>10, 'max_height'=>10, 'volume_dm3'=>1,
             'missing_weight'=>false, 'missing_dimensions'=>false );
-        return true === self::pure( 'rule_matches', array( $rule, 'peninsula', $m, SEO_Transporte_Costes::defaults() ) )
-            && false === self::pure( 'rule_matches', array( $rule, 'peninsula', array_merge( $m, array( 'weight'=>11 ) ), SEO_Transporte_Costes::defaults() ) )
-            && false === self::pure( 'rule_matches', array( $rule, 'peninsula', array_merge( $m, array( 'subtotal'=>40 ) ), SEO_Transporte_Costes::defaults() ) )
+        return true === self::pure( 'rule_matches', array( $rule, 'peninsula', $m, TaxoCommerce_Logistica_Transporte_Costes::defaults() ) )
+            && false === self::pure( 'rule_matches', array( $rule, 'peninsula', array_merge( $m, array( 'weight'=>11 ) ), TaxoCommerce_Logistica_Transporte_Costes::defaults() ) )
+            && false === self::pure( 'rule_matches', array( $rule, 'peninsula', array_merge( $m, array( 'subtotal'=>40 ) ), TaxoCommerce_Logistica_Transporte_Costes::defaults() ) )
             ? self::pass( 'Se respetan subtotal mínimo y peso máximo de una regla.' )
             : self::fail( 'Las condiciones de subtotal/peso dejaron de aplicarse.' );
     }
@@ -421,7 +421,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $m = array( 'subtotal'=>60, 'weight'=>0, 'units'=>1, 'max_length'=>0,
             'max_width'=>0, 'max_height'=>0, 'volume_dm3'=>0,
             'missing_weight'=>true, 'missing_dimensions'=>true );
-        return false === self::pure( 'rule_matches', array( $rule, 'peninsula', $m, SEO_Transporte_Costes::defaults() ) )
+        return false === self::pure( 'rule_matches', array( $rule, 'peninsula', $m, TaxoCommerce_Logistica_Transporte_Costes::defaults() ) )
             ? self::pass( 'Reglas dependientes de peso rechazan productos sin peso.' )
             : self::fail( 'Una regla admite artículos sin peso, riesgo de cobrar menos.' );
     }
@@ -450,7 +450,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             return ((int) $a['priority']) <=> ((int) $b['priority']);
         } );
         return 10 === $rules[0]['priority']
-            && method_exists( 'SEO_Transporte_Costes', 'filter_package_rates' )
+            && method_exists( 'TaxoCommerce_Logistica_Transporte_Costes', 'filter_package_rates' )
             ? self::pass( 'Las prioridades numéricas se pueden ordenar; checkout real pendiente.' )
             : self::fail( 'No está disponible la precedencia de reglas.' );
     }
@@ -462,8 +462,8 @@ final class TaxoCommerce_Logistica_Auto_Test {
             : self::fail( 'Falta alguno de los filtros necesarios para el envío.' );
     }
     private static function test_shipping_toggle() {
-        return is_callable( array( 'SEO_Transporte_Costes', 'force_wc_shipping_enabled' ) )
-            && is_callable( array( 'SEO_Transporte_Costes', 'register_bridge_shipping_method' ) )
+        return is_callable( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'force_wc_shipping_enabled' ) )
+            && is_callable( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'register_bridge_shipping_method' ) )
             ? self::pass( 'El controlador de habilitación y método puente está disponible.' )
             : self::fail( 'Falta integración de activación del método de transporte.' );
     }
@@ -481,13 +481,13 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
     private static function test_export_import() {
         return self::has_hooks( array(
-            'admin_post_seo_transporte_export', 'admin_post_seo_transporte_import', 'admin_post_seo_transporte_save',
+            'admin_post_taxocommerce_logistica_export', 'admin_post_taxocommerce_logistica_import', 'admin_post_taxocommerce_logistica_save',
         ) ) ? self::pass( 'Acciones de exportación, importación y guardado registradas; no se invocan.' )
             : self::fail( 'Falta alguna acción de configuración/JSON.' );
     }
     private static function test_schema() {
-        return is_callable( array( 'SEO_Transporte_Costes', 'import_settings' ) )
-            && is_callable( array( 'SEO_Transporte_Costes', 'export_settings' ) )
+        return is_callable( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'import_settings' ) )
+            && is_callable( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'export_settings' ) )
             && defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' )
             ? self::pass( 'Contratos JSON de transporte disponibles (seo-transporte-costes v1; límite 2 MiB).' )
             : self::fail( 'Importación/exportación de configuraciones incompleta.' );
@@ -517,7 +517,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
 
     private static function url() {
         return add_query_arg(
-            array( 'page'=>'seo-logistica', 'tc_logistica_tab'=>'auto-test' ),
+            array( 'page'=>'taxocommerce-logistica', 'tc_logistica_tab'=>'auto-test' ),
             admin_url( 'admin.php' )
         );
     }
