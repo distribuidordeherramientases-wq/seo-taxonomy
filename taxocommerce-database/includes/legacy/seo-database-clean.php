@@ -156,6 +156,7 @@ function seo_clean_db_enqueue_styles() {
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page selector used solely to enqueue admin CSS.
     $page = isset($_GET['page']) && is_string($_GET['page'])
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
         ? sanitize_key(wp_unslash($_GET['page']))
         : '';
     if ('taxocommerce-database' !== $page) {
@@ -1705,6 +1706,7 @@ function seo_clean_db_count_wc_expired_reserved_stock() {
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table name; query has no external values.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator database inventory/diagnostics must show current data; cached results can hide recent cleanup.
         $wpdb->prepare("SELECT COUNT(*) FROM %i WHERE expires < UTC_TIMESTAMP()", $table)
     );
 }
@@ -1725,6 +1727,7 @@ function seo_clean_db_count_wc_orphan_order_itemmeta() {
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal WooCommerce table names; query has no external values.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
     return (int) $wpdb->get_var(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator database inventory/diagnostics must show current data; cached results can hide recent cleanup.
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i m
          LEFT JOIN %i i ON i.order_item_id = m.order_item_id
@@ -1931,6 +1934,7 @@ function seo_clean_db_delete_as_old_completed_logs() {
     global $wpdb;
 
     $logs = esc_sql( $wpdb->prefix . 'actionscheduler_logs' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator database inventory/diagnostics must show current data; cached results can hide recent cleanup.
     $actions = esc_sql( $wpdb->prefix . 'actionscheduler_actions' );
 
     if (!seo_clean_db_table_exists($logs) || !seo_clean_db_table_exists($actions)) {
