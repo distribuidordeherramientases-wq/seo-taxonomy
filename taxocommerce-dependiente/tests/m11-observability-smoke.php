@@ -12,7 +12,7 @@ $checks=array(
   'Lingüista resume'=>strpos($academy,"if('stopped'===\$status && !TCD_Original_Linguista::is_pending())")!==false,
   'Lingüista captures errors'=>strpos($linguist,"'linguist_exception'")!==false,
   'Lingüista window stats'=>strpos($linguist,"'linguist_window_finished'")!==false,
-  'Interpreter separate bounded file'=>strpos($log,"const INTERPRETER_FILE = 'interpreter.log'")!==false && strpos($log,"self::append_bounded( $interpreter_path, $line )")!==false,
+  'Interpreter separate bounded file'=>strpos($log,"const INTERPRETER_FILE = 'interpreter.log'")!==false && strpos($log,"self::append_bounded( \$interpreter_path, \$line )")!==false,
   'Admin M11 diagnostics'=>strpos($admin,"Diagnóstico M11")!==false && strpos($admin,'interpreter_read()')!==false,
 );
 foreach($checks as $name=>$passed){if(!$passed){fwrite(STDERR,"FAIL: ".$name.PHP_EOL);exit(1);}}
