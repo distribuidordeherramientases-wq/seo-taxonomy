@@ -679,6 +679,7 @@ final class TCD_Backup {
     }
 
     private static function uploaded_path() {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Solo se llama desde los handlers analyze_upload/restore con check_admin_referer y permisos.
         if ( empty( $_FILES['backup_file'] ) || ! is_array( $_FILES['backup_file'] ) ) {
             return new WP_Error( 'tcd_backup_missing', 'No se ha recibido ningún archivo de backup.' );
         }
@@ -692,6 +693,7 @@ final class TCD_Backup {
         if ( UPLOAD_ERR_OK !== $error || ! $size || $size > self::MAX_BYTES || '' === $tmp || ! is_uploaded_file( $tmp ) ) {
             return new WP_Error( 'tcd_backup_invalid', 'El archivo no es válido o supera 512 MB.' );
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         return $tmp;
     }
 
