@@ -79,8 +79,10 @@ final class TaxoCommerce_Core_Content_Inventory {
         if ( class_exists( 'TaxoCommerce_FAQs' ) ) {
             global $wpdb;
             $table = $wpdb->prefix . 'seo_faq';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live content inventory requires the current Core canonical table schema.
             $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
             if ( $table === $exists ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live content inventory requires the current Core canonical table schema.
                 $row = $wpdb->get_row(
                     $wpdb->prepare(
                         'SELECT COUNT(*) AS total, SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) AS active FROM %i',
