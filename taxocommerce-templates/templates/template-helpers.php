@@ -107,10 +107,7 @@ if (!function_exists('dht_template_render_wp_head')) {
 if (!function_exists('dht_template_render_header')) {
     function dht_template_render_header()
     {
-        // US pages have an independent header; never load Spanish commerce UI.
-        $is_us = (isset($GLOBALS['dht_frontend_language_tag']) && 'en-US' === $GLOBALS['dht_frontend_language_tag'])
-            || (isset($GLOBALS['dht_frontend_market']) && 'us' === strtolower((string) $GLOBALS['dht_frontend_market']));
-        $path = __DIR__ . ($is_us ? '/header-us.php' : '/header.php');
+        $path = __DIR__ . '/header.php';
 
         if (is_readable($path)) {
             include $path;
@@ -124,9 +121,7 @@ if (!function_exists('dht_template_render_header')) {
 if (!function_exists('dht_template_render_footer')) {
     function dht_template_render_footer()
     {
-        $is_us = (isset($GLOBALS['dht_frontend_language_tag']) && 'en-US' === $GLOBALS['dht_frontend_language_tag'])
-            || (isset($GLOBALS['dht_frontend_market']) && 'us' === strtolower((string) $GLOBALS['dht_frontend_market']));
-        $path = __DIR__ . ($is_us ? '/footer-us.php' : '/footer.php');
+        $path = __DIR__ . '/footer.php';
 
         if (is_readable($path)) {
             include $path;
