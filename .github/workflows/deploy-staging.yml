@@ -478,7 +478,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           zipfile="taxocommerce-dependiente-${version}.zip"
           rm -f "$zipfile"
-          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
+          # Build a clean distributable; never ship CI fixtures or FTP state.
+          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.*" "*/.ftp-deploy-sync-state.json" "*/.DS_Store"
+          if unzip -Z1 "$zipfile" | grep -E '(^|/)(tests/|[.][^/]+)'; then
+            echo "Assistant package contains tests or hidden files" >&2
+            exit 1
+          fi
           unzip -t "$zipfile"
           unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
 
@@ -506,6 +511,9 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/tests
+            **/tests/**
+            **/.ftp-deploy-sync-state.json
             **/*.bak
             **/*.md
             **/*.pot
