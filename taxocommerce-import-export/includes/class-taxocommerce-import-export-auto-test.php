@@ -309,7 +309,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'wp_ajax_taxocommerce_ie_batch_continue',
             'wp_ajax_nopriv_taxocommerce_ie_batch_continue',
         ) );
-        return $missing || ! has_action( 'init', array( taxocommerce_import_export(), 'watchdog' ) ) && ! has_action( 'init' )
+        return $missing || ! has_action( 'init' )
             ? self::error( 'Worker o recuperación no registrados.' )
             : self::ok( 'Worker y continuidad por loopback registrados, sin despachar tareas.' );
     }
