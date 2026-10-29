@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Vocabulary
  * Description: Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.
  * Version: 0.3.3
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-vocabulary/
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
