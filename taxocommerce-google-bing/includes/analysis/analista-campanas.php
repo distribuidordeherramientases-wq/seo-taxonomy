@@ -54,7 +54,7 @@ if (!function_exists('seo_analista_campaign_dependiente_demand')) {
     function seo_analista_campaign_dependiente_demand($days = 28) {
         global $wpdb;
         $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(7, min(90, absint($days)));
-        $table = $wpdb->prefix . 'seo_dependiente_search_log';
+        $table = esc_sql($wpdb->prefix . 'seo_dependiente_search_log');
         $exists = function_exists('seo_analista_table_exists')
             ? seo_analista_table_exists($table)
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
