@@ -288,13 +288,13 @@ if (!function_exists('dht_shared_product_image_candidates')) {
             $supplier_urls = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
-                     LIMIT %d",
+                     LIMIT %d", $supplier_table,
                     $product_id,
                     $supplier_limit
                 )
@@ -598,8 +598,8 @@ if (!function_exists('dht_shared_product_compare_data')) {
             $semantic_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT v.semantic_group, v.label
-                     FROM {$object_table} ov
-                     INNER JOIN {$vocabulary_table} v
+                     FROM %i ov
+                     INNER JOIN %i v
                         ON v.id = ov.vocabulary_id
                        AND v.active = 1
                      WHERE ov.object_type = 'product'
@@ -607,7 +607,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
                        AND ov.status = 1
                        AND v.semantic_group IN ('tipo','rol','aplicacion','plataforma','subtipo')
                      ORDER BY FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),
-                              v.label ASC",
+                              v.label ASC", $object_table, $vocabulary_table,
                     $product_id
                 ),
                 ARRAY_A
@@ -1830,7 +1830,7 @@ if (!function_exists('dht_template_render_context_posts')) {
         $link_label = 'ingeniero' === $variant ? 'Leer información técnica' : 'Leer guía';
         $count_label = sprintf(
             /* translators: %d: número de artículos editoriales relacionados. */
-            _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-seo'),
+            _n('%d artículo', '%d artículos', count($valid), 'taxocommerce-templates'),
             count($valid)
         );
         ?>
@@ -2041,13 +2041,13 @@ if (!function_exists('dht_template_render_external_comments')) {
                 'Ver %d comentario externo',
                 'Ver %d comentarios externos',
                 $comment_count,
-                'taxocommerce-seo'
+                'taxocommerce-templates'
             ),
             $comment_count
         );
         $count_label = sprintf(
             /* translators: %d: número de comentarios externos disponibles. */
-            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-seo'),
+            _n('%d comentario externo', '%d comentarios externos', $comment_count, 'taxocommerce-templates'),
             $comment_count
         );
         ?>
