@@ -56,7 +56,7 @@ final class TaxoCommerce_Core_Editor_UI {
     public static function ajax_terms() {
         check_ajax_referer( 'taxocommerce_core_editor_terms', 'nonce' );
         if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => 'Acceso no autorizado.' ), 403 );
+            wp_send_json_error( array( 'message' => __( 'Acceso no autorizado.', 'taxocommerce-core' ) ), 403 );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
         $mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
@@ -68,7 +68,7 @@ final class TaxoCommerce_Core_Editor_UI {
             wp_send_json_success( TaxoCommerce_Core_Vocabulary::search( $group, $needle ) );
         }
         if ( 'taxonomy' !== $mode || ! self::allowed_taxonomy( $group ) ) {
-            wp_send_json_error( array( 'message' => 'Taxonomía no admitida.' ), 400 );
+            wp_send_json_error( array( 'message' => __( 'Taxonomía no admitida.', 'taxocommerce-core' ) ), 400 );
         }
         $terms = get_terms(
             array(
@@ -81,7 +81,7 @@ final class TaxoCommerce_Core_Editor_UI {
             )
         );
         if ( is_wp_error( $terms ) ) {
-            wp_send_json_error( array( 'message' => 'No se pudieron consultar las etiquetas.' ), 500 );
+            wp_send_json_error( array( 'message' => __( 'No se pudieron consultar las etiquetas.', 'taxocommerce-core' ) ), 500 );
         }
         $result = array();
         foreach ( (array) $terms as $term ) {
