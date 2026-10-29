@@ -123,4 +123,10 @@ if ( ! empty( $GLOBALS['tc_test_styles'] ) ) {
     fwrite( STDERR, "FAIL architecture CSS leaks onto unrelated screen\n" );
     exit( 1 );
 }
+$architecture_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core-architecture-report.php' );
+if ( false === strpos( $architecture_source, "esc_html( self::amount( \$count ) )" )
+    || false === strpos( $architecture_source, "esc_html( self::amount( \$cluster['products'] ) )" ) ) {
+    fwrite( STDERR, "FAIL hierarchy numeric outputs must be escaped\\n" );
+    exit( 1 );
+}
 echo "Architecture report OK: clusters, hubs, categories, unique products, Reports CSS and empty states.\n";
