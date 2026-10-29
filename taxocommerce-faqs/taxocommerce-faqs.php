@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce FAQs
  * Description: Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.
  * Version: 0.1.4
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-faqs/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
