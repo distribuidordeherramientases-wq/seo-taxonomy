@@ -371,10 +371,34 @@ final class TaxoCommerce_Logistica_Auto_Test {
             : self::fail( 'No se detecta ausencia de datos logísticos.' );
     }
     private static function test_order_audit() {
-        return method_exists( 'SEO_Transporte_Costes', 'render_page' )
-            && method_exists( 'SEO_Transporte_Costes', 'filter_package_rates' )
-            ? self::pass( 'Servicios de auditoría y tarifas declarados; verificación real pendiente.' )
-            : self::fail( 'No existe el servicio principal de logística.' );
+        $product = new class {
+            public function get_weight() { return '1.5'; }
+        };
+        $line = new class( $product ) {
+            private $product;
+            public function __construct( $product ) { $this->product = $product; }
+            public function get_quantity() { return 2; }
+            public function get_product() { return $this->product; }
+        };
+        $order = new class( $line ) {
+            private $line;
+            public function __construct( $line ) { $this->line = $line; }
+            public function get_items( $type = '' ) { return array( $this->line ); }
+            public function get_shipping_methods() {
+                return array( new class {
+                    public function get_name() { return 'Entrega simulada'; }
+                } );
+            }
+        };
+        $metrics = self::pure( 'order_weight_metrics', array( $order ) );
+        $expected = function_exists( 'wc_get_weight' ) ? (float) wc_get_weight( 1.5, 'kg' ) * 2 : 3.0;
+        $label = self::pure( 'order_shipping_method_label', array( $order ) );
+        return 2.0 === (float) $metrics['units']
+            && 0 === (int) $metrics['missing_weight']
+            && abs( (float) $metrics['weight'] - $expected ) < 0.000001
+            && 'Entrega simulada' === $label
+            ? self::pass( 'Auditoría: unidades, peso del pedido y nombre del transportista correctos con pedido simulado.' )
+            : self::fail( 'La auditoría del pedido simulado ha cambiado.' );
     }
     private static function test_rule_match() {
         $rule = self::pure( 'blank_rule' );
