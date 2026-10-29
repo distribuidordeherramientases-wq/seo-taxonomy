@@ -248,7 +248,7 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'Columnas ausentes en seo_nodes: ' . implode( ', ', $missing ) );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table, fixed predicate.
-        $count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE object_type='page' AND status=1" );
+        $count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE object_type='page' AND status=1", $table ) );
         return null === $count ? self::bad( 'Error leyendo nodos: ' . $wpdb->last_error ) :
             self::ok( absint( $count ) . ' nodos activos; columnas obligatorias disponibles.' );
     }
@@ -260,7 +260,7 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No existe seo_nodes.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table, fixed predicate.
-        $row = $wpdb->get_row( "SELECT object_id,seo_role FROM {$table} WHERE object_type='page' AND status=1 ORDER BY id DESC LIMIT 1", ARRAY_A );
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT object_id,seo_role FROM %i WHERE object_type='page' AND status=1 ORDER BY id DESC LIMIT 1", $table ), ARRAY_A );
         if ( ! is_array( $row ) ) {
             return $wpdb->last_error ? self::bad( 'Error leyendo roles: ' . $wpdb->last_error ) :
                 self::skip( 'No hay nodos activos para comprobar lectura.' );
@@ -285,7 +285,7 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No está disponible el lector de jerarquía.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table identifier.
-        $count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+        $count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
         return null === $count ? self::bad( 'Error leyendo relaciones: ' . $wpdb->last_error ) :
             self::ok( absint( $count ) . ' relaciones en tabla; lector cargado.' );
     }
@@ -297,7 +297,7 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'No existe seo_relations.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed, bounded read of Core table.
-        $rows = $wpdb->get_results( "SELECT id,source_type,source_id,target_type,target_id,relation_type FROM {$table} ORDER BY id DESC LIMIT 60", ARRAY_A );
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,source_type,source_id,target_type,target_id,relation_type FROM %i ORDER BY id DESC LIMIT 60', $table ), ARRAY_A );
         if ( ! is_array( $rows ) ) {
             return self::bad( 'Error leyendo relaciones: ' . $wpdb->last_error );
         }
