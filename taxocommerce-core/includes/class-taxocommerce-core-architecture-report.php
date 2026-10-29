@@ -165,8 +165,7 @@ final class TaxoCommerce_Core_Architecture_Report {
                 $ids
             );
             // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is fully prepared with integer placeholders.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared with generated %d placeholders; live report must reflect current data.
             $rows = $wpdb->get_results( $query, ARRAY_A );
             if ( ! is_array( $rows ) ) {
                 return new WP_Error( 'tc_arch_query_products', 'No se han podido consultar las categorías de los productos.' );
