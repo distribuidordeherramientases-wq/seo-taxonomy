@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.17
+Stable tag: 0.3.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,7 @@ TaxoCommerce Assistant builds searchable product knowledge from the site's WooCo
 * M12: incremental updates when products or related content change.
 * Search shortcode: [taxocommerce_dependiente_moderno].
 * Independent administration of learning progress, quality reports, knowledge transfers and local backups.
+* Built-in User Guide with user and technical manuals, with no learning or settings writes.
 * Uses its own tables for snapshots, learning, semantic rules and feedback.
 * Keeps the legacy public shortcode untouched when the former plugin is active in production.
 
@@ -58,6 +59,12 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.18 =
+* Add a responsive User Guide tab with separate User Manual and Technical Manual inside Dependiente.
+* Explain learning, quality recovery, Interpreter M11, M12, search and feedback, backups, plugin architecture and data contracts.
+* Preserve all training controls, imports, exports, cron and frontend behavior.
+
 
 = 0.3.18 =
 * Auto Test reports functional readiness separately from educational outcomes and historical process errors. M11, learning and M12 remain green when endpoints, workers and state contracts are available, with diagnostic detail.
