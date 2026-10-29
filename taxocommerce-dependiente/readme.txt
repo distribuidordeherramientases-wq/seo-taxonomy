@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.18
+Stable tag: 0.3.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,11 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.19 =
+* Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
+* Validate learning priority input and safely quote internal learning table identifiers.
+
 
 = 0.3.18 =
 * Add a responsive User Guide tab with separate User Manual and Technical Manual inside Dependiente.
