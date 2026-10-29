@@ -511,15 +511,13 @@ function seo_clean_db_render_bulk_accept_lock_section() {
     $option_name = 'seo_proveedores_bulk_accept_lock';
     $lock = seo_clean_db_get_bulk_accept_lock();
 
+    if ($lock === false || $lock === null || $lock === '') {
+        return;
+    }
+
     echo '<div class="seo-clean-card">';
     echo '<h2>Bloqueo de aceptación masiva de proveedores</h2>';
     echo '<p>Este bloqueo evita que dos aceptaciones masivas procesen los mismos productos al mismo tiempo.</p>';
-
-    if ($lock === false || $lock === null || $lock === '') {
-        seo_clean_db_render_notice('success', 'No existe ningún bloqueo activo de aceptación masiva.');
-        echo '</div>';
-        return;
-    }
 
     $token = is_array($lock) && isset($lock['token']) ? (string) $lock['token'] : '';
     $user_id = is_array($lock) && isset($lock['user_id']) ? absint($lock['user_id']) : 0;
@@ -1353,7 +1351,7 @@ function seo_clean_db_render_relations_section($relation_analysis, $config) {
     echo '<p>Cada extremo se valida según su tipo: los roles SEO deben existir en <code>seo_nodes</code> y conservar su objeto WordPress; <code>product_cat</code> debe existir como categoría de WooCommerce.</p>';
 
     if (empty($relation_analysis['invalid'])) {
-        seo_clean_db_render_notice('success', 'No se han encontrado relaciones inválidas.');
+        echo '<p class="description">' . esc_html('No se han encontrado relaciones inválidas.') . '</p>';
     } else {
         seo_clean_db_render_notice('warning', 'Se han encontrado <strong>' . count($relation_analysis['invalid']) . '</strong> relaciones inválidas. La acción elimina únicamente esas filas de <code>seo_relations</code>.');
         echo '<table class="widefat striped seo-clean-table"><thead><tr><th>ID</th><th>Tipo de relación</th><th>Origen</th><th>Destino</th><th>Problema</th></tr></thead><tbody>';
@@ -1392,7 +1390,7 @@ function seo_clean_db_render_stale_nodes_section($stale_nodes, $config) {
     echo '<p>Detecta registros de <code>seo_nodes</code> cuyo contenido fue eliminado o enviado a la papelera.</p>';
 
     if (empty($stale_nodes)) {
-        seo_clean_db_render_notice('success', 'Todos los nodos SEO conservan un objeto WordPress activo.');
+        echo '<p class="description">' . esc_html('Todos los nodos SEO conservan un objeto WordPress activo.') . '</p>';
     } else {
         echo '<table class="widefat striped seo-clean-table"><thead><tr><th>Registro</th><th>Objeto</th><th>Rol</th><th>Estado</th></tr></thead><tbody>';
 
@@ -1456,7 +1454,7 @@ function seo_clean_db_render_multiple_ambitos_section($multiple_ambito_products,
     echo '<p>Las filas <code>product</code>, <code>ambito</code>, <code>description</code> y <code>excerpt</code> pueden coexistir legalmente. Esta comprobación solo marca productos que tienen más de una fila <code>ambito</code>.</p>';
 
     if (empty($multiple_ambito_products)) {
-        seo_clean_db_render_notice('success', 'No hay productos con múltiples ámbitos.');
+        echo '<p class="description">' . esc_html('No hay productos con múltiples ámbitos.') . '</p>';
     } else {
         seo_clean_db_render_notice('warning', 'Se han encontrado <strong>' . count($multiple_ambito_products) . '</strong> productos con más de un ámbito. El informe es diagnóstico y no elimina datos automáticamente.');
         echo '<table class="widefat striped seo-clean-table"><thead><tr><th>Producto</th><th>Título</th><th>Ámbitos</th><th>Valores registrados</th><th>IDs de nodo</th></tr></thead><tbody>';
@@ -1487,7 +1485,7 @@ function seo_clean_db_render_broken_categories_section($broken_categories) {
     echo '<p>Detecta categorías cuyo padre ya no existe. La reparación las mueve al nivel raíz.</p>';
 
     if (empty($broken_categories)) {
-        seo_clean_db_render_notice('success', 'No hay categorías con jerarquía rota.');
+        echo '<p class="description">' . esc_html('No hay categorías con jerarquía rota.') . '</p>';
     } else {
         echo '<table class="widefat striped seo-clean-table"><thead><tr><th>ID</th><th>Nombre</th><th>Slug</th><th>Padre inexistente</th></tr></thead><tbody>';
         foreach ($broken_categories as $category) {
