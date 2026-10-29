@@ -51,7 +51,7 @@ $checks=array(
     strpos($academy,'watchdog_running_process')!==false,
     strpos($academy,'watchdog_wakeup')!==false,
     strpos($academy,"const WATCHDOG='tcd_learning_watchdog_last'")!==false,
-    strpos($academy,"add_action('admin_init',array(__CLASS__,'watchdog_running_process'))")!==false,
+    strpos($academy,"add_action('init',array(__CLASS__,'watchdog_running_process'))")!==false,
     strpos($academy,"'learning_exception'")!==false,
     strpos($learning_log,'const MAX_BYTES = 1048576')!==false,
     strpos($learning_log,'const KEEP_BYTES = 786432')!==false,

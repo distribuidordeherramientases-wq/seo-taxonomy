@@ -40,7 +40,7 @@ if (function_exists('dht_template_render_header')) {
                         echo esc_html(
                             sprintf(
                                 /* translators: %s: número localizado de productos encontrados. */
-                                _n('%s producto encontrado', '%s productos encontrados', (int) $wp_query->found_posts, 'taxocommerce-seo'),
+                                _n('%s producto encontrado', '%s productos encontrados', (int) $wp_query->found_posts, 'taxocommerce-templates'),
                                 number_format_i18n((int) $wp_query->found_posts)
                             )
                         );
@@ -119,7 +119,7 @@ if (function_exists('dht_template_render_header')) {
                             <li class="product dh-product-card dht-search-product-card">
                                 <a href="<?php echo esc_url($permalink); ?>" class="dh-product-link dht-search-product-link">
                                     <?php if ($card_product->is_on_sale()) : ?>
-                                        <span class="onsale"><?php echo esc_html__('Oferta', 'taxocommerce-seo'); ?></span>
+                                        <span class="onsale"><?php echo esc_html__('Oferta', 'taxocommerce-templates'); ?></span>
                                     <?php endif; ?>
 
                                     <div class="dh-product-image dht-search-product-image">

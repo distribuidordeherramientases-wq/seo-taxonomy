@@ -37,6 +37,7 @@ final class TCD_Original_Interprete_DB {
             return self::$table_exists;
         }
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         self::$table_exists = (string) $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         ) === $table;
@@ -49,6 +50,7 @@ final class TCD_Original_Interprete_DB {
             return self::$evidence_table_exists;
         }
         $table = esc_sql( self::evidence_table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         self::$evidence_table_exists = (string) $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         ) === $table;
@@ -203,9 +205,10 @@ final class TCD_Original_Interprete_DB {
 
         $context_terms = self::normalize_terms((array) ($row['context_terms'] ?? array()));
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE normalized_expression=%s AND canonical_term=%s AND relation_type=%s LIMIT 1",
-            $normalized,
+            "SELECT * FROM %i WHERE normalized_expression=%s AND canonical_term=%s AND relation_type=%s LIMIT 1",
+            $table, $normalized,
             $canonical,
             $relation
         ), ARRAY_A);
@@ -255,8 +258,10 @@ final class TCD_Original_Interprete_DB {
 
         if (is_array($existing) && !empty($existing['id'])) {
             $id = absint($existing['id']);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             $wpdb->update($table, $data, array('id' => $id));
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             $wpdb->insert($table, $data);
             $id = absint($wpdb->insert_id);
         }
@@ -281,9 +286,10 @@ final class TCD_Original_Interprete_DB {
         }
         $context_terms = self::normalize_terms((array) $context_terms);
         $table = esc_sql( self::evidence_table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $existing_id = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE lexicon_id=%d AND source_type=%s AND source_id=%d LIMIT 1",
-            $lexicon_id,
+            "SELECT id FROM %i WHERE lexicon_id=%d AND source_type=%s AND source_id=%d LIMIT 1",
+            $table, $lexicon_id,
             $source_type,
             $source_id
         )));
@@ -300,8 +306,10 @@ final class TCD_Original_Interprete_DB {
         );
 
         if ($existing_id) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             $wpdb->update($table, $data, array('id' => $existing_id));
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             $wpdb->insert($table, $data);
         }
 
@@ -316,18 +324,21 @@ final class TCD_Original_Interprete_DB {
             return;
         }
         $evidence = esc_sql( self::evidence_table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $summary = $wpdb->get_row($wpdb->prepare(
-            "SELECT COUNT(*) evidence_count, MAX(confidence) max_confidence FROM {$evidence} WHERE lexicon_id=%d AND active=1",
-            $lexicon_id
+            "SELECT COUNT(*) evidence_count, MAX(confidence) max_confidence FROM %i WHERE lexicon_id=%d AND active=1",
+            $evidence, $lexicon_id
         ), ARRAY_A);
         $count = max(1, absint($summary['evidence_count'] ?? 0));
         $evidence_confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $current_confidence = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT confidence FROM {$table} WHERE id=%d",
-            $lexicon_id
+            "SELECT confidence FROM %i WHERE id=%d",
+            $table, $lexicon_id
         ));
         $confidence = max($current_confidence, $evidence_confidence > 0 ? $evidence_confidence : 0.5);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $wpdb->update(
             self::table(),
             array('evidence_count' => $count, 'confidence' => min(1, $confidence)),
@@ -354,15 +365,18 @@ final class TCD_Original_Interprete_DB {
         $ids = array_slice($ids, 0, 20);
         $table = esc_sql( self::table() );
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
-                   FROM {$table}
+                   FROM %i
                   WHERE active=1 AND language='es' AND id IN ({$placeholders})",
-                $ids
+                array_merge( array( $table ), $ids )
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         if (!$rows) {
             return 0;
         }
@@ -418,6 +432,7 @@ final class TCD_Original_Interprete_DB {
                     $format[] = '%s';
                 }
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             if (false !== $wpdb->update(self::table(), $changes, array('id' => $id), $format, array('%d'))) {
                 $updated++;
             }
@@ -436,9 +451,10 @@ final class TCD_Original_Interprete_DB {
             return 0;
         }
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es' AND active=1",
-            $normalized_expression
+            "SELECT COUNT(DISTINCT canonical_term) FROM %i WHERE normalized_expression=%s AND language='es' AND active=1",
+            $table, $normalized_expression
         )));
     }
 
@@ -452,7 +468,8 @@ final class TCD_Original_Interprete_DB {
             return false;
         }
         $table = esc_sql( self::table() );
-        $column = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'usage_count'");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
+        $column = $wpdb->get_var($wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'usage_count' ));
         self::$usage_columns_ready = 'usage_count' === (string) $column;
         return self::$usage_columns_ready;
     }
@@ -488,6 +505,7 @@ final class TCD_Original_Interprete_DB {
         if (!$allowed) {
             return false;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $ok = false !== $wpdb->update(self::table(), $allowed, array('id' => $id));
         self::clear_cache();
         return $ok;
@@ -500,7 +518,8 @@ final class TCD_Original_Interprete_DB {
             return array();
         }
         $table = esc_sql( self::table() );
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE id=%d", $table, $id), ARRAY_A);
         return is_array($row) ? $row : array();
     }
 
@@ -511,9 +530,10 @@ final class TCD_Original_Interprete_DB {
             return 0;
         }
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es'",
-            $normalized_expression
+            "SELECT COUNT(DISTINCT canonical_term) FROM %i WHERE normalized_expression=%s AND language='es'",
+            $table, $normalized_expression
         )));
     }
 
@@ -524,9 +544,10 @@ final class TCD_Original_Interprete_DB {
             return array();
         }
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM {$table} WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
-            $normalized
+            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM %i WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
+            $table, $normalized
         ), ARRAY_A);
         return is_array($row) ? $row : array();
     }
@@ -539,9 +560,10 @@ final class TCD_Original_Interprete_DB {
             return array();
         }
         $evidence_table = esc_sql( self::evidence_table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT source_id FROM {$evidence_table} WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
-            $lexicon_id,
+            "SELECT source_id FROM %i WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
+            $evidence_table, $lexicon_id,
             $limit
         ))))));
     }
@@ -552,14 +574,16 @@ final class TCD_Original_Interprete_DB {
             return;
         }
         $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $exists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($vocabulary))) === $vocabulary;
         if (!$exists) {
             return;
         }
 
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         $rows = $wpdb->get_results(
-            "SELECT id,canonical_term FROM {$table} WHERE active=1 AND (vocabulary_id IS NULL OR vocabulary_id=0) LIMIT 5000",
+            $wpdb->prepare( "SELECT id,canonical_term FROM %i WHERE active=1 AND (vocabulary_id IS NULL OR vocabulary_id=0) LIMIT 5000", $table ),
             ARRAY_A
         );
         foreach ((array) $rows as $row) {
@@ -568,12 +592,14 @@ final class TCD_Original_Interprete_DB {
                 continue;
             }
             $slug = sanitize_title($canonical);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
             $match = $wpdb->get_row($wpdb->prepare(
-                "SELECT id,semantic_group FROM {$vocabulary} WHERE active=1 AND (slug=%s OR LOWER(label)=LOWER(%s)) ORDER BY id ASC LIMIT 1",
-                $slug,
+                "SELECT id,semantic_group FROM %i WHERE active=1 AND (slug=%s OR LOWER(label)=LOWER(%s)) ORDER BY id ASC LIMIT 1",
+                $vocabulary, $slug,
                 $canonical
             ), ARRAY_A);
             if ($match) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
                 $wpdb->update($table, array(
                     'vocabulary_id' => absint($match['id']),
                     'semantic_group' => sanitize_key((string) ($match['semantic_group'] ?? '')),
@@ -679,8 +705,9 @@ final class TCD_Original_Interprete_DB {
             return self::$rows_cache;
         }
         $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
         self::$rows_cache = (array) $wpdb->get_results(
-            "SELECT * FROM {$table} WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC",
+            $wpdb->prepare( "SELECT * FROM %i WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC", $table ),
             ARRAY_A
         );
         return self::$rows_cache;
@@ -704,18 +731,37 @@ final class TCD_Original_Interprete_DB {
             return $stats;
         }
         $table = esc_sql( self::table() );
-        $stats['active'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1");
-        $stats['staged'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND source LIKE 'linguista%'");
-        $stats['validated'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE validated=1");
-        $stats['linked_vocabulary'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0");
-        $stats['lesson_i1'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND lesson_key='i1_subject_action'");
-        if (self::usage_columns_ready()) {
-            $stats['usage_total'] = (int) $wpdb->get_var("SELECT COALESCE(SUM(usage_count),0) FROM {$table} WHERE active=1");
+        // Count the mutable lexicon states in one scan, retaining the original conditions.
+        // Direct access is required for the plugin-owned table; avoid caching live learning counters.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One read of live plugin-managed lexicon statistics; a cache would mask recent learning.
+        $counts = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT
+                    SUM(CASE WHEN active=1 THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN active=0 AND source LIKE %s THEN 1 ELSE 0 END) AS staged,
+                    SUM(CASE WHEN validated=1 THEN 1 ELSE 0 END) AS validated,
+                    SUM(CASE WHEN active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0 THEN 1 ELSE 0 END) AS linked_vocabulary,
+                    SUM(CASE WHEN active=1 AND lesson_key='i1_subject_action' THEN 1 ELSE 0 END) AS lesson_i1,
+                    SUM(CASE WHEN active=1 AND source='linguista_l8_auto' THEN 1 ELSE 0 END) AS provisional
+                 FROM %i",
+                $wpdb->esc_like( 'linguista' ) . '%',
+                $table
+            ),
+            ARRAY_A
+        );
+        if (is_array($counts)) {
+            foreach (array('active', 'staged', 'validated', 'linked_vocabulary', 'lesson_i1', 'provisional') as $key) {
+                $stats[$key] = (int) ($counts[$key] ?? 0);
+            }
         }
-        $stats['provisional'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND source='linguista_l8_auto'");
+        if (self::usage_columns_ready()) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
+            $stats['usage_total'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COALESCE(SUM(usage_count),0) FROM %i WHERE active=1", $table ));
+        }
         if ($stats['evidence_ready']) {
             $evidence_table = esc_sql( self::evidence_table() );
-            $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$evidence_table} WHERE active=1");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lexicon uses plugin-specific mutable evidence tables; live learning reads/writes cannot safely use a stale cache.
+            $stats['evidence'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $evidence_table ));
         }
         return $stats;
     }

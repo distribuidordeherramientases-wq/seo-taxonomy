@@ -4,7 +4,7 @@
  *
  * Cabecera, navegacion, contenido, servicios y pie estan en este archivo.
  * No se carga el menu espanol, ni el carrito, ni las plantillas de venta ES.
- * El router proporciona $dht_pilot_market (US, DE o NL).
+ * El router proporciona $dht_pilot_market (US, DE, NL o FR).
  */
 defined('ABSPATH') || exit;
 
@@ -188,8 +188,10 @@ if (!$is_category && !$is_landing) {
     }
 }
 
-// One stable, country-specific navigation on all regional category, landing
-// and product pages. Links always resolve to real WooCommerce regional terms.
+// The same international header renders the native TaxoCommerce menu for
+// every supported market, selected exclusively by the existing country router.
+$managed_menu_id = dht_pilot_country_managed_menu_id( $market );
+
 $country_navigation = dht_pilot_country_navigation( $market );
 $navigation = (array) $country_navigation['featured'];
 $navigation_roots = (array) $country_navigation['roots'];
@@ -428,7 +430,7 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <?php dht_pilot_render_country_switcher( $market ); ?>
             </div>
         </div>
-        <?php if ($navigation_roots) : ?>
+        <?php if ($managed_menu_id) : ?>
         <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->
         <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories'] . ' · ' . $t['country']); ?>">
             <div class="dht-pilot-nav-heading">
@@ -436,7 +438,14 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <span><?php echo esc_html($t['all_categories']); ?></span>
                 <a class="dht-pilot-nav-home" href="<?php echo esc_url($main_url); ?>"><?php echo esc_html($t['country']); ?></a>
             </div>
-            <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
+            <?php wp_nav_menu(array(
+                'menu' => $managed_menu_id,
+                'theme_location' => '',
+                'container' => false,
+                'menu_class' => 'dht-pilot-menu-list dht-pilot-menu-list--depth-0',
+                'fallback_cb' => false,
+                'depth' => 0,
+            )); ?>
         </nav>
         <?php endif; ?>
     </div>

@@ -51,6 +51,6 @@ function taxocommerce_import_export() {
  */
 function taxocommerce_import_export_boot() {
 	taxocommerce_import_export()->boot();
-	TaxoCommerce_Import_Export_Auto_Test::boot();
 }
 add_action( 'plugins_loaded', 'taxocommerce_import_export_boot', 25 );
+TaxoCommerce_Import_Export_Auto_Test::register();

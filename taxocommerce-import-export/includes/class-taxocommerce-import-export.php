@@ -225,14 +225,14 @@ final class TaxoCommerce_Import_Export {
 				<a class="nav-tab <?php echo esc_attr( 'auto-test' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-import-export' ); ?></a>
 			</nav>
 
-			<?php if ( $message ) : ?>
-				<div class="notice <?php echo esc_attr( 'error' === $result ? 'notice-error' : 'notice-success' ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
-			<?php endif; ?>
-
 			<?php if ( 'auto-test' === $tab ) : ?>
 				<?php TaxoCommerce_Import_Export_Auto_Test::render(); ?>
 				</div>
 				<?php return; ?>
+			<?php endif; ?>
+
+			<?php if ( $message ) : ?>
+				<div class="notice <?php echo esc_attr( 'error' === $result ? 'notice-error' : 'notice-success' ); ?> is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
 			<?php if ( 'export' === $tab && $this->exporter ) : ?>

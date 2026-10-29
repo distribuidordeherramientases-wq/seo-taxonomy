@@ -52,9 +52,9 @@ The package transports original image files plus title, ALT, caption, descriptio
 == Changelog ==
 
 = 0.4.9 =
-* Add grouped read-only Auto Test tab with before/after deployment comparison and JSON reports.
-* Cover CSV, countries, queue, workers, Media ZIP, export handlers, adaptive load, and unsafe active-work deployment warnings.
-* Preserve all existing import/export operations and exclude tests from the public ZIP.
+* Add Auto Test tab with independent, non-destructive checks for CSV, country fields, queued/individual imports, export jobs, Media ZIP, workload profiles and security.
+* Save a per-user and per-site baseline before deployment, compare after deployment by check ID, and export sanitized JSON results.
+* Explicitly mark end-to-end imports, real Media restoration, downloads and background execution as manual tests, without touching catalogue or active queue.
 
 
 = 0.4.6 =

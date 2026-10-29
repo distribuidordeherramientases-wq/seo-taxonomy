@@ -228,21 +228,43 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
-        $field = (string) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
+        $has_country = 'country_code' === (string) $wpdb->get_var(
+            $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' )
+        );
+        // The selected column is one of two fixed SQL fragments, never request input.
         if ( $type ) {
-            $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type = %s", $type ),
-                ARRAY_A
-            );
+            if ( $has_country ) {
+                $sql = $wpdb->prepare(
+                    'SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type = %s',
+                    $table,
+                    $type
+                );
+            } else {
+                $sql = $wpdb->prepare(
+                    'SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type = %s',
+                    $table,
+                    $type
+                );
+            }
         } else {
             $types = array_keys( $defs );
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Whitelisted SQL placeholders and known table name.
-            $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
-                ARRAY_A
-            );
+            if ( $has_country ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
+                $sql = $wpdb->prepare(
+                    "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type IN ({$placeholders})",
+                    array_merge( array( $table ), $types )
+                );
+            } else {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
+                $sql = $wpdb->prepare(
+                    "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type IN ({$placeholders})",
+                    array_merge( array( $table ), $types )
+                );
+            }
         }
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL is prepared in every branch above.
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
         return is_array( $rows ) ? $rows : array();
     }
 
@@ -802,7 +824,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'taxonomy' => 'product_cat', 'hide_empty' => false,
             'search' => $query, 'orderby' => 'name', 'number' => 50,
         ) );
-        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( wp_unslash( $_GET['tc_country'] ) ) : 'ES';
+        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) ) : 'ES';
         $map = self::map( 'hub_secondary_to_category', $country );
         $taken = array();
         foreach ( $map as $parent => $items ) {
