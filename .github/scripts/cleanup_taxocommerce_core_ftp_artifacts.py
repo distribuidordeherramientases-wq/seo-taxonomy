@@ -58,9 +58,21 @@ def main():
         try:
             ftp.rmd("tests")
         except ftplib.error_perm as error:
+            if not str(error).startswith("550"):
+                raise
+            # Both staging workflows may clean at once. A missing directory
+            # is success; an existing nonempty directory is a real failure.
+            try:
+                ftp.cwd("tests")
+            except ftplib.error_perm as missing:
+                if not str(missing).startswith("550"):
+                    raise
+                print("Core tests directory already removed by another deploy")
+                return
+            ftp.cwd("..")
             raise RuntimeError(
-                "Core tests directory is not empty or could not be removed. "
-                "Unknown files were preserved for review."
+                "Core tests directory still contains unknown files. "
+                "They were preserved for review."
             ) from error
         print("Removed obsolete Core tests directory")
     finally:
