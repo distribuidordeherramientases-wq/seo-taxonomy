@@ -631,9 +631,9 @@ final class TCD_Academy {
         if($more){self::queue();return count((array)$batch['items']);}
 
         $items=self::items_table();
-        $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$items} WHERE snapshot_id=%d",$snapshot_id)));
+        $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE snapshot_id=%d",$items, $snapshot_id)));
         if($count<1)throw new RuntimeException( esc_html( 'L'.$lesson.' no ha encontrado material formativo; no se inicia el aprendizaje.') );
-        $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM {$items} WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$snapshot_id));
+        $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM %i WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$items, $snapshot_id));
         $signature=hash('sha256',implode('|',array_map('strval',(array)$signatures)));
         $wpdb->update(self::snapshots_table(),array(
             'status'=>'ready','source_count'=>$count,'source_signature'=>$signature,'sealed_at'=>current_time('mysql'),
@@ -660,8 +660,8 @@ final class TCD_Academy {
             'after_sequence'=>absint($state['learning_cursor']??0),
         ));
         $rows=$wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$items} WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
-            $snapshot_id,$limit
+            "SELECT * FROM %i WHERE snapshot_id=%d AND status='pending' ORDER BY sequence_no ASC,id ASC LIMIT %d",
+            $items, $snapshot_id,$limit
         ),ARRAY_A);
         if($wpdb->last_error)self::trace_db_error('knowledge_batch_read',$items);
         self::trace('INFO','knowledge_batch_read',array(
@@ -896,7 +896,7 @@ final class TCD_Academy {
 
     public static function counts(){
         global $wpdb;$table=self::knowledge_table();
-        return (array)$wpdb->get_results("SELECT lesson,status,COUNT(*) total FROM {$table} GROUP BY lesson,status ORDER BY lesson,status",ARRAY_A);
+        return (array)$wpdb->get_results($wpdb->prepare( "SELECT lesson,status,COUNT(*) total FROM %i GROUP BY lesson,status ORDER BY lesson,status", $table ),ARRAY_A);
     }
 
     public static function upsert_maintenance_item($lesson,$item){
@@ -987,8 +987,8 @@ final class TCD_Academy {
         $last=0;$first=true;
         do{
             $rows=$wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE snapshot_id=%d AND id>%d ORDER BY id ASC LIMIT 200",
-                $snapshot_id,$last
+                "SELECT * FROM %i WHERE snapshot_id=%d AND id>%d ORDER BY id ASC LIMIT 200",
+                $table, $snapshot_id,$last
             ),ARRAY_A);
             foreach((array)$rows as $row){
                 $last=absint($row['id']);
