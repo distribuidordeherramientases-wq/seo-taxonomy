@@ -209,10 +209,10 @@ final class TCD_Maintenance {
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return;
         $ids = (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT id FROM {$table}
+            "SELECT id FROM %i
              WHERE active=1 AND updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 300",
-            $since, $until
+            $table, $since, $until
         ) );
         foreach ( $ids as $id ) {
             $item = TCD_Sources::faq_item( absint( $id ) );
@@ -229,10 +229,10 @@ final class TCD_Maintenance {
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) ) return;
         $ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT id FROM {$voc}
+            "SELECT id FROM %i
              WHERE active=1 AND updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 120",
-            $since, $until
+            $voc, $since, $until
         ) ) );
         if ( ! $ids ) return;
 
@@ -246,10 +246,10 @@ final class TCD_Maintenance {
 
             if ( self::table_exists( $rel ) && count( $products ) < 120 ) {
                 $affected = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                    "SELECT object_id FROM {$rel}
+                    "SELECT object_id FROM %i
                      WHERE object_type='product' AND vocabulary_id=%d AND status=1
                      ORDER BY object_id ASC LIMIT 40",
-                    $id
+                    $rel, $id
                 ) ) );
                 foreach ( $affected as $product_id ) {
                     $products[ $product_id ] = true;
@@ -268,10 +268,10 @@ final class TCD_Maintenance {
         if ( ! self::table_exists( $rel ) ) return;
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT object_type,object_id,vocabulary_id,status
-             FROM {$rel}
+             FROM %i
              WHERE updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 300",
-            $since, $until
+            $rel, $since, $until
         ), ARRAY_A );
         if ( ! $rows ) return;
 
