@@ -34,7 +34,7 @@ function taxocommerce_logistica_register_menu() {
         'TaxoCommerce Logistics',
         $capability,
         'taxocommerce-logistica',
-        array( 'SEO_Transporte_Costes', 'render_page' ),
+        array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ),
         'dashicons-cart',
         59
     );
