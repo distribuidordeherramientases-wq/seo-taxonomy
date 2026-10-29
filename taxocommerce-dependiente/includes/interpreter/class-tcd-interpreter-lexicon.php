@@ -204,8 +204,8 @@ final class TCD_Original_Interprete_DB {
         $context_terms = self::normalize_terms((array) ($row['context_terms'] ?? array()));
         $table = esc_sql( self::table() );
         $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE normalized_expression=%s AND canonical_term=%s AND relation_type=%s LIMIT 1",
-            $normalized,
+            "SELECT * FROM %i WHERE normalized_expression=%s AND canonical_term=%s AND relation_type=%s LIMIT 1",
+            $table, $normalized,
             $canonical,
             $relation
         ), ARRAY_A);
@@ -282,8 +282,8 @@ final class TCD_Original_Interprete_DB {
         $context_terms = self::normalize_terms((array) $context_terms);
         $table = esc_sql( self::evidence_table() );
         $existing_id = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE lexicon_id=%d AND source_type=%s AND source_id=%d LIMIT 1",
-            $lexicon_id,
+            "SELECT id FROM %i WHERE lexicon_id=%d AND source_type=%s AND source_id=%d LIMIT 1",
+            $table, $lexicon_id,
             $source_type,
             $source_id
         )));
@@ -317,15 +317,15 @@ final class TCD_Original_Interprete_DB {
         }
         $evidence = esc_sql( self::evidence_table() );
         $summary = $wpdb->get_row($wpdb->prepare(
-            "SELECT COUNT(*) evidence_count, MAX(confidence) max_confidence FROM {$evidence} WHERE lexicon_id=%d AND active=1",
-            $lexicon_id
+            "SELECT COUNT(*) evidence_count, MAX(confidence) max_confidence FROM %i WHERE lexicon_id=%d AND active=1",
+            $evidence, $lexicon_id
         ), ARRAY_A);
         $count = max(1, absint($summary['evidence_count'] ?? 0));
         $evidence_confidence = min(1, max(0, (float) ($summary['max_confidence'] ?? 0)));
         $table = esc_sql( self::table() );
         $current_confidence = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT confidence FROM {$table} WHERE id=%d",
-            $lexicon_id
+            "SELECT confidence FROM %i WHERE id=%d",
+            $table, $lexicon_id
         ));
         $confidence = max($current_confidence, $evidence_confidence > 0 ? $evidence_confidence : 0.5);
         $wpdb->update(
@@ -357,9 +357,9 @@ final class TCD_Original_Interprete_DB {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
-                   FROM {$table}
+                   FROM %i
                   WHERE active=1 AND language='es' AND id IN ({$placeholders})",
-                $ids
+                $table, $ids
             ),
             ARRAY_A
         );
@@ -437,8 +437,8 @@ final class TCD_Original_Interprete_DB {
         }
         $table = esc_sql( self::table() );
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es' AND active=1",
-            $normalized_expression
+            "SELECT COUNT(DISTINCT canonical_term) FROM %i WHERE normalized_expression=%s AND language='es' AND active=1",
+            $table, $normalized_expression
         )));
     }
 
@@ -452,7 +452,7 @@ final class TCD_Original_Interprete_DB {
             return false;
         }
         $table = esc_sql( self::table() );
-        $column = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'usage_count'");
+        $column = $wpdb->get_var($wpdb->prepare( "SHOW COLUMNS FROM %i LIKE 'usage_count'", $table ));
         self::$usage_columns_ready = 'usage_count' === (string) $column;
         return self::$usage_columns_ready;
     }
@@ -500,7 +500,7 @@ final class TCD_Original_Interprete_DB {
             return array();
         }
         $table = esc_sql( self::table() );
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d", $id), ARRAY_A);
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE id=%d", $table, $id), ARRAY_A);
         return is_array($row) ? $row : array();
     }
 
@@ -512,8 +512,8 @@ final class TCD_Original_Interprete_DB {
         }
         $table = esc_sql( self::table() );
         return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT canonical_term) FROM {$table} WHERE normalized_expression=%s AND language='es'",
-            $normalized_expression
+            "SELECT COUNT(DISTINCT canonical_term) FROM %i WHERE normalized_expression=%s AND language='es'",
+            $table, $normalized_expression
         )));
     }
 
@@ -525,8 +525,8 @@ final class TCD_Original_Interprete_DB {
         }
         $table = esc_sql( self::table() );
         $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM {$table} WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
-            $normalized
+            "SELECT id,canonical_term,target_search,semantic_group,vocabulary_id,confidence FROM %i WHERE normalized_expression=%s AND active=1 ORDER BY priority ASC,confidence DESC,id ASC LIMIT 1",
+            $table, $normalized
         ), ARRAY_A);
         return is_array($row) ? $row : array();
     }
@@ -540,8 +540,8 @@ final class TCD_Original_Interprete_DB {
         }
         $evidence_table = esc_sql( self::evidence_table() );
         return array_values(array_unique(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT source_id FROM {$evidence_table} WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
-            $lexicon_id,
+            "SELECT source_id FROM %i WHERE lexicon_id=%d AND source_type='product' AND active=1 ORDER BY source_id ASC LIMIT %d",
+            $evidence_table, $lexicon_id,
             $limit
         ))))));
     }
@@ -559,7 +559,7 @@ final class TCD_Original_Interprete_DB {
 
         $table = esc_sql( self::table() );
         $rows = $wpdb->get_results(
-            "SELECT id,canonical_term FROM {$table} WHERE active=1 AND (vocabulary_id IS NULL OR vocabulary_id=0) LIMIT 5000",
+            $wpdb->prepare( "SELECT id,canonical_term FROM %i WHERE active=1 AND (vocabulary_id IS NULL OR vocabulary_id=0) LIMIT 5000", $table ),
             ARRAY_A
         );
         foreach ((array) $rows as $row) {
@@ -569,8 +569,8 @@ final class TCD_Original_Interprete_DB {
             }
             $slug = sanitize_title($canonical);
             $match = $wpdb->get_row($wpdb->prepare(
-                "SELECT id,semantic_group FROM {$vocabulary} WHERE active=1 AND (slug=%s OR LOWER(label)=LOWER(%s)) ORDER BY id ASC LIMIT 1",
-                $slug,
+                "SELECT id,semantic_group FROM %i WHERE active=1 AND (slug=%s OR LOWER(label)=LOWER(%s)) ORDER BY id ASC LIMIT 1",
+                $vocabulary, $slug,
                 $canonical
             ), ARRAY_A);
             if ($match) {
@@ -680,7 +680,7 @@ final class TCD_Original_Interprete_DB {
         }
         $table = esc_sql( self::table() );
         self::$rows_cache = (array) $wpdb->get_results(
-            "SELECT * FROM {$table} WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC",
+            $wpdb->prepare( "SELECT * FROM %i WHERE active=1 AND language='es' ORDER BY priority ASC,id ASC", $table ),
             ARRAY_A
         );
         return self::$rows_cache;
@@ -704,18 +704,18 @@ final class TCD_Original_Interprete_DB {
             return $stats;
         }
         $table = esc_sql( self::table() );
-        $stats['active'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1");
-        $stats['staged'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=0 AND source LIKE 'linguista%'");
-        $stats['validated'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE validated=1");
-        $stats['linked_vocabulary'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0");
-        $stats['lesson_i1'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND lesson_key='i1_subject_action'");
+        $stats['active'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $table ));
+        $stats['staged'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=0 AND source LIKE 'linguista%'", $table ));
+        $stats['validated'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE validated=1", $table ));
+        $stats['linked_vocabulary'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND vocabulary_id IS NOT NULL AND vocabulary_id>0", $table ));
+        $stats['lesson_i1'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND lesson_key='i1_subject_action'", $table ));
         if (self::usage_columns_ready()) {
-            $stats['usage_total'] = (int) $wpdb->get_var("SELECT COALESCE(SUM(usage_count),0) FROM {$table} WHERE active=1");
+            $stats['usage_total'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COALESCE(SUM(usage_count),0) FROM %i WHERE active=1", $table ));
         }
-        $stats['provisional'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE active=1 AND source='linguista_l8_auto'");
+        $stats['provisional'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND source='linguista_l8_auto'", $table ));
         if ($stats['evidence_ready']) {
             $evidence_table = esc_sql( self::evidence_table() );
-            $stats['evidence'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$evidence_table} WHERE active=1");
+            $stats['evidence'] = (int) $wpdb->get_var($wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $evidence_table ));
         }
         return $stats;
     }
