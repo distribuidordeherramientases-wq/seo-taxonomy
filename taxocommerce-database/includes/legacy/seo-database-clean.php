@@ -85,8 +85,6 @@ function seo_clean_db_page() {
         return;
     }
 
-    seo_clean_db_maybe_export_sql();
-
     $active_tab = seo_clean_db_get_active_tab();
     $notice = seo_clean_db_handle_post_actions();
 
@@ -258,7 +256,7 @@ function seo_clean_db_export_url($type) {
  * Intenta lanzar un export SQL antes de renderizar la página.
  */
 function seo_clean_db_maybe_export_sql() {
-    if (!isset($_GET['seo_clean_db_export'])) {
+    if (!isset($_GET['seo_clean_db_export']) || !isset($_GET['page']) || 'taxocommerce-database' !== sanitize_key(wp_unslash($_GET['page']))) {
         return;
     }
 
@@ -280,6 +278,8 @@ function seo_clean_db_maybe_export_sql() {
 /**
  * Genera un SQL descargable de tablas completas o solo tablas del plugin.
  */
+add_action('admin_init', __NAMESPACE__ . '\\seo_clean_db_maybe_export_sql');
+
 function seo_clean_db_stream_sql_export($type) {
     global $wpdb;
 
@@ -421,9 +421,6 @@ function seo_clean_db_handle_post_actions() {
         case 'fix_category_hierarchy':
         case 'reset_registered_object':
             return seo_clean_db_handle_data_error_action($action);
-
-        case 'rollback_operation':
-            return seo_clean_db_handle_rollback_action();
 
         case 'unlock_bulk_accept_lock':
             $posted_token = isset($_POST['bulk_accept_lock_token']) && is_string($_POST['bulk_accept_lock_token'])
@@ -941,104 +938,65 @@ function seo_clean_db_get_broken_categories() {
 /**
  * Comprueba si la capa de datos transaccional está disponible.
  */
-function seo_clean_db_data_layer_available() {
-    return class_exists(SEO_Data_Layer::class)
-        && class_exists(SEO_Data_Operation::class)
-        && class_exists(SEO_Data_Rollback::class);
-}
 
 /**
- * Crea una operación auditable de Clean Database.
- */
-function seo_clean_db_begin_operation($type, $label, $risk_level, $expected_changes, $metadata = array()) {
-    if (!seo_clean_db_data_layer_available()) {
-        throw new RuntimeException('La capa de datos transaccional no está disponible.');
-    }
-
-    $operation = SEO_Data_Layer::operation(array(
-        'type' => sanitize_key($type),
-        'label' => sanitize_text_field($label),
-        'source_module' => 'clean_database',
-        'rollbackable' => true,
-        'risk_level' => sanitize_key($risk_level),
-        'audit_level' => 'full',
-        'metadata' => is_array($metadata) ? $metadata : array(),
-    ));
-
-    $operation->mark_validated(array(
-        'validated_by' => get_current_user_id(),
-        'validated_from' => 'clean_database',
-    ));
-
-    $operation->mark_previewed(
-        max(0, (int) $expected_changes),
-        array(
-            'preview_generated_at' => current_time('mysql', true),
-        )
-    );
-
-    return $operation;
-}
-
-/**
- * Ejecuta una eliminación reversible por IDs en una tabla registrada.
- *
- * @return array{deleted:int,operation_id:int}
+ * Standalone delete without a cross-plugin Data Layer. A backup is the recovery
+ * method. Limits are per SQL statement only: all eligible IDs are processed.
  */
 function seo_clean_db_transactional_delete_ids($table_key, $ids, $operation_args = array(), $context_callback = null) {
-    $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
-
-    if (empty($ids)) {
-        return array('deleted' => 0, 'operation_id' => 0);
+    global $wpdb;
+    $table = 'nodes' === $table_key ? $wpdb->prefix . 'seo_nodes' : ('relations' === $table_key ? $wpdb->prefix . 'seo_relations' : '');
+    if ('' === $table) {
+        throw new RuntimeException('Tabla de limpieza no autorizada.');
     }
-
-    $defaults = array(
-        'type' => 'clean_database_delete',
-        'label' => 'Limpieza controlada de datos',
-        'risk_level' => 'high',
-        'metadata' => array(),
-    );
-
-    $operation_args = wp_parse_args($operation_args, $defaults);
-    $operation = seo_clean_db_begin_operation(
-        $operation_args['type'],
-        $operation_args['label'],
-        $operation_args['risk_level'],
-        count($ids),
-        $operation_args['metadata']
-    );
-
-    $deleted = $operation->execute(
-        function ($transaction) use ($table_key, $ids, $context_callback) {
-            $count = 0;
-
-            foreach ($ids as $id) {
-                $context = is_callable($context_callback)
-                    ? (array) call_user_func($context_callback, $id)
-                    : array();
-
-                $transaction->delete(
-                    $table_key,
-                    array('id' => (int) $id),
-                    $context
-                );
-
-                $count++;
-            }
-
-            return $count;
+    $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+    if (!$ids) {
+        return array('deleted' => 0);
+    }
+    if (false === $wpdb->query('START TRANSACTION')) {
+        throw new RuntimeException('No se pudo iniciar la transacción.');
+    }
+    try {
+        $count = seo_clean_db_delete_ids($table, 'id', $ids);
+        if (false === $count) {
+            throw new RuntimeException('Fallo al eliminar registros SEO.');
         }
-    );
-
-    return array(
-        'deleted' => (int) $deleted,
-        'operation_id' => (int) $operation->id(),
-    );
+        if (false === $wpdb->query('COMMIT')) {
+            throw new RuntimeException('No se pudo confirmar la limpieza.');
+        }
+        return array('deleted' => (int) $count);
+    } catch (Throwable $error) {
+        $wpdb->query('ROLLBACK');
+        throw $error;
+    }
 }
 
-/**
- * Devuelve los IDs de relaciones vinculadas a objetos y roles concretos.
- */
+/** Delete both node and relation IDs in one local transaction. */
+function seo_clean_db_delete_relation_node_ids($relation_ids, $node_ids) {
+    global $wpdb;
+    if (!$relation_ids && !$node_ids) {
+        return array('relations' => 0, 'nodes' => 0);
+    }
+    if (false === $wpdb->query('START TRANSACTION')) {
+        throw new RuntimeException('No se pudo iniciar la transacción.');
+    }
+    try {
+        $relations = seo_clean_db_delete_ids($wpdb->prefix . 'seo_relations', 'id', $relation_ids);
+        $nodes = seo_clean_db_delete_ids($wpdb->prefix . 'seo_nodes', 'id', $node_ids);
+        if (false === $relations || false === $nodes) {
+            throw new RuntimeException('No se pudieron eliminar los registros SEO.');
+        }
+        if (false === $wpdb->query('COMMIT')) {
+            throw new RuntimeException('No se pudo confirmar la limpieza.');
+        }
+        return array('relations' => (int) $relations, 'nodes' => (int) $nodes);
+    } catch (Throwable $error) {
+        $wpdb->query('ROLLBACK');
+        throw $error;
+    }
+}
+
+
 function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role) {
     global $wpdb;
 
@@ -1074,195 +1032,40 @@ function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by
 /**
  * Devuelve operaciones recientes de Clean Database.
  */
-function seo_clean_db_get_recent_operations($limit = 20) {
-    global $wpdb;
 
-    if (!seo_clean_db_data_layer_available()) {
-        return array();
-    }
-
-    $limit = max(1, min(100, (int) $limit));
-
-    $operations_table = SEO_Data_Layer::operations_table();
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; module and limit are bound through prepare().
-    return $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT id, operation_uuid, operation_type, operation_label, status,
-                    rollback_status, rollbackable, risk_level, user_id,
-                    created_at, completed_at, rolled_back_at, rolled_back_by,
-                    affected_rows, error_message
-             FROM {$operations_table}
-             WHERE source_module = %s
-             ORDER BY id DESC
-             LIMIT %d",
-            'clean_database',
-            $limit
-        )
-    );
-}
-
-/**
- * Ejecuta un rollback solicitado por el administrador.
- */
-function seo_clean_db_handle_rollback_action() {
-    if (!seo_clean_db_data_layer_available()) {
-        return array('type' => 'error', 'message' => 'La capa de rollback no está disponible.');
-    }
-
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before invoking this helper.
-    $operation_id = isset($_POST['operation_id']) ? absint(wp_unslash($_POST['operation_id'])) : 0;
-
-    if ($operation_id <= 0) {
-        return array('type' => 'error', 'message' => 'Operación de rollback no válida.');
-    }
-
-    global $wpdb;
-
-    $operations_table = SEO_Data_Layer::operations_table();
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Data Layer table; operation ID is bound through prepare().
-    $source_module = $wpdb->get_var(
-        $wpdb->prepare(
-            "SELECT source_module
-             FROM {$operations_table}
-             WHERE id = %d",
-            $operation_id
-        )
-    );
-
-    if ($source_module !== 'clean_database') {
-        return array('type' => 'error', 'message' => 'La operación no pertenece a Clean Database.');
-    }
-
-    try {
-        $preview = SEO_Data_Rollback::preview($operation_id);
-
-        if (empty($preview['allowed'])) {
-            $messages = !empty($preview['errors']) ? implode(' ', $preview['errors']) : 'Se han detectado conflictos.';
-            return array(
-                'type' => 'error',
-                'message' => 'Rollback bloqueado: ' . esc_html($messages)
-                    . ' Conflictos detectados: <strong>' . (int) $preview['conflicts'] . '</strong>.',
-            );
-        }
-
-        $result = SEO_Data_Rollback::execute($operation_id);
-
-        return array(
-            'type' => 'success',
-            'message' => 'Rollback completado para la operación <strong>#' . (int) $operation_id
-                . '</strong>. Cambios restaurados: <strong>' . (int) ($result['rolled_back'] ?? 0) . '</strong>.',
-        );
-    } catch (Throwable $exception) {
-        return array(
-            'type' => 'error',
-            'message' => 'No se pudo completar el rollback: ' . esc_html($exception->getMessage()),
-        );
-    }
-}
-
-/**
- * Renderiza el historial de operaciones reversibles de Clean Database.
- */
+/** Historical cross-plugin rollback was intentionally not migrated. */
 function seo_clean_db_render_operations_section() {
-    $operations = seo_clean_db_get_recent_operations(20);
-
-    echo '<div class="seo-clean-card">';
-    echo '<h2>Historial de operaciones y rollback</h2>';
-    echo '<p>Las limpiezas migradas al Data Layer registran cada fila modificada y pueden revertirse si no existen conflictos posteriores.</p>';
-
-    if (!seo_clean_db_data_layer_available()) {
-        seo_clean_db_render_notice('error', 'El Data Layer no está disponible.');
-        echo '</div>';
-        return;
-    }
-
-    if (empty($operations)) {
-        echo '<p class="seo-clean-muted">Todavía no hay operaciones auditadas de Clean Database.</p>';
-        echo '</div>';
-        return;
-    }
-
-    echo '<table class="widefat striped seo-clean-table">';
-    echo '<thead><tr><th>Operación</th><th>Fecha</th><th>Estado</th><th>Cambios</th><th>Rollback</th><th>Acción</th></tr></thead><tbody>';
-
-    foreach ($operations as $operation) {
-        $rollback_label = (string) $operation->rollback_status;
-        $preview = null;
-
-        if (
-            (int) $operation->rollbackable === 1
-            && $operation->status === 'completed'
-            && $operation->rollback_status === 'available'
-        ) {
-            try {
-                $preview = SEO_Data_Rollback::preview((int) $operation->id);
-            } catch (Throwable $exception) {
-                $preview = array(
-                    'allowed' => false,
-                    'reversible' => 0,
-                    'conflicts' => 1,
-                    'errors' => array($exception->getMessage()),
-                );
-            }
-        }
-
-        echo '<tr>';
-        echo '<td><strong>#' . (int) $operation->id . ' · ' . esc_html($operation->operation_label) . '</strong><br><code>' . esc_html($operation->operation_type) . '</code></td>';
-        echo '<td>' . esc_html($operation->completed_at ? $operation->completed_at . ' UTC' : $operation->created_at . ' UTC') . '</td>';
-        echo '<td>' . esc_html($operation->status) . '</td>';
-        echo '<td>' . (int) $operation->affected_rows . '</td>';
-
-        if (is_array($preview)) {
-            $rollback_label = !empty($preview['allowed'])
-                ? 'Disponible · ' . (int) $preview['reversible'] . ' reversibles'
-                : 'Bloqueado · ' . (int) $preview['conflicts'] . ' conflictos';
-        }
-
-        echo '<td>' . esc_html($rollback_label) . '</td>';
-        echo '<td>';
-
-        if (is_array($preview) && !empty($preview['allowed'])) {
-            seo_clean_db_render_action_form(
-                'rollback_operation',
-                'Revertir operación',
-                'button button-secondary',
-                'Se restaurarán todos los cambios de esta operación. ¿Continuar?',
-                array('operation_id' => (int) $operation->id)
-            );
-        } elseif (!empty($operation->error_message)) {
-            echo '<span class="seo-clean-error">' . esc_html($operation->error_message) . '</span>';
-        } else {
-            echo '<span class="seo-clean-muted">No disponible</span>';
-        }
-
-        echo '</td></tr>';
-    }
-
-    echo '</tbody></table>';
-    echo '</div>';
+    echo '<div class="seo-clean-card"><h2>Recuperación mediante backup</h2>';
+    echo '<p>Las limpiezas independientes no utilizan Data Layer ni rollback histórico. Descarga un backup SQL antes de reparar los datos SEO.</p></div>';
 }
 
+
+
 /**
- * Elimina por lista de IDs.
+ * Delete all requested IDs, with small individual SQL statements and one
+ * caller-controlled transaction; never an overall 100-row deletion cap.
  */
 function seo_clean_db_delete_ids($table, $column, $ids) {
     global $wpdb;
-
-    $ids = array_values(array_unique(array_filter(array_map('absint', $ids))));
-
-    if (empty($ids)) {
-        return 0;
+    if (!in_array($table, array($wpdb->prefix . 'seo_nodes', $wpdb->prefix . 'seo_relations'), true) || 'id' !== $column) {
+        throw new RuntimeException('Tabla o columna de limpieza no permitida.');
     }
-
-    $placeholders = implode(', ', array_fill(0, count($ids), '%d'));
-    $sql = "DELETE FROM {$table} WHERE {$column} IN ({$placeholders})";
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Table/column are internal arguments supplied by cleanup routines; IDs are bound through generated %d placeholders.
-    return $wpdb->query($wpdb->prepare($sql, $ids));
+    $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
+    $total = 0;
+    foreach (array_chunk($ids, 500) as $chunk) {
+        $holders = implode(', ', array_fill(0, count($chunk), '%d'));
+        $values = array_merge(array($table), $chunk);
+        $sql = $wpdb->prepare('DELETE FROM %i WHERE id IN (' . $holders . ')', $values);
+        $affected = $wpdb->query($sql);
+        if (false === $affected) {
+            return false;
+        }
+        $total += (int) $affected;
+    }
+    return $total;
 }
 
-/**
- * Elimina relaciones inválidas.
- */
+
 function seo_clean_db_delete_invalid_relations($relations_table, $analysis) {
     $ids = array();
 
@@ -1288,70 +1091,24 @@ function seo_clean_db_delete_invalid_relations($relations_table, $analysis) {
 /**
  * Elimina nodos obsoletos y sus relaciones SEO internas.
  */
+
 function seo_clean_db_delete_stale_nodes($relations_table, $nodes_table, $stale_nodes) {
     $node_ids = array();
     $objects_by_role = array();
-
     foreach ($stale_nodes as $item) {
         $node = $item['node'];
         $node_ids[] = (int) $node->id;
         $role = (string) $node->seo_role;
-
         if (!isset($objects_by_role[$role])) {
             $objects_by_role[$role] = array();
         }
-
         $objects_by_role[$role][] = (int) $node->object_id;
     }
-
     $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role);
-    $expected = count($relation_ids) + count($node_ids);
-
-    if ($expected === 0) {
-        return array('relations' => 0, 'nodes' => 0, 'operation_id' => 0);
-    }
-
-    $operation = seo_clean_db_begin_operation(
-        'clean_stale_nodes',
-        'Eliminar nodos SEO obsoletos y sus relaciones',
-        'critical',
-        $expected,
-        array(
-            'node_count' => count($node_ids),
-            'relation_count' => count($relation_ids),
-        )
-    );
-
-    $result = $operation->execute(
-        function ($transaction) use ($relation_ids, $node_ids) {
-            $deleted_relations = 0;
-            $deleted_nodes = 0;
-
-            foreach ($relation_ids as $relation_id) {
-                $transaction->delete('relations', array('id' => (int) $relation_id));
-                $deleted_relations++;
-            }
-
-            foreach ($node_ids as $node_id) {
-                $transaction->delete('nodes', array('id' => (int) $node_id));
-                $deleted_nodes++;
-            }
-
-            return array(
-                'relations' => $deleted_relations,
-                'nodes' => $deleted_nodes,
-            );
-        }
-    );
-
-    $result['operation_id'] = (int) $operation->id();
-
-    return $result;
+    return seo_clean_db_delete_relation_node_ids($relation_ids, $node_ids);
 }
 
-/**
- * Elimina duplicados exactos de relaciones conservando la primera fila.
- */
+
 function seo_clean_db_delete_duplicate_relations($relations_table) {
     $groups = seo_clean_db_get_duplicate_relations($relations_table);
     $delete_ids = array();
@@ -1414,181 +1171,37 @@ function seo_clean_db_delete_duplicate_node_rows($nodes_table) {
 /**
  * Restablece objetos que tienen varios roles SEO simultáneamente.
  */
+
 function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table, $objects, $node_roles) {
     global $wpdb;
-
-    $relations_table = esc_sql( $relations_table );
-    $nodes_table = esc_sql( $nodes_table );
-
     $node_ids = array();
     $objects_by_role = array();
-
     foreach ($objects as $object) {
         $object_id = (int) $object->object_id;
-        $roles = array_filter(array_map('trim', explode(',', (string) $object->roles)));
-        $roles = array_values(array_unique(array_intersect($roles, $node_roles)));
-
-        if ($object_id <= 0 || empty($roles)) {
+        $roles = array_values(array_unique(array_intersect(array_filter(array_map('trim', explode(',', (string) $object->roles))), $node_roles)));
+        if ($object_id <= 0 || !$roles) {
             continue;
         }
-
         foreach ($roles as $role) {
-            if (!isset($objects_by_role[$role])) {
-                $objects_by_role[$role] = array();
-            }
-
             $objects_by_role[$role][] = $object_id;
         }
-
-        $role_placeholders = implode(', ', array_fill(0, count($roles), '%s'));
-        $sql = "SELECT id
-                FROM {$nodes_table}
-                WHERE object_id = %d
-                  AND seo_role IN ({$role_placeholders})";
-        $args = array_merge(array($object_id), $roles);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal nodes table plus generated %s placeholders; object ID and roles are bound through prepare().
-        foreach ((array) $wpdb->get_col($wpdb->prepare($sql, $args)) as $node_id) {
-            $node_ids[] = (int) $node_id;
-        }
+        $holders = implode(', ', array_fill(0, count($roles), '%s'));
+        $sql = $wpdb->prepare('SELECT id FROM %i WHERE object_id=%d AND seo_role IN (' . $holders . ')', array_merge(array($nodes_table, $object_id), $roles));
+        $node_ids = array_merge($node_ids, array_map('absint', (array) $wpdb->get_col($sql)));
     }
-
     $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role);
-    $expected = count($relation_ids) + count($node_ids);
-
-    if ($expected === 0) {
-        return array('relations' => 0, 'nodes' => 0, 'operation_id' => 0);
-    }
-
-    $operation = seo_clean_db_begin_operation(
-        'reset_multiple_role_objects',
-        'Restablecer objetos con múltiples roles SEO',
-        'critical',
-        $expected,
-        array(
-            'objects_count' => count($objects),
-            'node_count' => count($node_ids),
-            'relation_count' => count($relation_ids),
-        )
-    );
-
-    $result = $operation->execute(
-        function ($transaction) use ($relation_ids, $node_ids) {
-            $deleted_relations = 0;
-            $deleted_nodes = 0;
-
-            foreach ($relation_ids as $relation_id) {
-                $transaction->delete('relations', array('id' => (int) $relation_id));
-                $deleted_relations++;
-            }
-
-            foreach ($node_ids as $node_id) {
-                $transaction->delete('nodes', array('id' => (int) $node_id));
-                $deleted_nodes++;
-            }
-
-            return array(
-                'relations' => $deleted_relations,
-                'nodes' => $deleted_nodes,
-            );
-        }
-    );
-
-    $result['operation_id'] = (int) $operation->id();
-
-    return $result;
+    return seo_clean_db_delete_relation_node_ids($relation_ids, $node_ids);
 }
 
-/**
- * Restablece manualmente un objeto SEO.
- */
 function seo_clean_db_reset_registered_object($relations_table, $nodes_table, $seo_role, $object_id) {
     global $wpdb;
-
-    $relations_table = esc_sql( $relations_table );
-    $nodes_table = esc_sql( $nodes_table );
-
-    $object_id = (int) $object_id;
-
-    $relation_ids = seo_clean_db_get_relation_ids_for_objects(
-        $relations_table,
-        array($seo_role => array($object_id))
-    );
-
-    $node_ids = $wpdb->get_col(
-        $wpdb->prepare(
-            "SELECT id
-             FROM {$nodes_table}
-             WHERE object_id = %d
-               AND seo_role = %s",
-            $object_id,
-            $seo_role
-        )
-    );
-
-    $node_ids = array_values(array_unique(array_filter(array_map('absint', (array) $node_ids))));
-    $expected = count($relation_ids) + count($node_ids);
-
-    if ($expected === 0) {
-        return array('relations' => 0, 'nodes' => 0, 'operation_id' => 0);
-    }
-
-    $operation = seo_clean_db_begin_operation(
-        'reset_registered_object',
-        'Restablecer objeto SEO ' . $seo_role . ' #' . $object_id,
-        'critical',
-        $expected,
-        array(
-            'seo_role' => $seo_role,
-            'object_id' => $object_id,
-            'node_count' => count($node_ids),
-            'relation_count' => count($relation_ids),
-        )
-    );
-
-    $result = $operation->execute(
-        function ($transaction) use ($relation_ids, $node_ids, $seo_role, $object_id) {
-            $deleted_relations = 0;
-            $deleted_nodes = 0;
-
-            foreach ($relation_ids as $relation_id) {
-                $transaction->delete(
-                    'relations',
-                    array('id' => (int) $relation_id),
-                    array(
-                        'related_object_type' => $seo_role,
-                        'related_object_id' => $object_id,
-                    )
-                );
-                $deleted_relations++;
-            }
-
-            foreach ($node_ids as $node_id) {
-                $transaction->delete(
-                    'nodes',
-                    array('id' => (int) $node_id),
-                    array(
-                        'related_object_type' => $seo_role,
-                        'related_object_id' => $object_id,
-                    )
-                );
-                $deleted_nodes++;
-            }
-
-            return array(
-                'relations' => $deleted_relations,
-                'nodes' => $deleted_nodes,
-            );
-        }
-    );
-
-    $result['operation_id'] = (int) $operation->id();
-
-    return $result;
+    $object_id = absint($object_id);
+    $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, array($seo_role => array($object_id)));
+    $node_ids = $wpdb->get_col($wpdb->prepare('SELECT id FROM %i WHERE object_id=%d AND seo_role=%s', $nodes_table, $object_id, $seo_role));
+    return seo_clean_db_delete_relation_node_ids($relation_ids, array_map('absint', (array) $node_ids));
 }
 
-/**
- * Mueve a raíz categorías de producto cuyo padre ya no existe.
- */
+
 function seo_clean_db_fix_category_hierarchy() {
     global $wpdb;
 
@@ -1643,107 +1256,51 @@ function seo_clean_db_object_label($type, $id, $title) {
 /**
  * Ejecuta acciones de la pestaña Errores en datos.
  */
+
 function seo_clean_db_handle_data_error_action($action) {
     global $wpdb;
-
-    $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
-    $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    $relations_table = $wpdb->prefix . 'seo_relations';
+    $nodes_table = $wpdb->prefix . 'seo_nodes';
     $config = seo_clean_db_get_config();
-
     if (!seo_clean_db_table_exists($relations_table) || !seo_clean_db_table_exists($nodes_table)) {
         return array('type' => 'error', 'message' => 'No se encuentran las tablas internas necesarias del plugin.');
     }
-
-    $nodes_before = seo_clean_db_get_nodes($nodes_table);
-    $node_index_before = seo_clean_db_build_node_index($nodes_before);
-
-    switch ($action) {
-        case 'clean_invalid_relations':
-            $analysis_before = seo_clean_db_analyze_relations($relations_table, $node_index_before, $config);
-            try {
-                $result = seo_clean_db_delete_invalid_relations($relations_table, $analysis_before);
-                return array(
-                    'type' => 'success',
-                    'message' => 'Relaciones inválidas eliminadas: <strong>' . (int) $result['deleted']
-                        . '</strong>. Operación auditable: <strong>#' . (int) $result['operation_id']
-                        . '</strong>. Rollback disponible en el historial.'
-                );
-            } catch (Throwable $exception) {
-                return array('type' => 'error', 'message' => 'No se pudieron eliminar las relaciones inválidas: ' . esc_html($exception->getMessage()));
-            }
-
-        case 'clean_stale_nodes':
-            $stale_before = seo_clean_db_get_stale_nodes($nodes_before);
-            try {
-                $result = seo_clean_db_delete_stale_nodes($relations_table, $nodes_table, $stale_before);
-                return array(
-                    'type' => 'success',
-                    'message' => 'Nodos internos eliminados: <strong>' . (int) $result['nodes']
-                        . '</strong>. Relaciones asociadas eliminadas: <strong>' . (int) $result['relations']
-                        . '</strong>. Operación auditable: <strong>#' . (int) $result['operation_id'] . '</strong>.'
-                );
-            } catch (Throwable $exception) {
-                return array('type' => 'error', 'message' => 'No se pudieron eliminar los nodos obsoletos: ' . esc_html($exception->getMessage()));
-            }
-
-        case 'clean_duplicate_relations':
-            try {
+    $nodes = seo_clean_db_get_nodes($nodes_table);
+    try {
+        switch ($action) {
+            case 'clean_invalid_relations':
+                $analysis = seo_clean_db_analyze_relations($relations_table, seo_clean_db_build_node_index($nodes), $config);
+                // Unknown relation types remain warnings; only validated invalid IDs are deleted.
+                $result = seo_clean_db_delete_invalid_relations($relations_table, $analysis);
+                return array('type' => 'success', 'message' => 'Relaciones inválidas eliminadas: <strong>' . (int) $result['deleted'] . '</strong>.');
+            case 'clean_stale_nodes':
+                $result = seo_clean_db_delete_stale_nodes($relations_table, $nodes_table, seo_clean_db_get_stale_nodes($nodes));
+                return array('type' => 'success', 'message' => 'Nodos eliminados: <strong>' . (int) $result['nodes'] . '</strong>. Relaciones asociadas eliminadas: <strong>' . (int) $result['relations'] . '</strong>.');
+            case 'clean_duplicate_relations':
                 $result = seo_clean_db_delete_duplicate_relations($relations_table);
-                return array(
-                    'type' => 'success',
-                    'message' => 'Relaciones duplicadas eliminadas: <strong>' . (int) $result['deleted']
-                        . '</strong>. Operación auditable: <strong>#' . (int) $result['operation_id'] . '</strong>.'
-                );
-            } catch (Throwable $exception) {
-                return array('type' => 'error', 'message' => 'No se pudieron eliminar las relaciones duplicadas: ' . esc_html($exception->getMessage()));
-            }
-
-        case 'clean_duplicate_node_rows':
-            try {
+                return array('type' => 'success', 'message' => 'Relaciones duplicadas eliminadas: <strong>' . (int) $result['deleted'] . '</strong>.');
+            case 'clean_duplicate_node_rows':
                 $result = seo_clean_db_delete_duplicate_node_rows($nodes_table);
-                return array(
-                    'type' => 'success',
-                    'message' => 'Registros duplicados de seo_nodes eliminados: <strong>' . (int) $result['deleted']
-                        . '</strong>. Operación auditable: <strong>#' . (int) $result['operation_id'] . '</strong>.'
-                );
-            } catch (Throwable $exception) {
-                return array('type' => 'error', 'message' => 'No se pudieron eliminar los registros duplicados: ' . esc_html($exception->getMessage()));
-            }
-
-        case 'fix_category_hierarchy':
-            $fixed = seo_clean_db_fix_category_hierarchy();
-            return array('type' => $fixed === false ? 'error' : 'success', 'message' => $fixed === false ? 'No se pudo reparar la jerarquía de categorías.' : 'Categorías movidas a la raíz: <strong>' . (int) $fixed . '</strong>.');
-
-        case 'reset_registered_object':
-            // phpcs:disable WordPress.Security.NonceVerification.Missing -- Caller seo_clean_db_handle_post_actions() verifies seo_clean_db_nonce before dispatching this action.
-            $object_id = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
-            $seo_role = isset($_POST['seo_role']) ? sanitize_key(wp_unslash($_POST['seo_role'])) : '';
-            // phpcs:enable WordPress.Security.NonceVerification.Missing
-
-            if ($object_id <= 0 || !in_array($seo_role, $config['node_roles'], true)) {
-                return array('type' => 'error', 'message' => 'Debes indicar un ID y un rol SEO válidos.');
-            }
-
-            try {
-                $result = seo_clean_db_reset_registered_object($relations_table, $nodes_table, $seo_role, $object_id);
-                return array(
-                    'type' => 'success',
-                    'message' => 'Objeto SEO restablecido. Nodos eliminados: <strong>' . (int) $result['nodes']
-                        . '</strong>. Relaciones eliminadas: <strong>' . (int) $result['relations']
-                        . '</strong>. Operación auditable: <strong>#' . (int) $result['operation_id']
-                        . '</strong>. El contenido de WordPress no se ha modificado.'
-                );
-            } catch (Throwable $exception) {
-                return array('type' => 'error', 'message' => 'No se pudo restablecer el objeto SEO: ' . esc_html($exception->getMessage()));
-            }
+                return array('type' => 'success', 'message' => 'Nodos duplicados eliminados: <strong>' . (int) $result['deleted'] . '</strong>.');
+            case 'fix_category_hierarchy':
+                $fixed = seo_clean_db_fix_category_hierarchy();
+                return array('type' => false === $fixed ? 'error' : 'success', 'message' => false === $fixed ? 'No se pudo reparar la jerarquía.' : 'Categorías movidas a la raíz: <strong>' . (int) $fixed . '</strong>.');
+            case 'reset_registered_object':
+                $object_id = isset($_POST['object_id']) ? absint(wp_unslash($_POST['object_id'])) : 0;
+                $role = isset($_POST['seo_role']) && is_string($_POST['seo_role']) ? sanitize_key(wp_unslash($_POST['seo_role'])) : '';
+                if ($object_id <= 0 || !in_array($role, $config['node_roles'], true)) {
+                    return array('type' => 'error', 'message' => 'ID y rol SEO inválidos.');
+                }
+                $result = seo_clean_db_reset_registered_object($relations_table, $nodes_table, $role, $object_id);
+                return array('type' => 'success', 'message' => 'Objeto SEO restablecido. Nodos eliminados: <strong>' . (int) $result['nodes'] . '</strong>. Relaciones eliminadas: <strong>' . (int) $result['relations'] . '</strong>. El contenido WordPress permanece intacto.');
+        }
+    } catch (Throwable $error) {
+        return array('type' => 'error', 'message' => 'Error al reparar los datos SEO: ' . esc_html($error->getMessage()));
     }
-
-    return array('type' => 'warning', 'message' => 'Acción de datos no reconocida.');
+    return array('type' => 'warning', 'message' => 'Acción no reconocida.');
 }
 
-/**
- * Renderiza la pestaña de errores del plugin.
- */
+
 function seo_clean_db_render_data_errors_tab() {
     global $wpdb;
 
