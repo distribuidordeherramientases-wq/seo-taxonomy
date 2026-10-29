@@ -1,0 +1,108 @@
+name: TaxoCommerce native updates - uploads repository
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/updates/**'
+      - '.github/scripts/build_taxocommerce_updates.py'
+      - '.github/tests/taxocommerce-updates-smoke.php'
+      - '.github/workflows/taxocommerce-native-updates.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/updates/**'
+      - '.github/scripts/build_taxocommerce_updates.py'
+      - '.github/workflows/taxocommerce-native-updates.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Publish ZIPs to the site's temporary uploads repository
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-update-repository-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate self-contained must-use provider
+        run: |
+          php -l .github/updates/taxocommerce-upload-update-provider.php
+          php .github/tests/taxocommerce-updates-smoke.php
+      - name: Build and validate canonical plugin update ZIPs
+        run: |
+          python3 .github/scripts/build_taxocommerce_updates.py --root . --output /tmp/taxocommerce-update-repo
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import zipfile
+          base = Path('/tmp/taxocommerce-update-repo')
+          manifest = json.loads((base / 'manifest.json').read_text())
+          assert manifest['schema'] == 1
+          assert len(manifest['plugins']) >= 20, 'Expected at least 20 TaxoCommerce plugin packages'
+          for slug, entry in manifest['plugins'].items():
+              with zipfile.ZipFile(base / (slug + '.zip')) as z:
+                  names = z.namelist()
+                  assert slug + '/' + slug + '.php' in names
+                  assert not any(n.startswith(slug + '/tests/') for n in names)
+                  assert not any('/.' in n or n.startswith('.') for n in names)
+              assert entry['size'] == (base / (slug + '.zip')).stat().st_size
+          print('Native update repository manifest and ZIPs verified:', len(manifest['plugins']))
+          PY
+
+  publish:
+    needs: validate
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.target == 'staging' || (inputs.target == 'production' && github.ref == 'refs/heads/main')))
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build temporary repository
+        run: python3 .github/scripts/build_taxocommerce_updates.py --root . --output dist
+      - name: Install FTPS client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Publish MU provider and all plugin ZIPs; manifest LAST
+        env:
+          FTP_HOST: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && secrets.FTP_SERVER || secrets.STAGING_FTP_SERVER }}
+          FTP_USER: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && secrets.FTP_USERNAME || secrets.STAGING_FTP_USERNAME }}
+          FTP_PASS: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'production' && secrets.FTP_PASSWORD || secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$FTP_HOST" && test -n "$FTP_USER" && test -n "$FTP_PASS"
+          repo_dir='wp-content/uploads/taxocommerce-core/plugins'
+          file="$(mktemp)"
+          {
+            echo 'set cmd:fail-exit yes'
+            echo 'set ftp:ssl-force true'
+            echo 'set ftp:ssl-protect-data true'
+            echo 'set ssl:verify-certificate yes'
+            echo 'mkdir -p wp-content/mu-plugins'
+            echo 'put .github/updates/taxocommerce-upload-update-provider.php -o wp-content/mu-plugins/taxocommerce-upload-update-provider.php'
+            echo "mkdir -p $repo_dir"
+            for zip in dist/taxocommerce-*.zip; do
+              name="$(basename "$zip")"
+              echo "put \"$zip\" -o \"$repo_dir/$name.next\""
+              echo "mv \"$repo_dir/$name.next\" \"$repo_dir/$name\""
+            done
+            echo "put dist/manifest.json -o $repo_dir/manifest.json.next"
+            echo "mv $repo_dir/manifest.json.next $repo_dir/manifest.json"
+            echo 'bye'
+          } > "$file"
+          lftp -u "$FTP_USER","$FTP_PASS" -p 21 "$FTP_HOST" -f "$file"
+          rm -f "$file"
+          echo 'Published the verified temporary TaxoCommerce update repository.'
