@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Suppliers
  * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
  * Version: 0.2.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-suppliers/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
