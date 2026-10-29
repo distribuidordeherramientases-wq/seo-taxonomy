@@ -67,7 +67,9 @@ final class TaxoCommerce_Core_User_Guide {
 					<section id="tc-guide-start">
 						<h2><?php esc_html_e( '2. Primeros pasos', 'taxocommerce-core' ); ?></h2>
 						<ol>
-							<li><?php echo wp_kses_post( sprintf( /* translators: %s: link to the TaxoCommerce Core dashboard. */ __( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
+							<li><?php echo wp_kses_post( sprintf(
+						/* translators: %s: link to the TaxoCommerce Core dashboard. */
+						__( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
 							<li><?php esc_html_e( 'Entra en Content y revisa los contenidos y sus países antes de hacer cambios.', 'taxocommerce-core' ); ?></li>
 							<li><?php esc_html_e( 'Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager.', 'taxocommerce-core' ); ?></li>
 							<li><?php esc_html_e( 'Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos.', 'taxocommerce-core' ); ?></li>
