@@ -70,6 +70,6 @@ jobs:
           cp /tmp/images-contract-results.txt build-images/tests.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: images-contract-package-0.2.10
+          name: images-contract-package-0.2.15
           path: build-images/
           retention-days: 7
