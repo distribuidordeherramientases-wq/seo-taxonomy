@@ -515,21 +515,25 @@ final class TaxoCommerce_Connections_Pinterest {
 
 	public static function register_legacy_helpers() {
 		if ( ! function_exists( 'seo_social_pinterest_merchant_settings' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_social_pinterest_merchant_settings() {
 				return TaxoCommerce_Connections_Pinterest::merchant_settings();
 			}
 		}
 		if ( ! function_exists( 'seo_social_pinterest_extract_domain_verify' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_social_pinterest_extract_domain_verify( $value ) {
 				return TaxoCommerce_Connections_Pinterest::extract_domain_verify( $value );
 			}
 		}
 		if ( ! function_exists( 'seo_social_pinterest_get_access_token' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_social_pinterest_get_access_token( $config = array() ) {
 				return TaxoCommerce_Connections_Pinterest::access_token( $config );
 			}
 		}
 		if ( ! function_exists( 'seo_social_pinterest_test_connection' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_social_pinterest_test_connection( $config = array() ) {
 				return TaxoCommerce_Connections_Pinterest::test_connection();
 			}

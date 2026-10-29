@@ -18,6 +18,7 @@ if ( ! defined( 'SEO_GOOGLE_ECOMMERCE_QUEUE_KEY' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_tracking_active' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_tracking_active() {
         $doing_ajax = function_exists( 'wp_doing_ajax' ) && wp_doing_ajax();
         if ( is_admin() && ! $doing_ajax ) {
@@ -40,16 +41,19 @@ if ( ! function_exists( 'seo_google_ecommerce_tracking_active' ) ) {
             return false;
         }
 
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         if ( ! apply_filters( 'seo_google_tracking_allowed', true ) ) {
             return false;
         }
 
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         return (bool) apply_filters( 'seo_google_ecommerce_tracking_allowed', true );
     }
 }
 
 
 if ( ! function_exists( 'seo_google_ecommerce_wc_runtime' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_wc_runtime() {
         if ( ! function_exists( 'WC' ) ) {
             return null;
@@ -64,12 +68,14 @@ if ( ! function_exists( 'seo_google_ecommerce_wc_runtime' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_currency' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_currency() {
         return function_exists( 'get_woocommerce_currency' ) ? (string) get_woocommerce_currency() : '';
     }
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_round' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_round( $value ) {
         $decimals = function_exists( 'wc_get_price_decimals' ) ? wc_get_price_decimals() : 2;
         return round( (float) $value, max( 0, (int) $decimals ) );
@@ -77,6 +83,7 @@ if ( ! function_exists( 'seo_google_ecommerce_round' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_product_base' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_product_base( $product ) {
         if ( ! is_object( $product ) || ! is_a( $product, 'WC_Product' ) ) {
             return null;
@@ -97,6 +104,7 @@ if ( ! function_exists( 'seo_google_ecommerce_product_base' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_category_path' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_category_path( $product ) {
         $base = seo_google_ecommerce_product_base( $product );
         if ( ! $base ) {
@@ -138,6 +146,7 @@ if ( ! function_exists( 'seo_google_ecommerce_category_path' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_brand' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_brand( $product ) {
         $base = seo_google_ecommerce_product_base( $product );
         if ( ! $base ) {
@@ -170,6 +179,7 @@ if ( ! function_exists( 'seo_google_ecommerce_brand' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_variant' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_variant( $product ) {
         if ( ! is_object( $product ) || ! is_a( $product, 'WC_Product_Variation' ) ) {
             return '';
@@ -196,6 +206,7 @@ if ( ! function_exists( 'seo_google_ecommerce_variant' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_item' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_item( $product, $quantity = 1, $unit_price = null, $unit_discount = 0.0, $index = null ) {
         if ( ! is_object( $product ) || ! is_a( $product, 'WC_Product' ) ) {
             return [];
@@ -252,6 +263,7 @@ if ( ! function_exists( 'seo_google_ecommerce_item' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_cart_payload' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_cart_payload() {
         $payload = [
             'currency' => seo_google_ecommerce_currency(),
@@ -300,6 +312,7 @@ if ( ! function_exists( 'seo_google_ecommerce_cart_payload' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_order_payload' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_order_payload( $order ) {
         if ( ! is_object( $order ) || ! is_a( $order, 'WC_Order' ) ) {
             return [];
@@ -356,6 +369,7 @@ if ( ! function_exists( 'seo_google_ecommerce_order_payload' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_queue_event' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_queue_event( $event_name, array $params ) {
         $wc = seo_google_ecommerce_wc_runtime();
         if ( ! $wc || empty( $wc->session ) ) {
@@ -393,6 +407,7 @@ if ( ! function_exists( 'seo_google_ecommerce_queue_event' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_pop_queue' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_pop_queue() {
         $wc = seo_google_ecommerce_wc_runtime();
         if ( ! $wc || empty( $wc->session ) ) {
@@ -416,6 +431,7 @@ if ( ! function_exists( 'seo_google_ecommerce_pop_queue' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_queue_add_to_cart' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_queue_add_to_cart( $cart_item_key, $product_id, $quantity, $variation_id = 0, $variation = [], $cart_item_data = [] ) {
         unset( $cart_item_key, $variation, $cart_item_data );
         if ( ! seo_google_ecommerce_tracking_active() ) {
@@ -441,6 +457,7 @@ if ( ! function_exists( 'seo_google_ecommerce_queue_add_to_cart' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_queue_removed_item' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_queue_removed_item( $cart_item_key, $cart ) {
         if ( ! seo_google_ecommerce_tracking_active() || ! is_object( $cart ) ) {
             return;
@@ -469,6 +486,7 @@ if ( ! function_exists( 'seo_google_ecommerce_queue_removed_item' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_queue_quantity_change' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_queue_quantity_change( $cart_item_key, $quantity, $old_quantity, $cart ) {
         if ( ! seo_google_ecommerce_tracking_active() || ! is_object( $cart ) ) {
             return;
@@ -501,6 +519,7 @@ if ( ! function_exists( 'seo_google_ecommerce_queue_quantity_change' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_page_events' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_page_events() {
         $events = [];
 
@@ -545,6 +564,7 @@ if ( ! function_exists( 'seo_google_ecommerce_page_events' ) ) {
             if ( $order_id > 0 ) {
                 $order = wc_get_order( $order_id );
                 $purchase_statuses = $order
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
                     ? (array) apply_filters( 'seo_google_ecommerce_purchase_statuses', [ 'processing', 'completed', 'on-hold' ], $order )
                     : [];
                 if ( $order && $purchase_statuses && $order->has_status( $purchase_statuses ) ) {
@@ -561,6 +581,7 @@ if ( ! function_exists( 'seo_google_ecommerce_page_events' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_ajax_pop_queue' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_ajax_pop_queue() {
         if ( ! check_ajax_referer( 'seo_google_ecommerce_pop', 'nonce', false ) ) {
             wp_send_json_error( [ 'message' => 'Nonce no valido.' ], 403 );
@@ -575,6 +596,7 @@ if ( ! function_exists( 'seo_google_ecommerce_ajax_pop_queue' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_ecommerce_frontend_events' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_ecommerce_frontend_events() {
         if ( ! seo_google_ecommerce_tracking_active() ) {
             return;

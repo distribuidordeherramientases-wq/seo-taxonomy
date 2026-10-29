@@ -21,6 +21,7 @@ if (!defined('SEO_GOOGLE_DEMAND_CATALOG_VERSION')) {
 /**
  * Normaliza texto para clasificar consultas sin depender de mayusculas/acentos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_normalize_text($text) {
     $text = wp_strip_all_tags((string) $text);
     $text = remove_accents($text);
@@ -38,6 +39,7 @@ function seo_google_demand_normalize_text($text) {
  * extremadamente amplios y premia consultas con detalle de producto, medida,
  * uso o senal comercial. La consulta original y sus metricas siguen visibles.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_query_profile($query) {
     $normalized = seo_google_demand_normalize_text($query);
     $tokens     = '' === $normalized ? array() : preg_split('/\s+/', $normalized);
@@ -131,6 +133,7 @@ function seo_google_demand_query_profile($query) {
 /**
  * Indice de categorias por ID y mapa URL -> termino.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_category_index() {
     static $cache = null;
 
@@ -170,6 +173,7 @@ function seo_google_demand_get_category_index() {
 /**
  * Profundidad de una categoria en el arbol product_cat.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_term_depth($term_id, array $by_id) {
     $depth   = 0;
     $current = absint($term_id);
@@ -192,6 +196,7 @@ function seo_google_demand_term_depth($term_id, array $by_id) {
  * Selecciona la categoria mas profunda de un producto para evitar duplicar
  * impresiones en varias ramas. Si hay empate, usa el ID menor para estabilidad.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_pick_product_category($post_id, array $by_id) {
     $terms = wp_get_post_terms($post_id, 'product_cat');
     if (is_wp_error($terms) || !$terms) {
@@ -218,6 +223,7 @@ function seo_google_demand_pick_product_category($post_id, array $by_id) {
  * Relaciona una landing page de Search Console con una categoria WooCommerce.
  * Solo usa relaciones verificables: URL de categoria o producto existente.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_category_for_page($url) {
     static $cache = array();
 
@@ -272,6 +278,7 @@ function seo_google_demand_category_for_page($url) {
  * No importa ni duplica datos: reutiliza seo_google_search_data, que contiene una
  * fila por fecha + consulta + URL. La agregacion se hace por query_hash/page_hash.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_period_query_page_rows($property_id, $date_from, $date_to, $min_impressions = 1, $limit = 40000) {
     global $wpdb;
 
@@ -314,6 +321,7 @@ function seo_google_demand_get_period_query_page_rows($property_id, $date_from, 
  * contiene los datos importados, y fusionar ambos periodos en PHP es mas robusto
  * entre distintas versiones/configuraciones de MySQL.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_query_page_rows($property_id, array $period, $min_impressions = 1, $limit = 40000) {
     $current = seo_google_demand_get_period_query_page_rows(
         $property_id,
@@ -381,6 +389,7 @@ function seo_google_demand_get_query_page_rows($property_id, array $period, $min
  * Diagnostico de la tabla ya importada. Sirve para distinguir claramente entre
  * "no hay datos" y "hay datos pero el informe no los esta mapeando".
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_storage_diagnostics($property_id, array $period) {
     global $wpdb;
 
@@ -399,7 +408,7 @@ function seo_google_demand_get_storage_diagnostics($property_id, array $period) 
     }
 
     $property_hash = hash('sha256', $property_id);
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $row = $wpdb->get_row(
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
@@ -428,7 +437,7 @@ function seo_google_demand_get_storage_diagnostics($property_id, array $period) 
     }
 
     foreach (array('current' => array($period['current_from'], $period['current_to']), 'previous' => array($period['previous_from'], $period['previous_to'])) as $key => $dates) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $pairs = $wpdb->get_var(
             // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
             $wpdb->prepare(
@@ -454,6 +463,7 @@ function seo_google_demand_get_storage_diagnostics($property_id, array $period) 
  * Cuenta productos publicados por categoria y los propaga a sus ancestros.
  * Usa sets por ID para evitar contar dos veces el mismo producto dentro de una rama.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_catalog_counts() {
     global $wpdb;
 
@@ -504,6 +514,7 @@ function seo_google_demand_get_catalog_counts() {
 /**
  * Crea un registro vacio para una categoria observada.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_empty_category_row($term_id, $term, $product_count) {
     return array(
         'term_id'                 => absint($term_id),
@@ -538,6 +549,7 @@ function seo_google_demand_empty_category_row($term_id, $term, $product_count) {
 /**
  * Agrega Search Console por categoria local.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_build_category_metrics($property_id, array $period, $min_impressions = 1) {
     $cache_key = 'seo_g_demand_' . substr(
         hash(
@@ -714,6 +726,7 @@ function seo_google_demand_build_category_metrics($property_id, array $period, $
 /**
  * Normalizacion logaritmica resistente a categorias con volumen extremo.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_log_norm($value, $max_value) {
     $value     = max(0.0, (float) $value);
     $max_value = max(0.0, (float) $max_value);
@@ -729,6 +742,7 @@ function seo_google_demand_log_norm($value, $max_value) {
  * Puntua y clasifica categorias. Los estados de reduccion son avisos de revision,
  * nunca ordenes automaticas de borrar productos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_score_categories(array $categories) {
     if (!$categories) {
         return $categories;
@@ -832,6 +846,7 @@ function seo_google_demand_score_categories(array $categories) {
 /**
  * Etiqueta visual de una recomendacion.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_badge($recommendation) {
     $styles = array(
         'ALTA OPORTUNIDAD'    => 'background:#d1e7dd;color:#0f5132;',
@@ -851,6 +866,7 @@ function seo_google_demand_badge($recommendation) {
 /**
  * Formatea tendencia porcentual.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_format_trend($trend) {
     if (null === $trend) {
         return 'Nueva / sin base';
@@ -866,6 +882,7 @@ function seo_google_demand_format_trend($trend) {
  * Es una fuente de descubrimiento: no se fuerza el mapeo si la evidencia local
  * no existe. Agrupa por consulta y conserva sus principales landing pages.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_build_unmapped_queries($property_id, array $period, $min_impressions = 1, $limit = 40) {
     $rows = seo_google_demand_get_query_page_rows($property_id, $period, $min_impressions, 40000);
     $queries = array();
@@ -954,6 +971,7 @@ function seo_google_demand_build_unmapped_queries($property_id, array $period, $
  * Intenta describir el tipo de landing sin convertirlo artificialmente en una
  * categoria. Ayuda a entender por que una consulta no esta mapeada.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_landing_type($url) {
     $path = trim((string) wp_parse_url($url, PHP_URL_PATH), '/');
     if ('' === $path) {
@@ -978,6 +996,7 @@ function seo_google_demand_landing_type($url) {
  * Tokens significativos para agrupar consultas por intencion sin servicios externos.
  * Es una agrupacion heuristica y siempre conserva las consultas originales como evidencia.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_intent_tokens($query) {
     $normalized = seo_google_demand_normalize_text($query);
     $tokens = '' === $normalized ? array() : preg_split('/\s+/', $normalized);
@@ -1011,6 +1030,7 @@ function seo_google_demand_intent_tokens($query) {
 /**
  * Similitud lexical entre dos consultas a partir de tokens significativos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_intent_similarity(array $a, array $b) {
     if (!$a || !$b) {
         return 0.0;
@@ -1028,6 +1048,7 @@ function seo_google_demand_intent_similarity(array $a, array $b) {
  * Sugiere una categoria existente por similitud lexical. No la da por valida:
  * solo sirve como pista para decidir si falta mapeo o realmente falta oferta.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_suggest_category(array $intent_tokens) {
     $index = seo_google_demand_get_category_index();
     $best = null;
@@ -1058,6 +1079,7 @@ function seo_google_demand_suggest_category(array $intent_tokens) {
  * El objetivo es juntar variantes como singular/plural y modificadores cercanos,
  * no inventar relaciones semanticas que Search Console no demuestre.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_build_intent_clusters(array $queries, $limit = 30) {
     $clusters = array();
 
@@ -1177,6 +1199,7 @@ function seo_google_demand_build_intent_clusters(array $queries, $limit = 30) {
  * Clasifica si una consulta sirve para decidir catalogo o es principalmente
  * corporativa/navegacional. No descarta datos: cambia el tipo de accion.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_catalog_relevance($query) {
     $text = seo_google_demand_normalize_text($query);
 
@@ -1208,6 +1231,7 @@ function seo_google_demand_catalog_relevance($query) {
  * Extrae dimensiones de producto expresadas en las consultas. Esta salida se
  * ha disenado para que tambien pueda ser consumida por otros procesos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_extract_dimensions(array $queries) {
     $dimensions = array(
         'capacity'      => array(),
@@ -1276,6 +1300,7 @@ function seo_google_demand_extract_dimensions(array $queries) {
     return $dimensions;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_dimension_labels(array $dimensions, $limit = 6) {
     $labels = array();
     $names = array(
@@ -1295,6 +1320,7 @@ function seo_google_demand_dimension_labels(array $dimensions, $limit = 6) {
 /**
  * Decide en que sentido potenciar: profundidad, amplitud, SEO, mapeo o nueva familia.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_expansion_strategy($kind, $decision, $position, $products, array $dimensions, $suggested_category = null) {
     $has_dimensions = false;
     foreach ($dimensions as $values) {
@@ -1323,6 +1349,7 @@ function seo_google_demand_expansion_strategy($kind, $decision, $position, $prod
  * Salida publica para otros modulos/procesos de WordPress.
  * No modifica catalogo. Devuelve recomendaciones y evidencia estructurada.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_get_catalog_guidance($property_id, $days = 60, $min_impressions = 2, $limit = 50) {
     $period = seo_google_get_analysis_period($property_id, $days);
     if (!$period) return array();
@@ -1340,12 +1367,14 @@ function seo_google_demand_get_catalog_guidance($property_id, $days = 60, $min_i
         'items' => $items,
     );
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     return apply_filters('seo_google_demand_catalog_guidance', $payload, $property_id, $days, $min_impressions);
 }
 
 /**
  * Ranking ejecutivo: combina categorias existentes e intenciones no mapeadas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_demand_build_focus_ranking(array $categories, array $clusters, $limit = 12) {
     $items = array();
 
@@ -1433,6 +1462,7 @@ function seo_google_demand_build_focus_ranking(array $categories, array $cluster
 /**
  * Render principal de la nueva pestana Demanda x Catalogo.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_demand_catalog() {
     if (!seo_google_analysis_ready()) {
         return;
