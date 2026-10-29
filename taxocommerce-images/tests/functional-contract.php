@@ -126,8 +126,8 @@ wp_set_current_user( $admin->ID );
 
 $jpeg = taxocommerce_images_test_image( 'conversion-original.jpg', 109, null, 'image/jpeg' );
 $old_file = get_attached_file( $jpeg );
-if ( tci_webp_supported() ) {
-	$converted = tci_webp_process_attachment( $jpeg );
+if ( taxocommerce_images_webp_supported() ) {
+	$converted = taxocommerce_images_webp_process_attachment( $jpeg );
 	taxocommerce_images_test_assert( 1 === (int) $converted['converted'], 'real JPEG converts to WebP' );
 	taxocommerce_images_test_assert( 'image/webp' === get_post_mime_type( $jpeg ) && is_file( get_attached_file( $jpeg ) ), 'converted attachment remains valid' );
 	taxocommerce_images_test_assert( ! is_file( $old_file ) && ! get_post_meta( $jpeg, '_tci_webp_leftover_backups', true ), 'successful conversion leaves no permanent JPEG backup' );
