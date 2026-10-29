@@ -4,6 +4,12 @@ on:
     paths:
       - 'taxocommerce-images/**'
       - '.github/workflows/images-contract-check.yml'
+  # Verify the actually merged STAGING revision, not only PR candidates.
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-contract-check.yml'
   workflow_dispatch:
 permissions:
   contents: read

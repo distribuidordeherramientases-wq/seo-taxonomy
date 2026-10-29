@@ -5,6 +5,12 @@ on:
     paths:
       - 'taxocommerce-images/**'
       - '.github/workflows/images-standalone-check.yml'
+  # Catch warning regressions in the exact commit deployed to STAGING.
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-standalone-check.yml'
   workflow_dispatch:
 
 permissions:
