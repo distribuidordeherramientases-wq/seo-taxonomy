@@ -8,6 +8,8 @@ on:
       - 'taxocommerce-core/tests/country-scope-smoke.php'
       - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
+      - 'taxocommerce-core/tests/auto-test-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   push:
@@ -19,6 +21,8 @@ on:
       - 'taxocommerce-core/tests/country-scope-smoke.php'
       - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
+      - 'taxocommerce-core/tests/auto-test-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   workflow_dispatch:
@@ -40,6 +44,8 @@ jobs:
         run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Menu behavior and callback regression
         run: php taxocommerce-core/tests/menu-editor-smoke.php
+      - name: Auto Test functional checks (pass, failure, skipped, permissions)
+        run: php taxocommerce-core/tests/auto-test-smoke.php
       - name: Country scoping and legacy compatibility
         run: php taxocommerce-core/tests/country-scope-smoke.php
       - name: Canonical hierarchy country-schema upgrade
