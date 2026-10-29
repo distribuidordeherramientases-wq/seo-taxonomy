@@ -107,7 +107,7 @@ final class TCD_Intelligence {
         $knowledge = TCD_Academy::knowledge_table();
         $memory = TCD_Knowledge_Transfer::l9_table();
         $total = absint( $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$knowledge} WHERE lesson=2 AND status='learned'"
+            $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE lesson=2 AND status='learned'", $knowledge )
         ) );
 
         if ( ! $total ) {
@@ -701,8 +701,8 @@ final class TCD_Intelligence {
         ) {
             $table = TCD_Academy::knowledge_table();
             $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
-                $lesson
+                "SELECT id FROM %i WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
+                $table, $lesson
             ) ) );
             if ( ! $all_ids ) {
                 return new WP_Error( 'tcd_quality_progress_empty', 'La lección no tiene casos aprendidos para evaluar.' );
@@ -765,8 +765,8 @@ final class TCD_Intelligence {
             $placeholders = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE id IN ({$placeholders})",
-                    $batch_ids
+                    "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE id IN ({$placeholders})",
+                    $table, $batch_ids
                 ),
                 ARRAY_A
             );
@@ -877,8 +877,8 @@ final class TCD_Intelligence {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
         $all_rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,source_type,source_id,title,context_json,status FROM {$table} WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
-            $lesson
+            "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=%d AND status='learned' ORDER BY source_type ASC,source_id ASC",
+            $table, $lesson
         ), ARRAY_A );
         $rows = self::representative_sample( $all_rows, 180 );
         $result = array(
@@ -1578,10 +1578,10 @@ final class TCD_Intelligence {
         do {
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status,reason
-                 FROM {$table}
+                 FROM %i
                  WHERE lesson=%d AND id>%d
                  ORDER BY id ASC LIMIT 250",
-                $lesson,
+                $table, $lesson,
                 $last
             ), ARRAY_A );
             foreach ( $rows as $row ) {
@@ -1698,10 +1698,10 @@ final class TCD_Intelligence {
         do {
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,source_type,source_id,title,context_json,status,reason
-                 FROM {$table}
+                 FROM %i
                  WHERE lesson=%d AND id>%d
                  ORDER BY id ASC LIMIT 250",
-                $lesson,
+                $table, $lesson,
                 $last
             ), ARRAY_A );
 
@@ -1864,9 +1864,9 @@ final class TCD_Intelligence {
             } else {
                 $stored = $wpdb->get_row( $wpdb->prepare(
                     "SELECT source_type,source_id,title,context_json
-                     FROM {$knowledge}
+                     FROM %i
                      WHERE lesson=%d AND source_type=%s AND source_id=%d LIMIT 1",
-                    $lesson,
+                    $knowledge, $lesson,
                     $source_type,
                     $source_id
                 ), ARRAY_A );
@@ -3027,8 +3027,8 @@ final class TCD_Intelligence {
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) return array();
         $vocabulary_id = absint( $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND slug IN (%s,%s) ORDER BY id ASC LIMIT 1",
-            $group, $slug, str_replace( '-', '_', $slug )
+            "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN (%s,%s) ORDER BY id ASC LIMIT 1",
+            $voc, $group, $slug, str_replace( '-', '_', $slug )
         ) ) );
         if ( ! $vocabulary_id ) return array();
         if ( $specific_ids ) {
@@ -3036,13 +3036,13 @@ final class TCD_Intelligence {
             if ( ! $specific_ids ) return array();
             $placeholders = implode( ',', array_fill( 0, count( $specific_ids ), '%d' ) );
             return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                "SELECT object_id FROM {$rel} WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
-                array_merge( array( $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
+                "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d AND object_id IN ({$placeholders}) LIMIT %d",
+                array_merge(array($rel),  array( $vocabulary_id ), $specific_ids, array( absint( $limit ) ) )
             ) ) );
         }
         return array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT object_id FROM {$rel} WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id ASC LIMIT %d",
-            $vocabulary_id, absint( $limit )
+            "SELECT object_id FROM %i WHERE object_type='product' AND status=1 AND vocabulary_id=%d ORDER BY object_id ASC LIMIT %d",
+            $rel, $vocabulary_id, absint( $limit )
         ) ) );
     }
 
@@ -3113,16 +3113,16 @@ final class TCD_Intelligence {
         $out = array();
         foreach ( self::quality_target_hints( $query, 6, $stage ) as $id ) {
             $row = $wpdb->get_row( $wpdb->prepare(
-                "SELECT id,question FROM {$table} WHERE active=1 AND id=%d LIMIT 1",
-                $id
+                "SELECT id,question FROM %i WHERE active=1 AND id=%d LIMIT 1",
+                $table, $id
             ), ARRAY_A );
             if ( $row ) $out[] = array( 'id'=>absint( $row['id'] ?? 0 ), 'title'=>(string) ( $row['question'] ?? '' ) );
         }
 
         $like = '%' . $wpdb->esc_like( trim( (string) $query ) ) . '%';
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,question FROM {$table} WHERE active=1 AND question LIKE %s ORDER BY CASE WHEN question=%s THEN 0 ELSE 1 END,id ASC LIMIT %d",
-            $like, trim( (string) $query ), absint( $limit )
+            "SELECT id,question FROM %i WHERE active=1 AND question LIKE %s ORDER BY CASE WHEN question=%s THEN 0 ELSE 1 END,id ASC LIMIT %d",
+            $table, $like, trim( (string) $query ), absint( $limit )
         ), ARRAY_A );
         foreach ( $rows as $row ) {
             $id = absint( $row['id'] ?? 0 );
@@ -3159,8 +3159,8 @@ final class TCD_Intelligence {
             || absint( $progress['l9_snapshot_id'] ?? 0 ) !== $snapshot_id
         ) {
             $all_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                "SELECT id FROM {$knowledge} WHERE lesson=%d AND status=%s ORDER BY source_type ASC,source_id ASC",
-                9, 'learned'
+                "SELECT id FROM %i WHERE lesson=%d AND status=%s ORDER BY source_type ASC,source_id ASC",
+                $knowledge, 9, 'learned'
             ) ) );
             if ( ! $all_ids ) {
                 return new WP_Error( 'tcd_interpreter_no_sources', 'M11 no encuentra fuentes L9 aprendidas.' );
@@ -3203,8 +3203,8 @@ final class TCD_Intelligence {
         if ( $batch ) {
             $placeholders = implode( ',', array_fill( 0, count( $batch ), '%d' ) );
             $rows = (array) $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,source_type,source_id,title,context_json,status FROM {$knowledge} WHERE lesson=9 AND id IN ({$placeholders})",
-                $batch
+                "SELECT id,source_type,source_id,title,context_json,status FROM %i WHERE lesson=9 AND id IN ({$placeholders})",
+                $knowledge, $batch
             ), ARRAY_A );
             $by_id = array();
             foreach ( $rows as $row ) $by_id[ absint( $row['id'] ?? 0 ) ] = $row;
@@ -3333,8 +3333,8 @@ final class TCD_Intelligence {
         if ( ! is_array( $item ) ) return;
         $table = TCD_Knowledge_Transfer::l9_table();
         $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$table} WHERE product_id=%d AND (source_brain_id LIKE %s OR source_brain_id LIKE %s)",
-            $product_id, 'modern:%', 'maintenance:%'
+            "DELETE FROM %i WHERE product_id=%d AND (source_brain_id LIKE %s OR source_brain_id LIKE %s)",
+            $table, $product_id, 'modern:%', 'maintenance:%'
         ) );
         $stage = 'maintenance:product:' . $product_id;
         self::stage_l9_item( $item, $stage );
