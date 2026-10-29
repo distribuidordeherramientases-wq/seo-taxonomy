@@ -224,12 +224,14 @@ final class TaxoCommerce_Core_Vocabulary {
             if ( $ids ) {
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- %d list is generated only from absint() IDs; every identifier uses %i.
                 $valid = $wpdb->get_col(
                     $wpdb->prepare(
                         "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
                         array_merge( array( $tables['vocabulary'], $group ), $ids )
                     )
                 );
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
                 if ( count( $valid ) !== count( $ids ) ) {
                     return new WP_Error( 'tc_core_vocab_invalid', 'Algunas etiquetas de ' . $label . ' no existen en el vocabulario.' );
                 }
@@ -253,6 +255,7 @@ final class TaxoCommerce_Core_Vocabulary {
                 $ids = array_values( $to_remove );
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Canonical vocabulary relations use custom tables; reads must reflect current assignments and writes must persist immediately.
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- %d list is generated only from absint() IDs.
                 $updated = $wpdb->query(
                     $wpdb->prepare(
                         "UPDATE %i SET status=0, updated_at=%s
@@ -260,6 +263,7 @@ final class TaxoCommerce_Core_Vocabulary {
                         array_merge( array( $tables['relations'], current_time( 'mysql', true ), $type, $object_id ), $ids )
                     )
                 );
+                // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
                 if ( false === $updated ) {
                     return new WP_Error( 'tc_core_vocab_update', 'No se pudieron retirar etiquetas manuales.' );
                 }
