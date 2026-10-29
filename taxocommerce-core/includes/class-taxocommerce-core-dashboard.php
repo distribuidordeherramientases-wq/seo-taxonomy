@@ -89,14 +89,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'tone'        => 'info',
 				'slug'        => 'taxocommerce-core-menu',
 			),
-			array(
-				'title'       => __( 'Auto Test', 'taxocommerce-core' ),
-				'icon'        => 'dashicons-yes-alt',
-				'description' => __( 'Comprueba contenidos, países, jerarquía SEO, menús y módulos sin alterar datos.', 'taxocommerce-core' ),
-				'state'       => __( 'Pruebas bajo demanda', 'taxocommerce-core' ),
-				'tone'        => 'info',
-				'slug'        => TaxoCommerce_Core_Auto_Test::PAGE_SLUG,
-			),
 		);
 
 
@@ -118,6 +110,7 @@ final class TaxoCommerce_Core_Dashboard {
 			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
+				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=auto-test' ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></a>
 			</nav>
 
 			<section class="tcc-metrics" aria-label="<?php esc_attr_e( 'Estado del sistema', 'taxocommerce-core' ); ?>">
