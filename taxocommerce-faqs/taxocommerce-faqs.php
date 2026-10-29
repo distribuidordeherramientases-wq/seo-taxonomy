@@ -16,6 +16,7 @@ define( 'TAXOCOMMERCE_FAQS_PATH', plugin_dir_path( __FILE__ ) );
 require_once TAXOCOMMERCE_FAQS_PATH . 'includes/class-taxocommerce-faqs.php';
 require_once TAXOCOMMERCE_FAQS_PATH . 'includes/class-taxocommerce-faqs-lifecycle.php';
 require_once TAXOCOMMERCE_FAQS_PATH . 'includes/class-taxocommerce-faqs-auto-test.php';
+require_once TAXOCOMMERCE_FAQS_PATH . 'includes/class-taxocommerce-faqs-manual.php';
 register_activation_hook( __FILE__, array( 'TaxoCommerce_FAQs_Lifecycle', 'activate' ) );
 add_action( 'admin_notices', array( 'TaxoCommerce_FAQs_Lifecycle', 'removal_notice' ) );
 add_action( 'plugins_loaded', array( 'TaxoCommerce_FAQs', 'boot' ), 25 );
