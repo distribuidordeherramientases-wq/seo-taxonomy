@@ -618,6 +618,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the next live reference-update page with dynamic prepared LIKE predicates; results cannot safely be cached across mutations.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['ID']);
@@ -628,6 +629,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     continue;
                 }
                 $changes[] = array('kind' => 'post', 'id' => (int) $row['ID'], 'content' => $row['post_content'], 'excerpt' => $row['post_excerpt'], 'filtered' => $row['post_content_filtered']);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Change exactly the matched post reference columns and retain the original values for rollback; native post hooks could change unrelated data.
                 $ok = $wpdb->update(
                     $wpdb->posts,
                     array('post_content' => $content, 'post_excerpt' => $excerpt, 'post_content_filtered' => $filtered),
@@ -669,6 +671,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live metadata references for this batch; update_metadata_by_mid() may mutate them between pages.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
@@ -710,6 +713,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live option references across plugins; caching risks replacing or missing stale URLs.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['option_id']);
@@ -741,6 +745,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live taxonomy description references before selective replacement; no persistent cache for changing terms.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['term_taxonomy_id']);
@@ -755,6 +760,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     'taxonomy' => (string) $row['taxonomy'],
                     'old_value' => (string) $row['description'],
                 );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Update the exact taxonomy-description row while retaining undo data; manual cache invalidation follows the write.
                 $ok = $wpdb->update($wpdb->term_taxonomy, array('description' => $new), array('term_taxonomy_id' => (int) $row['term_taxonomy_id']), array('%s'), array('%d'));
                 if ($ok === false) {
                     return new WP_Error('reference_update_term', 'No se pudo actualizar una referencia en una descripcion de taxonomia.', array('changes' => $changes));
@@ -776,6 +782,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live comment references for selective replacement; stale cached data could invalidate rollback.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
             foreach ((array) $rows as $row) {
                 $after = max($after, (int) $row['comment_ID']);
@@ -784,6 +791,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                     continue;
                 }
                 $changes[] = array('kind' => 'comment', 'id' => (int) $row['comment_ID'], 'old_value' => (string) $row['comment_content']);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Update only the matching comment text in the controlled conversion transaction; clean_comment_cache() follows.
                 $ok = $wpdb->update($wpdb->comments, array('comment_content' => $new), array('comment_ID' => (int) $row['comment_ID']), array('%s'), array('%d'));
                 if ($ok === false) {
                     return new WP_Error('reference_update_comment', 'No se pudo actualizar una referencia en un comentario.', array('changes' => $changes));
@@ -810,6 +818,7 @@ if (!function_exists('taxocommerce_images_webp_rollback_reference_updates')) {
             }
             switch ($change['kind']) {
                 case 'post':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore the original post fields on failed conversion without triggering unrelated save hooks; clean_post_cache() follows.
                     $wpdb->update(
                         $wpdb->posts,
                         array('post_content' => $change['content'], 'post_excerpt' => $change['excerpt'], 'post_content_filtered' => isset($change['filtered']) ? $change['filtered'] : ''),
@@ -826,10 +835,12 @@ if (!function_exists('taxocommerce_images_webp_rollback_reference_updates')) {
                     update_option((string) $change['name'], $change['old_value']);
                     break;
                 case 'term_description':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore a term description directly from the rollback log; clean_term_cache() follows.
                     $wpdb->update($wpdb->term_taxonomy, array('description' => $change['old_value']), array('term_taxonomy_id' => (int) $change['tt_id']), array('%s'), array('%d'));
                     clean_term_cache((int) $change['term_id'], (string) $change['taxonomy']);
                     break;
                 case 'comment':
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore comment contents from rollback log; clean_comment_cache() follows.
                     $wpdb->update($wpdb->comments, array('comment_content' => $change['old_value']), array('comment_ID' => (int) $change['id']), array('%s'), array('%d'));
                     clean_comment_cache((int) $change['id']);
                     break;
@@ -884,6 +895,7 @@ if (!function_exists('taxocommerce_images_webp_remaining_references')) {
                 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL template uses only internal table/column fragments; all mutable values remain placeholders.
             $prepared_sql = $wpdb->prepare($sql, $args);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verify remaining references from live data before retiring original image files; stale cache could cause data loss.
             $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
                 foreach ((array) $rows as $row) {
                     $after = max($after, (int) $row['row_id']);
@@ -1322,6 +1334,7 @@ if (!function_exists('taxocommerce_images_webp_attachment_batch')) {
         $after_id = max(0, absint($after_id));
         $limit    = max(1, min(3, absint($limit)));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Count current JPG/PNG candidates for a live conversion progress snapshot; read fresh per operation.
         $total = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$wpdb->posts}
              WHERE post_type = 'attachment'
@@ -1329,6 +1342,7 @@ if (!function_exists('taxocommerce_images_webp_attachment_batch')) {
                AND post_mime_type IN ('image/jpeg','image/png')"
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read a strict ID-cursor slice of outstanding JPEG/PNG attachments; jobs must not reuse stale IDs.
         $ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->posts}
