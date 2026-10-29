@@ -382,7 +382,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
 if (!function_exists('seo_analista_supplier_snapshot')) {
     function seo_analista_supplier_snapshot($limit = 20) {
         global $wpdb;
-        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        $table = esc_sql($wpdb->prefix . 'seo_proveedores_productos');
         $out = array('available'=>false,'total'=>0,'providers'=>0,'published_links'=>0,'rows'=>array(),'issues'=>array());
         if (!seo_analista_table_exists($table)) return $out;
 
