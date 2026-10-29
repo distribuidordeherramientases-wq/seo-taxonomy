@@ -45,6 +45,7 @@ On multisite, the cleanup is limited to sites marked as initialized by this modu
 
 = 0.1.5 =
 * Add an in-plugin Auto Test tab with 25 read-only checks across six groups.
+* Add a separate read-only Manual tab with eleven user-guide chapters and six technical chapters, following the family layout.
 * Store before/after deployment baselines per user and site, compare regressions and export sanitized JSON.
 * Never change FAQ rows, run migrations, or import/export files in diagnostic mode; live operations remain manual.
 
