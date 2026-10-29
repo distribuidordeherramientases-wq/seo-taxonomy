@@ -59,6 +59,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		}
 		global $wpdb;
 		$nodes = $wpdb->prefix . 'seo_nodes';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Core hierarchy checks canonical node-table availability before operating.
 		$nodes_exists = $nodes === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $nodes ) ) );
 		if ( ! TaxoCommerce_Core_Hierarchy_Classic::available() || ! $nodes_exists ) {
 			TaxoCommerce_Core_Hierarchy_Classic::install();
