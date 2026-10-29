@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Images - Image Management for WooCommerce
  * Description: Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.
  * Version: 0.2.15
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-images/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
