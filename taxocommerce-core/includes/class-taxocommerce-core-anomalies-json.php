@@ -13,6 +13,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_excluded_post_slugs')) {
         return array_values(array_unique(array_filter(array_map(
             'sanitize_title',
             (array) apply_filters(
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
                 'seo_reports_non_editorial_post_slugs',
                 array(
                     'carrito',
@@ -64,6 +65,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_collect_targets')) {
         };
 
         // Landings publicadas/programadas sin relacion comercial.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
         $landing_rows = $wpdb->get_results(
             "SELECT DISTINCT n.object_id
              FROM {$wpdb->prefix}seo_nodes n
@@ -86,6 +88,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_collect_targets')) {
         }
 
         // Guias/Comparativas sin relacion comercial.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
         $post_relation_rows = $wpdb->get_results(
             "SELECT DISTINCT p.ID, p.post_name
              FROM {$wpdb->posts} p
@@ -116,6 +119,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_collect_targets')) {
         }
 
         // Entradas editoriales sin Vocabulary canonico activo.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
         $post_vocab_rows = $wpdb->get_results(
             "SELECT p.ID, p.post_name
              FROM {$wpdb->posts} p
@@ -171,6 +175,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_product_cat_slugs')) {
 
         return array_values(array_unique(array_filter(array_map(
             'sanitize_title',
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
             (array) $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT t.slug
@@ -205,6 +210,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_vocabulary')) {
             'subtipo'    => array(),
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT v.semantic_group, v.slug
@@ -237,6 +243,7 @@ if (!function_exists('taxocommerce_core_anomalies_json_vocabulary')) {
 if (!function_exists('taxocommerce_core_anomalies_json_page_role')) {
     function taxocommerce_core_anomalies_json_page_role($page_id) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic JSON export must report current canonical data; avoid stale cache.
         return sanitize_key((string) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT seo_role
