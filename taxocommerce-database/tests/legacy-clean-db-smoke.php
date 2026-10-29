@@ -8,6 +8,7 @@ define( 'ABSPATH', __DIR__ );
 define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.3.0' );
 define( 'TAXOCOMMERCE_DATABASE_URL', 'https://example.test/wp-content/plugins/database/' );
 function add_action( $hook, $callback ) { return true; }
+function absint( $value ) { return abs( (int) $value ); }
 class TCDB_Fake_Legacy_WPDB {
     public $prefix = 'wp_';
     public $queries = array();
