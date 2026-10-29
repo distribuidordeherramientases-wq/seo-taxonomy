@@ -36,6 +36,7 @@ final class TaxoCommerce_Core_User_Guide {
 			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
+				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></a>
 			</nav>
 			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core' ); ?>">
 				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core' ); ?></a>
@@ -111,7 +112,7 @@ final class TaxoCommerce_Core_User_Guide {
 						<h2><?php esc_html_e( '6. Auto Test: comprobar el sistema', 'taxocommerce-core' ); ?></h2>
 						<p><?php esc_html_e( 'Auto Test ejecuta comprobaciones bajo demanda de módulos, lectura de contenidos, países, jerarquía y menús. Presenta resultados correctos, fallidos o no ejecutados, con información para localizar incidencias.', 'taxocommerce-core' ); ?></p>
 						<p><?php esc_html_e( 'Las pruebas automáticas son de lectura: no sustituyen una prueba real de edición, publicación o sincronización en un entorno de pruebas.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo self::link( TaxoCommerce_Core_Auto_Test::PAGE_SLUG, __( 'Abrir Auto Test', 'taxocommerce-core' ) ); ?></p>
+						<p><?php echo '<a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Abrir Auto Test', 'taxocommerce-core' ) . '</a>'; ?></p>
 					</section>
 					<section id="tc-guide-extensions">
 						<h2><?php esc_html_e( '7. Extensions: ampliar TaxoCommerce', 'taxocommerce-core' ); ?></h2>

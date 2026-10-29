@@ -10,6 +10,10 @@ on:
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
       - 'taxocommerce-core/tests/auto-test-smoke.php'
+      - 'taxocommerce-core/tests/auto-test-navigation-smoke.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-dashboard.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-user-guide.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   push:
@@ -23,6 +27,10 @@ on:
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
       - 'taxocommerce-core/tests/auto-test-smoke.php'
+      - 'taxocommerce-core/tests/auto-test-navigation-smoke.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-dashboard.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-user-guide.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-hierarchy*.php'
       - '.github/workflows/taxocommerce-menu-check.yml'
   workflow_dispatch:
@@ -46,6 +54,8 @@ jobs:
         run: php taxocommerce-core/tests/menu-editor-smoke.php
       - name: Auto Test functional checks (pass, failure, skipped, permissions)
         run: php taxocommerce-core/tests/auto-test-smoke.php
+      - name: Auto Test belongs in Core internal tabs, never WordPress sidebar
+        run: php taxocommerce-core/tests/auto-test-navigation-smoke.php
       - name: Country scoping and legacy compatibility
         run: php taxocommerce-core/tests/country-scope-smoke.php
       - name: Canonical hierarchy country-schema upgrade

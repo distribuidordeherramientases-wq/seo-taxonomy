@@ -125,7 +125,7 @@ PHP;
 								<tr><th scope="row"><?php esc_html_e( 'Content', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-content</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'SEO Hierarchy', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-hierarchy</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'Menu Manager', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-menu</code></td></tr>
-								<tr><th scope="row"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-auto-test</code></td></tr>
+								<tr><th scope="row"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></th><td><code>admin.php?page=taxocommerce-core&amp;tab=auto-test</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-user-guide</code></td></tr>
 							</tbody>
 						</table>

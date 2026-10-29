@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.36
+Stable tag: 0.4.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.37 =
+* Move Core Auto Test into the Core Overview / User Guide / Auto Test internal tab bar rather than a WordPress sidebar submenu.
+* Retain the 17 read-only checks, user transient, nonces, dashboard navigation and old URL compatibility via a safe redirect.
+* No new tables or modifications to tests, catalog, SEO hierarchy, menus or extension management.
+
 
 = 0.4.36 =
 * Add Technical Manual alongside User Manual in the existing User Guide screen.
