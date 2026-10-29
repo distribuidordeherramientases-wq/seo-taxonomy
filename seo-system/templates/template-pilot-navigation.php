@@ -7,6 +7,31 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Resolve the native TaxoCommerce menu for this exact country.
+ * Never fall back to a menu registered for a different country.
+ */
+if ( ! function_exists( 'dht_pilot_managed_menu_id' ) ) {
+    function dht_pilot_managed_menu_id( $country ) {
+        $country = strtoupper( trim( (string) $country ) );
+        if ( ! in_array( $country, array( 'ES', 'US', 'DE', 'NL', 'FR' ), true ) ) {
+            return 0;
+        }
+
+        if ( class_exists( 'TaxoCommerce_Core_Menu', false ) ) {
+            $id = TaxoCommerce_Core_Menu::managed_menu_id( $country, false );
+            return is_wp_error( $id ) ? 0 : absint( $id );
+        }
+
+        // Read-only compatibility if Core is temporarily inactive.
+        $menu = wp_get_nav_menu_object( 'TaxoCommerce - ' . $country );
+        if ( ( ! $menu || is_wp_error( $menu ) ) && 'ES' === $country ) {
+            $menu = wp_get_nav_menu_object( 'TaxoCommerce' );
+        }
+        return $menu && ! is_wp_error( $menu ) ? absint( $menu->term_id ) : 0;
+    }
+}
+
 if ( ! function_exists( 'dht_pilot_country_navigation' ) ) {
     function dht_pilot_country_navigation( $market ) {
         $empty = array(
