@@ -39,10 +39,10 @@ final class TaxoCommerce_Core_Editor_UI {
                 'url' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( 'taxocommerce_core_editor_terms' ),
                 'strings' => array(
-                    'none' => 'No hay términos coincidentes.',
-                    'loading' => 'Buscando…',
-                    'error' => 'No se han podido cargar los términos.',
-                    'choose' => 'Selecciona primero un atributo global.',
+                    'none' => __( 'No hay términos coincidentes.', 'taxocommerce-core' ),
+                    'loading' => __( 'Buscando…', 'taxocommerce-core' ),
+                    'error' => __( 'No se han podido cargar los términos.', 'taxocommerce-core' ),
+                    'choose' => __( 'Selecciona primero un atributo global.', 'taxocommerce-core' ),
                 ),
             )
         );
