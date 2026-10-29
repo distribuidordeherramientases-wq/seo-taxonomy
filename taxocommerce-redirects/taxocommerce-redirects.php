@@ -4,6 +4,7 @@
  * Plugin URI: https://www.distribuidordeherramientas.es/
  * Description: 301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.
  * Version: 0.1.5
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-redirects/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
