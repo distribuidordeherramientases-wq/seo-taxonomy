@@ -203,7 +203,8 @@ final class TaxoCommerce_Import_Export {
 		$error  = isset( $_GET['tc_ie_error'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_ie_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$kind    = isset( $_GET['tc_ie_kind'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_kind'] ) ) : 'csv'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
 		$tab     = isset( $_GET['tc_ie_tab'] ) ? sanitize_key( wp_unslash( $_GET['tc_ie_tab'] ) ) : 'export'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
-		$message = isset( $_GET['tc_ie_message'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['tc_ie_message'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect status only.
+		$raw_message = isset( $_GET['tc_ie_message'] ) && is_string( $_GET['tc_ie_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_ie_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only redirect notice.
+		$message = sanitize_text_field( rawurldecode( $raw_message ) );
 		if ( ! in_array( $tab, array( 'export', 'individual', 'batch', 'auto-test' ), true ) ) {
 			$tab = 'export';
 		}
