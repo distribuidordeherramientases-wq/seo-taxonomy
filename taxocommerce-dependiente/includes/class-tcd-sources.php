@@ -95,6 +95,7 @@ final class TCD_Sources {
         if ( 3 === $lesson ) {
             $voc = $wpdb->prefix . 'seo_vocabulary';
             if ( ! self::table_exists( $voc ) ) return 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
             return absint( $wpdb->get_var(
                 $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1 AND semantic_group IN ('tipo','rol')", $voc )
             ) );
@@ -107,12 +108,14 @@ final class TCD_Sources {
         if ( 6 === $lesson ) {
             $faq = $wpdb->prefix . 'seo_faq';
             if ( ! self::table_exists( $faq ) ) return 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
             return absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE active=1", $faq ) ) );
         }
         if ( 7 === $lesson ) {
             $voc=$wpdb->prefix.'seo_vocabulary';
             $rel=$wpdb->prefix.'seo_object_vocabulary';
             if(!self::table_exists($voc)||!self::table_exists($rel))return 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
             return absint($wpdb->get_var(
                 $wpdb->prepare( "SELECT COUNT(*) FROM (
                     SELECT v.id
@@ -177,6 +180,7 @@ final class TCD_Sources {
 
         // Legacy FAQ schemas omit optional fields such as product_cat_id.
         // Read the stored row and let faq_row_item() normalize optional values.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT * FROM %i WHERE id=%d AND active=1 LIMIT 1',
@@ -193,6 +197,7 @@ final class TCD_Sources {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) ) return null;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT id,semantic_group,slug,label FROM %i WHERE id=%d AND active=1 LIMIT 1",
             $voc, absint( $id )
@@ -200,6 +205,7 @@ final class TCD_Sources {
         if ( ! is_array( $row ) ) return null;
         $product_ids = array();
         if ( self::table_exists( $rel ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
             $product_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
                 "SELECT object_id FROM %i
                  WHERE object_type='product' AND vocabulary_id=%d AND status=1
@@ -225,6 +231,7 @@ final class TCD_Sources {
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) return null;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT v.id,v.semantic_group,v.slug,v.label,
                     SUM(r.object_type='product' AND r.status=1) product_uses,
@@ -254,6 +261,7 @@ final class TCD_Sources {
         if ( ! in_array( $lesson, array( 8, 10 ), true ) || ! $knowledge_id ) return null;
 
         $table = TCD_Academy::knowledge_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT id,lesson,source_type,source_id,title,context_json,status
              FROM %i WHERE id=%d LIMIT 1",
@@ -377,6 +385,7 @@ final class TCD_Sources {
         }
         $diagnosis['exists'] = true;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
         if ( $wpdb->last_error || ! is_array( $columns ) || ! $columns ) {
             $diagnosis['status'] = 'schema_error';
@@ -395,6 +404,7 @@ final class TCD_Sources {
             return $diagnosis;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $counts = $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN active=1 THEN 1 ELSE 0 END),0) AS active_count FROM %i',
@@ -433,6 +443,7 @@ final class TCD_Sources {
 
         // Optional legacy/modern FAQ fields vary. The batch size is bounded
         // to 100 and faq_row_item() maps missing optional values safely.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM %i WHERE active=1 ORDER BY id ASC LIMIT %d OFFSET %d',
@@ -498,6 +509,7 @@ final class TCD_Sources {
         if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) {
             return new WP_Error( 'tcd_vocabulary_missing', 'Vocabulary no está disponible para L3.' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT id,semantic_group,slug,label FROM %i
              WHERE active=1 AND semantic_group IN ('tipo','rol')
@@ -509,6 +521,7 @@ final class TCD_Sources {
         $items = array();
         foreach ( $rows as $row ) {
             $id=absint($row['id']??0); if(!$id)continue;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
             $product_ids=$wpdb->get_col($wpdb->prepare(
                 "SELECT object_id FROM %i WHERE object_type='product' AND vocabulary_id=%d AND status=1 ORDER BY object_id ASC LIMIT 200",
                 $rel, $id
@@ -531,6 +544,7 @@ final class TCD_Sources {
         if(!self::table_exists($voc)||!self::table_exists($rel)){
             return new WP_Error('tcd_cross_missing','Vocabulary no está disponible para L7.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows=$wpdb->get_results($wpdb->prepare(
             "SELECT v.id,v.semantic_group,v.slug,v.label,
                     SUM(r.object_type='product' AND r.status=1) product_uses,
@@ -559,6 +573,7 @@ final class TCD_Sources {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
     }
 
@@ -567,6 +582,7 @@ final class TCD_Sources {
         $voc=$wpdb->prefix.'seo_vocabulary';
         $rel=$wpdb->prefix.'seo_object_vocabulary';
         if(!self::table_exists($voc)||!self::table_exists($rel))return array();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows=$wpdb->get_results($wpdb->prepare(
             "SELECT v.id,v.semantic_group,v.slug,v.label
              FROM %i r INNER JOIN %i v ON v.id=r.vocabulary_id
@@ -955,6 +971,7 @@ final class TCD_Sources {
         // L8 samples L1-L7; L10 samples L1-L9. All lesson numbers are contiguous.
         // Read the grouped counts once instead of issuing seven or nine SQL round trips.
         $max_lesson = 8 === absint( $lesson ) ? 7 : 9;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $counts = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT lesson, COUNT(*) AS total FROM %i WHERE lesson BETWEEN %d AND %d GROUP BY lesson',
@@ -997,6 +1014,7 @@ final class TCD_Sources {
         $params[] = $limit + 1;
         $params[] = $cursor;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled solely from fixed SELECT clauses containing %i/%d placeholders; every table and lesson value is bound in $params.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
