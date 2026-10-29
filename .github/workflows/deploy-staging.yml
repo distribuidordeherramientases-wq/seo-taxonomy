@@ -27,6 +27,7 @@ jobs:
           php taxocommerce-database/tests/legacy-data-table-smoke.php
           php taxocommerce-database/tests/menu-smoke.php alone
           php taxocommerce-database/tests/menu-smoke.php core
+          php taxocommerce-database/tests/auto-test-smoke.php
 
       - name: Validate Redirects extension menu compatibility before STAGING FTP
         run: |

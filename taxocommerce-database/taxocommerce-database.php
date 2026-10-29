@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.2
+ * Version: 0.4.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.2' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.3' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -22,6 +22,7 @@ define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/legacy/seo-database-clean.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/legacy/seo-database-report.php';
 require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-manual.php';
+require_once TAXOCOMMERCE_DATABASE_PATH . 'includes/class-tcdb-auto-test.php';
 
 final class TaxoCommerce_Database {
     public static function boot() {
@@ -40,7 +41,7 @@ final class TaxoCommerce_Database {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
         $screen = isset( $_GET['tcdb_screen'] ) && is_string( $_GET['tcdb_screen'] )
             ? sanitize_key( wp_unslash( $_GET['tcdb_screen'] ) ) : 'clean';
-        if ( ! in_array( $screen, array( 'clean', 'table', 'manual' ), true ) ) {
+        if ( ! in_array( $screen, array( 'clean', 'table', 'manual', 'auto-test' ), true ) ) {
             $screen = 'clean';
         }
         // Existing routing parameters remain unchanged for filters, POST actions and export links.
@@ -58,8 +59,9 @@ final class TaxoCommerce_Database {
             'table:explorer'        => array( 'Explorar tablas', 'table', 'section', 'explorer' ),
             'table:export'          => array( 'Exportar tablas', 'table', 'section', 'export' ),
             'manual'                => array( 'Manual', 'manual', 'section', 'manual' ),
+            'auto-test'             => array( 'Auto Test', 'auto-test', 'section', 'auto-test' ),
         );
-        $active = 'manual' === $screen ? 'manual' : ( 'table' === $screen ? 'table:' . $table_section : 'clean:' . $clean_tab );
+        $active = in_array( $screen, array( 'manual', 'auto-test' ), true ) ? $screen : ( 'table' === $screen ? 'table:' . $table_section : 'clean:' . $clean_tab );
         if ( ! isset( $tabs[ $active ] ) ) {
             $active = 'table' === $screen ? 'table:overview' : 'clean:data_errors';
         }
@@ -72,7 +74,9 @@ final class TaxoCommerce_Database {
             echo '<a class="nav-tab' . ( $active === $key ? ' nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '"' . ( $active === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $tab[0] ) . '</a>';
         }
         echo '</nav></div>';
-        if ( 'manual' === $screen ) {
+        if ( 'auto-test' === $screen ) {
+            TCDB_Auto_Test::render();
+        } elseif ( 'manual' === $screen ) {
             TCDB_Manual::render();
         } elseif ( 'table' === $screen ) {
             \TCDB_Legacy\seo_data_table_page();

@@ -34,6 +34,7 @@ jobs:
           php taxocommerce-database/tests/legacy-data-table-smoke.php
           php taxocommerce-database/tests/menu-smoke.php alone
           php taxocommerce-database/tests/menu-smoke.php core
+          php taxocommerce-database/tests/auto-test-smoke.php
       - name: Assert no invented services or Data Layer
         run: |
           set -euo pipefail
