@@ -14,6 +14,7 @@ add_action('admin_post_taxocommerce_core_recount_product_categories', 'taxocomme
 function taxocommerce_core_anomalies_table_exists($suffix) {
     global $wpdb;
     $name = $wpdb->prefix . sanitize_key($suffix);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     return $name === $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($name)));
 }
 
@@ -52,6 +53,7 @@ function taxocommerce_core_anomalies_faq_table() {
     global $wpdb;
 
     $faq_table = esc_sql( $wpdb->prefix . 'seo_faq' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $faq_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $faq_table)
     );
@@ -101,6 +103,7 @@ function taxocommerce_core_anomalies_resolve_secondary_hub($term_id) {
         return new WP_Error('seo_category_delete_invalid_id', 'ID de categoría no válido.');
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT DISTINCT r.source_id AS hub_id, p.post_title, p.post_status
@@ -173,6 +176,7 @@ function taxocommerce_core_anomalies_delete_orphan_category_faqs() {
         wp_die('No se encuentra la tabla de FAQs.');
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $orphan_ids = $wpdb->get_col(
         $wpdb->prepare( "SELECT f.id
          FROM %i f
@@ -233,6 +237,7 @@ function taxocommerce_core_anomalies_delete_orphan_product_faqs() {
         wp_die('No se encuentra la tabla de FAQs.');
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $orphan_ids = $wpdb->get_col(
         $wpdb->prepare( "SELECT f.id
          FROM %i f
@@ -294,6 +299,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
         echo '<div class="notice notice-success inline"><p>FAQs de productos desaparecidos eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $category_total = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i f
@@ -304,6 +310,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND tt.term_id IS NULL", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $category_objects = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(DISTINCT f.object_id)
          FROM %i f
@@ -314,6 +321,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND tt.term_id IS NULL", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $product_orphans = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i f
@@ -323,6 +331,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND (p.ID IS NULL OR p.post_type <> 'product')", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $product_objects = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(DISTINCT f.object_id)
          FROM %i f
@@ -332,6 +341,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND (p.ID IS NULL OR p.post_type <> 'product')", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $product_not_published = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i f
@@ -342,6 +352,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND p.post_status <> 'publish'", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $hub_orphans = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i f
@@ -351,6 +362,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND p.ID IS NULL", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $hub_trash = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i f
@@ -360,6 +372,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
            AND p.post_status = 'trash'", $faq_table )
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $unknown_type = (int) $wpdb->get_var(
         $wpdb->prepare( "SELECT COUNT(*)
          FROM %i
@@ -381,6 +394,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
         return;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $category_summary = $wpdb->get_results(
         $wpdb->prepare( "SELECT
             f.object_id AS lost_object_id,
@@ -427,6 +441,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
         echo '</div>';
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $product_summary = $wpdb->get_results(
         $wpdb->prepare( "SELECT
             f.object_id AS lost_object_id,
@@ -529,6 +544,7 @@ function taxocommerce_core_anomalies_empty_category_state($term_id) {
         return $state;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $term_taxonomy_id = (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT term_taxonomy_id
@@ -547,6 +563,7 @@ function taxocommerce_core_anomalies_empty_category_state($term_id) {
 
     // No dependemos solo de term_taxonomy.count: comprobamos relaciones reales
     // con productos en cualquier estado para evitar borrar una categoría usada.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $state['product_count'] = (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(DISTINCT tr.object_id)
@@ -567,6 +584,7 @@ function taxocommerce_core_anomalies_empty_category_state($term_id) {
     // Una categoría vacía puede seguir siendo un destino comercial válido de
     // una landing. Borrarla crearía inmediatamente una relación rota y una
     // nueva anomalía, por lo que se protege aunque no tenga productos todavía.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $state['landing_count'] = (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*)
@@ -713,6 +731,7 @@ function taxocommerce_core_anomalies_recount_categories() {
         'seo_recount_categories_nonce'
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $term_taxonomy_ids = $wpdb->get_col(
         "SELECT term_taxonomy_id
          FROM {$wpdb->term_taxonomy}
@@ -753,6 +772,7 @@ function taxocommerce_core_anomalies_recount_categories() {
 function taxocommerce_core_anomalies_render_report() {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM {$wpdb->prefix}seo_nodes WHERE status=1");
     
     $map = [];
@@ -784,6 +804,7 @@ function taxocommerce_core_anomalies_render_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px;">Clusters sin hubs primarios</h3>';
     $has_clusters_anomalies = false;
     foreach ($clusters as $cluster_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE source_type='cluster' AND source_id=%d AND relation_type='cluster_to_primary'", $cluster_id));
         if ($count == 0) {
             echo "• " . esc_html(get_the_title($cluster_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $cluster_id) . ")</code><br>";
@@ -795,6 +816,7 @@ function taxocommerce_core_anomalies_render_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs primarios sin cluster</h3>';
     $has_hp_anomalies = false;
     foreach ($hubs_primary as $hp_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='cluster_to_primary'", $hp_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($hp_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $hp_id) . ")</code><br>";
@@ -806,6 +828,7 @@ function taxocommerce_core_anomalies_render_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs secundarios sin hub primary</h3>';
     $has_hs_anomalies = false;
     foreach ($hubs_secondary as $hs_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='hub_primary_to_hub_secondary'", $hs_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($hs_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $hs_id) . ")</code><br>";
@@ -824,6 +847,7 @@ function taxocommerce_core_anomalies_render_report() {
         Hubs secundarios sin categorías
     </h3>';
     
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $secondary_without_categories = $wpdb->get_results("
         SELECT
             n.object_id AS hub_secondary_id,
@@ -947,6 +971,7 @@ function taxocommerce_core_anomalies_render_report() {
     
     
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Hubs primarios en múltiples clusters</h3>';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $multi = $wpdb->get_results("SELECT target_id, COUNT(*) as c FROM {$wpdb->prefix}seo_relations WHERE relation_type='cluster_to_primary' GROUP BY target_id HAVING c > 1");
     if (!empty($multi)) {
         foreach ($multi as $m) {
@@ -957,9 +982,11 @@ function taxocommerce_core_anomalies_render_report() {
     }
     
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">Landings sin hub secondary</h3>';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $landings = $wpdb->get_results("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='landing_page'");
     $has_landings_anomalies = false;
     foreach ($landings as $l) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $exists = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE target_id=%d AND relation_type='hub_secondary_to_landing'", $l->target_id));
         if ($exists == 0) {
             echo "• " . esc_html(get_the_title($l->target_id)) . " <code style='font-size:12px;'>(" . esc_html((string) $l->target_id) . ")</code><br>";
@@ -975,6 +1002,7 @@ function taxocommerce_core_anomalies_render_report() {
      */
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">🧭 Landing pages sin categoría de producto asociada</h3>';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $landings_without_product_category = $wpdb->get_results("
         SELECT DISTINCT
             n.object_id AS page_id,
@@ -1053,6 +1081,7 @@ function taxocommerce_core_anomalies_render_report() {
      */
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">🔗 Posts editoriales sin categoría de producto relacionada</h3>';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $posts_without_product_category_raw = $wpdb->get_results("
         SELECT DISTINCT
             p.ID AS post_id,
@@ -1192,6 +1221,7 @@ function taxocommerce_core_anomalies_render_report() {
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">📰 Entradas editoriales sin Vocabulary semántico activo</h3>';
 
     $has_core_vocabulary = taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary');
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $posts_without_vocabulary_raw = $has_core_vocabulary ? $wpdb->get_results("
         SELECT
             p.ID AS post_id,
@@ -1352,6 +1382,7 @@ function taxocommerce_core_anomalies_render_report() {
     
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">⚠️ Categorías sin asignación estructural</h3>';
     $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $used = $wpdb->get_col("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='product_cat'");
     
     $has_cats_anomalies = false;
@@ -1451,6 +1482,7 @@ function taxocommerce_core_anomalies_render_report() {
          * De este modo una categoría que solo tenga productos en draft no
          * se considera vacía ni se propone para borrado.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $real_count_rows = $wpdb->get_results("
             SELECT
                 tt.term_id,
@@ -1632,6 +1664,7 @@ function taxocommerce_core_anomalies_render_report() {
             Hubs secundarios en múltiples hubs primarios
         </h3>';
         
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
         $secondary_multiple_parents = $wpdb->get_results("
             SELECT
                 target_id AS hub_secondary_id,
@@ -1666,6 +1699,7 @@ function taxocommerce_core_anomalies_render_report() {
                     esc_html((int) $duplicate->parent_count) .
                     ' hubs primarios</strong>:';
         
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
                 $parents = $wpdb->get_results(
                     $wpdb->prepare(
                         "
@@ -1717,6 +1751,7 @@ function taxocommerce_core_anomalies_render_report() {
 
     echo '<h3 style="color:#b57d00; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">💥 Categorías DUPLICADAS en múltiples Hubs Secundarios</h3>';
     
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $duplicate_cats = $wpdb->get_results("
         SELECT r.target_id as cat_id, COUNT(*) as repetido_veces
         FROM {$wpdb->prefix}seo_relations r 
@@ -1734,6 +1769,7 @@ function taxocommerce_core_anomalies_render_report() {
                 echo "<div style='margin-bottom:12px; padding-left:5px;'>";
                 echo "• 🚨 La categoría <strong>" . esc_html($term->name) . "</strong> <code style='font-size:12px;'> (Cat ID: " . esc_html((string) $dup->cat_id) . ")</code> está asignada en <strong>" . esc_html((string) $dup->repetido_veces) . " Hubs Secundarios</strong> diferentes:";
                 
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
                 $associated_hubs = $wpdb->get_results($wpdb->prepare("
                     SELECT source_id FROM {$wpdb->prefix}seo_relations 
                     WHERE source_type = 'hub_secondary' 
