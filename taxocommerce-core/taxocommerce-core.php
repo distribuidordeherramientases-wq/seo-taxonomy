@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Core - Catalog & Content Management for WooCommerce
  * Description: Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.
  * Version: 0.4.37
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-core/
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
