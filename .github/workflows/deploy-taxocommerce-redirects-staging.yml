@@ -32,6 +32,7 @@ jobs:
           php taxocommerce-redirects/tests/smoke.php
           php taxocommerce-redirects/tests/lifecycle-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
+          php taxocommerce-redirects/tests/user-guide-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
