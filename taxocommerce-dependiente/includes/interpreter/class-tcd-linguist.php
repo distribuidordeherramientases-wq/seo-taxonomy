@@ -2197,7 +2197,7 @@ final class TCD_Original_Linguista {
                  WHERE ov.object_type='product' AND ov.status=1 AND ov.object_id IN ({$placeholders})
                    AND v.semantic_group IN ('tipo','subtipo','aplicacion','rol')
                  ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'tipo','subtipo','aplicacion','rol'), v.id ASC",
-                    $objects, $vocabulary, ...$ids
+                    array_merge( array( $objects, $vocabulary ), $ids )
                 ),
                 ARRAY_A
             );
@@ -2221,11 +2221,11 @@ final class TCD_Original_Linguista {
 
         $missing = array_values(array_diff($ids, array_keys($out)));
         if ($missing) {
-            $missing_in = implode(',', array_map('absint', $missing));
+            $missing_in = implode(',', array_fill(0, count($missing), '%d'));
             $rows = (array) $wpdb->get_results(
                 "SELECT tr.object_id,t.name
-                 FROM {$wpdb->term_relationships} tr
-                 JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
+                 FROM %i tr
+                 JOIN %i tt ON tt.term_taxonomy_id=tr.term_taxonomy_id AND tt.taxonomy='product_cat'
                  JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
                  WHERE tr.object_id IN ({$missing_in})
                  ORDER BY tr.object_id ASC,tt.parent DESC,tt.term_taxonomy_id ASC",
@@ -2382,7 +2382,7 @@ final class TCD_Original_Linguista {
         if (!$product_ids) {
             return array();
         }
-        $in = implode(',', array_map('absint', $product_ids));
+        $in = implode(',', array_fill(0, count($product_ids), '%d'));
         $vocabulary = esc_sql( $wpdb->prefix . 'seo_vocabulary' );
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
         $contexts = array();
