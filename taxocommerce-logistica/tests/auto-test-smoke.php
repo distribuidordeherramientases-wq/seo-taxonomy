@@ -85,7 +85,7 @@ verify_log( $report['totals']['pass'] >= 27, 'Deterministic checks execute witho
 verify_log( $report['totals']['skip'] >= 5, 'Real checkout/import tests are deliberately skipped' );
 verify_log( 0 === $GLOBALS['writes'], 'Suite never writes configuration, orders or usermeta' );
 
-$_GET['page'] = 'seo-logistica';
+$_GET['page'] = 'taxocommerce-logistica';
 $_GET['tc_logistica_tab'] = 'auto-test';
 TaxoCommerce_Logistica_Auto_Test::assets();
 verify_log( isset( $GLOBALS['style']['tc-logistica-auto-test'] ), 'Auto Test CSS routed on page' );
