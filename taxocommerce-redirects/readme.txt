@@ -4,7 +4,7 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.6
+Stable tag: 0.1.7
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
@@ -80,6 +80,12 @@ retired and all native relationships have been verified.
   requires separate authenticated wp-admin or WP-CLI access.
 
 == Changelog ==
+
+= 0.1.7 =
+* Add User Guide tab with separate User Manual and Technical Manual, indexed sections, accessible navigation, responsive typography and links to Redirects/Auto Test.
+* Document existing 301/302 functionality, administration, rules diagnostics, JSON backups, assisted deletion, data schema, legacy coexistence and the destructive uninstall caveat.
+* Manual rendering is read-only and does not load the redirects table or invoke any handlers.
+
 
 = 0.1.6 =
 * Add native Auto Test tab with 26 read-only checks in 8 groups for redirects, schema, assisted deletion, integration, and safety.
