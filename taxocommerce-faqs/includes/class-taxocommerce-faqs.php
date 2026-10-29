@@ -184,9 +184,9 @@ final class TaxoCommerce_FAQs {
             $valid = array();
             if ( $requested ) {
                 $ph = implode( ',', array_fill( 0, count( $requested ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- All variable IN placeholders are generated from the bounded integer count; identifier and values are bound separately.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh bounded custom-table lookup; no native WP data API and result must not be stale.
                 $valid = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The IN placeholders are generated from 1..50 integers; all values bind through prepare.
                     'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN (' . $ph . ')',
                     array_merge( array( $voc, $group ), $requested )
                 ) ) );
@@ -406,8 +406,8 @@ final class TaxoCommerce_FAQs {
         self::guard();
         check_admin_referer( 'taxocommerce_faqs_import' );
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Uploaded metadata is validated with is_uploaded_file(), UPLOAD_ERR_OK and size limits before reading; sanitizing tmp_name can invalidate server paths.
         $upload = isset( $_FILES['faqs_csv'] ) && is_array( $_FILES['faqs_csv'] )
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload temporary pathname is validated with is_uploaded_file and must not be altered.
             ? $_FILES['faqs_csv']
             : array();
         $tmp_name = isset( $upload['tmp_name'] ) ? (string) $upload['tmp_name'] : '';
@@ -524,10 +524,11 @@ final class TaxoCommerce_FAQs {
                     }
                     $voc = self::table( 'seo_vocabulary' );
                     $ph = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
-                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Parameterized bounded slug placeholders, with table and grouping passed through $wpdb->prepare().
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh bounded FAQ/Vocabulary lookup; repeated writes and reads must see current canonical data.
                     $groups[ $group ] = $wpdb->get_col(
+                        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Bounded number of slug placeholders generated from 1..50 slugs, all passed as an array.
                         $wpdb->prepare(
+                            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- IN placeholders are generated safely; every slug is bound through prepare.
                             'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN (' . $ph . ')',
                             array_merge( array( $voc, $group ), $slugs )
                         )
