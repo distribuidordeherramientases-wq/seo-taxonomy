@@ -1,0 +1,42 @@
+/* Dependiente documentation: scoped, responsive, accessible, read-only. */
+.tcd-manual{--tcd-text:#243447;--tcd-muted:#596879;--tcd-border:#dfe5ed;--tcd-brand:#165dba;max-width:1530px;color:var(--tcd-text);box-sizing:border-box}
+.tcd-manual *, .tcd-manual *::before, .tcd-manual *::after{box-sizing:border-box}
+.tcd-manual__header{padding:20px 24px;margin:0 0 14px;border:1px solid var(--tcd-border);border-left:4px solid var(--tcd-brand);border-radius:9px;background:#fff}
+.tcd-manual__header h2{font-size:25px;line-height:1.3;margin:0 0 7px;color:#1b2b42}
+.tcd-manual__header p{font-size:14px;line-height:1.6;color:var(--tcd-muted);margin:0}
+.tcd-manual__switch{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+.tcd-manual__switch-link{padding:11px 20px;border:1px solid #c9d5e6;border-radius:7px;background:#fff;color:#244769;font-weight:650;text-decoration:none;min-height:42px;display:inline-flex;align-items:center;justify-content:center}
+.tcd-manual__switch-link:hover,.tcd-manual__switch-link:focus{color:var(--tcd-brand);border-color:#86b7ed}
+.tcd-manual__switch-link.is-active{background:#eaf2fc;border-color:#9bbfea;color:#114d9a}
+.tcd-manual__switch-link:focus-visible,.tcd-manual a:focus-visible{outline:2px solid var(--wp-admin-theme-color,#2271b1);outline-offset:2px}
+.tcd-manual__layout{display:grid;grid-template-columns:minmax(200px,255px) minmax(0,1fr);gap:20px;align-items:start}
+.tcd-manual__index,.tcd-manual__article{background:#fff;border:1px solid var(--tcd-border);border-radius:9px;min-width:0}
+.tcd-manual__index{position:sticky;top:47px;padding:18px 22px}
+.tcd-manual__index h3{font-size:15px;margin:0 0 12px;color:#1c314b}
+.tcd-manual__index ol{margin:0;padding-left:22px}
+.tcd-manual__index li{padding:4px 0;line-height:1.45}
+.tcd-manual__index a{text-decoration:none;color:var(--tcd-brand)}
+.tcd-manual__index a:hover{text-decoration:underline}
+.tcd-manual__article{padding:4px 30px 22px}
+.tcd-manual__article>section{padding:16px 0 21px;border-bottom:1px solid #e6ebf2;scroll-margin-top:45px}
+.tcd-manual__article>section:last-child{border-bottom:0}
+.tcd-manual__article h2{color:#1a2f4b;font-size:21px;line-height:1.35;margin:8px 0 13px}
+.tcd-manual__article h3{color:#2c4567;font-size:16px;line-height:1.4;margin:17px 0 9px}
+.tcd-manual__article p,.tcd-manual__article li{font-size:14px;line-height:1.7;color:#34445a}
+.tcd-manual__article p{margin:0 0 13px}
+.tcd-manual__article ol,.tcd-manual__article ul{padding-left:22px;margin:0 0 15px}
+.tcd-manual__article li{margin:0 0 7px;padding-left:3px}
+.tcd-manual__article a{font-weight:600;text-underline-offset:2px}
+.tcd-manual__table-scroll{overflow-x:auto;max-width:100%;margin:14px 0 20px}
+.tcd-manual__table{width:100%;border-collapse:collapse;text-align:left;background:#fff;min-width:560px}
+.tcd-manual__table th,.tcd-manual__table td{padding:10px 12px;border:1px solid #dee6f0;vertical-align:top;line-height:1.5;font-size:13px;overflow-wrap:anywhere}
+.tcd-manual__table thead th{background:#f1f6fc;font-weight:700;color:#1c324c}
+.tcd-manual__table tbody th{width:31%;font-weight:650;color:#243951}
+.tcd-manual__article code{font-size:12px;overflow-wrap:anywhere}
+.tcd-manual__code{background:#172437;color:#f1f5fb;border-radius:7px;padding:16px;overflow-x:auto;white-space:pre;margin:10px 0 15px}
+.tcd-manual__code code{background:none;color:inherit;white-space:pre;font-size:13px}
+.tcd-manual__thresholds{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 16px}
+.tcd-manual__thresholds span{display:inline-block;background:#f3f7fc;border:1px solid #d6e2f2;border-radius:5px;padding:7px 10px;font-weight:650;font-size:12px}
+@media(max-width:1000px){.tcd-manual__layout{grid-template-columns:1fr}.tcd-manual__index{position:static}.tcd-manual__index ol{columns:2}.tcd-manual__article{padding:5px 21px 20px}}
+@media(max-width:600px){.tcd-manual__header{padding:16px}.tcd-manual__header h2{font-size:22px}.tcd-manual__switch-link{flex:1;padding:10px 8px}.tcd-manual__index ol{columns:1}.tcd-manual__article{padding:4px 14px 16px}.tcd-manual__article h2{font-size:19px}.tcd-manual__table{min-width:500px}}
+@media(prefers-reduced-motion:reduce){.tcd-manual *{scroll-behavior:auto}}

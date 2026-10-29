@@ -39,10 +39,10 @@ final class TaxoCommerce_Core_Editor_UI {
                 'url' => admin_url( 'admin-ajax.php' ),
                 'nonce' => wp_create_nonce( 'taxocommerce_core_editor_terms' ),
                 'strings' => array(
-                    'none' => 'No hay términos coincidentes.',
-                    'loading' => 'Buscando…',
-                    'error' => 'No se han podido cargar los términos.',
-                    'choose' => 'Selecciona primero un atributo global.',
+                    'none' => __( 'No hay términos coincidentes.', 'taxocommerce-core' ),
+                    'loading' => __( 'Buscando…', 'taxocommerce-core' ),
+                    'error' => __( 'No se han podido cargar los términos.', 'taxocommerce-core' ),
+                    'choose' => __( 'Selecciona primero un atributo global.', 'taxocommerce-core' ),
                 ),
             )
         );
@@ -451,7 +451,7 @@ final class TaxoCommerce_Core_Editor_UI {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Core verifies mutation nonce.
         $values = isset( $_POST['tc_tax'][ $taxonomy ] ) && is_array( $_POST['tc_tax'][ $taxonomy ] )
-            ? wp_unslash( $_POST['tc_tax'][ $taxonomy ] ) : array();
+            ? array_map( 'absint', wp_unslash( $_POST['tc_tax'][ $taxonomy ] ) ) : array();
         return self::validate_term_ids( $taxonomy, $values );
     }
 

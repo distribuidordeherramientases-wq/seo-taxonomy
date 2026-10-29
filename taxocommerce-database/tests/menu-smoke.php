@@ -43,4 +43,29 @@ if ( ! isset( $core->registered['database'] ) ) {
     fwrite( STDERR, "FAIL: Core module registration missing\n" );
     exit( 1 );
 }
+
+$source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-database.php' );
+$clean_source = file_get_contents( dirname( __DIR__ ) . '/includes/legacy/seo-database-clean.php' );
+$table_source = file_get_contents( dirname( __DIR__ ) . '/includes/legacy/seo-database-report.php' );
+foreach ( array( 'Errores en datos', 'Limpieza BBDD', 'Exportar BBDD', 'Resumen tablas', 'Explorar tablas', 'Exportar tablas', 'Manual' ) as $tab_label ) {
+    if ( false === strpos( $source, $tab_label ) ) {
+        fwrite( STDERR, "FAIL: missing flat tab: " . $tab_label . "\n" ); exit( 1 );
+    }
+}
+if ( false === strpos( $source, 'tcdb-flat-tabs' ) || false === strpos( $source, 'overflow-x:auto' ) ) {
+    fwrite( STDERR, "FAIL: horizontal scroll tabs missing\n" ); exit( 1 );
+}
+if ( false !== strpos( $clean_source, '    seo_clean_db_render_tabs($active_tab);' )
+    || false !== strpos( $table_source, '    echo \'<nav class="nav-tab-wrapper" style="margin-bottom:20px;">\';' ) ) {
+    fwrite( STDERR, "FAIL: old nested tabs still rendered\n" ); exit( 1 );
+}
+if ( false === strpos( $source, "seo_clean_db_tab" ) || false === strpos( $source, "section" )
+    || false === strpos( $source, "tcdb_screen" ) ) {
+    fwrite( STDERR, "FAIL: legacy screen URL parameters missing\n" ); exit( 1 );
+}
+if ( false === strpos( $source, 'TCDB_Manual::render()' ) ) { fwrite( STDERR, "FAIL: manual routing missing\n" ); exit( 1 ); }
+$manual_src = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcdb-manual.php' );
+foreach ( array( 'Manual de usuario final', 'Manual técnico para desarrolladores', 'Eliminar revisiones', 'Eliminar meta huérfano', 'Descargar CSV', 'ZIP', 'Data Layer', 'manage_options' ) as $required ) {
+    if ( false === strpos( $manual_src, $required ) ) { fwrite( STDERR, 'FAIL manual: ' . $required . "\n" ); exit( 1 ); }
+}
 echo "Database menu OK (" . ( function_exists( 'taxocommerce_core' ) ? 'Core' : 'standalone' ) . ")\n";

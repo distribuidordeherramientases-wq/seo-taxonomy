@@ -53,7 +53,7 @@ original_interpreter_assert(
 );
 original_interpreter_assert(strpos($search, 'TCD_Original_Interprete::interpret(') !== false, 'real original interpreter called in public runtime');
 original_interpreter_assert(strpos($academy, 'TCD_Original_Linguista::process_control_start(') !== false, 'original Linguist starts in M11');
-original_interpreter_assert(strpos($admin, 'Intérprete / Lingüista') !== false, 'single training surface');
+original_interpreter_assert(strpos($admin, 'Intérprete original v1.2.0') !== false && strpos($admin, 'M11 · Intérprete original') !== false && strpos($admin, 'nav-tab-wrapper') !== false, 'single training surface');
 original_interpreter_assert(strpos($ported_course, "'tcd_original_linguista_worker'") !== false, 'durable background worker');
 original_interpreter_assert(strpos($ported_db, "'seo_interprete_lexicon'") !== false, 'retained trained lexicon');
 original_interpreter_assert(strpos($ported_db, "'seo_interprete_lexicon_evidence'") !== false, 'retained evidence');

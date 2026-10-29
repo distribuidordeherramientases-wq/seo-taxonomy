@@ -5,13 +5,15 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.16
+Stable tag: 0.3.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 An auditable catalog assistant for WooCommerce, with independent learning, semantic interpretation and customer-facing product search.
 
 == Description ==
+
+Auto Test: 51 independent read-only checks grouped by runtime, schema, L1-L10 sources/quality, M11, search/feedback, M12 and backup. Reports are per-user transients; no new tables or background jobs. Expensive or destructive UAT remains explicitly unexecuted.
 
 TaxoCommerce Assistant builds searchable product knowledge from the site's WooCommerce catalog and available editorial content.
 
@@ -20,6 +22,7 @@ TaxoCommerce Assistant builds searchable product knowledge from the site's WooCo
 * M12: incremental updates when products or related content change.
 * Search shortcode: [taxocommerce_dependiente_moderno].
 * Independent administration of learning progress, quality reports, knowledge transfers and local backups.
+* Built-in User Guide with user and technical manuals, with no learning or settings writes.
 * Uses its own tables for snapshots, learning, semantic rules and feedback.
 * Keeps the legacy public shortcode untouched when the former plugin is active in production.
 
@@ -56,6 +59,23 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.19 =
+* Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
+* Validate learning priority input and safely quote internal learning table identifiers.
+
+
+= 0.3.18 =
+* Add a responsive User Guide tab with separate User Manual and Technical Manual inside Dependiente.
+* Explain learning, quality recovery, Interpreter M11, M12, search and feedback, backups, plugin architecture and data contracts.
+* Preserve all training controls, imports, exports, cron and frontend behavior.
+
+
+= 0.3.18 =
+* Auto Test reports functional readiness separately from educational outcomes and historical process errors. M11, learning and M12 remain green when endpoints, workers and state contracts are available, with diagnostic detail.
+* A bounded search that returns no candidates is marked as inconclusive instead of reporting a broken search engine solely from its result set.
+* No training, feedback, content or backup mutations are performed by Auto Test.
+
 
 = 0.3.15 =
 * Raised the adaptive maximum-speed learning ceiling from 79 to 600 items per chunk, starting from 47 and growing only when duration and memory allow it.

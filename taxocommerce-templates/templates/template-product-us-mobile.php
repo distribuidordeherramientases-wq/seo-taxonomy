@@ -86,11 +86,11 @@ $faq_table = $wpdb->prefix . 'seo_faq';
 $product_faqs = (array) $wpdb->get_results(
     $wpdb->prepare(
         "SELECT id, question, answer
-         FROM {$faq_table}
+         FROM %i
          WHERE object_type = %d
            AND object_id = %d
            AND active = 1
-         ORDER BY sort_order ASC, id ASC",
+         ORDER BY sort_order ASC, id ASC", $faq_table,
         3,
         $product_id
     )

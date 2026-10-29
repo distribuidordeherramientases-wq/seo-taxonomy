@@ -186,3 +186,42 @@ body.tcc-family-admin .tc-content-inventory .tc-inventory-actions{display:flex;f
 @media(max-width:1550px){.tcc-extensions-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1150px){.tcc-extensions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:782px){.tcc-extensions-grid{grid-template-columns:1fr}.tcc-extension-card{min-height:0}.tcc-extensions__header{align-items:flex-start}}
+
+
+/* Core User Guide: accessible, read-only documentation, responsive layout. */
+body.tcc-family-admin .tcc-user-guide{max-width:1440px}
+body.tcc-family-admin .tcc-user-guide .nav-tab-wrapper{margin:0 0 20px!important}
+.tcc-guide-layout{display:grid;grid-template-columns:minmax(205px,250px) minmax(0,1fr);align-items:start;gap:22px}
+.tcc-guide-index,.tcc-guide-article{border:1px solid #dfe5ed;border-radius:11px;background:#fff}
+.tcc-guide-index{position:sticky;top:45px;padding:20px}
+.tcc-guide-index strong{display:block;margin-bottom:13px;font-size:15px}
+.tcc-guide-index ol{margin:0;padding-left:20px}
+.tcc-guide-index li{padding:4px 0;line-height:1.5}
+.tcc-guide-index a{text-decoration:none}
+.tcc-guide-index a:hover,.tcc-guide-index a:focus{text-decoration:underline}
+.tcc-guide-article{padding:10px 34px 26px}
+.tcc-guide-article section{padding:15px 0 19px;border-bottom:1px solid #e8edf3;scroll-margin-top:50px}
+.tcc-guide-article section:last-child{border-bottom:0}
+body.tcc-family-admin .tcc-guide-article h2{font-size:22px;line-height:1.3;margin:8px 0 14px;color:#17243b}
+body.tcc-family-admin .tcc-guide-article h3{font-size:17px;line-height:1.35;margin:19px 0 9px;color:#253d5e}
+.tcc-guide-article p,.tcc-guide-article li{font-size:14px;line-height:1.75;color:#35445b}
+.tcc-guide-article ol{margin-left:22px}
+.tcc-guide-article li{padding-left:4px;margin-bottom:7px}
+.tcc-guide-chain{padding:13px 15px;border:1px solid #cbdcf4;border-radius:8px;background:#f3f7ff;color:#1c4c8c;font-weight:700;line-height:1.7;overflow-wrap:anywhere}
+@media(max-width:900px){.tcc-guide-layout{grid-template-columns:1fr}.tcc-guide-index{position:static}.tcc-guide-index ol{columns:2}.tcc-guide-article{padding:10px 22px 24px}}
+@media(max-width:600px){.tcc-guide-index ol{columns:1}.tcc-guide-article{padding:7px 17px 18px}body.tcc-family-admin .tcc-guide-article h2{font-size:20px}}
+
+/* User Guide manual switch and technical documentation. */
+.tcc-guide-manual-tabs{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 18px}
+.tcc-guide-manual-tab{display:inline-block;padding:10px 19px;border:1px solid #d4dfed;border-radius:8px;background:#fff;color:#335477;text-decoration:none;font-weight:700}
+.tcc-guide-manual-tab:hover,.tcc-guide-manual-tab:focus{color:#115bc7;border-color:#94baf0}
+.tcc-guide-manual-tab.is-active{background:#e9f2ff;color:#115bc7;border-color:#b5d0f5}
+.tcc-guide-table-scroll{max-width:100%;overflow-x:auto;margin:14px 0 18px}
+.tcc-guide-table{border-collapse:collapse;width:100%;font-size:13px;text-align:left}
+.tcc-guide-table th,.tcc-guide-table td{border:1px solid #e2e8f0;padding:11px 13px;line-height:1.6;vertical-align:top}
+.tcc-guide-table thead th{background:#f2f6fb;color:#203654;font-weight:750}
+.tcc-guide-table tbody th{width:36%;font-weight:650;overflow-wrap:anywhere}
+.tcc-guide-table code,.tcc-guide-code code{font-size:12px;overflow-wrap:anywhere}
+.tcc-guide-code{max-width:100%;padding:18px;background:#17243b;color:#f5f8ff;border-radius:8px;overflow-x:auto;line-height:1.65}
+.tcc-guide-code code{color:inherit;white-space:pre}
+@media(max-width:600px){.tcc-guide-manual-tabs{gap:7px}.tcc-guide-manual-tab{flex:1;text-align:center;padding:11px 8px}.tcc-guide-table th,.tcc-guide-table td{padding:9px 10px}}

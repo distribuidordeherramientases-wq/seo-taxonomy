@@ -16,8 +16,8 @@ if (!defined('ABSPATH')) {
  * Se usa como filtro conservador para localizar IDs guardados por plugins,
  * constructores visuales, campos personalizados y opciones del tema.
  */
-if (!function_exists('tci_refs_key_looks_like_image')) {
-    function tci_refs_key_looks_like_image($key) {
+if (!function_exists('taxocommerce_images_refs_key_looks_like_image')) {
+    function taxocommerce_images_refs_key_looks_like_image($key) {
         return (bool) preg_match(
             '/image|images|img|imagen|imagenes|photo|picture|foto|fotos|media|attachment|thumbnail|miniatura|gallery|galeria|logo|logotipo|icon|icono|banner|cabecera|fondo|avatar|featured|destacada/i',
             (string) $key
@@ -30,8 +30,8 @@ if (!function_exists('tci_refs_key_looks_like_image')) {
  * Normaliza un nombre de archivo para poder compararlo aunque aparezca
  * codificado en una URL o contenga caracteres internacionales.
  */
-if (!function_exists('tci_refs_normalize_filename')) {
-    function tci_refs_normalize_filename($filename) {
+if (!function_exists('taxocommerce_images_refs_normalize_filename')) {
+    function taxocommerce_images_refs_normalize_filename($filename) {
         $filename = rawurldecode(basename((string) $filename));
 
         if (function_exists('mb_strtolower')) {
@@ -47,9 +47,9 @@ if (!function_exists('tci_refs_normalize_filename')) {
  * Obtiene una raíz estable del archivo para reconocer tamaños antiguos que ya
  * no figuren en la metadata, por ejemplo foto-768x512.jpg o foto-scaled.jpg.
  */
-if (!function_exists('tci_refs_get_filename_stem')) {
-    function tci_refs_get_filename_stem($filename) {
-        $filename = tci_refs_normalize_filename($filename);
+if (!function_exists('taxocommerce_images_refs_get_filename_stem')) {
+    function taxocommerce_images_refs_get_filename_stem($filename) {
+        $filename = taxocommerce_images_refs_normalize_filename($filename);
         $stem = pathinfo($filename, PATHINFO_FILENAME);
 
         // WordPress añade estos sufijos al generar tamaños o escalar/rotar imágenes.
@@ -63,8 +63,8 @@ if (!function_exists('tci_refs_get_filename_stem')) {
  * Añade un ID al resultado únicamente cuando pertenece a una imagen del
  * inventario que se está analizando.
  */
-if (!function_exists('tci_refs_add_found_id')) {
-    function tci_refs_add_found_id($candidate, $id_lookup, &$found) {
+if (!function_exists('taxocommerce_images_refs_add_found_id')) {
+    function taxocommerce_images_refs_add_found_id($candidate, $id_lookup, &$found) {
         $candidate = absint($candidate);
 
         if ($candidate > 0 && isset($id_lookup[$candidate])) {
@@ -79,8 +79,8 @@ if (!function_exists('tci_refs_add_found_id')) {
  * la clave que lo contiene. Distingue, por ejemplo, image.id (válido) de
  * image.width o image.height (medidas que no son IDs de attachments).
  */
-if (!function_exists('tci_refs_context_allows_numeric_id')) {
-    function tci_refs_context_allows_numeric_id($context_key) {
+if (!function_exists('taxocommerce_images_refs_context_allows_numeric_id')) {
+    function taxocommerce_images_refs_context_allows_numeric_id($context_key) {
         $context_key = strtolower(trim((string) $context_key));
 
         if ($context_key === '') {
@@ -92,14 +92,14 @@ if (!function_exists('tci_refs_context_allows_numeric_id')) {
         $parent_key = count($parts) > 1 ? (string) $parts[count($parts) - 2] : '';
 
         // Campos directos como hero_image, custom_logo o gallery_ids.
-        if (tci_refs_key_looks_like_image($leaf_key)) {
+        if (taxocommerce_images_refs_key_looks_like_image($leaf_key)) {
             return true;
         }
 
         // Estructuras del tipo image => ['id' => 123].
         if (
             preg_match('/^(?:id|ids|attachment_id|attachment_ids)$/i', $leaf_key) &&
-            tci_refs_key_looks_like_image($context_key)
+            taxocommerce_images_refs_key_looks_like_image($context_key)
         ) {
             return true;
         }
@@ -125,8 +125,8 @@ if (!function_exists('tci_refs_context_allows_numeric_id')) {
  * - bloques Gutenberg de imagen y galería;
  * - nombres de archivos originales y de miniaturas generadas por WordPress.
  */
-if (!function_exists('tci_refs_extract_ids_from_text')) {
-    function tci_refs_extract_ids_from_text($text, $id_lookup, $filename_lookup, &$found) {
+if (!function_exists('taxocommerce_images_refs_extract_ids_from_text')) {
+    function taxocommerce_images_refs_extract_ids_from_text($text, $id_lookup, $filename_lookup, &$found) {
         if (!is_scalar($text) || $text === '') {
             return;
         }
@@ -147,7 +147,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
         foreach ($single_id_patterns as $pattern) {
             if (preg_match_all($pattern, $text, $matches)) {
                 foreach ($matches[1] as $candidate) {
-                    tci_refs_add_found_id($candidate, $id_lookup, $found);
+                    taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                 }
             }
         }
@@ -156,7 +156,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
         if (preg_match_all('/\b(?:ids|include|image_ids|imagen_ids|gallery_ids|galeria_ids|attachment_ids)\s*[=:]\s*["\']([0-9,\s]+)["\']/i', $text, $matches)) {
             foreach ($matches[1] as $id_list) {
                 foreach (preg_split('/\s*,\s*/', trim($id_list)) as $candidate) {
-                    tci_refs_add_found_id($candidate, $id_lookup, $found);
+                    taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                 }
             }
         }
@@ -166,7 +166,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
             foreach ($json_ids_matches[1] as $id_list) {
                 if (preg_match_all('/\d+/', $id_list, $number_matches)) {
                     foreach ($number_matches[0] as $candidate) {
-                        tci_refs_add_found_id($candidate, $id_lookup, $found);
+                        taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                     }
                 }
             }
@@ -177,7 +177,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
             foreach ($block_matches[1] as $block_attributes) {
                 if (preg_match_all('/"id"\s*:\s*"?(\d+)"?/i', $block_attributes, $id_matches)) {
                     foreach ($id_matches[1] as $candidate) {
-                        tci_refs_add_found_id($candidate, $id_lookup, $found);
+                        taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                     }
                 }
 
@@ -185,7 +185,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
                     foreach ($ids_matches[1] as $id_list) {
                         if (preg_match_all('/\d+/', $id_list, $number_matches)) {
                             foreach ($number_matches[0] as $candidate) {
-                                tci_refs_add_found_id($candidate, $id_lookup, $found);
+                                taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                             }
                         }
                     }
@@ -196,7 +196,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
         // El nombre de archivo permite detectar URLs absolutas, relativas, srcset y CSS url(...).
         if (preg_match_all('/[\p{L}\p{N}%_.~+@\-]+\.(?:jpe?g|png|gif|webp|avif|svg|bmp|tiff?)/iu', $text, $file_matches)) {
             foreach ($file_matches[0] as $matched_file) {
-                $filename = tci_refs_normalize_filename($matched_file);
+                $filename = taxocommerce_images_refs_normalize_filename($matched_file);
 
                 $matching_ids = [];
 
@@ -205,7 +205,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
                 }
 
                 // Si el tamaño ya no figura en la metadata, se compara también la raíz.
-                $stem_key = 'stem:' . tci_refs_get_filename_stem($filename);
+                $stem_key = 'stem:' . taxocommerce_images_refs_get_filename_stem($filename);
 
                 if (isset($filename_lookup[$stem_key])) {
                     $matching_ids += $filename_lookup[$stem_key];
@@ -214,7 +214,7 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
                 // Un mismo nombre puede existir en carpetas de años distintos. En caso de duda,
                 // se protegen todas las coincidencias para evitar un falso "sin uso".
                 foreach ($matching_ids as $attachment_id) {
-                    tci_refs_add_found_id($attachment_id, $id_lookup, $found);
+                    taxocommerce_images_refs_add_found_id($attachment_id, $id_lookup, $found);
                 }
             }
         }
@@ -226,8 +226,8 @@ if (!function_exists('tci_refs_extract_ids_from_text')) {
  * Solo toma valores numéricos como IDs cuando la clave parece relacionada
  * con imágenes; así evitamos confundir cualquier número con un attachment.
  */
-if (!function_exists('tci_refs_collect_structured_ids')) {
-    function tci_refs_collect_structured_ids($value, $id_lookup, $filename_lookup, &$found, $context_key = '') {
+if (!function_exists('taxocommerce_images_refs_collect_structured_ids')) {
+    function taxocommerce_images_refs_collect_structured_ids($value, $id_lookup, $filename_lookup, &$found, $context_key = '') {
         if (is_object($value)) {
             $value = (array) $value;
         }
@@ -235,7 +235,7 @@ if (!function_exists('tci_refs_collect_structured_ids')) {
         if (is_array($value)) {
             foreach ($value as $key => $child_value) {
                 $child_context = trim($context_key . ' ' . (string) $key);
-                tci_refs_collect_structured_ids(
+                taxocommerce_images_refs_collect_structured_ids(
                     $child_value,
                     $id_lookup,
                     $filename_lookup,
@@ -254,17 +254,17 @@ if (!function_exists('tci_refs_collect_structured_ids')) {
         $scalar_value = (string) $value;
 
         // Los campos de imagen pueden guardar un ID único o una lista de IDs.
-        if (tci_refs_context_allows_numeric_id($context_key)) {
+        if (taxocommerce_images_refs_context_allows_numeric_id($context_key)) {
             if (ctype_digit(trim($scalar_value))) {
-                tci_refs_add_found_id($scalar_value, $id_lookup, $found);
+                taxocommerce_images_refs_add_found_id($scalar_value, $id_lookup, $found);
             } elseif (preg_match_all('/\b\d+\b/', $scalar_value, $number_matches)) {
                 foreach ($number_matches[0] as $candidate) {
-                    tci_refs_add_found_id($candidate, $id_lookup, $found);
+                    taxocommerce_images_refs_add_found_id($candidate, $id_lookup, $found);
                 }
             }
         }
 
-        tci_refs_extract_ids_from_text(
+        taxocommerce_images_refs_extract_ids_from_text(
             $scalar_value,
             $id_lookup,
             $filename_lookup,
@@ -277,12 +277,12 @@ if (!function_exists('tci_refs_collect_structured_ids')) {
  * Devuelve todos los IDs de imágenes localizados dentro de un valor.
  * Admite texto normal, HTML, JSON y datos serializados por WordPress.
  */
-if (!function_exists('tci_refs_extract_ids')) {
-    function tci_refs_extract_ids($value, $id_lookup, $filename_lookup, $context_key = '') {
+if (!function_exists('taxocommerce_images_refs_extract_ids')) {
+    function taxocommerce_images_refs_extract_ids($value, $id_lookup, $filename_lookup, $context_key = '') {
         $found = [];
 
         if (is_array($value) || is_object($value)) {
-            tci_refs_collect_structured_ids(
+            taxocommerce_images_refs_collect_structured_ids(
                 $value,
                 $id_lookup,
                 $filename_lookup,
@@ -300,7 +300,7 @@ if (!function_exists('tci_refs_extract_ids')) {
         $raw_value = (string) $value;
 
         // Búsqueda directa en el texto sin depender de que JSON/serialized sea válido.
-        tci_refs_extract_ids_from_text(
+        taxocommerce_images_refs_extract_ids_from_text(
             $raw_value,
             $id_lookup,
             $filename_lookup,
@@ -309,17 +309,17 @@ if (!function_exists('tci_refs_extract_ids')) {
 
         // Un metadato de imagen sencillo puede contener solamente el ID numérico.
         if (
-            tci_refs_context_allows_numeric_id($context_key) &&
+            taxocommerce_images_refs_context_allows_numeric_id($context_key) &&
             ctype_digit(trim($raw_value))
         ) {
-            tci_refs_add_found_id($raw_value, $id_lookup, $found);
+            taxocommerce_images_refs_add_found_id($raw_value, $id_lookup, $found);
         }
 
         // Muchos plugins guardan arrays serializados mediante maybe_serialize().
         if (is_serialized($raw_value)) {
             $unserialized = maybe_unserialize($raw_value);
 
-            tci_refs_collect_structured_ids(
+            taxocommerce_images_refs_collect_structured_ids(
                 $unserialized,
                 $id_lookup,
                 $filename_lookup,
@@ -332,7 +332,7 @@ if (!function_exists('tci_refs_extract_ids')) {
         $json_value = json_decode($raw_value, true);
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($json_value)) {
-            tci_refs_collect_structured_ids(
+            taxocommerce_images_refs_collect_structured_ids(
                 $json_value,
                 $id_lookup,
                 $filename_lookup,
@@ -349,8 +349,8 @@ if (!function_exists('tci_refs_extract_ids')) {
  * Extrae de los metadatos todos los nombres de archivo asociados al attachment:
  * original, imagen escalada y tamaños derivados.
  */
-if (!function_exists('tci_refs_collect_metadata_filenames')) {
-    function tci_refs_collect_metadata_filenames($metadata, &$filenames) {
+if (!function_exists('taxocommerce_images_refs_collect_metadata_filenames')) {
+    function taxocommerce_images_refs_collect_metadata_filenames($metadata, &$filenames) {
         if (is_object($metadata)) {
             $metadata = (array) $metadata;
         }
@@ -369,7 +369,7 @@ if (!function_exists('tci_refs_collect_metadata_filenames')) {
             }
 
             if (is_array($value) || is_object($value)) {
-                tci_refs_collect_metadata_filenames($value, $filenames);
+                taxocommerce_images_refs_collect_metadata_filenames($value, $filenames);
             }
         }
     }
@@ -378,8 +378,8 @@ if (!function_exists('tci_refs_collect_metadata_filenames')) {
 /**
  * Nombres de archivo que pueden aparecer en contenidos o metadatos.
  */
-if (!function_exists('tci_refs_get_reference_filenames')) {
-    function tci_refs_get_reference_filenames($attachment_id) {
+if (!function_exists('taxocommerce_images_refs_get_reference_filenames')) {
+    function taxocommerce_images_refs_get_reference_filenames($attachment_id) {
         static $cache = [];
 
         $attachment_id = absint($attachment_id);
@@ -400,18 +400,18 @@ if (!function_exists('tci_refs_get_reference_filenames')) {
             $filenames[] = basename((string) wp_parse_url($attachment_url, PHP_URL_PATH));
         }
 
-        tci_refs_collect_metadata_filenames(
+        taxocommerce_images_refs_collect_metadata_filenames(
             wp_get_attachment_metadata($attachment_id),
             $filenames
         );
 
-        tci_refs_collect_metadata_filenames(
+        taxocommerce_images_refs_collect_metadata_filenames(
             get_post_meta($attachment_id, '_wp_attachment_backup_sizes', true),
             $filenames
         );
 
         $filenames = array_filter(array_map('basename', $filenames));
-        $filenames = array_values(array_unique(array_map('tci_refs_normalize_filename', $filenames)));
+        $filenames = array_values(array_unique(array_map('taxocommerce_images_refs_normalize_filename', $filenames)));
         $filenames = array_values(array_filter($filenames));
 
         $cache[$attachment_id] = $filenames;
@@ -424,8 +424,8 @@ if (!function_exists('tci_refs_get_reference_filenames')) {
  * Obtiene los archivos físicos que WordPress eliminará junto al attachment.
  * El cálculo incluye el original, la imagen escalada y las miniaturas generadas.
  */
-if (!function_exists('tci_refs_get_attachment_files')) {
-    function tci_refs_get_attachment_files($attachment_id) {
+if (!function_exists('taxocommerce_images_refs_get_attachment_files')) {
+    function taxocommerce_images_refs_get_attachment_files($attachment_id) {
         static $cache = [];
 
         $attachment_id = absint($attachment_id);
@@ -445,12 +445,12 @@ if (!function_exists('tci_refs_get_attachment_files')) {
             $files[] = wp_normalize_path($attached_file);
         }
 
-        tci_refs_collect_metadata_filenames(
+        taxocommerce_images_refs_collect_metadata_filenames(
             wp_get_attachment_metadata($attachment_id),
             $metadata_filenames
         );
 
-        tci_refs_collect_metadata_filenames(
+        taxocommerce_images_refs_collect_metadata_filenames(
             get_post_meta($attachment_id, '_wp_attachment_backup_sizes', true),
             $metadata_filenames
         );
@@ -491,8 +491,8 @@ if (!function_exists('tci_refs_get_attachment_files')) {
 /**
  * Calcula el espacio total ocupado por una imagen y todos sus tamaños derivados.
  */
-if (!function_exists('tci_refs_get_attachment_size')) {
-    function tci_refs_get_attachment_size($attachment_id) {
+if (!function_exists('taxocommerce_images_refs_get_attachment_size')) {
+    function taxocommerce_images_refs_get_attachment_size($attachment_id) {
         static $cache = [];
 
         $attachment_id = absint($attachment_id);
@@ -503,7 +503,7 @@ if (!function_exists('tci_refs_get_attachment_size')) {
 
         $total = 0;
 
-        foreach (tci_refs_get_attachment_files($attachment_id) as $file) {
+        foreach (taxocommerce_images_refs_get_attachment_files($attachment_id) as $file) {
             $size = @filesize($file);
 
             if ($size !== false) {
@@ -524,8 +524,8 @@ if (!function_exists('tci_refs_get_attachment_size')) {
  * considera que la imagen está usada. Esto reduce falsos negativos y evita que
  * una imagen válida aparezca por error en la lista de borrado.
  */
-if (!function_exists('tci_refs_build_usage_report')) {
-    function tci_refs_build_usage_report($attachments) {
+if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
+    function taxocommerce_images_refs_build_usage_report($attachments) {
         global $wpdb;
 
         $usage = [];
@@ -546,10 +546,10 @@ if (!function_exists('tci_refs_build_usage_report')) {
                 is_object($attachment) && isset($attachment->post_parent)
             ) ? absint($attachment->post_parent) : 0;
 
-            foreach (tci_refs_get_reference_filenames($attachment_id) as $filename) {
+            foreach (taxocommerce_images_refs_get_reference_filenames($attachment_id) as $filename) {
                 $lookup_keys = [
                     $filename,
-                    'stem:' . tci_refs_get_filename_stem($filename),
+                    'stem:' . taxocommerce_images_refs_get_filename_stem($filename),
                 ];
 
                 foreach (array_unique($lookup_keys) as $lookup_key) {
@@ -581,6 +581,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
          * 1) Imágenes destacadas de cualquier tipo de contenido.
          * Incluye posts, páginas, productos y variaciones de WooCommerce.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate native post-thumbnail references without loading every WP_Post into memory; live relationships must not be cached.
         $thumbnail_rows = $wpdb->get_results("\n            SELECT pm.meta_value AS attachment_id, COUNT(DISTINCT pm.post_id) AS total\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE pm.meta_key = '_thumbnail_id'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n            GROUP BY pm.meta_value\n        ");
 
         foreach ($thumbnail_rows as $row) {
@@ -590,6 +591,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         /*
          * 2) Imágenes de categorías y otras taxonomías.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-term image reference counts require a single fresh aggregation; persistent results could mark used images as unused.
         $term_thumbnail_rows = $wpdb->get_results("\n            SELECT meta_value AS attachment_id, COUNT(DISTINCT term_id) AS total\n            FROM {$wpdb->termmeta}\n            WHERE meta_key = 'thumbnail_id'\n            GROUP BY meta_value\n        ");
 
         foreach ($term_thumbnail_rows as $row) {
@@ -601,6 +603,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
          * Se separa el CSV para evitar el falso positivo clásico de LIKE '%12%',
          * que también encontraba IDs como 112 o 120.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Scan WooCommerce comma-separated gallery data directly; no native API aggregates this format across products.
         $gallery_rows = $wpdb->get_results("\n            SELECT pm.post_id, pm.meta_value\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE pm.meta_key = '_product_image_gallery'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n        ");
 
         foreach ($gallery_rows as $row) {
@@ -616,6 +619,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
          * 4) Contenido y extractos de todos los tipos de contenido activos.
          * Aquí se detectan enlaces, etiquetas <img>, srcset, Gutenberg y URLs.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current mixed post content/excerpts for conservative image reference detection; cached snapshots would become stale.
         $content_rows = $wpdb->get_results("\n            SELECT ID, post_content, post_excerpt, post_content_filtered\n            FROM {$wpdb->posts}\n            WHERE post_type NOT IN ('attachment', 'revision')\n              AND post_status NOT IN ('trash', 'auto-draft')\n              AND (post_content <> '' OR post_excerpt <> '' OR post_content_filtered <> '')\n        ");
 
         $implicit_gallery_parent_ids = [];
@@ -625,7 +629,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
                 (string) $row->post_excerpt . "\n" .
                 (string) $row->post_content_filtered;
 
-            $content_ids = tci_refs_extract_ids(
+            $content_ids = taxocommerce_images_refs_extract_ids(
                 $combined_content,
                 $id_lookup,
                 $filename_lookup,
@@ -664,6 +668,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
          */
         $meta_key_regex = 'image|images|img|imagen|imagenes|photo|picture|foto|fotos|media|attachment|thumbnail|miniatura|gallery|galeria|logo|logotipo|icon|icono|banner|cabecera|fondo|avatar|featured|destacada';
         $image_value_regex = '\\.(jpe?g|png|gif|webp|avif|svg|bmp|tiff?)([^a-z0-9]|$)';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find current serialized and textual post meta references with bounded conditions; native metadata APIs cannot perform this cross-object scan.
         $postmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT pm.post_id, pm.meta_key, pm.meta_value\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE p.post_type <> 'attachment'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n              AND pm.meta_key NOT IN (\n                  '_thumbnail_id',\n                  '_product_image_gallery',\n                  '_wp_attached_file',\n                  '_wp_attachment_metadata',\n                  '_wp_attachment_backup_sizes'\n              )\n              AND (\n                  pm.meta_key REGEXP %s\n                  OR pm.meta_value REGEXP %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n              )\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -677,7 +682,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         ));
 
         foreach ($postmeta_rows as $row) {
-            $meta_ids = tci_refs_extract_ids(
+            $meta_ids = taxocommerce_images_refs_extract_ids(
                 $row->meta_value,
                 $id_lookup,
                 $filename_lookup,
@@ -690,10 +695,11 @@ if (!function_exists('tci_refs_build_usage_report')) {
         /*
          * 6) Descripciones de categorías, etiquetas y taxonomías personalizadas.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current taxonomy descriptions across taxonomies; this is a one-off full reference inventory, not a reusable cached view.
         $term_description_rows = $wpdb->get_results("\n            SELECT term_taxonomy_id, description\n            FROM {$wpdb->term_taxonomy}\n            WHERE description <> ''\n        ");
 
         foreach ($term_description_rows as $row) {
-            $term_ids = tci_refs_extract_ids(
+            $term_ids = taxocommerce_images_refs_extract_ids(
                 $row->description,
                 $id_lookup,
                 $filename_lookup,
@@ -706,6 +712,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         /*
          * 7) Metadatos de términos usados por temas y plugins.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Search arbitrary term metadata for current image references; avoiding cache prevents false unused results.
         $termmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT term_id, meta_key, meta_value\n            FROM {$wpdb->termmeta}\n            WHERE meta_key <> 'thumbnail_id'\n              AND (\n                  meta_key REGEXP %s\n                  OR meta_value REGEXP %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n              )\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -717,7 +724,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         ));
 
         foreach ($termmeta_rows as $row) {
-            $termmeta_ids = tci_refs_extract_ids(
+            $termmeta_ids = taxocommerce_images_refs_extract_ids(
                 $row->meta_value,
                 $id_lookup,
                 $filename_lookup,
@@ -731,6 +738,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
          * 8) Ajustes del sitio y del tema: logo, icono, widgets, cabeceras,
          * fondos y opciones de plugins que almacenan un ID o una URL.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect current plugin/theme options including serialized image references; result caching risks stale protection decisions.
         $option_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT option_name, option_value\n            FROM {$wpdb->options}\n            WHERE option_name NOT LIKE %s\n              AND option_name NOT LIKE %s\n              AND (\n                  option_name REGEXP %s\n                  OR option_value REGEXP %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n              )\n        ",
             $wpdb->esc_like('_transient_') . '%',
             $wpdb->esc_like('_site_transient_') . '%',
@@ -746,7 +754,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
 
         foreach ($option_rows as $row) {
             if (in_array($row->option_name, array('taxocommerce_images_cleanup_report_v2','taxocommerce_images_labels_report_v2','taxocommerce_images_mutation_lock','taxocommerce_images_audit_state'), true)) { continue; }
-            $option_ids = tci_refs_extract_ids(
+            $option_ids = taxocommerce_images_refs_extract_ids(
                 $row->option_value,
                 $id_lookup,
                 $filename_lookup,
@@ -759,6 +767,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         /*
          * 9) Metadatos de usuarios, por ejemplo avatares o imágenes de perfil.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect user metadata for image URLs or IDs across users; cross-user reference inventory requires current data.
         $usermeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT umeta_id, meta_key, meta_value\n            FROM {$wpdb->usermeta}\n            WHERE meta_key REGEXP %s\n               OR meta_value REGEXP %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -770,7 +779,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         ));
 
         foreach ($usermeta_rows as $row) {
-            $user_ids = tci_refs_extract_ids(
+            $user_ids = taxocommerce_images_refs_extract_ids(
                 $row->meta_value,
                 $id_lookup,
                 $filename_lookup,
@@ -783,6 +792,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         /*
          * 10) Comentarios que contienen una URL o etiqueta de imagen.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect approved comment bodies for current Media references; this full-scope check must not reuse cached findings.
         $comment_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT comment_ID, comment_content\n            FROM {$wpdb->comments}\n            WHERE comment_approved NOT IN ('trash', 'spam')\n              AND (\n                  comment_content LIKE %s\n                  OR comment_content LIKE %s\n                  OR comment_content LIKE %s\n              )\n        ",
             '%' . $wpdb->esc_like('/uploads/') . '%',
             '%' . $wpdb->esc_like('wp-image-') . '%',
@@ -790,7 +800,7 @@ if (!function_exists('tci_refs_build_usage_report')) {
         ));
 
         foreach ($comment_rows as $row) {
-            $comment_ids = tci_refs_extract_ids(
+            $comment_ids = taxocommerce_images_refs_extract_ids(
                 $row->comment_content,
                 $id_lookup,
                 $filename_lookup,

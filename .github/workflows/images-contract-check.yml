@@ -4,6 +4,12 @@ on:
     paths:
       - 'taxocommerce-images/**'
       - '.github/workflows/images-contract-check.yml'
+  # Verify the actually merged STAGING revision, not only PR candidates.
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-images/**'
+      - '.github/workflows/images-contract-check.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -37,6 +43,8 @@ jobs:
           tools: wp-cli
       - name: PHP syntax
         run: find taxocommerce-images -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Images Auto Test smoke
+        run: php taxocommerce-images/tests/auto-test-smoke.php
       - name: Audit five-speed regulator smoke
         run: php taxocommerce-images/tests/audit-load-smoke.php
       - name: Audit JavaScript syntax and browser continuation
@@ -68,6 +76,6 @@ jobs:
           cp /tmp/images-contract-results.txt build-images/tests.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: images-contract-package-0.2.10
+          name: images-contract-package-0.2.15
           path: build-images/
           retention-days: 7

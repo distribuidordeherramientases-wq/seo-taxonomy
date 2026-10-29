@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.32
+Stable tag: 0.4.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
 * Optional extension discovery for the other TaxoCommerce modules.
+* Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
 
@@ -48,6 +49,37 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.37 =
+* Move Core Auto Test into the Core Overview / User Guide / Auto Test internal tab bar rather than a WordPress sidebar submenu.
+* Retain the 17 read-only checks, user transient, nonces, dashboard navigation and old URL compatibility via a safe redirect.
+* No new tables or modifications to tests, catalog, SEO hierarchy, menus or extension management.
+
+
+= 0.4.36 =
+* Add Technical Manual alongside User Manual in the existing User Guide screen.
+* Describe Core architecture, hooks, data, countries, permissions, caching, deployment and diagnostics using semantic headings and responsive tables.
+* Preserve the original user manual and all operational Core screens.
+
+
+= 0.4.35 =
+* Add a User Guide tab with semantic H1/H2/H3 headings, table of contents, direct links and responsive presentation.
+* Document Content, SEO Hierarchy, country menus, Auto Test and optional extensions without changing existing operations.
+
+
+= 0.4.34 =
+* Add a native Auto Test screen and dashboard shortcut for administrator-triggered, read-only functional checks.
+* Report individual pass/fail/skipped results with error details, timings and version, isolating failures between checks.
+* Cover runtime, WP/WooCommerce content reads, country metadata, SEO roles and relation samples, country menus, modules, vocabulary and architecture summary. Never create, delete or sync real content during tests.
+* Keep the last test result in a user-specific transient for one day; writing UAT remains explicitly outside the production-safe suite.
+
+
+= 0.4.33 =
+* Ensure each country creates, saves and edits a dedicated native WordPress menu with a distinct country-specific name.
+* Prevent stale country options from reusing and overwriting another market's menu ID; restore the correct market association by native menu name.
+* Rename legacy Spanish TaxoCommerce menu in place when synchronised, preserving its menu ID and content.
+* Show the selected native menu name in the editor and add regression coverage for cross-country menu ID collisions.
+
 
 = 0.4.32 =
 * Fix existing SEO hierarchy tables that missed the country_code migration: both seo_nodes and seo_relations are checked, without deleting or replacing existing records.

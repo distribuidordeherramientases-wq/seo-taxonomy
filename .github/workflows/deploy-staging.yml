@@ -23,9 +23,12 @@ jobs:
       - name: Validate independent Database before any STAGING FTP upload
         run: |
           find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/legacy-clean-db-smoke.php
+          php taxocommerce-database/tests/legacy-data-table-smoke.php
           php taxocommerce-database/tests/menu-smoke.php alone
           php taxocommerce-database/tests/menu-smoke.php core
+          php taxocommerce-database/tests/auto-test-smoke.php
+          php taxocommerce-database/tests/auto-test-results-smoke.php
 
       - name: Validate Redirects extension menu compatibility before STAGING FTP
         run: |
@@ -118,6 +121,7 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-database/
           server-dir: ./wp-content/plugins/taxocommerce-database/
+          state-name: ../.taxocommerce-database-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -129,55 +133,176 @@ jobs:
             **/*.md
             **/*.pot
 
-      - name: Deploy TaxoCommerce Images to STAGING
+      - name: Remove obsolete Database test files and hidden FTP sync state
+        env:
+          TC_DB_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_DB_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_DB_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_DB_HOST"], 21)
+          ftp.login(os.environ["TC_DB_USER"], os.environ["TC_DB_PASS"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-database/")
+          files = [
+              ".ftp-deploy-sync-state.json",
+              "tests/auto-test-smoke.php",
+              "tests/legacy-clean-db-smoke.php",
+              "tests/legacy-data-table-smoke.php",
+              "tests/menu-smoke.php",
+          ]
+          for path in files:
+              try:
+                  ftp.delete(path)
+                  print("Removed obsolete Database deployment artifact:", path)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+          try:
+              ftp.rmd("tests")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY
+
+      - name: Deploy TaxoCommerce Images to STAGING (runtime package only)
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
           username: ${{ secrets.STAGING_FTP_USERNAME }}
           password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
           local-dir: ./taxocommerce-images/
           server-dir: ./wp-content/plugins/taxocommerce-images/
-
+          # Keep deployment state OUTSIDE the installed plugin directory.
+          state-name: ../.taxocommerce-images-ftp-state.json
           dry-run: false
           log-level: verbose
-
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
             **/*.bak
             **/*.md
             **/*.pot
 
+      - name: Remove previously deployed Images test files and old state file
+        # Cleanup is tightly allowlisted: never remove Media, data, or plugin runtime files.
+        env:
+          TC_IMAGES_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_IMAGES_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_IMAGES_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
 
-      - name: Deploy TaxoCommerce Import-Export to STAGING
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_IMAGES_FTP_HOST"], 21)
+          ftp.login(os.environ["TC_IMAGES_FTP_USER"], os.environ["TC_IMAGES_FTP_PASSWORD"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-images/")
+          files = [
+              ".ftp-deploy-sync-state.json",
+              "tests/audit-browser-smoke.js",
+              "tests/audit-load-smoke.php",
+              "tests/auto-test-smoke.php",
+              "tests/early-i18n-smoke.php",
+              "tests/functional-contract.php",
+              "tests/manual-smoke.php",
+          ]
+          for path in files:
+              try:
+                  ftp.delete(path)
+                  print("Removed obsolete Images deploy artifact:", path)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+          try:
+              ftp.rmd("tests")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY
+
+      - name: Validate TaxoCommerce Import-Export before STAGING FTP
+        run: |
+          find taxocommerce-import-export -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/delete-pending-smoke.php
+
+      - name: Deploy TaxoCommerce Import-Export to STAGING (runtime only)
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
           username: ${{ secrets.STAGING_FTP_USERNAME }}
           password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
           local-dir: ./taxocommerce-import-export/
           server-dir: ./wp-content/plugins/taxocommerce-import-export/
-
+          # FTP synchronization state must never become an installed plugin file.
+          state-name: ../.taxocommerce-import-export-ftp-state.json
           dry-run: false
           log-level: verbose
-
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
             **/*.bak
             **/*.md
             **/*.pot
 
+      - name: Remove obsolete Import-Export tests and FTP state from STAGING
+        # Strictly allowlisted: do not touch runtime, uploaded CSVs or Media.
+        env:
+          TC_IE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_IE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_IE_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_IE_FTP_HOST"], 21)
+          ftp.login(os.environ["TC_IE_FTP_USER"], os.environ["TC_IE_FTP_PASSWORD"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-import-export/")
+          files = [
+              ".ftp-deploy-sync-state.json",
+              "tests/adaptive-import-smoke.php",
+              "tests/auto-test-smoke.php",
+              "tests/batch-queue-smoke.php",
+              "tests/batch-runner-browser-smoke.js",
+              "tests/country-csv-smoke.php",
+              "tests/delete-pending-smoke.php",
+              "tests/product-noop-smoke.php",
+              "tests/progress-smoke.php",
+          ]
+          for path in files:
+              try:
+                  ftp.delete(path)
+                  print("Removed obsolete Import-Export deployment artifact:", path)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+          try:
+              ftp.rmd("tests")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY
 
       - name: Validate TaxoCommerce Suppliers
         run: |
@@ -472,12 +597,19 @@ jobs:
           test -s taxocommerce-dependiente/taxocommerce-dependiente.php
           find taxocommerce-dependiente -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-dependiente/tests/learning-smoke.php
+          php taxocommerce-dependiente/tests/m11-observability-smoke.php
+          php taxocommerce-dependiente/tests/m11-scheduler-smoke.php
           version="$(sed -n 's/^ \* Version: //p' taxocommerce-dependiente/taxocommerce-dependiente.php | head -n 1)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           zipfile="taxocommerce-dependiente-${version}.zip"
           rm -f "$zipfile"
-          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.DS_Store"
+          # Build a clean distributable; never ship CI fixtures or FTP state.
+          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.*" "*/.ftp-deploy-sync-state.json" "*/.DS_Store"
+          if unzip -Z1 "$zipfile" | grep -E '(^|/)(tests/|[.][^/]+)'; then
+            echo "Assistant package contains tests or hidden files" >&2
+            exit 1
+          fi
           unzip -t "$zipfile"
           unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
 
@@ -505,6 +637,9 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/tests
+            **/tests/**
+            **/.ftp-deploy-sync-state.json
             **/*.bak
             **/*.md
             **/*.pot

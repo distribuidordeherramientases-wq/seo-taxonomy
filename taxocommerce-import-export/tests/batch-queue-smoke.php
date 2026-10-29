@@ -8,7 +8,7 @@ $exporter = file_get_contents( $root . '/includes/class-taxocommerce-import-expo
 $exporter_js = file_get_contents( $root . '/assets/exporter.js' );
 
 $checks = array(
-    strpos( $main, "Version: 0.4.8" ) !== false,
+    strpos( $main, "Version: 0.4.9" ) !== false,
     strpos( $main, "class-taxocommerce-import-export-batch.php" ) !== false,
     strpos( $main, "class-taxocommerce-ie-load.php" ) !== false,
     strpos( $batch, "TaxoCommerce_IE_Load::batch_size( 'import' )" ) !== false,

@@ -230,7 +230,7 @@ final class TaxoCommerce_Connections_Admin {
 					<div class="notice notice-info inline" style="margin:10px 0;padding:10px 12px;">
 						<p><strong><?php esc_html_e( 'Cómo conectar Google Merchant Center', 'taxocommerce-google-bing' ); ?></strong></p>
 						<ol style="margin-left:20px;list-style:decimal;">
-							<li><?php echo wp_kses_post( sprintf( __( 'Abre <a href="%s" target="_blank" rel="noopener noreferrer">Google Merchant Center</a> con la cuenta que administra tu tienda.', 'taxocommerce-google-bing' ), esc_url( 'https://merchants.google.com/' ) ) ); ?></li>
+							<li><?php echo wp_kses_post( sprintf( /* translators: %s: URL de acceso a Google Merchant Center. */ __( 'Abre <a href="%s" target="_blank" rel="noopener noreferrer">Google Merchant Center</a> con la cuenta que administra tu tienda.', 'taxocommerce-google-bing' ), esc_url( 'https://merchants.google.com/' ) ) ); ?></li>
 							<li><?php esc_html_e( 'Selecciona tu cuenta y copia su ID numérico de Merchant Center (no es el ID de Google Analytics ni el de Google Ads).', 'taxocommerce-google-bing' ); ?></li>
 							<li><?php esc_html_e( 'Introduce el ID en este campo y pulsa «Save Merchant».', 'taxocommerce-google-bing' ); ?></li>
 							<li><?php esc_html_e( 'Comprueba que la identidad de Google utilizada por TaxoCommerce tiene acceso a esa cuenta de Merchant Center y que Merchant API está habilitada cuando corresponda.', 'taxocommerce-google-bing' ); ?></li>

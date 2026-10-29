@@ -31,8 +31,16 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-dependiente -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+      - name: User and technical manuals regression
+        run: php taxocommerce-dependiente/tests/manual-smoke.php
+      - name: Grouped Auto Test regression
+        run: php taxocommerce-dependiente/tests/auto-test-smoke.php
       - name: Auditable learning regression guards
         run: php taxocommerce-dependiente/tests/learning-smoke.php
+      - name: M11 scheduler, lock ownership and logging regression
+        run: |
+          php taxocommerce-dependiente/tests/m11-observability-smoke.php
+          php taxocommerce-dependiente/tests/m11-scheduler-smoke.php
       - name: L9 snapshot language and ranking regression
         run: php taxocommerce-dependiente/tests/l9-query-regression.php
       - name: Original Interpreter / Linguist parity regression

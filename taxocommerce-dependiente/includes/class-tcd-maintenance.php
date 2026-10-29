@@ -107,9 +107,11 @@ final class TCD_Maintenance {
         global $wpdb;
         $product_id = absint( $product_id );
         if ( ! $product_id ) return;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         $wpdb->delete( TCD_Knowledge_Transfer::l9_table(), array( 'product_id'=>$product_id ) );
         $knowledge = TCD_Academy::knowledge_table();
         foreach ( array( 2, 4, 9 ) as $lesson ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
             $wpdb->delete( $knowledge, array( 'lesson'=>$lesson, 'source_type'=>'product', 'source_id'=>$product_id ) );
         }
     }
@@ -189,6 +191,7 @@ final class TCD_Maintenance {
 
     private static function refresh_recent_posts( $since, $until ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         $ids = (array) $wpdb->get_col( $wpdb->prepare(
             "SELECT ID FROM {$wpdb->posts}
              WHERE post_status='publish'
@@ -208,11 +211,12 @@ final class TCD_Maintenance {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) return;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         $ids = (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT id FROM {$table}
+            "SELECT id FROM %i
              WHERE active=1 AND updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 300",
-            $since, $until
+            $table, $since, $until
         ) );
         foreach ( $ids as $id ) {
             $item = TCD_Sources::faq_item( absint( $id ) );
@@ -228,11 +232,12 @@ final class TCD_Maintenance {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $voc ) ) return;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         $ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-            "SELECT id FROM {$voc}
+            "SELECT id FROM %i
              WHERE active=1 AND updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 120",
-            $since, $until
+            $voc, $since, $until
         ) ) );
         if ( ! $ids ) return;
 
@@ -245,11 +250,12 @@ final class TCD_Maintenance {
             self::bump( 'vocabulary_updated' );
 
             if ( self::table_exists( $rel ) && count( $products ) < 120 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
                 $affected = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare(
-                    "SELECT object_id FROM {$rel}
+                    "SELECT object_id FROM %i
                      WHERE object_type='product' AND vocabulary_id=%d AND status=1
                      ORDER BY object_id ASC LIMIT 40",
-                    $id
+                    $rel, $id
                 ) ) );
                 foreach ( $affected as $product_id ) {
                     $products[ $product_id ] = true;
@@ -266,12 +272,13 @@ final class TCD_Maintenance {
         global $wpdb;
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
         if ( ! self::table_exists( $rel ) ) return;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT object_type,object_id,vocabulary_id,status
-             FROM {$rel}
+             FROM %i
              WHERE updated_at>%s AND updated_at<=%s
              ORDER BY updated_at ASC,id ASC LIMIT 300",
-            $since, $until
+            $rel, $since, $until
         ), ARRAY_A );
         if ( ! $rows ) return;
 
@@ -317,6 +324,7 @@ final class TCD_Maintenance {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Maintenance writes and reads plugin-managed learning tables; results must reflect current training state and cannot safely use a read cache.
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
     }
 }

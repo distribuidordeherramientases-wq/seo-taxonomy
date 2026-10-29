@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Core - Catalog & Content Management for WooCommerce
  * Description: Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.
- * Version: 0.4.32
+ * Version: 0.4.37
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.32' );
+define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.37' );
 define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
@@ -33,8 +33,11 @@ require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-anomalies.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-anomalies-json.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-auto-test.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php';
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-dashboard.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-user-guide.php';
+require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-technical-guide.php';
 
 /**
  * Returns the TaxoCommerce Core singleton.

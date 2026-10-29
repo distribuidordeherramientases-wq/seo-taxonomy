@@ -49,6 +49,8 @@ final class TCD_Admin {
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
         echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
+        echo '<a class="nav-tab '.esc_attr('auto-test'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('auto-test')).'">Auto Test</a>';
+        echo '<a class="nav-tab '.esc_attr('user-guide'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('user-guide')).'">User Guide</a>';
         echo '</nav>';
     }
 
@@ -61,6 +63,7 @@ final class TCD_Admin {
         $lock=absint(get_option(TCD_Academy::LOCK,0));
         $lock_age=$lock?max(0,time()-$lock):0;
         $next=wp_next_scheduled(TCD_Academy::CRON_HOOK);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET de visualización del log; no modifica ningún dato.
         $auto=isset($_GET['auto']) && '1'===sanitize_text_field(wp_unslash((string)$_GET['auto']));
         $warnings=substr_count($log,' WARN ');
         $errors=substr_count($log,' ERROR ');
@@ -105,6 +108,18 @@ final class TCD_Admin {
             echo '<p class="description">Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje.</p></div>';
         }
 
+        if(11===absint($state['lesson']??0)){
+            $ling=TCD_Original_Linguista::state();
+            $heartbeat=absint($ling['heartbeat_at']??0);
+            $age=$heartbeat?max(0,time()-$heartbeat):0;
+            echo '<h2>Diagnóstico M11 · Intérprete</h2>';
+            echo '<p><strong>Estado Lingüista:</strong> '.esc_html((string)($ling['status']??'sin estado')).' · <strong>Lección:</strong> '.esc_html((string)($ling['current_lesson']??'—')).' · <strong>Cursor:</strong> '.esc_html((string)absint($ling['cursor']??0)).' · <strong>Progreso:</strong> '.esc_html((string)TCD_Original_Linguista::course_progress()).'%</p>';
+            echo '<p><strong>Último latido:</strong> '.esc_html($heartbeat?gmdate('Y-m-d H:i:s',$heartbeat).' UTC (hace '.$age.' s)':'Sin latido').' · <strong>Próximo lote permitido:</strong> '.esc_html(!empty($ling['not_before'])?gmdate('Y-m-d H:i:s',absint($ling['not_before'])).' UTC':'Inmediato').'</p>';
+            if('running'===(string)($state['status']??'') && (!$heartbeat || $age>180))echo '<div class="notice notice-warning inline"><p>Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola de procesos y el último error; no reinicies las lecciones L1–L10.</p></div>';
+            if(!empty($ling['last_error']))echo '<div class="notice notice-error inline"><p><strong>Error del Intérprete:</strong> '.esc_html((string)$ling['last_error']).'</p></div>';
+            echo '<h3>Log independiente del Intérprete</h3>';
+            echo '<textarea readonly spellcheck="false" style="width:100%;height:260px;font:12px/1.4 monospace;background:#111;color:#eee">'.esc_textarea(TCD_Learning_Log::interpreter_read()).'</textarea>';
+        }
         echo '<h2>Eventos recientes del proceso</h2>';
         echo '<p class="description">Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.</p>';
         echo '<table class="widefat striped" style="margin-bottom:18px"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
@@ -259,12 +274,23 @@ final class TCD_Admin {
     public static function render(){
         if(!current_user_can('manage_woocommerce') && !current_user_can('manage_options'))wp_die('Sin permiso');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- La pestaña GET solo selecciona una vista de lectura, con una lista blanca.
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
-        if(!in_array($tab,array('overview','knowledge','backup','learning-log'),true))$tab='overview';
+        if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test','user-guide'),true))$tab='overview';
 
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
+        if('user-guide'===$tab){
+            TCD_Manual::render();
+            echo '</div>';
+            return;
+        }
+        if('auto-test'===$tab){
+            TCD_Auto_Test::render();
+            echo '</div>';
+            return;
+        }
         if('knowledge'===$tab){
             TCD_Knowledge_Transfer::render_admin_section();
             echo '</div>';

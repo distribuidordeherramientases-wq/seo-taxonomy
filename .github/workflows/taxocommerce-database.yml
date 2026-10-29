@@ -28,13 +28,20 @@ jobs:
           php-version: ${{ matrix.php }}
       - name: Validate plugin syntax
         run: find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-      - name: Run database safety and CSV regression
+      - name: Verify both original services
         run: |
-          php taxocommerce-database/tests/smoke.php
+          php taxocommerce-database/tests/legacy-clean-db-smoke.php
+          php taxocommerce-database/tests/legacy-data-table-smoke.php
           php taxocommerce-database/tests/menu-smoke.php alone
           php taxocommerce-database/tests/menu-smoke.php core
-      - name: Assert Database has no historical rollback engine
+          php taxocommerce-database/tests/auto-test-smoke.php
+          php taxocommerce-database/tests/auto-test-results-smoke.php
+      - name: Assert no invented services or Data Layer
         run: |
           set -euo pipefail
-          test ! -e taxocommerce-database/includes/class-tcdb-journal.php
-          ! grep -R -nE "TCDB_Journal|tcdb_rollback_supported_tables|tcdb_reversible_csv_import|admin_post_tcdb_rollback" taxocommerce-database/includes/ taxocommerce-database/taxocommerce-database.php
+          test -f taxocommerce-database/includes/legacy/seo-database-clean.php
+          test -f taxocommerce-database/includes/legacy/seo-database-report.php
+          test ! -e taxocommerce-database/includes/class-tcdb-admin.php
+          test ! -e taxocommerce-database/includes/class-tcdb-import.php
+          test ! -e taxocommerce-database/includes/class-tcdb-maintenance.php
+          ! grep -R -nE 'SEO_Data_Layer|SEO_Data_Rollback|TCDB_Journal|admin_post_tcdb_rollback' taxocommerce-database/includes/ taxocommerce-database/taxocommerce-database.php

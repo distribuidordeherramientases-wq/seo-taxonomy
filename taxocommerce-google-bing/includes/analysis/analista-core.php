@@ -207,7 +207,7 @@ if (!function_exists('seo_analista_sanitize_keywords')) {
 if (!function_exists('seo_analista_save_settings_handler')) {
     function seo_analista_save_settings_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para configurar Analista.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para configurar Analista.', 'taxocommerce-google-bing'));
         }
 
         check_admin_referer('seo_analista_save_settings', 'seo_analista_nonce');

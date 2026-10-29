@@ -113,6 +113,7 @@ final class TaxoCommerce_Core {
 		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_old_extensions_page' ) );
+		add_action( 'admin_init', array( $this, 'redirect_old_auto_test_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_anomalies_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_reports_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_family_styles' ) );
@@ -127,6 +128,7 @@ final class TaxoCommerce_Core {
 		$this->hierarchy->register_hooks();
 		$this->menu->register_hooks();
 		$this->content->register_hooks();
+		TaxoCommerce_Core_Auto_Test::register_hooks();
 		$this->booted = true;
 
 		/**
@@ -209,6 +211,14 @@ final class TaxoCommerce_Core {
 			array( $this->menu, 'render' )
 		);
 
+		add_submenu_page(
+			'taxocommerce-core',
+			__( 'User Guide', 'taxocommerce-core' ),
+			__( 'User Guide', 'taxocommerce-core' ),
+			$capability,
+			TaxoCommerce_Core_User_Guide::PAGE_SLUG,
+			array( 'TaxoCommerce_Core_User_Guide', 'render' )
+		);
 	}
 
 
@@ -233,6 +243,7 @@ final class TaxoCommerce_Core {
 			'taxocommerce-core-content'  => 'Content',
 			'taxocommerce-core-hierarchy'=> 'SEO Hierarchy',
 			'taxocommerce-core-menu'     => 'Menu Manager',
+			'taxocommerce-core-user-guide'=> 'User Guide',
 			'taxocommerce-vocabulary'    => 'Vocabulary',
 			'taxocommerce-dependiente'   => 'Sales Assistant',
 			'taxocommerce-import-export' => 'Import / Export',
@@ -280,7 +291,7 @@ final class TaxoCommerce_Core {
 		// WordPress flyout, including Core's own pages and that extension.
 		global $submenu;
 		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
-		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu' );
+		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' );
 		foreach ( $items as $item ) {
 			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
 				continue;
@@ -1017,6 +1028,13 @@ final class TaxoCommerce_Core {
 	 */
 	public function render_dashboard() {
 		$this->guard();
+		// Auto Test is a Core dashboard tab, never a separate WordPress menu item.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
+		if ( 'auto-test' === $tab ) {
+			TaxoCommerce_Core_Auto_Test::render();
+			return;
+		}
 		TaxoCommerce_Core_Dashboard::render(
 			$this->modules,
 			$this->legacy_detected(),
@@ -1040,6 +1058,23 @@ final class TaxoCommerce_Core {
 		echo '</header>';
 		TaxoCommerce_Core_Architecture_Report::render();
 		echo '</div>';
+	}
+
+	/**
+	 * Redirect old dedicated Auto Test URLs into the Core internal tab.
+	 * The former submenu is intentionally no longer registered.
+	 *
+	 * @return void
+	 */
+	public function redirect_old_auto_test_page() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		if ( TaxoCommerce_Core_Auto_Test::PAGE_SLUG !== $page ) {
+			return;
+		}
+		$this->guard();
+		wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) );
+		exit;
 	}
 
 	/**

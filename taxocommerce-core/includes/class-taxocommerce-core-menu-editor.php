@@ -181,17 +181,9 @@ final class TaxoCommerce_Core_Menu_Editor {
         return 1 === (int) get_post_meta( $item_id, TaxoCommerce_Core_Menu::GENERATED_META, true );
     }
 
+    /** Use the same country-aware identity validation as automatic menus. */
     private static function managed_menu( $create = false ) {
-        $country = TaxoCommerce_Core_Menu::country( true );
-        $id = absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) );
-        if ( $id && wp_get_nav_menu_object( $id ) ) { return $id; }
-        if ( ! $create ) { return 0; }
-        $name = 'ES' === $country ? 'TaxoCommerce' : 'TaxoCommerce - ' . $country;
-        $existing = wp_get_nav_menu_object( $name );
-        $id = $existing && ! is_wp_error( $existing ) ? (int) $existing->term_id : wp_create_nav_menu( $name );
-        if ( is_wp_error( $id ) ) { return $id; }
-        update_option( TaxoCommerce_Core_Menu::menu_option( $country ), (int) $id, false );
-        return (int) $id;
+        return TaxoCommerce_Core_Menu::managed_menu_id( TaxoCommerce_Core_Menu::country( true ), $create );
     }
 
     /** Shared by the authenticated controller and regression tests. */
@@ -258,8 +250,8 @@ final class TaxoCommerce_Core_Menu_Editor {
                 $result
             );
         } elseif ( 'custom' === $task ) {
-            $title = isset( $_POST['custom_title'] ) && is_string( $_POST['custom_title'] ) ? wp_unslash( $_POST['custom_title'] ) : '';
-            $url = isset( $_POST['custom_url'] ) && is_string( $_POST['custom_url'] ) ? wp_unslash( $_POST['custom_url'] ) : '';
+            $title = isset( $_POST['custom_title'] ) && is_string( $_POST['custom_title'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_title'] ) ) : '';
+            $url = isset( $_POST['custom_url'] ) && is_string( $_POST['custom_url'] ) ? esc_url_raw( wp_unslash( $_POST['custom_url'] ), array( 'http', 'https', 'mailto', 'tel' ) ) : '';
             $result = self::add_link( $title, $url );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Enlace personalizado añadido.', 'taxocommerce-core' );
         } elseif ( 'remove' === $task ) {

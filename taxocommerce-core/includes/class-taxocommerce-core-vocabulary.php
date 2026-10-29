@@ -163,10 +163,11 @@ final class TaxoCommerce_Core_Vocabulary {
         $search = '%' . $wpdb->esc_like( sanitize_text_field( $needle ) ) . '%';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, slug, label FROM {$tables['vocabulary']}
+                "SELECT id, slug, label FROM %i
                  WHERE active=1 AND semantic_group=%s
                    AND (label LIKE %s OR slug LIKE %s)
                  ORDER BY label ASC LIMIT 25",
+                $tables['vocabulary'],
                 $group,
                 $search,
                 $search
@@ -221,8 +222,8 @@ final class TaxoCommerce_Core_Vocabulary {
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
                 $valid = $wpdb->get_col(
                     $wpdb->prepare(
-                        "SELECT id FROM {$tables['vocabulary']} WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
-                        array_merge( array( $group ), $ids )
+                        "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
+                        array_merge( array( $tables['vocabulary'], $group ), $ids )
                     )
                 );
                 if ( count( $valid ) !== count( $ids ) ) {
@@ -249,9 +250,9 @@ final class TaxoCommerce_Core_Vocabulary {
                 $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
                 $updated = $wpdb->query(
                     $wpdb->prepare(
-                        "UPDATE {$tables['relations']} SET status=0, updated_at=%s
+                        "UPDATE %i SET status=0, updated_at=%s
                          WHERE object_type=%s AND object_id=%d AND source='manual' AND vocabulary_id IN ({$ph})",
-                        array_merge( array( current_time( 'mysql', true ), $type, $object_id ), $ids )
+                        array_merge( array( $tables['relations'], current_time( 'mysql', true ), $type, $object_id ), $ids )
                     )
                 );
                 if ( false === $updated ) {
@@ -262,10 +263,11 @@ final class TaxoCommerce_Core_Vocabulary {
             foreach ( $to_add as $term_id ) {
                 $updated = $wpdb->query(
                     $wpdb->prepare(
-                        "INSERT INTO {$tables['relations']}
+                        "INSERT INTO %i
                          (object_type,object_id,vocabulary_id,source,confidence,status,updated_at)
                          VALUES (%s,%d,%d,'manual',1.0000,1,%s)
                          ON DUPLICATE KEY UPDATE source='manual',confidence=1.0000,status=1,updated_at=VALUES(updated_at)",
+                        $tables['relations'],
                         $type,
                         $object_id,
                         absint( $term_id ),

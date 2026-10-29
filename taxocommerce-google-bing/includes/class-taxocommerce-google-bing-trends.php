@@ -154,9 +154,10 @@ final class TaxoCommerce_Google_Bing_Trends {
             wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( 'tgb_trends_explore' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- check_admin_referer() verified the request above.
         $raw = isset( $_POST['trends_terms'] ) && is_string( $_POST['trends_terms'] )
-            ? wp_unslash( $_POST['trends_terms'] ) : '';
+            ? sanitize_textarea_field( wp_unslash( $_POST['trends_terms'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $terms = self::parse_terms( $raw );
         if ( is_wp_error( $terms ) ) {
             wp_die( esc_html( $terms->get_error_message() ) );
@@ -354,7 +355,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             wp_die( esc_html__( 'You do not have permission to download reports.', 'taxocommerce-google-bing' ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified with source-specific nonce below.
-        $geo = isset( $_POST['trends_geo'] ) ? self::valid_geo( wp_unslash( $_POST['trends_geo'] ) ) : 'ES';
+        $geo = isset( $_POST['trends_geo'] ) ? self::valid_geo( sanitize_text_field( wp_unslash( $_POST['trends_geo'] ) ) ) : 'ES';
         check_admin_referer( 'tgb_trends_download_' . $geo );
 
         $lock = 'tgb_trends_download_lock_' . get_current_blog_id() . '_' . $geo;
@@ -386,7 +387,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             wp_die( esc_html__( 'You do not have permission to export reports.', 'taxocommerce-google-bing' ) );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified immediately below.
-        $geo = isset( $_GET['trends_geo'] ) ? self::valid_geo( wp_unslash( $_GET['trends_geo'] ) ) : 'ES';
+        $geo = isset( $_GET['trends_geo'] ) ? self::valid_geo( sanitize_text_field( wp_unslash( $_GET['trends_geo'] ) ) ) : 'ES';
         check_admin_referer( 'tgb_trends_export_' . $geo );
 
         $snapshot = self::saved_snapshot( $geo );

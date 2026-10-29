@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Assistant
  * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
- * Version: 0.3.16
+ * Version: 0.3.19
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.16' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.19' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -32,7 +32,9 @@ require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-lin
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-interpreter-legacy.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/class-tcd-linguist-l9-adapter.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/interpreter/lessons/class-dependiente-linguista-lesson9.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-auto-test.php';
 require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-admin.php';
+require_once TAXOCOMMERCE_DEPENDIENTE_PATH . 'includes/class-tcd-manual.php';
 
 add_action( 'plugins_loaded', static function () {
     if ( ! class_exists( 'WooCommerce' ) ) {
@@ -77,6 +79,8 @@ add_action( 'plugins_loaded', static function () {
     }
     TCD_Search::boot();
     TCD_Admin::boot();
+    TCD_Manual::boot();
+    TCD_Auto_Test::boot();
 }, 30 );
 
 add_action( 'taxocommerce_core_register_modules', static function ( $core ) {

@@ -54,6 +54,7 @@ final class TaxoCommerce_Images_Maintenance {
 		}
 		$old = get_option( $key );
 		if ( is_array( $old ) && (int) ( $old['time'] ?? 0 ) < time() - 900 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic compare-and-delete by stored lock token/value prevents stealing a renewed lock; delete_option() is not equivalent.
 			$deleted = $wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
 			wp_cache_delete( $key, 'options' );
 			if ( $deleted && add_option( $key, $value, '', false ) ) {
@@ -71,6 +72,7 @@ final class TaxoCommerce_Images_Maintenance {
 		$token = (string) ( self::$tokens[ $process ] ?? '' );
 		$old = get_option( $key );
 		if ( $token && is_array( $old ) && hash_equals( $token, (string) ( $old['token'] ?? '' ) ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Release only the exact lock value owned by this worker; direct conditional delete prevents concurrent-owner races.
 			$wpdb->delete( $wpdb->options, array( 'option_name' => $key, 'option_value' => maybe_serialize( $old ) ), array( '%s', '%s' ) );
 			wp_cache_delete( $key, 'options' );
 		}
@@ -159,21 +161,39 @@ final class TaxoCommerce_Images_Maintenance {
 		$usage = array();
 		if ( 'cleanup' === $mode && $ids ) {
 			$posts = array_map( 'get_post', $ids );
-			$usage = tci_refs_build_usage_report( $posts );
+			$usage = taxocommerce_images_refs_build_usage_report( $posts );
 		}
 		foreach ( $ids as $id ) {
 			if ( 'labels' === $mode ) {
 				$flags = self::label_flags( $id );
 				self::record( $mode, $id, array( 'status' => $flags ? 'review' : 'ok', 'flags' => $flags ? $flags : array( 'ok' ) ) );
 			} else {
-				$row = array( 'status' => empty( $usage[ $id ] ) ? 'unused' : 'used', 'duplicate' => 0, 'message' => '', 'bytes' => tci_refs_get_attachment_size( $id ) );
+				$row = array( 'status' => empty( $usage[ $id ] ) ? 'unused' : 'used', 'duplicate' => 0, 'message' => '', 'bytes' => taxocommerce_images_refs_get_attachment_size( $id ) );
 				$file = get_attached_file( $id );
 				if ( ! self::local_file( $file ) ) { $row['status'] = 'review'; $row['message'] = 'Archivo no local, ausente o ilegible.'; }
 				else {
 					$digest = hash_file( 'sha256', $file );
 					if ( false === $digest ) { $row['status'] = 'review'; $row['message'] = 'No se pudo calcular la huella.'; }
 					else {
-						$matches = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC', 'post__not_in' => array( $id ), 'meta_query' => array( array( 'key' => '_taxocommerce_images_cleanup_run', 'value' => $state['run'] ), array( 'key' => '_taxocommerce_images_digest', 'value' => $digest ) ) ) );
+						$matches = get_posts(
+							array(
+								'post_type'      => 'attachment',
+								'post_status'    => 'inherit',
+								'posts_per_page' => 2,
+								'fields'         => 'ids',
+								'orderby'        => 'ID',
+								'order'          => 'ASC',
+								// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Two exact metadata predicates restrict SHA-256 duplicate candidates to the active run; no custom lookup table.
+								'meta_query'     => array(
+									array( 'key' => '_taxocommerce_images_cleanup_run', 'value' => $state['run'] ),
+									array( 'key' => '_taxocommerce_images_digest', 'value' => $digest ),
+								),
+							)
+						);
+						// Reject a crash-retried image without post__not_in (which generates a costly exclusion).
+						$matches = array_values( array_filter( array_map( 'absint', $matches ), static function ( $candidate_id ) use ( $id ) {
+							return $candidate_id !== absint( $id );
+						} ) );
 						update_post_meta( $id, '_taxocommerce_images_digest', $digest );
 						if ( $matches ) {
 							$row['duplicate'] = absint( $matches[0] ); $row['status'] = 'duplicate';
@@ -218,7 +238,16 @@ final class TaxoCommerce_Images_Maintenance {
 	}
 	public static function rows( $mode, $statuses = array(), $page = 1, $limit = 25 ) {
 		$state = self::state( $mode );
-		$args = array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => $limit, 'paged' => max( 1, absint( $page ) ), 'orderby' => 'ID', 'order' => 'ASC', 'meta_query' => array( array( 'key' => '_taxocommerce_images_' . $mode . '_run', 'value' => $state['run'] ?? '-' ) ) );
+		$args = array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'posts_per_page' => min( 100, max( 1, absint( $limit ) ) ),
+			'paged'          => max( 1, absint( $page ) ),
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Results must be isolated to this run and filtered by metadata; native paged WP_Query returns the correct live total.
+			'meta_query'     => array( array( 'key' => '_taxocommerce_images_' . $mode . '_run', 'value' => $state['run'] ?? '-' ) ),
+		);
 		if ( $statuses ) { $args['meta_query'][] = array( 'key' => '_taxocommerce_images_' . $mode . '_status', 'value' => $statuses, 'compare' => 'IN' ); }
 		return new WP_Query( $args );
 	}
@@ -272,7 +301,8 @@ final class TaxoCommerce_Images_Maintenance {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$mode = isset( $_POST['mode'] ) && is_scalar( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'cleanup';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$priority = isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : '';
+		$priority = isset( $_POST['priority'] ) && is_scalar( $_POST['priority'] )
+			? sanitize_text_field( wp_unslash( (string) $_POST['priority'] ) ) : '';
 		$result = TaxoCommerce_Images_Load::set_priority( $priority, $mode );
 		if ( is_wp_error( $result ) ) {
 			wp_die( esc_html( $result->get_error_message() ) );
