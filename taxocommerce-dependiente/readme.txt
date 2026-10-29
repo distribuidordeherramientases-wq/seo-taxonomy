@@ -59,6 +59,12 @@ No. Core provides optional grouped administration.
 
 == Changelog ==
 
+= 0.3.18 =
+* Auto Test reports functional readiness separately from educational outcomes and historical process errors. M11, learning and M12 remain green when endpoints, workers and state contracts are available, with diagnostic detail.
+* A bounded search that returns no candidates is marked as inconclusive instead of reporting a broken search engine solely from its result set.
+* No training, feedback, content or backup mutations are performed by Auto Test.
+
+
 = 0.3.15 =
 * Raised the adaptive maximum-speed learning ceiling from 79 to 600 items per chunk, starting from 47 and growing only when duration and memory allow it.
 * Avoid reducing a fast worker simply because its own PHP process has high CPU utilisation: it is not the hosting account CPU.
