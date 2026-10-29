@@ -410,7 +410,7 @@ final class TCDB_Admin {
         echo '<p>Incluye tablas con el prefijo activo del sitio: WordPress, WooCommerce y TaxoCommerce. <strong>Contiene datos privados y potencialmente credenciales.</strong> Guárdalo fuera de carpetas públicas.</p>';
         self::form_start( 'tcdb_export', 'tcdb_export' );
         echo '<input type="hidden" name="mode" value="all"><input type="hidden" name="format" value="sql">';
-        echo '<label class="tcdb-label">Escribe <strong>EXPORTAR</strong> para confirmar<input name="confirm_sensitive" type="text" autocomplete="off" required></label>';
+        echo '<p class="description">Este backup contiene datos privados y credenciales. Descarga solo en un dispositivo seguro.</p>';
         echo '<p><button class="button" type="submit">Descargar SQL completo</button></p></form>';
         echo '<p class="description"><strong>Limitación:</strong> son exportaciones lógicas sin snapshot transaccional. En bases grandes pueden agotarse los límites PHP del hosting. Para recuperación fiable y copias programadas, utiliza el sistema de backup de Webempresa.</p></section>';
     }
@@ -454,7 +454,7 @@ final class TCDB_Admin {
             }
             echo '</select></label>';
             echo '<p><label><input type="checkbox" name="backup_ack" value="1" required> Confirmo que tengo una copia de seguridad reciente.</label></p>';
-            echo '<label class="tcdb-label">Escribe <strong>' . esc_html( $word ) . '</strong><input type="text" name="confirmation" autocomplete="off" required></label>';
+
             echo '<button class="button" type="submit"' . ( ! $number ? ' disabled' : '' ) . '>Ejecutar ' . esc_html( $mode ) . ' en una tabla</button></form></section>';
         }
         $last = get_option( TCDB_Maintenance::LAST_OPTION, array() );
@@ -497,7 +497,7 @@ final class TCDB_Admin {
             self::form_start( 'tcdb_import_apply', 'tcdb_import_apply' );
             echo '<input type="hidden" name="tcdb_token" value="' . esc_attr( $token ) . '">';
             echo '<p><label><input type="checkbox" name="tcdb_backup" value="1" required> Confirmo que tengo un backup reciente y los IDs pertenecen a este WordPress.</label></p>';
-            echo '<label class="tcdb-label">Escribe <strong>IMPORTAR</strong> para aplicar<input name="tcdb_confirm" type="text" autocomplete="off" required></label>';
+
             echo '<p><button class="button button-primary" type="submit">Importar solo nuevos registros</button></p></form></section>';
         }
 
