@@ -28,6 +28,8 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Insights Auto Test pre/post regression
+        run: php taxocommerce-google-bing/tests/auto-test-smoke.php
       - name: Insights User Guide regression
         run: php taxocommerce-google-bing/tests/user-guide-smoke.php
       - name: Smoke test without network requests
