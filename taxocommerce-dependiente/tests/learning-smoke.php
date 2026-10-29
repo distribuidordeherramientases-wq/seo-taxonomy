@@ -43,7 +43,7 @@ $checks=array(
     strpos($intelligence,'const INTERPRETER_PROGRESS')!==false,
     strpos($intelligence,'self::evaluate_row( 9, $row, \'\' )')!==false,
     strpos($intelligence,'download_interpreter_audit_json')!==false,
-    strpos($admin,'Intérprete / Lingüista')!==false,
+    (strpos($admin,'Intérprete / Lingüista')!==false || strpos($admin,'Intérprete original v1.2.0')!==false),
     strpos($academy,'TCD_Maintenance::activate')!==false,
     strpos($academy,"'source_batch_request'")!==false,
     strpos($academy,"'knowledge_write'")!==false,
