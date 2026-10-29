@@ -1403,7 +1403,7 @@ function seo_google_opportunity_filter_rows(array $rows, array $channels) {
     }));
 }
 
-function seo_google_opportunity_badge($text, $tone = 'gray') {
+function taxocommerce_google_bing_opportunity_badge($text, $tone = 'gray') {
     $tones = array(
         'blue'   => array('#e9f2fb', '#135e96'),
         'purple' => array('#f2ecfa', '#5f3b8c'),
@@ -1416,12 +1416,12 @@ function seo_google_opportunity_badge($text, $tone = 'gray') {
     return '<span class="seo-opp-badge" style="background:' . esc_attr($colors[0]) . ';color:' . esc_attr($colors[1]) . ';">' . esc_html($text) . '</span>';
 }
 
-function seo_google_opportunity_action_tone($action) {
+function taxocommerce_google_bing_opportunity_action_tone($action) {
     $meta = seo_google_opportunity_action_meta($action);
     return (string) ($meta['tone'] ?? 'gray');
 }
 
-function seo_google_opportunity_metric_text(array $row) {
+function taxocommerce_google_bing_opportunity_metric_text(array $row) {
     $parts = array();
     $metrics = (array) ($row['metrics'] ?? array());
     $market = (array) ($row['market'] ?? array());
@@ -1466,12 +1466,12 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
     echo '<div class="seo-opp-list">';
     foreach (array_slice($rows, 0, max(1, absint($limit))) as $row) {
         $target = (array) ($row['target'] ?? array());
-        $metric_text = seo_google_opportunity_metric_text($row);
+        $metric_text = taxocommerce_google_bing_opportunity_metric_text($row);
         echo '<article class="seo-opp-row">';
         echo '<div class="seo-opp-score">' . absint($row['priority']) . '<small>/100</small></div>';
         echo '<div class="seo-opp-body"><div class="seo-opp-head">';
-        echo wp_kses_post(seo_google_opportunity_badge($row['action_label'], seo_google_opportunity_action_tone($row['action'])));
-        echo wp_kses_post(seo_google_opportunity_badge($row['confidence'], 'gray'));
+        echo wp_kses_post(taxocommerce_google_bing_opportunity_badge($row['action_label'], taxocommerce_google_bing_opportunity_action_tone($row['action'])));
+        echo wp_kses_post(taxocommerce_google_bing_opportunity_badge($row['confidence'], 'gray'));
         echo '<strong>' . esc_html($row['topic']) . '</strong></div>';
         echo '<p>' . esc_html($row['reason']) . '</p>';
         if ($metric_text !== '') {
@@ -1494,7 +1494,7 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
         }
         echo '<div class="seo-opp-sources">';
         foreach ($row['sources'] as $source) {
-            echo wp_kses_post(seo_google_opportunity_badge($source, 'gray'));
+            echo wp_kses_post(taxocommerce_google_bing_opportunity_badge($source, 'gray'));
         }
         echo '</div></div></article>';
     }
@@ -1532,7 +1532,7 @@ function seo_google_opportunity_render_source_cards(array $sources) {
         $source = (array) ($sources[$key] ?? array());
         $connected = !empty($source['connected']);
         echo '<div class="seo-opp-card"><h3>' . esc_html($label) . '</h3>';
-        echo wp_kses_post(seo_google_opportunity_badge($connected ? 'OPERATIVO' : 'REVISAR', $connected ? 'green' : 'red'));
+        echo wp_kses_post(taxocommerce_google_bing_opportunity_badge($connected ? 'OPERATIVO' : 'REVISAR', $connected ? 'green' : 'red'));
         echo '<p>' . esc_html((string) ($source['detail'] ?? 'Sin diagnóstico.')) . '</p></div>';
     }
     echo '</div>';
@@ -1655,7 +1655,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Landing</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['landings'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(taxocommerce_google_bing_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
@@ -1667,7 +1667,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     } else {
         echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
         foreach (array_slice($results['posts'], 0, 80) as $row) {
-            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
+            echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(taxocommerce_google_bing_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
         echo '</tbody></table>';
     }
