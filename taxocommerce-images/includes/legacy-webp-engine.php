@@ -687,6 +687,7 @@ if (!function_exists('taxocommerce_images_webp_apply_reference_updates')) {
                         'kind'      => 'meta',
                         'meta_type' => $set['type'],
                         'meta_id'   => (int) $row['row_id'],
+                        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- This is a field in the in-memory rollback log, not an SQL meta_key query.
                         'meta_key'  => (string) $row['meta_key'],
                         'old_value' => $prepared['old_value'],
                     );
