@@ -36,6 +36,7 @@ final class TCDB_Manual {
             'backup' => 'Exportar BBDD',
             'tablas' => 'Resumen y explorador',
             'exportar-tablas' => 'Exportar tablas',
+            'auto-test' => 'Auto Test',
             'desarrollador' => 'Manual técnico',
             'arquitectura' => 'Arquitectura',
             'api' => 'Rutas y seguridad',
@@ -112,23 +113,30 @@ final class TCDB_Manual {
             <p><strong>Esta copia ZIP no es un backup completo de WordPress.</strong> No incorpora necesariamente otras tablas de WordPress ni los archivos multimedia.</p>
         ');
 
+        self::section( 'auto-test', '6. Auto Test', '
+            <p>El botón <strong>Ejecutar Auto Test</strong> revisa la disponibilidad de los servicios, conexión MySQL, esquema SEO, consultas de lectura, inventario y preparación de exportaciones. Informa de resultados correctos, errores y comprobaciones no ejecutadas. Conserva los dos informes más recientes por administrador durante 30 días para comparar antes y después de una actualización.</p>
+            <p><strong>Importante:</strong> sin tablas exportables el test no marca la exportación como correcta. La ausencia de tablas SEO se indica como prueba no ejecutada. El Auto Test no borra datos, no repara relaciones ni genera o restaura backups completos; esas operaciones requieren pruebas específicas con datos aislados.</p>
+        ');
+
         echo '<h1 id="desarrollador">Manual técnico para desarrolladores</h1>';
         self::section( 'arquitectura', '6. Arquitectura y ciclo de carga', '
-            <p>Plugin independiente de WordPress, mínimo PHP 7.4 y WordPress 6.5. El punto de entrada <code>taxocommerce-database.php</code> declara versión/rutas e incluye tres archivos: Clean DB, SEO Data Table y este manual. No requiere TaxoCommerce Core: con Core aparece como submenú; sin Core registra menú propio.</p>
+            <p>Plugin independiente de WordPress, mínimo PHP 7.4 y WordPress 6.5. El punto de entrada <code>taxocommerce-database.php</code> declara versión/rutas e incluye cuatro archivos: Clean DB, SEO Data Table, el Auto Test y este manual. No requiere TaxoCommerce Core: con Core aparece como submenú; sin Core registra menú propio.</p>
             <div class="tcdb-manual-table"><table><thead><tr><th>Archivo</th><th>Responsabilidad</th></tr></thead><tbody>
             <tr><td><code>taxocommerce-database.php</code></td><td>Bootstrap, registro de menú, barra de pestañas y enrutamiento.</td></tr>
             <tr><td><code>includes/legacy/seo-database-clean.php</code></td><td>Chequeos SEO, reparaciones, limpiezas WP/WC y SQL completo/parcial.</td></tr>
             <tr><td><code>includes/legacy/seo-database-report.php</code></td><td>Inventario, explorador y CSV/SQL/ZIP de tablas SEO.</td></tr>
+            <tr><td><code>includes/class-tcdb-auto-test.php</code></td><td>17 comprobaciones de lectura con estados pass/fail/skip, historial por administrador y comparación de regresiones.</td></tr>
             <tr><td><code>includes/class-tcdb-manual.php</code></td><td>Documentación integrada solo lectura.</td></tr>
             <tr><td><code>assets/seo-clean-db.css</code></td><td>Estilos del servicio Clean Database.</td></tr>
             </tbody></table></div>
             <p>Los dos servicios originales utilizan el namespace <code>TCDB_Legacy</code> para evitar choques con el monolito. <code>TCDB_Manual</code> es una clase separada sin queries SQL. No se incorpora Data Layer ni rollback histórico transversal; las reparaciones SEO emplean transacciones SQL locales.</p>
         ');
         self::section( 'api', '7. Enrutamiento, acciones y seguridad', '
-            <h3>Pestañas de administración</h3><p>Ruta base: <code>wp-admin/admin.php?page=taxocommerce-database</code>. Limpieza e integridad: <code>tcdb_screen=clean&amp;seo_clean_db_tab=data_errors|database_cleanup|export</code>. Tablas: <code>tcdb_screen=table&amp;section=overview|explorer|export</code>. Manual: <code>tcdb_screen=manual</code>. La navegación es GET de solo lectura.</p>
+            <h3>Pestañas de administración</h3><p>Ruta base: <code>wp-admin/admin.php?page=taxocommerce-database</code>. Limpieza e integridad: <code>tcdb_screen=clean&amp;seo_clean_db_tab=data_errors|database_cleanup|export</code>. Tablas: <code>tcdb_screen=table&amp;section=overview|explorer|export</code>. Manual: <code>tcdb_screen=manual</code>. Auto Test: <code>tcdb_screen=auto-test</code>. La navegación es GET de solo lectura.</p>
             <h3>Acciones de limpieza y reparación</h3><p>Los formularios POST usan <code>seo_clean_db_action</code>, nonce <code>seo_clean_db_nonce</code> y <code>check_admin_referer(\'seo_clean_db_action\', \'seo_clean_db_nonce\')</code>. El controlador <code>seo_clean_db_handle_post_actions()</code> despacha a <code>seo_clean_db_handle_data_error_action()</code> o <code>seo_clean_db_handle_database_cleanup_action()</code>. La capacidad requerida es <code>manage_options</code>.</p>
             <h3>Descargas SQL Clean Database</h3><p><code>admin_init</code> ejecuta <code>seo_clean_db_maybe_export_sql()</code> cuando recibe <code>seo_clean_db_export=full|seo</code> y valida el nonce <code>seo_clean_db_export_nonce</code>. <code>seo_clean_db_stream_sql_export()</code> envía el SQL por streaming directamente a la respuesta.</p>
             <h3>Exportación SEO Data Table</h3><p>Los hooks <code>admin_post_tcdb_legacy_data_export_table_csv</code>, <code>admin_post_tcdb_legacy_data_export_table_sql</code> y <code>admin_post_tcdb_legacy_data_export_all</code> exigen permisos y nonces. Las descargas CSV y SQL son incrementales; la exportación global genera un ZIP temporal.</p>
+            <h3>Auto Test</h3><p>El POST <code>admin_post_tcdb_run_auto_test</code> utiliza el nonce <code>tcdb_auto_nonce</code>, exige <code>manage_options</code> y genera un informe sin operaciones destructivas. Las pruebas de contrato en <code>tests/auto-test-results-smoke.php</code> verifican las 17 rutas de limpieza y que las exportaciones vacías no se notifiquen como correctas.</p>
             <p>No cambie nombres de acciones, nonces ni parámetros URL sin mantener compatibilidad: afectan a formularios, descargas, filtros y favoritos ya existentes.</p>
         ');
         self::section( 'modelo', '8. Datos, SQL y límites', '
