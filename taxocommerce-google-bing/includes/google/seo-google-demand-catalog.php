@@ -504,7 +504,7 @@ function seo_google_demand_get_catalog_counts() {
 /**
  * Crea un registro vacio para una categoria observada.
  */
-function seo_google_demand_empty_category_row($term_id, $term, $product_count) {
+function taxocommerce_google_bing_demand_empty_category_row($term_id, $term, $product_count) {
     return array(
         'term_id'                 => absint($term_id),
         'name'                    => $term->name,
@@ -607,7 +607,7 @@ function seo_google_demand_build_category_metrics($property_id, array $period, $
 
         foreach ($target_terms as $target_term_id) {
             if (!isset($categories[$target_term_id])) {
-                $categories[$target_term_id] = seo_google_demand_empty_category_row(
+                $categories[$target_term_id] = taxocommerce_google_bing_demand_empty_category_row(
                     $target_term_id,
                     $index['by_id'][$target_term_id],
                     isset($catalog_counts[$target_term_id]) ? $catalog_counts[$target_term_id] : 0
@@ -714,7 +714,7 @@ function seo_google_demand_build_category_metrics($property_id, array $period, $
 /**
  * Normalizacion logaritmica resistente a categorias con volumen extremo.
  */
-function seo_google_demand_log_norm($value, $max_value) {
+function taxocommerce_google_bing_demand_log_norm($value, $max_value) {
     $value     = max(0.0, (float) $value);
     $max_value = max(0.0, (float) $max_value);
 
@@ -752,12 +752,12 @@ function seo_google_demand_score_categories(array $categories) {
     }
 
     foreach ($categories as &$category) {
-        $demand_norm  = seo_google_demand_log_norm($category['actionable_impressions'], $max_demand);
-        $click_norm   = seo_google_demand_log_norm($category['clicks'], $max_clicks);
-        $catalog_norm = seo_google_demand_log_norm($category['product_count'], $max_products);
-        $query_norm   = seo_google_demand_log_norm($category['query_count'], $max_queries);
+        $demand_norm  = taxocommerce_google_bing_demand_log_norm($category['actionable_impressions'], $max_demand);
+        $click_norm   = taxocommerce_google_bing_demand_log_norm($category['clicks'], $max_clicks);
+        $catalog_norm = taxocommerce_google_bing_demand_log_norm($category['product_count'], $max_products);
+        $query_norm   = taxocommerce_google_bing_demand_log_norm($category['query_count'], $max_queries);
         $gap_value    = (float) $category['actionable_impressions'] / max(2.0, (float) $category['product_count']);
-        $gap_norm     = seo_google_demand_log_norm($gap_value, $max_gap);
+        $gap_norm     = taxocommerce_google_bing_demand_log_norm($gap_value, $max_gap);
         $specificity  = (float) $category['specificity'];
         $position     = (float) $category['position'];
         $trend        = null === $category['trend'] ? 0.0 : max(-1.0, min(1.0, (float) $category['trend']));
@@ -832,7 +832,7 @@ function seo_google_demand_score_categories(array $categories) {
 /**
  * Etiqueta visual de una recomendacion.
  */
-function seo_google_demand_badge($recommendation) {
+function taxocommerce_google_bing_demand_badge($recommendation) {
     $styles = array(
         'ALTA OPORTUNIDAD'    => 'background:#d1e7dd;color:#0f5132;',
         'POTENCIAR'           => 'background:#cff4fc;color:#055160;',
@@ -851,7 +851,7 @@ function seo_google_demand_badge($recommendation) {
 /**
  * Formatea tendencia porcentual.
  */
-function seo_google_demand_format_trend($trend) {
+function taxocommerce_google_bing_demand_format_trend($trend) {
     if (null === $trend) {
         return 'Nueva / sin base';
     }
@@ -1136,7 +1136,7 @@ function seo_google_demand_build_intent_clusters(array $queries, $limit = 30) {
             $cluster['trend'] = $cluster['impressions'] > 0 ? 1.0 : null;
         }
 
-        $demand_norm = seo_google_demand_log_norm($cluster['actionable_impressions'], $max_actionable);
+        $demand_norm = taxocommerce_google_bing_demand_log_norm($cluster['actionable_impressions'], $max_actionable);
         $position_bonus = $cluster['position'] > 0 && $cluster['position'] <= 40 ? 0.14 : 0.0;
         $trend_bonus = null !== $cluster['trend'] && $cluster['trend'] > 0.20 ? 0.10 : 0.0;
         $score = 100 * min(1.0, 0.55 * $demand_norm + 0.25 * $cluster['quality'] + $position_bonus + $trend_bonus);
@@ -1599,7 +1599,7 @@ function seo_google_render_demand_catalog() {
             echo '<td>' . esc_html(number_format_i18n($item['impressions'], 0)) . '</td>';
             echo '<td><strong>' . esc_html(number_format_i18n($item['actionable'], 0)) . '</strong></td>';
             echo '<td>' . ($item['position'] > 0 ? esc_html(number_format_i18n($item['position'], 1)) : '—') . '</td>';
-            echo '<td>' . esc_html(seo_google_demand_format_trend($item['trend'])) . '</td>';
+            echo '<td>' . esc_html(taxocommerce_google_bing_demand_format_trend($item['trend'])) . '</td>';
             echo '<td>';
             if ('Categoria' === $item['kind']) {
                 echo esc_html(number_format_i18n($item['products'])) . ' productos';
@@ -1648,7 +1648,7 @@ function seo_google_render_demand_catalog() {
             echo '<br><a href="' . esc_url($term_link) . '" target="_blank" rel="noopener noreferrer"><small>Abrir categoria</small></a>';
         }
         echo '</td>';
-        echo '<td style="min-width:150px;">' . wp_kses_post(seo_google_demand_badge($category['recommendation']));
+        echo '<td style="min-width:150px;">' . wp_kses_post(taxocommerce_google_bing_demand_badge($category['recommendation']));
         echo '<br><small title="' . esc_attr($category['recommendation_note']) . '">' . esc_html($category['recommendation_note']) . '</small></td>';
         echo '<td>' . esc_html(number_format_i18n($category['product_count'])) . '</td>';
         echo '<td>' . esc_html(number_format_i18n($category['impressions'], 0)) . '</td>';
@@ -1657,7 +1657,7 @@ function seo_google_render_demand_catalog() {
         echo '<td>' . esc_html(number_format_i18n($category['clicks'], 0)) . '</td>';
         echo '<td>' . esc_html(number_format_i18n($category['ctr'] * 100, 2)) . '%</td>';
         echo '<td>' . ($category['position'] > 0 ? esc_html(number_format_i18n($category['position'], 1)) : '—') . '</td>';
-        echo '<td>' . esc_html(seo_google_demand_format_trend($category['trend'])) . '</td>';
+        echo '<td>' . esc_html(taxocommerce_google_bing_demand_format_trend($category['trend'])) . '</td>';
         echo '<td>' . esc_html(number_format_i18n($category['query_count'])) . ' / ' . esc_html(number_format_i18n($category['landing_count']));
         echo '<br><small>' . esc_html(number_format_i18n($category['product_landing_count'])) . ' prod. · ' . esc_html(number_format_i18n($category['category_landing_count'])) . ' cat.</small></td>';
         echo '<td style="min-width:360px;">';
@@ -1701,7 +1701,7 @@ function seo_google_render_demand_catalog() {
             echo '<td><strong>' . esc_html(number_format_i18n($cluster['actionable_impressions'], 0)) . '</strong></td>';
             echo '<td>' . esc_html(number_format_i18n($cluster['quality'] * 100, 0)) . '%</td>';
             echo '<td>' . ($cluster['position'] > 0 ? esc_html(number_format_i18n($cluster['position'], 1)) : '—') . '</td>';
-            echo '<td>' . esc_html(seo_google_demand_format_trend($cluster['trend'])) . '</td>';
+            echo '<td>' . esc_html(taxocommerce_google_bing_demand_format_trend($cluster['trend'])) . '</td>';
             echo '<td>';
             if (!empty($cluster['suggested_category'])) {
                 echo '<strong>' . esc_html($cluster['suggested_category']['name']) . '</strong><br><small>Similitud lexical ' . esc_html(number_format_i18n($cluster['suggested_category']['score'] * 100, 0)) . '%. Solo pista.</small>';
@@ -1735,7 +1735,7 @@ function seo_google_render_demand_catalog() {
             echo '<td>' . esc_html(number_format_i18n($query['clicks'], 0)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n($query['ctr'] * 100, 2)) . '%</td>';
             echo '<td>' . ($query['position'] > 0 ? esc_html(number_format_i18n($query['position'], 1)) : '—') . '</td>';
-            echo '<td>' . esc_html(seo_google_demand_format_trend($query['trend'])) . '</td>';
+            echo '<td>' . esc_html(taxocommerce_google_bing_demand_format_trend($query['trend'])) . '</td>';
             echo '<td style="min-width:380px;">';
             if (!empty($query['pages'])) {
                 echo '<details><summary>' . esc_html(number_format_i18n($query['page_count'])) . ' landing(s)</summary><ul style="margin:8px 0 0 18px;">';
