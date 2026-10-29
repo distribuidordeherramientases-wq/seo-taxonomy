@@ -1013,8 +1013,7 @@ final class TCD_Sources {
 
         $params[] = $limit + 1;
         $params[] = $cursor;
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled solely from fixed SELECT clauses containing %i/%d placeholders; every table and lesson value is bound in $params.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query uses fixed UNION clauses of %i/%d markers, all bound via $params; live lesson state must not be cached.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
