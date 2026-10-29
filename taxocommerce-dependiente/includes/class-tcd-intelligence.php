@@ -3007,6 +3007,7 @@ final class TCD_Intelligence {
             'posts_per_page'=>min( 200, max( 1, absint( $limit ) ) ),
             'fields'=>'ids',
             'no_found_rows'=>true,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Es un filtro funcional por taxonomía de productos; solo recupera IDs con límite 200 y no_found_rows.
             'tax_query'=>array(
                 array(
                     'taxonomy'=>'product_cat',
