@@ -65,6 +65,8 @@ function did_action( $hook ) { return 0; }
 
 class WooCommerce {}
 class WC_Shipping_Rate {}
+// Simulates the simultaneously active legacy SEO engine.
+class SEO_Transporte_Costes {}
 
 require dirname( __DIR__ ) . '/taxocommerce-logistica.php';
 
@@ -81,8 +83,8 @@ taxocommerce_logistica_register_menu();
 verify_log( count( $GLOBALS['test_menu'] ?? array() ) === 1, 'Only one independent menu is registered' );
 verify_log( 'taxocommerce-logistica' === $GLOBALS['test_menu'][0]['slug'], 'No conflict with the legacy seo-logistica route' );
 verify_log( 'TaxoCommerce Logistics' === $GLOBALS['test_menu'][0]['title'], 'English plugin name in WordPress menu' );
-verify_log( array( 'SEO_Transporte_Costes', 'render_page' ) === $GLOBALS['test_menu'][0]['callback'], 'Menu points to new Logistics screen' );
-verify_log( 'taxocommerce-logistica' === SEO_Transporte_Costes::PAGE, 'Shipping, Auto Test and Manual use same independent route' );
+verify_log( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ) === $GLOBALS['test_menu'][0]['callback'], 'Menu points to new Logistics screen' );
+verify_log( 'taxocommerce-logistica' === TaxoCommerce_Logistica_Transporte_Costes::PAGE, 'Shipping, Auto Test and Manual use same independent route' );
 
 verify_log( count( $groups ) === 8, 'Eight groups present' );
 verify_log( count( $cases ) === 35, 'Thirty-five tests present' );
