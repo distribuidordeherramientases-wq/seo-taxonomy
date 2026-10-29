@@ -76,7 +76,9 @@ jobs:
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: './build/taxocommerce-google-bing'
-          strict: 'false'
+          strict: 'true'
+          ignore-warnings: false
+          ignore-errors: false
       - uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-insights-${{ github.sha }}

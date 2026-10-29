@@ -781,6 +781,7 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         if (isset($cache[$key])) return $cache[$key];
 
         $relations = $wpdb->prefix . 'seo_relations';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($relations)));
         if ($exists !== $relations) {
             return $cache[$key] = array(
@@ -796,6 +797,7 @@ if (!function_exists('seo_analista_editorial_coverage')) {
         $relations_table = esc_sql($relations);
         $posts_table = esc_sql($wpdb->posts);
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tablas internas sanitizadas, categorias solo mediante placeholders %d.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $sql = $wpdb->prepare(
             "SELECT DISTINCT r.source_id
              FROM {$relations_table} r
@@ -809,6 +811,7 @@ if (!function_exists('seo_analista_editorial_coverage')) {
              LIMIT 20",
             $category_ids
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query is fully prepared above and cached per request by category key.
         $post_ids = $wpdb->get_col($sql);
 

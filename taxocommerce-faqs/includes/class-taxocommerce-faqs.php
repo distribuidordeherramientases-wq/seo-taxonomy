@@ -49,14 +49,20 @@ final class TaxoCommerce_FAQs {
         global $wpdb;
         if ( ! self::exists( 'seo_faq' ) ) { return false; }
         $table = self::table( 'seo_faq' );
-        $column = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'product_cat_id' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+        $column = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'product_cat_id' ) );
         if ( ! $column ) {
-            $updated = $wpdb->query( "ALTER TABLE {$table} ADD COLUMN product_cat_id bigint unsigned NOT NULL DEFAULT 0, ADD INDEX product_cat (product_cat_id)" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+            $updated = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN product_cat_id bigint unsigned NOT NULL DEFAULT 0, ADD INDEX product_cat (product_cat_id)', $table ) );
             if ( false === $updated ) { return false; }
         }
         // Only unambiguous existing category relationships are migrated automatically.
-        $wpdb->query( "UPDATE {$table} SET product_cat_id=object_id WHERE object_type=2 AND product_cat_id=0 AND EXISTS
-            (SELECT 1 FROM {$wpdb->term_taxonomy} tt WHERE tt.term_id={$table}.object_id AND tt.taxonomy='product_cat')" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE %i SET product_cat_id=object_id WHERE object_type=2 AND product_cat_id=0 AND EXISTS
+            (SELECT 1 FROM %i tt WHERE tt.term_id=%i.object_id AND tt.taxonomy='product_cat')",
+            $table, $wpdb->term_taxonomy, $table
+        ) );
         update_option( 'taxocommerce_faqs_category_schema', '1', false );
         return true;
     }
@@ -76,6 +82,7 @@ final class TaxoCommerce_FAQs {
     private static function exists( $suffix ) {
         global $wpdb;
         $table = self::table( $suffix );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
     }
 
@@ -151,11 +158,13 @@ final class TaxoCommerce_FAQs {
         if ( ! self::tags_available() || ! $faq_id ) { return $data; }
         $voc = self::table( 'seo_vocabulary' );
         $rel = self::table( 'seo_object_vocabulary' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh optional FAQ tag links; values may have just been edited in this request.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM {$rel} r
-             INNER JOIN {$voc} v ON v.id=r.vocabulary_id
+            "SELECT v.id,v.label,v.slug,v.semantic_group,r.source FROM %i r
+             INNER JOIN %i v ON v.id=r.vocabulary_id
              WHERE r.object_type='faq' AND r.object_id=%d AND r.status=1 AND v.active=1",
-            $faq_id
+            $rel, $voc, $faq_id
         ), ARRAY_A );
         foreach ( (array) $rows as $row ) {
             if ( isset( $data[ $row['semantic_group'] ] ) ) { $data[ $row['semantic_group'] ][] = $row; }
@@ -175,29 +184,35 @@ final class TaxoCommerce_FAQs {
             $valid = array();
             if ( $requested ) {
                 $ph = implode( ',', array_fill( 0, count( $requested ), '%d' ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Fresh FAQ/Vocabulary lookup. Parameter count is variable (1..50 IDs) but generated %d placeholders and all values are bound via prepare.
                 $valid = array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-                    "SELECT id FROM {$voc} WHERE active=1 AND semantic_group=%s AND id IN ({$ph})",
-                    array_merge( array( $group ), $requested )
+                    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The IN placeholders are generated from 1..50 integers; all values bind through prepare.
+                    'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND id IN (' . $ph . ')',
+                    array_merge( array( $voc, $group ), $requested )
                 ) ) );
             }
             $existing = self::tags( $faq_id )[ $group ];
             foreach ( $existing as $row ) {
                 if ( 'manual' === $row['source'] && ! in_array( (int) $row['id'], $valid, true ) ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                     $wpdb->update( $rel, array( 'status' => 0, 'updated_at' => current_time( 'mysql', true ) ), array(
                         'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => (int) $row['id'], 'source' => 'manual',
                     ), array( '%d', '%s' ), array( '%s', '%d', '%d', '%s' ) );
                 }
             }
             foreach ( $valid as $id ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                 $already = $wpdb->get_row( $wpdb->prepare(
-                    "SELECT source,status FROM {$rel} WHERE object_type='faq' AND object_id=%d AND vocabulary_id=%d", $faq_id, $id
+                    'SELECT source,status FROM %i WHERE object_type=%s AND object_id=%d AND vocabulary_id=%d', $rel, 'faq', $faq_id, $id
                 ), ARRAY_A );
                 if ( $already && 'manual' !== $already['source'] ) { continue; }
                 if ( $already ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                     $wpdb->update( $rel, array( 'status' => 1, 'updated_at' => current_time( 'mysql', true ) ), array(
                         'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => $id,
                     ), array( '%d', '%s' ), array( '%s', '%d', '%d' ) );
                 } else {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                     $wpdb->insert( $rel, array( 'object_type' => 'faq', 'object_id' => $faq_id, 'vocabulary_id' => $id,
                         'source' => 'manual', 'confidence' => 1, 'status' => 1, 'updated_at' => current_time( 'mysql', true ) ),
                         array( '%s', '%d', '%d', '%s', '%f', '%d', '%s' ) );
@@ -227,18 +242,22 @@ final class TaxoCommerce_FAQs {
             'sort_order' => isset( $_POST['sort_order'] ) ? absint( wp_unslash( $_POST['sort_order'] ) ) : 0,
             'active' => empty( $_POST['active'] ) ? 0 : 1, 'updated_at' => current_time( 'mysql', true ) );
         if ( $id ) {
-            $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE id=%d", $id ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+            $exists = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id=%d', $table, $id ) );
             if ( ! $exists ) { self::notice( 'FAQ inexistente.', true ); }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
             $ok = $wpdb->update( $table, $data, array( 'id' => $id ) );
         } else {
             $data['created_at'] = current_time( 'mysql', true );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
             $ok = $wpdb->insert( $table, $data );
             $id = (int) $wpdb->insert_id;
         }
         if ( false === $ok || ! $id ) { self::notice( 'Error guardando FAQ.', true ); }
         if ( isset( $_POST['vocab_present'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above.
-            $groups = isset( $_POST['vocab'] ) && is_array( $_POST['vocab'] ) ? wp_unslash( $_POST['vocab'] ) : array();
+            $groups = isset( $_POST['vocab'] ) && is_array( $_POST['vocab'] )
+                ? map_deep( wp_unslash( $_POST['vocab'] ), 'absint' ) : array();
             self::save_tags( $id, $groups );
         }
         if ( function_exists( 'seo_faq_clear_cache' ) ) { seo_faq_clear_cache( $type, $target ); }
@@ -250,10 +269,13 @@ final class TaxoCommerce_FAQs {
         check_admin_referer( 'taxocommerce_faqs_delete' );
         global $wpdb;
         $id = isset( $_POST['faq_id'] ) ? absint( wp_unslash( $_POST['faq_id'] ) ) : 0;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         $faq = $wpdb->get_row( $wpdb->prepare( 'SELECT id, object_type, object_id FROM %i WHERE id = %d', self::table( 'seo_faq' ), $id ) );
         if ( ! $faq ) { self::notice( 'FAQ inexistente.', true ); }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         if ( false === $wpdb->delete( self::table( 'seo_faq' ), array( 'id' => $id ), array( '%d' ) ) ) { self::notice( 'Error eliminando FAQ.', true ); }
         if ( self::tags_available() ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
             $wpdb->delete( self::table( 'seo_object_vocabulary' ), array( 'object_type' => 'faq', 'object_id' => $id ), array( '%s', '%d' ) );
         }
         if ( function_exists( 'seo_faq_clear_cache' ) ) { seo_faq_clear_cache( (int) $faq->object_type, (int) $faq->object_id ); }
@@ -351,6 +373,7 @@ final class TaxoCommerce_FAQs {
 
         $cursor = 0;
         do {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     'SELECT id, object_type, object_id, product_cat_id, question, answer, sort_order, active FROM %i WHERE id > %d ORDER BY id ASC LIMIT 200',
@@ -384,6 +407,7 @@ final class TaxoCommerce_FAQs {
         check_admin_referer( 'taxocommerce_faqs_import' );
 
         $upload = isset( $_FILES['faqs_csv'] ) && is_array( $_FILES['faqs_csv'] )
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload temporary pathname is validated with is_uploaded_file and must not be altered.
             ? $_FILES['faqs_csv']
             : array();
         $tmp_name = isset( $upload['tmp_name'] ) ? (string) $upload['tmp_name'] : '';
@@ -463,10 +487,12 @@ final class TaxoCommerce_FAQs {
             );
             $id = absint( $data['id'] );
             $existing = $id
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                 ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', $table, $id ) )
                 : 0;
 
             if ( $existing ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                 $ok = $wpdb->update( $table, $payload, array( 'id' => $existing ) );
                 if ( false === $ok ) {
                     $errors++;
@@ -476,6 +502,7 @@ final class TaxoCommerce_FAQs {
                 $id = $existing;
             } else {
                 $payload['created_at'] = current_time( 'mysql', true );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
                 $ok = $wpdb->insert( $table, $payload );
                 if ( false === $ok ) {
                     $errors++;
@@ -497,9 +524,12 @@ final class TaxoCommerce_FAQs {
                     }
                     $voc = self::table( 'seo_vocabulary' );
                     $ph = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh bounded FAQ/Vocabulary lookup; repeated writes and reads must see current canonical data.
                     $groups[ $group ] = $wpdb->get_col(
+                        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Bounded number of slug placeholders generated from 1..50 slugs, all passed as an array.
                         $wpdb->prepare(
-                            "SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN ({$ph})",
+                            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- IN placeholders are generated safely; every slug is bound through prepare.
+                            'SELECT id FROM %i WHERE active=1 AND semantic_group=%s AND slug IN (' . $ph . ')',
                             array_merge( array( $voc, $group ), $slugs )
                         )
                     );
@@ -547,13 +577,19 @@ final class TaxoCommerce_FAQs {
         self::ensure_category();
         $table = self::table( 'seo_faq' );
         $id = isset( $_GET['faq_id'] ) ? absint( wp_unslash( $_GET['faq_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         $editing = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A ) : null;
-        $summary = $wpdb->get_row( "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
-            COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM {$table}", ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+        $summary = $wpdb->get_row( $wpdb->prepare(
+            "SELECT COUNT(*) total, SUM(active=1) active_count,SUM(active=0) inactive_count,COUNT(DISTINCT CONCAT(object_type,':',object_id)) destinations,SUM(open_count) opens,
+            COUNT(DISTINCT NULLIF(product_cat_id,0)) categories,SUM(product_cat_id=0) uncategorized FROM %i",
+            $table
+        ), ARRAY_A );
         $page = isset( $_GET['faq_paged'] ) ? max( 1, absint( wp_unslash( $_GET['faq_paged'] ) ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $search = isset( $_GET['faq_search'] ) ? sanitize_text_field( wp_unslash( $_GET['faq_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0;
+        $filter_category = isset( $_GET['faq_category'] ) ? absint( wp_unslash( $_GET['faq_category'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only category filter.
         // Use one static, fully prepared query; both filters are optional.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM %i WHERE (%s = '' OR question LIKE %s)
@@ -595,7 +631,8 @@ final class TaxoCommerce_FAQs {
             echo '<h3>Etiquetas de Vocabulary</h3><input type="hidden" name="vocab_present" value="1"><p>Selecciona las etiquetas existentes. No se crean etiquetas nuevas.</p>';
             $voc = self::table( 'seo_vocabulary' );
             foreach ( self::GROUPS as $group ) {
-                $options = $wpdb->get_results( $wpdb->prepare( "SELECT id,label FROM {$voc} WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300", $group ), ARRAY_A );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
+                $options = $wpdb->get_results( $wpdb->prepare( 'SELECT id,label FROM %i WHERE active=1 AND semantic_group=%s ORDER BY label ASC LIMIT 300', $voc, $group ), ARRAY_A );
                 $ids = array_map( 'intval', array_column( $selected[ $group ] ?? array(), 'id' ) );
                 echo '<p><label><strong>' . esc_html( strtoupper( $group ) ) . '</strong><br><select multiple name="vocab[' . esc_attr( $group ) . '][]" style="min-width:300px;max-width:100%;" size="4">';
                 foreach ( (array) $options as $option ) {

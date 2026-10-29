@@ -303,8 +303,10 @@ final class TaxoCommerce_Google_Bing_Merchant {
         $snapshot=self::snapshots();$c=self::comparison();
         $popular=(array)($snapshot['popular']['rows']??array());
         $base=get_option(self::BASELINE_OPTION,array());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         $error=sanitize_text_field((string)wp_unslash($_GET['merchant_error']??''));
         if ($error!=='')echo '<div class="notice notice-error inline"><p>'.esc_html($error).'</p></div>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         if (isset($_GET['merchant_notice']))echo '<div class="notice notice-success inline"><p>Operación Merchant guardada. Revisa los recuentos y el estado de sincronización.</p></div>';
         echo '<h2>Google Merchant Center · informes de mercado</h2>';
         echo '<p>Los benchmarks son referencias agregadas de Google, NO precios de comercios individuales. Los resultados antiguos de Shopping siguen disponibles como fotografía histórica y nunca se sobrescriben con benchmarks.</p>';

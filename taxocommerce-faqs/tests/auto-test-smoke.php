@@ -5,7 +5,7 @@
  */
 if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.5' );
+define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.6' );
 function tc_faq_at_check( $ok, $name ) {
 	if ( ! $ok ) { fwrite( STDERR, 'FAIL FAQ Auto Test: ' . $name . PHP_EOL ); exit( 1 ); }
 }
@@ -67,7 +67,7 @@ $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-f
 tc_faq_at_check( false !== strpos( $entry, 'class-taxocommerce-faqs-auto-test.php' ), 'entrypoint include' );
 tc_faq_at_check( false !== strpos( $entry, 'TaxoCommerce_FAQs_Auto_Test::register()' ), 'actions registered' );
 tc_faq_at_check( false !== strpos( $admin, 'TaxoCommerce_FAQs_Auto_Test::render()' ), 'UI routing' );
-tc_faq_at_check( false !== strpos( $admin, "'tc_faq_tab' => 'auto-test'" ), 'consistent Auto Test tab' );
+tc_faq_at_check( false !== strpos( $admin, "'auto-test' => __( 'Auto Test', 'taxocommerce-faqs' )" ), 'consistent Auto Test tab' );
 tc_faq_at_check( false !== strpos( $admin, 'self::ensure_category()' ), 'legacy schema method preserved' );
 tc_faq_at_check( false !== strpos( $admin, 'taxocommerce_faqs_save' ), 'FAQ CRUD preserved' );
 

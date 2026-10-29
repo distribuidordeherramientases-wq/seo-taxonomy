@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Logistics
  * Description: WooCommerce shipping weight, dimensions, and delivery-cost management.
- * Version: 0.2.0
+ * Version: 0.2.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -13,12 +13,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.0' );
+define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.3' );
 define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_LOGISTICA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_LOGISTICA_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/seo-transporte.php';
+require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/class-auto-test.php';
+TaxoCommerce_Logistica_Auto_Test::register();
+require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/class-user-guide.php';
+TaxoCommerce_Logistica_User_Guide::register();
 
 function taxocommerce_logistica_register_menu() {
     $capability = class_exists( 'WooCommerce' ) ? 'manage_woocommerce' : 'manage_options';

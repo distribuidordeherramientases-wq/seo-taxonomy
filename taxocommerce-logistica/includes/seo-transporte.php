@@ -620,11 +620,37 @@ if (!class_exists('SEO_Transporte_Costes')) {
             <?php
         }
 
+        private static function render_tabs($current) {
+            echo '<nav class="nav-tab-wrapper" aria-label="Logistics sections">';
+            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => 'Auto Test', 'user-guide' => 'Manual') as $tab => $label) {
+                $args = array('page' => self::PAGE);
+                if ('shipping' !== $tab) { $args['tc_logistica_tab'] = $tab; }
+                $url = add_query_arg($args, admin_url('admin.php'));
+                echo '<a class="nav-tab ' . esc_attr($current === $tab ? 'nav-tab-active' : '') . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+            }
+            echo '</nav>';
+        }
+
         public static function render_page() {
             if (!current_user_can(self::capability())) {
                 wp_die(esc_html__('No tienes permisos para acceder a esta página.', 'taxocommerce-logistica'));
             }
 
+            // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+            $tab = isset($_GET['tc_logistica_tab']) && is_string($_GET['tc_logistica_tab'])
+                ? sanitize_key(wp_unslash($_GET['tc_logistica_tab'])) : 'shipping';
+            // phpcs:enable WordPress.Security.NonceVerification.Recommended
+            if ('auto-test' === $tab || 'user-guide' === $tab) {
+                echo '<div class="wrap seo-transporte-wrap"><h1>Logistics — Shipping Weight & Costs</h1>';
+                self::render_tabs($tab);
+                if ('auto-test' === $tab) {
+                    TaxoCommerce_Logistica_Auto_Test::render();
+                } else {
+                    TaxoCommerce_Logistica_User_Guide::render();
+                }
+                echo '</div>';
+                return;
+            }
             $settings = self::settings();
             $rules = $settings['rules'];
             if (empty($rules)) {
@@ -634,6 +660,7 @@ if (!class_exists('SEO_Transporte_Costes')) {
             ?>
             <div class="wrap seo-transporte-wrap">
                 <h1>Logistics — Shipping Weight & Costs</h1>
+                <?php self::render_tabs('shipping'); ?>
 
                 <?php if ('saved' === $status) : ?>
                     <div class="notice notice-success is-dismissible"><p>Reglas de transporte guardadas. WooCommerce recalculará las tarifas con esta configuración.</p></div>

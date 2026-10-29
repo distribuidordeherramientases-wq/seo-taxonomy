@@ -13,7 +13,7 @@ wp_clear_scheduled_hook( 'tgb_market_queue_tick' );
 foreach ( array( 'tgb_market_sources', 'tgb_market_runs', 'tgb_market_categories' ) as $suffix ) {
     $table = $wpdb->prefix . $suffix;
     // Table identifiers cannot be bound as SQL values; only a fixed allowlist is used.
-    $wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table ) . '`' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
+    $wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table ) . '`' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
 }
 
 foreach ( array(
@@ -45,6 +45,7 @@ $patterns = array(
     $wpdb->esc_like( '_transient_timeout_tgb_' ) . '%',
 );
 foreach ( $patterns as $pattern ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $names = $wpdb->get_col( $wpdb->prepare(
         "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
         $pattern

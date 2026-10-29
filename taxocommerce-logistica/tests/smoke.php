@@ -5,7 +5,7 @@ $main = file_get_contents( $root . '/taxocommerce-logistica.php' );
 $transport = file_get_contents( $root . '/includes/seo-transporte.php' );
 
 $checks = array(
-    strpos( $main, "Version: 0.2.0" ) !== false,
+    strpos( $main, "Version: 0.2.3" ) !== false,
     strpos( $main, "'seo-logistica'" ) !== false,
     strpos( $main, "SEO_Transporte_Costes" ) !== false,
     strpos( $main, "seo-logistica.php" ) === false,
@@ -18,6 +18,9 @@ $checks = array(
     strpos( $transport, 'sanitize_text_field(wp_unslash((string) $_POST[$key]))' ) !== false,
     strpos( $transport, 'get_shipping_total' ) !== false,
     strpos( $transport, 'seo_transporte_export' ) !== false,
+    strpos( $transport, "self::render_tabs('shipping')" ) !== false,
+    strpos( $transport, "TaxoCommerce_Logistica_Auto_Test::render()" ) !== false,
+    strpos( $transport, "TaxoCommerce_Logistica_User_Guide::render()" ) !== false,
     strpos( $transport, 'seo_transporte_import' ) !== false,
     strpos( $transport, 'seo_proveedores_productos' ) === false,
     strpos( $transport, 'proveedor_id_externo' ) === false,

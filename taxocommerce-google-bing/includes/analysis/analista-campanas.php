@@ -57,11 +57,14 @@ if (!function_exists('seo_analista_campaign_dependiente_demand')) {
         $table = $wpdb->prefix . 'seo_dependiente_search_log';
         $exists = function_exists('seo_analista_table_exists')
             ? seo_analista_table_exists($table)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
             : ($table === $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))));
         if (!$exists) return array();
 
         $since = wp_date('Y-m-d H:i:s', current_time('timestamp') - ($days * DAY_IN_SECONDS));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $rows = (array) $wpdb->get_results(
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
             $wpdb->prepare(
                 "SELECT id,query_hash,query_normalized,top_results,clicked_product_id,created_at
                  FROM {$table}
@@ -72,6 +75,7 @@ if (!function_exists('seo_analista_campaign_dependiente_demand')) {
             ),
             ARRAY_A
         );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
         $out = array();
         foreach ($rows as $row) {

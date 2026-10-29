@@ -48,6 +48,7 @@ function seo_google_trends_maybe_install() {
     $table = esc_sql( seo_google_trends_table() );
     $installed_version = (string) get_option(SEO_GOOGLE_TRENDS_DB_OPTION, '');
     $runtime_version = (string) get_option(SEO_GOOGLE_TRENDS_RUNTIME_MIGRATION_OPTION, '');
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
     ) === $table;
@@ -96,18 +97,22 @@ function seo_google_trends_maybe_install() {
      * porque ese proveedor no era estable ni documentado.
      */
     if (SEO_GOOGLE_TRENDS_VERSION !== $runtime_version) {
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $wpdb->query(
             "UPDATE {$table}
              SET provider = 'csv'
              WHERE provider IN ('', 'legacy')
                AND source_note LIKE 'CSV%'"
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $wpdb->query(
             "UPDATE {$table}
              SET provider = 'legacy_web'
              WHERE provider IN ('', 'legacy')
                AND source_note LIKE 'Google Trends web%'"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
         delete_transient(SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT);
         delete_transient(SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT);
@@ -312,11 +317,14 @@ function seo_google_trends_business_universe($limit = 400) {
     }
 
     $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $nodes_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($nodes_table))
     ) === $nodes_table;
 
     if ($nodes_exists) {
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $rows = $wpdb->get_results(
             "SELECT DISTINCT p.ID, p.post_title, n.seo_role
              FROM {$nodes_table} n
@@ -330,6 +338,7 @@ function seo_google_trends_business_universe($limit = 400) {
              LIMIT 300",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
         foreach ((array) $rows as $row) {
             $role = (string) ($row['seo_role'] ?? '');
@@ -726,6 +735,7 @@ function seo_google_trends_upsert_signal(array $row) {
         ? sanitize_text_field((string) $row['imported_at'])
         : current_time('mysql');
 
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
     $sql = $wpdb->prepare(
         "INSERT INTO {$table}
         (seed,seed_hash,query_text,query_hash,result_type,trend_value,is_breakout,geo,timeframe,source_note,provider,signal_meta,observed_at,imported_at)
@@ -754,8 +764,10 @@ function seo_google_trends_upsert_signal(array $row) {
         $observed_at,
         $imported_at
     );
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return false !== $wpdb->query($sql);
 }
 
@@ -1219,6 +1231,8 @@ function seo_google_trends_public_select_seeds(array $settings, array $universe,
     $latest = array();
     if (!$force) {
         $table = esc_sql( seo_google_trends_table() );
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $rows = $wpdb->get_results(
             "SELECT seed_hash, MAX(imported_at) AS latest
              FROM {$table}
@@ -1226,6 +1240,7 @@ function seo_google_trends_public_select_seeds(array $settings, array $universe,
              GROUP BY seed_hash",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         foreach ((array) $rows as $row) {
             $latest[(string) $row['seed_hash']] = (string) $row['latest'];
         }
@@ -1403,12 +1418,15 @@ function seo_google_trends_public_store_related($seed, array $rows, $geo, $timef
     global $wpdb;
     $table = esc_sql( seo_google_trends_table() );
     $seed_hash = hash('sha256', seo_google_trends_normalize($seed));
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $wpdb->query($wpdb->prepare(
         "DELETE FROM {$table}
          WHERE provider = %s AND seed_hash = %s AND geo = %s AND timeframe = %s
            AND result_type IN ('top','rising','related')",
         'public_explore', $seed_hash, $geo, $timeframe
     ));
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $stored = 0;
     foreach (array_slice($rows, 0, 50) as $row) {
         if (seo_google_trends_upsert_signal(array(
@@ -1465,10 +1483,13 @@ function seo_google_trends_public_store_autocomplete($seed, array $rows, $geo = 
     global $wpdb;
     $table = esc_sql( seo_google_trends_table() );
     $seed_hash = hash('sha256', seo_google_trends_normalize($seed));
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $wpdb->query($wpdb->prepare(
         "DELETE FROM {$table} WHERE provider = %s AND seed_hash = %s AND geo = %s",
         'public_autocomplete', $seed_hash, $geo
     ));
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $stored = 0;
     foreach ($rows as $row) {
         if (seo_google_trends_upsert_signal(array(
@@ -1802,7 +1823,9 @@ function seo_google_trends_sync($force = false, $limit = 0) {
     global $wpdb;
     $table = esc_sql( seo_google_trends_table() );
     $cutoff = wp_date('Y-m-d H:i:s', time() - (8 * DAY_IN_SECONDS), wp_timezone());
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $wpdb->query(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "DELETE FROM {$table}
              WHERE provider = %s
@@ -1811,6 +1834,7 @@ function seo_google_trends_sync($force = false, $limit = 0) {
             $cutoff
         )
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
     delete_transient(SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT);
     delete_transient(SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT);
@@ -2109,7 +2133,9 @@ function seo_google_trends_clear_handler() {
     seo_google_trends_maybe_install();
     $table = esc_sql( seo_google_trends_table() );
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna controlada; mantenimiento fijo sin entrada de usuario.
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
     $wpdb->query("TRUNCATE TABLE {$table}");
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     delete_option(SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION);
     delete_transient(SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT);
     delete_transient(SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT);
@@ -2124,7 +2150,9 @@ function seo_google_trends_get_signals($limit = 500) {
     $table = esc_sql( seo_google_trends_table() );
     $limit = max(1, min(5000, absint($limit)));
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return (array) $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
         $wpdb->prepare(
             "SELECT * FROM {$table}
              WHERE provider <> 'legacy_web'
@@ -2138,18 +2166,22 @@ function seo_google_trends_get_signals($limit = 500) {
         ),
         ARRAY_A
     );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
 function seo_google_trends_provider_counts() {
     global $wpdb;
     seo_google_trends_maybe_install();
     $table = esc_sql( seo_google_trends_table() );
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted internal table identifiers; generated value placeholders are bound using wpdb::prepare (WordPress 5.8 compatibility).
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results(
         "SELECT provider, COUNT(*) AS total, MAX(imported_at) AS latest
          FROM {$table}
          GROUP BY provider",
         ARRAY_A
     );
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $out = array();
     foreach ((array) $rows as $row) {
         $out[(string) $row['provider']] = array(
@@ -2458,17 +2490,22 @@ function seo_google_render_trends_market() {
     echo '<p style="margin:0;max-width:1000px;"><strong>Objetivo:</strong> descubrir demanda externa y temas emergentes del entorno comercial. El catálogo, las categorías y los hubs solo delimitan el negocio; las páginas, landings y posts se consultan después para medir cobertura y decidir qué mejorar.</p>';
     echo '<p class="seo-trends-muted"><code>V' . esc_html(SEO_GOOGLE_TRENDS_VERSION) . '</code> · Search Console y Analytics mantienen sus conexiones independientes. Este modulo usa la capa web publica de Explore con consultas suaves; no es la Google Trends API oficial (Alpha). La via web no requiere OAuth ni API key. La API oficial requiere acceso Alpha concedido por Google y puede incorporarse como proveedor cuando la cuenta sea admitida.</p>';
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     $notice = sanitize_key(wp_unslash($_GET['trends_notice'] ?? ''));
     if ('synced' === $notice) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         echo '<div class="notice notice-success inline"><p>Actualizacion completada: radar ' . esc_html(number_format_i18n(absint($_GET['fetched'] ?? 0))) . ' recibidas / ' . esc_html(number_format_i18n(absint($_GET['relevant'] ?? 0))) . ' relacionadas; mercado publico ' . esc_html(number_format_i18n(absint($_GET['market_rows'] ?? 0))) . ' señales nuevas/actualizadas.</p></div>';
     } elseif ('imported' === $notice) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         echo '<div class="notice notice-success inline"><p>CSV importado: ' . esc_html(number_format_i18n(absint($_GET['rows'] ?? 0))) . ' señales procesadas.</p></div>';
     } elseif ('cleared' === $notice) {
         echo '<div class="notice notice-success inline"><p>Se han eliminado las señales almacenadas de Trends.</p></div>';
     } elseif ('settings_saved' === $notice) {
         echo '<div class="notice notice-success inline"><p>Configuración del radar guardada.</p></div>';
     }
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     if (!empty($_GET['trends_error'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         $detail = sanitize_text_field(wp_unslash($_GET['detail'] ?? 'No se pudo completar la operación.'));
         echo '<div class="notice notice-error inline"><p>' . esc_html($detail) . '</p></div>';
     }

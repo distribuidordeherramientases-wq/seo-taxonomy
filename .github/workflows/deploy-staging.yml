@@ -15,6 +15,9 @@ jobs:
       - name: Checkout staging
         uses: actions/checkout@v4
 
+      - name: Validate Core FTPS cleanup Python syntax
+        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
       - name: Validate Core architecture report before any STAGING FTP upload
         run: |
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
@@ -98,6 +101,8 @@ jobs:
 
           local-dir: ./taxocommerce-core/
           server-dir: ./wp-content/plugins/taxocommerce-core/
+          # Store FTP sync state outside the installed plugin directory.
+          state-name: ../.taxocommerce-core-ftp-state.json
 
           dry-run: false
           log-level: verbose
@@ -106,10 +111,22 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
+            **/tests/**
+            .ftp-deploy-sync-state.json
+            **/.ftp-deploy-sync-state.json
             **/*.bak
             **/*.md
             **/*.pot
 
+
+
+      - name: Remove obsolete Core test files and hidden FTP state from STAGING
+        env:
+          TC_CORE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_CORE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_CORE_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
 
       - name: Deploy TaxoCommerce Database to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
@@ -562,6 +579,8 @@ jobs:
           server-dir: ./wp-content/plugins/taxocommerce-faqs/
           dry-run: false
           log-level: verbose
+          # Store sync state outside the installed FAQ plugin.
+          state-name: ../.taxocommerce-faqs-ftp-state.json
           exclude: |
             **/.git*
             **/.git*/**
