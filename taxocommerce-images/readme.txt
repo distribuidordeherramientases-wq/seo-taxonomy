@@ -34,6 +34,14 @@ Current functionality includes:
 * Upload scaling and image quality settings.
 * Optional integration into TaxoCommerce Core.
 
+== Installation ==
+
+1. Upload the TaxoCommerce Images ZIP from Plugins > Add New > Upload Plugin, or install it from the WordPress.org directory once published.
+2. Activate TaxoCommerce Images in Plugins. It works independently of TaxoCommerce Core; WooCommerce is optional.
+3. Open the Images management screen in the WordPress administration. If TaxoCommerce Core is installed, Images is listed with its extensions.
+4. Run Auto Test to check whether the required services are available. Inspect results before running image transformations.
+5. For unattended background jobs, ensure WP-Cron is running; on low-traffic sites, configure a hosting cron to invoke wp-cron.php.
+
 == Background execution ==
 
 * Scans and image transformations now use independent persisted WordPress Cron tasks. The browser only starts a task or displays its status.
