@@ -270,8 +270,8 @@ jobs:
           }
           trap cleanup_handoff EXIT
 
-          : > /tmp/taxocommerce-deploy-marker
-
+          # Prepare the handoff directory only. Never expose the token until
+          # ALL plugin ZIPs have been uploaded (slow transfers can take minutes).
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
           set cmd:fail-exit no
           set ftp:ssl-force true
@@ -280,7 +280,6 @@ jobs:
           mkdir -p "$handoff"
           set cmd:fail-exit yes
           cd "$handoff"
-          put /tmp/taxocommerce-deploy-marker -o ".token-$token_hash"
           bye
           EOF
 
@@ -317,6 +316,25 @@ jobs:
           bye
           EOF
           done
+
+          # The REST permission callback requires this marker to exist. Upload
+          # and read back the marker immediately BEFORE the POST, not before the
+          # potentially lengthy FTPS loop. Do not log the secret token.
+          : > /tmp/taxocommerce-deploy-marker
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          cd "$handoff"
+          put /tmp/taxocommerce-deploy-marker -o ".token-$token_hash"
+          get ".token-$token_hash" -o /tmp/taxocommerce-deploy-marker-verified
+          bye
+          EOF
+          if ! cmp -s /tmp/taxocommerce-deploy-marker /tmp/taxocommerce-deploy-marker-verified; then
+            echo "::error::El marcador FTPS de autorización no se ha podido verificar."
+            exit 1
+          fi
 
           http_code="$(curl --silent --show-error --retry 3 --retry-delay 2 \
             -o /tmp/taxocommerce-deploy-response.json \
@@ -379,7 +397,8 @@ jobs:
                   print(f"  ACTUALIZADO: {path}")
           PY
 
+          # On HTTP 2xx WordPress already removed the handoff directory.
+          # Keep EXIT cleanup for failures, not a second rm on success (550).
           trap - EXIT
-          cleanup_handoff
 
           echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
