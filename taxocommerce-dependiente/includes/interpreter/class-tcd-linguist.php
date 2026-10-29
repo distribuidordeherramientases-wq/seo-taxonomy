@@ -767,6 +767,7 @@ final class TCD_Original_Linguista {
             return false;
         }
 
+        if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('INFO','linguist_window_started',array('source'=>$source,'lesson'=>(string)($state['current_lesson']??''),'cursor'=>absint($state['cursor']??0),'status'=>(string)($state['status']??'')));
         $max_runtime = max(5, min(50, absint($max_runtime)));
         $started = microtime(true);
         $did_work = false;
@@ -823,6 +824,7 @@ final class TCD_Original_Linguista {
                 break;
             }
         } catch (Throwable $e) {
+            if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('ERROR','linguist_exception',array('message'=>$e->getMessage(),'file'=>wp_basename($e->getFile()),'line'=>$e->getLine(),'lesson'=>(string)($state['current_lesson']??'')));
             self::save_state(array(
                 'status' => 'error',
                 'enabled' => 0,
@@ -842,6 +844,7 @@ final class TCD_Original_Linguista {
         }
 
         $state = self::state();
+        if (class_exists('TCD_Learning_Log', false)) TCD_Learning_Log::write('INFO','linguist_window_finished',array('lesson'=>(string)($state['current_lesson']??''),'cursor'=>absint($state['cursor']??0),'status'=>(string)($state['status']??''),'processed'=>$processed_window,'learned'=>$learned_window,'rejected'=>$rejected_window));
         if (self::is_pending()) {
             $delay = max(1, absint($state['next_delay'] ?? 1));
             self::save_state(array('not_before' => time() + $delay));
@@ -2440,7 +2443,17 @@ final class TCD_Original_Linguista {
 
     private static function batch_size($state) {
         $control = self::control_config();
-        return max(absint($control['min_batch']), min(absint($control['max_batch']), absint($state['batch_size'] ?? $control['initial_batch'])));
+        $batch = max(absint($control['min_batch']), min(absint($control['max_batch']), absint($state['batch_size'] ?? $control['initial_batch'])));
+        // M11 previously left large linguistic batches running for minutes,
+        // outliving the request. Keep the same course and cursor, but process
+        // small resumable windows under the Academy supervisor.
+        if (class_exists('TCD_Academy', false)) {
+            $academy = TCD_Academy::state();
+            if (11 === absint($academy['lesson'] ?? 0) && 'running' === (string)($academy['status'] ?? '')) {
+                return min($batch, 10);
+            }
+        }
+        return $batch;
     }
 
     private static function adapt_speed($duration) {

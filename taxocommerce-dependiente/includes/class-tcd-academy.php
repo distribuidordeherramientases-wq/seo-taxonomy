@@ -16,6 +16,7 @@ final class TCD_Academy {
     const STATE='tcd_learning_state';
     const LOG='tcd_learning_log';
     const LOCK='tcd_learning_tick_lock';
+    const LOCK_TTL=300;
     const WATCHDOG='tcd_learning_watchdog_last';
     const SCHEMA_OPTION='tcd_learning_schema_version';
     const SCHEMA_VERSION='3.0.0';
@@ -210,7 +211,7 @@ final class TCD_Academy {
     public static function boot(){
         self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
-        add_action('admin_init',array(__CLASS__,'watchdog_running_process'));
+        add_action('init',array(__CLASS__,'watchdog_running_process'));
         add_filter('seo_process_supervisor_has_pending_work',array(__CLASS__,'filter_pending_work'),40,1);
         add_filter('seo_process_supervisor_manager_targets',array(__CLASS__,'filter_manager_targets'),40,3);
         add_action('admin_post_tcd_academy_control',array(__CLASS__,'control'));
@@ -231,6 +232,11 @@ final class TCD_Academy {
         }elseif('stop'===$action){
             update_option('tcd_learning_stop',(string)$state['run_id'],false);
             self::save(array('status'=>'stopped','last_message'=>'Detenido: no se iniciarán más lotes; se conserva la foto fija y el progreso.'));
+            // M11 and the Linguist share one lifecycle; preserve the internal course cursor.
+            if(11===absint($state['lesson']??0) && class_exists('TCD_Original_Linguista',false)){
+                $ling=TCD_Original_Linguista::state();
+                if('running'===(string)($ling['status']??''))TCD_Original_Linguista::process_control_stop();
+            }
             wp_clear_scheduled_hook(self::CRON_HOOK);
             self::log('stopped',array('lesson'=>$state['lesson'],'phase'=>$state['phase']));
         }elseif('start'===$action && in_array($state['status'],array('idle','stopped','error'),true)){
@@ -294,8 +300,7 @@ final class TCD_Academy {
     }
 
     public static function watchdog_running_process(){
-        if(!is_admin())return;
-
+        // WordPress cron is traffic-triggered: recover on ordinary visits too.
         $state=self::state();
         if('running'!==(string)($state['status']??''))return;
 
@@ -307,9 +312,10 @@ final class TCD_Academy {
         if($last && ($now-$last)<15)return;
         update_option(self::WATCHDOG,$now,false);
 
-        $lock=absint(get_option(self::LOCK,0));
-        $lock_age=$lock?max(0,$now-$lock):0;
-        if($lock && $lock_age<120)return;
+        $lock=(string)get_option(self::LOCK,'');
+        $lock_started=absint(explode(':',$lock,2)[0]);
+        $lock_age=$lock_started?max(0,$now-$lock_started):0;
+        if($lock && $lock_age<self::LOCK_TTL)return;
 
         $next=wp_next_scheduled(self::CRON_HOOK);
         $cron_repaired=false;
@@ -334,12 +340,17 @@ final class TCD_Academy {
     private static function queue($delay=null){
         if('running'!==self::state()['status'])return;
         $delay=null===$delay ? TCD_Load::delay() : max(1,absint($delay));
+        $now=time();
         $existing=wp_next_scheduled(self::CRON_HOOK);
-        if(!$existing)wp_schedule_single_event(time()+$delay,self::CRON_HOOK);
+        // A past-due event is not proof of a healthy queue. Replace it once.
+        $repaired=$existing && $existing<$now-60;
+        if($repaired)wp_clear_scheduled_hook(self::CRON_HOOK);
+        if(!wp_next_scheduled(self::CRON_HOOK))wp_schedule_single_event($now+$delay,self::CRON_HOOK);
         $next=wp_next_scheduled(self::CRON_HOOK);
         self::trace('DEBUG','queue_scheduled',array(
             'delay'=>$delay,
             'already_scheduled'=>$existing?1:0,
+            'cron_repaired'=>$repaired?1:0,
             'next_tick'=>$next?gmdate('c',$next):'none',
         ));
         self::nudge_manager($delay);
@@ -400,31 +411,51 @@ final class TCD_Academy {
             'snapshot_cursor'=>absint($state['snapshot_cursor']??0),
             'learning_cursor'=>absint($state['learning_cursor']??0),
         ));
-        $lock=get_option(self::LOCK,0);
-        $lock_age=$lock?max(0,time()-absint($lock)):0;
-        if($lock && $lock_age<120){
-            self::trace('WARN','tick_locked',array('lock_age'=>$lock_age,'retry_in'=>15));
+        $lock=(string)get_option(self::LOCK,'');
+        $started=absint(explode(':',$lock,2)[0]);
+        $lock_age=$started?max(0,time()-$started):self::LOCK_TTL;
+        if($lock && $lock_age<self::LOCK_TTL){
+            self::trace('DEBUG','tick_locked',array('lock_age'=>$lock_age,'retry_in'=>15));
             self::queue(15);
             return;
         }
-        if(!add_option(self::LOCK,time(),'',false)){
-            if($lock && $lock_age>=120){
+        $owner=time().':'.wp_generate_uuid4();
+        if(!add_option(self::LOCK,$owner,'',false)){
+            // Expired locks (including legacy numeric locks) are removed only
+            // if they still belong to the same worker. Never unlock a successor.
+            if($lock && $lock_age>=self::LOCK_TTL && self::release_lock_if_owned($lock)){
                 self::trace('WARN','stale_lock_recovered',array('lock_age'=>$lock_age));
-                delete_option(self::LOCK);
-                self::queue(3);
+                if(!add_option(self::LOCK,$owner,'',false)){
+                    self::queue(15);
+                    return;
+                }
             }else{
-                self::trace('WARN','lock_acquire_failed',array('lock_age'=>$lock_age,'retry_in'=>15));
+                self::trace('DEBUG','tick_locked',array('lock_age'=>$lock_age,'retry_in'=>15));
                 self::queue(15);
+                return;
             }
-            return;
         }
         self::trace('DEBUG','lock_acquired');
         try{
             self::run_one($state);
         }finally{
-            delete_option(self::LOCK);
-            self::trace('DEBUG','lock_released');
+            if(self::release_lock_if_owned($owner))self::trace('DEBUG','lock_released');
+            else self::trace('WARN','lock_ownership_changed');
         }
+    }
+
+    private static function release_lock_if_owned($owner){
+        global $wpdb;
+        if(''===(string)$owner)return false;
+        // Compare-and-delete prevents an expired worker from releasing a
+        // newer worker's lock. A plain delete_option() is not owner-safe.
+        $deleted=$wpdb->query($wpdb->prepare(
+            'DELETE FROM %i WHERE option_name=%s AND option_value=%s',
+            $wpdb->options,self::LOCK,(string)$owner
+        ));
+        if(1!==(int)$deleted)return false;
+        wp_cache_delete(self::LOCK,'options');
+        return true;
     }
 
     private static function run_one($state){
@@ -447,7 +478,9 @@ final class TCD_Academy {
                         'last_message'=>'L11 · Formación lingüística detenida por error.'));
                     return;
                 }
-                if('stopped'===$status && empty($ling['run_id']) && empty($ling['lesson_results'])){
+                if('stopped'===$status && !TCD_Original_Linguista::is_pending()){
+                    self::trace('WARN','m11_linguist_stopped',array('last_message'=>(string)($ling['last_message']??'')));
+
                     $started=TCD_Original_Linguista::process_control_start();
                     if(is_wp_error($started))throw new RuntimeException($started->get_error_message());
                     $ling=TCD_Original_Linguista::state();
@@ -456,8 +489,11 @@ final class TCD_Academy {
                 if('running'===$status && TCD_Original_Linguista::is_pending()){
                     $measure=TCD_Load::begin();
                     $runtime=max(5,min(20,(int)(TCD_Load::priority()*3)));
+                    self::trace('INFO','m11_batch_started',array('linguist_lesson'=>(string)($ling['current_lesson']??''),'cursor'=>absint($ling['cursor']??0),'progress'=>TCD_Original_Linguista::course_progress()));
                     TCD_Original_Linguista::process_manager_slice($runtime,'dependiente_l11');
                     $after=TCD_Original_Linguista::state();
+                    self::trace('INFO','m11_batch_finished',array('linguist_lesson'=>(string)($after['current_lesson']??''),'cursor'=>absint($after['cursor']??0),'status'=>(string)($after['status']??''),'progress'=>TCD_Original_Linguista::course_progress(),'error'=>(string)($after['last_error']??'')));
+                    if('error'===(string)($after['status']??''))throw new RuntimeException((string)($after['last_error']??'Lingüista detenido por error.'));
                     $processed=max(0,absint($after['processed_total']??0)-absint($ling['processed_total']??0));
                     $load=TCD_Load::finish($measure,$processed);
                     self::save(array('load_last'=>$load,'status'=>'running','last_error'=>'',
@@ -466,8 +502,10 @@ final class TCD_Academy {
                     self::queue(TCD_Load::delay());
                     return;
                 }
+                self::trace('WARN','m11_linguist_not_running',array('status'=>$status,'lesson'=>(string)($ling['current_lesson']??''),'error'=>(string)($ling['last_error']??'')));
                 self::save(array('status'=>'paused','last_message'=>'L11 · Formación lingüística pausada.'));
             }catch(Throwable $e){
+                self::trace('ERROR','m11_exception',self::exception_context($e));
                 self::save(array('status'=>'error','last_error'=>substr($e->getMessage(),0,400),
                     'last_message'=>'L11 · Error durante la formación lingüística.'));
             }

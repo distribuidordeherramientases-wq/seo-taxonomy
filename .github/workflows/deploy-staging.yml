@@ -550,6 +550,8 @@ jobs:
           test -s taxocommerce-dependiente/taxocommerce-dependiente.php
           find taxocommerce-dependiente -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-dependiente/tests/learning-smoke.php
+          php taxocommerce-dependiente/tests/m11-observability-smoke.php
+          php taxocommerce-dependiente/tests/m11-scheduler-smoke.php
           version="$(sed -n 's/^ \* Version: //p' taxocommerce-dependiente/taxocommerce-dependiente.php | head -n 1)"
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
