@@ -245,7 +245,7 @@ if (!function_exists('seo_analista_export_json_url')) {
 if (!function_exists('seo_analista_export_json_handler')) {
     function seo_analista_export_json_handler() {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para exportar Analista.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para exportar Analista.', 'taxocommerce-google-bing'));
         }
         check_admin_referer('seo_analista_export_json', 'seo_analista_nonce');
 
@@ -256,7 +256,7 @@ if (!function_exists('seo_analista_export_json_handler')) {
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
         );
         if (false === $json) {
-            wp_die(esc_html__('No se ha podido generar el JSON de Analista.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No se ha podido generar el JSON de Analista.', 'taxocommerce-google-bing'));
         }
 
         nocache_headers();
