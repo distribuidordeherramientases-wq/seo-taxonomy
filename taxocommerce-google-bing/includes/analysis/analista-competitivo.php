@@ -22,6 +22,7 @@ if (!defined('SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION')) {
 }
 
 if (!function_exists('seo_analista_competitive_host')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_host($value) {
         $host = wp_parse_url((string) $value, PHP_URL_HOST);
         if (!$host) {
@@ -35,6 +36,7 @@ if (!function_exists('seo_analista_competitive_host')) {
 }
 
 if (!function_exists('seo_analista_competitive_domain_matches')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_domain_matches($candidate, $domain) {
         $candidate = seo_analista_competitive_host($candidate);
         $domain = seo_analista_competitive_host($domain);
@@ -44,6 +46,7 @@ if (!function_exists('seo_analista_competitive_domain_matches')) {
 }
 
 if (!function_exists('seo_analista_competitive_organic_rows')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_organic_rows($payload) {
         $payload = is_array($payload) ? $payload : array();
         foreach (array('organic_results','organic','results','organicResults') as $key) {
@@ -56,6 +59,7 @@ if (!function_exists('seo_analista_competitive_organic_rows')) {
 }
 
 if (!function_exists('seo_analista_competitive_remote_allowed')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_remote_allowed($set = null) {
         static $allowed = false;
         if (null !== $set) {
@@ -70,6 +74,7 @@ if (!function_exists('seo_analista_competitive_serp_rows')) {
      * Adaptador automatico de rankings para Analista.
      * Si otro adaptador ya entrego filas, no lo sustituye.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_serp_rows($rows, $keywords, $competitors, $context = array()) {
         if (!empty($rows)) return $rows;
         if (!class_exists('SEO_Ojeador_Shopping') || !is_callable(array('SEO_Ojeador_Shopping', 'search_google_web'))) {
@@ -161,6 +166,7 @@ if (!function_exists('seo_analista_competitive_serp_rows')) {
 add_filter('seo_analista_competitor_rankings', 'seo_analista_competitive_serp_rows', 10, 4);
 
 if (!function_exists('seo_analista_competitive_keywords')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_keywords($days, $limit = 12) {
         $settings = function_exists('seo_analista_get_settings') ? seo_analista_get_settings() : array();
         $tracked = function_exists('seo_analista_sanitize_keywords')
@@ -185,6 +191,7 @@ if (!function_exists('seo_analista_competitive_keywords')) {
 }
 
 if (!function_exists('seo_analista_competitive_fetch')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_fetch($url, $limit = 350000) {
         $url = esc_url_raw((string) $url);
         if ($url === '' || !wp_http_validate_url($url)) {
@@ -221,6 +228,7 @@ if (!function_exists('seo_analista_competitive_fetch')) {
 }
 
 if (!function_exists('seo_analista_competitive_html_attr')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_html_attr($html, $tag, $attr, $attr_value, $wanted_attr) {
         $pattern = '#<' . preg_quote($tag, '#') . '\b[^>]*\b' . preg_quote($attr, '#') . '=["\']'
             . preg_quote($attr_value, '#') . '["\'][^>]*>#i';
@@ -231,6 +239,7 @@ if (!function_exists('seo_analista_competitive_html_attr')) {
 }
 
 if (!function_exists('seo_analista_competitive_html_metrics')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_html_metrics($html, $domain) {
         $html = (string) $html;
         $text = strtolower(remove_accents(wp_strip_all_tags($html)));
@@ -322,6 +331,7 @@ if (!function_exists('seo_analista_competitive_html_metrics')) {
 }
 
 if (!function_exists('seo_analista_competitive_dimension')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_dimension($checks, $confidence_cap = 85) {
         $known = 0;
         $positive = 0;
@@ -344,6 +354,7 @@ if (!function_exists('seo_analista_competitive_dimension')) {
 }
 
 if (!function_exists('seo_analista_competitive_public_audit')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_public_audit($domain, $representative_url = '') {
         $domain = seo_analista_competitive_host($domain);
         $home_url = 'https://' . $domain . '/';
@@ -480,6 +491,7 @@ if (!function_exists('seo_analista_competitive_public_audit')) {
 }
 
 if (!function_exists('seo_analista_competitive_rank_summary')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_rank_summary($keywords, $competitors) {
         $own = seo_analista_competitive_host(home_url('/'));
         $domains = array_values(array_unique(array_filter(array_merge(array($own), (array) $competitors))));
@@ -556,6 +568,7 @@ if (!function_exists('seo_analista_competitive_rank_summary')) {
 }
 
 if (!function_exists('seo_analista_competitive_index')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_index($dimensions) {
         $weights = array(
             'serp'=>10,
@@ -588,6 +601,7 @@ if (!function_exists('seo_analista_competitive_index')) {
 }
 
 if (!function_exists('seo_analista_competitive_median')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_median($values) {
         $values = array_values(array_filter((array) $values, static function($v){ return null !== $v && is_numeric($v); }));
         if (!$values) return null;
@@ -600,6 +614,7 @@ if (!function_exists('seo_analista_competitive_median')) {
 }
 
 if (!function_exists('seo_analista_build_competitive_report')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_build_competitive_report($days = 28) {
         $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(7, min(365, absint($days)));
         $settings = function_exists('seo_analista_get_settings') ? seo_analista_get_settings() : array();
@@ -808,6 +823,7 @@ if (!function_exists('seo_analista_build_competitive_report')) {
 }
 
 if (!function_exists('seo_analista_competitive_save_report')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_save_report($report) {
         if (!is_array($report)) return false;
         update_option(SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, $report, false);
@@ -826,6 +842,7 @@ if (!function_exists('seo_analista_competitive_save_report')) {
 }
 
 if (!function_exists('seo_analista_generate_competitive_report_handler')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_generate_competitive_report_handler() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para generar el informe competitivo.', 'taxocommerce-google-bing'));
@@ -857,6 +874,7 @@ if (!function_exists('seo_analista_generate_competitive_report_handler')) {
 add_action('admin_post_seo_analista_generate_competitive_report', 'seo_analista_generate_competitive_report_handler');
 
 if (!function_exists('seo_analista_export_competitive_report_handler')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_export_competitive_report_handler() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para exportar el informe competitivo.', 'taxocommerce-google-bing'));
@@ -880,6 +898,7 @@ if (!function_exists('seo_analista_export_competitive_report_handler')) {
 add_action('admin_post_seo_analista_export_competitive_report', 'seo_analista_export_competitive_report_handler');
 
 if (!function_exists('seo_analista_competitive_score_text')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competitive_score_text($dimension) {
         $dimension = is_array($dimension) ? $dimension : array();
         if (!array_key_exists('score', $dimension) || null === $dimension['score']) return 'N/D';
@@ -890,6 +909,7 @@ if (!function_exists('seo_analista_competitive_score_text')) {
 }
 
 if (!function_exists('seo_analista_render_competitive_deep_panel')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_competitive_deep_panel($days = 28) {
         $days = in_array(absint($days), array(28,90), true) ? absint($days) : 28;
         $report = get_option(SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, array());

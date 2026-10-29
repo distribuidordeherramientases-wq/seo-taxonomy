@@ -382,36 +382,43 @@ final class TaxoCommerce_Connections_Amazon {
 
 	public static function register_legacy_helpers() {
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_settings' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_settings() {
 				return TaxoCommerce_Connections_Amazon::settings();
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_affiliate_ready' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_affiliate_ready() {
 				return TaxoCommerce_Connections_Amazon::affiliate_ready();
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_creators_ready' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_creators_ready() {
 				return TaxoCommerce_Connections_Amazon::creators_ready();
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_affiliate_search_url' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_affiliate_search_url( $query ) {
 				return TaxoCommerce_Connections_Amazon::affiliate_search_url( $query );
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_get_access_token' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_get_access_token( $force = false ) {
 				return TaxoCommerce_Connections_Amazon::access_token( $force );
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_search_items' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_search_items( $keywords, $args = array() ) {
 				return TaxoCommerce_Connections_Amazon::search_items( $keywords, $args );
 			}
 		}
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_normalize_preview' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 			function seo_supplier_recipe_amazon_normalize_preview( $response ) {
 				return TaxoCommerce_Connections_Amazon::normalize_preview( $response );
 			}
