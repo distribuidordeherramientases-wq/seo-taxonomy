@@ -55,7 +55,7 @@ if ( ! function_exists( 'seo_landing_google_load_analytics_service' ) ) {
     }
 }
 
-$seo_landing_analytics_service_state = seo_landing_google_load_analytics_service();
+$taxocommerce_google_bing_landing_analytics_service_state = seo_landing_google_load_analytics_service();
 
 /** Normaliza una ruta para cruzar GA4/GSC con permalinks WordPress. */
 function seo_landing_google_path_key( $url_or_path ) {
