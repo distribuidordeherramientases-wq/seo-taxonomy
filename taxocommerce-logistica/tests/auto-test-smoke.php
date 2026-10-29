@@ -12,6 +12,11 @@ function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/taxocommerce-logistica/'; }
 function add_action( $hook, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks']['action'][ $hook ][] = $callback; }
 function add_filter( $hook, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks']['filter'][ $hook ][] = $callback; }
+function add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $callback, $icon = '', $position = null ) {
+    $GLOBALS['test_menu'][] = array( 'slug' => $menu_slug, 'title' => $menu_title, 'capability' => $capability, 'callback' => $callback );
+    return 'toplevel_page_' . $menu_slug;
+}
+function taxocommerce_core() { return null; } // Simulates Core installed without loading its unrelated implementation.
 function has_action( $hook, $callback = false ) {
     $all = $GLOBALS['hooks']['action'][ $hook ] ?? array();
     if ( false === $callback ) { return $all ? 10 : false; }
@@ -60,6 +65,8 @@ function did_action( $hook ) { return 0; }
 
 class WooCommerce {}
 class WC_Shipping_Rate {}
+// Simulates the simultaneously active legacy SEO engine.
+class SEO_Transporte_Costes {}
 
 require dirname( __DIR__ ) . '/taxocommerce-logistica.php';
 
@@ -72,6 +79,18 @@ function verify_log( $test, $message ) {
 
 $groups = TaxoCommerce_Logistica_Auto_Test::groups();
 $cases = TaxoCommerce_Logistica_Auto_Test::cases();
+taxocommerce_logistica_register_menu();
+verify_log( count( $GLOBALS['test_menu'] ?? array() ) === 1, 'Only one independent menu is registered' );
+verify_log( 'taxocommerce-logistica' === $GLOBALS['test_menu'][0]['slug'], 'No conflict with the legacy seo-logistica route' );
+verify_log( 'TaxoCommerce Logistics' === $GLOBALS['test_menu'][0]['title'], 'English plugin name in WordPress menu' );
+verify_log( array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ) === $GLOBALS['test_menu'][0]['callback'], 'Menu points to new Logistics screen' );
+verify_log( 'taxocommerce-logistica' === TaxoCommerce_Logistica_Transporte_Costes::PAGE, 'Shipping, Auto Test and Manual use same independent route' );
+verify_log( false === TaxoCommerce_Logistica_Transporte_Costes::force_wc_shipping_enabled( false ), 'Legacy engine remains authoritative for shipping enabled flag' );
+$legacy_packages = array( array( 'destination' => array( 'country' => 'ES', 'postcode' => '28001' ) ) );
+verify_log( $legacy_packages === TaxoCommerce_Logistica_Transporte_Costes::filter_shipping_packages_destination( $legacy_packages ), 'Legacy shipping destinations are not recalculated by standalone Logistics' );
+$legacy_rates = array( 'seo-legacy' => 'unchanged' );
+verify_log( $legacy_rates === TaxoCommerce_Logistica_Transporte_Costes::filter_package_rates( $legacy_rates, array() ), 'Legacy shipping rates are not overwritten by standalone Logistics' );
+
 verify_log( count( $groups ) === 8, 'Eight groups present' );
 verify_log( count( $cases ) === 35, 'Thirty-five tests present' );
 foreach ( $cases as $id => $case ) {
@@ -85,7 +104,7 @@ verify_log( $report['totals']['pass'] >= 27, 'Deterministic checks execute witho
 verify_log( $report['totals']['skip'] >= 5, 'Real checkout/import tests are deliberately skipped' );
 verify_log( 0 === $GLOBALS['writes'], 'Suite never writes configuration, orders or usermeta' );
 
-$_GET['page'] = 'seo-logistica';
+$_GET['page'] = 'taxocommerce-logistica';
 $_GET['tc_logistica_tab'] = 'auto-test';
 TaxoCommerce_Logistica_Auto_Test::assets();
 verify_log( isset( $GLOBALS['style']['tc-logistica-auto-test'] ), 'Auto Test CSS routed on page' );

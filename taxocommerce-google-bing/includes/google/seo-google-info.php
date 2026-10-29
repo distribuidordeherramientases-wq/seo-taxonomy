@@ -819,8 +819,7 @@ function seo_google_install_tables($force = false) {
     // donde dbDelta no informa con claridad de un índice incompatible.
     if (!seo_google_table_exists($runs_table)) {
         $wpdb->last_error = '';
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values. Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($runs_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $runs_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -829,8 +828,7 @@ function seo_google_install_tables($force = false) {
 
     if (!seo_google_table_exists($data_table)) {
         $wpdb->last_error = '';
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values. Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($data_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $data_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -839,8 +837,7 @@ function seo_google_install_tables($force = false) {
 
     if (!seo_google_table_exists($totals_table)) {
         $wpdb->last_error = '';
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values. Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($totals_sql, ";\r\n\t "));
         if (false === $result) {
             $errors[] = $totals_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
@@ -849,8 +846,7 @@ function seo_google_install_tables($force = false) {
 
     if (!seo_google_table_exists($pages_table)) {
         $wpdb->last_error = '';
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CREATE TABLE SQL is generated internally from plugin table names and WordPress charset/collation; it contains no external values. Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query(rtrim($pages_sql, ";\r\n\t "));
         if (false === $result) $errors[] = $pages_table . ': ' . ($wpdb->last_error ?: 'CREATE TABLE devolvió false.');
     }
@@ -1064,8 +1060,7 @@ function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) 
         $sql = "INSERT INTO {$table} (property_id,property_hash,data_date,search_type,page_url,page_hash,clicks,impressions,ctr,position,sync_run_id,updated_at)
             VALUES " . implode(',', $placeholders) . " ON DUPLICATE KEY UPDATE
             property_id=VALUES(property_id),page_url=VALUES(page_url),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table plus generated placeholders; every row value is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Search Console table plus generated placeholders; every row value is bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         if (false === $wpdb->query($wpdb->prepare($sql, $args))) {
             return new WP_Error('seo_google_pages_database_error', $wpdb->last_error);
         }
@@ -1108,8 +1103,7 @@ function seo_google_upsert_property_day($run_id, $property_id, $date, array $tot
     $sql = "INSERT INTO {$table} (property_id,property_hash,data_date,search_type,clicks,impressions,ctr,position,pages_synced,sync_run_id,updated_at)
         VALUES (%s,%s,%s,%s,%f,%f,%f,%f,1,%d,%s)
         ON DUPLICATE KEY UPDATE property_id=VALUES(property_id),clicks=VALUES(clicks),impressions=VALUES(impressions),ctr=VALUES(ctr),position=VALUES(position),pages_synced=1,sync_run_id=VALUES(sync_run_id),updated_at=VALUES(updated_at)";
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal totals table; all property/date/metric values are bound through prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal totals table; all property/date/metric values are bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $result = $wpdb->query($wpdb->prepare($sql, $property_id, hash('sha256', $property_id), $date, 'web',
         $totals['clicks'], $totals['impressions'], $totals['ctr'], $totals['position'], absint($run_id), current_time('mysql', true)));
     return false === $result ? new WP_Error('seo_google_totals_database_error', $wpdb->last_error) : true;
@@ -1193,8 +1187,7 @@ function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows
                 sync_run_id = VALUES(sync_run_id),
                 updated_at = VALUES(updated_at)";
 
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table plus generated row placeholders; every value is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Search Console table plus generated row placeholders; every value is bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $result = $wpdb->query($wpdb->prepare($sql, $arguments));
 
         if (false === $result) {
@@ -3063,8 +3056,7 @@ function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limi
             ORDER BY impressions DESC, clicks DESC
             LIMIT %d";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     foreach ($rows as &$row) {
@@ -3187,8 +3179,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
             ORDER BY impressions DESC, clicks DESC
             LIMIT %d";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 
     if ($page_source) {
@@ -3402,8 +3393,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
         max(0, (float) $min_impressions),
     );
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Search Console table and closed report fragments; all filter/range/limit values are bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
     $groups = array('new' => array(), 'lost' => array(), 'growth' => array(), 'decline' => array());
 
@@ -4117,8 +4107,7 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
         );
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     }
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql is the direct result of $wpdb->prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared_sql is the direct result of $wpdb->prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
     if ($page_source) seo_google_attach_page_query_counts($rows, $property_id, $date_from, $date_to);
     return $rows;
@@ -4317,8 +4306,7 @@ function seo_google_get_lab_rows($property_id, array $filters) {
             ORDER BY {$order_sql[$filters['order']]}
             LIMIT %d";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SELECT/GROUP/ORDER fragments come from closed allowlists; all user filter values and LIMIT are bound through prepare().
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SELECT/GROUP/ORDER fragments come from closed allowlists; all user filter values and LIMIT are bound through prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     return $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A);
 }
 

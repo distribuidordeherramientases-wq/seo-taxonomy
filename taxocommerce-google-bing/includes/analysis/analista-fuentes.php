@@ -355,8 +355,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
             $summary_args
         );
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $summary_sql is the result of $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $summary_sql is the result of $wpdb->prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $summary = $wpdb->get_row($summary_sql, ARRAY_A);
         $out['available'] = true;
         $out['total'] = (int) ($summary['total'] ?? 0);
@@ -371,8 +370,7 @@ if (!function_exists('seo_analista_internal_search_snapshot')) {
         $top_args[] = max(5, min(100, absint($limit)));
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal table and generated admin ID placeholders; all values/limit are bound via $wpdb->prepare().
         $sql = $wpdb->prepare($sql, $top_args);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is the result of $wpdb->prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['top'] = (array) $wpdb->get_results($sql, ARRAY_A);
         foreach ($out['top'] as $row) {
             if ((int) ($row['zero_count'] ?? 0) > 0 || (float) ($row['avg_results'] ?? 0) < 2.0) $out['gaps'][] = $row;
@@ -413,8 +411,7 @@ if (!function_exists('seo_analista_supplier_snapshot')) {
                 LIMIT %d";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal supplier table; limit is bound via $wpdb->prepare().
         $sql = $wpdb->prepare($sql, max(5, min(100, absint($limit))));
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the result of $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is the result of $wpdb->prepare(). Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
         $out['rows'] = (array) $wpdb->get_results($sql, ARRAY_A);
         $now = current_time('timestamp');
         foreach ($out['rows'] as $row) {

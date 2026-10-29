@@ -765,8 +765,7 @@ if (!function_exists('seo_analista_content_work')) {
                     $chunk
                 );
                 // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql is the direct result of $wpdb->prepare() with generated slug placeholders.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
+                // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is the direct result of $wpdb->prepare() with generated slug placeholders. Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
                 $products = (array) $wpdb->get_results($sql, ARRAY_A);
                 foreach ($products as $post) {
                     $id = absint($post['ID'] ?? 0);
