@@ -131,7 +131,9 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function read_posted( $name = self::FIELD ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called only after the Core content/hierarchy form nonce has been checked.
 		if ( ! isset( $_POST[ $name ] ) || ! is_string( $_POST[ $name ] ) ) { return null; }
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Mutation handlers verify their action-specific nonce before calling read_posted().
 		$value = strtoupper( trim( sanitize_text_field( wp_unslash( $_POST[ $name ] ) ) ) );
 		return self::valid( $value )
 			? $value
