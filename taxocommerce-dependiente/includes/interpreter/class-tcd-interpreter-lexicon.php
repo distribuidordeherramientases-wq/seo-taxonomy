@@ -354,6 +354,7 @@ final class TCD_Original_Interprete_DB {
         $ids = array_slice($ids, 0, 20);
         $table = esc_sql( self::table() );
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,normalized_expression,canonical_term,confidence,usage_count,contradiction_count,context_terms,context_required,active,source,lesson_key
@@ -363,6 +364,7 @@ final class TCD_Original_Interprete_DB {
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         if (!$rows) {
             return 0;
         }
