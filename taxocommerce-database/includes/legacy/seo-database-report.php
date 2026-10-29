@@ -802,7 +802,8 @@ function seo_data_write_table_csv(string $table_name, $handle): void
     do {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM `{$table_name}` LIMIT %d OFFSET %d",
+                'SELECT * FROM %i LIMIT %d OFFSET %d',
+                $table_name,
                 $batch_size,
                 $offset
             ),
@@ -852,7 +853,8 @@ function seo_data_write_table_sql(string $table_name, $handle): void
     do {
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM `{$table_name}` LIMIT %d OFFSET %d",
+                'SELECT * FROM %i LIMIT %d OFFSET %d',
+                $table_name,
                 $batch_size,
                 $offset
             ),
