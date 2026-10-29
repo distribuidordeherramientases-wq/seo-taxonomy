@@ -253,7 +253,7 @@ final class Auto_Test {
 
     private static function check_origins() {
         return '/antigua' === Store::normalize_origin( '/antigua/' )
-            && is_wp_error( Store::normalize_origin( 'https://otro-dominio.test/ruta' ) )
+            && is_wp_error( Store::normalize_origin( 'https://other-domain.invalid/ruta' ) )
             && is_wp_error( Store::normalize_origin( '/' ) )
             ? self::pass( 'Normalización, protección de inicio y bloqueo de otros dominios correctos.' )
             : self::fail( 'La validación de URLs de origen ha cambiado.' );
@@ -263,7 +263,6 @@ final class Auto_Test {
         $local = Store::normalize_target( '/nueva/?ref=x' );
         return '/nueva?ref=x' === $local
             && is_wp_error( Store::normalize_target( 'https://otro-dominio.test/externa' ) )
-            && 'https://www.' !== substr( (string) $local, 0, 12 )
             ? self::pass( 'Destinos internos y parámetros conservados; dominio externo rechazado.' )
             : self::fail( 'La política de destinos locales no se cumple.' );
     }
