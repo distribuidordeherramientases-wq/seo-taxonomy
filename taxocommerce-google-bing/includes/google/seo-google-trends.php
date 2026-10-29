@@ -37,11 +37,13 @@ add_action('admin_post_seo_google_trends_sync', 'seo_google_trends_sync_handler'
 add_action('admin_post_seo_google_trends_clear', 'seo_google_trends_clear_handler');
 add_action('admin_post_seo_google_trends_save_settings', 'seo_google_trends_save_settings_handler');
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_table() {
     global $wpdb;
     return $wpdb->prefix . 'seo_google_trends';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_maybe_install() {
     global $wpdb;
 
@@ -127,6 +129,7 @@ function seo_google_trends_maybe_install() {
     update_option(SEO_GOOGLE_TRENDS_RUNTIME_MIGRATION_OPTION, SEO_GOOGLE_TRENDS_VERSION, false);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_get_settings() {
     $defaults = array(
         'geo'                 => 'ES',
@@ -154,9 +157,11 @@ function seo_google_trends_get_settings() {
     $settings['explore_cache_hours'] = max(12, min(168, absint($settings['explore_cache_hours'])));
     $settings['explore_delay_ms'] = max(1500, min(5000, absint($settings['explore_delay_ms'])));
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     return apply_filters('seo_google_trends_settings', $settings);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_save_settings_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para configurar Google Trends.', 'taxocommerce-google-bing'));
@@ -190,6 +195,7 @@ function seo_google_trends_save_settings_handler() {
     exit;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_ensure_schedule($force = false) {
     $settings = seo_google_trends_get_settings();
     $next = wp_next_scheduled(SEO_GOOGLE_TRENDS_CRON_HOOK);
@@ -206,10 +212,12 @@ function seo_google_trends_ensure_schedule($force = false) {
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_cron_sync() {
     seo_google_trends_sync(false, 0);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_normalize($text) {
     $text = remove_accents(wp_strip_all_tags((string) $text));
     $text = function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
@@ -217,6 +225,7 @@ function seo_google_trends_normalize($text) {
     return trim((string) preg_replace('/\s+/', ' ', $text));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_token_root($token) {
     $token = seo_google_trends_normalize($token);
     if ($token === '') {
@@ -239,6 +248,7 @@ function seo_google_trends_token_root($token) {
     return $token;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_tokens($text) {
     $stop = array(
         'a','al','ante','bajo','con','contra','de','del','desde','durante','e','el','ella','ellas','ellos',
@@ -261,6 +271,7 @@ function seo_google_trends_tokens($text) {
     return array_keys($tokens);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_explore_url($term, $geo = 'ES', $time = 'today 12-m') {
     return add_query_arg(
         array('geo' => $geo, 'date' => $time, 'q' => $term),
@@ -268,10 +279,12 @@ function seo_google_trends_explore_url($term, $geo = 'ES', $time = 'today 12-m')
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_rss_url($geo = 'ES') {
     return add_query_arg(array('geo' => strtoupper((string) $geo)), 'https://trends.google.com/trending/rss');
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_manual_seed_lines($raw) {
     $parts = preg_split('/[\r\n,;]+/', (string) $raw);
     $out = array();
@@ -288,6 +301,7 @@ function seo_google_trends_manual_seed_lines($raw) {
  * Construye el perimetro comercial. No consume consultas de Search Console ni
  * rastrea el contenido de paginas, landings o posts como fuente de demanda.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_business_universe($limit = 400) {
     global $wpdb;
 
@@ -393,6 +407,7 @@ function seo_google_trends_business_universe($limit = 400) {
         }
     }
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     $items = apply_filters('seo_google_trends_business_universe', $items, $settings);
     $items = is_array($items) ? $items : array();
 
@@ -407,6 +422,7 @@ function seo_google_trends_business_universe($limit = 400) {
 }
 
 /** Compatibilidad con el nombre usado por las versiones anteriores. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_seed_candidates($limit = 24) {
     $rows = seo_google_trends_business_universe(max(24, absint($limit)));
     $out = array();
@@ -421,6 +437,7 @@ function seo_google_trends_seed_candidates($limit = 24) {
     return array_slice($out, 0, max(5, min(100, absint($limit))));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_relevance($text, array $universe, array $context_texts = array()) {
     $text = trim((string) $text);
     $normalized = seo_google_trends_normalize($text);
@@ -505,9 +522,11 @@ function seo_google_trends_relevance($text, array $universe, array $context_text
         'matched_tokens' => array_values(array_unique($matched_tokens)),
     );
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     return apply_filters('seo_google_trends_radar_relevance', $result, $text, $universe, $context_texts);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_traffic($raw) {
     $raw = trim((string) $raw);
     if ($raw === '') {
@@ -539,6 +558,7 @@ function seo_google_trends_parse_traffic($raw) {
     return (int) round($number * $multiplier);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_date($raw) {
     $timestamp = strtotime((string) $raw);
     if (!$timestamp) {
@@ -547,10 +567,12 @@ function seo_google_trends_parse_date($raw) {
     return wp_date('Y-m-d H:i:s', $timestamp, wp_timezone());
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_xml_text($value) {
     return sanitize_text_field(trim(html_entity_decode((string) $value, ENT_QUOTES, 'UTF-8')));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_rss_simplexml($body) {
     if (!function_exists('simplexml_load_string')) {
         return array();
@@ -604,6 +626,7 @@ function seo_google_trends_parse_rss_simplexml($body) {
     return $rows;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_regex_tag($xml, $tag) {
     $tag_pattern = preg_quote($tag, '/');
     if (!preg_match('/<' . $tag_pattern . '[^>]*>(.*?)<\/' . $tag_pattern . '>/si', (string) $xml, $match)) {
@@ -613,6 +636,7 @@ function seo_google_trends_regex_tag($xml, $tag) {
     return seo_google_trends_xml_text(wp_strip_all_tags((string) $value));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_rss_regex($body) {
     if (!preg_match_all('/<item\b[^>]*>(.*?)<\/item>/si', (string) $body, $matches)) {
         return array();
@@ -652,6 +676,7 @@ function seo_google_trends_parse_rss_regex($body) {
     return $rows;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_rss($body) {
     $rows = seo_google_trends_parse_rss_simplexml($body);
     if (!$rows) {
@@ -660,6 +685,7 @@ function seo_google_trends_parse_rss($body) {
     return $rows;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_fetch_rss($geo = 'ES') {
     $url = seo_google_trends_rss_url($geo);
     $response = wp_safe_remote_get($url, array(
@@ -701,6 +727,7 @@ function seo_google_trends_fetch_rss($geo = 'ES') {
     return array('url' => $url, 'rows' => $rows, 'bytes' => strlen($body));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_meta_decode($value) {
     if (is_array($value)) {
         return $value;
@@ -709,6 +736,7 @@ function seo_google_trends_meta_decode($value) {
     return is_array($decoded) ? $decoded : array();
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_upsert_signal(array $row) {
     global $wpdb;
 
@@ -770,6 +798,7 @@ function seo_google_trends_upsert_signal(array $row) {
     return false !== $wpdb->query($sql);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_store_radar_rows(array $rows, array $universe, array $settings, $source_url) {
     $minimum = max(25, min(90, (int) $settings['min_relevance']));
     $candidates = array();
@@ -840,6 +869,7 @@ function seo_google_trends_store_radar_rows(array $rows, array $universe, array 
  * Minutos de desfase que espera la interfaz publica de Trends. Google usa el
  * signo inverso respecto al offset UTC habitual (Madrid UTC+2 => -120).
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_tz_minutes() {
     try {
         $timezone = wp_timezone();
@@ -850,11 +880,13 @@ function seo_google_trends_public_tz_minutes() {
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_backoff() {
     $value = get_transient(SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT);
     return is_array($value) ? $value : array();
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_set_backoff($http_code, $message) {
     $http_code = absint($http_code);
     if (429 === $http_code) {
@@ -875,6 +907,7 @@ function seo_google_trends_public_set_backoff($http_code, $message) {
     return $payload;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_decode_json($body) {
     $body = ltrim((string) $body);
     if ($body === '') {
@@ -899,6 +932,7 @@ function seo_google_trends_public_decode_json($body) {
     return $decoded;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_cookie_merge(array &$jar, $response) {
     foreach ((array) wp_remote_retrieve_cookies($response) as $cookie) {
         if (is_object($cookie) && !empty($cookie->name)) {
@@ -907,6 +941,7 @@ function seo_google_trends_public_cookie_merge(array &$jar, $response) {
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_headers($geo = 'ES', $referer = '') {
     if ($referer === '') {
         /*
@@ -938,6 +973,7 @@ function seo_google_trends_public_headers($geo = 'ES', $referer = '') {
  * rechazo/bloqueo; 404/410/5xx o errores de red del HTML no deben impedir probar
  * directamente /trends/api/explore.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_warmup($geo = 'ES') {
     $geo = strtoupper((string) $geo);
     $url = add_query_arg(
@@ -981,6 +1017,7 @@ function seo_google_trends_public_warmup($geo = 'ES') {
     return array();
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_error_context($error) {
     if (!is_wp_error($error)) {
         return array();
@@ -996,6 +1033,7 @@ function seo_google_trends_public_error_context($error) {
  * fallback de compatibilidad, se envian como formulario URL-encoded en el body.
  * El diagnostico guarda solo fase/metodo/ruta/codigo; nunca tokens ni req completos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_json_request($method, $endpoint, array $params, array &$cookies, $geo = 'ES', $phase = 'request', $apply_backoff = true) {
     $method = strtoupper((string) $method);
     $url = $endpoint;
@@ -1110,6 +1148,7 @@ function seo_google_trends_public_json_request($method, $endpoint, array $params
  * repite GET. Un 404/405 prueba POST una vez como fallback de compatibilidad,
  * porque Google ha alternado el metodo de esta superficie no documentada.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_explore_request(array $request, array &$cookies, $geo = 'ES') {
     $params = array(
         'hl'  => 'es-ES',
@@ -1182,11 +1221,13 @@ function seo_google_trends_public_explore_request(array $request, array &$cookie
     return $result;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_pause(array $settings) {
     $milliseconds = max(1500, min(5000, absint($settings['explore_delay_ms'] ?? 2200)));
     usleep($milliseconds * 1000);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_anchor(array $settings, array $universe) {
     $manual = sanitize_text_field((string) ($settings['explore_anchor'] ?? ''));
     if ($manual !== '') {
@@ -1209,6 +1250,7 @@ function seo_google_trends_public_anchor(array $settings, array $universe) {
  * Devuelve areas que toca revisar. El cursor reparte el trabajo entre ciclos y
  * el cache evita volver a pedir la misma area continuamente.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_select_seeds(array $settings, array $universe, $force = false) {
     global $wpdb;
     $anchor = seo_google_trends_public_anchor($settings, $universe);
@@ -1273,6 +1315,7 @@ function seo_google_trends_public_select_seeds(array $settings, array $universe,
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_widget_keyword(array $widget) {
     return sanitize_text_field((string) (
         $widget['request']['restriction']['complexKeywordsRestriction']['keyword'][0]['value']
@@ -1280,6 +1323,7 @@ function seo_google_trends_public_widget_keyword(array $widget) {
     ));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_find_widget(array $widgets, $kind, $keyword = '') {
     $kind = strtoupper((string) $kind);
     $keyword_key = seo_google_trends_normalize($keyword);
@@ -1306,6 +1350,7 @@ function seo_google_trends_public_find_widget(array $widgets, $kind, $keyword = 
     return $fallback;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_series_stats(array $values) {
     $values = array_values(array_filter(array_map('floatval', $values), static function ($value) {
         return is_finite($value) && $value >= 0;
@@ -1331,6 +1376,7 @@ function seo_google_trends_public_series_stats(array $values) {
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_parse_timeline(array $payload, array $terms) {
     $series = array();
     foreach ($terms as $index => $term) {
@@ -1353,6 +1399,7 @@ function seo_google_trends_public_parse_timeline(array $payload, array $terms) {
     return $out;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_store_interest(array $stats, $anchor, $geo, $timeframe) {
     $stored = 0;
     $anchor_stats = (array) ($stats[$anchor] ?? array());
@@ -1386,6 +1433,7 @@ function seo_google_trends_public_store_interest(array $stats, $anchor, $geo, $t
     return $stored;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_parse_related(array $payload) {
     $out = array();
     $ranked = (array) ($payload['default']['rankedList'] ?? array());
@@ -1413,6 +1461,7 @@ function seo_google_trends_public_parse_related(array $payload) {
     return $out;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_store_related($seed, array $rows, $geo, $timeframe) {
     global $wpdb;
     $table = esc_sql( seo_google_trends_table() );
@@ -1453,6 +1502,7 @@ function seo_google_trends_public_store_related($seed, array $rows, $geo, $timef
  * sirven para descubrir vocabulario/entidades, pero NO se tratan como prueba de
  * demanda ni como sustituto del indice 0-100 de Explore.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_autocomplete($seed, $geo = 'ES') {
     $cookies = array();
     $endpoint = 'https://trends.google.com/trends/api/autocomplete/' . rawurlencode((string) $seed);
@@ -1478,6 +1528,7 @@ function seo_google_trends_public_autocomplete($seed, $geo = 'ES') {
     return $rows;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_public_store_autocomplete($seed, array $rows, $geo = 'ES') {
     global $wpdb;
     $table = esc_sql( seo_google_trends_table() );
@@ -1516,6 +1567,7 @@ function seo_google_trends_public_store_autocomplete($seed, array $rows, $geo = 
  * hasta tres areas para que el interes sea util entre lotes, y solo descarga
  * las busquedas relacionadas del area foco. Eso mantiene el trafico bajo.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_sync_public_market(array $settings, array $universe, $force = false) {
     if (empty($settings['public_explore'])) {
         return array('status' => 'disabled', 'stored' => 0, 'provider' => 'public_explore', 'seeds' => 0);
@@ -1693,7 +1745,9 @@ function seo_google_trends_sync_public_market(array $settings, array $universe, 
  * Mantiene el punto de extension existente. Si no hay proveedor externo,
  * utiliza Explore publico anonimo como proveedor integrado.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_sync_market_provider(array $settings, array $universe, $force) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     $payload = apply_filters('seo_google_trends_market_provider_sync', null, $settings, $universe, $force);
     if (null === $payload) {
         return seo_google_trends_sync_public_market($settings, $universe, $force);
@@ -1733,11 +1787,13 @@ function seo_google_trends_sync_market_provider(array $settings, array $universe
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_last_error() {
     $error = get_transient(SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT);
     return is_string($error) ? trim($error) : '';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_last_sync() {
     $state = get_option(SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION, array());
     return is_array($state) ? $state : array();
@@ -1747,6 +1803,7 @@ function seo_google_trends_last_sync() {
  * Actualiza el radar externo. El segundo argumento se conserva por
  * compatibilidad con llamadas anteriores, pero ya no limita semillas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_sync($force = false, $limit = 0) {
     unset($limit);
     seo_google_trends_maybe_install();
@@ -1872,6 +1929,7 @@ function seo_google_trends_sync($force = false, $limit = 0) {
     return $state;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_sync_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para actualizar Google Trends.', 'taxocommerce-google-bing'));
@@ -1894,6 +1952,7 @@ function seo_google_trends_sync_handler() {
     exit;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_detect_columns($header) {
     $map = array();
     foreach ((array) $header as $index => $heading) {
@@ -1911,6 +1970,7 @@ function seo_google_trends_detect_columns($header) {
     return $map;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_parse_value($raw) {
     if (is_int($raw) || is_float($raw)) {
         return array((float) $raw, false);
@@ -1949,6 +2009,7 @@ function seo_google_trends_parse_value($raw) {
  * Detecta el separador aunque el CSV empiece con líneas de metadatos sin
  * columnas. Google Trends puede exportar coma o punto y coma según el idioma.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_detect_delimiter($handle) {
     if (!is_resource($handle)) {
         return ',';
@@ -2003,6 +2064,7 @@ function seo_google_trends_detect_delimiter($handle) {
  * @param string $mode Modo de apertura.
  * @return resource|false
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_csv_stream_open($path, $mode) {
     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() requiere un recurso PHP nativo para streaming.
     return fopen($path, $mode);
@@ -2014,11 +2076,13 @@ function seo_google_trends_csv_stream_open($path, $mode) {
  * @param resource $handle Recurso.
  * @return bool
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_csv_stream_close($handle) {
     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Cierre explícito del recurso usado por fgetcsv().
     return fclose($handle);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_import_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para importar Google Trends.', 'taxocommerce-google-bing'));
@@ -2122,6 +2186,7 @@ function seo_google_trends_import_handler() {
     exit;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_clear_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para borrar Google Trends.', 'taxocommerce-google-bing'));
@@ -2143,6 +2208,7 @@ function seo_google_trends_clear_handler() {
     exit;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_get_signals($limit = 500) {
     global $wpdb;
     seo_google_trends_maybe_install();
@@ -2168,6 +2234,7 @@ function seo_google_trends_get_signals($limit = 500) {
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_provider_counts() {
     global $wpdb;
     seo_google_trends_maybe_install();
@@ -2191,6 +2258,7 @@ function seo_google_trends_provider_counts() {
     return $out;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_provider_status() {
     $state = seo_google_trends_last_sync();
     $error = seo_google_trends_last_error();
@@ -2333,6 +2401,7 @@ function seo_google_trends_provider_status() {
 /**
  * Alias estable para paneles que necesiten distinguir descarga y datos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_source_status() {
     $status = seo_google_trends_provider_status();
     return array(
@@ -2345,6 +2414,7 @@ function seo_google_trends_source_status() {
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_market_summary($limit = 250) {
     $rows = seo_google_trends_get_signals(max(1, min(5000, absint($limit))));
     $out = array();
@@ -2467,12 +2537,14 @@ function seo_google_trends_market_summary($limit = 250) {
     return array_slice(array_values($out), 0, max(1, min(5000, absint($limit))));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_trends_status_badge($connected, $label) {
     $background = $connected ? '#edfaef' : '#fcf0f1';
     $color = $connected ? '#116329' : '#8a2424';
     return '<span style="display:inline-block;padding:4px 9px;border-radius:999px;background:' . esc_attr($background) . ';color:' . esc_attr($color) . ';font-weight:700;font-size:12px;">' . esc_html($label) . '</span>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_trends_market() {
     seo_google_trends_maybe_install();
     $settings = seo_google_trends_get_settings();
