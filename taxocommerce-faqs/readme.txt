@@ -4,7 +4,7 @@ Tags: faq, woocommerce, questions, csv, vocabulary
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,13 @@ No. Deactivation and ordinary plugin updates preserve FAQ records.
 On multisite, the cleanup is limited to sites marked as initialized by this module. Removing files manually by FTP does not run `uninstall.php`.
 
 == Changelog ==
+
+= 0.1.5 =
+* Add an in-plugin Auto Test tab with 25 read-only checks across six groups.
+* Add a separate read-only Manual tab with eleven user-guide chapters and six technical chapters, following the family layout.
+* Store before/after deployment baselines per user and site, compare regressions and export sanitized JSON.
+* Never change FAQ rows, run migrations, or import/export files in diagnostic mode; live operations remain manual.
+
 
 = 0.1.4 =
 * Replace direct PHP CSV file handles with WordPress filesystem reads and streamed CSV encoding.
