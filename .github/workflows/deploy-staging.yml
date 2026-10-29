@@ -566,6 +566,10 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
+            **/*.md
+            **/*.bak
+            **/*.pot
 
       - name: Validate System Check PHP syntax
         run: find taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -n1 php -l
