@@ -952,13 +952,28 @@ final class TCD_Sources {
     private static function review_source_total( $lesson ) {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
+        // L8 samples L1-L7; L10 samples L1-L9. All lesson numbers are contiguous.
+        // Read the grouped counts once instead of issuing seven or nine SQL round trips.
+        $max_lesson = 8 === absint( $lesson ) ? 7 : 9;
+        $counts = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT lesson, COUNT(*) AS total FROM %i WHERE lesson BETWEEN %d AND %d GROUP BY lesson',
+                $table,
+                1,
+                $max_lesson
+            ),
+            ARRAY_A
+        );
+        if ( ! is_array( $counts ) || $wpdb->last_error ) {
+            return 0;
+        }
+
         $total = 0;
-        foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
-            $count = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM %i WHERE lesson=%d",
-                $table, absint( $source_lesson )
-            ) ) );
-            $total += min( 110, $count );
+        foreach ( $counts as $row ) {
+            $source_lesson = absint( $row['lesson'] ?? 0 );
+            if ( $source_lesson >= 1 && $source_lesson <= $max_lesson ) {
+                $total += min( 110, absint( $row['total'] ?? 0 ) );
+            }
         }
         return $total;
     }
