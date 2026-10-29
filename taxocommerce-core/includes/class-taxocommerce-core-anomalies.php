@@ -1429,24 +1429,16 @@ function taxocommerce_core_anomalies_render_report() {
             $deleted_empty = absint(wp_unslash($_GET['empty_categories_deleted']));
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
-            $skipped_empty = isset($_GET['empty_categories_skipped'])
-                ? absint(wp_unslash($_GET['empty_categories_skipped']))
-                : 0;
+            $skipped_empty = isset( $_GET['empty_categories_skipped'] ) ? absint( wp_unslash( $_GET['empty_categories_skipped'] ) ) : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
-            $relations_empty = isset($_GET['empty_relations_deleted'])
-                ? absint(wp_unslash($_GET['empty_relations_deleted']))
-                : 0;
+            $relations_empty = isset( $_GET['empty_relations_deleted'] ) ? absint( wp_unslash( $_GET['empty_relations_deleted'] ) ) : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
-            $nodes_empty = isset($_GET['empty_nodes_deleted'])
-                ? absint(wp_unslash($_GET['empty_nodes_deleted']))
-                : 0;
+            $nodes_empty = isset( $_GET['empty_nodes_deleted'] ) ? absint( wp_unslash( $_GET['empty_nodes_deleted'] ) ) : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
-            $faqs_empty = isset($_GET['empty_category_faqs_deleted'])
-                ? absint(wp_unslash($_GET['empty_category_faqs_deleted']))
-                : 0;
+            $faqs_empty = isset( $_GET['empty_category_faqs_deleted'] ) ? absint( wp_unslash( $_GET['empty_category_faqs_deleted'] ) ) : 0;
 
             echo '<div class="notice notice-success inline"><p>';
             echo 'Limpieza de categorías vacías completada. Categorías eliminadas: <strong>' . esc_html(number_format_i18n($deleted_empty)) . '</strong>.';
