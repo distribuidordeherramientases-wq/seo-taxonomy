@@ -738,6 +738,7 @@ final class TCD_Feedback {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         if ( self::table_exists( $rel ) && self::table_exists( $voc ) ) {
             $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT r.object_id,v.semantic_group,v.slug,v.label
@@ -751,6 +752,7 @@ final class TCD_Feedback {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
             $rank_map = array();
             foreach ( $ids as $position => $id ) $rank_map[ $id ] = $position;
