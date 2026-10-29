@@ -339,6 +339,7 @@ function seo_clean_db_stream_table_sql($table) {
     global $wpdb;
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- SHOW CREATE TABLE only reads schema for backup; it does not alter schema.
     $create = $wpdb->get_row('SHOW CREATE TABLE `' . esc_sql($table) . '`', ARRAY_N);
 
     if (!$create || empty($create[1])) {
@@ -1031,6 +1032,7 @@ function seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by
         $args = array_merge(array($role), $object_ids, array($role), $object_ids);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal relations table plus generated %d placeholders; all role/ID values are bound through prepare().
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic placeholders are generated and SQL is prepared before this call; live rows required.
         $found = $wpdb->get_col($wpdb->prepare($sql, $args));
 
         foreach ((array) $found as $id) {
@@ -1062,6 +1064,7 @@ function seo_clean_db_delete_ids($table, $column, $ids) {
         $sql = $wpdb->prepare('DELETE FROM %i WHERE id IN (' . $holders . ')', $values);
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL is the already prepared statement above.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit administrator SQL operation; cache must not replay a mutation.
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Already prepared allowlisted deletion; admin triggered and non-cacheable.
         $affected = $wpdb->query($sql);
         if (false === $affected) {
             return false;
@@ -1196,6 +1199,7 @@ function seo_clean_db_reset_multiple_role_objects($relations_table, $nodes_table
         $sql = $wpdb->prepare('SELECT id FROM %i WHERE object_id=%d AND seo_role IN (' . $holders . ')', ...array_merge(array($nodes_table, $object_id), $roles));
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared on the preceding line.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrative live database diagnosis; stale cached results would conceal changes.
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared dynamic roles query, live IDs required for administrator repair.
         $node_ids = array_merge($node_ids, array_map('absint', (array) $wpdb->get_col($sql)));
     }
     $relation_ids = seo_clean_db_get_relation_ids_for_objects($relations_table, $objects_by_role);
@@ -1880,7 +1884,9 @@ function seo_clean_db_delete_expired_transients() {
 
     foreach ($timeouts as $timeout_name) {
         $transient_name = str_replace('_transient_timeout_', '_transient_', $timeout_name);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator initiated deletion of expired transient timeout; never cache.
         $deleted += (int) $wpdb->delete($wpdb->options, array('option_name' => $timeout_name), array('%s'));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator initiated deletion of expired transient value; never cache.
         $deleted += (int) $wpdb->delete($wpdb->options, array('option_name' => $transient_name), array('%s'));
     }
 
