@@ -15,6 +15,9 @@ jobs:
       - name: Checkout staging
         uses: actions/checkout@v4
 
+      - name: Validate Core FTPS cleanup Python syntax
+        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
       - name: Validate Core architecture report before any STAGING FTP upload
         run: |
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
