@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.33
+Stable tag: 0.4.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,13 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.34 =
+* Add a native Auto Test screen and dashboard shortcut for administrator-triggered, read-only functional checks.
+* Report individual pass/fail/skipped results with error details, timings and version, isolating failures between checks.
+* Cover runtime, WP/WooCommerce content reads, country metadata, SEO roles and relation samples, country menus, modules, vocabulary and architecture summary. Never create, delete or sync real content during tests.
+* Keep the last test result in a user-specific transient for one day; writing UAT remains explicitly outside the production-safe suite.
+
 
 = 0.4.33 =
 * Ensure each country creates, saves and edits a dedicated native WordPress menu with a distinct country-specific name.
