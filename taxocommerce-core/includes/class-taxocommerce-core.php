@@ -260,7 +260,7 @@ final class TaxoCommerce_Core {
 			'taxocommerce-auditor'       => 'Auditor',
 			'taxocommerce-social'        => 'Social',
 			'seo-facturas'               => 'Billing',
-			'seo-logistica'              => 'Logistics',
+			'taxocommerce-logistica'     => 'Logistics',
 		);
 
 		foreach ( $submenu['taxocommerce-core'] as &$item ) {
@@ -520,7 +520,7 @@ final class TaxoCommerce_Core {
 				'org_slug'      => 'taxocommerce-logistica',
 				'search_term'   => 'TaxoCommerce Logistics',
 				'wordpress_org' => false,
-				'admin_url'     => admin_url( 'admin.php?page=seo-logistica' ),
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-logistica' ),
 				'description'   => __( 'WooCommerce order weights, dimensions, and shipping-cost rules.', 'taxocommerce-core' ),
 			),
 			'facturacion' => array(
