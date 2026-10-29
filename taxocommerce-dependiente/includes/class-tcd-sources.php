@@ -998,35 +998,82 @@ final class TCD_Sources {
     private static function review_batch( $lesson, $cursor, $limit ) {
         global $wpdb;
         $table = TCD_Academy::knowledge_table();
-        $parts = array();
-        $params = array();
-        foreach ( self::review_source_lessons( $lesson ) as $source_lesson ) {
-            $parts[] = '(SELECT id,lesson,source_type,source_id,title,context_json,status
-                         FROM %i
-                         WHERE lesson=%d
-                         ORDER BY id ASC
-                         LIMIT 110)';
-            $params[] = $table;
-            $params[] = absint( $source_lesson );
-        }
-        if ( ! $parts ) return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
-
-        $params[] = $limit + 1;
-        $params[] = $cursor;
-        // The UNION includes only fixed SQL subqueries with %i/%d placeholders, and
-        // $params contains the identifier and lesson for each clause followed by
-        // the global LIMIT and OFFSET. No user-supplied SQL is concatenated.
-        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Static analysis cannot infer placeholder counts for fixed repeated SQL fragments and their matching parameter array.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy review requires live plugin-owned learning state; cached results would conceal progress.
+        // L8 reviews L1-L7 and L10 reviews L1-L9. Keep the query structure
+        // constant: -1 makes the two unused L8 branches return no rows.
+        // The 110-row cap is applied inside each lesson before global pagination.
+        $source_lessons = array_pad( self::review_source_lessons( $lesson ), 9, -1 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live, plugin-owned learning snapshots must not be cached between batches.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
+                'SELECT * FROM (
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                     UNION ALL
+                     (SELECT id,lesson,source_type,source_id,title,context_json,status
+                        FROM %i
+                        WHERE lesson=%d
+                        ORDER BY id ASC
+                        LIMIT 110)
+                 ) tcd_review_sample
                  ORDER BY lesson ASC,id ASC LIMIT %d OFFSET %d',
-                $params
+                $table, (int) $source_lessons[0],
+                $table, (int) $source_lessons[1],
+                $table, (int) $source_lessons[2],
+                $table, (int) $source_lessons[3],
+                $table, (int) $source_lessons[4],
+                $table, (int) $source_lessons[5],
+                $table, (int) $source_lessons[6],
+                $table, (int) $source_lessons[7],
+                $table, (int) $source_lessons[8],
+                $limit + 1, $cursor
             ),
             ARRAY_A
         );
-        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         $more = count( $rows ) > $limit;
         $rows = array_slice( $rows, 0, $limit );
         $items = array();
