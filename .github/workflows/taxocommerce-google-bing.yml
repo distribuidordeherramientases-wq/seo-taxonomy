@@ -54,8 +54,27 @@ jobs:
           test -s taxocommerce-google-bing/includes/class-taxocommerce-connections-amazon.php
           test -s taxocommerce-google-bing/includes/class-taxocommerce-connections-pinterest.php
           if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-google-bing --include='*.php'; then exit 1; fi
-      - name: Package ZIP
-        run: zip -qr taxocommerce-google-bing.zip taxocommerce-google-bing
+      - name: Build clean WordPress.org distribution
+        run: |
+          mkdir -p build/taxocommerce-google-bing
+          rsync -a \
+            --exclude='/tests/' \
+            --exclude='/.ftp-deploy-sync-state.json' \
+            --exclude='/ftp-deploy-sync-state.json' \
+            --exclude='/README.md' \
+            --exclude='/.git*' \
+            --exclude='/*.bak' \
+            taxocommerce-google-bing/ build/taxocommerce-google-bing/
+          (cd build && zip -qr ../taxocommerce-google-bing.zip taxocommerce-google-bing)
+          unzip -l taxocommerce-google-bing.zip > /tmp/insights-package-manifest.txt
+          ! grep -Eq 'taxocommerce-google-bing/tests/|/\\.ftp-deploy-sync-state\\.json|/ftp-deploy-sync-state\\.json' /tmp/insights-package-manifest.txt
+          test -s build/taxocommerce-google-bing/includes/class-taxocommerce-google-bing-user-guide.php
+          test -s build/taxocommerce-google-bing/includes/analysis/analista-bootstrap.php
+      - name: WordPress.org Plugin Check on packaged files
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/taxocommerce-google-bing'
+          strict: 'false'
       - uses: actions/upload-artifact@v4
         with:
           name: taxocommerce-insights-${{ github.sha }}
@@ -75,10 +94,38 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./taxocommerce-google-bing/
+          state-name: ftp-deploy-sync-state.json
           server-dir: ./wp-content/plugins/taxocommerce-google-bing/
           dry-run: false
           log-level: standard
           exclude: |
             **/.git*
             **/node_modules/**
+            **/tests/**
+            README.md
             **/*.bak
+      - name: Remove legacy hidden FTPS metadata from staging
+        env:
+          FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+          ftp = ftplib.FTP_TLS()
+          ftp.connect(os.environ['FTP_HOST'], 21, timeout=40)
+          try:
+              ftp.login(os.environ['FTP_USER'], os.environ['FTP_PASS'])
+              ftp.prot_p()
+              ftp.cwd('./wp-content/plugins/taxocommerce-google-bing/')
+              try:
+                  ftp.delete('.ftp-deploy-sync-state.json')
+                  print('Removed legacy hidden FTP state file from Insights staging directory.')
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith('550'):
+                      raise
+                  print('Legacy hidden state file is absent.')
+          finally:
+              ftp.quit()
+          PY
