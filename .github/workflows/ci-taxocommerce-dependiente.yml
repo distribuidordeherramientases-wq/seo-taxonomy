@@ -31,6 +31,8 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-dependiente -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
+      - name: Grouped Auto Test regression
+        run: php taxocommerce-dependiente/tests/auto-test-smoke.php
       - name: Auditable learning regression guards
         run: php taxocommerce-dependiente/tests/learning-smoke.php
       - name: L9 snapshot language and ranking regression

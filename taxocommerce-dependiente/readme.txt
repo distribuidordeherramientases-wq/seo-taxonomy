@@ -5,13 +5,15 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.16
+Stable tag: 0.3.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 An auditable catalog assistant for WooCommerce, with independent learning, semantic interpretation and customer-facing product search.
 
 == Description ==
+
+Auto Test: 51 independent read-only checks grouped by runtime, schema, L1-L10 sources/quality, M11, search/feedback, M12 and backup. Reports are per-user transients; no new tables or background jobs. Expensive or destructive UAT remains explicitly unexecuted.
 
 TaxoCommerce Assistant builds searchable product knowledge from the site's WooCommerce catalog and available editorial content.
 
