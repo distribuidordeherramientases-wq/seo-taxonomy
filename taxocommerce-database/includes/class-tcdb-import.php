@@ -161,13 +161,11 @@ final class TCDB_Import {
         TCDB_Storage::authorize( 'tcdb_import_apply' );
         $token = isset( $_POST['tcdb_token'] ) && is_string( $_POST['tcdb_token'] )
             ? sanitize_text_field( wp_unslash( $_POST['tcdb_token'] ) ) : '';
-        $confirm = isset( $_POST['tcdb_confirm'] ) && is_string( $_POST['tcdb_confirm'] )
-            ? sanitize_text_field( wp_unslash( $_POST['tcdb_confirm'] ) ) : '';
         $backup = isset( $_POST['tcdb_backup'] ) && is_string( $_POST['tcdb_backup'] )
             && '1' === sanitize_text_field( wp_unslash( $_POST['tcdb_backup'] ) );
         $data = self::get_preview( $token );
-        if ( ! $data || 'IMPORTAR' !== $confirm || ! $backup ) {
-            wp_die( 'Confirma IMPORTAR y que dispones de una copia de seguridad. Repite el análisis si ha caducado.' );
+        if ( ! $data || ! $backup ) {
+            wp_die( 'Comprueba que dispones de un backup válido y vuelve a realizar la vista previa si ha caducado.' );
         }
         $table = $data['table'];
         $tables = TCDB_Storage::tables();
