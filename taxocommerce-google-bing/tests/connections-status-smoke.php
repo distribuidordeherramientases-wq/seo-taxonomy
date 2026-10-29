@@ -28,7 +28,7 @@ $cases = array(
 foreach ( $cases as $i => $case ) {
     $actual = TaxoCommerce_Connections_Status::state( $case[0], $case[1], $now );
     if ( $case[2] !== $actual ) {
-        fwrite( STDERR, "FAIL connection state " . ( $i + 1 ) . ": expected " . $case[2] . ", received " . $actual . "\n" );
+        print( "FAIL connection state " . ( $i + 1 ) . ": expected " . $case[2] . ", received " . $actual . "\n" );
         exit( 1 );
     }
 }
