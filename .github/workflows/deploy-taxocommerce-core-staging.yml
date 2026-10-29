@@ -27,6 +27,9 @@ jobs:
       - name: PHP lint
         run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: Validate Core FTPS cleanup Python syntax
+        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
       - name: Verify SEO architecture report before deploy
         run: php taxocommerce-core/tests/architecture-report-smoke.php
 
@@ -72,10 +75,24 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-core/
           server-dir: ./wp-content/plugins/taxocommerce-core/
+          # Store FTP sync state outside the installed plugin directory.
+          state-name: ../.taxocommerce-core-standalone-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            tests/**
+            **/tests/**
+            .ftp-deploy-sync-state.json
+            **/.ftp-deploy-sync-state.json
             **/*.bak
+
+      - name: Remove obsolete Core test files and hidden FTP state from STAGING
+        env:
+          TC_CORE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_CORE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_CORE_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
