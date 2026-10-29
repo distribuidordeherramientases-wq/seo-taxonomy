@@ -107,10 +107,10 @@ jobs:
           {
             echo "## $PLUGIN - WordPress Plugin Check"
             if test -f "$RUNNER_TEMP/plugin-check-results.txt"; then
-              echo '\`\`\`text'
+              echo '```text'
               head -c 20000 "$RUNNER_TEMP/plugin-check-results.txt"
               echo
-              echo '\`\`\`'
+              echo '```'
             else
               echo 'Plugin Check report unavailable: inspect earlier steps.'
             fi
