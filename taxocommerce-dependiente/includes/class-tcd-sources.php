@@ -996,6 +996,7 @@ final class TCD_Sources {
 
         $params[] = $limit + 1;
         $params[] = $cursor;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- SQL is assembled solely from fixed SELECT clauses containing %i/%d placeholders; every table and lesson value is bound in $params.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT * FROM (' . implode( ' UNION ALL ', $parts ) . ') tcd_review_sample
