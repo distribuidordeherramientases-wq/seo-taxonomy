@@ -112,10 +112,10 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '<div class="tc-editor-shell">';
         echo '<div class="tc-editor-top"><a class="tc-back-link" href="' . esc_url( $back ) . '">' . esc_html__( '← Volver a contenidos', 'taxocommerce-core' ) . '</a><div class="tc-editor-top-actions">';
         if ( $permalink ) {
-            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">Ver en la tienda ↗</a>';
+            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">' . esc_html__( 'Ver en la tienda ↗', 'taxocommerce-core' ) . '</a>';
         }
         if ( $native ) {
-            echo '<a class="button" href="' . esc_url( $native ) . '">Editor WordPress / WooCommerce ↗</a>';
+            echo '<a class="button" href="' . esc_url( $native ) . '">' . esc_html__( 'Editor WordPress / WooCommerce ↗', 'taxocommerce-core' ) . '</a>';
         }
         echo '</div></div>';
         $types = array( 'products' => 'PRODUCTO', 'categories' => 'CATEGORÍA', 'posts' => 'POST', 'pages' => 'PÁGINA' );
@@ -144,7 +144,7 @@ final class TaxoCommerce_Core_Editor_UI {
 
     private static function close_form( $type ) {
         echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span>Los cambios se aplican al contenido original, sin crear copias.</span></div>';
-        echo '<button type="submit" class="button button-primary button-hero">Guardar cambios</button></footer></form></div>';
+        echo '<button type="submit" class="button button-primary button-hero">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></footer></form></div>';
     }
 
     private static function rich_editor( $value, $label, $rows = 14 ) {
