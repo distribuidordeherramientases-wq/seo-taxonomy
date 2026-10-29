@@ -3,6 +3,7 @@
  * Plugin Name: TaxoCommerce Campaigns
  * Description: Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.
  * Version: 0.1.0
+ * Update URI: https://www.distribuidordeherramientas.es/taxocommerce-updates/taxocommerce-campaigns/
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
