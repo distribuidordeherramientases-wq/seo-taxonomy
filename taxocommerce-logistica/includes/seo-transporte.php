@@ -11,11 +11,10 @@ defined('ABSPATH') || exit;
 if (!class_exists('SEO_Transporte_Costes')) {
     final class SEO_Transporte_Costes {
         const OPTION = 'seo_transporte_costes_settings';
-        const PAGE        = 'seo-logistica';
+        const PAGE        = 'taxocommerce-logistica';
         const LEGACY_PAGE = 'seo-transporte';
 
         public static function init() {
-            add_action('admin_menu', array(__CLASS__, 'register_legacy_page'), 30);
             add_action('admin_post_seo_transporte_save', array(__CLASS__, 'save_settings'));
             add_action('admin_post_seo_transporte_export', array(__CLASS__, 'export_settings'));
             add_action('admin_post_seo_transporte_import', array(__CLASS__, 'import_settings'));
@@ -32,8 +31,6 @@ if (!class_exists('SEO_Transporte_Costes')) {
 
             add_filter('woocommerce_cart_shipping_packages', array(__CLASS__, 'filter_shipping_packages_destination'), 999, 1);
             add_filter('woocommerce_package_rates', array(__CLASS__, 'filter_package_rates'), 999, 2);
-            add_filter('parent_file', array(__CLASS__, 'admin_parent_file'));
-            add_filter('submenu_file', array(__CLASS__, 'admin_submenu_file'));
         }
 
         public static function force_wc_shipping_enabled($enabled) {
