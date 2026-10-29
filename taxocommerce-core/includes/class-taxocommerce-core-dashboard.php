@@ -81,6 +81,14 @@ final class TaxoCommerce_Core_Dashboard {
 				'tone'        => 'info',
 				'slug'        => 'taxocommerce-core-menu',
 			),
+			array(
+				'title'       => __( 'Auto Test', 'taxocommerce-core' ),
+				'icon'        => 'dashicons-yes-alt',
+				'description' => __( 'Comprueba contenidos, países, jerarquía SEO, menús y módulos sin alterar datos.', 'taxocommerce-core' ),
+				'state'       => __( 'Pruebas bajo demanda', 'taxocommerce-core' ),
+				'tone'        => 'info',
+				'slug'        => TaxoCommerce_Core_Auto_Test::PAGE_SLUG,
+			),
 		);
 
 
