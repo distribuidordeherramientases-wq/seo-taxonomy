@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.8
+Stable tag: 1.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Bing downloads.
 * Google Trends automatically compares all Spanish clusters (up to 5 per chart), then separately compares each cluster's primary hubs on page load. The underlying SEO hierarchy is dynamic, category and secondary-hub consultations remain manual; five-speed browser load controller, pause/resume/stop, and links to Google Explore. Charts are visual and do not provide machine-readable growth scores or verification of search term meaning. Historical RSS snapshots remain supported.
 * Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views.
+* User Guide contains read-only User Manual and Technical Manual explaining active features, integrations, data and maintenance.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
 Opening reports does not automatically fetch provider data. Administrators explicitly initiate connection, download, refresh or research operations. Each external source requires the corresponding authorization and provider terms.
@@ -51,6 +52,12 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.9 =
+* Add User Guide with separate User Manual and Technical Manual, responsive layout and indexed H2/H3 sections.
+* Describe active Connections, Analysis, Search Console, Analytics, Bing and Trends workflows; report persistence and OAuth compatibility.
+* Keep provider calls, credential handling, reporting and all existing functions unchanged.
+
 
 = 1.1.5 =
 * Restored the previous Analista 3.9.0 engine as the Insights > Analysis tab instead of rebuilding it.
