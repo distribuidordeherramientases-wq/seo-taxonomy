@@ -28,7 +28,6 @@ $main=file_get_contents(dirname(__DIR__).'/taxocommerce-import-export.php');
 $admin=file_get_contents(dirname(__DIR__).'/includes/class-taxocommerce-import-export.php');
 assert_ie(strpos($main,'class-taxocommerce-import-export-auto-test.php')!==false,'class loaded');
 assert_ie(strpos($admin,'TaxoCommerce_Import_Export_Auto_Test::render()')!==false,'tab rendered');
-echo 'Import Export Auto Test smoke passed.'.PHP_EOL;
 
 /* Pre-deployment checks must not mutate the queue/export and must flag active jobs. */
 class TaxoCommerce_Import_Export_Batch { const OPTION_STATE = 'tcie_test_queue'; }
@@ -48,4 +47,4 @@ $GLOBALS['tcie_test_queue']=array('status'=>'waiting_next','enabled'=>1);
 $GLOBALS['tcie_test_export']=array('status'=>'processing');
 assert_ie('fail'===$queue->invoke(null)['status'],'active queue blocks deployment');
 assert_ie('fail'===$export->invoke(null)['status'],'active export blocks deployment');
-echo 'Import Export deployment safety smoke passed.'.PHP_EOL;
+echo 'Import Export Auto Test and deployment safety smoke passed.'.PHP_EOL;
