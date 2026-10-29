@@ -212,4 +212,16 @@ assert_tcdb( false !== strpos( $cleanup_source, "status='pending' AND scheduled_
 assert_tcdb( false === strpos( $cleanup_source, 'DELETE FROM ' . chr( 96 ) ), 'no direct interpolated deletion table' );
 assert_tcdb( false !== strpos( $cleanup_source, 'delete_transient( $transient )' ), 'WP API used for expired transient removal' );
 
+$legacy_clean = file_get_contents( $root . '/includes/legacy/seo-database-clean.php' );
+assert_tcdb( false !== strpos( $legacy_clean, 'namespace TCDB_Legacy;' ), 'legacy diagnostics isolated from monolith' );
+assert_tcdb( false !== strpos( $legacy_clean, "'data_errors' => 'Errores en datos'" ), 'full SEO integrity screen retained' );
+assert_tcdb( false !== strpos( $legacy_clean, "'database_cleanup' => 'Limpieza BBDD'" ), 'full WordPress/WooCommerce cleanup retained' );
+assert_tcdb( false !== strpos( $legacy_clean, "'export' => 'Exportar BBDD'" ), 'original backup tab retained' );
+assert_tcdb( false !== strpos( $legacy_clean, "case 'clean_wc_orphan_order_itemmeta':" ), 'all old cleanup actions retained' );
+assert_tcdb( false === strpos( $legacy_clean, 'SEO_Data_Layer' ), 'no legacy cross-plugin Data Layer dependency' );
+assert_tcdb( false === strpos( $legacy_clean, 'SEO_Data_Rollback' ), 'no historical rollback dependency' );
+assert_tcdb( false === strpos( $legacy_clean, 'Escribe LIMPIAR' ), 'no typed cleanup words' );
+assert_tcdb( false !== strpos( $legacy_clean, "array_chunk($ids, 500)" ), 'SQL chunks are not total deletion limits' );
+assert_tcdb( false !== strpos( $entry, 'includes/legacy/seo-database-clean.php' ), 'new module loads original complete cleanup' );
+
 echo "TaxoCommerce Database smoke OK: MySQL, CSV atomicity, prepared export pagination and family independence.\n";
