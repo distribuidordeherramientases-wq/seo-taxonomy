@@ -54,8 +54,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         global $wpdb;
         $table = self::nodes_table();
         $row = $wpdb->get_var( $wpdb->prepare(
-            "SELECT seo_role FROM {$table} WHERE object_type = %s AND object_id = %d AND status = 1 ORDER BY id DESC LIMIT 1",
-            'page', absint( $page_id )
+            "SELECT seo_role FROM %i WHERE object_type = %s AND object_id = %d AND status = 1 ORDER BY id DESC LIMIT 1",
+            $table, 'page', absint( $page_id )
         ) );
         return sanitize_key( (string) $row );
     }
@@ -66,8 +66,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         $role = sanitize_key( (string) $role );
         $table = self::nodes_table();
         $existing = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table} WHERE object_type = %s AND object_id = %d AND seo_role = %s LIMIT 1",
-            'page', $page_id, $role
+            "SELECT id FROM %i WHERE object_type = %s AND object_id = %d AND seo_role = %s LIMIT 1",
+            $table, 'page', $page_id, $role
         ) );
         $now = current_time( 'mysql' );
         $country = TaxoCommerce_Core_Country::post( $page_id );
@@ -204,10 +204,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
                 return;
             }
-            $found = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) );
+            $found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) );
             if ( ! $found ) {
                 $result = $wpdb->query(
-                    "ALTER TABLE {$table} ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER {$after_column}"
+                    $wpdb->prepare( "ALTER TABLE %i ADD COLUMN country_code CHAR(2) NULL DEFAULT NULL AFTER %i", $table, $after_column )
                 );
                 if ( false === $result ) {
                     return;
@@ -228,10 +228,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
-        $field = (string) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
+        $field = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code' ? 'country_code' : 'NULL AS country_code';
         if ( $type ) {
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type = %s", $type ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM %i WHERE relation_type = %s", $table, $type ),
                 ARRAY_A
             );
         } else {
@@ -239,7 +239,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Whitelisted SQL placeholders and known table name.
             $rows = $wpdb->get_results(
-                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM {$table} WHERE relation_type IN ({$placeholders})", $types ),
+                $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,{$field} FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
                 ARRAY_A
             );
         }
