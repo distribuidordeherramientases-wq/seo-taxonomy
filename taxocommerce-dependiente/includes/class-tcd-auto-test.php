@@ -193,11 +193,13 @@ final class TCD_Auto_Test {
 		$missing = array();
 		$wrong = array();
 		foreach ( $tables as $table => $required_columns ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
 			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 			if ( (string) $exists !== (string) $table ) {
 				$missing[] = $table;
 				continue;
 			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
 			$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
 			if ( ! is_array( $columns ) || $wpdb->last_error ) {
 				$wrong[] = $table . ' (no se pueden leer columnas)';
