@@ -29,6 +29,7 @@ final class TaxoCommerce_Core_Menu {
 	private $logger;
 
     public static function country( $write = false ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- GET is navigation; POST follows the menu handler nonce check.
         $params = $write ? $_POST : $_GET;
         $value = isset( $params['tc_country'] ) && is_string( $params['tc_country'] ) ? sanitize_text_field( wp_unslash( $params['tc_country'] ) ) : 'ES';
         return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
