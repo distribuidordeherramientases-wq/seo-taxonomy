@@ -289,12 +289,14 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_category_orphans_deleted'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
         $deleted = absint(wp_unslash($_GET['faq_category_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de categorías desaparecidas eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_product_orphans_deleted'])) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
         $deleted = absint(wp_unslash($_GET['faq_product_orphans_deleted']));
         echo '<div class="notice notice-success inline"><p>FAQs de productos desaparecidos eliminadas: <strong>' . esc_html(number_format_i18n($deleted)) . '</strong>.</p></div>';
     }
@@ -1112,6 +1114,7 @@ function taxocommerce_core_anomalies_render_report() {
     " );
 
     $non_commercial_post_slugs = (array) apply_filters(
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
         'seo_reports_non_commercial_post_slugs',
         array(
             'carrito',
@@ -1255,6 +1258,7 @@ function taxocommerce_core_anomalies_render_report() {
      * sin modificar el núcleo del informe.
      */
     $non_editorial_post_slugs = (array) apply_filters(
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
         'seo_reports_non_editorial_post_slugs',
         array(
             'carrito',
@@ -1313,6 +1317,7 @@ function taxocommerce_core_anomalies_render_report() {
             || in_array($post_slug, $non_editorial_post_slugs, true);
 
         $is_non_editorial = (bool) apply_filters(
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Retained legacy hook for backwards compatibility with existing extensions.
             'seo_reports_is_non_editorial_post',
             $is_non_editorial,
             $post_id,
@@ -1409,6 +1414,7 @@ function taxocommerce_core_anomalies_render_report() {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only recount notice.
         if (isset($_GET['product_categories_recounted'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $recounted_categories = absint(wp_unslash($_GET['product_categories_recounted']));
 
             echo '<div class="notice notice-success inline"><p>';
@@ -1419,20 +1425,25 @@ function taxocommerce_core_anomalies_render_report() {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice.
         if (isset($_GET['empty_categories_deleted'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $deleted_empty = absint(wp_unslash($_GET['empty_categories_deleted']));
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $skipped_empty = isset($_GET['empty_categories_skipped'])
                 ? absint(wp_unslash($_GET['empty_categories_skipped']))
                 : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $relations_empty = isset($_GET['empty_relations_deleted'])
                 ? absint(wp_unslash($_GET['empty_relations_deleted']))
                 : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $nodes_empty = isset($_GET['empty_nodes_deleted'])
                 ? absint(wp_unslash($_GET['empty_nodes_deleted']))
                 : 0;
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cleanup notice counter.
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only numeric redirect notice, no state mutation.
             $faqs_empty = isset($_GET['empty_category_faqs_deleted'])
                 ? absint(wp_unslash($_GET['empty_category_faqs_deleted']))
                 : 0;
