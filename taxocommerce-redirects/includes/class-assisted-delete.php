@@ -278,6 +278,7 @@ final class Assisted_Delete {
                 'fields'              => 'ids',
                 'no_found_rows'       => true,
                 'suppress_filters'    => false,
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Indexed taxonomy preflight is mandatory before category deletion, limited to one product ID.
                 'tax_query'           => array(
                     array(
                         'taxonomy'         => 'product_cat',

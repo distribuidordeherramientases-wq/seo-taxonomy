@@ -43,7 +43,11 @@ jobs:
         run: |
           set -euo pipefail
           test -s taxocommerce-redirects/taxocommerce-redirects.php
-          zip -q -r taxocommerce-redirects-0.1.7.zip taxocommerce-redirects/ -x '*/tests/*' '*/.git*' '*/.DS_Store'
+          zip -q -r taxocommerce-redirects-0.1.7.zip taxocommerce-redirects/ -x '*/tests/*' '*/.*'
+          if unzip -Z1 taxocommerce-redirects-0.1.7.zip | grep -E '(^|/)[.][^/]+'; then
+            echo 'ERROR: standalone Redirects ZIP contains hidden files'
+            exit 1
+          fi
           unzip -t taxocommerce-redirects-0.1.7.zip
           unzip -Z1 taxocommerce-redirects-0.1.7.zip | grep -Fx 'taxocommerce-redirects/taxocommerce-redirects.php'
 
@@ -65,6 +69,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-redirects/
           server-dir: ./wp-content/plugins/taxocommerce-redirects/
+          # FTP sync state must not be inside the installed WordPress plugin.
+          state-name: ../.taxocommerce-redirects-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -75,3 +81,28 @@ jobs:
             **/*.bak
             **/*.md
             **/*.pot
+
+      - name: Remove legacy hidden FTP state inside Redirects on STAGING
+        # This action deletes only the old sync marker, never redirect rules or code.
+        env:
+          TC_REDIRECTS_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_REDIRECTS_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_REDIRECTS_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["TC_REDIRECTS_FTP_HOST"], 21)
+          ftp.login(os.environ["TC_REDIRECTS_FTP_USER"], os.environ["TC_REDIRECTS_FTP_PASSWORD"])
+          ftp.prot_p()
+          ftp.cwd("./wp-content/plugins/taxocommerce-redirects/")
+          try:
+              ftp.delete(".ftp-deploy-sync-state.json")
+              print("Deleted previous hidden FTP state")
+          except ftplib.error_perm as exc:
+              if not str(exc).startswith("550"):
+                  raise
+          ftp.quit()
+          PY

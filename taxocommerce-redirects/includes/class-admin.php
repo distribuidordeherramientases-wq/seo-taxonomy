@@ -431,6 +431,7 @@ final class Admin {
             if ( $preserve_activity && isset( $item['last_hit'] ) && preg_match( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string) $item['last_hit'] ) ) {
                 $last = (string) $item['last_hit'];
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Import adds only validated redirect rows after duplicate and cycle checks.
             $ok = $wpdb->insert(
                 Store::table(),
                 array(
