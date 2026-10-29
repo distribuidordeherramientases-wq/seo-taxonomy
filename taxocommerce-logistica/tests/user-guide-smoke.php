@@ -14,6 +14,10 @@ function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/taxocommerce-logistica/'; }
 function add_action( $hook, $handler, $priority = 10, $arguments = 1 ) { $GLOBALS['guide_actions'][ $hook ][] = $handler; }
 function add_filter( $hook, $handler, $priority = 10, $arguments = 1 ) { $GLOBALS['guide_filters'][ $hook ][] = $handler; }
+function add_menu_page( $page_title, $menu_title, $capability, $slug, $callback, $icon = '', $position = null ) {
+    $GLOBALS['guide_menu'][] = array( 'slug' => $slug, 'title' => $menu_title, 'callback' => $callback );
+    return 'toplevel_page_' . $slug;
+}
 function current_user_can( $cap ) { return ! empty( $GLOBALS['guide_denied'] ) ? false : 'manage_woocommerce' === $cap || 'manage_options' === $cap; }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function wp_unslash( $value ) { return $value; }
@@ -44,7 +48,10 @@ function assert_guide( $condition, $message ) {
         exit( 1 );
     }
 }
-assert_guide( defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' ) && '0.2.3' === TAXOCOMMERCE_LOGISTICA_VERSION, 'Version 0.2.3' );
+assert_guide( defined( 'TAXOCOMMERCE_LOGISTICA_VERSION' ) && '0.2.4' === TAXOCOMMERCE_LOGISTICA_VERSION, 'Version 0.2.4' );
+taxocommerce_logistica_register_menu();
+assert_guide( count( $GLOBALS['guide_menu'] ?? array() ) === 1, 'Standalone fallback menu registered when Core is absent' );
+assert_guide( 'taxocommerce-logistica' === $GLOBALS['guide_menu'][0]['slug'], 'Standalone fallback retains unique route' );
 assert_guide( isset( $GLOBALS['guide_actions']['admin_enqueue_scripts'] ), 'Manual CSS registered' );
 $_GET['page'] = 'taxocommerce-logistica';
 $_GET['tc_logistica_tab'] = 'user-guide';
