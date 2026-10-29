@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.12
+Stable tag: 0.2.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,10 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.13 =
+* Add read-only Manual tab with comprehensive administrator and developer documentation, headings and anchor index.
+* Preserve all existing image processing actions, tabs, workers, permissions, and Media behavior.
 
 = 0.2.12 =
 * Added an Auto Test tab with 17 independent image-management checks, the Core-style traffic-light display and a temporary per-user result.
