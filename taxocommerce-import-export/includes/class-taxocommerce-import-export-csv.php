@@ -603,6 +603,7 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 		global $wpdb;
 		$t = TCV_Schema::tables();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export the current canonical Vocabulary/SEO relation rows, not a stale cache; product-specific, read-only indexed queries.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT v.semantic_group,v.slug,v.label,o.source,o.confidence
@@ -631,6 +632,7 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 		global $wpdb;
 		$t = TCV_Schema::tables();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Export the current canonical Vocabulary/SEO relation rows, not a stale cache; product-specific, read-only indexed queries.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT a.slug AS attribute_slug,a.nombre AS attribute_name,a.grupo,a.tipo,
