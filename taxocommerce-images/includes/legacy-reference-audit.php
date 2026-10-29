@@ -581,6 +581,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
          * 1) Imágenes destacadas de cualquier tipo de contenido.
          * Incluye posts, páginas, productos y variaciones de WooCommerce.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate native post-thumbnail references without loading every WP_Post into memory; live relationships must not be cached.
         $thumbnail_rows = $wpdb->get_results("\n            SELECT pm.meta_value AS attachment_id, COUNT(DISTINCT pm.post_id) AS total\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE pm.meta_key = '_thumbnail_id'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n            GROUP BY pm.meta_value\n        ");
 
         foreach ($thumbnail_rows as $row) {
@@ -590,6 +591,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
         /*
          * 2) Imágenes de categorías y otras taxonomías.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-term image reference counts require a single fresh aggregation; persistent results could mark used images as unused.
         $term_thumbnail_rows = $wpdb->get_results("\n            SELECT meta_value AS attachment_id, COUNT(DISTINCT term_id) AS total\n            FROM {$wpdb->termmeta}\n            WHERE meta_key = 'thumbnail_id'\n            GROUP BY meta_value\n        ");
 
         foreach ($term_thumbnail_rows as $row) {
@@ -601,6 +603,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
          * Se separa el CSV para evitar el falso positivo clásico de LIKE '%12%',
          * que también encontraba IDs como 112 o 120.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Scan WooCommerce comma-separated gallery data directly; no native API aggregates this format across products.
         $gallery_rows = $wpdb->get_results("\n            SELECT pm.post_id, pm.meta_value\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE pm.meta_key = '_product_image_gallery'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n        ");
 
         foreach ($gallery_rows as $row) {
@@ -616,6 +619,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
          * 4) Contenido y extractos de todos los tipos de contenido activos.
          * Aquí se detectan enlaces, etiquetas <img>, srcset, Gutenberg y URLs.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current mixed post content/excerpts for conservative image reference detection; cached snapshots would become stale.
         $content_rows = $wpdb->get_results("\n            SELECT ID, post_content, post_excerpt, post_content_filtered\n            FROM {$wpdb->posts}\n            WHERE post_type NOT IN ('attachment', 'revision')\n              AND post_status NOT IN ('trash', 'auto-draft')\n              AND (post_content <> '' OR post_excerpt <> '' OR post_content_filtered <> '')\n        ");
 
         $implicit_gallery_parent_ids = [];
@@ -664,6 +668,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
          */
         $meta_key_regex = 'image|images|img|imagen|imagenes|photo|picture|foto|fotos|media|attachment|thumbnail|miniatura|gallery|galeria|logo|logotipo|icon|icono|banner|cabecera|fondo|avatar|featured|destacada';
         $image_value_regex = '\\.(jpe?g|png|gif|webp|avif|svg|bmp|tiff?)([^a-z0-9]|$)';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Find current serialized and textual post meta references with bounded conditions; native metadata APIs cannot perform this cross-object scan.
         $postmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT pm.post_id, pm.meta_key, pm.meta_value\n            FROM {$wpdb->postmeta} pm\n            INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n            WHERE p.post_type <> 'attachment'\n              AND p.post_status NOT IN ('trash', 'auto-draft')\n              AND pm.meta_key NOT IN (\n                  '_thumbnail_id',\n                  '_product_image_gallery',\n                  '_wp_attached_file',\n                  '_wp_attachment_metadata',\n                  '_wp_attachment_backup_sizes'\n              )\n              AND (\n                  pm.meta_key REGEXP %s\n                  OR pm.meta_value REGEXP %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n                  OR pm.meta_value LIKE %s\n              )\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -690,6 +695,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
         /*
          * 6) Descripciones de categorías, etiquetas y taxonomías personalizadas.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current taxonomy descriptions across taxonomies; this is a one-off full reference inventory, not a reusable cached view.
         $term_description_rows = $wpdb->get_results("\n            SELECT term_taxonomy_id, description\n            FROM {$wpdb->term_taxonomy}\n            WHERE description <> ''\n        ");
 
         foreach ($term_description_rows as $row) {
@@ -706,6 +712,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
         /*
          * 7) Metadatos de términos usados por temas y plugins.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Search arbitrary term metadata for current image references; avoiding cache prevents false unused results.
         $termmeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT term_id, meta_key, meta_value\n            FROM {$wpdb->termmeta}\n            WHERE meta_key <> 'thumbnail_id'\n              AND (\n                  meta_key REGEXP %s\n                  OR meta_value REGEXP %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n                  OR meta_value LIKE %s\n              )\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -731,6 +738,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
          * 8) Ajustes del sitio y del tema: logo, icono, widgets, cabeceras,
          * fondos y opciones de plugins que almacenan un ID o una URL.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect current plugin/theme options including serialized image references; result caching risks stale protection decisions.
         $option_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT option_name, option_value\n            FROM {$wpdb->options}\n            WHERE option_name NOT LIKE %s\n              AND option_name NOT LIKE %s\n              AND (\n                  option_name REGEXP %s\n                  OR option_value REGEXP %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n                  OR option_value LIKE %s\n              )\n        ",
             $wpdb->esc_like('_transient_') . '%',
             $wpdb->esc_like('_site_transient_') . '%',
@@ -759,6 +767,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
         /*
          * 9) Metadatos de usuarios, por ejemplo avatares o imágenes de perfil.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect user metadata for image URLs or IDs across users; cross-user reference inventory requires current data.
         $usermeta_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT umeta_id, meta_key, meta_value\n            FROM {$wpdb->usermeta}\n            WHERE meta_key REGEXP %s\n               OR meta_value REGEXP %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n               OR meta_value LIKE %s\n        ",
             $meta_key_regex,
             $image_value_regex,
@@ -783,6 +792,7 @@ if (!function_exists('taxocommerce_images_refs_build_usage_report')) {
         /*
          * 10) Comentarios que contienen una URL o etiqueta de imagen.
          */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Inspect approved comment bodies for current Media references; this full-scope check must not reuse cached findings.
         $comment_rows = $wpdb->get_results($wpdb->prepare("\n            SELECT comment_ID, comment_content\n            FROM {$wpdb->comments}\n            WHERE comment_approved NOT IN ('trash', 'spam')\n              AND (\n                  comment_content LIKE %s\n                  OR comment_content LIKE %s\n                  OR comment_content LIKE %s\n              )\n        ",
             '%' . $wpdb->esc_like('/uploads/') . '%',
             '%' . $wpdb->esc_like('wp-image-') . '%',
