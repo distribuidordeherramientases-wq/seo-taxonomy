@@ -73,7 +73,7 @@ final class TCDB_Auto_Test {
         return '1' === (string) $value ? self::pass( 'MySQL responde a SELECT 1.' ) : self::fail( 'MySQL no responde correctamente.' );
     }
     private static function table_exists( $name ) {
-        return \\TCDB_Legacy\\seo_clean_db_table_exists( $name );
+        return \TCDB_Legacy\seo_clean_db_table_exists( $name );
     }
     private static function test_seo_schema() {
         global $wpdb;
@@ -88,13 +88,13 @@ final class TCDB_Auto_Test {
         return $missing ? self::fail( 'Tablas o columnas no disponibles: ' . implode( ', ', $missing ) ) : self::pass( 'Nodos y relaciones SEO tienen los campos necesarios.' );
     }
     private static function test_config() {
-        $config = \\TCDB_Legacy\\seo_clean_db_get_config();
+        $config = \TCDB_Legacy\seo_clean_db_get_config();
         return isset( $config['node_roles'], $config['relation_schemas'], $config['report_limit'] ) && is_array( $config['relation_schemas'] )
             ? self::pass( count( $config['relation_schemas'] ) . ' esquemas de relación; configuración cargada.' ) : self::fail( 'Configuración SEO incompleta.' );
     }
     private static function test_index() {
         $a = (object) array( 'seo_role' => 'cluster', 'object_id' => 123 );
-        $index = \\TCDB_Legacy\\seo_clean_db_build_node_index( array( $a ) );
+        $index = \TCDB_Legacy\seo_clean_db_build_node_index( array( $a ) );
         return isset( $index['cluster:123'] ) && $index['cluster:123'] === $a ? self::pass( 'Índice sintético construido correctamente.' ) : self::fail( 'El índice de nodos no conserva su clave.' );
     }
     private static function test_nodes() {
@@ -127,23 +127,23 @@ final class TCDB_Auto_Test {
         return '' === $wpdb->last_error && is_numeric( $n ) ? self::pass( 'Lectura acotada de candidatos de limpieza: ' . $n . ' revisiones muestreadas.' ) : self::fail( 'Consulta de candidatos no disponible: ' . $wpdb->last_error );
     }
     private static function test_full_export() {
-        $full = \\TCDB_Legacy\\seo_clean_db_get_export_tables( 'full' );
-        $seo = \\TCDB_Legacy\\seo_clean_db_get_export_tables( 'seo' );
+        $full = \TCDB_Legacy\seo_clean_db_get_export_tables( 'full' );
+        $seo = \TCDB_Legacy\seo_clean_db_get_export_tables( 'seo' );
         if ( ! is_array( $full ) || ! is_array( $seo ) ) { return self::fail( 'Selección de tablas de backup inválida.' ); }
         foreach ( $seo as $name ) { if ( ! in_array( $name, $full, true ) ) { return self::fail( 'Una tabla SEO no está incluida en el backup completo.' ); } }
         return self::pass( count( $full ) . ' tablas elegibles para backup completo y ' . count( $seo ) . ' SEO; no se genera el archivo.' );
     }
     private static function test_inventory() {
-        $tables = \\TCDB_Legacy\\seo_data_get_tables();
+        $tables = \TCDB_Legacy\seo_data_get_tables();
         if ( ! is_array( $tables ) ) { return self::fail( 'Inventario no válido.' ); }
-        foreach ( $tables as $name => $row ) { if ( ! \\TCDB_Legacy\\seo_data_is_valid_table_name( $name ) || ! isset( $row['name'], $row['rows'], $row['engine'] ) ) { return self::fail( 'Metadatos de tabla incorrectos.' ); } }
+        foreach ( $tables as $name => $row ) { if ( ! \TCDB_Legacy\seo_data_is_valid_table_name( $name ) || ! isset( $row['name'], $row['rows'], $row['engine'] ) ) { return self::fail( 'Metadatos de tabla incorrectos.' ); } }
         return self::pass( count( $tables ) . ' tablas SEO accesibles desde el inventario.' );
     }
     private static function test_columns() {
-        $tables = \\TCDB_Legacy\\seo_data_get_tables();
+        $tables = \TCDB_Legacy\seo_data_get_tables();
         if ( ! $tables ) { return self::skip( 'No hay tablas SEO para explorar.' ); }
         $name = (string) array_key_first( $tables );
-        $columns = \\TCDB_Legacy\\seo_data_get_columns( $name );
+        $columns = \TCDB_Legacy\seo_data_get_columns( $name );
         return is_array( $columns ) && ! empty( $columns ) ? self::pass( count( $columns ) . ' columnas leídas de ' . $name . '.' ) : self::fail( 'No se obtienen columnas de ' . $name . '.' );
     }
     private static function test_exports() {
