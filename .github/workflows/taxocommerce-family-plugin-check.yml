@@ -72,6 +72,8 @@ jobs:
           mkdir -p "build/$PLUGIN"
           rsync -a \
             --exclude='tests/' \
+            --exclude='.*' \
+            --exclude='*.json.bak' \
             --exclude='README.md' \
             --exclude='*.bak' \
             --exclude='*.log' \
@@ -81,6 +83,11 @@ jobs:
           find "build/$PLUGIN" -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           python3 .github/scripts/taxocommerce_family_readme_check.py "$PLUGIN" "build/$PLUGIN"
           ( cd build && zip -qr "../$PLUGIN.zip" "$PLUGIN" )
+          # Distributable must never contain hidden FTP state, CI tests or other dotfiles.
+          if unzip -Z1 "$PLUGIN.zip" | grep -E '(^|/)(tests/|[.][^/]+)'; then
+            echo "::error title=$PLUGIN package::ZIP contains tests or hidden files"
+            exit 1
+          fi
           unzip -t "$PLUGIN.zip"
           bytes=$(stat -c%s "$PLUGIN.zip")
           if (( bytes > 10485760 )); then

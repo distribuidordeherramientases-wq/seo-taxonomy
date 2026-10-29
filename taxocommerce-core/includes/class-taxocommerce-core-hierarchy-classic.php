@@ -235,42 +235,43 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             return array();
         }
         $table = self::table();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-        $has_country_column = (string) $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' ) ) === 'country_code';
-
+        $has_country = 'country_code' === (string) $wpdb->get_var(
+            $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'country_code' )
+        );
+        // The selected column is one of two fixed SQL fragments, never request input.
         if ( $type ) {
-            if ( $has_country_column ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-                $rows = $wpdb->get_results(
-                    $wpdb->prepare( 'SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type = %s', $table, $type ),
-                    ARRAY_A
+            if ( $has_country ) {
+                $sql = $wpdb->prepare(
+                    'SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type = %s',
+                    $table,
+                    $type
                 );
             } else {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-                $rows = $wpdb->get_results(
-                    $wpdb->prepare( 'SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type = %s', $table, $type ),
-                    ARRAY_A
+                $sql = $wpdb->prepare(
+                    'SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type = %s',
+                    $table,
+                    $type
                 );
             }
         } else {
             $types = array_keys( $defs );
             $placeholders = implode( ',', array_fill( 0, count( $types ), '%s' ) );
-            if ( $has_country_column ) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated from the fixed hierarchy definitions.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-                $rows = $wpdb->get_results(
-                    $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
-                    ARRAY_A
+            if ( $has_country ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
+                $sql = $wpdb->prepare(
+                    "SELECT source_type,source_id,target_type,target_id,relation_type,country_code FROM %i WHERE relation_type IN ({$placeholders})",
+                    array_merge( array( $table ), $types )
                 );
             } else {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated from the fixed hierarchy definitions.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-                $rows = $wpdb->get_results(
-                    $wpdb->prepare( "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type IN ({$placeholders})", array_merge( array( $table ), $types ) ),
-                    ARRAY_A
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only generated %s placeholders.
+                $sql = $wpdb->prepare(
+                    "SELECT source_type,source_id,target_type,target_id,relation_type,NULL AS country_code FROM %i WHERE relation_type IN ({$placeholders})",
+                    array_merge( array( $table ), $types )
                 );
             }
         }
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL is prepared in every branch above.
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
         return is_array( $rows ) ? $rows : array();
     }
 

@@ -318,6 +318,7 @@ final class TCD_Feedback {
         ) ) );
 
         $table = self::events_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $inserted = $wpdb->query( $wpdb->prepare(
             "INSERT IGNORE INTO %i
             (event_hash,session_hash,query_hash,query_text,event_type,product_id,semantic_group,semantic_slug,semantic_label,depth,confidence,context_json,created_at)
@@ -393,29 +394,33 @@ final class TCD_Feedback {
         $target_key = substr( (string) ( $target['target_key'] ?? '' ), 0, 64 );
 
         if ( 'product' === $target_type ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $click_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(DISTINCT session_hash) FROM %i
                  WHERE query_hash=%s AND event_type='click' AND product_id=%d",
-                $query_hash, $product_id
+                $events, $query_hash, $product_id
             ) ) );
             $clarification_sessions = 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$events}
+                "SELECT COUNT(*) FROM %i
                  WHERE query_hash=%s AND event_type='click'",
-                $query_hash
+                $events, $query_hash
             ) ) );
         } else {
             $click_sessions = 0;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $clarification_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(DISTINCT session_hash) FROM {$events}
+                "SELECT COUNT(DISTINCT session_hash) FROM %i
                  WHERE query_hash=%s AND event_type='clarification'
                    AND semantic_group=%s AND semantic_slug=%s",
-                $query_hash, $group, $slug
+                $events, $query_hash, $group, $slug
             ) ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $total_sessions = absint( $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$events}
+                "SELECT COUNT(*) FROM %i
                  WHERE query_hash=%s AND event_type='clarification'",
-                $query_hash
+                $events, $query_hash
             ) ) );
         }
 
@@ -446,9 +451,10 @@ final class TCD_Feedback {
             )
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $existing = $wpdb->get_row( $wpdb->prepare(
-            "SELECT id,status,promoted_at,first_seen FROM {$learning} WHERE query_hash=%s AND target_key=%s LIMIT 1",
-            $query_hash, $target_key
+            "SELECT id,status,promoted_at,first_seen FROM %i WHERE query_hash=%s AND target_key=%s LIMIT 1",
+            $learning, $query_hash, $target_key
         ), ARRAY_A );
 
         $now = current_time( 'mysql' );
@@ -499,6 +505,7 @@ final class TCD_Feedback {
             'promoted_at'=>$promoted_at ?: null,
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $wpdb->replace( $learning, $row );
         self::sync_portable_knowledge( $row );
 
@@ -538,6 +545,7 @@ final class TCD_Feedback {
 
         $hash = hash( 'sha256', 'customer_feedback|' . (string) ( $row['query_hash'] ?? '' ) . '|product:' . $product_id );
         if ( ! $active ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $wpdb->delete(
                 $table,
                 array(
@@ -560,6 +568,7 @@ final class TCD_Feedback {
             'normalized_query'=>$full_query,
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $wpdb->replace( $table, array(
             'lesson_key'=>'feedback_customer_query',
             'product_id'=>$product_id,
@@ -590,6 +599,7 @@ final class TCD_Feedback {
 
         $rule_key = sanitize_key( 'feedback_' . substr( hash( 'sha256', (string) ( $row['query_hash'] ?? '' ) . '|' . $group . '|' . $slug ), 0, 48 ) );
         if ( ! $active ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $wpdb->delete( $table, array( 'rule_key'=>$rule_key, 'source'=>'customer_feedback' ) );
             return;
         }
@@ -609,6 +619,7 @@ final class TCD_Feedback {
             'alias',$query,$group,$slug,$weight,$priority,round( $confidence, 4 )
         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $wpdb->replace( $table, array(
             'rule_key'=>$rule_key,
             'rule_type'=>'alias',
@@ -642,11 +653,12 @@ final class TCD_Feedback {
     private static function recalculate_competitors( $query_hash, $except_target_key ) {
         global $wpdb;
         $table = self::learning_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE query_hash=%s AND target_key<>%s
              ORDER BY id ASC LIMIT 50",
-            (string) $query_hash,
+            $table, (string) $query_hash,
             (string) $except_target_key
         ), ARRAY_A );
 
@@ -668,12 +680,13 @@ final class TCD_Feedback {
         global $wpdb;
         $hash = self::query_hash( $query );
         $table = self::learning_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT product_id,click_sessions,evidence_share,confidence
-             FROM {$table}
+             FROM %i
              WHERE query_hash=%s AND target_type='product' AND status='active'
              ORDER BY confidence DESC,click_sessions DESC,id ASC LIMIT 20",
-            $hash
+            $table, $hash
         ), ARRAY_A );
 
         $out = array();
@@ -694,12 +707,13 @@ final class TCD_Feedback {
         global $wpdb;
         $hash = self::query_hash( $query );
         $table = self::learning_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $rows = (array) $wpdb->get_results( $wpdb->prepare(
             "SELECT semantic_group,semantic_slug,semantic_label,clarification_sessions,evidence_share,confidence
-             FROM {$table}
+             FROM %i
              WHERE query_hash=%s AND target_type='semantic' AND status='active'
              ORDER BY confidence DESC,clarification_sessions DESC,id ASC LIMIT 12",
-            $hash
+            $table, $hash
         ), ARRAY_A );
 
         $out = array();
@@ -738,6 +752,8 @@ final class TCD_Feedback {
         $voc = $wpdb->prefix . 'seo_vocabulary';
         if ( self::table_exists( $rel ) && self::table_exists( $voc ) ) {
             $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list contains only generated %d/%s placeholders and all identifiers/values are bound through $wpdb->prepare().
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT r.object_id,v.semantic_group,v.slug,v.label
@@ -751,6 +767,7 @@ final class TCD_Feedback {
                 ),
                 ARRAY_A
             );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
             $rank_map = array();
             foreach ( $ids as $position => $id ) $rank_map[ $id ] = $position;
@@ -839,12 +856,13 @@ final class TCD_Feedback {
     public static function consolidate( $limit = 200 ) {
         global $wpdb;
         $table = self::learning_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table}
+                "SELECT * FROM %i
                  WHERE status IN ('staged','validated','active')
                  ORDER BY last_seen ASC,id ASC LIMIT %d",
-                min( 500, max( 1, absint( $limit ) ) )
+                $table, min( 500, max( 1, absint( $limit ) ) )
             ),
             ARRAY_A
         );
@@ -893,8 +911,9 @@ final class TCD_Feedback {
             'active_semantic'=>0,
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         foreach ( (array) $wpdb->get_results(
-            "SELECT event_type,COUNT(*) total FROM {$events} GROUP BY event_type",
+            $wpdb->prepare( "SELECT event_type,COUNT(*) total FROM %i GROUP BY event_type", $events ),
             ARRAY_A
         ) as $row ) {
             $total = absint( $row['total'] ?? 0 );
@@ -906,8 +925,9 @@ final class TCD_Feedback {
             elseif ( 'clarification_other' === $type ) $stats['other'] = $total;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         foreach ( (array) $wpdb->get_results(
-            "SELECT status,target_type,COUNT(*) total FROM {$learning} GROUP BY status,target_type",
+            $wpdb->prepare( "SELECT status,target_type,COUNT(*) total FROM %i GROUP BY status,target_type", $learning ),
             ARRAY_A
         ) as $row ) {
             $status = sanitize_key( (string) ( $row['status'] ?? '' ) );
@@ -930,10 +950,12 @@ final class TCD_Feedback {
         $learning = self::learning_table();
         $cutoff = gmdate( 'Y-m-d H:i:s', time() - ( self::RETENTION_DAYS * DAY_IN_SECONDS ) );
 
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$events} WHERE created_at<%s", $cutoff ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
+        $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE created_at<%s", $events, $cutoff ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$learning} WHERE status<>'active' AND last_seen<%s",
-            $cutoff
+            "DELETE FROM %i WHERE status<>'active' AND last_seen<%s",
+            $learning, $cutoff
         ) );
 
         update_option( 'tcd_feedback_last_prune', time(), false );
@@ -976,6 +998,7 @@ final class TCD_Feedback {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Feedback reads/writes live plugin-specific clicks, learning and rules; a shared cache would serve stale learning decisions.
         return (string) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === (string) $table;
     }
 

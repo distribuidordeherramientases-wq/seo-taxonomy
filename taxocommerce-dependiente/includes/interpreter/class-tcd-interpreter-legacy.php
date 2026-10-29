@@ -138,6 +138,7 @@ final class TCD_Original_Interprete {
             wp_die(esc_html__('No tienes permisos para acceder al Intérprete.', 'taxocommerce-dependiente'));
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Parámetros GET de presentación y prueba de interpretación, sin operaciones de escritura.
         $query = isset($_GET['interpreter_q'])
             ? self::clean_query( sanitize_text_field( wp_unslash( (string) $_GET['interpreter_q'] ) ) )
             : '';
@@ -155,6 +156,7 @@ final class TCD_Original_Interprete {
         <?php if (!empty($_GET['linguista_error'])) : ?>
             <div class="notice notice-error is-dismissible"><p><?php echo esc_html(rawurldecode(sanitize_text_field(wp_unslash($_GET['linguista_error'])))); ?></p></div>
         <?php endif; ?>
+        <?php // phpcs:enable WordPress.Security.NonceVerification.Recommended ?>
         <div class="postbox seo-dependiente-admin__box" style="margin-top:16px; padding:18px;">
             <h2 style="margin-top:0;">Intérprete · puente lingüístico <small>v<?php echo esc_html(self::VERSION); ?></small></h2>
             <p><strong>Objetivo:</strong> limpiar el texto, identificar su función lingüística y traducirlo al vocabulario semántico que entiende Dependiente, sin buscar productos ni decidir catálogo.</p>

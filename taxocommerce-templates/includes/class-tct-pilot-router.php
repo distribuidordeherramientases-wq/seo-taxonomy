@@ -102,16 +102,6 @@ final class TCT_Pilot_Router {
             return '';
         }
         $GLOBALS['dht_pilot_market'] = $market;
-        if ($market === 'FR') {
-            $specific = is_tax('product_cat') ? 'template-category-fr.php' :
-                (is_singular('product') ? 'template-product-fr.php' : '');
-            if ($specific !== '') {
-                $path = TCT_Router::path($specific);
-                if ($path) {
-                    return $path;
-                }
-            }
-        }
         return $pilot;
     }
 }

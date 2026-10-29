@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 final class TCD_Original_L9_Sources {
     public static function source_total() {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter adapter queries plugin-managed tables for live runtime analysis; caching could reuse stale learning state.
         return absint($wpdb->get_var($wpdb->prepare(
             'SELECT COUNT(*) FROM %i WHERE lesson=%d AND status=%s',
             TCD_Academy::knowledge_table(), 9, 'learned'
@@ -20,6 +21,7 @@ final class TCD_Original_L9_Sources {
         global $wpdb;
         $offset = max(0, absint($offset));
         $limit = min(80, max(1, absint($limit)));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interpreter adapter queries plugin-managed tables for live runtime analysis; caching could reuse stale learning state.
         $rows = (array) $wpdb->get_results($wpdb->prepare(
             'SELECT id,source_id,title,context_json FROM %i WHERE lesson=%d AND status=%s ORDER BY id ASC LIMIT %d OFFSET %d',
             TCD_Academy::knowledge_table(), 9, 'learned', $limit, $offset

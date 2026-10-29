@@ -67,23 +67,24 @@ final class TaxoCommerce_Core_Architecture_Report {
         $table = $wpdb->prefix . 'seo_nodes';
 
         // The table is maintained by Core; it can be absent on a new install.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Architecture report needs live canonical hierarchy data; do not cache across admin requests.
         $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
         if ( $exists !== $table ) {
             return new WP_Error( 'tc_arch_no_nodes', 'Todavía no está disponible la tabla de roles SEO del Core.' );
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WP-owned identifiers, fixed predicates; no user input.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Architecture report needs live canonical hierarchy data; do not cache across admin requests.
         $rows = $wpdb->get_results(
-            $wpdb->prepare( "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
+            $wpdb->prepare(
+                "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
                FROM %i n
                INNER JOIN %i p ON p.ID = n.object_id
               WHERE n.object_type = 'page'
                 AND n.status = 1
                 AND p.post_type = 'page'
                 AND p.post_status = 'publish'
-                AND n.seo_role IN ('cluster','hub_primary','hub_secondary')", $table, $wpdb->posts ),
+                AND n.seo_role IN ('cluster','hub_primary','hub_secondary')",
+                $table,
+                $wpdb->posts
+            ),
             ARRAY_A
         );
         if ( ! is_array( $rows ) ) {
@@ -299,8 +300,6 @@ final class TaxoCommerce_Core_Architecture_Report {
         global $wpdb;
         $relations_table = $wpdb->prefix . 'seo_relations';
         // Match the historical panel: distinct linked landings, irrespective of page status.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal Core-managed identifier and fixed predicate.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Architecture report needs live canonical hierarchy data; do not cache across admin requests.
         $landings = (int) $wpdb->get_var(
             $wpdb->prepare( "SELECT COUNT(DISTINCT target_id) FROM %i WHERE target_type = 'landing_page'", $relations_table )
         );

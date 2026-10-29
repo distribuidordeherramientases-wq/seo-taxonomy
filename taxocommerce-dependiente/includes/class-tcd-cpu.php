@@ -8,6 +8,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- TCD_ es el prefijo histórico de Dependiente; renombrar rompería integraciones y referencias existentes.
 final class TCD_CPU {
     const LIMIT_OPTION = 'tcd_academy_cpu_limit';
     const SAMPLE_OPTION = 'tcd_academy_cpu_sample';
