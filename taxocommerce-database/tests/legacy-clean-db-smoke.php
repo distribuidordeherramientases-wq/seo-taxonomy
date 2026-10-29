@@ -48,7 +48,7 @@ tcdb_legacy_assert( false === strpos( $cleanup, 'SEO_Data_Layer' ), 'No Data Lay
 tcdb_legacy_assert( false === strpos( $cleanup, "seo_clean_db_render_notice('success', 'No" ), 'No automatic passive success notices' );
 tcdb_legacy_assert( false === strpos( $cleanup, "seo_clean_db_render_notice('success', 'Todos" ), 'No automatic SEO success banners' );
 tcdb_legacy_assert( false !== strpos( $cleanup, "seo_clean_db_render_notice('warning', 'Se han encontrado" ), 'Actionable issues still announced' );
-tcdb_legacy_assert( false !== strpos( $cleanup, "seo_clean_db_render_notice($notice['type'], $notice['message'])" ), 'Action confirmations still announced' );
+tcdb_legacy_assert( false !== strpos( $cleanup, 'seo_clean_db_render_notice($notice[\'type\'], $notice[\'message\'])' ), 'Action confirmations still announced' );
 
 tcdb_legacy_assert( false === strpos( $cleanup, 'SEO_Data_Rollback' ), 'No rollback engine' );
 tcdb_legacy_assert( false !== strpos( $cleanup, 'seo_clean_db_analyze_relations(' ), 'All SEO relation checks' );
