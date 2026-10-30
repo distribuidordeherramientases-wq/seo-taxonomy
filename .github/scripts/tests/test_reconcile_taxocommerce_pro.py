@@ -108,6 +108,38 @@ class ProReconcileTests(unittest.TestCase):
         self.assertIn('/wp-content/plugins/taxocommerce-core/uploads/custom.png', self.ftp.files)
         self.assertIn('/wp-content/plugins/taxocommerce-core/taxocommerce-core.php', self.ftp.files)
 
+    def test_missing_database_ftp_directory_is_reported_and_blocks_deletion(self):
+        import ftplib
+        old_modules = os.environ['INSTALLED_MODULES_JSON']
+        os.environ['INSTALLED_MODULES_JSON'] = '["taxocommerce-core", "taxocommerce-database"]'
+        original_cwd = self.ftp.cwd
+
+        def missing_database(path):
+            if path.endswith('/taxocommerce-database'):
+                raise ftplib.error_perm('550 No such file or directory')
+            return original_cwd(path)
+
+        self.ftp.cwd = missing_database
+        self.package.stop()
+        self.tracked.stop()
+        self.package = patch.object(reconcile, 'expected_package',
+                                    side_effect=lambda m: ({m + '.php'}, 'package-checksum'))
+        self.tracked = patch.object(reconcile, 'source_files', return_value=set())
+        self.package.start()
+        self.tracked.start()
+
+        reconcile.plan()
+        report = json.loads((reconcile.OUTPUT / 'plan.json').read_text())
+        self.assertTrue(any(item['module'] == 'taxocommerce-database' and
+                            'inaccessible' in item['reason'] for item in report['skipped']))
+        self.assertEqual([], self.ftp.deleted)
+        os.environ['TC_APPROVED_CLEANUP_SHA256'] = report['approval_sha256']
+        with self.assertRaisesRegex(RuntimeError, 'inventory incomplete'):
+            reconcile.plan()
+        with self.assertRaisesRegex(RuntimeError, 'inventory incomplete'):
+            reconcile.apply()
+        os.environ['INSTALLED_MODULES_JSON'] = old_modules
+
     def test_stale_approval_is_rejected(self):
         reconcile.plan()
         old = json.loads((reconcile.OUTPUT / 'plan.json').read_text())['approval_sha256']
