@@ -28,6 +28,7 @@ if ( function_exists( 'seo_landing_google_path_key' )
  * la configuración ya guardada en WordPress.
  */
 if ( ! function_exists( 'seo_landing_google_load_analytics_service' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_landing_google_load_analytics_service() {
         if ( function_exists( 'seo_google_search_settings' ) && function_exists( 'seo_google_analytics_run_report' ) ) {
             return [ 'loaded' => true, 'path' => 'already-loaded', 'checked' => [] ];
@@ -55,9 +56,11 @@ if ( ! function_exists( 'seo_landing_google_load_analytics_service' ) ) {
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_landing_analytics_service_state = seo_landing_google_load_analytics_service();
 
 /** Normaliza una ruta para cruzar GA4/GSC con permalinks WordPress. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_path_key( $url_or_path ) {
     $path = (string) wp_parse_url( (string) $url_or_path, PHP_URL_PATH );
     if ( '' === $path ) {
@@ -72,6 +75,7 @@ function seo_landing_google_path_key( $url_or_path ) {
  * No pretende sustituir un modelo semantico: reduce plurales/sinonimos frecuentes
  * y elimina modificadores informativos que no cambian la entidad principal.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_text_normalize( $text ) {
     $text = wp_strip_all_tags( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) );
     if ( function_exists( 'remove_accents' ) ) {
@@ -110,6 +114,7 @@ function seo_landing_google_text_normalize( $text ) {
 }
 
 /** Tokens de intencion: descarta conectores y modificadores de pregunta. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_text_tokens( $text ) {
     $normalized = seo_landing_google_text_normalize( $text );
     if ( '' === $normalized ) {
@@ -134,6 +139,7 @@ function seo_landing_google_text_tokens( $text ) {
 }
 
 /** Similitud 0..1 orientada a detectar intenciones/entidades equivalentes. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_similarity( $left, $right ) {
     $a = seo_landing_google_text_normalize( $left );
     $b = seo_landing_google_text_normalize( $right );
@@ -178,6 +184,7 @@ function seo_landing_google_similarity( $left, $right ) {
 }
 
 /** Firma estable para deduplicar variaciones de orden y sinonimos basicos. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_cluster_key( $text ) {
     $tokens = seo_landing_google_text_tokens( $text );
     sort( $tokens, SORT_STRING );
@@ -185,6 +192,7 @@ function seo_landing_google_cluster_key( $text ) {
 }
 
 /** Busca una landing ya existente que probablemente resuelva la misma intencion. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_existing_destination_match( $label ) {
     if ( ! function_exists( 'seo_landing_get_existing' ) ) {
         return [];
@@ -215,6 +223,7 @@ function seo_landing_google_existing_destination_match( $label ) {
 }
 
 /** Lee el primer contador numerico disponible sin asumir el esquema del proveedor. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_first_numeric( $item, $keys ) {
     foreach ( (array) $keys as $key ) {
         if ( isset( $item[$key] ) && is_numeric( $item[$key] ) ) {
@@ -225,6 +234,7 @@ function seo_landing_google_first_numeric( $item, $keys ) {
 }
 
 /** Evidencia de catalogo solo cuando el proveedor aporta contadores reconocibles. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_catalog_evidence( $item ) {
     $products = seo_landing_google_first_numeric( $item, [ 'product_count', 'products_count', 'catalog_products', 'matched_products', 'products' ] );
     $categories = seo_landing_google_first_numeric( $item, [ 'category_count', 'categories_count', 'catalog_categories', 'matched_categories', 'categories' ] );
@@ -256,6 +266,7 @@ function seo_landing_google_catalog_evidence( $item ) {
 }
 
 /** Mejor coincidencia Trends: exacta primero y despues por similitud semantica ligera. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_trend_match( $label, $trend_rows ) {
     $needle = seo_landing_google_text_normalize( $label );
     $best = [];
@@ -278,6 +289,7 @@ function seo_landing_google_trend_match( $label, $trend_rows ) {
 }
 
 /** Devuelve estado resumido de las tres fuentes Google. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_source_status() {
     $status = [
         'search_console' => [ 'connected' => false, 'detail' => 'No disponible' ],
@@ -389,6 +401,7 @@ function seo_landing_google_source_status() {
 /**
  * Reporte GA4 agregado por pagePath, cacheado para no golpear la API en cada carga.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_analytics_page_map( $force = false, $start_date = '30daysAgo', $end_date = 'today' ) {
     $start_date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $start_date) ? $start_date : '30daysAgo';
     $end_date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $end_date) ? $end_date : 'today';
@@ -448,6 +461,7 @@ function seo_landing_google_analytics_page_map( $force = false, $start_date = '3
 }
 
 /** Search Console ya sincronizado, agregado por URL para 28 dias. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_search_console_page_map() {
     if (
         ! function_exists( 'seo_google_connection_status' )
@@ -491,6 +505,7 @@ function seo_landing_google_search_console_page_map() {
 }
 
 /** Metricas externas para una landing concreta. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_metrics_for_page( $page_id ) {
     $url = get_permalink( absint( $page_id ) );
     if ( ! $url ) {
@@ -511,6 +526,7 @@ function seo_landing_google_metrics_for_page( $page_id ) {
  * Convierte las decisiones de landing del motor V2 al inventario editorial.
  * Una landing existente se registra como solapamiento: nunca autoriza otra URL.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_candidate_signals_v2( $signals ) {
     $signals = is_array( $signals ) ? $signals : [];
     $payload = (array) seo_google_opportunity_build( 60, false );
@@ -604,6 +620,7 @@ function seo_landing_google_candidate_signals_v2( $signals ) {
  * para el gestor de landings. Se mantienen como detectadas hasta revision
  * manual; Google no puede demostrar por si solo los cinco requisitos editoriales.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_landing_google_candidate_signals( $signals ) {
     $signals = is_array( $signals ) ? $signals : [];
 

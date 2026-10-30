@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_google_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_google_snapshot($days = 28, $include_results = false) {
         $days = seo_analista_days($days);
         $payload = function_exists('seo_google_opportunity_build')
@@ -62,6 +63,7 @@ if (!function_exists('seo_analista_google_snapshot')) {
 }
 
 if (!function_exists('seo_analista_google_source_health')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_google_source_health($days = 28) {
         $snapshot = seo_analista_google_snapshot($days, false);
         $sources = (array) ($snapshot['sources'] ?? array());

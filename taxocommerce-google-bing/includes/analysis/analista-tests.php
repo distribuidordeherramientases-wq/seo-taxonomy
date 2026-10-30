@@ -9,6 +9,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_381_test_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_381_test_row($code, $passed, $detail) {
         return array(
             'code'=>(string) $code,
@@ -19,6 +20,7 @@ if (!function_exists('seo_analista_381_test_row')) {
 }
 
 if (!function_exists('seo_analista_381_self_tests')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_381_self_tests() {
         $tests = array();
 
@@ -187,6 +189,7 @@ if (!function_exists('seo_analista_381_self_tests')) {
 
 
 if (!function_exists('seo_analista_382_self_tests')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_382_self_tests() {
         $base = seo_analista_381_self_tests();
         $tests = (array) ($base['tests'] ?? array());
@@ -263,6 +266,7 @@ if (!function_exists('seo_analista_382_self_tests')) {
 
 
 if (!function_exists('seo_analista_383_self_tests')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_383_self_tests() {
         $base = seo_analista_382_self_tests();
         $tests = (array) ($base['tests'] ?? array());

@@ -150,12 +150,14 @@ final class TaxoCommerce_Google_Bing_Google_Service {
  * names while their implementation is now owned by this plugin.
  */
 if ( ! function_exists( 'seo_google_search_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_settings() {
         return TaxoCommerce_Google_Bing_Connections::google_settings();
     }
 }
 
 if ( ! function_exists( 'seo_google_search_measurement_id' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_measurement_id() {
         $settings = TaxoCommerce_Google_Bing_Connections::google_settings();
         $id = strtoupper( trim( (string) ( $settings['measurement_id'] ?? '' ) ) );
@@ -164,18 +166,21 @@ if ( ! function_exists( 'seo_google_search_measurement_id' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_reporting_dates' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_reporting_dates( $days = 28 ) {
         return TaxoCommerce_Google_Bing_Google_Service::reporting_dates( $days );
     }
 }
 
 if ( ! function_exists( 'seo_google_search_console_query' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_console_query( $request = array() ) {
         return TaxoCommerce_Google_Bing_Google_Service::search_console_query( $request );
     }
 }
 
 if ( ! function_exists( 'seo_google_analytics_run_report' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_analytics_run_report( $request = array() ) {
         return TaxoCommerce_Google_Bing_Google_Service::analytics_run_report( $request );
     }

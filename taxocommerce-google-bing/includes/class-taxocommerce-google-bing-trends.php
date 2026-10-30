@@ -378,6 +378,7 @@ final class TaxoCommerce_Google_Bing_Trends {
             'items'         => $result['items'],
         );
         update_option( self::OPTION_PREFIX . $geo, $snapshot, false );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         do_action( 'tgb_trends_snapshot_saved', $geo, $snapshot );
         self::finish( $geo, 'Tendencias de ' . self::geo_label( $geo ) . ' descargadas y guardadas.', false );
     }

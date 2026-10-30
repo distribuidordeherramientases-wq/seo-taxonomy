@@ -16,6 +16,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! function_exists( 'seo_google_python_runner_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_settings() {
         $defaults = [
             'enabled'              => 0,
@@ -30,6 +31,7 @@ if ( ! function_exists( 'seo_google_python_runner_settings' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_service_account' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_service_account() {
         $settings = seo_google_python_runner_settings();
         $raw = trim( (string) ( $settings['service_account_json'] ?? '' ) );
@@ -46,12 +48,14 @@ if ( ! function_exists( 'seo_google_python_runner_service_account' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_base64url' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_base64url( $value ) {
         return rtrim( strtr( base64_encode( (string) $value ), '+/', '-_' ), '=' );
     }
 }
 
 if ( ! function_exists( 'seo_google_python_runner_access_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_access_token( $force = false ) {
         $account = seo_google_python_runner_service_account();
         if ( is_wp_error( $account ) ) {
@@ -130,6 +134,7 @@ if ( ! function_exists( 'seo_google_python_runner_access_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_job_url' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_job_url( $run = false ) {
         $settings = seo_google_python_runner_settings();
         $project = trim( (string) ( $settings['project_id'] ?? '' ) );
@@ -150,6 +155,7 @@ if ( ! function_exists( 'seo_google_python_runner_job_url' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_api_request' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_api_request( $method, $url, $body = null, $force_token = false ) {
         $token = seo_google_python_runner_access_token( $force_token );
         if ( is_wp_error( $token ) ) {
@@ -192,6 +198,7 @@ if ( ! function_exists( 'seo_google_python_runner_api_request' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_test_connection' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_test_connection() {
         $settings = seo_google_python_runner_settings();
         if ( empty( $settings['project_id'] ) || empty( $settings['region'] ) || empty( $settings['job_name'] ) ) {
@@ -213,6 +220,7 @@ if ( ! function_exists( 'seo_google_python_runner_test_connection' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-google-bing' ) );
@@ -275,12 +283,14 @@ if ( ! function_exists( 'seo_google_python_runner_save_settings' ) ) {
 add_action( 'admin_post_seo_google_python_runner_save', 'seo_google_python_runner_save_settings' );
 
 if ( ! function_exists( 'seo_google_python_runner_notice_key' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_notice_key() {
         return 'seo_google_python_runner_notice_' . get_current_user_id();
     }
 }
 
 if ( ! function_exists( 'seo_google_python_runner_set_notice' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_set_notice( $type, $message ) {
         set_transient(
             seo_google_python_runner_notice_key(),
@@ -291,6 +301,7 @@ if ( ! function_exists( 'seo_google_python_runner_set_notice' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_get_notice' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_get_notice() {
         $key = seo_google_python_runner_notice_key();
         $notice = get_transient( $key );
@@ -300,6 +311,7 @@ if ( ! function_exists( 'seo_google_python_runner_get_notice' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_statuses' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_statuses() {
         $statuses = get_option( 'seo_google_python_runner_statuses', [] );
         return is_array( $statuses ) ? $statuses : [];
@@ -307,6 +319,7 @@ if ( ! function_exists( 'seo_google_python_runner_statuses' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_update_status' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_update_status( $remote_run_id, array $data ) {
         $remote_run_id = sanitize_text_field( (string) $remote_run_id );
         if ( '' === $remote_run_id ) {
@@ -333,6 +346,7 @@ if ( ! function_exists( 'seo_google_python_runner_update_status' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_start' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_start( $recipe_id, $catalog_complete = false ) {
         if ( ! function_exists( 'seo_proveedores_obtener_receta' ) ) {
             return new WP_Error( 'seo_python_importer_missing', 'El importador comun de proveedores no esta disponible.' );
@@ -409,6 +423,7 @@ if ( ! function_exists( 'seo_google_python_runner_start' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_handle_launch' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_handle_launch() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No tienes permisos para iniciar el scraper Python.', 'taxocommerce-google-bing' ) );
@@ -437,6 +452,7 @@ if ( ! function_exists( 'seo_google_python_runner_handle_launch' ) ) {
 add_action( 'admin_post_seo_google_python_runner_launch', 'seo_google_python_runner_handle_launch' );
 
 if ( ! function_exists( 'seo_google_python_runner_authorize_callback' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_authorize_callback( WP_REST_Request $request ) {
         $authorization = trim( (string) $request->get_header( 'authorization' ) );
         if ( ! preg_match( '/^Bearer\s+(.+)$/i', $authorization, $match ) ) {
@@ -457,6 +473,7 @@ if ( ! function_exists( 'seo_google_python_runner_authorize_callback' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_queue_import' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_queue_import( $remote_run_id, array $state ) {
         $queue_key = 'seo_google_python_import_' . md5( (string) $remote_run_id );
         set_transient( $queue_key, $state, 2 * DAY_IN_SECONDS );
@@ -479,6 +496,7 @@ if ( ! function_exists( 'seo_google_python_runner_queue_import' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_process_import' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_process_import( $remote_run_id ) {
         $remote_run_id = sanitize_text_field( (string) $remote_run_id );
         $queue_key = 'seo_google_python_import_' . md5( $remote_run_id );
@@ -568,6 +586,7 @@ if ( ! function_exists( 'seo_google_python_runner_process_import' ) ) {
 add_action( 'seo_google_python_runner_import_csv', 'seo_google_python_runner_process_import', 10, 1 );
 
 if ( ! function_exists( 'seo_google_python_runner_callback' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_callback( WP_REST_Request $request ) {
         $run = seo_google_python_runner_authorize_callback( $request );
         if ( is_wp_error( $run ) ) {
@@ -703,6 +722,7 @@ if ( ! function_exists( 'seo_google_python_runner_callback' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_permission_callback' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_permission_callback( WP_REST_Request $request ) {
         $authorized = seo_google_python_runner_authorize_callback( $request );
         return is_wp_error( $authorized ) ? $authorized : true;
@@ -710,6 +730,7 @@ if ( ! function_exists( 'seo_google_python_runner_permission_callback' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_python_runner_register_rest' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_python_runner_register_rest() {
         register_rest_route(
             'seo-taxonomy/v1',

@@ -6,6 +6,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_catalog_structure_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_catalog_structure_snapshot(array $gsc_pages = array()) {
         global $wpdb;
         $nodes_table = esc_sql( $wpdb->prefix . 'seo_nodes' );

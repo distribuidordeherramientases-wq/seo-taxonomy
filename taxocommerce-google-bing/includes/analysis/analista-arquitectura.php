@@ -14,6 +14,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_architecture_table_exists')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_table_exists($table) {
         global $wpdb;
         $table = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $table);
@@ -24,6 +25,7 @@ if (!function_exists('seo_analista_architecture_table_exists')) {
 }
 
 if (!function_exists('seo_analista_architecture_norm')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_norm($text) {
         $text = remove_accents(wp_strip_all_tags((string) $text));
         $text = strtolower($text);
@@ -33,6 +35,7 @@ if (!function_exists('seo_analista_architecture_norm')) {
 }
 
 if (!function_exists('seo_analista_architecture_tokens')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_tokens($text) {
         $stop = array('de','del','la','las','el','los','y','para','con','sin','en','por','a','un','una','unos','unas','profesional','profesionales','accesorios','productos');
         $out = array();
@@ -45,6 +48,7 @@ if (!function_exists('seo_analista_architecture_tokens')) {
 }
 
 if (!function_exists('seo_analista_architecture_similarity')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_similarity($a, $b) {
         $left = seo_analista_architecture_tokens($a);
         $right = seo_analista_architecture_tokens($b);
@@ -56,6 +60,7 @@ if (!function_exists('seo_analista_architecture_similarity')) {
 }
 
 if (!function_exists('seo_analista_architecture_reference_families')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_reference_families() {
         $families = array(
             'materiales_suelos_revestimientos' => array(
@@ -129,12 +134,15 @@ if (!function_exists('seo_analista_architecture_reference_families')) {
                 'keywords' => array('piscina','spa','jacuzzi','bomba agua','filtro piscina','riego','estanque'),
             ),
         );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         return apply_filters('seo_analista_architecture_reference_families', $families);
     }
 }
 
 if (!function_exists('seo_analista_architecture_macro_labels')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_macro_labels() {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         return apply_filters('seo_analista_architecture_macro_labels', array(
             'materiales_construccion' => 'Materiales de construccion',
             'instalaciones_construccion' => 'Instalaciones, bano y saneamiento',
@@ -151,6 +159,7 @@ if (!function_exists('seo_analista_architecture_macro_labels')) {
 }
 
 if (!function_exists('seo_analista_architecture_family')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_family($text) {
         $text = seo_analista_architecture_norm($text);
         if ($text === '') return array('key'=>'','label'=>'','macro'=>'','score'=>0);
@@ -175,6 +184,7 @@ if (!function_exists('seo_analista_architecture_family')) {
 }
 
 if (!function_exists('seo_analista_architecture_signature')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_signature() {
         global $wpdb;
         $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
@@ -204,6 +214,7 @@ if (!function_exists('seo_analista_architecture_signature')) {
 }
 
 if (!function_exists('seo_analista_architecture_hierarchy')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_hierarchy() {
         global $wpdb;
         $relations = esc_sql( $wpdb->prefix . 'seo_relations' );
@@ -249,6 +260,7 @@ if (!function_exists('seo_analista_architecture_hierarchy')) {
 }
 
 if (!function_exists('seo_analista_architecture_node_title')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_node_title($id) {
         $post = get_post(absint($id));
         return $post ? (string) $post->post_title : '';
@@ -256,6 +268,7 @@ if (!function_exists('seo_analista_architecture_node_title')) {
 }
 
 if (!function_exists('seo_analista_architecture_category_vocab')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_category_vocab() {
         global $wpdb;
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
@@ -288,6 +301,7 @@ if (!function_exists('seo_analista_architecture_category_vocab')) {
 }
 
 if (!function_exists('seo_analista_architecture_product_vocab')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_product_vocab() {
         global $wpdb;
         $objects = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
@@ -327,8 +341,10 @@ if (!function_exists('seo_analista_architecture_product_vocab')) {
 }
 
 if (!function_exists('seo_analista_architecture_gpc')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_gpc() {
         global $wpdb;
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         $keys = apply_filters('seo_analista_architecture_gpc_meta_keys', array(
             '_google_product_category', 'google_product_category', '_wc_google_product_category',
             'gla_google_product_category', '_wc_gla_google_product_category'
@@ -377,6 +393,7 @@ if (!function_exists('seo_analista_architecture_gpc')) {
 }
 
 if (!function_exists('seo_analista_architecture_demand')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_demand($days = 28) {
         $out = array();
         if (!function_exists('seo_analista_get_data') || !function_exists('seo_analista_top_opportunities')) return $out;
@@ -398,6 +415,7 @@ if (!function_exists('seo_analista_architecture_demand')) {
 }
 
 if (!function_exists('seo_analista_architecture_category_profiles')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_category_profiles($days = 28) {
         $terms = taxonomy_exists('product_cat') ? get_terms(array('taxonomy'=>'product_cat','hide_empty'=>false)) : array();
         if (is_wp_error($terms)) $terms = array();
@@ -435,6 +453,7 @@ if (!function_exists('seo_analista_architecture_category_profiles')) {
 }
 
 if (!function_exists('seo_analista_architecture_group_stats')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_group_stats(array $category_ids, array $categories, $key = 'family') {
         $groups = array();
         foreach ($category_ids as $cid) {
@@ -466,6 +485,7 @@ if (!function_exists('seo_analista_architecture_group_stats')) {
 }
 
 if (!function_exists('seo_analista_architecture_priority')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_priority($base, $products, $categories, $impressions = 0, $confidence = 0) {
         $score = (float) $base;
         $score += min(14, log(1 + max(0, (int) $products)) * 2.7);
@@ -477,6 +497,7 @@ if (!function_exists('seo_analista_architecture_priority')) {
 }
 
 if (!function_exists('seo_analista_architecture_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_row($action, $label, $topic, $reason, $priority, $confidence, array $changes, array $entity = array(), array $catalog = array(), array $evidence = array()) {
         return array(
             'priority'=>absint($priority),
@@ -498,6 +519,7 @@ if (!function_exists('seo_analista_architecture_row')) {
 }
 
 if (!function_exists('seo_analista_architecture_advice')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_advice($days = 28, $limit = 80) {
         $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(7, min(180, absint($days)));
         $cache_key = 'seo_analista_arch35_' . get_current_blog_id() . '_' . $days . '_' . seo_analista_architecture_signature();
@@ -703,6 +725,7 @@ if (!function_exists('seo_analista_architecture_advice')) {
 }
 
 if (!function_exists('seo_analista_architecture_work')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_architecture_work($days = 28, $limit = 60) {
         $advice = seo_analista_architecture_advice($days, $limit);
         return array_slice((array) ($advice['recommendations'] ?? array()), 0, max(5, min(100, absint($limit))));

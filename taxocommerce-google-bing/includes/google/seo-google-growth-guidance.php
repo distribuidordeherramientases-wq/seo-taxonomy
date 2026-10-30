@@ -2,20 +2,24 @@
 if (!defined('ABSPATH')) { exit; }
 if (!defined('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION')) define('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION','1.0.0');
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_growth_tokens($text) {
     $n=function_exists('seo_google_trends_normalize')?seo_google_trends_normalize($text):sanitize_title($text);
     $stop=array('de','del','la','las','el','los','para','y','en','con','sin','profesional','profesionales','industrial','industriales');
     return array_values(array_filter(explode(' ',$n),fn($t)=>strlen($t)>2&&!in_array($t,$stop,true)));
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_growth_similarity($a,$b) {
     $ta=seo_google_growth_tokens($a); $tb=seo_google_growth_tokens($b); if(!$ta||!$tb)return 0;
     $i=count(array_intersect($ta,$tb)); return $i/max(1,min(count($ta),count($tb)));
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_growth_trends_match($label,array $market) {
     $best=null;$bestSim=0;
     foreach($market as $m){$sim=seo_google_growth_similarity($label,$m['query']); foreach((array)$m['seeds'] as $seed)$sim=max($sim,seo_google_growth_similarity($label,$seed)*0.92); if($sim>$bestSim){$bestSim=$sim;$best=$m;}}
     if($bestSim<0.45)return null; $best['similarity']=$bestSim; return $best;
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_growth_action($item,$trend) {
     $strategy=$item['strategy']['primary']??'VALIDAR'; $products=(int)($item['products']??0); $position=(float)($item['position']??0);
     $marketScore=$trend?(float)$trend['score']:0; $scScore=(float)($item['score']??0);
@@ -33,6 +37,7 @@ function seo_google_growth_action($item,$trend) {
     else $action='VALIDAR OPORTUNIDAD';
     return array('priority'=>$priority,'action'=>$action,'confidence'=>$confidence,'catalog_gap'=>$catalogGap,'seo_need'=>$seoNeed,'market_score'=>(int)round($marketScore),'search_score'=>(int)round($scScore));
 }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_growth_get_guidance($days=60,$limit=40) {
     $settings=function_exists('seo_google_get_settings')?seo_google_get_settings():array(); if(empty($settings['property_id'])||!function_exists('seo_google_demand_get_catalog_guidance'))return array();
     $base=seo_google_demand_get_catalog_guidance($settings['property_id'],$days,2,max(50,$limit)); $market=function_exists('seo_google_trends_market_summary')?seo_google_trends_market_summary(500):array();
@@ -42,6 +47,7 @@ function seo_google_growth_get_guidance($days=60,$limit=40) {
     usort($rows,fn($a,$b)=>$b['decision']['priority']<=>$a['decision']['priority']); return array_slice($rows,0,max(10,min(100,$limit)));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_growth_guidance() {
     if (!function_exists('seo_google_analysis_ready') || !seo_google_analysis_ready()) return;
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting period selector.
