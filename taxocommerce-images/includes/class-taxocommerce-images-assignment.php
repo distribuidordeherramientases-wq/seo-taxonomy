@@ -194,17 +194,26 @@ final class TaxoCommerce_Images_Assignment {
 				return $where;
 			}
 			global $wpdb;
-			$matches = array();
-			foreach ( $supplier_schema['keys'] as $key ) {
-				$matches[] = $wpdb->prepare( 'ext.%i = %i.ID', $key, $wpdb->posts );
+			// The optional supplier table may expose product_id, object_id or both.
+			// Keep each SQL shape literal so WordPress prepares every identifier.
+			$by_product = in_array( 'product_id', $supplier_schema['keys'], true );
+			$by_object  = in_array( 'object_id', $supplier_schema['keys'], true );
+			if ( $by_product && $by_object ) {
+				$where .= $wpdb->prepare(
+					' AND NOT EXISTS (SELECT 1 FROM %i ext WHERE (ext.product_id = %i.ID OR ext.object_id = %i.ID) AND ext.status = %s AND ext.image_url REGEXP %s)',
+					$supplier_schema['table'], $wpdb->posts, $wpdb->posts, 'active', '^[[:space:]]*https?://'
+				);
+			} elseif ( $by_product ) {
+				$where .= $wpdb->prepare(
+					' AND NOT EXISTS (SELECT 1 FROM %i ext WHERE ext.product_id = %i.ID AND ext.status = %s AND ext.image_url REGEXP %s)',
+					$supplier_schema['table'], $wpdb->posts, 'active', '^[[:space:]]*https?://'
+				);
+			} elseif ( $by_object ) {
+				$where .= $wpdb->prepare(
+					' AND NOT EXISTS (SELECT 1 FROM %i ext WHERE ext.object_id = %i.ID AND ext.status = %s AND ext.image_url REGEXP %s)',
+					$supplier_schema['table'], $wpdb->posts, 'active', '^[[:space:]]*https?://'
+				);
 			}
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- All table/column identifiers and the active URL pattern use $wpdb->prepare().
-			$where .= $wpdb->prepare(
-				' AND NOT EXISTS (SELECT 1 FROM %i ext WHERE (' . implode( ' OR ', $matches ) . ') AND ext.status = %s AND ext.image_url REGEXP %s)',
-				$supplier_schema['table'],
-				'active',
-				'^[[:space:]]*https?://'
-			);
 			return $where;
 		};
 		if ( $supplier_schema ) {
