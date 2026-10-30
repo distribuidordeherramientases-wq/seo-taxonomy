@@ -44,6 +44,8 @@ Once the consolidated Insights installation is verified operationally, this comp
 * Shared Google, Bing, Merchant, Amazon, and Pinterest connection layer before consolidation.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-connections) (changelog.txt / CHANGELOG.md).
+
 * Historical source: the monolith provided Google Search Console, GA4, Bing and related external connections; the separate Connections plugin is not the original owner of that history.
 * Standalone 0.2.0 isolated the connection bridge while Insights was being extracted, preserving existing OAuth paths, configuration and provider integration contracts.
 * The connection engine and related screens were later consolidated into Insights rather than maintained as two competing sources of truth.
