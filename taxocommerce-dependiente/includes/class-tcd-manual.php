@@ -199,6 +199,7 @@ final class TCD_Manual {
                 <li><?php esc_html_e( 'Consulta CSV datos para revisar las anomalías detectadas en la lección.', 'taxocommerce-dependiente' ); ?></li>
                 <li><?php esc_html_e( 'Corrige los productos, categorías, contenidos o Vocabulary solo cuando el diagnóstico lo justifique.', 'taxocommerce-dependiente' ); ?></li>
                 <li><?php esc_html_e( 'Pulsa Revisar correcciones y reevaluar. Evita reiniciar las diez lecciones para solucionar un examen fallido.', 'taxocommerce-dependiente' ); ?></li>
+                <li><?php esc_html_e( 'Si aceptas conscientemente los errores pendientes de tu catálogo, configura el mínimo de la lección en Dependiente. Después de guardar, si el resultado anterior ya alcanza ese mínimo, usa Aceptar la lección y continuar. Los fallos y la puntuación real se conservan.', 'taxocommerce-dependiente' ); ?></li>
             </ol>
         </section>
 
@@ -244,7 +245,7 @@ final class TCD_Manual {
             <h3><?php esc_html_e( '¿Tengo que dejar abierta la pantalla?', 'taxocommerce-dependiente' ); ?></h3>
             <p><?php esc_html_e( 'No. El trabajo se programa en segundo plano, siempre que WP-Cron o el programador del servidor lo ejecuten.', 'taxocommerce-dependiente' ); ?></p>
             <h3><?php esc_html_e( '¿Qué ocurre si una lección obtiene menos del mínimo?', 'taxocommerce-dependiente' ); ?></h3>
-            <p><?php esc_html_e( 'Revisa el diagnóstico y reevalúa después de las correcciones. No reduzcas el umbral ni reinicies toda la formación para ocultar el fallo.', 'taxocommerce-dependiente' ); ?></p>
+            <p><?php esc_html_e( 'Revisa el diagnóstico y reevalúa después de las correcciones. Si decides aceptar los errores de origen de tu catálogo, puedes ajustar el mínimo de esa lección entre 0 y 100 %. Debes confirmar expresamente la aceptación si el examen anterior ya alcanza ese mínimo. El resultado real y las incidencias continúan visibles.', 'taxocommerce-dependiente' ); ?></p>
             <h3><?php esc_html_e( '¿Importar conocimiento es lo mismo que restaurar un backup?', 'taxocommerce-dependiente' ); ?></h3>
             <p><?php esc_html_e( 'No. Importar conocimiento fusiona datos reutilizables; restaurar un backup sustituye el estado incluido en su manifiesto.', 'taxocommerce-dependiente' ); ?></p>
         </section>
@@ -315,16 +316,16 @@ final class TCD_Manual {
                 <li><?php esc_html_e( 'TCD_Sources obtiene el material de la lección y TCD_Academy construye la foto fija (snapshot).', 'taxocommerce-dependiente' ); ?></li>
                 <li><?php esc_html_e( 'Se sella la fuente y se aprende únicamente del material congelado, guardando estados learned y unlearned.', 'taxocommerce-dependiente' ); ?></li>
                 <li><?php esc_html_e( 'TCD_Intelligence examina una muestra y calcula Top 1, Top 3, Top 8, fallos y el porcentaje de recuperación.', 'taxocommerce-dependiente' ); ?></li>
-                <li><?php esc_html_e( 'Las reglas generadas permanecen preparadas hasta superar el umbral; un examen fallido genera diagnóstico y bloquea el avance de la lección.', 'taxocommerce-dependiente' ); ?></li>
+                <li><?php esc_html_e( 'Las reglas generadas permanecen preparadas hasta superar el umbral configurado; un examen fallido genera diagnóstico y bloquea el avance hasta que se reevalúe o el responsable acepte expresamente un resultado que ya cumpla su nuevo mínimo.', 'taxocommerce-dependiente' ); ?></li>
                 <li><?php esc_html_e( 'Una reevaluación dirigida conserva el snapshot y puede releer los casos fallidos sin reiniciar las diez lecciones.', 'taxocommerce-dependiente' ); ?></li>
             </ol>
-            <h3><?php esc_html_e( 'Umbrales mínimos actuales', 'taxocommerce-dependiente' ); ?></h3>
+            <h3><?php esc_html_e( 'Umbrales mínimos configurados', 'taxocommerce-dependiente' ); ?></h3>
             <div class="tcd-manual__thresholds" aria-label="<?php esc_attr_e( 'Umbrales de calidad por lección', 'taxocommerce-dependiente' ); ?>">
-                <?php foreach ( array( 1=>94, 2=>88, 3=>88, 4=>86, 5=>85, 6=>92, 7=>87, 8=>90, 9=>88, 10=>90 ) as $lesson => $threshold ) : ?>
-                    <span><?php echo esc_html( 'L' . $lesson . ': ' . $threshold . '%' ); ?></span>
+                <?php foreach ( TCD_Intelligence::quality_thresholds() as $lesson => $threshold ) : ?>
+                    <span><?php echo esc_html( 'L' . $lesson . ': ' . number_format_i18n( $threshold, 1 ) . '%' ); ?></span>
                 <?php endforeach; ?>
             </div>
-            <p><?php esc_html_e( 'Los porcentajes reflejan el método threshold() de TCD_Intelligence de esta versión. No deben alterarse para forzar el aprobado de una lección.', 'taxocommerce-dependiente' ); ?></p>
+            <p><?php esc_html_e( 'Los valores de fábrica son 94, 88, 88, 86, 85, 92, 87, 90, 88 y 90 %. El administrador configura cada mínimo desde la pantalla principal. Se guardan como opciones del plugin y solo afectan a evaluaciones futuras o a una aceptación manual explícita. La auditoría conserva nota real, casos fallidos, mínimo anterior, mínimo aceptado, fecha y usuario.', 'taxocommerce-dependiente' ); ?></p>
         </section>
 
         <section id="tcd-tech-interpreter">
