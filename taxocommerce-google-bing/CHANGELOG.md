@@ -4,6 +4,11 @@
 
 ## Versiones independientes
 
+### 1.1.14
+
+* Use the TaxoCommerce Insights plugin prefix for seven new GEO functions flagged by WordPress Plugin Check.
+* Update all internal report, JSON, AJAX bridge and smoke-test references without changing saved data, provider calls or decision logic.
+
 ### 1.1.12
 
 * Align the published WordPress.org stable tag with the plugin's 1.1.12 code version, retaining existing provider connections and Analysis reports.
