@@ -26,7 +26,7 @@ jQuery(function($) {
                     dataType: 'json',
                     timeout: 240000,
                     data: {
-                        action: 'seo_analista_partial_report',
+                        action: 'taxocommerce_insights_analysis',
                         nonce: nonce,
                         report: report,
                         days: days

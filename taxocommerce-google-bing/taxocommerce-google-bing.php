@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.12
+ * Version: 1.1.13
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.12' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.13' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -47,6 +47,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connec
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-user-guide.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-auto-test.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-bootstrap.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-geo-bridge.php';
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
@@ -229,10 +230,10 @@ function taxocommerce_google_bing_analysis_screen() {
     // Use the original CSS and AJAX client (the same renderer, same reports).
     // Re-enqueue regardless of the legacy page-specific admin enqueue guard.
     if ( defined( 'SEO_SYSTEM_URL' ) ) {
-        $version = defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : TAXOCOMMERCE_GOOGLE_BING_VERSION;
+        $version = TAXOCOMMERCE_GOOGLE_BING_VERSION;
         wp_enqueue_script(
             'tgb-legacy-analysis-js',
-            SEO_SYSTEM_URL . 'includes/analista/assets/analista-lazy.js',
+            TAXOCOMMERCE_GOOGLE_BING_URL . 'includes/analysis/assets/analista-lazy.js',
             array( 'jquery' ),
             $version,
             true
@@ -241,7 +242,7 @@ function taxocommerce_google_bing_analysis_screen() {
             'tgb-legacy-analysis-js',
             'window.seoAnalistaLazyConfig = ' . wp_json_encode( array(
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'seo_analista_partial_report' ),
+                'nonce'   => wp_create_nonce( 'taxocommerce_insights_analysis' ),
                 'days'    => $days,
             ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';',
             'before'
