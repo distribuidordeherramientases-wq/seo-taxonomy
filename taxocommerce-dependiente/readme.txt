@@ -60,6 +60,12 @@ No. Core provides optional grouped administration.
 
 == Changelog ==
 
+= 0.3.22 =
+* Allow administrators to set an independent Top-8 quality threshold for each L1-L10 lesson (0–100%), preserving previous defaults.
+* Provide explicit, audited acceptance of an existing failed lesson once its actual result meets the new chosen threshold.
+* Preserve exam scores, failed examples and source content while advancing without retraining completed lessons.
+
+
 = 0.3.19 =
 * Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
 * Validate learning priority input and safely quote internal learning table identifiers.
