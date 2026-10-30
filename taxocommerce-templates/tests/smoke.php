@@ -227,6 +227,10 @@ tct_assert( strpos( $cluster_view, 'dht_template_render_dependiente_cta' ) === f
 tct_assert( strpos( $cluster_view, 'wp_get_attachment_image_url(' ) === false
     && strpos( $cluster_view, 'media_handle_sideload' ) === false,
     'Cluster presentation must not fetch or store supplier images locally.' );
+tct_assert( strpos( $cluster_view, 'dht_cluster_external_image_url(' ) !== false
+    && strpos( $cluster_view, "$host !== $site_host" ) !== false
+    && strpos( $cluster_view, 'dht_template_structural_image_url' ) !== false,
+    'External supplier images must preserve visual slots without using local Media.' );
 $legacy_cluster = dirname( TCT_DIR ) . '/seo-system/templates/template-cluster-international.php';
 if ( is_file( $legacy_cluster ) ) {
     tct_assert( file_get_contents( $legacy_cluster ) === $cluster_view,
