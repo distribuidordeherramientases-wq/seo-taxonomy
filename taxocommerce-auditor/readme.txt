@@ -58,3 +58,10 @@ No. It reads already-saved local evidence; no third-party requests are started.
 * Added complete and filtered audits with full JSON exports.
 * Added per-scope KPI panels and prioritised findings.
 * Added optional locally stored decision context and native FAQ auditing.
+
+= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+* The monolithic TaxoCommerce SEO 2.3.x contained the first Auditor quality reports; these historical releases are not standalone Auditor versions.
+* The historic review covered products, categories, posts, landing pages and FAQs, with separate quality findings and evidence.
+* Standalone Auditor 0.1.0 established five groups of checks based on native WordPress and WooCommerce data.
+* Standalone 0.2.0 restored the original Auditor checks and interface; 0.3.0 expanded complete audit results, JSON export, KPIs and decision context.
+* The independent reports were kept separate from the external traffic reporting now owned by Insights.
