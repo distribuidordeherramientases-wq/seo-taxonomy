@@ -380,6 +380,8 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-menu-list--depth-0>li>a{font-weight:700}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){margin:0 3px 3px;padding-left:7px;border-left:2px solid #dce7f7}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0) a{padding:5px 7px;font-weight:450;font-size:12px}
+.dht-pilot-menu-list ul.sub-menu{list-style:none;margin:0 3px 3px;padding:0 0 0 7px;border-left:2px solid #dce7f7}
+.dht-pilot-menu-list ul.sub-menu a{padding:5px 7px;font-weight:450;font-size:12px}
 .dht-pilot-breadcrumb{padding:24px 0 10px;font-size:13px;color:#66758a}
 .dht-pilot-breadcrumb a{text-decoration:none}
 .dht-pilot-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center;margin:12px 0 28px;padding:34px;background:#fff;border:1px solid #e7edf4;border-radius:18px}
