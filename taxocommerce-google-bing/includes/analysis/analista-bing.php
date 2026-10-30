@@ -14,6 +14,7 @@ if (!defined('SEO_ANALISTA_BING_OPTION')) {
 }
 
 if (!function_exists('seo_analista_bing_get_settings')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_get_settings() {
         $defaults = array(
             'enabled' => true,
@@ -31,16 +32,19 @@ if (!function_exists('seo_analista_bing_get_settings')) {
 }
 
 if (!function_exists('seo_analista_bing_api_key')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_api_key() {
         if (defined('SEO_BING_WEBMASTER_API_KEY') && trim((string) SEO_BING_WEBMASTER_API_KEY) !== '') {
             return trim((string) SEO_BING_WEBMASTER_API_KEY);
         }
         $settings = seo_analista_bing_get_settings();
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         return trim((string) apply_filters('seo_analista_bing_api_key', $settings['api_key'] ?? ''));
     }
 }
 
 if (!function_exists('seo_analista_bing_parse_date')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_parse_date($value) {
         $value = trim((string) $value);
         if ($value === '') return '';
@@ -54,6 +58,7 @@ if (!function_exists('seo_analista_bing_parse_date')) {
 }
 
 if (!function_exists('seo_analista_bing_request')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_request($method, array $params = array(), $ttl = 900) {
         $allowed = array('GetRankAndTrafficStats', 'GetCrawlStats', 'GetQueryStats', 'GetPageStats');
         if (!in_array($method, $allowed, true)) {
@@ -94,6 +99,7 @@ if (!function_exists('seo_analista_bing_request')) {
 }
 
 if (!function_exists('seo_analista_bing_rows_in_period')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_rows_in_period(array $rows, $days) {
         $days = max(1, absint($days));
         $cutoff = gmdate('Y-m-d', time() - (($days - 1) * DAY_IN_SECONDS));
@@ -113,6 +119,7 @@ if (!function_exists('seo_analista_bing_rows_in_period')) {
 }
 
 if (!function_exists('seo_analista_bing_aggregate_stats')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_aggregate_stats(array $rows, $key_name, $limit = 50) {
         $groups = array();
         $key_names = is_array($key_name) ? $key_name : array($key_name);
@@ -171,6 +178,7 @@ if (!function_exists('seo_analista_bing_aggregate_stats')) {
 }
 
 if (!function_exists('seo_analista_bing_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_snapshot($days = 28, $limit = 50) {
         $days = function_exists('seo_analista_days') ? seo_analista_days($days) : max(1, absint($days));
         $settings = seo_analista_bing_get_settings();
@@ -244,6 +252,7 @@ if (!function_exists('seo_analista_bing_snapshot')) {
 }
 
 if (!function_exists('seo_analista_bing_source_health')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_source_health($days = 28) {
         $snapshot = seo_analista_bing_snapshot($days, 20);
         if (empty($snapshot['enabled'])) {
@@ -268,6 +277,7 @@ if (!function_exists('seo_analista_bing_source_health')) {
 }
 
 if (!function_exists('seo_analista_bing_google_query_compare')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_google_query_compare(array $google_rows, array $bing_rows, $limit = 30) {
         $map = array();
         foreach ($google_rows as $row) {
@@ -316,6 +326,7 @@ if (!function_exists('seo_analista_bing_google_query_compare')) {
 }
 
 if (!function_exists('seo_analista_bing_save_settings_handler')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_bing_save_settings_handler() {
         if (!current_user_can('manage_options')) wp_die('No tienes permisos para configurar Bing.');
         check_admin_referer('seo_analista_save_bing_settings', 'seo_analista_bing_nonce');
@@ -360,6 +371,7 @@ if (!function_exists('seo_analista_bing_save_settings_handler')) {
 }
 
 if (!function_exists('seo_analista_render_bing_settings_form')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_bing_settings_form() {
         if (!current_user_can('manage_options')) return;
         $settings = seo_analista_bing_get_settings();

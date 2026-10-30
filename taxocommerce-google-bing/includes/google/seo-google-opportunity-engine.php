@@ -17,6 +17,7 @@ if (!defined('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION')) {
     define('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION', '2.1.0');
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_normalize($text) {
     if (function_exists('seo_google_trends_normalize')) {
         return seo_google_trends_normalize($text);
@@ -26,6 +27,7 @@ function seo_google_opportunity_normalize($text) {
     return trim((string) preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/i', ' ', $text)));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_tokens($text) {
     if (function_exists('seo_google_trends_tokens')) {
         return seo_google_trends_tokens($text);
@@ -33,6 +35,7 @@ function seo_google_opportunity_tokens($text) {
     return array_values(array_filter(explode(' ', seo_google_opportunity_normalize($text))));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_similarity($left, $right) {
     $left_normalized = seo_google_opportunity_normalize($left);
     $right_normalized = seo_google_opportunity_normalize($right);
@@ -61,6 +64,7 @@ function seo_google_opportunity_similarity($left, $right) {
     return min(1.0, ($coverage * 0.72) + ($jaccard * 0.28) + $phrase);
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_best_match($topic, array $index, $minimum = 0.0) {
     $best = array();
     $best_score = 0.0;
@@ -79,6 +83,7 @@ function seo_google_opportunity_best_match($topic, array $index, $minimum = 0.0)
     return $best;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_classify_intent($topic, $signal_kind = '') {
     $normalized = ' ' . seo_google_opportunity_normalize($topic) . ' ';
     $tokens = seo_google_opportunity_tokens($topic);
@@ -129,6 +134,7 @@ function seo_google_opportunity_classify_intent($topic, $signal_kind = '') {
     return 'demanda_comercial';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_action_meta($code) {
     $map = array(
         'POTENCIAR_LANDING'    => array('label' => 'Potenciar landing', 'channel' => 'landing', 'tone' => 'blue'),
@@ -151,6 +157,7 @@ function seo_google_opportunity_action_meta($code) {
     return $map[$code] ?? array('label' => $code, 'channel' => 'watch', 'tone' => 'gray');
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_confidence(array $sources, $priority, $exploratory = false) {
     $sources = array_values(array_unique(array_filter($sources)));
     if ($exploratory && count($sources) <= 2) {
@@ -165,6 +172,7 @@ function seo_google_opportunity_confidence(array $sources, $priority, $explorato
     return 'MEDIA';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_add(array &$rows, array $row) {
     $topic = sanitize_text_field((string) ($row['topic'] ?? ''));
     $action = sanitize_key((string) ($row['action'] ?? ''));
@@ -222,6 +230,7 @@ function seo_google_opportunity_add(array &$rows, array $row) {
     $rows[$key] = $existing;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_landing_index() {
     static $cache = null;
     if (null !== $cache) {
@@ -250,6 +259,7 @@ function seo_google_opportunity_landing_index() {
     return $cache;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_post_index() {
     static $cache = null;
     if (null !== $cache) {
@@ -272,6 +282,7 @@ function seo_google_opportunity_post_index() {
     return $cache;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_product_index() {
     static $cache = null;
     if (null !== $cache) {
@@ -312,6 +323,7 @@ function seo_google_opportunity_product_index() {
  * Productos existentes que todavía no están publicados. Permite distinguir
  * "nos falta el producto" de "ya lo tenemos pero falta publicarlo".
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_pending_product_index() {
     static $cache = null;
     if (null !== $cache) {
@@ -352,6 +364,7 @@ function seo_google_opportunity_pending_product_index() {
     return $cache;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_pending_product_coverage($topic) {
     $topic_tokens = seo_google_opportunity_tokens($topic);
     $products = seo_google_opportunity_pending_product_index();
@@ -400,6 +413,7 @@ function seo_google_opportunity_pending_product_coverage($topic) {
  * Reduce el conjunto de productos antes de calcular similitud. El índice
  * invertido evita comparar cada señal de mercado con miles de títulos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_product_candidates($topic, $limit = 450) {
     static $token_map = null;
     $products = seo_google_opportunity_product_index();
@@ -443,6 +457,7 @@ function seo_google_opportunity_product_candidates($topic, $limit = 450) {
     return $out;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_product_coverage($topic) {
     $topic_tokens = seo_google_opportunity_tokens($topic);
     if (!$topic_tokens) {
@@ -474,6 +489,7 @@ function seo_google_opportunity_product_coverage($topic) {
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_catalog_context($topic, array $seeds = array(), $term_id = 0) {
     $term_id = absint($term_id);
     if ($term_id && taxonomy_exists('product_cat')) {
@@ -506,6 +522,7 @@ function seo_google_opportunity_catalog_context($topic, array $seeds = array(), 
     return array();
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_market_match($label, array $market) {
     $best = array();
     $best_similarity = 0.0;
@@ -530,6 +547,7 @@ function seo_google_opportunity_market_match($label, array $market) {
     return $best;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_source_status() {
     if (function_exists('seo_landing_google_source_status')) {
         return seo_landing_google_source_status();
@@ -550,6 +568,7 @@ function seo_google_opportunity_source_status() {
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_evidence_from_item(array $item) {
     $evidence = array();
     foreach (array_slice((array) ($item['evidence'] ?? array()), 0, 4) as $row) {
@@ -561,6 +580,7 @@ function seo_google_opportunity_evidence_from_item(array $item) {
     return $evidence;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_add_demand_rows(array &$rows, array $guidance, array $market, array &$matched_market) {
     $landings = seo_google_opportunity_landing_index();
     $posts = seo_google_opportunity_post_index();
@@ -740,6 +760,7 @@ function seo_google_opportunity_add_demand_rows(array &$rows, array $guidance, a
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_add_market_rows(array &$rows, array $market, array $matched_market) {
     $landings = seo_google_opportunity_landing_index();
     $posts = seo_google_opportunity_post_index();
@@ -932,6 +953,7 @@ function seo_google_opportunity_add_market_rows(array &$rows, array $market, arr
     }
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_add_post_report_rows(array &$rows, $days) {
     if (!function_exists('seo_post_opportunities_build_report')) {
         return array();
@@ -986,6 +1008,7 @@ function seo_google_opportunity_add_post_report_rows(array &$rows, $days) {
     return $report;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_build_results($days = 60) {
     $results = array('landings' => array(), 'posts' => array(), 'availability' => array());
 
@@ -1079,6 +1102,7 @@ function seo_google_opportunity_build_results($days = 60) {
     return $results;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_build($days = 60, $include_results = false) {
     static $cache = array();
     $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
@@ -1152,6 +1176,7 @@ function seo_google_opportunity_build($days = 60, $include_results = false) {
         'results'       => $include_results ? seo_google_opportunity_build_results($days) : array(),
     );
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
     $cache[$cache_key] = apply_filters('seo_google_opportunity_engine_payload', $payload, $days, $include_results);
     return $cache[$cache_key];
 }
@@ -1162,6 +1187,7 @@ function seo_google_opportunity_build($days = 60, $include_results = false) {
  * El fichero exportado contiene resultados y evidencias útiles para decidir,
  * nunca credenciales OAuth, secretos, tokens ni configuración técnica.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_json_export_url($days = 60) {
     $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
 
@@ -1180,6 +1206,7 @@ function seo_google_opportunity_json_export_url($days = 60) {
 /**
  * Determina si una decisión está respaldada por una señal de Google.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_is_google_backed_row(array $row) {
     foreach ((array) ($row['sources'] ?? array()) as $source) {
         $normalized = seo_google_opportunity_normalize($source);
@@ -1210,6 +1237,7 @@ function seo_google_opportunity_is_google_backed_row(array $row) {
  * Se separa expresamente la evidencia Google de la cobertura interna usada
  * para interpretar esa evidencia. No se exportan IDs internos ni ajustes.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_export_action_row(array $row) {
     $metrics = (array) ($row['metrics'] ?? array());
     $market = (array) ($row['market'] ?? array());
@@ -1303,6 +1331,7 @@ function seo_google_opportunity_export_action_row(array $row) {
 /**
  * Reduce una señal de mercado a los campos necesarios para compartirla.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_export_market_row(array $row) {
     return array_filter(
         array(
@@ -1334,6 +1363,7 @@ function seo_google_opportunity_export_market_row(array $row) {
  * No incluye estado de conexiones, Client ID, secretos, tokens, service
  * accounts ni el volcado técnico del sistema.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_export_payload($days = 60) {
     $days = in_array((int) $days, array(28, 60, 90), true) ? (int) $days : 60;
     $payload = seo_google_opportunity_build($days, false);
@@ -1397,12 +1427,14 @@ function seo_google_opportunity_export_payload($days = 60) {
     );
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_filter_rows(array $rows, array $channels) {
     return array_values(array_filter($rows, static function ($row) use ($channels) {
         return in_array((string) ($row['channel'] ?? ''), $channels, true);
     }));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_badge($text, $tone = 'gray') {
     $tones = array(
         'blue'   => array('#e9f2fb', '#135e96'),
@@ -1416,11 +1448,13 @@ function seo_google_opportunity_badge($text, $tone = 'gray') {
     return '<span class="seo-opp-badge" style="background:' . esc_attr($colors[0]) . ';color:' . esc_attr($colors[1]) . ';">' . esc_html($text) . '</span>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_action_tone($action) {
     $meta = seo_google_opportunity_action_meta($action);
     return (string) ($meta['tone'] ?? 'gray');
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_metric_text(array $row) {
     $parts = array();
     $metrics = (array) ($row['metrics'] ?? array());
@@ -1457,6 +1491,7 @@ function seo_google_opportunity_metric_text(array $row) {
     return implode(' · ', array_filter($parts));
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit = 50) {
     if (!$rows) {
         echo '<div class="seo-opp-empty"><p>' . esc_html($empty_message) . '</p></div>';
@@ -1501,6 +1536,7 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
     echo '</div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_header($title, $description, $days, $view) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'google_intelligence';
@@ -1521,6 +1557,7 @@ function seo_google_opportunity_render_header($title, $description, $days, $view
     echo '</form></div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_source_cards(array $sources) {
     $labels = array(
         'search_console' => 'Search Console',
@@ -1538,6 +1575,7 @@ function seo_google_opportunity_render_source_cards(array $sources) {
     echo '</div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_actions(array $payload, $days) {
     $summary = $payload['summary'];
     seo_google_opportunity_render_header(
@@ -1567,6 +1605,7 @@ function seo_google_opportunity_render_actions(array $payload, $days) {
     echo '</div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_market(array $payload, $days) {
     seo_google_opportunity_render_header(
         'Mercado y tendencias externas',
@@ -1610,6 +1649,7 @@ function seo_google_opportunity_render_market(array $payload, $days) {
     echo '<div class="seo-opp-card"><a class="button button-primary" href="' . esc_url(seo_google_admin_url('trends_market')) . '">Configurar y sincronizar Trends</a></div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_channel(array $payload, $days, $view) {
     $config = array(
         'landings_plan' => array(
@@ -1639,6 +1679,7 @@ function seo_google_opportunity_render_channel(array $payload, $days, $view) {
     echo '</div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_results(array $payload, $days) {
     seo_google_opportunity_render_header(
         'Resultados de lo que ya existe',
@@ -1674,6 +1715,7 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     echo '</div></div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_sources(array $payload, $days) {
     seo_google_opportunity_render_header(
         'Fuentes y diagnóstico',
@@ -1700,12 +1742,14 @@ function seo_google_opportunity_render_sources(array $payload, $days) {
     echo '</div></div>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render_styles() {
     echo '<style>
     .seo-opp-card{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:18px;margin:0 0 18px}.seo-opp-header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}.seo-opp-header h2{margin:0 0 6px}.seo-opp-header p{margin:0 0 7px;max-width:980px}.seo-opp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0 0 18px}.seo-opp-kpi{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:14px}.seo-opp-kpi span,.seo-opp-kpi small{display:block;color:#646970}.seo-opp-kpi strong{display:block;font-size:27px;margin:4px 0}.seo-opp-source-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0 0 18px}.seo-opp-source-grid .seo-opp-card{margin:0}.seo-opp-source-grid h3{margin-top:0}.seo-opp-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}@media(max-width:1100px){.seo-opp-two{grid-template-columns:1fr}}.seo-opp-list{display:flex;flex-direction:column;gap:10px}.seo-opp-row{display:flex;gap:14px;border:1px solid #dcdcde;border-left:5px solid #2271b1;border-radius:6px;padding:13px;background:#fff}.seo-opp-score{font-size:24px;font-weight:700;min-width:64px}.seo-opp-score small{font-size:11px;font-weight:400}.seo-opp-body{min-width:0;flex:1}.seo-opp-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.seo-opp-head strong{font-size:15px}.seo-opp-body p{margin:7px 0}.seo-opp-meta{color:#646970;font-size:12px;line-height:1.55}.seo-opp-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.seo-opp-badge{display:inline-block;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:700}.seo-opp-empty{padding:18px;background:#f6f7f7;border-radius:6px}.seo-opp-card table td{vertical-align:top}
     </style>';
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_opportunity_render($view = 'actions', $days = 60) {
     $allowed = array('actions', 'market', 'landings_plan', 'content_plan', 'catalog_plan', 'results', 'sources');
     $view = in_array($view, $allowed, true) ? $view : 'actions';

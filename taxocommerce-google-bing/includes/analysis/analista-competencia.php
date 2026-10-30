@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_competition_rows')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competition_rows() {
         // La comparación se alimenta únicamente desde una fuente automática
         // conectada al adaptador de rankings. No hay importaciones manuales.
@@ -22,6 +23,7 @@ if (!function_exists('seo_analista_competition_rows')) {
 }
 
 if (!function_exists('seo_analista_find_query_position')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_find_query_position(array $rows, $keyword) {
         $keyword = seo_analista_clean_query($keyword);
         $needle = seo_analista_normalize_text($keyword);
@@ -49,6 +51,7 @@ if (!function_exists('seo_analista_find_query_position')) {
 }
 
 if (!function_exists('seo_analista_tracked_keyword_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_tracked_keyword_snapshot(array $current_queries, array $previous_queries) {
         $settings = seo_analista_get_settings();
         $tracked = seo_analista_sanitize_keywords((array) ($settings['tracked_keywords'] ?? array()));
@@ -137,6 +140,7 @@ if (!function_exists('seo_analista_tracked_keyword_snapshot')) {
 }
 
 if (!function_exists('seo_analista_competition_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competition_snapshot($limit = 50) {
         $rows = seo_analista_competition_rows();
         $own = preg_replace('/^www\./', '', strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST)));

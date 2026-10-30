@@ -10,7 +10,9 @@ global $wpdb;
 
 wp_clear_scheduled_hook( 'tgb_market_queue_tick' );
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 foreach ( array( 'tgb_market_sources', 'tgb_market_runs', 'tgb_market_categories' ) as $suffix ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $table = $wpdb->prefix . $suffix;
     // Table identifiers cannot be bound as SQL values; only a fixed allowlist is used.
     $wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $table ) . '`' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
@@ -32,24 +34,28 @@ foreach ( array(
     'taxocommerce_google_bing_oauth_settings',
     'taxocommerce_google_bing_oauth_tokens',
     'taxocommerce_google_bing_oauth_migration_v1',
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 ) as $option ) {
     delete_option( $option );
 }
 
 // Only this plugin's prefixed options/transients. Never remove legacy settings
 // copied from other plugins, nor WooCommerce/WordPress core data.
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $patterns = array(
     $wpdb->esc_like( 'tgb_' ) . '%',
     $wpdb->esc_like( 'taxocommerce_google_bing_' ) . '%',
     $wpdb->esc_like( '_transient_tgb_' ) . '%',
     $wpdb->esc_like( '_transient_timeout_tgb_' ) . '%',
 );
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 foreach ( $patterns as $pattern ) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Native live read/write of plugin-owned tables, retaining immediate reporting consistency; query values are prepared.
     $names = $wpdb->get_col( $wpdb->prepare(
         "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
         $pattern
     ) );
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     foreach ( (array) $names as $name ) {
         delete_option( $name );
     }

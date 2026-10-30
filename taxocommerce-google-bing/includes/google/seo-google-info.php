@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!function_exists('seo_google_add_inline_script')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_add_inline_script($script) {
         $script = (string) $script;
         if ('' === trim($script)) {
@@ -52,24 +53,28 @@ const SEO_GOOGLE_ROW_LIMIT              = 25000;
 const SEO_GOOGLE_MAX_ROWS_PER_DAY       = 50000;
 
 // Analisis separado de demanda vs. catalogo para mantener este archivo estable.
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_google_demand_catalog_file = __DIR__ . '/seo-google-demand-catalog.php';
 if (file_exists($seo_google_demand_catalog_file)) {
     require_once $seo_google_demand_catalog_file;
 }
 
 // Mercado externo mediante Google Trends (datos importados/exportados).
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_google_trends_file = __DIR__ . '/seo-google-trends.php';
 if (file_exists($seo_google_trends_file)) {
     require_once $seo_google_trends_file;
 }
 
 // Motor central: demanda externa -> cobertura interna -> decisiones.
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_google_opportunity_engine_file = __DIR__ . '/seo-google-opportunity-engine.php';
 if (file_exists($seo_google_opportunity_engine_file)) {
     require_once $seo_google_opportunity_engine_file;
 }
 
 // Informe final legacy que cruza mercado, Search Console y catalogo.
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_google_growth_guidance_file = __DIR__ . '/seo-google-growth-guidance.php';
 if (file_exists($seo_google_growth_guidance_file)) {
     require_once $seo_google_growth_guidance_file;
@@ -93,6 +98,7 @@ add_action('wp_ajax_seo_google_sync_day', 'seo_google_sync_day_handler');
  * La pantalla y los endpoints AJAX vuelven a comprobarlo, por lo que también
  * funciona cuando este archivo se incluye después de admin_init.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_maybe_install_tables() {
     seo_google_install_tables(false);
 }
@@ -100,6 +106,7 @@ function seo_google_maybe_install_tables() {
 /**
  * URL base de Google Intelligence.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_admin_url($view = 'settings', $args = array()) {
     $view = sanitize_key($view);
 
@@ -135,6 +142,7 @@ function seo_google_admin_url($view = 'settings', $args = array()) {
 /**
  * URI exacta que debe registrarse en Google Cloud.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_uri() {
     return admin_url('admin-post.php?action=seo_google_oauth_callback');
 }
@@ -142,6 +150,7 @@ function seo_google_redirect_uri() {
 /**
  * Configuración no sensible o de aplicación.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_settings() {
     $defaults = array(
         'client_id'      => '',
@@ -159,6 +168,7 @@ function seo_google_get_settings() {
 /**
  * Tokens OAuth almacenados por separado.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_tokens() {
     $defaults = array(
         'access_token'  => '',
@@ -176,6 +186,7 @@ function seo_google_get_tokens() {
 /**
  * Guarda opciones evitando autoload.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_update_option($option_name, $value) {
     if (false === get_option($option_name, false)) {
         add_option($option_name, $value, '', false);
@@ -188,6 +199,7 @@ function seo_google_update_option($option_name, $value) {
 /**
  * Determina el estado de conexión.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_connection_status() {
     $settings = seo_google_get_settings();
     $tokens   = seo_google_get_tokens();
@@ -211,6 +223,7 @@ function seo_google_connection_status() {
  * Guarda Client ID, secreto, propiedad y frecuencia.
  * Los campos sensibles vacíos conservan el valor ya almacenado.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_save_settings_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para configurar Google Intelligence.', 'taxocommerce-google-bing'));
@@ -262,6 +275,7 @@ function seo_google_save_settings_handler() {
 /**
  * Inicia OAuth en Google.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_connect_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para conectar Google.', 'taxocommerce-google-bing'));
@@ -306,6 +320,7 @@ function seo_google_connect_handler() {
 /**
  * Lee filtros y avisos GET de solo lectura del módulo Google.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_query_arg($key, $default = '') {
     $key = sanitize_key((string) $key);
     if ('' === $key) {
@@ -322,6 +337,7 @@ function seo_google_query_arg($key, $default = '') {
 /**
  * Recibe el callback OAuth y cambia el código por tokens.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_oauth_callback_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para completar esta conexión.', 'taxocommerce-google-bing'));
@@ -453,6 +469,7 @@ function seo_google_oauth_callback_handler() {
 /**
  * Devuelve un access token válido, renovándolo cuando sea necesario.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_access_token() {
     $settings = seo_google_get_settings();
     $tokens   = seo_google_get_tokens();
@@ -502,6 +519,7 @@ function seo_google_get_access_token() {
 /**
  * Petición autenticada a una API de Google.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_api_get($url) {
     $access_token = seo_google_get_access_token();
 
@@ -541,6 +559,7 @@ function seo_google_api_get($url) {
 /**
  * Lista propiedades de Search Console disponibles para la cuenta autorizada.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_search_console_properties() {
     $response = seo_google_api_get('https://www.googleapis.com/webmasters/v3/sites');
 
@@ -574,6 +593,7 @@ function seo_google_get_search_console_properties() {
 /**
  * Prueba la autorización consultando las propiedades disponibles.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_test_connection_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para probar esta conexión.', 'taxocommerce-google-bing'));
@@ -609,6 +629,7 @@ function seo_google_test_connection_handler() {
 /**
  * Revoca el token cuando sea posible y elimina la conexión local.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_disconnect_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para desconectar Google.', 'taxocommerce-google-bing'));
@@ -643,6 +664,7 @@ function seo_google_disconnect_handler() {
 /**
  * Nombre de una tabla propia de Google Intelligence.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_table($suffix) {
     global $wpdb;
 
@@ -656,6 +678,7 @@ function seo_google_table($suffix) {
  * cuando el nombre contiene guiones bajos. Si el hosting restringe
  * information_schema, se utiliza SHOW TABLES como alternativa.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_table_exists($table_name) {
     global $wpdb;
 
@@ -672,6 +695,7 @@ function seo_google_table_exists($table_name) {
 /**
  * Estado físico de las tablas requeridas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_tables_status() {
     $runs_table = esc_sql( seo_google_table('sync_runs') );
     $data_table = esc_sql( seo_google_table('search_data') );
@@ -697,6 +721,7 @@ function seo_google_tables_status() {
  * no llega a crear una tabla, ejecuta CREATE TABLE IF NOT EXISTS directamente
  * y conserva el error exacto de MySQL para el diagnóstico.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_install_tables($force = false) {
     global $wpdb;
 
@@ -896,6 +921,7 @@ function seo_google_install_tables($force = false) {
 /**
  * Reparación manual de tablas desde la pantalla de sincronización.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_repair_tables_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para reparar las tablas.', 'taxocommerce-google-bing'));
@@ -924,6 +950,7 @@ function seo_google_repair_tables_handler() {
  * Fecha final segura para datos finalizados de Search Console.
  * Search Console interpreta sus fechas en la zona del Pacífico.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_finalized_end_date() {
     try {
         $date = new DateTimeImmutable('now', new DateTimeZone('America/Los_Angeles'));
@@ -936,6 +963,7 @@ function seo_google_finalized_end_date() {
 /**
  * Número de días incluidos entre dos fechas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_days_inclusive($date_from, $date_to) {
     try {
         $from = new DateTimeImmutable($date_from);
@@ -949,6 +977,7 @@ function seo_google_days_inclusive($date_from, $date_to) {
 /**
  * Ejecuta una petición POST JSON autenticada a Google.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_api_post_json($url, array $payload) {
     $access_token = seo_google_get_access_token();
 
@@ -991,6 +1020,7 @@ function seo_google_api_post_json($url, array $payload) {
  * Descarga un día de Search Console conservando consulta y página juntas.
  * Google expone hasta 50.000 filas diarias por tipo de búsqueda.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_fetch_search_day($property_id, $date, $dimensions = array('query', 'page')) {
     $endpoint = 'https://www.googleapis.com/webmasters/v3/sites/'
         . rawurlencode($property_id)
@@ -1037,6 +1067,7 @@ function seo_google_fetch_search_day($property_id, $date, $dimensions = array('q
 }
 
 /** Filas por URL sin desglosar consultas anónimas. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_pages') );
@@ -1068,6 +1099,7 @@ function seo_google_upsert_page_rows($run_id, $property_id, $date, array $rows) 
 }
 
 /** Total diario de propiedad, sin dimensiones ni filtros, búsqueda web final. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_fetch_property_day($property_id, $date) {
     $endpoint = 'https://www.googleapis.com/webmasters/v3/sites/'
         . rawurlencode($property_id) . '/searchAnalytics/query';
@@ -1095,6 +1127,7 @@ function seo_google_fetch_property_day($property_id, $date) {
 }
 
 /** Persiste también días de cero impresiones para poder comprobar cobertura. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_upsert_property_day($run_id, $property_id, $date, array $totals) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_totals') );
@@ -1110,6 +1143,7 @@ function seo_google_upsert_property_day($run_id, $property_id, $date, array $tot
 /**
  * Guarda filas en bloques y actualiza las ya existentes.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows) {
     global $wpdb;
 
@@ -1205,8 +1239,11 @@ function seo_google_upsert_search_rows($run_id, $property_id, $date, array $rows
  * Inicia una respuesta AJAX limpia. Cualquier aviso o HTML generado por PHP,
  * WordPress o MySQL queda dentro de un búfer y no contamina el JSON.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_ajax_begin() {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $GLOBALS['seo_google_ajax_active']   = true;
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $GLOBALS['seo_google_ajax_ob_level'] = ob_get_level();
 
     if (function_exists('nocache_headers')) {
@@ -1220,6 +1257,7 @@ function seo_google_ajax_begin() {
 /**
  * Limpia únicamente los búferes abiertos por el módulo.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_ajax_clean_buffers() {
     $base_level = isset($GLOBALS['seo_google_ajax_ob_level'])
         ? (int) $GLOBALS['seo_google_ajax_ob_level']
@@ -1233,6 +1271,7 @@ function seo_google_ajax_clean_buffers() {
 /**
  * Convierte un error fatal en JSON para evitar "Unexpected token <".
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_ajax_shutdown() {
     if (empty($GLOBALS['seo_google_ajax_active'])) {
         return;
@@ -1245,6 +1284,7 @@ function seo_google_ajax_shutdown() {
         return;
     }
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $GLOBALS['seo_google_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
 
@@ -1280,7 +1320,9 @@ function seo_google_ajax_shutdown() {
 /**
  * Envía JSON correcto descartando cualquier salida previa.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_ajax_success($data = null, $status_code = null) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $GLOBALS['seo_google_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
     wp_send_json_success($data, $status_code);
@@ -1289,7 +1331,9 @@ function seo_google_ajax_success($data = null, $status_code = null) {
 /**
  * Envía un error JSON correcto descartando cualquier salida previa.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_ajax_error($data = null, $status_code = null) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
     $GLOBALS['seo_google_ajax_active'] = false;
     seo_google_ajax_clean_buffers();
     wp_send_json_error($data, $status_code);
@@ -1298,6 +1342,7 @@ function seo_google_ajax_error($data = null, $status_code = null) {
 /**
  * Crea o recupera una ejecución de sincronización manual.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_sync_start_handler() {
     seo_google_ajax_begin();
 
@@ -1471,6 +1516,7 @@ function seo_google_sync_start_handler() {
 /**
  * Procesa un único día de una ejecución para evitar tiempos de espera largos.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_sync_day_handler() {
     seo_google_ajax_begin();
 
@@ -1666,6 +1712,7 @@ function seo_google_sync_day_handler() {
 /**
  * Último día almacenado para una propiedad.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_latest_data_date($property_id) {
     global $wpdb;
 
@@ -1703,6 +1750,7 @@ function seo_google_latest_data_date($property_id) {
  * Consultas y páginas siguen siendo un diagnóstico parcial y no se suman
  * para presentar clics/impresiones de la propiedad.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_period_metrics($property_id, $date_from, $date_to) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_data') );
@@ -1755,6 +1803,7 @@ function seo_google_period_metrics($property_id, $date_from, $date_to) {
     return $row;
 }
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_metrics_coverage_notice($metrics) {
     if (($metrics['source'] ?? '') === 'gsc_property_web_final') return '';
     return 'Datos parciales de consulta y página: ' . (int) ($metrics['days_available'] ?? 0)
@@ -1763,6 +1812,7 @@ function seo_google_metrics_coverage_notice($metrics) {
 }
 
 /** Cobertura real de las filas por página, incluidos los días sin URLs. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_pages_period_complete($property_id, $date_from, $date_to) {
     global $wpdb;
     $table = esc_sql( seo_google_table('search_totals') );
@@ -1780,6 +1830,7 @@ function seo_google_pages_period_complete($property_id, $date_from, $date_to) {
 /**
  * Métricas agregadas del período más reciente disponible.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_summary_metrics($property_id, $days = 28) {
     $latest_date = seo_google_latest_data_date($property_id);
 
@@ -1810,6 +1861,7 @@ function seo_google_get_summary_metrics($property_id, $days = 28) {
 /**
  * Consultas principales de un período.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit = 15) {
     global $wpdb;
 
@@ -1843,6 +1895,7 @@ function seo_google_get_top_queries($property_id, $date_from, $date_to, $limit =
 /**
  * Páginas principales de un período.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 15) {
     global $wpdb;
 
@@ -1877,6 +1930,7 @@ function seo_google_get_top_pages($property_id, $date_from, $date_to, $limit = 1
 /**
  * Historial reciente de sincronizaciones.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_sync_history($property_id, $limit = 10) {
     global $wpdb;
 
@@ -1905,6 +1959,7 @@ function seo_google_get_sync_history($property_id, $limit = 10) {
 /**
  * Pantalla principal de Google Intelligence.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_intelligence_page() {
     $install_result = seo_google_install_tables();
 
@@ -2032,6 +2087,7 @@ function seo_google_intelligence_page() {
 /**
  * Avisos de acciones.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_notices() {
     $notice = sanitize_key((string) seo_google_query_arg('google_notice', ''));
     $error  = sanitize_key((string) seo_google_query_arg('google_error', ''));
@@ -2100,6 +2156,7 @@ function seo_google_render_notices() {
 /**
  * Pantalla de configuración completa.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_settings() {
     $settings   = seo_google_get_settings();
     $tokens     = seo_google_get_tokens();
@@ -2263,6 +2320,7 @@ function seo_google_render_settings() {
 /**
  * Pantalla de sincronización manual y su historial.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_sync_status() {
     $settings       = seo_google_get_settings();
     $status         = seo_google_connection_status();
@@ -2463,6 +2521,7 @@ JS;
  * No crea tablas nuevas: reutiliza seo_google_search_data y conserva el mismo
  * criterio de posición media ponderada por impresiones usado en el resumen.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_summary_trend_data($property_id, $days = 365) {
     global $wpdb;
 
@@ -2551,6 +2610,7 @@ function seo_google_get_summary_trend_data($property_id, $days = 365) {
  * El navegador agrupa la misma serie diaria por día, semana o mes. Así no se
  * duplica información ni se necesita otra tabla de histórico.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_summary_charts(array $daily_rows) {
     if (empty($daily_rows)) {
         return;
@@ -2882,6 +2942,7 @@ JS;
 /**
  * Primer resumen real de Search Console.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_summary() {
     $settings = seo_google_get_settings();
     $status   = seo_google_connection_status();
@@ -2942,6 +3003,7 @@ function seo_google_render_summary() {
 /**
  * Tabla reutilizable de consultas o páginas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_top_table($title, array $rows, $is_url = false) {
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
     echo '<h3 style="margin-top:0;">' . esc_html($title) . '</h3>';
@@ -2974,6 +3036,7 @@ function seo_google_render_top_table($title, array $rows, $is_url = false) {
 /**
  * Contexto de análisis basado en el último día realmente almacenado.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_analysis_period($property_id, $days = 28) {
     $latest = seo_google_latest_data_date($property_id);
     if (!$latest) {
@@ -3003,6 +3066,7 @@ function seo_google_get_analysis_period($property_id, $days = 28) {
 /**
  * Comprueba conexión y datos antes de renderizar una vista analítica.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_analysis_ready() {
     $settings = seo_google_get_settings();
 
@@ -3024,6 +3088,7 @@ function seo_google_analysis_ready() {
 /**
  * Métricas de consultas con número de URLs y URL principal como evidencia.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limit = 50, $min_impressions = 1, $search = '') {
     global $wpdb;
 
@@ -3076,6 +3141,7 @@ function seo_google_get_signal_queries($property_id, $date_from, $date_to, $limi
 /**
  * Páginas que Google asocia a una consulta.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_query_page_evidence($property_id, $query_hash, $date_from, $date_to, $limit = 4) {
     global $wpdb;
 
@@ -3111,6 +3177,7 @@ function seo_google_get_query_page_evidence($property_id, $query_hash, $date_fro
 /**
  * Consultas principales asociadas a una página.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from, $date_to, $limit = 5) {
     global $wpdb;
 
@@ -3146,6 +3213,7 @@ function seo_google_get_page_query_evidence($property_id, $page_hash, $date_from
 /**
  * Páginas principales con cantidad de consultas asociadas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit = 30, $min_impressions = 1, $search = '') {
     global $wpdb;
 
@@ -3199,6 +3267,7 @@ function seo_google_get_signal_pages($property_id, $date_from, $date_to, $limit 
 }
 
 /** Consulta+página solo aporta el número de consultas visibles, nunca los totales de la URL. */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $date_to) {
     global $wpdb;
     if (!$rows) return;
@@ -3224,6 +3293,7 @@ function seo_google_attach_page_query_counts(&$rows, $property_id, $date_from, $
 /**
  * Pestaña Señales: datos agrupados y evidencias, sin dictar una conclusión.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_signals() {
     if (!seo_google_analysis_ready()) {
         return;
@@ -3342,6 +3412,7 @@ function seo_google_render_signals() {
 /**
  * Cambios de consultas o páginas entre dos períodos equivalentes.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_dimension_changes($property_id, $dimension, array $period, $min_impressions = 3, $limit = 25) {
     global $wpdb;
 
@@ -3427,6 +3498,7 @@ function seo_google_get_dimension_changes($property_id, $dimension, array $perio
 /**
  * Pestaña Cambios: comparación neutral entre períodos equivalentes.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_changes() {
     if (!seo_google_analysis_ready()) {
         return;
@@ -3475,6 +3547,7 @@ function seo_google_render_changes() {
 /**
  * Renderiza bloques de cambios sin convertirlos en recomendaciones.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_change_sections($title, array $groups, $is_url) {
     $labels = array(
         'new'     => 'Aparecen en el período actual',
@@ -3519,6 +3592,7 @@ function seo_google_render_change_sections($title, array $groups, $is_url) {
  * Se ignoran parámetros y fragmentos porque WordPress identifica la entidad
  * por la ruta pública. La URL original sí se conserva al comprobar redirects.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_normalize_url($url) {
     $url = trim((string) $url);
     if ('' === $url) {
@@ -3544,6 +3618,7 @@ function seo_google_normalize_url($url) {
  * A diferencia de seo_google_normalize_url(), conserva la consulta porque
  * algunos redirects dependen de sus parámetros.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_loop_key($url) {
     $url = trim((string) $url);
 
@@ -3569,6 +3644,7 @@ function seo_google_redirect_loop_key($url) {
 /**
  * Convierte el destino de una cabecera Location en una URL absoluta.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_absolute_url($base_url, $location) {
     $location = html_entity_decode(
         trim((string) $location),
@@ -3643,6 +3719,7 @@ function seo_google_redirect_absolute_url($base_url, $location) {
 /**
  * Extrae una redirección HTTP normal o una cabecera Refresh inmediata.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_location_from_response($response) {
     if (is_wp_error($response)) {
         return '';
@@ -3681,6 +3758,7 @@ function seo_google_redirect_location_from_response($response) {
  * Consulta una URL como lo haría un navegador, sin seguir redirects
  * automáticamente. GET solo se usa si el servidor rechaza HEAD.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_http_response($url) {
     $args = array(
         'timeout'     => 4,
@@ -3710,6 +3788,7 @@ function seo_google_redirect_http_response($url) {
  * Sigue una cadena de redirects sin abandonar la protección SSRF de
  * wp_safe_remote_* y almacena el resultado para no castigar al servidor.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_follow_redirects($url, $max_hops = 5) {
     $source_url = esc_url_raw(preg_replace('/#.*$/', '', trim((string) $url)));
     $max_hops   = max(1, min(10, absint($max_hops)));
@@ -3804,6 +3883,7 @@ function seo_google_follow_redirects($url, $max_hops = 5) {
 /**
  * Resume los códigos HTTP de una cadena de redirecciones.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_redirect_status_summary($redirect) {
     $codes = array();
 
@@ -3827,6 +3907,7 @@ function seo_google_redirect_status_summary($redirect) {
 /**
  * Construye un mapa de categorías de producto por URL.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_product_category_url_map() {
     static $map = null;
 
@@ -3857,6 +3938,7 @@ function seo_google_get_product_category_url_map() {
 /**
  * Resuelve una URL directamente contra WordPress/WooCommerce, sin red.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_resolve_local_entity_direct($url) {
     $normalized = seo_google_normalize_url($url);
     $home       = seo_google_normalize_url(home_url('/'));
@@ -3918,6 +4000,7 @@ function seo_google_resolve_local_entity_direct($url) {
  * resolver el destino final. Así una URL histórica de Search Console puede
  * relacionarse con el producto, página o categoría vigente.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_resolve_local_entity($url) {
     $entity = seo_google_resolve_local_entity_direct($url);
 
@@ -3990,6 +4073,7 @@ function seo_google_resolve_local_entity($url) {
 /**
  * Google vs catálogo: correspondencia básica y verificable con WordPress.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_comparison() {
     if (!seo_google_analysis_ready()) {
         return;
@@ -4074,6 +4158,7 @@ function seo_google_render_comparison() {
 /**
  * Métricas de páginas para calcular cobertura por rutas.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $limit = 5000) {
     global $wpdb;
 
@@ -4114,6 +4199,7 @@ function seo_google_get_all_page_metrics($property_id, $date_from, $date_to, $li
 /**
  * Convierte una URL en un área navegable basada en su primera carpeta.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_url_area($url) {
     $path = (string) wp_parse_url($url, PHP_URL_PATH);
     $path = trim($path, '/');
@@ -4127,6 +4213,7 @@ function seo_google_url_area($url) {
 /**
  * Cobertura observada en Google por áreas y rangos de posición.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_coverage() {
     if (!seo_google_analysis_ready()) {
         return;
@@ -4204,6 +4291,7 @@ function seo_google_render_coverage() {
 /**
  * Lee y valida los filtros del Laboratorio.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_lab_filters($property_id, $source = null) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter map; each consumed field is unslashed and sanitized by type below.
     $source = is_array($source) ? $source : $_GET;
@@ -4249,6 +4337,7 @@ function seo_google_get_lab_filters($property_id, $source = null) {
 /**
  * Consulta configurable del Laboratorio.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_lab_rows($property_id, array $filters) {
     global $wpdb;
 
@@ -4311,6 +4400,7 @@ function seo_google_get_lab_rows($property_id, array $filters) {
 /**
  * Exportación CSV de los resultados del Laboratorio.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_export_csv_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-google-bing'));
@@ -4351,6 +4441,7 @@ function seo_google_export_csv_handler() {
 /**
  * Exporta el JSON ejecutivo de resultados Google y decisiones.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_export_decisions_json_handler() {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('No tienes permisos para exportar estos datos.', 'taxocommerce-google-bing'));
@@ -4387,6 +4478,7 @@ function seo_google_export_decisions_json_handler() {
 /**
  * Laboratorio: consulta abierta, filtrable y exportable.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_render_laboratory() {
     if (!seo_google_analysis_ready()) {
         return;

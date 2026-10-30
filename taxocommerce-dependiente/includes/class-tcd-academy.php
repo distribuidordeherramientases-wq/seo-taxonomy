@@ -223,8 +223,98 @@ final class TCD_Academy {
         check_admin_referer('tcd_academy_control');
         $action=isset($_POST['tcd_action'])?sanitize_key(wp_unslash($_POST['tcd_action'])):'';
         $state=self::state();
+        $result='';
 
-        if('priority'===$action){
+        if('thresholds'===$action){
+            $values=isset($_POST['thresholds']) && is_array($_POST['thresholds'])
+                ? wp_unslash($_POST['thresholds'])
+                : array();
+            $saved=TCD_Intelligence::set_quality_thresholds($values);
+            if(is_wp_error($saved)){
+                $result='thresholds_invalid';
+                self::log('quality_thresholds_invalid',array('error'=>$saved->get_error_message()));
+            }else{
+                $result='thresholds_saved';
+                self::log('quality_thresholds_saved',array(
+                    'user_id'=>get_current_user_id(),'thresholds'=>$saved,
+                ));
+            }
+        }elseif('accept_quality'===$action){
+            $lesson=isset($_POST['lesson']) ? absint(wp_unslash($_POST['lesson'])) : 0;
+            $snapshot_id=isset($_POST['snapshot_id']) ? absint(wp_unslash($_POST['snapshot_id'])) : 0;
+            $snapshot=$lesson ? self::snapshot_for_lesson($lesson) : array();
+            if(
+                !in_array((string)($state['status']??''),array('error','stopped'),true)
+                || 'quality'!==(string)($state['phase']??'')
+                || $lesson!==absint($state['lesson']??0)
+                || $snapshot_id!==absint($state['snapshot_id']??0)
+                || $snapshot_id!==absint($snapshot['id']??0)
+                || 'quality_failed'!==(string)($snapshot['status']??'')
+            ){
+                $result='quality_accept_rejected';
+                self::log('quality_accept_rejected',array('lesson'=>$lesson,'reason'=>'invalid_current_state'));
+            }else{
+                global $wpdb;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep acceptance, snapshot completion and staged knowledge promotion atomic.
+                $transaction=$wpdb->query('START TRANSACTION');
+                if(false===$transaction){
+                    $result='quality_accept_rejected';
+                    self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'transaction_start_failed'));
+                }else{
+                    $accepted=TCD_Intelligence::accept_failed_quality($lesson,$snapshot_id);
+                    if(is_wp_error($accepted)){
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Undo the explicit acceptance atomically on failure.
+                        $wpdb->query('ROLLBACK');
+                        $result='quality_accept_rejected';
+                        self::log('quality_accept_rejected',array('lesson'=>$lesson,'error'=>$accepted->get_error_message()));
+                    }else{
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update the existing, audited plugin-owned snapshot after explicit owner acceptance.
+                    $updated=$wpdb->update(
+                        self::snapshots_table(),
+                        array('status'=>'completed','completed_at'=>current_time('mysql')),
+                        array('id'=>$snapshot_id,'status'=>'quality_failed')
+                    );
+                    if(1!==$updated){
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back the quality decision and staged promotion if the snapshot cannot advance.
+                        $wpdb->query('ROLLBACK');
+                        $result='quality_accept_rejected';
+                        self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'snapshot_write_failed'));
+                    }elseif(false===$wpdb->query('COMMIT')){ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Finalize atomic owner acceptance.
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed transaction must never leave a partial acceptance.
+                        $wpdb->query('ROLLBACK');
+                        $result='quality_accept_rejected';
+                        self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'transaction_commit_failed'));
+                    }else{
+                        TCD_Intelligence::reset_quality_progress($lesson,$snapshot_id);
+                        delete_option('tcd_learning_stop');
+                        delete_option(self::WATCHDOG);
+                        $next=$lesson+1;
+                        self::save(array(
+                            'lesson'=>$next,
+                            'phase'=>$next<=10?'snapshot':'interpreter',
+                            'snapshot_id'=>0,'snapshot_cursor'=>0,'learning_cursor'=>0,
+                            'identity_backfill_done'=>0,'identity_backfill_total'=>0,
+                            'status'=>'running','last_error'=>'',
+                            'last_message'=>sprintf(
+                                'L%d aceptada por el responsable: nota real %.1f%%, umbral configurado %.1f%%. Continúa L%d.',
+                                $lesson,100*(float)$accepted['pass_any_ratio'],100*(float)$accepted['threshold'],$next
+                            ),
+                        ));
+                        self::queue();
+                        self::nudge_manager();
+                        self::log('quality_accepted_by_owner',array(
+                            'user_id'=>get_current_user_id(),
+                            'lesson'=>$lesson,'snapshot_id'=>$snapshot_id,
+                            'pass_any_ratio'=>$accepted['pass_any_ratio'],
+                            'threshold'=>$accepted['threshold'],
+                            'failed'=>$accepted['failed'],
+                        ));
+                        $result='quality_accepted';
+                    }
+                    }
+                }
+            }
+        }elseif('priority'===$action){
             $priority=isset($_POST['priority'])?sanitize_text_field( wp_unslash( $_POST['priority'] ) ):'';
             $updated=TCD_Load::set_priority($priority);
             if(is_wp_error($updated))self::log('priority_invalid',array('error'=>$updated->get_error_message()));
@@ -285,7 +375,9 @@ final class TCD_Academy {
             self::nudge_manager();
             self::log('restarted');
         }
-        wp_safe_redirect(admin_url('admin.php?page=taxocommerce-dependiente'));
+        $redirect=admin_url('admin.php?page=taxocommerce-dependiente');
+        if($result)$redirect=add_query_arg('tcd_result',$result,$redirect);
+        wp_safe_redirect($redirect);
         exit;
     }
 

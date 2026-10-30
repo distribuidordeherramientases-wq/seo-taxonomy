@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_word_count')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_word_count($text) {
         $text = wp_strip_all_tags(strip_shortcodes((string) $text));
         $text = trim(preg_replace('/\s+/u', ' ', $text));
@@ -20,6 +21,7 @@ if (!function_exists('seo_analista_word_count')) {
 }
 
 if (!function_exists('seo_analista_first_meta')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_first_meta($post_id, array $keys) {
         foreach ($keys as $key) {
             $value = trim((string) get_post_meta(absint($post_id), $key, true));
@@ -30,6 +32,7 @@ if (!function_exists('seo_analista_first_meta')) {
 }
 
 if (!function_exists('seo_analista_seo_meta_snapshot')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_seo_meta_snapshot($post_id) {
         $post_id = absint($post_id);
         $title = seo_analista_first_meta($post_id, array(
@@ -87,6 +90,7 @@ if (!function_exists('seo_analista_seo_meta_snapshot')) {
                         ''
                     );
                 }
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
                 $fallback_description = trim((string) apply_filters('dht_meta_description', $fallback_description));
                 if ($fallback_description !== '') {
                     $description = $fallback_description;
@@ -106,6 +110,7 @@ if (!function_exists('seo_analista_seo_meta_snapshot')) {
 }
 
 if (!function_exists('seo_analista_internal_link_count')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_internal_link_count($html) {
         $html = (string) $html;
         if ($html === '') return 0;
@@ -130,6 +135,7 @@ if (!function_exists('seo_analista_internal_link_count')) {
 }
 
 if (!function_exists('seo_analista_path_key')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_path_key($url) {
         $path = (string) wp_parse_url((string) $url, PHP_URL_PATH);
         if ($path === '') $path = '/';
@@ -139,6 +145,7 @@ if (!function_exists('seo_analista_path_key')) {
 }
 
 if (!function_exists('seo_analista_page_metric_maps')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_page_metric_maps(array $data) {
         $current = array();
         $previous = array();
@@ -153,6 +160,7 @@ if (!function_exists('seo_analista_page_metric_maps')) {
 }
 
 if (!function_exists('seo_analista_vocabulary_count_map')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_vocabulary_count_map() {
         global $wpdb;
         $table = esc_sql( $wpdb->prefix . 'seo_object_vocabulary' );
@@ -174,6 +182,7 @@ if (!function_exists('seo_analista_vocabulary_count_map')) {
 }
 
 if (!function_exists('seo_analista_category_content_map')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_category_content_map() {
         global $wpdb;
         $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
@@ -202,6 +211,7 @@ if (!function_exists('seo_analista_category_content_map')) {
 }
 
 if (!function_exists('seo_analista_page_role_map')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_page_role_map() {
         global $wpdb;
         $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
@@ -228,6 +238,7 @@ if (!function_exists('seo_analista_page_role_map')) {
 }
 
 if (!function_exists('seo_analista_structural_role_map')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_structural_role_map() {
         global $wpdb;
         $table = esc_sql( $wpdb->prefix . 'seo_nodes' );
@@ -250,6 +261,7 @@ if (!function_exists('seo_analista_structural_role_map')) {
 }
 
 if (!function_exists('seo_analista_structural_child_count_map')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_structural_child_count_map() {
         global $wpdb;
         $table = esc_sql( $wpdb->prefix . 'seo_relations' );
@@ -276,6 +288,7 @@ if (!function_exists('seo_analista_structural_child_count_map')) {
 }
 
 if (!function_exists('seo_analista_functional_page_ids')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_functional_page_ids() {
         $ids = array();
         if (function_exists('wc_get_page_id')) {
@@ -311,6 +324,7 @@ if (!function_exists('seo_analista_functional_page_ids')) {
 
 
 if (!function_exists('seo_analista_token_stem')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_token_stem($token) {
         $token = (string) $token;
         $len = strlen($token);
@@ -329,6 +343,7 @@ if (!function_exists('seo_analista_token_stem')) {
 }
 
 if (!function_exists('seo_analista_meaningful_tokens')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_meaningful_tokens($text) {
         $stop = array_flip(array(
             'a','al','algo','como','con','de','del','el','en','es','esta','este','la','las','lo','los','mas','o','para','por','que','se','sin','su','sus','un','una','uno','unas','unos','y','e','tu','tus','mi','mis','ya','muy','mejor','mejores','guia','comprar','venta','precio','precios',
@@ -350,6 +365,7 @@ if (!function_exists('seo_analista_meaningful_tokens')) {
 
 
 if (!function_exists('seo_analista_text_similarity')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_text_similarity($left, $right) {
         $a = seo_analista_meaningful_tokens($left);
         $b = seo_analista_meaningful_tokens($right);
@@ -386,6 +402,7 @@ if (!function_exists('seo_analista_text_similarity')) {
 
 
 if (!function_exists('seo_analista_related_queries')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_related_queries($subject, array $queries, $limit = 8, $min_similarity = 0.30) {
         $ranked = array();
         foreach ($queries as $row) {
@@ -415,6 +432,7 @@ if (!function_exists('seo_analista_related_queries')) {
 
 
 if (!function_exists('seo_analista_gsc_demand_score')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_gsc_demand_score(array $current, array $previous = array()) {
         $impressions = max(0.0, (float) ($current['impressions'] ?? 0));
         $position = max(0.0, (float) ($current['position'] ?? 0));
@@ -445,6 +463,7 @@ if (!function_exists('seo_analista_gsc_demand_score')) {
 
 
 if (!function_exists('seo_analista_content_issue_profile')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_content_issue_profile($type, array $source, array $seo_meta, $vocabulary_count, $internal_links, $taxonomy_count = 0) {
         $title = trim((string) ($source['title'] ?? ''));
         $body = (string) ($source['content'] ?? '');
@@ -550,6 +569,7 @@ if (!function_exists('seo_analista_content_issue_profile')) {
 }
 
 if (!function_exists('seo_analista_entity_action')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_entity_action($type, $has_issues) {
         $map = array(
             'post' => $has_issues ? 'MEJORAR_POST' : 'IMPULSAR_POST',
@@ -566,6 +586,7 @@ if (!function_exists('seo_analista_entity_action')) {
 }
 
 if (!function_exists('seo_analista_entity_label')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_entity_label($type) {
         $labels = array(
             'post' => 'Post', 'page' => 'Página', 'product' => 'Producto', 'category' => 'Categoría',
@@ -576,6 +597,7 @@ if (!function_exists('seo_analista_entity_label')) {
 }
 
 if (!function_exists('seo_analista_build_entity_work_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_build_entity_work_row($type, $id, $title, $url, array $source, array $gsc, array $previous_gsc, $vocabulary_count, $taxonomy_count = 0, $edit_url = '') {
         $seo_meta = isset($source['seo_meta']) ? (array) $source['seo_meta'] : array('title' => '', 'description' => '');
         $internal_links = seo_analista_internal_link_count($source['content'] ?? '');
@@ -673,6 +695,7 @@ if (!function_exists('seo_analista_build_entity_work_row')) {
 
 
 if (!function_exists('seo_analista_enrich_keyword_directive')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_enrich_keyword_directive(array &$row) {
         $keywords = array_values(array_filter((array) ($row['keywords'] ?? array())));
         if (!$keywords) return;
@@ -683,6 +706,7 @@ if (!function_exists('seo_analista_enrich_keyword_directive')) {
 }
 
 if (!function_exists('seo_analista_content_work')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_content_work($days = 28, $limit = 120) {
         static $cache = array();
         $days = seo_analista_days($days);
@@ -849,6 +873,7 @@ if (!function_exists('seo_analista_content_work')) {
 }
 
 if (!function_exists('seo_analista_literature_work')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_literature_work($days = 28, $limit = 80) {
         $rows = array();
         foreach (seo_analista_content_work($days, 220) as $row) {
@@ -860,6 +885,7 @@ if (!function_exists('seo_analista_literature_work')) {
 }
 
 if (!function_exists('seo_analista_structure_work')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_structure_work($days = 28, $limit = 80) {
         $rows = array();
         foreach (seo_analista_content_work($days, 220) as $row) {
@@ -871,6 +897,7 @@ if (!function_exists('seo_analista_structure_work')) {
 }
 
 if (!function_exists('seo_analista_local_category_context')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_local_category_context($topic) {
         static $terms_cache = null;
         $topic = seo_analista_clean_query($topic);
@@ -918,6 +945,7 @@ if (!function_exists('seo_analista_local_category_context')) {
 }
 
 if (!function_exists('seo_analista_find_content_entity')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_find_content_entity($type, $id, $days = 28) {
         $id = absint($id);
         if (!$id) return array();
@@ -930,6 +958,7 @@ if (!function_exists('seo_analista_find_content_entity')) {
 }
 
 if (!function_exists('seo_analista_target_allowed_for_topic')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_target_allowed_for_topic(array $row, $topic) {
         $entity = (array) ($row['entity'] ?? array());
         $type = (string) ($entity['type'] ?? '');
@@ -951,6 +980,7 @@ if (!function_exists('seo_analista_target_allowed_for_topic')) {
 }
 
 if (!function_exists('seo_analista_new_destination_decision')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_new_destination_decision($topic) {
         $topic = seo_analista_clean_query($topic);
         if ($topic === '') return array('action'=>'INVESTIGAR_COBERTURA','kind'=>'investigate','related_categories'=>array());
@@ -1002,6 +1032,7 @@ if (!function_exists('seo_analista_new_destination_decision')) {
 }
 
 if (!function_exists('seo_analista_find_best_local_target')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_find_best_local_target($topic, $days = 28) {
         $topic = seo_analista_clean_query($topic);
         if ($topic === '') return array();

@@ -9,6 +9,7 @@ defined('ABSPATH') || exit;
 
 
 if (!function_exists('seo_analista_enqueue_report_assets')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_enqueue_report_assets() {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin asset routing.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
@@ -31,6 +32,7 @@ if (!function_exists('seo_analista_enqueue_report_assets')) {
 add_action('admin_enqueue_scripts', 'seo_analista_enqueue_report_assets');
 
 if (!function_exists('seo_analista_metric_delta')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_metric_delta($current, $previous, $inverse = false) {
         $change = seo_analista_percent_change($current, $previous);
         if (null === $change) return '<span class="seo-analista-neutral">nuevo</span>';
@@ -43,6 +45,7 @@ if (!function_exists('seo_analista_metric_delta')) {
 }
 
 if (!function_exists('seo_analista_score_badge')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_score_badge($score) {
         $score = absint($score);
         $class = $score >= 75 ? 'high' : ($score >= 55 ? 'medium' : 'low');
@@ -51,6 +54,7 @@ if (!function_exists('seo_analista_score_badge')) {
 }
 
 if (!function_exists('seo_analista_render_metric_card')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_metric_card($label, $value, $delta_html = '', $detail = '') {
         echo '<div class="seo-analista-card">';
         echo '<div class="seo-analista-label">' . esc_html($label) . '</div>';
@@ -62,6 +66,7 @@ if (!function_exists('seo_analista_render_metric_card')) {
 }
 
 if (!function_exists('seo_analista_render_subnav')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_subnav($active, $days) {
         $views = array(
             'donde_estamos' => 'Resumen',
@@ -81,6 +86,7 @@ if (!function_exists('seo_analista_render_subnav')) {
 }
 
 if (!function_exists('seo_analista_render_line_chart')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_line_chart(array $rows, $metric, $title, $description = '', $inverse = false) {
         $values = array();
         foreach ($rows as $row) {
@@ -129,6 +135,7 @@ if (!function_exists('seo_analista_render_line_chart')) {
 }
 
 if (!function_exists('seo_analista_render_distribution')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_distribution(array $current, array $previous) {
         $labels = array('top3' => 'Top 3', 'top10' => '4–10', 'top20' => '11–20', 'top50' => '21–50', 'top100' => '51–100', 'outside' => '>100');
         $max_value = max(1, max(array_merge(array_values($current), array_values($previous))));
@@ -147,6 +154,7 @@ if (!function_exists('seo_analista_render_distribution')) {
 }
 
 if (!function_exists('seo_analista_render_movement')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_movement(array $movement) {
         echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Movimiento de keywords</h2><p>Comparación consulta a consulta contra el periodo anterior. Una mejora de al menos una posición cuenta como subida.</p></div></div><div class="seo-analista-grid compact">';
         seo_analista_render_metric_card('Subieron', number_format_i18n((int) ($movement['improved'] ?? 0)), '', 'Consultas que ganaron posiciones.');
@@ -160,6 +168,7 @@ if (!function_exists('seo_analista_render_movement')) {
 }
 
 if (!function_exists('seo_analista_render_page_types')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_page_types(array $types) {
         if (!$types) return;
         echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Cómo se posiciona el catálogo</h2><p>Qué parte de la visibilidad está llegando a categorías, productos, landings y contenidos.</p></div></div><div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Tipo de URL</th><th>Páginas</th><th>Impresiones</th><th>Clics</th><th>Consultas</th></tr></thead><tbody>';
@@ -171,6 +180,7 @@ if (!function_exists('seo_analista_render_page_types')) {
 }
 
 if (!function_exists('seo_analista_render_where_we_are')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_where_we_are(array $data, array $google, array $evolution, array $search, array $catalog_structure) {
         $current = (array) ($data['current'] ?? array());
         $previous = (array) ($data['previous'] ?? array());
@@ -352,6 +362,7 @@ if (!function_exists('seo_analista_render_where_we_are')) {
 }
 
 if (!function_exists('seo_analista_render_competition_history')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_competition_history(array $competition) {
         $history = (array) ($competition['history'] ?? array());
         if (count($history) < 2) return;
@@ -372,6 +383,7 @@ if (!function_exists('seo_analista_render_competition_history')) {
 }
 
 if (!function_exists('seo_analista_render_tracked_keywords')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_tracked_keywords(array $data) {
         $rows = seo_analista_tracked_keyword_snapshot(
             (array) ($data['queries'] ?? array()),
@@ -407,6 +419,7 @@ if (!function_exists('seo_analista_render_tracked_keywords')) {
 }
 
 if (!function_exists('seo_analista_render_comparison')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_comparison(array $competition, array $market, array $data) {
         seo_analista_render_tracked_keywords($data);
 
@@ -489,6 +502,7 @@ if (!function_exists('seo_analista_render_comparison')) {
 }
 
 if (!function_exists('seo_analista_render_directive_details')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_directive_details(array $row) {
         $issues = array_values(array_filter((array) ($row['issues'] ?? array())));
         $changes = array_values(array_filter((array) ($row['recommended_changes'] ?? array())));
@@ -595,6 +609,7 @@ if (!function_exists('seo_analista_render_directive_details')) {
 }
 
 if (!function_exists('seo_analista_render_directive_rows')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_directive_rows(array $rows, $title, $description, $limit = 40) {
         echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>' . esc_html($title) . '</h2><p>' . esc_html($description) . '</p></div></div>';
         if (!$rows) {
@@ -672,6 +687,7 @@ if (!function_exists('seo_analista_render_directive_rows')) {
 }
 
 if (!function_exists('seo_analista_render_content_view')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_content_view($days) {
         $rows = function_exists('seo_analista_literature_work') ? seo_analista_literature_work($days, 120) : array();
         $counts = array('post' => 0, 'page' => 0, 'product' => 0, 'improve' => 0, 'push' => 0);
@@ -693,6 +709,7 @@ if (!function_exists('seo_analista_render_content_view')) {
 }
 
 if (!function_exists('seo_analista_render_structure_view')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_structure_view($days) {
         $architecture = function_exists('seo_analista_architecture_advice') ? seo_analista_architecture_advice($days, 80) : array();
         $architecture_rows = (array) ($architecture['recommendations'] ?? array());
@@ -721,6 +738,7 @@ if (!function_exists('seo_analista_render_structure_view')) {
 }
 
 if (!function_exists('seo_analista_render_trends_view')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_trends_view($days) {
         $market = function_exists('seo_analista_market_signals') ? seo_analista_market_signals(100) : array();
         $accel = function_exists('seo_analista_search_acceleration') ? seo_analista_search_acceleration($days, 60) : array();
@@ -739,6 +757,7 @@ if (!function_exists('seo_analista_render_trends_view')) {
 }
 
 if (!function_exists('seo_analista_render_plan')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_plan(array $plan, $limit = 30) {
         if (function_exists('seo_analista_action_gate_summary')) {
             $gate_summary = seo_analista_action_gate_summary($plan);
@@ -778,6 +797,7 @@ if (!function_exists('seo_analista_render_plan')) {
 }
 
 if (!function_exists('seo_analista_render_roadmap')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_roadmap(array $plan, array $summary, array $suppliers, array $search) {
         echo '<div class="seo-analista-grid">';
         seo_analista_render_metric_card('Hacer ahora', number_format_i18n((int) ($summary['hacer_ahora'] ?? $summary['high'] ?? 0)), '', 'Máximo 10 trabajos con mejor retorno esperado.');
@@ -803,6 +823,7 @@ if (!function_exists('seo_analista_render_roadmap')) {
 }
 
 if (!function_exists('seo_analista_render_sources')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_sources(array $health, array $competition, array $suppliers) {
         echo '<details class="seo-analista-sources"><summary><strong>Fuentes y calidad de datos</strong> · una fuente pendiente pesa 0 en la prioridad</summary><div class="seo-analista-source-grid">';
         foreach ($health as $key => $row) {
@@ -818,6 +839,7 @@ if (!function_exists('seo_analista_render_sources')) {
 }
 
 if (!function_exists('seo_analista_render_report')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_render_report() {
         if (!current_user_can('manage_options')) return;
 

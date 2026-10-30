@@ -2,6 +2,13 @@ name: Despliegue MAIN (staging) a producción (hosting)
 
 on:
   workflow_dispatch:
+    inputs:
+      approved_cleanup_sha256:
+        description: 'Approved SHA-256 from a prior PRO comparison; blank = report only'
+        required: false
+        type: string
+        default: ''
+
 
 permissions:
   contents: read
@@ -29,6 +36,11 @@ jobs:
         run: |
           echo "PRO source: staging @ $(git rev-parse HEAD)"
           test "$(git branch --show-current)" = "staging"
+
+      - name: Validate PRO reconciliation and protection rules
+        run: |
+          python3 -m py_compile .github/scripts/reconcile_taxocommerce_pro.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_reconcile_taxocommerce_pro.py' -v
 
       - name: Validate all TaxoCommerce version headers and readmes
         shell: bash
@@ -553,3 +565,41 @@ jobs:
           finally:
               ftp.quit()
           PY
+
+      - name: Compare deployed ZIPs against PRO files and propose removals
+        env:
+          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
+          TC_FTP_HOST: ${{ secrets.FTP_SERVER }}
+          TC_FTP_USER: ${{ secrets.FTP_USERNAME }}
+          TC_FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          TC_APPROVED_CLEANUP_SHA256: ${{ inputs.approved_cleanup_sha256 }}
+        run: python3 .github/scripts/reconcile_taxocommerce_pro.py plan
+
+      - name: Publish proposed obsolete files for manual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-pro-obsolete-file-proposal
+          path: .taxocommerce-cleanup/plan.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve backup of explicitly approved removals before deletion
+        if: ${{ inputs.approved_cleanup_sha256 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-pro-obsolete-file-backup
+          path: |
+            .taxocommerce-cleanup/backup.zip
+            .taxocommerce-cleanup/plan.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove only files in the approved PRO comparison
+        if: ${{ inputs.approved_cleanup_sha256 != '' }}
+        env:
+          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
+          TC_FTP_HOST: ${{ secrets.FTP_SERVER }}
+          TC_FTP_USER: ${{ secrets.FTP_USERNAME }}
+          TC_FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          TC_APPROVED_CLEANUP_SHA256: ${{ inputs.approved_cleanup_sha256 }}
+        run: python3 .github/scripts/reconcile_taxocommerce_pro.py apply

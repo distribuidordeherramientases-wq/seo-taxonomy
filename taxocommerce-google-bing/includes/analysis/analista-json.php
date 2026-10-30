@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_json_clean_value')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_json_clean_value($value, $depth = 0) {
         if ($depth > 8) return null;
         if (is_null($value) || is_bool($value) || is_int($value) || is_float($value)) return $value;
@@ -29,6 +30,7 @@ if (!function_exists('seo_analista_json_clean_value')) {
 }
 
 if (!function_exists('seo_analista_json_query_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_json_query_row(array $row) {
         return array(
             'query' => seo_analista_clean_query($row['query_text'] ?? ''),
@@ -43,6 +45,7 @@ if (!function_exists('seo_analista_json_query_row')) {
 }
 
 if (!function_exists('seo_analista_json_page_row')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_json_page_row(array $row) {
         return array(
             'url' => esc_url_raw((string) ($row['page_url'] ?? '')),
@@ -57,6 +60,7 @@ if (!function_exists('seo_analista_json_page_row')) {
 }
 
 if (!function_exists('seo_analista_build_json_export')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_build_json_export($days = 28) {
         $days = seo_analista_days($days);
         $data = seo_analista_get_data($days);
@@ -227,6 +231,7 @@ if (!function_exists('seo_analista_build_json_export')) {
 }
 
 if (!function_exists('seo_analista_export_json_url')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_export_json_url($days = 28) {
         return wp_nonce_url(
             add_query_arg(
@@ -243,6 +248,7 @@ if (!function_exists('seo_analista_export_json_url')) {
 }
 
 if (!function_exists('seo_analista_export_json_handler')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_export_json_handler() {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('No tienes permisos para exportar Analista.', 'taxocommerce-google-bing'));

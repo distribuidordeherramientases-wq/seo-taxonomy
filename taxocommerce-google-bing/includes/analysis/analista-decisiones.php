@@ -10,6 +10,7 @@
 defined('ABSPATH') || exit;
 
 if (!function_exists('seo_analista_action_meta')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_action_meta($code) {
         $map = array(
             'MEJORAR_POST' => array('label' => 'Mejorar post', 'channel' => 'contenido'),
@@ -58,6 +59,7 @@ if (!function_exists('seo_analista_action_meta')) {
 }
 
 if (!function_exists('seo_analista_topic_similarity')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_topic_similarity($left, $right) {
         $a = array_values(array_unique(array_filter(explode(' ', seo_analista_normalize_text($left)))));
         $b = array_values(array_unique(array_filter(explode(' ', seo_analista_normalize_text($right)))));
@@ -69,6 +71,7 @@ if (!function_exists('seo_analista_topic_similarity')) {
 }
 
 if (!function_exists('seo_analista_clean_evidence')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_clean_evidence(array $evidence, $limit = 8) {
         $out = array();
         $seen = array();
@@ -87,6 +90,7 @@ if (!function_exists('seo_analista_clean_evidence')) {
 
 if (!function_exists('seo_analista_merge_market_signal')) {
     /** Mantiene separadas las senales de Trends y la aceleracion interna de GSC. */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_merge_market_signal(array $base, array $incoming, $source = '') {
         $out = array_merge($base, $incoming);
         $base_score = (float) ($base['score'] ?? 0);
@@ -116,6 +120,7 @@ if (!function_exists('seo_analista_merge_market_signal')) {
 }
 
 if (!function_exists('seo_analista_google_plan')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_google_plan($days = 28) {
         $days = seo_analista_days($days);
         if (!function_exists('seo_google_opportunity_build')) return array();
@@ -258,6 +263,7 @@ if (!function_exists('seo_analista_google_plan')) {
 }
 
 if (!function_exists('seo_analista_competition_opportunities')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_competition_opportunities($limit = 20) {
         $competition = seo_analista_competition_snapshot(max(50, $limit));
         $out = array();
@@ -302,6 +308,7 @@ if (!function_exists('seo_analista_competition_opportunities')) {
 }
 
 if (!function_exists('seo_analista_merge_external_signal')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_merge_external_signal(array &$plan, array $signal, $threshold = 0.62) {
         $best_index = null;
         $best_similarity = 0.0;
@@ -377,6 +384,7 @@ if (!function_exists('seo_analista_merge_external_signal')) {
 }
 
 if (!function_exists('seo_analista_decision_plan')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_decision_plan($days = 28, $limit = 15) {
         $days = seo_analista_days($days);
         $plan = seo_analista_google_plan($days);
@@ -519,6 +527,7 @@ if (!function_exists('seo_analista_decision_plan')) {
 }
 
 if (!function_exists('seo_analista_plan_summary')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_plan_summary(array $plan) {
         if (function_exists('seo_analista_strategy_summary')) return seo_analista_strategy_summary($plan);
         $out = array(

@@ -9,6 +9,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! function_exists( 'seo_google_search_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_settings() {
         $defaults = [
             'tracking_enabled'         => 0,
@@ -24,6 +25,7 @@ if ( ! function_exists( 'seo_google_search_settings' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_search_measurement_id' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_measurement_id() {
         $settings = seo_google_search_settings();
         $id = strtoupper( trim( (string) ( $settings['measurement_id'] ?? '' ) ) );
@@ -32,6 +34,7 @@ if ( ! function_exists( 'seo_google_search_measurement_id' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_search_service_account' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_service_account() {
         $settings = seo_google_search_settings();
         $raw = trim( (string) ( $settings['service_account_json'] ?? '' ) );
@@ -49,12 +52,14 @@ if ( ! function_exists( 'seo_google_search_service_account' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_base64url' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_base64url( $value ) {
         return rtrim( strtr( base64_encode( $value ), '+/', '-_' ), '=' );
     }
 }
 
 if ( ! function_exists( 'seo_google_access_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_access_token( $force = false ) {
         $account = seo_google_search_service_account();
         if ( is_wp_error( $account ) ) {
@@ -127,6 +132,7 @@ if ( ! function_exists( 'seo_google_access_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_api_request' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_api_request( $method, $url, $body = null ) {
         $token = seo_google_access_token();
         if ( is_wp_error( $token ) ) {
@@ -170,6 +176,7 @@ if ( ! function_exists( 'seo_google_api_request' ) ) {
 
 /** Ventana común, finalizada, para comparar informes GSC y GA4. */
 if ( ! function_exists( 'seo_google_reporting_dates' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_reporting_dates( $days = 28 ) {
         $days = max( 1, absint( $days ) );
         if ( function_exists( 'seo_google_finalized_end_date' ) ) {
@@ -184,6 +191,7 @@ if ( ! function_exists( 'seo_google_reporting_dates' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_search_console_query' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_console_query( $request = [] ) {
         $settings = seo_google_search_settings();
         $site = trim( (string) ( $settings['search_console_site_url'] ?? '' ) );
@@ -204,6 +212,7 @@ if ( ! function_exists( 'seo_google_search_console_query' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_analytics_run_report' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_analytics_run_report( $request = [] ) {
         $settings = seo_google_search_settings();
         $property_id = preg_replace( '/\D+/', '', (string) ( $settings['analytics_property_id'] ?? '' ) );
@@ -224,6 +233,7 @@ if ( ! function_exists( 'seo_google_analytics_run_report' ) ) {
 
 if ( ! function_exists( 'seo_google_analytics_diagnostic' ) ) {
     /** Diagnostico ligero y cacheado para reutilizarlo desde Marketing/Landings. */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_analytics_diagnostic( $force = false ) {
         $cache_key = 'seo_google_analytics_diagnostic_v1';
         if ( ! $force ) {
@@ -266,6 +276,7 @@ if ( ! function_exists( 'seo_google_analytics_diagnostic' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_search_test_connection' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_test_connection() {
         $result = [ 'ok' => true, 'messages' => [] ];
         $token = seo_google_access_token( true );
@@ -300,6 +311,7 @@ if ( ! function_exists( 'seo_google_search_test_connection' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_search_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-google-bing' ) );
@@ -343,6 +355,7 @@ if ( ! function_exists( 'seo_google_search_save_settings' ) ) {
 // Una página pública cacheada puede contener el tag para visitantes anónimos.
 // Esta cookie de sesión evita que ese HTML active GA4 en el navegador admin.
 if ( ! function_exists( 'seo_google_mark_admin_browser' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_mark_admin_browser() {
         if ( headers_sent() ) return;
         if ( current_user_can( 'manage_options' ) ) {
@@ -358,6 +371,7 @@ if ( ! function_exists( 'seo_google_mark_admin_browser' ) ) {
 }
 
 if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_google_frontend_tracking() {
         if ( is_admin() || current_user_can( 'manage_options' ) ) {
             return;
@@ -373,6 +387,7 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
             return;
         }
 
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Existing public hook name is retained to preserve connected callbacks.
         if ( ! apply_filters( 'seo_google_tracking_allowed', true ) ) {
             return;
         }
@@ -400,6 +415,7 @@ if ( ! function_exists( 'seo_google_frontend_tracking' ) ) {
  * Se carga despues del tag base para reutilizar exactamente la misma
  * Measurement ID y las mismas reglas de consentimiento/medicion.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
 $seo_google_ecommerce_module = __DIR__ . '/google-ecommerce.php';
 if ( is_readable( $seo_google_ecommerce_module ) ) {
     require_once $seo_google_ecommerce_module;
