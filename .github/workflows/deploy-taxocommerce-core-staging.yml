@@ -10,6 +10,14 @@ on:
       - '.github/workflows/deploy-taxocommerce-core-staging.yml'
       - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
       - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/workflows/deploy-taxocommerce-core-staging.yml'
+      - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
+      - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
   workflow_dispatch:
 
 jobs:
@@ -93,6 +101,7 @@ jobs:
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Core branch
