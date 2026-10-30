@@ -196,4 +196,37 @@ foreach ( $pilot_renderers as $view ) {
         'WordPress must not replace an unavailable country menu with an unrelated menu.' );
 }
 
+// FRONT composer pilot: pure configuration contracts and no changes to public PHP.
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($text) { return trim(strip_tags((string)$text)); }
+}
+require_once TCT_DIR . 'includes/class-tct-front-composer.php';
+$front_default = TCT_Front_Composer::defaults('ES');
+$front_fr = TCT_Front_Composer::defaults('FR');
+tct_assert($front_default['role'] === 'front_page', 'El piloto debe conservar el rol FRONT.');
+tct_assert($front_default['market'] === 'ES' && $front_fr['market'] === 'FR', 'Mercado determinado explicitamente.');
+tct_assert(count($front_default['desktop']) > 0 && count($front_default['mobile']) > 0, 'Composicion para dos dispositivos.');
+tct_assert(!in_array('campaigns',array_column($front_fr['desktop'],'id'),true), 'No inventar campañas españolas en una portada FR.');
+tct_assert(count(TCT_Front_Composer::catalog()) >= 10, 'Inventario de modulos disponible.');
+$dirty_layout = array(
+    array('id'=>'header','enabled'=>true,'title'=>'Test <b>unsafe</b>'),
+    array('id'=>'header','enabled'=>false,'title'=>'Duplicado'),
+    array('id'=>'php_injection','enabled'=>true,'title'=>'No disponible'),
+    array('id'=>'footer','enabled'=>false,'title'=>''),
+);
+$valid_layout = TCT_Front_Composer::normalize_layout($dirty_layout);
+tct_assert(count($valid_layout) === 2 && $valid_layout[0]['id'] === 'header' && $valid_layout[1]['id'] === 'footer',
+    'No se admiten modulos duplicados o ajenos al inventario.');
+tct_assert($valid_layout[0]['title'] === 'Test unsafe' && $valid_layout[1]['enabled'] === false,
+    'Saneamiento de nombre y visibilidad.');
+$front_desktop = file_get_contents(TCT_DIR . 'templates/template-front-desktop.php');
+$front_mobile = file_get_contents(TCT_DIR . 'templates/template-front-mobile.php');
+tct_assert(strpos($front_desktop, 'dht_template_render_header();') !== false
+    && strpos($front_mobile, 'dht_template_render_header();') !== false,
+    'Las plantillas FRONT existentes deben permanecer intactas.');
+$entrypoint = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
+tct_assert(strpos($entrypoint, "TCT_Front_Composer::render();") !== false
+    && strpos($entrypoint, "admin_post_tct_front_composer_save") !== false,
+    'El compositor se conecta solo a la interfaz de administracion.');
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";
