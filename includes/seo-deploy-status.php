@@ -177,13 +177,27 @@ function seo_taxocommerce_deploy_apply_zip_delta( $zip_file, $target_dir ) {
 		return new WP_Error( 'taxocommerce_deploy_zip', 'No se pudo abrir el paquete ZIP.' );
 	}
 
+	// Reject unsafe or repeated ZIP entries before touching any installed file.
+	$names = array();
+	for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+		$name = (string) $zip->getNameIndex( $i );
+		if ( '/' === substr( $name, -1 ) ) {
+			continue;
+		}
+		if ( ! seo_taxocommerce_deploy_safe_relative_path( $name ) || isset( $names[ $name ] ) ) {
+			$zip->close();
+			return new WP_Error( 'taxocommerce_deploy_zip_path', 'El ZIP contiene rutas no válidas o duplicadas.' );
+		}
+		$names[ $name ] = true;
+	}
+
 	$changed   = array();
 	$unchanged = 0;
+	$manifest  = array();
 
 	for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 		$name = (string) $zip->getNameIndex( $i );
-
-		if ( ! seo_taxocommerce_deploy_safe_relative_path( $name ) ) {
+		if ( '/' === substr( $name, -1 ) ) {
 			continue;
 		}
 
@@ -193,36 +207,49 @@ function seo_taxocommerce_deploy_apply_zip_delta( $zip_file, $target_dir ) {
 			return new WP_Error( 'taxocommerce_deploy_zip_read', 'No se pudo leer un archivo del paquete.' );
 		}
 
+		$expected_hash = hash( 'sha256', $content );
 		$dest = rtrim( wp_normalize_path( $target_dir ), '/' ) . '/' . $name;
-
-		if ( is_file( $dest ) && hash_file( 'sha256', $dest ) === hash( 'sha256', $content ) ) {
+		if ( is_file( $dest ) && hash_file( 'sha256', $dest ) === $expected_hash ) {
 			$unchanged++;
-			continue;
+		} else {
+			$parent = dirname( $dest );
+			if ( ! is_dir( $parent ) && ! wp_mkdir_p( $parent ) ) {
+				$zip->close();
+				return new WP_Error( 'taxocommerce_deploy_mkdir', 'No se pudo crear un subdirectorio del plugin.' );
+			}
+
+			if ( false === file_put_contents( $dest, $content, LOCK_EX ) ) {
+				$zip->close();
+				return new WP_Error( 'taxocommerce_deploy_write', 'No se pudo actualizar un archivo del plugin.' );
+			}
+
+			if ( function_exists( 'opcache_invalidate' ) && preg_match( '/\\.php$/i', $dest ) ) {
+				@opcache_invalidate( $dest, true );
+			}
+			$changed[] = $name;
 		}
 
-		$parent = dirname( $dest );
-		if ( ! is_dir( $parent ) && ! wp_mkdir_p( $parent ) ) {
+		// WordPress is the authority for the actual plugin directory, not the FTPS account root.
+		clearstatcache( true, $dest );
+		if ( ! is_file( $dest ) || hash_file( 'sha256', $dest ) !== $expected_hash ) {
 			$zip->close();
-			return new WP_Error( 'taxocommerce_deploy_mkdir', 'No se pudo crear un subdirectorio del plugin.' );
+			return new WP_Error( 'taxocommerce_deploy_integrity', 'El archivo desplegado no coincide con el ZIP: ' . $name );
 		}
-
-		if ( false === file_put_contents( $dest, $content, LOCK_EX ) ) {
-			$zip->close();
-			return new WP_Error( 'taxocommerce_deploy_write', 'No se pudo actualizar un archivo del plugin.' );
-		}
-
-		if ( function_exists( 'opcache_invalidate' ) && preg_match( '/\.php$/i', $dest ) ) {
-			@opcache_invalidate( $dest, true );
-		}
-
-		$changed[] = $name;
+		$manifest[ $name ] = $expected_hash;
 	}
 
 	$zip->close();
+	ksort( $manifest, SORT_STRING );
+	$manifest_json = wp_json_encode( $manifest, JSON_UNESCAPED_SLASHES );
+	if ( ! is_string( $manifest_json ) ) {
+		return new WP_Error( 'taxocommerce_deploy_integrity', 'No se pudo verificar el manifiesto desplegado.' );
+	}
 
 	return array(
-		'changed'   => $changed,
-		'unchanged' => $unchanged,
+		'changed'         => $changed,
+		'unchanged'       => $unchanged,
+		'verified_files'  => count( $manifest ),
+		'manifest_sha256' => hash( 'sha256', $manifest_json ),
 	);
 }
 
