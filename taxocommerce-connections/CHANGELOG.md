@@ -3,9 +3,12 @@
 > Historial de las versiones del plugin **independiente**. Las funciones anteriores a su separación están documentadas en [`changelog.txt`](changelog.txt).
 > Fuente inicial: entradas verificadas del `readme.txt` en GitHub. Solo se atribuye una fecha si la fuente la acredita.
 
-## Historial de versiones
+## [Unreleased]
 
-### 0.3.0
+Sin novedades pendientes documentadas.
+
+
+## [0.3.0]
 
 * Converted the standalone plugin into a compatibility bridge.
 * Moved canonical connection ownership and UI to TaxoCommerce Insights.
@@ -13,7 +16,7 @@
 * Removed standalone family-extension registration.
 * Preserved standalone fallback behavior when Insights is unavailable.
 
-### 0.2.0
+## [0.2.0]
 
 * Shared Google, Bing, Merchant, Amazon, and Pinterest connection layer before consolidation.
 
