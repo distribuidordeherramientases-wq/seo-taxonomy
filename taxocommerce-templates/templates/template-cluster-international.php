@@ -92,12 +92,12 @@ $menu_id = ( $nav_menu instanceof WP_Term && (string) $nav_menu->name === $menu_
     ? (int) $nav_menu->term_id : 0;
 
 // Reuse existing cluster styling; no supplier image is downloaded or copied.
-$style_url = defined( 'TCT_URL' ) && 0 === strpos( __DIR__, dirname( TCT_DIR ) )
-    ? TCT_URL . 'templates/styles-template.css'
-    : ( defined( 'SEO_SYSTEM_URL' ) ? SEO_SYSTEM_URL . 'seo-system/templates/styles-template.css' : '' );
-if ( $style_url !== '' ) {
-    wp_enqueue_style( 'dht-cluster-international-base', $style_url, array(), null );
-}
+wp_enqueue_style(
+    'dht-cluster-international-base',
+    plugins_url( 'styles-template.css', __FILE__ ),
+    array(),
+    null
+);
 $site_name = 'Distribuidor de Herramientas';
 $privacy_url = get_privacy_policy_url();
 $schema_items = array();
