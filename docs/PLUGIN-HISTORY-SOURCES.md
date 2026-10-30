@@ -11,7 +11,7 @@ The histories were reconstructed on 2026-10-30 from:
 3. The GitHub pull request and commit subjects listed below, with their linked code reviews.
 4. The project's accessible ChatGPT discussion context for implementation intent, incidents and migration decisions. Conversations alone are not evidence that a change reached staging or production.
 
-**Important limits:** A PR title is an evidence pointer, not proof that it was merged, tested, or deployed. Where old monolith logic was later extracted into a standalone plugin, no earlier standalone version number has been invented. Sections named "Historical origin" in readmes are explicitly *not standalone releases*. Missing dates were not guessed. Proposed, rejected or unfinished features are not treated as confirmed releases. The latest reconstructed changelogs describe code in GitHub `staging`; they do not certify the installed production versions.
+**Important limits:** A PR title is an evidence pointer, not proof that it was merged, tested, or deployed. Where old monolith logic was later extracted into a standalone plugin, no earlier standalone version number has been invented. Sections named "Historical origins" in readmes are explicitly *not standalone releases*. Missing dates were not guessed. Proposed, rejected or unfinished features are not treated as confirmed releases. The latest reconstructed changelogs describe code in GitHub `staging`; they do not certify the installed production versions.
 
 ## Source index
 
@@ -42,9 +42,11 @@ Additional relevant evidence: the Scrappers creation and original Ojeador/Ingeni
 
 ## Reconciliation notes for the current document pass
 
-- **Assistant:** restore separately evidenced versions 0.3.11, 0.3.16, 0.3.17, 0.3.20 and 0.3.21, and consolidate two headings of 0.3.18 without removing their bullet points. Keep the 0.3.22 threshold/acceptance notes.
+- **Auditor:** backfill independently verified releases 0.1.0 and 0.2.0 (merged PRs #1222/#1239).
+- **Database:** backfill merged releases 0.2.0, 0.3.0, 0.4.0 and 0.4.1 (PRs #1375/#1769/#1770/#1784).
+- **Assistant:** restore separately evidenced versions 0.3.0, 0.3.6, 0.3.11, 0.3.16, 0.3.17, 0.3.20 and 0.3.21, and consolidate two headings of 0.3.18 without removing their bullet points. Keep the 0.3.22 threshold/acceptance notes.
 - **Insights:** add missing 1.1.6/1.1.7/1.1.8 entries and the 1.1.12 metadata version. Do not infer a feature release from a stable-tag-only commit.
-- **Import-Export:** normalize incorrectly formatted `== 0.4.x ==` headings into a single chronological WordPress changelog; merge version 0.4.5 content without deleting original notes.
+- **Import-Export:** normalize incorrectly formatted `== 0.4.x ==` headings and recover the merged 0.4.4 release into a single chronological WordPress changelog; merge version 0.4.5 content without deleting original notes.
 - **All 20:** append contextual monolith-to-module lineage, clearly labelled as historical rather than versioned standalone changes.
 
 ## Future maintenance
