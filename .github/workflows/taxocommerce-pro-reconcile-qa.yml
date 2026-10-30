@@ -1,0 +1,23 @@
+name: TaxoCommerce PRO Reconciliation QA
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/reconcile_taxocommerce_pro.py'
+      - '.github/scripts/tests/test_reconcile_taxocommerce_pro.py'
+      - '.github/workflows/despliege_de_main_a_pro.yml'
+      - '.github/workflows/taxocommerce-pro-reconcile-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax
+        run: python3 -m py_compile .github/scripts/reconcile_taxocommerce_pro.py
+      - name: PRO reconciliation safety tests (no FTP network)
+        run: python3 -m unittest discover -s .github/scripts/tests -p 'test_reconcile_taxocommerce_pro.py' -v
