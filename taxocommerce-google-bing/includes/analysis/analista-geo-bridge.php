@@ -26,11 +26,11 @@ function taxocommerce_insights_analysis_ajax() {
         $html = ob_get_clean();
         // The legacy callback does not render the Insights GEO section. If the
         // newer renderer is active, do not duplicate its existing section.
-        if ( 'directrices' === $report && function_exists( 'seo_analista_geo_render_summary' ) &&
+        if ( 'directrices' === $report && function_exists( 'taxocommerce_google_bing_geo_render_summary' ) &&
             false === strpos( $html, 'seo-analista-geo-priorities' ) &&
             false === strpos( $html, 'Hasta cinco mejoras prioritarias verificables' ) ) {
             ob_start();
-            seo_analista_geo_render_summary( $days );
+            taxocommerce_google_bing_geo_render_summary( $days );
             $html .= ob_get_clean();
         }
     } catch ( Throwable $error ) {
