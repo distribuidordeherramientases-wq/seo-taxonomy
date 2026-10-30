@@ -22,24 +22,24 @@ require dirname( __DIR__ ) . '/includes/analysis/analista-geo.php';
 function check( $value, $message ) {
     if ( ! $value ) { fwrite( STDERR, $message . "\n" ); exit( 1 ); }
 }
-$ok = seo_analista_geo_schema_product(
+$ok = taxocommerce_google_bing_geo_schema_product(
     '<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"A"},{"@type":"Product","name":"Taladro","sku":"T1","image":"https://example.test/1.jpg","offers":{"price":"50","priceCurrency":"EUR","availability":"https://schema.org/InStock"}}]}</script>'
 );
 check( 'checked' === $ok['status'] && $ok['product_found'] && !$ok['missing'], 'Complete JSON-LD should pass' );
-$missing = seo_analista_geo_schema_product(
+$missing = taxocommerce_google_bing_geo_schema_product(
     '<script type="application/ld+json">{"@type":["Product"],"name":"Taladro","offers":{"price":"30"}}</script>'
 );
 check( in_array( 'offers.availability', $missing['missing'], true ), 'Availability field must be checked' );
-check( 'unknown' === seo_analista_geo_schema_product( '<html></html>' )['status'], 'No script must be unknown' );
+check( 'unknown' === taxocommerce_google_bing_geo_schema_product( '<html></html>' )['status'], 'No script must be unknown' );
 $now = gmdate( 'c' );
 $GLOBALS['options']['seo_ojeador_merchant_snapshots_v1'] = array( 'prices' => array(
     'country' => 'ES', 'updated_at' => $now, 'rows' => array(
         array( 'product_id' => 42, 'currency' => 'EUR', 'price' => 160, 'benchmark' => 100 ),
     ),
 ) );
-check( 1 === count( seo_analista_geo_merchant_candidates( 2 ) ), 'Recent benchmark should produce review' );
+check( 1 === count( taxocommerce_google_bing_geo_merchant_candidates( 2 ) ), 'Recent benchmark should produce review' );
 $GLOBALS['options']['seo_ojeador_merchant_snapshots_v1']['prices']['updated_at'] = '2024-01-01';
-check( !seo_analista_geo_merchant_candidates(), 'Stale Merchant must be ignored' );
+check( !taxocommerce_google_bing_geo_merchant_candidates(), 'Stale Merchant must be ignored' );
 $entry = static function ( $url, $bucket, $exec ) {
     return array(
         'target_url' => $url,
@@ -55,7 +55,7 @@ $plan = array( $entry( 'https://example.test/a', 'HACER_AHORA', true ),
     $entry( 'https://example.test/a', 'HACER_AHORA', true ),
     $entry( 'https://example.test/b', 'HACER_AHORA', false ),
     $entry( 'https://example.test/c', 'HACER_DESPUES', false ) );
-$out = seo_analista_geo_recommendations( $plan );
+$out = taxocommerce_google_bing_geo_recommendations( $plan );
 check( count( $out ) === 2 && $out[0]['url'] === 'https://example.test/a', 'Actions must be validated and deduplicated' );
-check( count( seo_analista_geo_recommendations( array(), 5 ) ) === 0, 'No fabricated recommendations' );
+check( count( taxocommerce_google_bing_geo_recommendations( array(), 5 ) ) === 0, 'No fabricated recommendations' );
 echo "Geo smoke: OK\n";

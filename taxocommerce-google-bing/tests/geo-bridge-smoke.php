@@ -11,7 +11,7 @@ $checks = array(
     strpos( $client, "action: 'taxocommerce_insights_analysis'" ) !== false,
     strpos( $bridge, "add_action( 'wp_ajax_taxocommerce_insights_analysis'" ) !== false,
     strpos( $bridge, "seo_analista_lazy_render_partial( \$report, \$days )" ) !== false,
-    strpos( $bridge, "seo_analista_geo_render_summary( \$days )" ) !== false,
+    strpos( $bridge, "taxocommerce_google_bing_geo_render_summary( \$days )" ) !== false,
     strpos( $bridge, "check_ajax_referer( 'taxocommerce_insights_analysis'" ) !== false,
 );
 foreach ( $checks as $i => $ok ) {

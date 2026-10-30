@@ -200,7 +200,7 @@ if (!function_exists('seo_analista_build_json_export')) {
                 'gate_summary' => $gate_summary,
                 'plan_consistency' => $plan_consistency,
                 'plan_accion' => $plan,
-                'geo_recommendations' => function_exists('seo_analista_geo_recommendations') ? seo_analista_geo_recommendations($plan, 5) : array(),
+                'geo_recommendations' => function_exists('taxocommerce_google_bing_geo_recommendations') ? taxocommerce_google_bing_geo_recommendations($plan, 5) : array(),
                 'task_contract' => $task_contract,
                 'validation' => array(
                     'version' => '3.8.3',
