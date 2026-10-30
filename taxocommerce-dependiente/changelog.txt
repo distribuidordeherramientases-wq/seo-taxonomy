@@ -1,0 +1,134 @@
+HISTORIAL DE ORIGEN — Assistant / Dependiente
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: the customer-facing Dependiente, Academia, semantic interpreter and learning engine ran in TaxoCommerce SEO before the independent Assistant plugin; the monolith 2.2.x–2.4.1 numbers are not Assistant versions.
+* The 2.3.5–2.3.9 monolith cycles documented course progression, supervised product/category feedback, training diagnostics, semantic matching and customer-facing search.
+* The monolith also contained the Intérprete/Lingüista learning material; migration into the standalone Assistant retained the lessons, evidence, data contracts, evaluation and compatibility with WooCommerce product search.
+* Independent training supports L1–L10 snapshots, quality gates and audit exports; M11 interpreter evaluation and M12 continuous update were evolved as separately monitored functions.
+* Specific later fixes addressed stale quality exams, L9 ranking bias, batch worker speed, runtime availability checks, and safe prepared SQL for WordPress.org, without discarding learned data.
+* The administrator-configurable quality thresholds introduced in 0.3.22 allow an audited acceptance decision; they do not change the actual underlying scores or repair poor source data.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Assistant / Dependiente).
+[Cierre de la arquitectura monolítica] - Se completa el cambio operativo hacia la familia modular TaxoCommerce, con Core y extensiones independientes.
+[Cierre de la arquitectura monolítica] - Cada plugin independiente mantiene desde ahora su propia versión y su propio changelog en el `readme.txt` de su carpeta.
+[Versionado posterior] - Las versiones de Core, Images, Auditor, Suppliers, Insights, Distribution y el resto de extensiones evolucionan de forma independiente.
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Assistant / Dependiente).
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+[Resumen ejecutivo del ciclo 2.4.0] - **Dependiente y Academia:** estadísticas y trazabilidad del uso, diagnósticos de aprendizaje y continuidad de procesos de entrenamiento.
+[Consolidación funcional] - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
+[Consolidación funcional] - Dependiente incorpora estadísticas separadas de GA4, Search Console y uso interno, con exportación JSON para análisis.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Assistant / Dependiente).
+- Dependiente V3 registra las **elecciones explícitas del cliente** como evidencia supervisada: `category_choice` para categorías sugeridas y `click` para productos, conservando consulta, posición y recorrido mediante `search_uuid`.
+- La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
+- El informe de la **Actualización continua de Academia** pasa a schema 2 y exporta los fallos reales de cada módulo con pregunta, respuesta esperada, resultados devueltos, diagnóstico, fuente formativa y contexto de la entidad.
+- Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
+- Auditor 0.11.0 añade una **cola editorial priorizada** por auditoría: P1 CORREGIR_AHORA, P2 ESPERAR_ENRIQUECIMIENTO, P3 MIGRAR_A_SOLUCIONADOR, P4 REVISAR y P5 INFORMATIVO.
+- Separado **Ingeniero** de Dependiente como servicio propio en **Contenidos**, con pestañas Investigación, Editorial, Datos y fuentes y Pruebas.
+- Solucionador deja de consumir Ingeniero como fuente o requisito de conocimiento; ambos procesos reutilizan la API neutral de cobertura sin mezclar sus decisiones.
+- Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
+- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Assistant / Dependiente).
+[Dependiente, Academia e Intérprete] - Añadido diagnóstico en vivo de la **Lección 9** del Intérprete, con fase actual, conservación semántica, ruido, patrones consolidados, regresión y exportación JSON sin alterar el algoritmo de aprendizaje.
+[Dependiente, Academia e Intérprete] - Añadida **parada segura** para Dependiente e Intérprete, integrada con el gestor de procesos.
+[Dependiente, Academia e Intérprete] - Corregida la finalización y persistencia de la **Lección 10**, incluyendo conservación de la marca de currículo `semantic-v2`, recuperación tardía tras despliegues y restauración conservadora de cursos completados.
+[Dependiente, Academia e Intérprete] - Añadido banco de **preguntas directas/manuales** para entrenar Dependiente V3.
+[Dependiente, Academia e Intérprete] - Incorporado aprendizaje autónomo desde preguntas manuales, manteniendo trazabilidad de resultados y sin sustituir el conocimiento existente.
+[Dependiente, Academia e Intérprete] - Añadida una **cola persistente de archivos de preguntas** para procesar lotes sucesivos sin perder el estado.
+[Dependiente, Academia e Intérprete] - Añadido informe por lote de preguntas con evaluadas, aprendidas, fallidas, errores, confianza, cobertura, diagnóstico y descarga JSON específica por archivo.
+[Ingeniero, Clasificador y Semántica] - Creado **Ingeniero** como servicio técnico dentro de Dependiente para investigar conocimiento externo por categoría, separado del catálogo y de las respuestas públicas.
+[Auditor, Analista y control de calidad] - Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.
+[Auditor, Analista y control de calidad] - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
+[Auditor, Analista y control de calidad] - La prioridad precomputada por Analista puede ordenar tareas dentro de la misma P1–P5, pero no cambia la clase interna del hallazgo ni sustituye a Solucionador.
+[Auditor, Analista y control de calidad] - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+[Auditor, Analista y control de calidad] - Separados explícitamente **Auditor de contenidos** y **Auditor de Academia** para evitar mezclar diagnósticos de catálogo con aprendizaje.
+[Frontend, contenidos y navegación] - Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
+[Frontend, contenidos y navegación] - **Solucionador** pasa a presentarse como **Editor** y queda integrado en Contenidos, manteniendo sus slugs y datos internos por compatibilidad.
+[Comparador, carrito y documentos comerciales] - Ampliado el **Comparador de Dependiente** de 4 a 6 productos.
+[Documentación y proceso de publicación] - Ampliada la documentación de Marketing, campañas, Clasificador, Ingeniero, Categorías, Contenidos, Dependiente y sistema documental.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Assistant / Dependiente).
+[Inventarios y proveedores] - Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
+[Dependiente V3 y cobertura del catálogo] - Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
+[Dependiente V3 y cobertura del catálogo] - Conectado **Dependiente V3** con el sistema actual.
+[Dependiente V3 y cobertura del catálogo] - Reforzada la cobertura editorial y semántica utilizada por Dependiente.
+[Dependiente V3 y cobertura del catálogo] - Mejorada la integración de categorías, productos y conocimiento para responder a búsquedas de usuario.
+[Dependiente V3 y cobertura del catálogo] - Preparada la base para continuar evolucionando la retroalimentación entre Dependiente y las búsquedas realizadas.
+[Solucionador] - Creado el nuevo servicio **Solucionador**.
+[Solucionador] - Añadida exportación del informe de Solucionador en formato **JSON**.
+[Solucionador] - Integrado el nuevo servicio dentro de la arquitectura de análisis y ayuda a la selección de productos.
+[Issues principales] - #286 — Conectar Dependiente V3 y reforzar cobertura editorial.
+[Issues principales] - #285 — Añadir JSON al servicio Solucionador.
+[Issues principales] - #284 — Crear servicio Solucionador.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Assistant / Dependiente).
+[Ojeador y Google Shopping] - Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
+[Academia y Entrenador] - Incorporada la **Lección 9**, incluyendo sistema de preguntas.
+[Academia y Entrenador] - Incorporada y revisada la **Lección 10** como fase de repaso y consolidación.
+[Academia y Entrenador] - Optimizada la ejecución de la Lección 10.
+[Academia y Entrenador] - Mejorado el Entrenador para gestionar de forma más eficiente los procesos relacionados con la nueva fase de aprendizaje.
+[Academia y Entrenador] - Ajustada la lógica de aprendizaje y revisión para reducir trabajo redundante.
+[Dependiente] - Desplegada una nueva evolución de **Dependiente**.
+[Dependiente] - Mejorada la coordinación entre Dependiente y los filtros del catálogo.
+[Dependiente] - Añadido sistema de feedback para aprovechar mejor las consultas y respuestas de los clientes.
+[Dependiente] - Incorporada edición de las plantillas utilizadas por Dependiente.
+[Dependiente] - Añadido mecanismo para eliminar conocimiento aprendido cuando sea necesario.
+[Dependiente] - Mejorada la integración y presencia de Dependiente dentro del sistema.
+[Dependiente] - Incorporado **Comentarista** en las fichas de producto.
+[Resumen de la release] - **Academia y Entrenador** avanzan en el aprendizaje progresivo del sistema.
+[Resumen de la release] - **Dependiente** gana nuevas capacidades de respuesta, feedback y gestión de conocimiento.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Assistant / Dependiente).
+[Dependiente e Intérprete] - Evolución del servicio **Intérprete** con nuevas versiones y mejoras sucesivas en el análisis de consultas.
+[Dependiente e Intérprete] - Incorporación de diálogo inteligente de **desambiguación** antes de emitir una recomendación cuando la intención del usuario no es suficientemente precisa.
+[Dependiente e Intérprete] - El diálogo entre **Intérprete y Dependiente** pasa a ser acumulativo, conservando el contexto generado durante la conversación.
+[Dependiente e Intérprete] - Mejora de la coordinación entre ambos sistemas para evitar respuestas aisladas y aprovechar las decisiones tomadas en pasos anteriores.
+[Dependiente e Intérprete] - Priorización de familias de producto concretas al generar preguntas de aclaración.
+[Dependiente e Intérprete] - Corrección de casos en los que Dependiente no encontraba correctamente posts o contenido relacionado.
+[Dependiente e Intérprete] - Corrección de la carga de imágenes en el frontend de Dependiente.
+[Dependiente e Intérprete] - Mejoras generales del comportamiento y presentación del Dependiente en frontend.
+[Academia, Lingüista y aprendizaje] - Incorporación y evolución del módulo **Lingüista** como soporte semántico del Intérprete.
+[Academia, Lingüista y aprendizaje] - Integración de los procesos de formación de Lingüista en el gestor de workers.
+[Academia, Lingüista y aprendizaje] - Añadida exportación de la evolución y estado de Lingüista en formato JSON para diagnóstico y seguimiento.
+[Academia, Lingüista y aprendizaje] - Incorporada **actualización incremental de la Academia de Dependiente**, evitando regeneraciones completas cuando solo es necesario procesar información nueva o modificada.
+[Academia, Lingüista y aprendizaje] - Mejoras en el flujo de aprendizaje para mantener actualizados los datos utilizados por Dependiente sin sustituir el conocimiento histórico existente.
+[Mantenimiento y limpieza] - Limpieza progresiva de código legacy derivado de anteriores versiones de Dependiente e Intérprete.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Versión del monolito (no de Assistant / Dependiente).
+* evolución del servicio Dependiente y corrección de interrupciones relacionadas con cambios de catálogo;
+* mejoras en Academia y ampliación de contenidos y FAQs;
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Assistant / Dependiente).
+- Evoluciona Dependiente con entrenamiento, conocimiento persistente, importación/exportación de conocimiento y mejores respuestas ante búsquedas sin resultados.
+- Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
+
+## 2.2.4 - Edición manual del vocabulario semántico de producto
+Versión del monolito (no de Assistant / Dependiente).
+- APLICACIÓN, PLATAFORMA y SUBTIPO se pueden seleccionar, limpiar y crear manualmente.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Assistant / Dependiente).
+- Separada la seleccion comercial del estado de sincronizacion.
+-   Gestión independiente de nodos SEO.
+-   Gestión de taxonomía SEO independiente.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
