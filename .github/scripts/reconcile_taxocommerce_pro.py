@@ -231,7 +231,7 @@ def plan():
     if requested and requested != digest:
         write_summary(output, False)
         raise ValueError('Cleanup approval does not match the current source and remote manifest; review again')
-    if requested and candidates:
+    if requested:
         with zipfile.ZipFile(OUTPUT / 'backup.zip', 'w', compression=zipfile.ZIP_DEFLATED) as backup:
             for entry in candidates:
                 backup.writestr(entry['module'] + '/' + entry['path'],
