@@ -41,6 +41,8 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/reconcile_taxocommerce_pro.py
           python3 -m unittest discover -s .github/scripts/tests -p 'test_reconcile_taxocommerce_pro.py' -v
+          python3 -m py_compile .github/scripts/fetch_pro_installed_modules.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_fetch_pro_installed_modules.py' -v
 
       - name: Validate all TaxoCommerce version headers and readmes
         shell: bash
@@ -133,29 +135,12 @@ jobs:
           echo "modules=$modules_json" >> "$GITHUB_OUTPUT"
           echo "Plugins TaxoCommerce disponibles en STAGING: $modules_json"
 
-      - name: Leer plugins TaxoCommerce instalados en PRO
+      - name: Leer y validar plugins instalados en PRO (REST con reintentos)
         id: installed
         shell: bash
         run: |
           set -euo pipefail
-
-          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             "$PRO_SITE_URL/wp-json/taxocommerce/v1/deploy-active-modules")"
-
-          modules="$(python3 - "$response" <<'PY'
-          import json
-          import sys
-
-          payload = json.loads(sys.argv[1])
-          modules = payload.get("modules", [])
-          if not isinstance(modules, list):
-              raise SystemExit("La lista de módulos instalados no es válida.")
-
-          print(json.dumps([str(module) for module in modules], separators=(",", ":")))
-          PY
-          )"
-
-          echo "modules=$modules" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce instalados para sincronizar en PRO: $modules"
+          python3 .github/scripts/fetch_pro_installed_modules.py >> "$GITHUB_OUTPUT"
 
       - name: Preparar en PRO los ZIP de plugins todavía no instalados
         shell: bash
