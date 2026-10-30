@@ -281,6 +281,19 @@ final class TCD_Admin {
         echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
         self::tabs($tab);
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only feedback after an admin-post action validated with a nonce.
+        $result=isset($_GET['tcd_result']) ? sanitize_key(wp_unslash($_GET['tcd_result'])) : '';
+        $messages=array(
+            'thresholds_saved'=>array('success','Umbrales guardados. La puntuación de los exámenes anteriores no se ha modificado.'),
+            'thresholds_invalid'=>array('error','No se han guardado los umbrales: indica diez valores entre 0 y 100, con un decimal como máximo.'),
+            'quality_accepted'=>array('success','Lección aceptada expresamente con el umbral configurado. El examen y sus fallos permanecen registrados.'),
+            'quality_accept_rejected'=>array('error','No se ha aceptado la lección: revisa el umbral, el estado de la lección y la auditoría disponible.'),
+        );
+        if(isset($messages[$result])){
+            $notice=$messages[$result];
+            echo '<div class="notice notice-'.esc_attr($notice[0]).' is-dismissible"><p>'.esc_html($notice[1]).'</p></div>';
+        }
+
         if('user-guide'===$tab){
             TCD_Manual::render();
             echo '</div>';
@@ -320,6 +333,23 @@ final class TCD_Admin {
         echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar auditoría L1–L10 · JSON</a>';
         echo '</p>';
         echo '<p class="description">Este JSON sirve para auditar el aprendizaje de las diez lecciones. El conocimiento portable y el backup se gestionan únicamente desde sus pestañas específicas para evitar accesos duplicados.</p>';
+
+        $thresholds=TCD_Intelligence::quality_thresholds();
+        echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin:12px 0 20px">';
+        wp_nonce_field('tcd_academy_control');
+        echo '<input type="hidden" name="action" value="tcd_academy_control">';
+        echo '<input type="hidden" name="tcd_action" value="thresholds">';
+        echo '<h2 style="margin-top:0">Umbrales de calidad por lección</h2>';
+        echo '<p>El responsable del catálogo decide el porcentaje mínimo de aciertos Top-8 de cada lección (0–100 %). Se mantienen los valores actuales si no se cambian.</p>';
+        echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">';
+        foreach($thresholds as $no=>$percent){
+            $title=(string)($syllabus[$no]['name']??'');
+            echo '<label for="tcd-threshold-'.esc_attr((string)$no).'"><strong>L'.esc_html((string)$no).' · '.esc_html($title).'</strong><br>';
+            echo '<input id="tcd-threshold-'.esc_attr((string)$no).'" type="number" name="thresholds['.esc_attr((string)$no).']" min="0" max="100" step="0.1" required value="'.esc_attr(number_format((float)$percent,1,'.','')).'" style="width:90px"> %</label>';
+        }
+        echo '</div><button type="submit" class="button button-primary">Guardar umbrales</button>';
+        echo '<p class="description">Guardar no aprueba automáticamente las lecciones suspendidas ni altera los exámenes. Para continuar una lección ya suspendida, revisa sus fallos y acepta expresamente el resultado cuando alcance el nuevo mínimo.</p>';
+        echo '</form>';
 
         $priority=TCD_Load::priority();
         $sample=TCD_Load::last_sample();
@@ -454,12 +484,40 @@ final class TCD_Admin {
                     echo '<strong>REEVALUANDO · '.esc_html(number_format_i18n((float)($quality_progress['percent']??0),1)).'%</strong>';
                     echo '<div class="description">Resultado anterior debajo; se sustituirá al completar 180/180.</div>';
                 }
-                echo '<strong>'.esc_html($passed?'OK':'NO').'</strong>';
-                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% Top8 · mínimo '.esc_html(number_format_i18n(100*(float)($quality['threshold']??0),1)).'%</div>';
+                $owner_acceptance=(array)($quality_report['owner_acceptance']??array());
+                echo '<strong>'.esc_html($passed?($owner_acceptance?'ACEPTADA':'OK'):'NO').'</strong>';
+                echo '<div>'.esc_html(number_format_i18n(100*(float)($quality['pass_any_ratio']??0),1)).'% Top8 · mínimo de ese examen '.esc_html(number_format_i18n(100*(float)($quality['threshold']??0),1)).'%</div>';
+                $configured=(float)($thresholds[$no]??88);
+                if(abs($configured-100*(float)($quality['threshold']??0))>=0.05){
+                    echo '<div class="description"><strong>Mínimo configurado ahora: '.esc_html(number_format_i18n($configured,1)).'%</strong> (pendiente de aplicar a este examen).</div>';
+                }
+                if($owner_acceptance){
+                    echo '<div class="description">Aceptada por el responsable con mínimo '.esc_html(number_format_i18n(100*(float)($owner_acceptance['configured_threshold']??0),1)).'% y '.esc_html(number_format_i18n(absint($quality['failed']??0))).' fallos registrados.</div>';
+                }
                 echo '<div class="description">Top1 '.esc_html(number_format_i18n(absint($quality['pass_top1']??0))).' · Top3 '.esc_html(number_format_i18n(absint($quality['pass_top3']??0))).' · Top8 '.esc_html(number_format_i18n(absint($quality['pass_top8']??0))).' · fallos '.esc_html(number_format_i18n(absint($quality['failed']??0))).' · evaluadas '.esc_html(number_format_i18n(absint($quality['evaluated']??0))).'</div>';
                 if(!$passed){
                     $origins=(array)($quality_report['failure_origins']??array());
                     echo '<div class="description">Datos '.esc_html(number_format_i18n(absint($origins['datos_fuente']??0))).' · ambigüedad '.esc_html(number_format_i18n(absint($origins['ambiguedad']??0))).' · Dependiente '.esc_html(number_format_i18n(absint($origins['dependiente']??0))).'</div>';
+                }
+                $can_accept=
+                    !$passed && $is_current
+                    && in_array((string)($state['status']??''),array('error','stopped'),true)
+                    && 'quality'===(string)($state['phase']??'')
+                    && 'quality_failed'===(string)($snapshot['status']??'')
+                    && absint($quality['snapshot_id']??0)===absint($snapshot['id']??0)
+                    && absint($state['snapshot_id']??0)===absint($snapshot['id']??0)
+                    && absint($quality['evaluated']??0)>0
+                    && (float)($quality['pass_any_ratio']??0)>=$configured/100;
+                if($can_accept){
+                    echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="margin-top:8px">';
+                    wp_nonce_field('tcd_academy_control');
+                    echo '<input type="hidden" name="action" value="tcd_academy_control">';
+                    echo '<input type="hidden" name="tcd_action" value="accept_quality">';
+                    echo '<input type="hidden" name="lesson" value="'.esc_attr((string)$no).'">';
+                    echo '<input type="hidden" name="snapshot_id" value="'.esc_attr((string)absint($snapshot['id']??0)).'">';
+                    echo '<button type="submit" class="button button-secondary">Aceptar L'.esc_html((string)$no).' con este umbral y continuar</button>';
+                    echo '</form>';
+                    echo '<div class="description">Aceptación manual: conserva la nota y los fallos; activa el aprendizaje y avanza a la siguiente lección.</div>';
                 }
                 echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">';
                 echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a>';

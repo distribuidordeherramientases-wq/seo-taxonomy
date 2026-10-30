@@ -15,6 +15,7 @@ final class TCD_Intelligence {
     const INTERPRETER_PROGRESS = 'tcd_interpreter_regression_progress';
     const INTERPRETER_EVALUATOR_REVISION = 'm11-l9-runtime-v1';
     const QUALITY_PROGRESS = 'tcd_quality_eval_progress';
+    const QUALITY_THRESHOLDS_OPTION = 'tcd_quality_thresholds';
     const QUALITY_PROGRESS_VERSION = 5;
     const QUALITY_EVALUATOR_REVISION = 'l9-snapshot-facts-v2';
     const L2_IDENTITY_BACKFILL = 'tcd_l2_identity_backfill';
@@ -649,9 +650,120 @@ final class TCD_Intelligence {
         return $report;
     }
 
+    /**
+     * Original minimum percentages remain the defaults until the site owner
+     * explicitly chooses a different value for each lesson.
+     */
+    public static function default_quality_thresholds() {
+        return array( 1=>94, 2=>88, 3=>88, 4=>86, 5=>85, 6=>92, 7=>87, 8=>90, 9=>88, 10=>90 );
+    }
+
+    public static function quality_thresholds() {
+        $thresholds = self::default_quality_thresholds();
+        $saved = get_option( self::QUALITY_THRESHOLDS_OPTION, array() );
+        if ( ! is_array( $saved ) ) return $thresholds;
+        foreach ( $thresholds as $lesson => $default ) {
+            if ( ! isset( $saved[ $lesson ] ) || ! is_numeric( $saved[ $lesson ] ) ) continue;
+            $percent = (float) $saved[ $lesson ];
+            if ( is_finite( $percent ) && $percent >= 0 && $percent <= 100 ) {
+                $thresholds[ $lesson ] = $percent;
+            }
+        }
+        return $thresholds;
+    }
+
+    public static function set_quality_thresholds( $values ) {
+        if ( ! is_array( $values ) ) {
+            return new WP_Error( 'tcd_quality_thresholds_invalid', 'Es necesario indicar los diez umbrales.' );
+        }
+        $thresholds = array();
+        foreach ( self::default_quality_thresholds() as $lesson => $default ) {
+            if ( ! array_key_exists( $lesson, $values ) || ! is_scalar( $values[ $lesson ] ) ) {
+                return new WP_Error( 'tcd_quality_thresholds_missing', 'Falta el umbral de la lección ' . $lesson . '.' );
+            }
+            $raw = trim( (string) $values[ $lesson ] );
+            if ( ! preg_match( '/^(?:100(?:\\.0+)?|[0-9]{1,2}(?:\\.[0-9])?)$/D', $raw ) ) {
+                return new WP_Error( 'tcd_quality_thresholds_range', 'Los umbrales deben estar entre 0 y 100, con un decimal como máximo.' );
+            }
+            $thresholds[ $lesson ] = round( (float) $raw, 1 );
+        }
+        update_option( self::QUALITY_THRESHOLDS_OPTION, $thresholds, false );
+        return $thresholds;
+    }
+
     private static function threshold( $lesson ) {
-        $thresholds = array( 1=>0.94, 2=>0.88, 3=>0.88, 4=>0.86, 5=>0.85, 6=>0.92, 7=>0.87, 8=>0.90, 9=>0.88, 10=>0.90 );
-        return (float) ( $thresholds[ absint( $lesson ) ] ?? 0.88 );
+        $thresholds = self::quality_thresholds();
+        return (float) ( $thresholds[ absint( $lesson ) ] ?? 88 ) / 100;
+    }
+
+    /**
+     * Accept a previous complete examination with the owner's current minimum.
+     * Neither the achieved score nor any failed examples are recalculated.
+     */
+    public static function accept_failed_quality( $lesson, $snapshot_id ) {
+        global $wpdb;
+        $lesson = absint( $lesson );
+        $snapshot_id = absint( $snapshot_id );
+        if ( $lesson < 1 || $lesson > 10 || ! $snapshot_id ) {
+            return new WP_Error( 'tcd_quality_accept_lesson', 'Lección o foto fija no válida.' );
+        }
+
+        $quality = self::quality_for_lesson( $lesson );
+        if (
+            ! $quality
+            || absint( $quality['snapshot_id'] ?? 0 ) !== $snapshot_id
+            || 'failed' !== (string) ( $quality['status'] ?? '' )
+            || absint( $quality['evaluated'] ?? 0 ) < 1
+        ) {
+            return new WP_Error( 'tcd_quality_accept_missing', 'No existe un examen fallido y completo de esta foto fija.' );
+        }
+
+        $threshold = self::threshold( $lesson );
+        $ratio = (float) ( $quality['pass_any_ratio'] ?? 0 );
+        if ( $ratio < $threshold ) {
+            return new WP_Error( 'tcd_quality_accept_below', 'La nota sigue por debajo del umbral configurado.' );
+        }
+
+        $report = json_decode( (string) ( $quality['report_json'] ?? '' ), true );
+        if ( ! is_array( $report ) || ! isset( $report['failures'], $report['evaluated'] ) ) {
+            return new WP_Error( 'tcd_quality_accept_report', 'No hay una auditoría completa que permita aceptar esta evaluación.' );
+        }
+        $previous_threshold = (float) ( $quality['threshold'] ?? 0 );
+        $report['threshold'] = $threshold;
+        $report['passed'] = true;
+        $report['owner_acceptance'] = array(
+            'accepted_at'=>current_time( 'mysql' ),
+            'accepted_by'=>get_current_user_id(),
+            'previous_threshold'=>$previous_threshold,
+            'configured_threshold'=>$threshold,
+        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update only the audited result for the current plugin-owned snapshot.
+        $changed = $wpdb->update(
+            self::quality_table(),
+            array(
+                'threshold'=>$threshold,
+                'status'=>'passed',
+                'report_json'=>wp_json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+            ),
+            array(
+                'id'=>absint( $quality['id'] ?? 0 ),
+                'snapshot_id'=>$snapshot_id,
+                'status'=>'failed',
+            )
+        );
+        if ( 1 !== $changed ) {
+            return new WP_Error( 'tcd_quality_accept_write', 'No se ha podido registrar la aceptación del examen.' );
+        }
+        self::activate_stage( self::stage_id( $lesson, $snapshot_id ) );
+        return array(
+            'lesson'=>$lesson,
+            'snapshot_id'=>$snapshot_id,
+            'pass_any_ratio'=>$ratio,
+            'threshold'=>$threshold,
+            'evaluated'=>absint( $quality['evaluated'] ?? 0 ),
+            'failed'=>absint( $quality['failed'] ?? 0 ),
+        );
     }
 
     public static function reset_quality_progress( $lesson = 0, $snapshot_id = 0 ) {
@@ -1788,6 +1900,7 @@ final class TCD_Intelligence {
                 'failed'=>absint( $report['failed'] ?? $quality['failed'] ?? 0 ),
                 'ratio'=>(float) ( $report['pass_any_ratio'] ?? $quality['pass_any_ratio'] ?? 0 ),
                 'threshold'=>(float) ( $report['threshold'] ?? $quality['threshold'] ?? self::threshold( $lesson ) ),
+                'owner_acceptance'=>(array) ( $report['owner_acceptance'] ?? array() ),
                 'population'=>absint( $report['population'] ?? 0 ),
                 'sample_method'=>(string) ( $report['sample_method'] ?? '' ),
                 'evaluated_plugin_version'=>(string) ( $report['evaluated_plugin_version'] ?? 'unknown' ),

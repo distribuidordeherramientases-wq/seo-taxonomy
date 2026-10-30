@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.21
+Stable tag: 0.3.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,12 @@ No. Learning builds and evaluates separate knowledge records.
 No. Core provides optional grouped administration.
 
 == Changelog ==
+
+= 0.3.22 =
+* Allow administrators to set an independent Top-8 quality threshold for each L1-L10 lesson (0–100%), preserving previous defaults.
+* Provide explicit, audited acceptance of an existing failed lesson once its actual result meets the new chosen threshold.
+* Preserve exam scores, failed examples and source content while advancing without retraining completed lessons.
+
 
 = 0.3.19 =
 * Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
