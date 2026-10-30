@@ -1,156 +1,47 @@
-HISTORIAL DE ORIGEN — System Check
+HISTORIAL LEGADO — TAXOCOMMERCE SYSTEM CHECK
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
-Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-No se atribuyen fechas que no consten en las fuentes.
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
 
-EVOLUCIÓN Y EXTRACCIÓN
+ORIGEN Y EXTRACCIÓN
 * Legacy origin: server diagnostics, plugin validation and HTTP/URL checks existed under TaxoCommerce SEO administration; the monolith's release numbers are not standalone System Check versions.
 * The old validation panel mixed site status, plugin-specific checks and URL/HTTP observations; its historical outputs were not automatically proof that newer modules had passed.
 * During modularisation System Check was isolated from SEO_SYSTEM_* globals and constants to prevent collisions with the still-installed monolith.
 * Standalone diagnostics distinguished the active plugin modules from installed but inactive extensions and retained administrator-controlled bounded scans and reports.
 * Later WordPress.org work corrected text-domain usage and prepared SQL identifiers; the historical original checker remained distinct from each plugin's own Auto Test.
 
-CAMBIOS RECOGIDOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Versión del monolito (no de System Check).
-[Cierre de la arquitectura monolítica] - Cada plugin independiente mantiene desde ahora su propia versión y su propio changelog en el `readme.txt` de su carpeta.
-[Versionado posterior] - El repositorio raíz conserva este changelog como histórico de la etapa monolítica.
-
-## [2.4.0] - 2026-10-13
-Versión del monolito (no de System Check).
-[Resumen ejecutivo del ciclo 2.4.0] - **Catálogo y proveedores:** ampliación de importación/exportación CSV, estados de publicación y papelera, flujos de proveedores y piloto internacional VEVOR con categorías, idiomas y enlaces de afiliación.
-[Resumen ejecutivo del ciclo 2.4.0] - **Operación:** gestor central de procesos, workers, herramientas de diagnóstico y validación, además de correcciones de compatibilidad y preparación para WordPress.org.
-[Identidad pública y WordPress.org] - El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
-[Import / Export] - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
-[Import / Export] - Los callbacks GitHub/Python y Google/Python validan la estructura del CSV estándar antes del `sideload` seguro y habilitan el fallback MIME solo después de esa validación, evitando rechazos de CSV válidos introducidos por el endurecimiento de subidas para WordPress.org.
-
-## [2.3.10] - 2026-10-06
-Versión del monolito (no de System Check).
-- Ojeador 0.10.0 añade la pestaña **Novedades**, un radar externo que usa **Clusters + Hubs primarios** como frontera comercial para descubrir categorías, subfamilias y tecnologías que todavía no están representadas en el catálogo.
-- Novedades distingue **Nueva categoría/familia**, **Hueco en catálogo**, **Producto/tecnología en tendencia** y **Expansión estratégica**, con exportación JSON auditable.
-- El informe de la **Actualización continua de Academia** pasa a schema 2 y exporta los fallos reales de cada módulo con pregunta, respuesta esperada, resultados devueltos, diagnóstico, fuente formativa y contexto de la entidad.
-- Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
 
 ## [2.3.9] - 2026-09-30
-Versión del monolito (no de System Check).
-[Dependiente, Academia e Intérprete] - Añadido informe por lote de preguntas con evaluadas, aprendidas, fallidas, errores, confianza, cobertura, diagnóstico y descarga JSON específica por archivo.
-[Ingeniero, Clasificador y Semántica] - Creado **Ingeniero** como servicio técnico dentro de Dependiente para investigar conocimiento externo por categoría, separado del catálogo y de las respuestas públicas.
-[Auditor, Analista y control de calidad] - Analista 3.8.0 incorpora **Informe competitivo profundo**: dominios configurables, muestreo SERP automático con SerpApi → ScraperAPI, auditoría pública acotada, matriz 1–5 con confianza de evidencia, fortalezas/brechas, plan priorizado y exportación JSON.
-[Auditor, Analista y control de calidad] - Separados explícitamente **Auditor de contenidos** y **Auditor de Academia** para evitar mezclar diagnósticos de catálogo con aprendizaje.
-[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
-[Auditor, Analista y control de calidad] - Mejorada la precisión de **Analista** y de los informes SEO para diferenciar mejor métricas de Google Search Console, GA4 y Bing.
-[Auditor, Analista y control de calidad] - Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
+Cambios realizados en el plugin monolítico:
 [Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
-[Marketing, campañas y redes sociales] - Añadidos **Informes de Marketing** para campañas y redes sociales con visitas, interacciones, pedidos, facturación, conversión y atribución.
-[Frontend, contenidos y navegación] - Añadidas plantillas específicas para **categorías de entradas** del blog, con variantes desktop/móvil y resolución automática desde el gestor de plantillas.
-[Frontend, contenidos y navegación] - Las entradas del blog pueden mostrar hasta **8 productos relacionados** a partir de las categorías comerciales enlazadas explícitamente.
-[Frontend, contenidos y navegación] - Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
-[Comparador, carrito y documentos comerciales] - Corregida la interpretación fiscal para catálogos cuyo **PVP ya incluye IVA**: ficha, carrito y checkout mantienen el precio final visible y desglosan el impuesto sin volver a sumarlo.
-[Proveedores e importación] - Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
-
-## [2.3.8.1] - 2026-09-26
-Versión del monolito (no de System Check).
-[Marketing y campañas] - Los productos importados se resuelven por `product_id` y, como respaldo, por SKU; se mantienen las validaciones de solapamiento entre campañas.
 
 ## [2.3.7] - 2026-09-25
-Versión del monolito (no de System Check).
-[Marketing y campañas comerciales] - Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
-[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
-[Solucionador] - Añadida exportación del informe de Solucionador en formato **JSON**.
-[Comentarista y opiniones externas] - Corregido un error en el sistema de **importación/exportación de Comentarista**.
-[Informes y rendimiento] - Optimizada la carga de **SEO Reports**, evitando generar automáticamente informes pesados al entrar en la pantalla.
-[Informes y rendimiento] - Los informes pasan a generarse bajo demanda mediante un botón **Crear informe**.
-[Informes y rendimiento] - Añadida opción **Cerrar informe**.
-[Informes y rendimiento] - Añadida descarga individual de informes en formato **JSON**.
-[Informes y rendimiento] - Reducida la carga inicial y el consumo de recursos en la sección de Informes.
+Cambios realizados en el plugin monolítico:
 [Estabilidad y mantenimiento] - Realizadas correcciones adicionales en servicios de importación, análisis y generación de informes.
 [Estabilidad y mantenimiento] - Mejorada la separación entre procesos pesados y carga de las pantallas administrativas.
 [Estabilidad y mantenimiento] - Reforzada la generación de JSON como formato de intercambio y revisión externa.
-[Issues principales] - #282 — Optimizar carga de informes de `seo-reports`.
 
 ## [2.3.6] - 2026-09-23
-Versión del monolito (no de System Check).
-[Ojeador y Google Shopping] - Añadidos logs y exportación JSON para facilitar el diagnóstico y el análisis de resultados.
-[Ojeador y Google Shopping] - Corregidos errores detectados durante la ejecución del servicio Ojeador.
-[Dependiente] - Mejorada la coordinación entre Dependiente y los filtros del catálogo.
+Cambios realizados en el plugin monolítico:
 [SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
-[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
-[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
-[SEO, auditoría y validación] - Mejorado el tratamiento de errores HTTP internos:
-[SEO, auditoría y validación] - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
-[SEO, auditoría y validación] - los resultados no concluyentes se diferencian de errores reales.
-[SEO, auditoría y validación] - Mejorada la priorización del plan de acción SEO.
 [SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
 [SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
-[SEO, auditoría y validación] - Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
-[Inventario y catálogo] - Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
-[Rendimiento y estabilidad] - Revisados los tiempos anómalos detectados durante los escaneos de páginas.
-[Rendimiento y estabilidad] - Mejorada la interacción entre los workers externos, WordPress y los sistemas de caché.
-[Rendimiento y estabilidad] - Reducidos falsos positivos provocados por peticiones HTTP internas.
-[Rendimiento y estabilidad] - Mejorada la estabilidad de las tareas de auditoría y diagnóstico.
-[Mantenimiento] - Eliminados datos antiguos de componentes SEO ya obsoletos.
-[Mantenimiento] - Limpiadas tablas heredadas de plugins y sistemas anteriores que ya no forman parte de la arquitectura actual.
-[Mantenimiento] - Eliminadas copias y componentes redundantes detectados durante las validaciones de integridad.
-[Mantenimiento] - Mejorada la consistencia general del plugin antes del despliegue a Producción.
-[Resumen de la release] - **Auditoría y validación** reducen falsos positivos y amplían los controles técnicos y SEO.
 
 ## [2.3.5]- 2026-09-17
-Versión del monolito (no de System Check).
-[Dependiente e Intérprete] - Incorporación de diálogo inteligente de **desambiguación** antes de emitir una recomendación cuando la intención del usuario no es suficientemente precisa.
-[Dependiente e Intérprete] - El diálogo entre **Intérprete y Dependiente** pasa a ser acumulativo, conservando el contexto generado durante la conversación.
-[Arquitectura comercial y contenido] - Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
-[Mantenimiento y limpieza] - Eliminación de archivos de backup antiguos y residuos que ya no debían formar parte del árbol activo del plugin.
-[Mantenimiento y limpieza] - Limpieza progresiva de código legacy derivado de anteriores versiones de Dependiente e Intérprete.
-[Mantenimiento y limpieza] - Ajustes para reducir duplicidades y mantener una única implementación canónica de cada componente.
-
-## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
-Versión del monolito (no de System Check).
-* evolución del servicio Dependiente y corrección de interrupciones relacionadas con cambios de catálogo;
+Cambios realizados en el plugin monolítico:
+[Compatibilidad] - WordPress 7.1
 
 ## [2.3.3] - 2026-09-08
-Versión del monolito (no de System Check).
-[Añadido] - Añadido nombre descriptivo de los portes según la regla logística aplicada. (#157)
-[Mejorado] - Mejorados los informes y controles basados en información procedente de Google, Trends y otras fuentes. (#126)
+Cambios realizados en el plugin monolítico:
 [Mejorado] - Reorganizado el sistema de chequeos en una estructura de carpetas específica y más mantenible. (#172)
-[Corregido] - Corregidos problemas del sistema de logística y transporte. (#156)
-[Corregido] - Corregidos modos/configuraciones de MySQL que podían provocar errores. (#158)
-[Corregido] - Reclasificados avisos de MySQL que no representan errores reales para que se muestren como información. (#159)
-[Corregido] - Ajustados parámetros de control de WooCommerce para reducir avisos y errores innecesarios. (#160)
-[Corregido] - Revisados y corregidos problemas detectados a partir del informe de Semrush. (#64)
-[Datos, SEO y compatibilidad] - Se han mejorado las comprobaciones de integridad del contenido y del catálogo.
 
 ## 2.3.2 - Consolidación operativa, Dependiente y catálogo
-Versión del monolito (no de System Check).
-- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
-- Refuerza el mantenimiento interno mediante limpieza de base de datos, rotación de logs, eliminación programada de imports antiguos y mejoras de observabilidad.
+Cambios realizados en el plugin monolítico:
+- Prepara y valida el plugin para el entorno actualizado de WordPress 7.1.
 
-## 2.2.8 - Cierre de etiquetas legacy de producto
-Versión del monolito (no de System Check).
-- Los informes de contenido consideran la clasificación semántica canónica (TIPO y facetas) en lugar de depender de las keywords legacy.
-
-## 2.2.6 - Hotfix filtro SUBTIPO en Etiquetas
-Versión del monolito (no de System Check).
-- Corrige el error crítico al abrir TaxoCommerce SEO → Etiquetas después de cargar SUBTIPO.
-
-## 2.2.3 - Etiquetas / vocabulary control view
-Versión del monolito (no de System Check).
-- No modifica datos de catálogo ni elimina etiquetas antiguas; esta versión sirve para validar visualmente el resultado de la migración antes de continuar con SUBTIPO y la retirada del modelo legacy.
-
-## 2.2.1 - Vocabulary bridge
-Versión del monolito (no de System Check).
-- `consumible` pasa a ser un ámbito/rol válido en importación, validación e informes.
-
-## 2.2.0 - Supplier Import / Sync V2
-Versión del monolito (no de System Check).
-- Fallback visual: imagen local -> imagen externa -> logo de tienda.
-- Runs auditables y deteccion segura de bajas solo en catalogos completos sin errores.
--   Validación de Clusters, Hubs Primarios, Hubs Secundarios y
--   Validación de imágenes, plantillas y contenido.
--   Informes de integridad.
--   Herramientas de limpieza y validación de base de datos.
-
-TRANSICIÓN A PLUGINS INDEPENDIENTES
-TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
-Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.
