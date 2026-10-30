@@ -188,8 +188,13 @@ if (!$is_category && !$is_landing) {
     }
 }
 
-// One stable, country-specific navigation on all regional category, landing
-// and product pages. Links always resolve to real WooCommerce regional terms.
+// The legacy router still serves these pages. Use the native WordPress menu
+// managed by TaxoCommerce for this market, never the raw category tree.
+// The exact name also prevents displaying another country's menu.
+$market_menu = wp_get_nav_menu_object( 'TaxoCommerce - ' . $market );
+$managed_menu_id = $market_menu instanceof WP_Term ? absint( $market_menu->term_id ) : 0;
+
+// Category information is still used by the page content and breadcrumbs.
 $country_navigation = dht_pilot_country_navigation( $market );
 $navigation = (array) $country_navigation['featured'];
 $navigation_roots = (array) $country_navigation['roots'];
@@ -378,6 +383,8 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
 .dht-pilot-menu-list--depth-0>li>a{font-weight:700}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0){margin:0 3px 3px;padding-left:7px;border-left:2px solid #dce7f7}
 .dht-pilot-menu-list:not(.dht-pilot-menu-list--depth-0) a{padding:5px 7px;font-weight:450;font-size:12px}
+.dht-pilot-menu-list ul.sub-menu{list-style:none;margin:0 3px 3px;padding:0 0 0 7px;border-left:2px solid #dce7f7}
+.dht-pilot-menu-list ul.sub-menu a{padding:5px 7px;font-weight:450;font-size:12px}
 .dht-pilot-breadcrumb{padding:24px 0 10px;font-size:13px;color:#66758a}
 .dht-pilot-breadcrumb a{text-decoration:none}
 .dht-pilot-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center;margin:12px 0 28px;padding:34px;background:#fff;border:1px solid #e7edf4;border-radius:18px}
@@ -428,15 +435,22 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <?php dht_pilot_render_country_switcher( $market ); ?>
             </div>
         </div>
-        <?php if ($navigation_roots) : ?>
-        <!-- Fixed pilot navigation: real category URLs, identical across this country's pages. -->
+        <?php if ($managed_menu_id) : ?>
+        <!-- Native TaxoCommerce menu for this market; no category-tree fallback. -->
         <nav class="dht-pilot-nav" aria-label="<?php echo esc_attr($t['categories'] . ' · ' . $t['country']); ?>">
             <div class="dht-pilot-nav-heading">
                 <span class="dht-pilot-nav-flag" aria-hidden="true"><?php echo esc_html($t['flag']); ?></span>
                 <span><?php echo esc_html($t['all_categories']); ?></span>
                 <a class="dht-pilot-nav-home" href="<?php echo esc_url($main_url); ?>"><?php echo esc_html($t['country']); ?></a>
             </div>
-            <?php dht_pilot_render_category_menu_tree($navigation_roots, $navigation_children); ?>
+            <?php wp_nav_menu(array(
+                'menu' => $managed_menu_id,
+                'theme_location' => '',
+                'container' => false,
+                'menu_class' => 'dht-pilot-menu-list dht-pilot-menu-list--depth-0',
+                'fallback_cb' => false,
+                'depth' => 0,
+            )); ?>
         </nav>
         <?php endif; ?>
     </div>
