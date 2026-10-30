@@ -174,4 +174,26 @@ foreach (array('US','DE','NL','FR') as $market) {
 tct_assert(!is_file(TCT_DIR . 'templates/header-us.php'), 'US must not have a separate header.');
 tct_assert(!is_file(TCT_DIR . 'templates/footer-us.php'), 'US must not have a separate footer.');
 
+
+/* The two international renderers must keep the native country menu compact,
+ * including when the legacy router is still active in the monolith. */
+$pilot_renderers = array( $pilot_view );
+$legacy_pilot = dirname( TCT_DIR ) . '/seo-system/templates/template-pilot-vevor.php';
+if ( is_file( $legacy_pilot ) ) {
+    $pilot_renderers[] = file_get_contents( $legacy_pilot );
+}
+foreach ( $pilot_renderers as $view ) {
+    tct_assert( strpos( $view, "'menu_id' => 'dht-pilot-country-menu'" ) !== false,
+        'International menu must have a stable ID for mobile navigation.' );
+    tct_assert( strpos( $view, '.dht-pilot-menu-list--depth-0{display:flex' ) !== false,
+        'International desktop navigation must be horizontal.' );
+    tct_assert( strpos( $view, 'dht-pilot-nav--expanded' ) !== false
+        && strpos( $view, 'dht-pilot-submenu-toggle' ) !== false,
+        'Mobile and nested navigation require operable toggle buttons.' );
+    tct_assert( strpos( $view, 'dht_pilot_render_category_menu_tree($navigation_roots' ) === false,
+        'International header must never render the full category taxonomy as a fallback.' );
+    tct_assert( strpos( $view, "'fallback_cb' => false" ) !== false,
+        'WordPress must not replace an unavailable country menu with an unrelated menu.' );
+}
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";
