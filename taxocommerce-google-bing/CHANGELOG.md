@@ -6,6 +6,12 @@
 
 Sin novedades pendientes documentadas.
 
+## [1.1.13]
+
+- Restore an evidence-based SEO/GEO synthesis in the existing Analysis reporting flow, preserving the 11 original reports (merged PR #1894).
+- Combine persisted Analista tasks, recent Auditor findings and Merchant Spain evidence without new external queries or catalog writes; missing evidence is not treated as a negative ranking signal.
+
+
 
 ## [1.1.12]
 
