@@ -37,6 +37,8 @@ jobs:
         run: php taxocommerce-dependiente/tests/auto-test-smoke.php
       - name: Auditable learning regression guards
         run: php taxocommerce-dependiente/tests/learning-smoke.php
+      - name: Per-lesson quality thresholds and explicit owner acceptance
+        run: php taxocommerce-dependiente/tests/quality-thresholds-smoke.php
       - name: M11 scheduler, lock ownership and logging regression
         run: |
           php taxocommerce-dependiente/tests/m11-observability-smoke.php
