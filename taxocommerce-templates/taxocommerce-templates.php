@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.0
+ * Version: 0.4.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.0');
+define('TCT_VERSION','0.4.1');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -19,6 +19,7 @@ require_once TCT_DIR . 'includes/class-tct-router.php';
 require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
+require_once TCT_DIR . 'includes/class-tct-front-composer.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
@@ -104,6 +105,8 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_upload_template',array('TCT_Template_Editor','upload'));
         add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
+        add_action('admin_post_tct_front_composer_save',array('TCT_Front_Composer','save'));
+        add_action('admin_enqueue_scripts',array('TCT_Front_Composer','enqueue'));
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
         add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
@@ -327,7 +330,7 @@ final class TaxoCommerce_Templates {
             wp_die('Acceso denegado.');
         }
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'requests';
-        if (!in_array($tab, array('requests','roles','editor','audit'), true)) {
+        if (!in_array($tab, array('requests','roles','editor','audit','composer'), true)) {
             $tab = 'requests';
         }
         echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
@@ -335,6 +338,7 @@ final class TaxoCommerce_Templates {
             'requests' => 'Tipos de peticion WordPress / WooCommerce',
             'roles'    => 'Jerarquia y roles propios',
             'editor'   => 'Editor y biblioteca',
+            'composer' => 'Compositor FRONT (piloto)',
             'audit'    => 'Auditoria de asociaciones'
         );
         foreach ($tabs as $key=>$label) {
@@ -353,6 +357,8 @@ final class TaxoCommerce_Templates {
             TCT_Template_Editor::render();
         } elseif ($tab === 'audit') {
             TCT_Association_Audit::render();
+        } elseif ($tab === 'composer') {
+            TCT_Front_Composer::render();
         } else {
             self::render_roles_screen();
         }
