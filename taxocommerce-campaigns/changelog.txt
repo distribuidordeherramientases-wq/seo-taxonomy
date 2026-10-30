@@ -1,39 +1,34 @@
-HISTORIAL DE ORIGEN — TAXOCOMMERCE CAMPAIGNS
+HISTORIAL LEGADO — TAXOCOMMERCE CAMPAIGNS
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1).
-Este archivo relata funciones originales y antecedentes; NO corresponde a versiones del plugin autónomo.
-Fuente primaria: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-Las fechas solo se muestran si aparecen en la fuente original; no se inventan versiones autónomas.
+TaxoCommerce SEO monolítico, versiones previas a la división modular.
+Los números aquí corresponden al MONOLITO, no al plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+La sección 2.0.0 marcada «Próxima versión» en la fuente no se considera publicación.
 
-ORIGEN FUNCIONAL Y EXTRACCIÓN
+ORIGEN Y TRANSICIÓN
 * Historical source: Marketing, scheduled commercial actions and social-network reporting existed within TaxoCommerce SEO 2.3.x; this is monolith history, not a separate Campaigns version.
 * The monolith's 2.3.7–2.3.9 cycles documented commercial campaigns, marketing reports, scheduling and integrations with social channels.
 * Standalone 0.1.0 separated campaigns, calendar scheduling and banner administration from the SEO monolith without making Social responsible for campaign business rules.
 * The extraction kept explicit campaign configuration and staged publication; it did not imply that every external provider or campaign had been activated.
 * WordPress Plugin Check remediation subsequently addressed issues in the standalone package; this is maintenance within the 0.1.0 line, not an invented new release.
 
-HITOS DOCUMENTADOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Origen: TaxoCommerce SEO 2.4.1 (no es una versión de Campaigns).
+CAMBIOS DEL MONOLITO (TEXTO VERIFICADO)
 
 ## [2.3.9] - 2026-09-30
-Origen: TaxoCommerce SEO 2.3.9 (no es una versión de Campaigns).
+Etapa del plugin central:
 [Marketing, campañas y redes sociales] - Completada la gestión de campañas con edición, vaciado seguro, eliminación, restauración de precios y cancelación de tareas programadas.
 [Marketing, campañas y redes sociales] - Ampliada la importación/exportación de campañas a registros de campaña y producto, con resolución por `product_id`/SKU, modo fusión y sustitución explícita.
-[Marketing, campañas y redes sociales] - Añadida autodetección de filas de producto para mantener compatibilidad con CSV antiguos sin `record_type`.
 [Marketing, campañas y redes sociales] - Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
 [Marketing, campañas y redes sociales] - Las creatividades de campaña incorporan producto, precio anterior, precio de oferta y descuento, con fallback seguro cuando una imagen remota no puede componerse.
 [Marketing, campañas y redes sociales] - Añadido **Calendario** mensual de redes sociales con entradas, landings y campañas, filtro por red, detección de huecos/colisiones y vista responsive.
 [Marketing, campañas y redes sociales] - Añadidos **Informes de Marketing** para campañas y redes sociales con visitas, interacciones, pedidos, facturación, conversión y atribución.
 [Marketing, campañas y redes sociales] - Implementada atribución campaña → publicación → visita → pedido con ventana de última interacción de 30 días y sin almacenar PII adicional.
 [Marketing, campañas y redes sociales] - Reservadas las **18:00** para ofertas de campañas y las **20:00** para Noticias.
-[Marketing, campañas y redes sociales] - Añadida prioridad editorial para Noticias y soporte del campo `prioridad` en Programador/CSV.
 [Marketing, campañas y redes sociales] - Las piezas editoriales del mismo día ya no bloquean una oferta comercial; solo otra oferta de campaña ocupa el hueco comercial de las 18:00.
 [Documentación y proceso de publicación] - Ampliada la documentación de Marketing, campañas, Clasificador, Ingeniero, Categorías, Contenidos, Dependiente y sistema documental.
 
 ## [2.3.8.1] - 2026-09-26
-Origen: TaxoCommerce SEO 2.3.8.1 (no es una versión de Campaigns).
+Etapa del plugin central:
 [Marketing y campañas] - Completada la gestión de campañas existentes con edición explícita mediante **Guardar cambios**.
 [Marketing y campañas] - Añadidos **Vaciar productos** y **Eliminar campaña** con restauración previa de precios aplicados y cancelación de tareas programadas.
 [Marketing y campañas] - Ampliada la importación/exportación a un formato completo con registros `campaign` y `product`, incluyendo producto, SKU, precio de campaña y posición.
@@ -42,7 +37,7 @@ Origen: TaxoCommerce SEO 2.3.8.1 (no es una versión de Campaigns).
 [Marketing y campañas] - Los productos importados se resuelven por `product_id` y, como respaldo, por SKU; se mantienen las validaciones de solapamiento entre campañas.
 
 ## [2.3.7] - 2026-09-25
-Origen: TaxoCommerce SEO 2.3.7 (no es una versión de Campaigns).
+Etapa del plugin central:
 [Marketing y campañas comerciales] - Creado el nuevo **servicio de campañas comerciales**.
 [Marketing y campañas comerciales] - Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
 [Marketing y campañas comerciales] - Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
@@ -50,24 +45,14 @@ Origen: TaxoCommerce SEO 2.3.7 (no es una versión de Campaigns).
 [Marketing y campañas comerciales] - Añadida exportación e importación de campañas y programación mediante **JSON**.
 [Marketing y campañas comerciales] - Integradas las campañas comerciales en el **programador de redes sociales**.
 [Marketing y campañas comerciales] - Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
-[Ojeador y análisis de mercado] - Mejorada la identificación de productos sobre los que puede resultar interesante crear una oferta.
 [Ojeador y análisis de mercado] - Simplificada la lectura de indicadores comerciales para facilitar decisiones de precio y promoción.
 [Feeds comerciales] - precio de oferta;
-[Feeds comerciales] - fecha de inicio de oferta;
-[Feeds comerciales] - fecha de finalización de oferta.
-[Issues principales] - #299 — Añadir precios de oferta y vigencia a feeds comerciales.
 [Issues principales] - #298 — Añadir imágenes de los posts/campañas y exportación JSON.
 [Issues principales] - #297 — Enlazar Analista para proponer campañas de marketing.
 [Issues principales] - #296 — Crear plantillas para campañas publicitarias.
 [Issues principales] - #293 — Crear servicio de campañas comerciales.
-[Issues principales] - #291 — Crear semáforo para visualizar mejor las ofertas de Ojeador.
-[Issues principales] - #290 — Añadir productos estrella y oportunidades de oferta.
 
-## [2.3.5]- 2026-09-17
-Origen: TaxoCommerce SEO 2.3.5 (no es una versión de Campaigns).
-[Arquitectura comercial y contenido] - Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
-
-CORTE DE ARQUITECTURA (MONOLITO → PLUGINS)
-El monolito TaxoCommerce SEO se cerró como línea ordinaria en 2.4.1; cada módulo comenzó a seguir su propio versionado.
-Para cambios posteriores del módulo, consultar CHANGELOG.md de este directorio.
-Para trazabilidad y PRs, consultar docs/PLUGIN-HISTORY-SOURCES.md del repositorio.
+DIVISIÓN EN PLUGINS AUTÓNOMOS
+El cierre ordinario del monolito está documentado en la versión 2.4.1 (25/10/2026).
+Las versiones independientes y sus cambios posteriores se registran en CHANGELOG.md.
+Véase docs/PLUGIN-HISTORY-SOURCES.md para referencias a los cambios y PR.
