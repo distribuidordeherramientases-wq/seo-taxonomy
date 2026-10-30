@@ -34,6 +34,7 @@ $seo_analista_files = array(
     __DIR__ . '/analista-tests.php',
     __DIR__ . '/analista-informe.php',
     __DIR__ . '/analista-lazy.php',
+    __DIR__ . '/analista-geo.php',
 );
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Existing global name is retained for module compatibility.
