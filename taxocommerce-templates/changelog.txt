@@ -1,0 +1,87 @@
+HISTORIAL LEGADO — TAXOCOMMERCE TEMPLATES
+
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
+
+ORIGEN Y EXTRACCIÓN
+* Legacy origin: the WordPress/WooCommerce theme templates, content-role routing, cluster/hub page presentation and product/category layouts were developed within TaxoCommerce SEO; old monolith releases are not Templates versions.
+* The monolith 2.3.x–2.4.0 line included frontend content integration, editorial roles, product/category information blocks, menu assignments and canonical content relationships.
+* Standalone Templates evolved into an independent template library and editor with explicit assignment and compatibility checks for existing WordPress pages.
+* International storefront work introduced country-specific presentation for Spain, United States, Germany, Netherlands and France, with separate menus and country metadata.
+* Follow-up work aligned the United States template with the shared international layout and investigated header menu fallback where raw categories appeared instead of configured menus.
+* WordPress.org preparation addressed translation strings and template/FAQ rendering, while private PHP editing remained a controlled administrator-only capability.
+* Version 0.4.0 is the current standalone series; earlier monolith milestones must not be represented as fabricated 0.x Templates releases.
+
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
+
+## [2.4.0] - 2026-10-13
+Cambios realizados en el plugin monolítico:
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+
+## [2.3.10] - 2026-10-06
+Cambios realizados en el plugin monolítico:
+- Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
+- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
+- Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
+
+## [2.3.9] - 2026-09-30
+Cambios realizados en el plugin monolítico:
+[Auditor, Analista y control de calidad] - Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.
+[Auditor, Analista y control de calidad] - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+[Marketing, campañas y redes sociales] - Añadido **Calendario** mensual de redes sociales con entradas, landings y campañas, filtro por red, detección de huecos/colisiones y vista responsive.
+[Frontend, contenidos y navegación] - Añadidas plantillas específicas para **categorías de entradas** del blog, con variantes desktop/móvil y resolución automática desde el gestor de plantillas.
+[Frontend, contenidos y navegación] - Las entradas del blog pueden mostrar hasta **8 productos relacionados** a partir de las categorías comerciales enlazadas explícitamente.
+[Frontend, contenidos y navegación] - Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
+[Frontend, contenidos y navegación] - Ajustados cabecera, ficha de producto y carrito para mejorar la jerarquía comercial y aprovechar mejor el primer pliegue.
+[Frontend, contenidos y navegación] - Creada la sección administrativa **Contenidos**, agrupando Productos, Categorías, Páginas, Entradas e Imágenes sin cambiar sus rutas internas.
+[Frontend, contenidos y navegación] - **Comentarista** se ha movido a **Herramientas**.
+[Frontend, contenidos y navegación] - **Solucionador** pasa a presentarse como **Editor** y queda integrado en Contenidos, manteniendo sus slugs y datos internos por compatibilidad.
+[Comparador, carrito y documentos comerciales] - Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
+
+## [2.3.7] - 2026-09-25
+Cambios realizados en el plugin monolítico:
+[Marketing y campañas comerciales] - Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
+[Issues principales] - #296 — Crear plantillas para campañas publicitarias.
+
+## [2.3.6] - 2026-09-23
+Cambios realizados en el plugin monolítico:
+[Dependiente] - Incorporada edición de las plantillas utilizadas por Dependiente.
+[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
+[Inventario y catálogo] - Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+
+## [2.3.5]- 2026-09-17
+Cambios realizados en el plugin monolítico:
+[Dependiente e Intérprete] - Corrección de la carga de imágenes en el frontend de Dependiente.
+[Dependiente e Intérprete] - Mejoras generales del comportamiento y presentación del Dependiente en frontend.
+[Arquitectura comercial y contenido] - Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
+[Arquitectura comercial y contenido] - Ajustes de frontend y helpers de plantillas para mantener coherencia entre STAGING y producción.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Cambios realizados en el plugin monolítico:
+* mejoras en plantillas y en su sistema de comprobación y sincronización;
+* incorporación de migas de pan en la cabecera;
+* ajustes en el cargador de plantillas, autoload y archivos de versión;
+
+## [2.3.3] - 2026-09-08
+Cambios realizados en el plugin monolítico:
+[Mejorado] - Revisadas las plantillas para mostrar la información con una jerarquía más consistente. (#141)
+[Mejorado] - Mejorada la paridad entre STAGING y PRO para reducir diferencias en plantillas y comportamiento. (#155)
+[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+## 2.2.1 - Vocabulary bridge
+Cambios realizados en el plugin monolítico:
+- La cabecera CSV pública `ambito` se conserva, pero exporta el ROL canónico del producto.
+
+# \[1.5.0\]
+Cambios realizados en el plugin monolítico:
+[Auditoría y validación] -   Validación de imágenes, plantillas y contenido.
+
+# \[1.4.0\]
+Cambios realizados en el plugin monolítico:
+[Arquitectura SEO] -   Generación de páginas estructurales.
+
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.
