@@ -1,0 +1,145 @@
+HISTORIAL DE ORIGEN — Vocabulary
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: the monolith 2.2.1–2.2.8 cycles implemented the Vocabulary bridge, canonical product tags, semantic label editing and mapping between terms and catalogue records.
+* The old SEO relationships and vocabulary tables were an input to taxonomy, category mapping, catalogue search and Dependiente semantic interpretation.
+* Monolith 2.3.x evolved semantic classification and evidence-based relationships; vocabulary data had to remain stable while the plugins were separated.
+* Standalone Vocabulary 0.3.x centralised semantic labels and catalogue relation administration with controlled import/export and integrity checks.
+* Later standalone fixes tightened CSV upload limits and SQL identifier preparation, and resolved WordPress.org Plugin Check issues without inventing or recreating the historical taxonomy data.
+* Vocabulary, Core and Assistant retain separate responsibilities: semantic terms, shared family administration and learning/search respectively.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Vocabulary).
+[Cierre de la arquitectura monolítica] - El desarrollo funcional ordinario deja de incorporarse al monolito.
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Vocabulary).
+[Resumen ejecutivo del ciclo 2.4.0] - **Modularización:** inicio de la separación del monolito en TaxoCommerce Core y extensiones de Import-Export, Imágenes y System Check; diseño de Vocabulary y FAQs como módulos diferenciados.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Vocabulary).
+- Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
+- Los borradores de Ingeniero usan el rol estable **ingeniero_qa_specialized**, relación **post_to_category**, Vocabulary canónico y metadatos de dossier/hash; nunca se autopublican.
+- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Vocabulary).
+[Dependiente, Academia e Intérprete] - Corregida la finalización y persistencia de la **Lección 10**, incluyendo conservación de la marca de currículo `semantic-v2`, recuperación tardía tras despliegues y restauración conservadora de cursos completados.
+[Ingeniero, Clasificador y Semántica] - Creado **Ingeniero** como servicio técnico dentro de Dependiente para investigar conocimiento externo por categoría, separado del catálogo y de las respuestas públicas.
+[Ingeniero, Clasificador y Semántica] - Añadidas fuentes trazables, niveles de confianza, evidencias breves y relación conocimiento → fuente → URL original.
+[Ingeniero, Clasificador y Semántica] - Corregido el tratamiento de **HTTP 429 de SerpApi** para pausar Ingeniero sin avanzar la categoría ni perder trabajo pendiente.
+[Ingeniero, Clasificador y Semántica] - Añadida importación y exportación de conocimiento de Ingeniero en **CSV y JSON**, con remapeo de fuentes y estados de revisión.
+[Ingeniero, Clasificador y Semántica] - Añadida aprobación individual y masiva de categorías/conocimiento en revisión antes de considerarlo activo.
+[Ingeniero, Clasificador y Semántica] - Reorganizada la navegación de **Semántica** para mostrar **Clasificador** como sección propia junto a Etiquetas y Atributos.
+[Ingeniero, Clasificador y Semántica] - Integrado Clasificador con el conocimiento de Ingeniero para detectar posibles **nuevos atributos, valores y conceptos semánticos** por categoría.
+[Ingeniero, Clasificador y Semántica] - Clasificador distingue propuestas **Candidato nuevo / Posible equivalente / Ya cubierto** y puede trabajar con conocimiento activo o provisional en revisión.
+[Ingeniero, Clasificador y Semántica] - Añadida tabla global **Ingeniero → vocabulario** y acciones de aceptación individual o masiva que amplían los maestros canónicos sin asignar automáticamente datos a productos.
+[Ingeniero, Clasificador y Semántica] - El **Clonador PRO → STAGING** incorpora fuentes y conocimiento persistente de Ingeniero, manteniendo separados colas, cursores, configuración y consumo de SerpApi.
+[Auditor, Analista y control de calidad] - La tarjeta separa **Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo** y `task_decision` pasa a ser la fuente única para contador, sección, etiqueta y JSON.
+[Comparador, carrito y documentos comerciales] - El comparador utiliza clasificación canónica y atributos técnicos de TaxoCommerce SEO, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Vocabulary).
+[Feeds comerciales] - Preparados estos datos para su utilización en feeds comerciales y plataformas externas.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Vocabulary).
+[Ojeador y Google Shopping] - Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
+[SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
+[Resumen de la release] - **Auditoría y validación** reducen falsos positivos y amplían los controles técnicos y SEO.
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Vocabulary).
+[Añadido] - Añadida asociación de las etiquetas de páginas con el vocabulario SEO. (#152)
+[Añadido] - Añadida asociación de las etiquetas de FAQs con el vocabulario SEO. (#165)
+[Añadido] - Añadido control propio de costes de envío para complementar o sustituir la lógica estándar de WooCommerce. (#150)
+[Añadido] - Añadido control sobre la intensidad/frecuencia de tareas programadas de WooCommerce. (#153)
+[Mejorado] - Mejorados los informes y controles basados en información procedente de Google, Trends y otras fuentes. (#126)
+[Mejorado] - Reforzados los controles de calidad del dato orientados a detectar contenido pobre, repetitivo o poco útil. (#147)
+[Mejorado] - Mejorada la sincronización de atributos y etiquetas entre STAGING y PRO. (#145)
+[Corregido] - Ajustados parámetros de control de WooCommerce para reducir avisos y errores innecesarios. (#160)
+[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Vocabulary).
+- Refuerza el sistema de clasificación semántica y vocabulario, utilizando diccionarios y datos canónicos para mantener coherencia entre productos, etiquetas, atributos y categorías.
+- Mejora los procesos de importación, exportación y sincronización de proveedores, incluyendo peso, dimensiones, imágenes, enlaces, control de procesos y exportaciones de apoyo para futuras cargas.
+- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
+
+## 2.2.8 - Cierre de etiquetas legacy de producto
+Versión del monolito (no de Vocabulary).
+- Elimina el fallback público a `wp_seo_nodes` para etiquetas de producto: la ficha solo muestra APLICACIÓN, PLATAFORMA y SUBTIPO canónicos.
+- El importador mantiene la columna `etiquetas` por compatibilidad de formato, pero ya no la persiste como etiqueta legacy de producto.
+- La exportación V2 rellena `etiquetas` con las facetas canónicas públicas (APLICACIÓN / PLATAFORMA / SUBTIPO), no con keywords legacy.
+- Los informes de contenido consideran la clasificación semántica canónica (TIPO y facetas) en lugar de depender de las keywords legacy.
+- La pantalla Etiquetas pasa de modo transición a modo canónico y conserva el contador legacy como control de regresión.
+
+## 2.2.7 - Guardado semantico seguro
+Versión del monolito (no de Vocabulary).
+- El editor de APLICACION, PLATAFORMA y SUBTIPO ya no reescribe asignaciones sin cambios.
+
+## 2.2.6 - Hotfix filtro SUBTIPO en Etiquetas
+Versión del monolito (no de Vocabulary).
+- Corrige el error crítico al abrir TaxoCommerce SEO → Etiquetas después de cargar SUBTIPO.
+- El selector de filtros inicializa ahora el grupo `subtipo` igual que ROL, APLICACIÓN y PLATAFORMA.
+- No modifica datos, vocabulario ni asignaciones existentes.
+
+## 2.2.5 - Etiquetas canónicas visibles y editor integrado
+Versión del monolito (no de Vocabulary).
+- La ficha pública prioriza APLICACIÓN, PLATAFORMA y SUBTIPO canónicos en «Aplicaciones y características».
+- La edición semántica se integra como pestaña «Etiquetas semánticas» dentro de «Datos del producto» de WooCommerce.
+- TIPO y Ámbito/ROL siguen siendo solo lectura; APLICACIÓN, PLATAFORMA y SUBTIPO son editables y guardan source=manual.
+- No elimina etiquetas legacy ni atributos técnicos.
+
+## 2.2.4 - Edición manual del vocabulario semántico de producto
+Versión del monolito (no de Vocabulary).
+- Añade metabox `Clasificación semántica / Etiquetas` en la ficha nativa de producto.
+- TIPO y Ámbito/ROL permanecen de solo lectura para proteger la identidad canónica.
+- APLICACIÓN, PLATAFORMA y SUBTIPO se pueden seleccionar, limpiar y crear manualmente.
+- La pantalla Etiquetas añade filtro por SUBTIPO y enlaza directamente al bloque de clasificación del producto.
+- Control de integridad muestra también asignaciones inválidas de SUBTIPO.
+- No elimina etiquetas legacy ni modifica atributos técnicos.
+
+## 2.2.3 - Etiquetas / vocabulary control view
+Versión del monolito (no de Vocabulary).
+- Añade la pestaña visible **TaxoCommerce SEO > Etiquetas**.
+- Vista de producto en solo lectura con Ámbito/ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y etiquetas SEO legacy en la misma fila.
+- Filtros por producto/SKU/ID, TIPO, ROL, APLICACIÓN, PLATAFORMA y cobertura de facetas.
+- Añade explorador del vocabulario canónico por grupo, con términos, productos, asignaciones, confianza y fuentes.
+- Añade una pestaña Control que comprueba cobertura TIPO/ROL, duplicados, asignaciones inválidas y coherencia TIPO -> ROL.
+- No modifica datos de catálogo ni elimina etiquetas antiguas; esta versión sirve para validar visualmente el resultado de la migración antes de continuar con SUBTIPO y la retirada del modelo legacy.
+
+## 2.2.2 - Canonical product role reads
+Versión del monolito (no de Vocabulary).
+- Product semantic validation now reads the canonical ROL derived from active TIPO -> `wp_seo_type_role_map`; `seo_nodes/product/ambito` remains fallback only.
+- Product CSV export no longer reads `seo_nodes/product/ambito` directly; public column `ambito` is still emitted from canonical ROL.
+- Category `ambito` remains legacy/editorial and is explicitly not derived from product roles.
+- Fixes a category semantic-validation regression where a product-role lookup could be referenced in category scope evaluation.
+
+## 2.2.1 - Vocabulary bridge
+Versión del monolito (no de Vocabulary).
+- ROL canónico de producto leído desde TIPO -> wp_seo_type_role_map, con fallback materializado/legacy.
+- La cabecera CSV pública `ambito` se conserva, pero exporta el ROL canónico del producto.
+- Las importaciones legacy no pueden contradecir un ROL canónico existente; si no existe todavía, pueden crear un ROL provisional de compatibilidad.
+- `consumible` pasa a ser un ámbito/rol válido en importación, validación e informes.
+- Los atributos SEO JSON admiten explícitamente el scope especial `global`.
+- Las categorías mantienen su `ambito` legacy en esta fase; no se derivan del ROL de sus productos.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Vocabulary).
+- Proteccion de titulo, descripcion, excerpt, categorias, atributos y etiquetas en actualizaciones.
+-   Sistema de rollback seguro.
+-   Gestión de taxonomía SEO independiente.
+-   Gestión de atributos SEO.
+-   Diccionario SEO.
+-   Gestión de etiquetas.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
