@@ -55,7 +55,7 @@ The administrator supplies and controls all API credentials. Provider usage can 
 * Added Ojeador and Ingeniero as tabs of the standalone plugin.
 * Registered Scrappers in TaxoCommerce Core for local ZIP installation/activation.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: Ojeador market observation and Ingeniero technical/editorial research operated as services of TaxoCommerce SEO; no earlier Scrappers standalone versions are asserted.
 * Monolith 2.3.6–2.3.7 documented Ojeador and Google Shopping/Trends observation, commercial gaps and evidence-based opportunities.
 * The 2.3.9–2.4.0 cycles documented Ingeniero source collection, technical dossiers, evidence review and controlled editorial drafts.
