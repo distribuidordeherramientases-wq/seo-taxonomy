@@ -123,7 +123,7 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 * Added unified Connections and global Analyst reporting.
 * Retained historical settings and OAuth callback contracts.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: Google Search Console, Google Analytics (GA4), Bing, Merchant and Trends connections were originally implemented in the SEO monolith; the 2.4.1 monolith was not an Insights 1.x release.
 * The 2.3.7 monolith documented Google Trends and market research; the 2.3.9/2.4.0 line brought reporting, traffic evidence and editorial recommendations.
 * Independent Google/Bing and Connections work migrated existing provider configuration, callbacks and stored reporting without requiring customers to recreate OAuth credentials.
