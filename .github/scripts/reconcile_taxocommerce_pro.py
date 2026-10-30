@@ -105,7 +105,18 @@ def ftp_list(ftp):
 
 def collect(ftp, root, module, expected, tracked, contents, candidates, skipped):
     """Inventory a single module, collecting content only for bounded extra files."""
-    ftp.cwd(root + '/' + module)
+    try:
+        ftp.cwd(root + '/' + module)
+    except ftplib.error_perm as error:
+        if not str(error).startswith('550'):
+            raise
+        skipped.append({
+            'module': module,
+            'path': module + '/',
+            'reason': 'FTP plugin directory missing or inaccessible; WordPress directory is authoritative',
+        })
+        print('::warning::FTPS directory unavailable for', module, '- comparison omitted, no deletion allowed')
+        return
     scanned = [0]
     downloaded = [sum(len(v) for v in contents.values())]
 
@@ -226,6 +237,10 @@ def plan():
     OUTPUT.mkdir(exist_ok=True)
     (OUTPUT / 'plan.json').write_text(json.dumps(output, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     requested = os.environ.get('TC_APPROVED_CLEANUP_SHA256', '').strip().lower()
+    inaccessible = any('FTP plugin directory missing or inaccessible' in x['reason'] for x in skipped)
+    if requested and inaccessible:
+        write_summary(output, False)
+        raise RuntimeError('FTPS inventory incomplete: deletion approval is prohibited')
     if requested and not re.fullmatch(r'[0-9a-f]{64}', requested):
         raise ValueError('Cleanup approval must be a 64-character SHA-256 digest')
     if requested and requested != digest:
@@ -266,6 +281,9 @@ def apply():
     if not re.fullmatch(r'[0-9a-f]{64}', requested) or requested != report['approval_sha256']:
         raise RuntimeError('No matching explicit approval; deletion blocked')
     candidates = report['candidates']
+    if any('FTP plugin directory missing or inaccessible' in x['reason']
+           for x in report.get('skipped', [])):
+        raise RuntimeError('FTPS inventory incomplete: refusing all deletions')
     if not candidates:
         print('Nothing to remove')
         return
