@@ -85,6 +85,24 @@ $category_ids = array_values( array_filter(
     }
 ) );
 
+// An international VEVOR image is shown only by its original external URL.
+// Never import, copy, resize, or fall back to local WordPress Media files.
+if ( ! function_exists( 'dht_cluster_external_image_url' ) ) {
+    function dht_cluster_external_image_url( $candidate ) {
+        $url = esc_url_raw( (string) $candidate );
+        $scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+        $host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+        $site_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+        $host = preg_replace( '/^www\\./', '', $host );
+        $site_host = preg_replace( '/^www\\./', '', $site_host );
+        return in_array( $scheme, array( 'http', 'https' ), true ) && $host !== '' && $host !== $site_host
+            ? $url : '';
+    }
+}
+$hero_image = dht_cluster_external_image_url(
+    dht_template_structural_image_url( $current_id, $hub_ids, $category_ids, 'large' )
+);
+
 // The native menu must belong to the page's market; no Spanish/category-tree fallback.
 $menu_name = 'TaxoCommerce - ' . $market;
 $nav_menu = wp_get_nav_menu_object( $menu_name );
@@ -164,6 +182,7 @@ body.dht-cluster-intl{margin:0;background:#f6f8fb;color:#172336;font-family:syst
 .dht-intl-main .hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .dht-intl-main .hub-card{display:block;background:#fff;border:1px solid #dfe5ee;border-radius:10px;padding:18px;color:inherit;text-decoration:none}
 .dht-intl-main .hub-card:hover,.dht-intl-main .hub-card:focus-visible{border-color:#98b1d2}
+.dht-intl-main .hub-img img{display:block;width:100%;aspect-ratio:5/3;object-fit:contain;margin-bottom:12px}
 .dht-intl-main .hub-card h3{margin:0 0 8px}
 .dht-intl-main .hub-card p{color:#475467}
 .dht-intl-footer{background:#142238;color:#eef3fa;padding:26px 0;font-size:13px}
@@ -206,7 +225,7 @@ echo wp_json_encode( $schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON
 </header>
 <main id="main" class="hub-page cluster-page dht-intl-main">
 <?php while ( have_posts() ) : the_post(); ?>
-    <header class="hub-hero"><div class="hub-container hub-hero-grid--text-only"><div class="hub-hero-content">
+    <header class="hub-hero"><div class="hub-container hub-hero-grid<?php echo $hero_image ? '' : ' hub-hero-grid--text-only'; ?>"><div class="hub-hero-content">
         <span class="dht-kicker"><?php echo esc_html( $t['area'] ); ?></span>
         <h1 class="hub-title"><?php echo esc_html( $cluster_title ); ?></h1>
         <?php $excerpt = trim( (string) get_the_excerpt() ); if ( $excerpt !== '' ) : ?>
@@ -214,7 +233,9 @@ echo wp_json_encode( $schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON
         <?php endif; ?>
         <?php if ( $hub_ids ) : ?><a class="dht-btn dht-btn-primary" href="#hubs-cluster"><?php echo esc_html( $t['hubs'] ); ?></a>
         <?php elseif ( $category_ids ) : ?><a class="dht-btn dht-btn-primary" href="#categorias-cluster"><?php echo esc_html( $t['categories'] ); ?></a><?php endif; ?>
-    </div></div></header>
+    </div>
+    <?php if ( $hero_image ) : ?><figure class="hub-hero-media"><img src="<?php echo esc_url( $hero_image ); ?>" alt="<?php echo esc_attr( $cluster_title ); ?>" loading="eager"></figure><?php endif; ?>
+    </div></header>
     <?php if ( trim( (string) get_the_content() ) !== '' ) : ?>
         <section class="hub-content"><div class="hub-container dht-content dht-prose"><?php the_content(); ?></div></section>
     <?php endif; ?>
@@ -225,8 +246,11 @@ echo wp_json_encode( $schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON
         <?php foreach ( $hub_ids as $hub_id ) :
             $link = get_permalink( $hub_id ); if ( ! $link ) { continue; }
             $title = (string) get_the_title( $hub_id );
-            $summary = dht_template_post_summary( $hub_id, 30 ); ?>
-            <a class="hub-card" href="<?php echo esc_url( $link ); ?>"><h3><?php echo esc_html( $title ); ?></h3>
+            $summary = dht_template_post_summary( $hub_id, 30 );
+            $card_image = dht_cluster_external_image_url( dht_template_node_image_url( 'hub_primary', $hub_id, 'medium_large' ) ); ?>
+            <a class="hub-card" href="<?php echo esc_url( $link ); ?>">
+            <?php if ( $card_image ) : ?><span class="hub-img"><img src="<?php echo esc_url( $card_image ); ?>" alt="<?php echo esc_attr( $title ); ?>" loading="lazy"></span><?php endif; ?>
+            <h3><?php echo esc_html( $title ); ?></h3>
                 <?php if ( $summary !== '' ) : ?><p><?php echo esc_html( $summary ); ?></p><?php endif; ?>
                 <span class="hub-btn"><?php echo esc_html( $t['view_hub'] ); ?> →</span>
             </a>
@@ -241,8 +265,11 @@ echo wp_json_encode( $schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON
             $term = get_term( $cat_id, 'product_cat' );
             $link = $term instanceof WP_Term ? get_term_link( $term ) : '';
             if ( ! ( $term instanceof WP_Term ) || is_wp_error( $link ) || ! $link ) { continue; }
-            $summary = wp_trim_words( wp_strip_all_tags( term_description( $cat_id ) ), 20 ); ?>
-            <a class="hub-card" href="<?php echo esc_url( $link ); ?>"><h3><?php echo esc_html( $term->name ); ?></h3>
+            $summary = wp_trim_words( wp_strip_all_tags( term_description( $cat_id ) ), 20 );
+            $cat_image = dht_cluster_external_image_url( dht_template_term_image_url( $cat_id, 'medium_large', true ) ); ?>
+            <a class="hub-card" href="<?php echo esc_url( $link ); ?>">
+            <?php if ( $cat_image ) : ?><span class="hub-img"><img src="<?php echo esc_url( $cat_image ); ?>" alt="<?php echo esc_attr( $term->name ); ?>" loading="lazy"></span><?php endif; ?>
+            <h3><?php echo esc_html( $term->name ); ?></h3>
                 <?php if ( $summary !== '' ) : ?><p><?php echo esc_html( $summary ); ?></p><?php endif; ?>
                 <span class="hub-btn"><?php echo esc_html( $t['view_cat'] ); ?> →</span>
             </a>
