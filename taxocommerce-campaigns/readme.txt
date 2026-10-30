@@ -34,7 +34,7 @@ Two campaign engines must not edit or schedule the same campaign simultaneously;
 * Extracted campaigns, product offers and their commercial calendar into an independent module.
 * Retained canonical campaign records and compatibility with existing public template hooks.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Historical source: Marketing, scheduled commercial actions and social-network reporting existed within TaxoCommerce SEO 2.3.x; this is monolith history, not a separate Campaigns version.
 * The monolith's 2.3.7–2.3.9 cycles documented commercial campaigns, marketing reports, scheduling and integrations with social channels.
 * Standalone 0.1.0 separated campaigns, calendar scheduling and banner administration from the SEO monolith without making Social responsible for campaign business rules.
