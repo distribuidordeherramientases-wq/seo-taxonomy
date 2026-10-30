@@ -85,7 +85,7 @@ No. Core provides optional grouped administration.
 * Preserve all training controls, imports, exports, cron and frontend behavior.
 
 
-= 0.3.18 =
+
 * Auto Test reports functional readiness separately from educational outcomes and historical process errors. M11, learning and M12 remain green when endpoints, workers and state contracts are available, with diagnostic detail.
 * A bounded search that returns no candidates is marked as inconclusive instead of reporting a broken search engine solely from its result set.
 * No training, feedback, content or backup mutations are performed by Auto Test.
