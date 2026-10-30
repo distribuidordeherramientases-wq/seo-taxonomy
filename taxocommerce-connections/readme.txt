@@ -42,3 +42,10 @@ Once the consolidated Insights installation is verified operationally, this comp
 
 = 0.2.0 =
 * Shared Google, Bing, Merchant, Amazon, and Pinterest connection layer before consolidation.
+
+== Historical origins (monolith; not standalone releases) ==
+* Historical source: the monolith provided Google Search Console, GA4, Bing and related external connections; the separate Connections plugin is not the original owner of that history.
+* Standalone 0.2.0 isolated the connection bridge while Insights was being extracted, preserving existing OAuth paths, configuration and provider integration contracts.
+* The connection engine and related screens were later consolidated into Insights rather than maintained as two competing sources of truth.
+* Standalone 0.3.0 is a compatibility bridge for existing installations: migration and deactivation must preserve provider settings and not silently create new credentials.
+* Later Insights versions introduced provider-status diagnostics and authorised manual verification; those updates belong to Insights, not to new releases of this bridge.

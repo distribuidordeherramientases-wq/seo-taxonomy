@@ -44,3 +44,10 @@ System diagnostics can include server configuration, URLs and error details. Tre
 * Standalone system and plugin diagnostics with compatibility routes.
 * Local PHP checks and optional bounded HTTP URL audits.
 * Administrator-controlled reports and notifications.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: server diagnostics, plugin validation and HTTP/URL checks existed under TaxoCommerce SEO administration; the monolith's release numbers are not standalone System Check versions.
+* The old validation panel mixed site status, plugin-specific checks and URL/HTTP observations; its historical outputs were not automatically proof that newer modules had passed.
+* During modularisation System Check was isolated from SEO_SYSTEM_* globals and constants to prevent collisions with the still-installed monolith.
+* Standalone diagnostics distinguished the active plugin modules from installed but inactive extensions and retained administrator-controlled bounded scans and reports.
+* Later WordPress.org work corrected text-domain usage and prepared SQL identifiers; the historical original checker remained distinct from each plugin's own Auto Test.

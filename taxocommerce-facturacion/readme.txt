@@ -31,3 +31,10 @@ It does not create a parallel document database and does not include a destructi
 
 = 0.1.0 =
 * Migrated the existing document module into an independent TaxoCommerce plugin.
+
+== Historical origins (monolith; not standalone releases) ==
+* Historical source: document generation, invoices and quotations were maintained in the TaxoCommerce SEO monolith before the standalone Billing module; this section is not a Billing release.
+* The legacy implementation used seo_facturas_* options and the seo_factura_documents table; the standalone extraction retained those stores instead of resetting customer documents.
+* Earlier checkout and tax corrections avoided adding VAT twice to retail prices already expressed with tax included.
+* The original document enable/disable control was restored after an earlier regression; billing behavior depends on those explicit administrative settings.
+* Standalone 0.1.0 was a one-to-one extraction of the legacy billing/document functions, keeping existing options and document data rather than redesigning accounting.

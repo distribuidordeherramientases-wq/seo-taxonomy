@@ -147,3 +147,11 @@ Yes. Administrators may explicitly upload a verified module ZIP through Core's e
 
 = 0.3.0 =
 * Introduced the native cluster and hub hierarchy.
+
+== Historical origins (monolith; not standalone releases) ==
+* Historical source: the TaxoCommerce SEO monolith through 2.4.1 maintained the SEO architecture, category/product relationships, taxonomy and the original WordPress administration; these are not Core standalone versions.
+* The 2.2.x legacy work included the vocabulary bridge, canonical semantic labels and the product/category relationship model.
+* During 2.3.x the monolith organised clusters, primary and secondary hubs, landing pages, menus and associated WooCommerce categories/products.
+* Core became the administrative and integration point for independent TaxoCommerce extensions, preserving the existing data contracts rather than migrating every service into Core.
+* Later standalone work refined the Extensions panel, nested menu navigation, WordPress.org compliance and internal Auto Test. Individual learning, images and feeds remain owned by their respective modules.
+* The international storefront uses explicit country-based pages, templates and navigation; the Core layer retains role/menu selection while Templates owns frontend rendering.

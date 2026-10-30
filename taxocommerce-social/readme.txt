@@ -37,3 +37,10 @@ Social publishing sends authorized content and associated account data to the se
 = 0.1.0 =
 * Extracted social connections, templates and calendar into a standalone plugin.
 * Preserved existing settings and history without deleting them on deactivation.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: social-network publishing, scheduling and commercial reporting were features of TaxoCommerce SEO before the independent Social plugin; those monolith versions are not Social standalone releases.
+* The monolith 2.3.6 and 2.3.9 cycles documented social channels and marketing/reporting connections alongside commercial campaigns.
+* Standalone 0.1.0 moved network integrations and scheduled publication into an independent module with its own bootstrap, navigation and Core registration.
+* Staging and deployment work subsequently introduced a separate ZIP workflow and reconciled the canonical shared storage used by the former monolith and the new plugin.
+* Marketing campaign planning and banners belong to Campaigns, while Social owns its authorised publishing actions; no external-network publication is implied merely by installing the module.

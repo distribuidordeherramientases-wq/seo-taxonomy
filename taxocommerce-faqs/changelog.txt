@@ -1,0 +1,49 @@
+HISTORIAL DE ORIGEN — FAQs
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: frequently asked questions were collected and linked with products and categories in the TaxoCommerce SEO monolith; legacy releases 2.3.x–2.4.1 do not belong to the standalone FAQs version series.
+* The monolith 2.3.6 release documented the FAQ subsystem and its relationship with catalogue content and the assistant's knowledge sources.
+* Standalone 0.1.x extracted FAQ storage and administration while maintaining compatibility with existing seo_faq records and explicit content relationships.
+* Later migrations protected existing data during installation/uninstallation, updated CSV handling and maintained the Assistant L6 compatibility path.
+* Version 0.1.5 added a dedicated Auto Test and user/technical guide; 0.1.6 concentrated on Plugin Check and clean distribution.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de FAQs).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de FAQs).
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+[Resumen ejecutivo del ciclo 2.4.0] - **Modularización:** inicio de la separación del monolito en TaxoCommerce Core y extensiones de Import-Export, Imágenes y System Check; diseño de Vocabulary y FAQs como módulos diferenciados.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de FAQs).
+- Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de FAQs).
+[Auditor, Analista y control de calidad] - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de FAQs).
+[FAQs] - Modernizado el sistema de FAQs.
+[FAQs] - Mejorada la gestión y preparación de las FAQs para auditoría, análisis y evolución posterior.
+[Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Versión del monolito (no de FAQs).
+* mejoras en Academia y ampliación de contenidos y FAQs;
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de FAQs).
+[Añadido] - Añadida asociación de las etiquetas de FAQs con el vocabulario SEO. (#165)
+[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.

@@ -1,0 +1,89 @@
+HISTORIAL DE ORIGEN — Images
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* TaxoCommerce SEO 2.3.x linked supplier image imports, catalogue records and Media metadata; the 2.4.1 monolith version is not an Images release.
+* Images 0.2.0 extracted WebP, optimisation, image references, HTTP checks and thumbnails. Media ZIP import/export moved to Import-Export.
+* Later standalone versions added category-based image assignment, external-provider distinctions, inventory audits, adaptive background batches and Auto Test.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Images).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Images).
+[Import / Export] - Páginas y entradas pueden exportarse incluyendo **Papelera (`trash`)** y reimportarse para enviar contenido existente a la papelera mediante el flujo nativo de WordPress.
+[Import / Export] - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Images).
+- El radar usa **Google Trends** para señales crecientes y valida cada candidato con **Google Shopping + Google Search** mediante la conexión compartida SerpApi → ScraperAPI; conserva fuentes, cobertura, score explicable y estado humano sin crear categorías/productos automáticamente.
+- Dependiente V3 registra las **elecciones explícitas del cliente** como evidencia supervisada: `category_choice` para categorías sugeridas y `click` para productos, conservando consulta, posición y recorrido mediante `search_uuid`.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Images).
+[Dependiente, Academia e Intérprete] - Añadido diagnóstico en vivo de la **Lección 9** del Intérprete, con fase actual, conservación semántica, ruido, patrones consolidados, regresión y exportación JSON sin alterar el algoritmo de aprendizaje.
+[Auditor, Analista y control de calidad] - Analista 3.8.3 corrige la contradicción entre **HACER AHORA** y acciones de vigilar/esperar/investigar: una tarea inmediata exige acción primaria ejecutable con verbo, objeto, destino, responsable y URL validada.
+[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+[Marketing, campañas y redes sociales] - Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
+[Marketing, campañas y redes sociales] - Las creatividades de campaña incorporan producto, precio anterior, precio de oferta y descuento, con fallback seguro cuando una imagen remota no puede componerse.
+[Frontend, contenidos y navegación] - Añadidas plantillas específicas para **categorías de entradas** del blog, con variantes desktop/móvil y resolución automática desde el gestor de plantillas.
+[Frontend, contenidos y navegación] - Las entradas del blog pueden mostrar hasta **8 productos relacionados** a partir de las categorías comerciales enlazadas explícitamente.
+[Frontend, contenidos y navegación] - Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
+[Frontend, contenidos y navegación] - Ajustados cabecera, ficha de producto y carrito para mejorar la jerarquía comercial y aprovechar mejor el primer pliegue.
+[Frontend, contenidos y navegación] - Creada la sección administrativa **Contenidos**, agrupando Productos, Categorías, Páginas, Entradas e Imágenes sin cambiar sus rutas internas.
+[Frontend, contenidos y navegación] - **Comentarista** se ha movido a **Herramientas**.
+[Frontend, contenidos y navegación] - **Solucionador** pasa a presentarse como **Editor** y queda integrado en Contenidos, manteniendo sus slugs y datos internos por compatibilidad.
+[Comparador, carrito y documentos comerciales] - Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
+[Proveedores e importación] - Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
+
+## [2.3.8.1] - 2026-09-26
+Versión del monolito (no de Images).
+[Marketing y campañas] - Completada la gestión de campañas existentes con edición explícita mediante **Guardar cambios**.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Images).
+[Marketing y campañas comerciales] - Añadida exportación e importación de campañas y programación mediante **JSON**.
+[Ojeador y análisis de mercado] - Incorporado un sistema de clasificación visual mediante **semáforo de precios**:
+[Informes y rendimiento] - Los informes pasan a generarse bajo demanda mediante un botón **Crear informe**.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Images).
+[Importación, proveedores e imágenes] - Corregida la rotación y limpieza de archivos generados por Importar/Exportar.
+[Importación, proveedores e imágenes] - Mejorada la eliminación automática de archivos antiguos ya procesados.
+[Importación, proveedores e imágenes] - Corregida la gestión de imágenes para evitar almacenar innecesariamente en Media imágenes que deben permanecer asociadas al proveedor.
+[Importación, proveedores e imágenes] - Mejorado el Clonador PRO para ampliar la cobertura de los elementos transferidos entre Producción y Staging.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Images).
+[Proveedores e importación] - Incorporado soporte para un **importador externo**.
+[Proveedores e importación] - Actualización de la integración con **Rubix** para procesos de scraping.
+[Proveedores e importación] - Añadido lanzador específico para Rubix.
+[Proveedores e importación] - Eliminada una receta antigua de importación de Emuca que ya no formaba parte del flujo vigente.
+[Proveedores e importación] - Mejoras en la gestión e inventario reducido utilizado durante procesos de importación.
+[Proveedores e importación] - Mejorado el exportador reducido de productos.
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Images).
+[Notas de despliegue] - La versión fue promovida mediante Pull Request de `staging` a `main` y desplegada posteriormente a producción.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Images).
+- Amplía la integración de producto con Amazon y otros proveedores, incorporando productos alternativos y mejorando la disponibilidad de resultados en consultas y comparativas.
+- Optimiza la gestión de imágenes de producto, incluyendo conversión a WebP, reducción de peso, sincronización y tratamiento de imágenes externas.
+- Refuerza el mantenimiento interno mediante limpieza de base de datos, rotación de logs, eliminación programada de imports antiguos y mejoras de observabilidad.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Images).
+- Modo de imagen persistente local/external; externo como opcion recomendada para nuevas importaciones.
+- Reconstruccion autoritativa de galerias externas por SKU.
+- Fallback visual: imagen local -> imagen externa -> logo de tienda.
+-   Sistema de clasificación SEO mediante relaciones.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.

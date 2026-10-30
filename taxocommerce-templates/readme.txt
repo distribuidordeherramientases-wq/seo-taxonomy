@@ -52,3 +52,12 @@ Use `tct_request_definitions` to extend named request definitions and `tct_reque
 * Standalone request and WooCommerce template routing.
 * Existing editorial role and assignment compatibility.
 * Independent custom PHP template library, variants and audit reports.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: the WordPress/WooCommerce theme templates, content-role routing, cluster/hub page presentation and product/category layouts were developed within TaxoCommerce SEO; old monolith releases are not Templates versions.
+* The monolith 2.3.x–2.4.0 line included frontend content integration, editorial roles, product/category information blocks, menu assignments and canonical content relationships.
+* Standalone Templates evolved into an independent template library and editor with explicit assignment and compatibility checks for existing WordPress pages.
+* International storefront work introduced country-specific presentation for Spain, United States, Germany, Netherlands and France, with separate menus and country metadata.
+* Follow-up work aligned the United States template with the shared international layout and investigated header menu fallback where raw categories appeared instead of configured menus.
+* WordPress.org preparation addressed translation strings and template/FAQ rendering, while private PHP editing remained a controlled administrator-only capability.
+* Version 0.4.0 is the current standalone series; earlier monolith milestones must not be represented as fabricated 0.x Templates releases.
