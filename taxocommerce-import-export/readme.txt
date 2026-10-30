@@ -87,6 +87,9 @@ The package transports original image files plus title, ALT, caption, descriptio
 * El tamaño se reduce si la memoria PHP está alta o cuando la duración real de los guardados de WooCommerce lo requiere. El porcentaje de CPU de PHP no representa la CPU global del servidor.
 * Información adicional por lote: filas objetivo y reales, duración, tiempo medio de guardado y consultas SQL por fila. Aumentar el tamaño objetivo no implica que se multiplique por diez la velocidad de guardado de cada fila.
 
+= 0.4.4 =
+* Increase CSV batch targets with adaptive sizing and measurable save/SQL diagnostics.
+
 = 0.4.3 =
 * Pending CSV list includes a delete action for each queued file, with confirmation, exact-file nonce, capability check, and safe path validation.
 * A delete is refused while the queue worker holds the lock or once the file has entered processing. Processing, imported and failed CSVs remain untouched.
@@ -133,6 +136,5 @@ The package transports original image files plus title, ALT, caption, descriptio
 * Initial CSV import/export pilot.
 
 == Historical origins (monolith; not standalone releases) ==
-* Monolith 2.2.0: Supplier Import / Sync V2; 2.3.x: CSV/XLSX supplier recipes and inventory; 2.4.0: VEVOR CSV and trash-aware content handling.
-* Standalone 0.1.x: CSV pilot; 0.2.0: Media ZIP migrated from Images; 0.3.0: bounded multi-file import queue.
-* Standalone 0.4.x: resumable exports, country codes, protected CSV deletion, adaptive batches, watchdog, progress, Auto Test and manuals.
+* Monolith: Supplier Import / Sync V2 (2.2.0); supplier CSV/XLSX catalogues (2.3.x); VEVOR CSV and trash-aware content (2.4.0).
+* Standalone: CSV pilot (0.1.x), Media ZIP (0.2.0), multi-file queue (0.3.0), then 0.4.x resumable exports, country codes, adaptive batches and Auto Test.
