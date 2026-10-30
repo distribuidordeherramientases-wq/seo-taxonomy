@@ -2,9 +2,12 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.1.0
+Sin novedades pendientes documentadas.
+
+
+## [0.1.0]
 
 * Created standalone TaxoCommerce Scrappers plugin.
 * Copied the legacy Ojeador 0.10.0 engine.
