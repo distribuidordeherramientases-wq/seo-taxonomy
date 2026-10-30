@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install YAML parser
         run: python3 -m pip install --user PyYAML
+      - name: Test PRO REST inventory fallback and strict response validation (offline)
+        run: |
+          python3 -m py_compile .github/scripts/fetch_pro_installed_modules.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_fetch_pro_installed_modules.py' -v
+
       - name: Validate syntax and production safety contract
         shell: bash
         run: |
