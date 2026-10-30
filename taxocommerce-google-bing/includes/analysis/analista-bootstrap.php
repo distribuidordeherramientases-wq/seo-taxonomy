@@ -19,6 +19,7 @@ $seo_analista_files = array(
     __DIR__ . '/analista-bing.php',
     __DIR__ . '/analista-mercado.php',
     __DIR__ . '/analista-fuentes.php',
+    __DIR__ . '/analista-contexto.php',
     __DIR__ . '/analista-google.php',
     __DIR__ . '/analista-evolucion.php',
     __DIR__ . '/analista-catalogo.php',
