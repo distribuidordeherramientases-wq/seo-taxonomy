@@ -116,6 +116,8 @@ retired and all native relationships have been verified.
 * Independent runtime, administration, import/export and 4+4 assisted deletion.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-redirects) (changelog.txt / CHANGELOG.md).
+
 * Legacy origin: SEO redirection records and redirect administration existed within TaxoCommerce SEO before extraction; the monolith version numbers are not standalone Redirects versions.
 * The monolith 2.3.6 documented redirect handling as part of its SEO maintenance cycle.
 * Standalone 0.1.0 extracted redirect management, preserving existing redirect data and the original role in WordPress navigation.
