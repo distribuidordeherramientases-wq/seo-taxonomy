@@ -3,9 +3,12 @@
 > Historial de las versiones del plugin **independiente**. Las funciones anteriores a su separación están documentadas en [`changelog.txt`](changelog.txt).
 > Fuente inicial: entradas verificadas del `readme.txt` en GitHub. Solo se atribuye una fecha si la fuente la acredita.
 
-## Historial de versiones
+## [Unreleased]
 
-### 0.1.0
+Sin novedades pendientes documentadas.
+
+
+## [0.1.0]
 
 * Extracted campaigns, product offers and their commercial calendar into an independent module.
 * Retained canonical campaign records and compatibility with existing public template hooks.
