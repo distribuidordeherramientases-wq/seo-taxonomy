@@ -124,6 +124,9 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
         echo '<section class="seo-analista-section"><h2>Qué hacer para vender más</h2><p>Directrices basadas en datos disponibles. No confundir visibilidad con compradores ni compras externas de afiliación con WooCommerce.</p>';
         if (empty($ga4['available'])) {
             echo '<p>Analytics no está disponible. Comprueba la conexión antes de interpretar ventas o conversión.</p></section>';
+            if (function_exists('taxocommerce_google_bing_analyst_render_local_context')) {
+                taxocommerce_google_bing_analyst_render_local_context(taxocommerce_google_bing_analyst_local_context());
+            }
             return;
         }
         echo '<div class="seo-analista-grid">';
@@ -146,6 +149,9 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
             echo '<li><strong>Verificar eventos de Analytics.</strong> Se registra información de pago pero no de envío; puede ser una configuración legítima o una medición incompleta.</li>';
         }
         echo '</ol><p class="description">Los recuentos del embudo son eventos agregados, no necesariamente los mismos usuarios. Las directrices son verificaciones, no causas de pérdida demostradas.</p></section>';
+        if (function_exists('taxocommerce_google_bing_analyst_render_local_context')) {
+            taxocommerce_google_bing_analyst_render_local_context(taxocommerce_google_bing_analyst_local_context());
+        }
     }
 }
 
@@ -281,6 +287,9 @@ if (!function_exists('seo_analista_lazy_render_work')) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function seo_analista_lazy_render_work($days) {
         $plan = seo_analista_decision_plan($days, 40);
+        if (function_exists('taxocommerce_google_bing_analyst_context_attach_plan')) {
+            $plan = taxocommerce_google_bing_analyst_context_attach_plan($plan, taxocommerce_google_bing_analyst_local_context());
+        }
         $summary = seo_analista_plan_summary($plan);
         $suppliers = seo_analista_supplier_snapshot(40);
         $search = seo_analista_internal_search_snapshot($days, 40);
