@@ -9,12 +9,12 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! function_exists( 'seo_analista_geo_schema_product' ) ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_schema_product' ) ) {
     /**
      * Inspect Product JSON-LD in HTML already collected by the competitive scan.
      * An unparsed/missing script is unknown, not proof that schema is absent.
      */
-    function seo_analista_geo_schema_product( $html ) {
+    function taxocommerce_google_bing_geo_schema_product( $html ) {
         $result = array( 'status' => 'unknown', 'product_found' => false, 'parsed_scripts' => 0, 'missing' => array() );
         if ( ! preg_match_all( '#<script\b([^>]*)>(.*?)</script\s*>#is', (string) $html, $scripts, PREG_SET_ORDER ) ) {
             return $result;
@@ -95,24 +95,24 @@ if ( ! function_exists( 'seo_analista_geo_schema_product' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_recent' ) ) {
-    function seo_analista_geo_recent( $date, $max_days = 30 ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_recent' ) ) {
+    function taxocommerce_google_bing_geo_recent( $date, $max_days = 30 ) {
         $timestamp = strtotime( (string) $date );
         $age = time() - (int) $timestamp;
         return $timestamp && $age >= -DAY_IN_SECONDS && $age <= absint( $max_days ) * DAY_IN_SECONDS;
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_merchant_candidates' ) ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_merchant_candidates' ) ) {
     /** Merchant benchmark and offer price originate in the same saved ES report. */
-    function seo_analista_geo_merchant_candidates( $limit = 2 ) {
+    function taxocommerce_google_bing_geo_merchant_candidates( $limit = 2 ) {
         if ( ! function_exists( 'wc_get_product' ) ) {
             return array();
         }
         $saved = get_option( 'seo_ojeador_merchant_snapshots_v1', array() );
         $prices = (array) ( $saved['prices'] ?? array() );
         if ( (string) ( $prices['country'] ?? '' ) !== 'ES' ||
-            ! seo_analista_geo_recent( $prices['updated_at'] ?? '', 21 ) ) {
+            ! taxocommerce_google_bing_geo_recent( $prices['updated_at'] ?? '', 21 ) ) {
             return array();
         }
         $ranked = array();
@@ -161,9 +161,9 @@ if ( ! function_exists( 'seo_analista_geo_merchant_candidates' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_auditor_candidates' ) ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_auditor_candidates' ) ) {
     /** Consume Auditor's completed sampled findings; never repeat its scans. */
-    function seo_analista_geo_auditor_candidates( $limit = 2 ) {
+    function taxocommerce_google_bing_geo_auditor_candidates( $limit = 2 ) {
         if ( ! class_exists( '\TaxoCommerce\Auditor\Runner' ) ) {
             return array();
         }
@@ -171,7 +171,7 @@ if ( ! function_exists( 'seo_analista_geo_auditor_candidates' ) ) {
         foreach ( array( 'products', 'categories', 'pages', 'posts' ) as $scope ) {
             $report = \TaxoCommerce\Auditor\Runner::report( $scope );
             if ( (string) ( $report['schema'] ?? '' ) !== 'taxocommerce_auditor_native_v2' ||
-                ! seo_analista_geo_recent( $report['completed_gmt'] ?? '', 30 ) ) {
+                ! taxocommerce_google_bing_geo_recent( $report['completed_gmt'] ?? '', 30 ) ) {
                 continue;
             }
             foreach ( (array) ( $report['findings_sample'] ?? array() ) as $finding ) {
@@ -214,14 +214,14 @@ if ( ! function_exists( 'seo_analista_geo_auditor_candidates' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_competitive_candidates' ) ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_competitive_candidates' ) ) {
     /** Only report missing JSON-LD fields after a real, recent public scan. */
-    function seo_analista_geo_competitive_candidates() {
+    function taxocommerce_google_bing_geo_competitive_candidates() {
         if ( ! defined( 'SEO_ANALISTA_COMPETITIVE_REPORT_OPTION' ) ) {
             return array();
         }
         $report = get_option( SEO_ANALISTA_COMPETITIVE_REPORT_OPTION, array() );
-        if ( ! is_array( $report ) || ! seo_analista_geo_recent( $report['generated_at'] ?? '', 30 ) ) {
+        if ( ! is_array( $report ) || ! taxocommerce_google_bing_geo_recent( $report['generated_at'] ?? '', 30 ) ) {
             return array();
         }
         foreach ( (array) ( $report['matrix'] ?? array() ) as $row ) {
@@ -250,12 +250,12 @@ if ( ! function_exists( 'seo_analista_geo_competitive_candidates' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_recommendations' ) ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_recommendations' ) ) {
     /**
      * At most five unique, traceable actions. Analista owns demand and intent;
      * Auditor and Merchant only contribute evidence from saved snapshots.
      */
-    function seo_analista_geo_recommendations( array $plan, $limit = 5 ) {
+    function taxocommerce_google_bing_geo_recommendations( array $plan, $limit = 5 ) {
         $limit = max( 1, min( 5, absint( $limit ) ) );
         $now = array();
         $next = array();
@@ -306,13 +306,13 @@ if ( ! function_exists( 'seo_analista_geo_recommendations' ) ) {
         foreach ( array_slice( $now, 0, 3 ) as $row ) {
             $add( $row );
         }
-        foreach ( seo_analista_geo_auditor_candidates( 2 ) as $row ) {
+        foreach ( taxocommerce_google_bing_geo_auditor_candidates( 2 ) as $row ) {
             $add( $row );
         }
-        foreach ( seo_analista_geo_competitive_candidates() as $row ) {
+        foreach ( taxocommerce_google_bing_geo_competitive_candidates() as $row ) {
             $add( $row );
         }
-        foreach ( seo_analista_geo_merchant_candidates( 2 ) as $row ) {
+        foreach ( taxocommerce_google_bing_geo_merchant_candidates( 2 ) as $row ) {
             $add( $row );
         }
         foreach ( array_merge( $now, $next ) as $row ) {
@@ -322,10 +322,10 @@ if ( ! function_exists( 'seo_analista_geo_recommendations' ) ) {
     }
 }
 
-if ( ! function_exists( 'seo_analista_geo_render_summary' ) ) {
-    function seo_analista_geo_render_summary( $days, array $ga4 = array() ) {
+if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
+    function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array() ) {
         $plan = seo_analista_decision_plan( $days, 25 );
-        $actions = seo_analista_geo_recommendations( (array) $plan, 5 );
+        $actions = taxocommerce_google_bing_geo_recommendations( (array) $plan, 5 );
         echo '<section class="seo-analista-section"><h3>Hasta cinco mejoras prioritarias verificables</h3>';
         echo '<p>SEO y preparación para que los asistentes encuentren información fiable. No son posiciones en ChatGPT, Gemini o Claude ni garantías de recomendación.</p>';
         if ( ! $actions ) {
