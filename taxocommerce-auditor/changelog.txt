@@ -1,44 +1,36 @@
-HISTORIAL DE ORIGEN — TAXOCOMMERCE AUDITOR
+HISTORIAL LEGADO — TAXOCOMMERCE AUDITOR
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1).
-Este archivo relata funciones originales y antecedentes; NO corresponde a versiones del plugin autónomo.
-Fuente primaria: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-Las fechas solo se muestran si aparecen en la fuente original; no se inventan versiones autónomas.
+TaxoCommerce SEO monolítico, versiones previas a la división modular.
+Los números aquí corresponden al MONOLITO, no al plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+La sección 2.0.0 marcada «Próxima versión» en la fuente no se considera publicación.
 
-ORIGEN FUNCIONAL Y EXTRACCIÓN
+ORIGEN Y TRANSICIÓN
 * The monolithic TaxoCommerce SEO 2.3.x contained the first Auditor quality reports; these historical releases are not standalone Auditor versions.
 * The historic review covered products, categories, posts, landing pages and FAQs, with separate quality findings and evidence.
 * Standalone Auditor 0.1.0 established five groups of checks based on native WordPress and WooCommerce data.
 * Standalone 0.2.0 restored the original Auditor checks and interface; 0.3.0 expanded complete audit results, JSON export, KPIs and decision context.
 * The independent reports were kept separate from the external traffic reporting now owned by Insights.
 
-HITOS DOCUMENTADOS EN EL MONOLITO
+CAMBIOS DEL MONOLITO (TEXTO VERIFICADO)
 
 ## [2.4.1] - 2026-10-25
-Origen: TaxoCommerce SEO 2.4.1 (no es una versión de Auditor).
+Etapa del plugin central:
 [Versionado posterior] - Las versiones de Core, Images, Auditor, Suppliers, Insights, Distribution y el resto de extensiones evolucionan de forma independiente.
 
 ## [2.4.0] - 2026-10-13
-Origen: TaxoCommerce SEO 2.4.0 (no es una versión de Auditor).
+Etapa del plugin central:
 [Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
 [Consolidación funcional] - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
-[Consolidación funcional] - Ingeniero consolida investigación L1 técnica, L2 práctica y L3 actualidad con trazabilidad y propuestas editoriales diferenciadas.
 
 ## [2.3.10] - 2026-10-06
-Origen: TaxoCommerce SEO 2.3.10 (no es una versión de Auditor).
-- Dependiente V3 registra las **elecciones explícitas del cliente** como evidencia supervisada: `category_choice` para categorías sugeridas y `click` para productos, conservando consulta, posición y recorrido mediante `search_uuid`.
-- La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
+Etapa del plugin central:
+- Novedades distingue **Nueva categoría/familia**, **Hueco en catálogo**, **Producto/tecnología en tendencia** y **Expansión estratégica**, con exportación JSON auditable.
 - Auditor 0.11.0 añade una **cola editorial priorizada** por auditoría: P1 CORREGIR_AHORA, P2 ESPERAR_ENRIQUECIMIENTO, P3 MIGRAR_A_SOLUCIONADOR, P4 REVISAR y P5 INFORMATIVO.
 - Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
-- Separado **Ingeniero** de Dependiente como servicio propio en **Contenidos**, con pestañas Investigación, Editorial, Datos y fuentes y Pruebas.
-- Añadido el proceso editorial técnico de Ingeniero con dossiers trazables, source_hash, cobertura neutral, acciones CREATE/IMPROVE/MERGE/NO_ACTION/NEEDS_REVIEW y borradores sólo tras aprobación humana.
-- Añadida batería funcional del proceso editorial de Ingeniero y documentación de la nueva arquitectura.
-- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
-- Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
 
 ## [2.3.9] - 2026-09-30
-Origen: TaxoCommerce SEO 2.3.9 (no es una versión de Auditor).
-[Ingeniero, Clasificador y Semántica] - Añadidas fuentes trazables, niveles de confianza, evidencias breves y relación conocimiento → fuente → URL original.
+Etapa del plugin central:
 [Auditor, Analista y control de calidad] - Analista 3.8.3 corrige la contradicción entre **HACER AHORA** y acciones de vigilar/esperar/investigar: una tarea inmediata exige acción primaria ejecutable con verbo, objeto, destino, responsable y URL validada.
 [Auditor, Analista y control de calidad] - La tarjeta separa **Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo** y `task_decision` pasa a ser la fuente única para contador, sección, etiqueta y JSON.
 [Auditor, Analista y control de calidad] - INVESTIGAR añade fuente de verificación y criterio de salida; las tareas ejecutadas no se duplican y el seguimiento usa un ID estable. JSON schema 9 y pruebas T01–T06.
@@ -63,53 +55,39 @@ Origen: TaxoCommerce SEO 2.3.9 (no es una versión de Auditor).
 [Auditor, Analista y control de calidad] - Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
 [Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
 
-## [2.3.7] - 2026-09-25
-Origen: TaxoCommerce SEO 2.3.7 (no es una versión de Auditor).
-[Dependiente V3 y cobertura del catálogo] - Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
-[Dependiente V3 y cobertura del catálogo] - Reforzada la cobertura editorial y semántica utilizada por Dependiente.
-[Issues principales] - #286 — Conectar Dependiente V3 y reforzar cobertura editorial.
-
 ## [2.3.6] - 2026-09-23
-Origen: TaxoCommerce SEO 2.3.6 (no es una versión de Auditor).
-[SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
-[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
-[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
-[SEO, auditoría y validación] - Mejorado el tratamiento de errores HTTP internos:
-[SEO, auditoría y validación] - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
-[SEO, auditoría y validación] - los resultados no concluyentes se diferencian de errores reales.
-[SEO, auditoría y validación] - Mejorada la priorización del plan de acción SEO.
-[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
-[SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
-[SEO, auditoría y validación] - Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
+Etapa del plugin central:
 [FAQs] - Mejorada la gestión y preparación de las FAQs para auditoría, análisis y evolución posterior.
 [Rendimiento y estabilidad] - Mejorada la estabilidad de las tareas de auditoría y diagnóstico.
 [Resumen de la release] - **Auditoría y validación** reducen falsos positivos y amplían los controles técnicos y SEO.
 
 ## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
-Origen: TaxoCommerce SEO 2.3.4 (no es una versión de Auditor).
+Etapa del plugin central:
 * correcciones y ampliaciones del Auditor de datos, incluyendo reducción de falsos positivos;
 
 ## [2.3.3] - 2026-09-08
-Origen: TaxoCommerce SEO 2.3.3 (no es una versión de Auditor).
+Etapa del plugin central:
 [Mejorado] - Revisada la separación entre STAGING y PRO para evitar canibalización e indexación no deseada. (#161)
-[Mejorado] - Reforzados los controles de calidad del dato orientados a detectar contenido pobre, repetitivo o poco útil. (#147)
 
 ## 2.3.2 - Consolidación operativa, Dependiente y catálogo
-Origen: TaxoCommerce SEO 2.3.2 (no es una versión de Auditor).
+Etapa del plugin central:
 - Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
 
-## 2.2.2 - Canonical product role reads
-Origen: TaxoCommerce SEO 2.2.2 (no es una versión de Auditor).
-- Category `ambito` remains legacy/editorial and is explicitly not derived from product roles.
-
 ## 2.2.0 - Supplier Import / Sync V2
-Origen: TaxoCommerce SEO 2.2.0 (no es una versión de Auditor).
--   Auditoría completa de modificaciones.
--   Auditoría estructural del sistema SEO.
--   Detección de anomalías estructurales.
--   Relaciones entre categorías y estructura editorial.
+Etapa del plugin central:
+- Runs auditables y deteccion segura de bajas solo en catalogos completos sin errores.
 
-CORTE DE ARQUITECTURA (MONOLITO → PLUGINS)
-El monolito TaxoCommerce SEO se cerró como línea ordinaria en 2.4.1; cada módulo comenzó a seguir su propio versionado.
-Para cambios posteriores del módulo, consultar CHANGELOG.md de este directorio.
-Para trazabilidad y PRs, consultar docs/PLUGIN-HISTORY-SOURCES.md del repositorio.
+# \[1.5.0\]
+Etapa del plugin central:
+[Auditoría y validación] -   Auditoría estructural del sistema SEO.
+[Auditoría y validación] -   Validación de Clusters, Hubs Primarios, Hubs Secundarios y Categorías.
+[Auditoría y validación] -   Detección de anomalías estructurales.
+[Auditoría y validación] -   Validación de imágenes, plantillas y contenido.
+[Auditoría y validación] -   Informes de integridad.
+[Auditoría y validación] -   Exportación de tablas SEO.
+[Auditoría y validación] -   Herramientas de limpieza y validación de base de datos.
+
+DIVISIÓN EN PLUGINS AUTÓNOMOS
+El cierre ordinario del monolito está documentado en la versión 2.4.1 (25/10/2026).
+Las versiones independientes y sus cambios posteriores se registran en CHANGELOG.md.
+Véase docs/PLUGIN-HISTORY-SOURCES.md para referencias a los cambios y PR.
