@@ -341,6 +341,8 @@ function seo_taxocommerce_deploy_sync_rest( $request ) {
 			'version'   => isset( $header['Version'] ) ? (string) $header['Version'] : '',
 			'changed'   => $result['changed'],
 			'unchanged' => (int) $result['unchanged'],
+			'verified_files'  => (int) $result['verified_files'],
+			'manifest_sha256' => $result['manifest_sha256'],
 		);
 	}
 
