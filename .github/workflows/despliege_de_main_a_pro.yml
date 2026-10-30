@@ -410,6 +410,8 @@ jobs:
           import json
           import os
           import re
+          import hashlib
+          import zipfile
           from pathlib import Path
 
           installed = json.loads(os.environ.get("INSTALLED_MODULES_JSON", "[]"))
@@ -445,6 +447,26 @@ jobs:
                       f"esperada={expected!r}; recibida={received!r}"
                   )
 
+              # Compare the full deployed ZIP with the hashes WordPress checked in WP_PLUGIN_DIR.
+              package = Path('/tmp') / (slug + '.zip')
+              with zipfile.ZipFile(package) as archive:
+                  file_names = [info.filename for info in archive.infolist() if not info.is_dir()]
+                  if not file_names or len(set(file_names)) != len(file_names):
+                      raise SystemExit(f"{slug}: invalid or duplicate ZIP entries")
+                  manifest = {name: hashlib.sha256(archive.read(name)).hexdigest() for name in file_names}
+              expected_digest = hashlib.sha256(
+                  json.dumps(manifest, ensure_ascii=True, sort_keys=True,
+                             separators=(',', ':')).encode('utf-8')
+              ).hexdigest()
+              confirmed_digest = str(item.get('manifest_sha256', ''))
+              confirmed_count = int(item.get('verified_files', -1))
+              if confirmed_count != len(manifest) or confirmed_digest != expected_digest:
+                  raise SystemExit(
+                      f"{slug}: incomplete or mismatched deployed files: "
+                      f"expected={len(manifest)} remote={confirmed_count}; "
+                      "manifest hashes do not match"
+                  )
+              print(f"{slug}: {confirmed_count} files verified by SHA-256 in WordPress plugin directory")
               print(f"{slug}: PRO verificado en versión {received}")
               print(f"{slug}: {len(changed)} archivo(s) actualizado(s), {unchanged} sin cambios")
               for path in changed:
@@ -457,114 +479,12 @@ jobs:
 
           echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
 
-      - name: Remove obsolete deployment artifacts from installed TaxoCommerce plugins
-        # Runs only AFTER WordPress confirms every installed plugin was updated.
-        # Never recursively mirror --delete: unmanaged files and uploads are preserved.
-        if: ${{ steps.installed.outputs.modules != '[]' }}
-        shell: bash
-        env:
-          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import ftplib
-          import json
-          import os
-          import re
-          from pathlib import Path
-
-          modules = json.loads(os.environ["INSTALLED_MODULES_JSON"])
-          if not isinstance(modules, list):
-              raise SystemExit("Invalid installed plugin list")
-
-          legacy_core = (
-              "anomalies-smoke.php", "architecture-report-smoke.php",
-              "auto-test-navigation-smoke.php", "auto-test-smoke.php",
-              "content-inventory-smoke.php", "country-scope-smoke.php",
-              "editorial-guide-smoke.php", "extensions-dashboard-smoke.php",
-              "family-menu-smoke.php", "hierarchy-country-schema-smoke.php",
-              "menu-editor-smoke.php", "modular-architecture-smoke.php",
-              "user-guide-smoke.php",
-          )
-          legacy_images = (
-              "early-i18n-smoke.php", "functional-contract.php",
-              "audit-load-smoke.php", "auto-test-smoke.php", "manual-smoke.php",
-              "audit-browser-smoke.js",
-          )
-          ftp = ftplib.FTP_TLS(timeout=45)
-          ftp.connect(os.environ["FTP_HOST"], 21)
-          ftp.login(os.environ["FTP_USER"], os.environ["FTP_PASS"])
-          ftp.prot_p()
-
-          def remove_file(remote):
-              try:
-                  ftp.delete(remote)
-                  print("REMOVED obsolete deployment artifact:", remote)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-
-          def remove_dir_if_empty(remote):
-              try:
-                  ftp.rmd(remote)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-                  # Distinguish an absent directory from one that is non-empty.
-                  try:
-                      ftp.cwd(remote)
-                  except ftplib.error_perm as missing:
-                      if not str(missing).startswith("550"):
-                          raise
-                      return
-                  ftp.cwd("..")
-                  raise RuntimeError(
-                      "Unmanaged files remain in " + remote +
-                      "; preserved, manual review required before deleting."
-                  ) from exc
-
-          try:
-              ftp.cwd("./wp-content/plugins/")
-              for slug in modules:
-                  if not isinstance(slug, str) or not re.fullmatch(r"taxocommerce-[a-z0-9-]+", slug):
-                      raise RuntimeError("Unrecognized plugin slug from production")
-                  source = Path(slug)
-                  if not (source / (slug + ".php")).is_file():
-                      raise RuntimeError("Plugin source missing in staging: " + slug)
-                  tests = source / "tests"
-                  files = set()
-                  dirs = set()
-                  if tests.is_dir():
-                      for file in tests.rglob("*"):
-                          relative = file.relative_to(source).as_posix()
-                          if file.is_symlink():
-                              raise RuntimeError("Unsafe symbolic link in tests: " + relative)
-                          if file.is_file():
-                              files.add(relative)
-                          elif file.is_dir():
-                              dirs.add(relative)
-                  if slug == "taxocommerce-core":
-                      files.update("tests/" + name for name in legacy_core)
-                  if slug == "taxocommerce-images":
-                      files.update("tests/" + name for name in legacy_images)
-
-                  ftp.cwd(slug)
-                  remove_file(".ftp-deploy-sync-state.json")
-                  for name in sorted(files):
-                      if not name.startswith("tests/") or ".." in Path(name).parts:
-                          raise RuntimeError("Unsafe tests path: " + name)
-                      remove_file(name)
-                  for dirname in sorted(dirs, key=lambda part: part.count("/"), reverse=True):
-                      remove_dir_if_empty(dirname)
-                  remove_dir_if_empty("tests")
-                  ftp.cwd("..")
-                  print(slug, ": known obsolete developer files cleaned; runtime files preserved.")
-          finally:
-              ftp.quit()
-          PY
+      # The legacy FTP cleanup assumed that the FTP root and WP_PLUGIN_DIR are identical.
+      # That assumption is false for some PRO modules (Database returned FTP 550).
+      # Do not remove files here. All removals belong to the audited reconciliation,
+      # never to a blind FTP path assembled from plugin names.
+      - name: Explain deferred legacy cleanup
+        run: echo "Legacy FTP cleanup disabled; installed ZIPs verified via WordPress. Remote inventory is report-only unless explicitly approved."
 
       - name: Compare deployed ZIPs against PRO files and propose removals
         env:
