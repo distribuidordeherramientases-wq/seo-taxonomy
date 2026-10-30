@@ -576,6 +576,14 @@ if (!function_exists('seo_analista_render_directive_details')) {
             echo '</ul></div>';
         }
 
+        if (!empty($row['local_context_evidence'])) {
+            echo '<div class="seo-analista-directive-block"><strong>Contraste local · Auditor / Merchant</strong><ul>';
+            foreach (array_slice((array) $row['local_context_evidence'], 0, 3) as $context_note) {
+                echo '<li>' . esc_html((string) $context_note) . '</li>';
+            }
+            echo '</ul><p class="description">Información complementaria guardada; no autoriza cambios de precio ni ejecución automática.</p></div>';
+        }
+
         if ($issues) {
             echo '<div class="seo-analista-directive-block"><strong>Qué revisar</strong><ul>';
             foreach (array_slice($issues, 0, 8) as $issue) echo '<li>' . esc_html((string) $issue) . '</li>';
