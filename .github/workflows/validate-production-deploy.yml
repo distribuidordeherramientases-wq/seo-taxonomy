@@ -21,6 +21,52 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install YAML parser
         run: python3 -m pip install --user PyYAML
+      - name: Diagnose live PRO module inventory response (read-only)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.error
+          import urllib.request
+
+          host = 'https://www.distribuidordeherramientas.es'
+          routes = (
+              '/wp-json/taxocommerce/v1/deploy-active-modules',
+              '/?rest_route=%2Ftaxocommerce%2Fv1%2Fdeploy-active-modules',
+          )
+          for route in routes:
+              url = host + route
+              req = urllib.request.Request(url, headers={
+                  'Accept': 'application/json',
+                  'User-Agent': 'TaxoCommerce-deployment-diagnostics/1.0',
+                  'Cache-Control': 'no-cache',
+              })
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      content = response.read(8192)
+                      status = response.status
+                      kind = response.headers.get('Content-Type', '?')
+                      final_url = response.geturl()
+              except urllib.error.HTTPError as exc:
+                  content = exc.read(8192)
+                  status = exc.code
+                  kind = exc.headers.get('Content-Type', '?')
+                  final_url = exc.url
+              except Exception as exc:
+                  print('PRO probe:', route, type(exc).__name__, str(exc)[:150])
+                  continue
+              try:
+                  obj = json.loads(content)
+                  valid = isinstance(obj, dict) and isinstance(obj.get('modules'), list)
+              except (ValueError, UnicodeDecodeError):
+                  valid = False
+              prefix = content[:100].decode('utf-8', errors='replace')
+              prefix = ''.join(ch if ch.isprintable() else ' ' for ch in prefix)
+              print('PRO probe:', route, 'HTTP', status, 'type', kind,
+                    'redirected-to', final_url.replace(host, '')[:130],
+                    'bytes-read', len(content), 'valid-inventory', valid,
+                    'body-prefix', repr(prefix))
+          PY
       - name: Validate syntax and production safety contract
         shell: bash
         run: |
