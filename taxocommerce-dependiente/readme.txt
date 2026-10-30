@@ -66,6 +66,14 @@ No. Core provides optional grouped administration.
 * Preserve exam scores, failed examples and source content while advancing without retraining completed lessons.
 
 
+= 0.3.21 =
+* Replace the dynamic L8/L10 UNION review query with a fixed, fully prepared SQL statement; preserve per-lesson sample caps and pagination.
+* The packaged plugin passed strict Plugin Check with zero errors and zero warnings after this change.
+
+= 0.3.20 =
+* Document the safety of prepared L8/L10 review SQL and the atomic, owner-checked release of learning worker locks.
+* Retain learning state and concurrency safety while addressing strict Plugin Check findings.
+
 = 0.3.19 =
 * Keep CI test scripts and hidden FTP state outside WordPress.org release packages.
 * Validate learning priority input and safely quote internal learning table identifiers.
@@ -82,6 +90,12 @@ No. Core provides optional grouped administration.
 * A bounded search that returns no candidates is marked as inconclusive instead of reporting a broken search engine solely from its result set.
 * No training, feedback, content or backup mutations are performed by Auto Test.
 
+
+= 0.3.17 =
+* Add 51 non-destructive Auto Test checks in ten groups, covering runtime, schema, learning sources, quality, interpreter, search, feedback, M12 and backup.
+
+= 0.3.16 =
+* Port the original Interpreter 1.2.0 runtime and full Linguist course into the independent Assistant while preserving legacy functionality and training state.
 
 = 0.3.15 =
 * Raised the adaptive maximum-speed learning ceiling from 79 to 600 items per chunk, starting from 47 and growing only when duration and memory allow it.
@@ -109,6 +123,9 @@ No. Core provides optional grouped administration.
 * Re-evaluation does not clear L1-L8 memory or change source catalog content.
 
 
+= 0.3.11 =
+* Stabilise the L9 evaluation sample and expose the actual plugin version in diagnostics.
+
 = 0.3.10 =
 * Make L6 FAQ reading tolerant of optional columns in legacy and modern seo_faq tables.
 * Diagnose empty, inactive, incompatible, or unreadable FAQ sources in the learning log without modifying FAQ content.
@@ -128,3 +145,11 @@ No. Core provides optional grouped administration.
 * Standalone auditable L1-L10 learning and M11/M12 semantic search.
 * Knowledge transfer and local backup interfaces.
 * Explicit shortcode for parallel testing.
+
+= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+* Legacy origin: the customer-facing Dependiente, Academia, semantic interpreter and learning engine ran in TaxoCommerce SEO before the independent Assistant plugin; the monolith 2.2.x–2.4.1 numbers are not Assistant versions.
+* The 2.3.5–2.3.9 monolith cycles documented course progression, supervised product/category feedback, training diagnostics, semantic matching and customer-facing search.
+* The monolith also contained the Intérprete/Lingüista learning material; migration into the standalone Assistant retained the lessons, evidence, data contracts, evaluation and compatibility with WooCommerce product search.
+* Independent training supports L1–L10 snapshots, quality gates and audit exports; M11 interpreter evaluation and M12 continuous update were evolved as separately monitored functions.
+* Specific later fixes addressed stale quality exams, L9 ranking bias, batch worker speed, runtime availability checks, and safe prepared SQL for WordPress.org, without discarding learned data.
+* The administrator-configurable quality thresholds introduced in 0.3.22 allow an audited acceptance decision; they do not change the actual underlying scores or repair poor source data.
