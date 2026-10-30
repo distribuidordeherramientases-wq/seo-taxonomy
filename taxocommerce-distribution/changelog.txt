@@ -1,0 +1,78 @@
+HISTORIAL DE ORIGEN — Distribution
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: sitemap output and commercial product feeds were developed in TaxoCommerce SEO before the Distribution 0.1.0 extraction; previous SEO releases are not Distribution versions.
+* The monolith 2.3.7 cycle documented commercial feeds alongside catalogue, market observations and Google Shopping integrations.
+* Distribution 0.1.0 separated feed generation and sitemap responsibilities into an independent module while keeping established content/catalogue relationships.
+* Modular compatibility work retained a fallback for Core role data so distribution does not require the legacy monolith at runtime.
+* Follow-up work addressed WordPress.org translation comments and package validation; these are maintenance changes to the same 0.1.0 line, not claimed additional releases.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Distribution).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Distribution).
+[Identidad pública y WordPress.org] - El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
+[Import / Export] - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Distribution).
+- El radar usa **Google Trends** para señales crecientes y valida cada candidato con **Google Shopping + Google Search** mediante la conexión compartida SerpApi → ScraperAPI; conserva fuentes, cobertura, score explicable y estado humano sin crear categorías/productos automáticamente.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Distribution).
+[Marketing y campañas comerciales] - Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
+[Feeds comerciales] - Añadido soporte para:
+[Feeds comerciales] - precio normal;
+[Feeds comerciales] - precio de oferta;
+[Feeds comerciales] - fecha de inicio de oferta;
+[Feeds comerciales] - fecha de finalización de oferta.
+[Feeds comerciales] - Preparados estos datos para su utilización en feeds comerciales y plataformas externas.
+[Issues principales] - #299 — Añadir precios de oferta y vigencia a feeds comerciales.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Distribution).
+[Ojeador y Google Shopping] - Incorporado el nuevo servicio **Ojeador** para obtener y analizar información externa de mercado.
+[Ojeador y Google Shopping] - Mejorada la priorización de las consultas para concentrar recursos en categorías y áreas con mejores señales de rendimiento.
+[Ojeador y Google Shopping] - Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
+[Ojeador y Google Shopping] - Mejorados los KPI y la información de seguimiento de Ojeador.
+[Ojeador y Google Shopping] - Añadidos logs y exportación JSON para facilitar el diagnóstico y el análisis de resultados.
+[Ojeador y Google Shopping] - Eliminado el límite artificial de consultas/descargas de Google Shopping.
+[Ojeador y Google Shopping] - Corregidos errores detectados durante la ejecución del servicio Ojeador.
+[Dependiente] - Añadido sistema de feedback para aprovechar mejor las consultas y respuestas de los clientes.
+[SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
+[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
+[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
+[SEO, auditoría y validación] - Mejorado el tratamiento de errores HTTP internos:
+[SEO, auditoría y validación] - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
+[SEO, auditoría y validación] - los resultados no concluyentes se diferencian de errores reales.
+[SEO, auditoría y validación] - Mejorada la priorización del plan de acción SEO.
+[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
+[SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
+[SEO, auditoría y validación] - Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
+[Redirecciones] - posibles redirecciones sospechosas.
+[Inventario y catálogo] - Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
+[Resumen de la release] - **Ojeador** amplía la inteligencia competitiva y la integración con Google Shopping.
+[Resumen de la release] - **Dependiente** gana nuevas capacidades de respuesta, feedback y gestión de conocimiento.
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Distribution).
+[Mejorado] - Revisada la separación entre STAGING y PRO para evitar canibalización e indexación no deseada. (#161)
+[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+[Datos, SEO y compatibilidad] - Se han mejorado las comprobaciones de integridad del contenido y del catálogo.
+[Datos, SEO y compatibilidad] - Se han revisado diferencias de codificación y estructura de base de datos entre entornos; el issue #167 quedó cerrado como duplicado.
+[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Distribution).
+-   Sistema de redirecciones.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
