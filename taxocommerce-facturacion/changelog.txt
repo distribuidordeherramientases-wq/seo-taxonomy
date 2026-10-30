@@ -1,123 +1,39 @@
-HISTORIAL DE ORIGEN — TAXOCOMMERCE BILLING / FACTURACIÓN
+HISTORIAL LEGADO — TAXOCOMMERCE BILLING / FACTURACIÓN
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1).
-Este archivo relata funciones originales y antecedentes; NO corresponde a versiones del plugin autónomo.
-Fuente primaria: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-Las fechas solo se muestran si aparecen en la fuente original; no se inventan versiones autónomas.
+TaxoCommerce SEO monolítico, versiones previas a la división modular.
+Los números aquí corresponden al MONOLITO, no al plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+La sección 2.0.0 marcada «Próxima versión» en la fuente no se considera publicación.
 
-ORIGEN FUNCIONAL Y EXTRACCIÓN
+ORIGEN Y TRANSICIÓN
 * Historical source: document generation, invoices and quotations were maintained in the TaxoCommerce SEO monolith before the standalone Billing module; this section is not a Billing release.
 * The legacy implementation used seo_facturas_* options and the seo_factura_documents table; the standalone extraction retained those stores instead of resetting customer documents.
 * Earlier checkout and tax corrections avoided adding VAT twice to retail prices already expressed with tax included.
 * The original document enable/disable control was restored after an earlier regression; billing behavior depends on those explicit administrative settings.
 * Standalone 0.1.0 was a one-to-one extraction of the legacy billing/document functions, keeping existing options and document data rather than redesigning accounting.
 
-HITOS DOCUMENTADOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Origen: TaxoCommerce SEO 2.4.1 (no es una versión de Billing / Facturación).
-
-## [2.4.0] - 2026-10-13
-Origen: TaxoCommerce SEO 2.4.0 (no es una versión de Billing / Facturación).
-[Resumen ejecutivo del ciclo 2.4.0] - **Mercado y comercio:** reorganización de la capa Mercado (Analista, Ingeniero y Ojeador), observación de competencia y oportunidades, e integración progresiva de fuentes comerciales.
-[Consolidación funcional] - Import / Export queda integrado con el Gestor central para encadenar la cola general sin depender exclusivamente de Action Scheduler/WP-Cron.
-
-## [2.3.10] - 2026-10-06
-Origen: TaxoCommerce SEO 2.3.10 (no es una versión de Billing / Facturación).
-- La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
-- El informe de la **Actualización continua de Academia** pasa a schema 2 y exporta los fallos reales de cada módulo con pregunta, respuesta esperada, resultados devueltos, diagnóstico, fuente formativa y contexto de la entidad.
-- Añadido `learning_diagnostics` para separar fallos de aprendizaje de errores técnicos y agrupar por módulo, diagnóstico, tipo de fuente y tipo de pregunta; en M1 las categorías se tratan como referencia formativa protegida y las sugerencias de revisión se marcan como hipótesis, no como causa demostrada.
+CAMBIOS DEL MONOLITO (TEXTO VERIFICADO)
 
 ## [2.3.9] - 2026-09-30
-Origen: TaxoCommerce SEO 2.3.9 (no es una versión de Billing / Facturación).
-[Ingeniero, Clasificador y Semántica] - Añadida aprobación individual y masiva de categorías/conocimiento en revisión antes de considerarlo activo.
-[Ingeniero, Clasificador y Semántica] - Clasificador distingue propuestas **Candidato nuevo / Posible equivalente / Ya cubierto** y puede trabajar con conocimiento activo o provisional en revisión.
-[Ingeniero, Clasificador y Semántica] - Añadida tabla global **Ingeniero → vocabulario** y acciones de aceptación individual o masiva que amplían los maestros canónicos sin asignar automáticamente datos a productos.
-[Auditor, Analista y control de calidad] - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
-[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
-[Auditor, Analista y control de calidad] - Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
+Etapa del plugin central:
 [Marketing, campañas y redes sociales] - Añadidos **Informes de Marketing** para campañas y redes sociales con visitas, interacciones, pedidos, facturación, conversión y atribución.
-[Frontend, contenidos y navegación] - Creada la sección administrativa **Contenidos**, agrupando Productos, Categorías, Páginas, Entradas e Imágenes sin cambiar sus rutas internas.
-[Comparador, carrito y documentos comerciales] - Ampliado el **Comparador de Dependiente** de 4 a 6 productos.
-[Comparador, carrito y documentos comerciales] - Añadida exportación de comparativas a **PDF A4 apaisado** reutilizando Dompdf.
-[Comparador, carrito y documentos comerciales] - El comparador utiliza clasificación canónica y atributos técnicos de TaxoCommerce SEO, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
-[Comparador, carrito y documentos comerciales] - Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
 [Comparador, carrito y documentos comerciales] - Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
 [Comparador, carrito y documentos comerciales] - Restablecido el **Sistema documental** como interruptor maestro para Presupuesto/Proforma/Factura después de validar el flujo correcto.
 [Comparador, carrito y documentos comerciales] - Permitida la descarga de Presupuesto/Proforma cuando el transporte todavía no está calculado, marcando el total como provisional.
 [Comparador, carrito y documentos comerciales] - Mejorados Presupuesto y Proforma con resumen comercial, características relevantes, acompañamiento de compra y presentación más legible.
-[Comparador, carrito y documentos comerciales] - Los documentos de cliente muestran la **referencia interna/object_id** en lugar del SKU real del proveedor, manteniendo el SKU para la operativa interna.
-[Comparador, carrito y documentos comerciales] - Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
 [Comparador, carrito y documentos comerciales] - Corregida la interpretación fiscal para catálogos cuyo **PVP ya incluye IVA**: ficha, carrito y checkout mantienen el precio final visible y desglosan el impuesto sin volver a sumarlo.
 [Comparador, carrito y documentos comerciales] - La sincronización del modo de precios con IVA queda separada de la gestión automática de tasas para evitar duplicar IVA aunque el gestor fiscal esté desactivado.
-[Documentación y proceso de publicación] - Ampliada la documentación de Marketing, campañas, Clasificador, Ingeniero, Categorías, Contenidos, Dependiente y sistema documental.
 [Documentación y proceso de publicación] - Documentado el sistema completo de **Facturas, Proformas y Presupuestos**, incluyendo fiscalidad, numeración, snapshots, transporte pendiente e imágenes externas.
 
-## [2.3.7] - 2026-09-25
-Origen: TaxoCommerce SEO 2.3.7 (no es una versión de Billing / Facturación).
-[Marketing y campañas comerciales] - Creado el nuevo **servicio de campañas comerciales**.
-[Marketing y campañas comerciales] - Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
-[Marketing y campañas comerciales] - Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
-[Marketing y campañas comerciales] - Incorporada la generación de **imágenes para campañas**.
-[Marketing y campañas comerciales] - Añadida exportación e importación de campañas y programación mediante **JSON**.
-[Marketing y campañas comerciales] - Integradas las campañas comerciales en el **programador de redes sociales**.
-[Marketing y campañas comerciales] - Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
-[Ojeador y análisis de mercado] - Mejorados los indicadores de **Ojeador** para presentar comparativas de precios más claras.
-[Comentarista y opiniones externas] - Preparada la infraestructura para incorporar progresivamente información externa de opiniones y valoraciones.
-[Feeds comerciales] - Añadido soporte para:
-[Feeds comerciales] - precio normal;
-[Feeds comerciales] - precio de oferta;
-[Feeds comerciales] - fecha de inicio de oferta;
-[Feeds comerciales] - fecha de finalización de oferta.
-[Feeds comerciales] - Preparados estos datos para su utilización en feeds comerciales y plataformas externas.
-[Estabilidad y mantenimiento] - Mejorada la separación entre procesos pesados y carga de las pantallas administrativas.
-[Issues principales] - #289 — Mejorar indicadores de Ojeador con comparativas más claras.
-
-## [2.3.6] - 2026-09-23
-Origen: TaxoCommerce SEO 2.3.6 (no es una versión de Billing / Facturación).
-[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
-[Resumen de la release] - **Ojeador** amplía la inteligencia competitiva y la integración con Google Shopping.
-
-## [2.3.5]- 2026-09-17
-Origen: TaxoCommerce SEO 2.3.5 (no es una versión de Billing / Facturación).
-[Dependiente e Intérprete] - Evolución del servicio **Intérprete** con nuevas versiones y mejoras sucesivas en el análisis de consultas.
-[Arquitectura comercial y contenido] - Nuevas recomendaciones de arquitectura para **Clusters, Hubs primarios y Hubs secundarios**.
-[Arquitectura comercial y contenido] - Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
-[Arquitectura comercial y contenido] - Ajustes de frontend y helpers de plantillas para mantener coherencia entre STAGING y producción.
-[Arquitectura comercial y contenido] - Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
-[Mantenimiento y limpieza] - Limpieza progresiva de código legacy derivado de anteriores versiones de Dependiente e Intérprete.
-
 ## [2.3.3] - 2026-09-08
-Origen: TaxoCommerce SEO 2.3.3 (no es una versión de Billing / Facturación).
+Etapa del plugin central:
 [Añadido] - Ampliado el sistema de facturas, presupuestos y proformas para contemplar portes e impuestos. (#151)
 
 ## 2.3.2 - Consolidación operativa, Dependiente y catálogo
-Origen: TaxoCommerce SEO 2.3.2 (no es una versión de Billing / Facturación).
-- Amplía la integración de producto con Amazon y otros proveedores, incorporando productos alternativos y mejorando la disponibilidad de resultados en consultas y comparativas.
+Etapa del plugin central:
 - Incorpora mejoras comerciales en carrito, checkout, portes, presupuestos y facturación, incluyendo cálculo de envío basado en las características del producto y generación de documentación para clientes.
-- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
-- Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
 
-## 2.2.7 - Guardado semantico seguro
-Origen: TaxoCommerce SEO 2.2.7 (no es una versión de Billing / Facturación).
-- Solo los terminos realmente retirados se desactivan.
-
-## 2.2.4 - Edición manual del vocabulario semántico de producto
-Origen: TaxoCommerce SEO 2.2.4 (no es una versión de Billing / Facturación).
-- Añade metabox `Clasificación semántica / Etiquetas` en la ficha nativa de producto.
-
-## 2.2.1 - Vocabulary bridge
-Origen: TaxoCommerce SEO 2.2.1 (no es una versión de Billing / Facturación).
-- Las categorías mantienen su `ambito` legacy en esta fase; no se derivan del ROL de sus productos.
-
-## 2.2.0 - Supplier Import / Sync V2
-Origen: TaxoCommerce SEO 2.2.0 (no es una versión de Billing / Facturación).
-- Reconstruccion autoritativa de galerias externas por SKU.
-- Bajas reversibles y reactivacion del mismo object_id.
--   Infraestructura para operaciones masivas protegidas.
--   Primeras herramientas administrativas.
-
-CORTE DE ARQUITECTURA (MONOLITO → PLUGINS)
-El monolito TaxoCommerce SEO se cerró como línea ordinaria en 2.4.1; cada módulo comenzó a seguir su propio versionado.
-Para cambios posteriores del módulo, consultar CHANGELOG.md de este directorio.
-Para trazabilidad y PRs, consultar docs/PLUGIN-HISTORY-SOURCES.md del repositorio.
+DIVISIÓN EN PLUGINS AUTÓNOMOS
+El cierre ordinario del monolito está documentado en la versión 2.4.1 (25/10/2026).
+Las versiones independientes y sus cambios posteriores se registran en CHANGELOG.md.
+Véase docs/PLUGIN-HISTORY-SOURCES.md para referencias a los cambios y PR.
