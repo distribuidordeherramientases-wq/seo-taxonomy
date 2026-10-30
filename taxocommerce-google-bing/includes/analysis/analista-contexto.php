@@ -7,8 +7,8 @@
  */
 defined('ABSPATH') || exit;
 
-if (!function_exists('seo_analista_context_fresh')) {
-    function seo_analista_context_fresh($date, $mysql_gmt = false) {
+if (!function_exists('taxocommerce_google_bing_analyst_context_fresh')) {
+    function taxocommerce_google_bing_analyst_context_fresh($date, $mysql_gmt = false) {
         $date = trim((string) $date);
         if ($date === '') return false;
         $timestamp = strtotime($date . ($mysql_gmt ? ' UTC' : ''));
@@ -17,8 +17,8 @@ if (!function_exists('seo_analista_context_fresh')) {
     }
 }
 
-if (!function_exists('seo_analista_context_entity_key')) {
-    function seo_analista_context_entity_key($type, $id) {
+if (!function_exists('taxocommerce_google_bing_analyst_context_entity_key')) {
+    function taxocommerce_google_bing_analyst_context_entity_key($type, $id) {
         $type = sanitize_key((string) $type);
         if ($type === 'product_cat') $type = 'category';
         $id = absint($id);
@@ -26,8 +26,8 @@ if (!function_exists('seo_analista_context_entity_key')) {
     }
 }
 
-if (!function_exists('seo_analista_local_context')) {
-    function seo_analista_local_context() {
+if (!function_exists('taxocommerce_google_bing_analyst_local_context')) {
+    function taxocommerce_google_bing_analyst_local_context() {
         $auditor = array(
             'state'=>'unavailable', 'scopes'=>0, 'stale_scopes'=>0,
             'findings'=>0, 'rows'=>array(), 'by_entity'=>array(),
@@ -38,7 +38,7 @@ if (!function_exists('seo_analista_local_context')) {
             foreach ($scopes as $scope) {
                 $report = (array) \TaxoCommerce\Auditor\Runner::report($scope);
                 if (empty($report['completed_gmt'])) continue;
-                if (!seo_analista_context_fresh($report['completed_gmt'], true)) {
+                if (!taxocommerce_google_bing_analyst_context_fresh($report['completed_gmt'], true)) {
                     $auditor['stale_scopes']++;
                     continue;
                 }
@@ -48,7 +48,7 @@ if (!function_exists('seo_analista_local_context')) {
                     if (!is_array($finding)) continue;
                     $priority = (string) ($finding['priority'] ?? '');
                     if (!in_array($priority, array('P1','P2'), true)) continue;
-                    $key = seo_analista_context_entity_key($finding['entity_type'] ?? '', $finding['entity_id'] ?? 0);
+                    $key = taxocommerce_google_bing_analyst_context_entity_key($finding['entity_type'] ?? '', $finding['entity_id'] ?? 0);
                     if ($key === '') continue;
                     $item = array(
                         'key'=>$key, 'scope'=>$scope,
@@ -87,9 +87,9 @@ if (!function_exists('seo_analista_local_context')) {
             $prices = (array) ($snapshots['prices'] ?? array());
             $popular = (array) ($snapshots['popular'] ?? array());
             $prices_fresh = ($prices['country'] ?? '') === 'ES'
-                && seo_analista_context_fresh($prices['updated_at'] ?? '');
+                && taxocommerce_google_bing_analyst_context_fresh($prices['updated_at'] ?? '');
             $popular_fresh = ($popular['country'] ?? '') === 'ES'
-                && seo_analista_context_fresh($popular['updated_at'] ?? '');
+                && taxocommerce_google_bing_analyst_context_fresh($popular['updated_at'] ?? '');
             if ($prices_fresh) {
                 $merchant['prices'] = count((array) ($prices['rows'] ?? array()));
                 $merchant['updated_at'] = (string) ($prices['updated_at'] ?? '');
@@ -133,15 +133,15 @@ if (!function_exists('seo_analista_local_context')) {
     }
 }
 
-if (!function_exists('seo_analista_context_attach_plan')) {
-    function seo_analista_context_attach_plan(array $plan, array $context) {
+if (!function_exists('taxocommerce_google_bing_analyst_context_attach_plan')) {
+    function taxocommerce_google_bing_analyst_context_attach_plan(array $plan, array $context) {
         $auditor = (array) ($context['auditor']['by_entity'] ?? array());
         $merchant = (array) ($context['merchant']['by_product'] ?? array());
         foreach ($plan as &$row) {
             $entity = (array) ($row['entity'] ?? array());
             $type = sanitize_key((string) ($entity['type'] ?? ''));
             $id = absint($entity['id'] ?? 0);
-            $key = seo_analista_context_entity_key($type, $id);
+            $key = taxocommerce_google_bing_analyst_context_entity_key($type, $id);
             $notes = array();
             foreach (array_slice((array) ($auditor[$key] ?? array()), 0, 2) as $finding) {
                 $notes[] = 'Auditor ' . $finding['priority'] . ' (' . $finding['code'] . '): '
@@ -162,8 +162,8 @@ if (!function_exists('seo_analista_context_attach_plan')) {
     }
 }
 
-if (!function_exists('seo_analista_render_local_context')) {
-    function seo_analista_render_local_context(array $context) {
+if (!function_exists('taxocommerce_google_bing_analyst_render_local_context')) {
+    function taxocommerce_google_bing_analyst_render_local_context(array $context) {
         $auditor = (array) ($context['auditor'] ?? array());
         $merchant = (array) ($context['merchant'] ?? array());
         echo '<section class="seo-analista-section"><h2>Comprobaciones complementarias · Auditor y Merchant</h2>';
