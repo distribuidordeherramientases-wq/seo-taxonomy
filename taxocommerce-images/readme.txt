@@ -154,10 +154,7 @@ Current functionality includes:
 = 0.1.0 =
 * Initial modular pilot.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
-* Legacy origin: the monolith maintained Media image metadata, product/category image associations, supplier image references and optimisations before independent Images; prior 2.3.x–2.4.1 numbers are not Images plugin releases.
-* The 2.3.6 monolith cycle documented supplier imports and image handling alongside catalogue and inventory maintenance.
-* Standalone 0.2.0 extracted image optimiser, WebP conversion, HTTP checks, image references and thumbnail management from the legacy system.
-* Subsequent releases added category-based assignment to pages/posts/products, media selection, product inventory checks, external-provider image distinctions and regulated background batches.
-* The five-level adaptive load regulator, plugin-specific Auto Test and WordPress.org packaging/security work are later independent-plugin improvements.
-* Media ZIP import/export responsibility was moved to Import-Export rather than duplicated in Images.
+== Historical origins (monolith; not standalone releases) ==
+* TaxoCommerce SEO 2.3.x linked supplier image imports, catalogue records and Media metadata; the 2.4.1 monolith version is not an Images release.
+* Images 0.2.0 extracted WebP, optimisation, image references, HTTP checks and thumbnails. Media ZIP import/export moved to Import-Export.
+* Later standalone versions added category-based image assignment, external-provider distinctions, inventory audits, adaptive background batches and Auto Test.
