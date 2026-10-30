@@ -124,7 +124,6 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
         echo '<section class="seo-analista-section"><h2>Qué hacer para vender más</h2><p>Directrices basadas en datos disponibles. No confundir visibilidad con compradores ni compras externas de afiliación con WooCommerce.</p>';
         if (empty($ga4['available'])) {
             echo '<p>Analytics no está disponible. Comprueba la conexión antes de interpretar ventas o conversión.</p></section>';
-            if (function_exists('taxocommerce_google_bing_geo_render_summary')) taxocommerce_google_bing_geo_render_summary($days, $ga4);
             return;
         }
         echo '<div class="seo-analista-grid">';
@@ -147,7 +146,6 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
             echo '<li><strong>Verificar eventos de Analytics.</strong> Se registra información de pago pero no de envío; puede ser una configuración legítima o una medición incompleta.</li>';
         }
         echo '</ol><p class="description">Los recuentos del embudo son eventos agregados, no necesariamente los mismos usuarios. Las directrices son verificaciones, no causas de pérdida demostradas.</p></section>';
-        if (function_exists('taxocommerce_google_bing_geo_render_summary')) taxocommerce_google_bing_geo_render_summary($days, $ga4);
     }
 }
 
