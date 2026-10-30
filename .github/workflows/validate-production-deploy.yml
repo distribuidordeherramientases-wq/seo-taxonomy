@@ -45,7 +45,10 @@ jobs:
           assert "zip -qr" in code and "unzip -t" in code
           assert 'deploy-active-modules' in code and 'hash' in code
           assert 'if ! cmp -s' in code
-          assert 'for slug in modules:' in code and 'Unmanaged files remain in' in code
+          assert 'reconcile_taxocommerce_pro.py plan' in code
+          assert 'reconcile_taxocommerce_pro.py apply' in code
+          assert 'manifest_sha256' in code and 'verified_files' in code
+          assert 'Legacy FTP cleanup disabled' in code
           assert not re.search(r'\bmirror\b.*--delete|\brm\s+-rf\s+\$\{?FTP', code)
 
           count = 0
