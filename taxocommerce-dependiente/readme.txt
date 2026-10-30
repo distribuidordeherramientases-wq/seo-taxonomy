@@ -146,7 +146,7 @@ No. Core provides optional grouped administration.
 * Knowledge transfer and local backup interfaces.
 * Explicit shortcode for parallel testing.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: the customer-facing Dependiente, Academia, semantic interpreter and learning engine ran in TaxoCommerce SEO before the independent Assistant plugin; the monolith 2.2.x–2.4.1 numbers are not Assistant versions.
 * The 2.3.5–2.3.9 monolith cycles documented course progression, supervised product/category feedback, training diagnostics, semantic matching and customer-facing search.
 * The monolith also contained the Intérprete/Lingüista learning material; migration into the standalone Assistant retained the lessons, evidence, data contracts, evaluation and compatibility with WooCommerce product search.
