@@ -64,3 +64,10 @@ On multisite, the cleanup is limited to sites marked as initialized by this modu
 = 0.1.3 =
 * Standalone FAQ editor and WooCommerce category validation.
 * CSV exchange and visibility/usage KPIs.
+
+= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+* Legacy origin: frequently asked questions were collected and linked with products and categories in the TaxoCommerce SEO monolith; legacy releases 2.3.x–2.4.1 do not belong to the standalone FAQs version series.
+* The monolith 2.3.6 release documented the FAQ subsystem and its relationship with catalogue content and the assistant's knowledge sources.
+* Standalone 0.1.x extracted FAQ storage and administration while maintaining compatibility with existing seo_faq records and explicit content relationships.
+* Later migrations protected existing data during installation/uninstallation, updated CSV handling and maintained the Assistant L6 compatibility path.
+* Version 0.1.5 added a dedicated Auto Test and user/technical guide; 0.1.6 concentrated on Plugin Check and clean distribution.
