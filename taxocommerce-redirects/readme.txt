@@ -114,3 +114,10 @@ retired and all native relationships have been verified.
 
 = 0.1.0 =
 * Independent runtime, administration, import/export and 4+4 assisted deletion.
+
+= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+* Legacy origin: SEO redirection records and redirect administration existed within TaxoCommerce SEO before extraction; the monolith version numbers are not standalone Redirects versions.
+* The monolith 2.3.6 documented redirect handling as part of its SEO maintenance cycle.
+* Standalone 0.1.0 extracted redirect management, preserving existing redirect data and the original role in WordPress navigation.
+* The independent module introduced an assisted deletion workflow with distinct selection and confirmation phases (4+4) instead of unguarded mass removal.
+* Subsequent fixes removed duplicate staging deployments, kept SEO taxonomy query filters active, addressed Plugin Check and added a dedicated user/technical guide.
