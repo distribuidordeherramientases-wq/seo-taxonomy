@@ -41,3 +41,10 @@ Explicitly excluded:
 
 = 0.1.0 =
 * Initial independent Suppliers module.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: supplier catalogue recipes, CSV feeds, stock/availability imports and commercial supplier relations were maintained in TaxoCommerce SEO; legacy 2.2.x–2.4.1 are not Suppliers standalone versions.
+* The monolith 2.2.0 cycle documented Supplier Import / Sync V2; 2.3.5–2.3.9 introduced successive supplier/inventory and catalogue import improvements.
+* The original catalogue workflow used supplier data and an intermediate product inventory before WooCommerce publication, with availability and images kept attributable to their suppliers.
+* Standalone Suppliers 0.1.0 established CSV-based supplier catalogue handling and integration with the family of modular plugins.
+* Standalone 0.2.0 moved purchasing functions out of Logistics and into Suppliers, separating procurement from delivery and transport calculation.

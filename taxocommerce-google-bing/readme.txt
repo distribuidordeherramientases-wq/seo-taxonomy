@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.12
+Stable tag: 1.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,9 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
+= 1.1.12 =
+* Align the published WordPress.org stable tag with the plugin's 1.1.12 code version, retaining existing provider connections and Analysis reports.
+
 = 1.1.11 =
 * Add dedicated Auto Test tab with grouped non-destructive checks for Insights, providers, reports, Trends and Analysis.
 * Preserve a per-site, per-user BEFORE baseline across updates and compare it with AFTER results; export safe JSON reports.
@@ -70,6 +73,15 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 * Describe active Connections, Analysis, Search Console, Analytics, Bing and Trends workflows; report persistence and OAuth compatibility.
 * Keep provider calls, credential handling, reporting and all existing functions unchanged.
 
+
+= 1.1.8 =
+* Add an automatic Google Trends report for Spanish clusters and primary hubs, building on the independent Trends workload manager.
+
+= 1.1.7 =
+* Scope Google Trends to Spain (geo=ES) by cluster/primary hub and run work with a bounded load manager.
+
+= 1.1.6 =
+* Show explicit provider connection states (connected, configured but unverified, pending, error and disabled), per-service checks and latest test timestamps.
 
 = 1.1.5 =
 * Restored the previous Analista 3.9.0 engine as the Insights > Analysis tab instead of rebuilding it.
@@ -110,3 +122,11 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 * Consolidated compatible external connections into Insights.
 * Added unified Connections and global Analyst reporting.
 * Retained historical settings and OAuth callback contracts.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: Google Search Console, Google Analytics (GA4), Bing, Merchant and Trends connections were originally implemented in the SEO monolith; the 2.4.1 monolith was not an Insights 1.x release.
+* The 2.3.7 monolith documented Google Trends and market research; the 2.3.9/2.4.0 line brought reporting, traffic evidence and editorial recommendations.
+* Independent Google/Bing and Connections work migrated existing provider configuration, callbacks and stored reporting without requiring customers to recreate OAuth credentials.
+* Connections became a compatibility bridge; Insights consolidated provider screens, manual downloads, status diagnostics and the historical Analysis/Analista reporting engine.
+* The legacy Analysis dashboards were restored after an experimental executive-report replacement proved incomplete; original reporting workflows remained the baseline.
+* Standalone Insights then added country-scoped Trends reports, user/technical manuals, non-destructive Auto Test, before/after comparisons and WordPress.org security/packaging corrections.

@@ -28,6 +28,8 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Insights-owned GEO AJAX regression
+        run: php taxocommerce-google-bing/tests/geo-bridge-smoke.php
       - name: SEO/GEO saved-evidence recommendations regression
         run: php taxocommerce-google-bing/tests/geo-smoke.php
       - name: Insights Auto Test pre/post regression

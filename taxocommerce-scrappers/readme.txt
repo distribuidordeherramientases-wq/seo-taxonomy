@@ -54,3 +54,11 @@ The administrator supplies and controls all API credentials. Provider usage can 
 * Centralized SerpApi and ScraperAPI configuration in Connections.
 * Added Ojeador and Ingeniero as tabs of the standalone plugin.
 * Registered Scrappers in TaxoCommerce Core for local ZIP installation/activation.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: Ojeador market observation and Ingeniero technical/editorial research operated as services of TaxoCommerce SEO; no earlier Scrappers standalone versions are asserted.
+* Monolith 2.3.6–2.3.7 documented Ojeador and Google Shopping/Trends observation, commercial gaps and evidence-based opportunities.
+* The 2.3.9–2.4.0 cycles documented Ingeniero source collection, technical dossiers, evidence review and controlled editorial drafts.
+* Scrappers 0.1.0 copied the legacy Ojeador and Ingeniero engines into independent Configuration, Ojeador and Ingeniero screens, including compatible provider settings and UI routes.
+* The first standalone release added a module bootstrap, Core registration, smoke tests and a staging ZIP/deployment workflow, with coexistence protections while the monolith was still installed.
+* External scraping, ranking and publication require the administrator's configured providers and review; extraction alone is not proof of autonomous third-party access or automated publishing.

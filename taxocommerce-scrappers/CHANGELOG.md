@@ -1,0 +1,23 @@
+# CHANGELOG — TaxoCommerce Scrappers
+
+> Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
+
+## Versiones independientes
+
+### 0.1.0
+
+* Created standalone TaxoCommerce Scrappers plugin.
+* Copied the legacy Ojeador 0.10.0 engine.
+* Copied the legacy Ingeniero 0.5.0 engine.
+* Centralized SerpApi and ScraperAPI configuration in Connections.
+* Added Ojeador and Ingeniero as tabs of the standalone plugin.
+* Registered Scrappers in TaxoCommerce Core for local ZIP installation/activation.
+
+## Fuentes
+
+- [`changelog.txt`](changelog.txt), etapa monolítica.
+- [`docs/PLUGIN-HISTORY-SOURCES.md`](../docs/PLUGIN-HISTORY-SOURCES.md), PR y referencias históricas.
+
+## Actualizaciones
+
+Para nuevas funcionalidades se edita este `CHANGELOG.md`. Antes de publicar, se debe reflejar el resumen de la versión en `readme.txt`, que es el único Changelog mostrado automáticamente por WordPress.org.

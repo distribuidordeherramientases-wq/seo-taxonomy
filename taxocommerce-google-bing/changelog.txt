@@ -1,0 +1,137 @@
+HISTORIAL DE ORIGEN — Insights
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: Google Search Console, Google Analytics (GA4), Bing, Merchant and Trends connections were originally implemented in the SEO monolith; the 2.4.1 monolith was not an Insights 1.x release.
+* The 2.3.7 monolith documented Google Trends and market research; the 2.3.9/2.4.0 line brought reporting, traffic evidence and editorial recommendations.
+* Independent Google/Bing and Connections work migrated existing provider configuration, callbacks and stored reporting without requiring customers to recreate OAuth credentials.
+* Connections became a compatibility bridge; Insights consolidated provider screens, manual downloads, status diagnostics and the historical Analysis/Analista reporting engine.
+* The legacy Analysis dashboards were restored after an experimental executive-report replacement proved incomplete; original reporting workflows remained the baseline.
+* Standalone Insights then added country-scoped Trends reports, user/technical manuals, non-destructive Auto Test, before/after comparisons and WordPress.org security/packaging corrections.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Insights).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Insights).
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+[Resumen ejecutivo del ciclo 2.4.0] - **Mercado y comercio:** reorganización de la capa Mercado (Analista, Ingeniero y Ojeador), observación de competencia y oportunidades, e integración progresiva de fuentes comerciales.
+[Identidad pública y WordPress.org] - El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
+[Import / Export] - Los callbacks GitHub/Python y Google/Python validan la estructura del CSV estándar antes del `sideload` seguro y habilitan el fallback MIME solo después de esa validación, evitando rechazos de CSV válidos introducidos por el endurecimiento de subidas para WordPress.org.
+[Consolidación funcional] - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
+[Consolidación funcional] - Dependiente incorpora estadísticas separadas de GA4, Search Console y uso interno, con exportación JSON para análisis.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Insights).
+- Ojeador 0.10.0 añade la pestaña **Novedades**, un radar externo que usa **Clusters + Hubs primarios** como frontera comercial para descubrir categorías, subfamilias y tecnologías que todavía no están representadas en el catálogo.
+- El radar usa **Google Trends** para señales crecientes y valida cada candidato con **Google Shopping + Google Search** mediante la conexión compartida SerpApi → ScraperAPI; conserva fuentes, cobertura, score explicable y estado humano sin crear categorías/productos automáticamente.
+- Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Insights).
+[Ingeniero, Clasificador y Semántica] - Corregido el tratamiento de **HTTP 429 de SerpApi** para pausar Ingeniero sin avanzar la categoría ni perder trabajo pendiente.
+[Ingeniero, Clasificador y Semántica] - El **Clonador PRO → STAGING** incorpora fuentes y conocimiento persistente de Ingeniero, manteniendo separados colas, cursores, configuración y consumo de SerpApi.
+[Auditor, Analista y control de calidad] - Analista 3.8.3 corrige la contradicción entre **HACER AHORA** y acciones de vigilar/esperar/investigar: una tarea inmediata exige acción primaria ejecutable con verbo, objeto, destino, responsable y URL validada.
+[Auditor, Analista y control de calidad] - La tarjeta separa **Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo** y `task_decision` pasa a ser la fuente única para contador, sección, etiqueta y JSON.
+[Auditor, Analista y control de calidad] - INVESTIGAR añade fuente de verificación y criterio de salida; las tareas ejecutadas no se duplican y el seguimiento usa un ID estable. JSON schema 9 y pruebas T01–T06.
+[Auditor, Analista y control de calidad] - Analista 3.8.2 corrige el exceso de **INVESTIGAR**: intenta resolver primero categorías/entidades locales y reserva ese bucket a modelo, entidad o destino realmente no resueltos.
+[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+[Auditor, Analista y control de calidad] - Cada tarea expone comprobaciones concretas, valor actual, owner, `unlock_condition`, `bucket_if_unblocked` y diagnóstico agregado de gates; JSON schema 8.
+[Auditor, Analista y control de calidad] - Analista 3.8.1 endurece el **plan de acción bajo demanda**: valida consulta ↔ entidad ↔ URL, detecta conflictos de modelo, penaliza muestras mínimas y separa prioridad de confianza antes de emitir instrucciones.
+[Auditor, Analista y control de calidad] - Añadidos buckets **INVESTIGAR** y **ESPERAR DATOS**, acciones atómicas, owner/dependencias, preparación comercial explícita y contrato auditable con baseline y revisiones 28/60/90; HACER_AHORA conserva el máximo de 10 sin rellenarlo artificialmente.
+[Auditor, Analista y control de calidad] - Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.
+[Auditor, Analista y control de calidad] - Analista 3.8.0 incorpora **Informe competitivo profundo**: dominios configurables, muestreo SERP automático con SerpApi → ScraperAPI, auditoría pública acotada, matriz 1–5 con confianza de evidencia, fortalezas/brechas, plan priorizado y exportación JSON.
+[Auditor, Analista y control de calidad] - Search Console, GA4 y Bing se mantienen exclusivos del dominio propio; los competidores se evalúan sólo con evidencia pública observable y los datos ausentes quedan como N/D.
+[Auditor, Analista y control de calidad] - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
+[Auditor, Analista y control de calidad] - Los estados de contexto distinguen `fresh`, `partial`, `stale` y `unavailable`; un dato ausente se conserva como `null` y no como cero.
+[Auditor, Analista y control de calidad] - La prioridad precomputada por Analista puede ordenar tareas dentro de la misma P1–P5, pero no cambia la clase interna del hallazgo ni sustituye a Solucionador.
+[Auditor, Analista y control de calidad] - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+[Auditor, Analista y control de calidad] - Separados explícitamente **Auditor de contenidos** y **Auditor de Academia** para evitar mezclar diagnósticos de catálogo con aprendizaje.
+[Auditor, Analista y control de calidad] - Añadida una **puntuación interna de calidad SEO** por entidad, con desglose de relevancia, rigor, diferenciación, arquitectura semántica y preparación técnica.
+[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
+[Auditor, Analista y control de calidad] - Añadido equilibrio semiautomático de categorías: propuestas de **división** para categorías heterogéneas y de **concentración** para categorías pequeñas, siempre con revisión/aprobación previa.
+[Auditor, Analista y control de calidad] - Separado el diagnóstico por tamaño de las propuestas ejecutables: se muestran categorías con más de 10 productos y categorías con 1–4 productos aunque todavía no exista una operación segura.
+[Auditor, Analista y control de calidad] - Mejorada la precisión de **Analista** y de los informes SEO para diferenciar mejor métricas de Google Search Console, GA4 y Bing.
+[Auditor, Analista y control de calidad] - Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Insights).
+[Marketing y campañas comerciales] - Creado el nuevo **servicio de campañas comerciales**.
+[Marketing y campañas comerciales] - Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
+[Marketing y campañas comerciales] - Integradas las campañas comerciales en el **programador de redes sociales**.
+[Marketing y campañas comerciales] - Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
+[Ojeador y análisis de mercado] - Mejorados los indicadores de **Ojeador** para presentar comparativas de precios más claras.
+[Ojeador y análisis de mercado] - Incorporado un sistema de clasificación visual mediante **semáforo de precios**:
+[Ojeador y análisis de mercado] - precio competitivo;
+[Ojeador y análisis de mercado] - precio dentro de mercado;
+[Ojeador y análisis de mercado] - precio poco competitivo.
+[Ojeador y análisis de mercado] - Añadida detección de **productos estrella** y oportunidades comerciales.
+[Ojeador y análisis de mercado] - Añadida una nueva capa de **análisis de mercado y acciones prioritarias**.
+[Ojeador y análisis de mercado] - Mejorada la identificación de productos sobre los que puede resultar interesante crear una oferta.
+[Ojeador y análisis de mercado] - Simplificada la lectura de indicadores comerciales para facilitar decisiones de precio y promoción.
+[Inventarios y proveedores] - Creado un sistema de **inventarios comerciales por proveedor**.
+[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
+[Solucionador] - Integrado el nuevo servicio dentro de la arquitectura de análisis y ayuda a la selección de productos.
+[Informes y rendimiento] - Optimizada la carga de **SEO Reports**, evitando generar automáticamente informes pesados al entrar en la pantalla.
+[Informes y rendimiento] - Los informes pasan a generarse bajo demanda mediante un botón **Crear informe**.
+[Informes y rendimiento] - Añadida opción **Cerrar informe**.
+[Informes y rendimiento] - Añadida descarga individual de informes en formato **JSON**.
+[Informes y rendimiento] - Reducida la carga inicial y el consumo de recursos en la sección de Informes.
+[Google Trends] - Corregida la integración de **Google Trends**.
+[Google Trends] - Mejorado el tratamiento de respuestas y señales obtenidas desde Trends.
+[Google Trends] - Reforzada su integración con Analista y los sistemas de detección de oportunidades.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Insights).
+[Ojeador y Google Shopping] - Incorporado el nuevo servicio **Ojeador** para obtener y analizar información externa de mercado.
+[Ojeador y Google Shopping] - Mejorada la priorización de las consultas para concentrar recursos en categorías y áreas con mejores señales de rendimiento.
+[Ojeador y Google Shopping] - Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
+[Ojeador y Google Shopping] - Mejorados los KPI y la información de seguimiento de Ojeador.
+[Ojeador y Google Shopping] - Añadidos logs y exportación JSON para facilitar el diagnóstico y el análisis de resultados.
+[Ojeador y Google Shopping] - Eliminado el límite artificial de consultas/descargas de Google Shopping.
+[Ojeador y Google Shopping] - Corregidos errores detectados durante la ejecución del servicio Ojeador.
+[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
+[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
+[SEO, auditoría y validación] - Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
+[FAQs] - Mejorada la gestión y preparación de las FAQs para auditoría, análisis y evolución posterior.
+[Redirecciones] - Añadido JSON de análisis para poder estudiar:
+[Inventario y catálogo] - Añadida exportación JSON del inventario para análisis externo.
+[Inventario y catálogo] - Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+[Resumen de la release] - **Ojeador** amplía la inteligencia competitiva y la integración con Google Shopping.
+[Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Insights).
+[Dependiente e Intérprete] - Evolución del servicio **Intérprete** con nuevas versiones y mejoras sucesivas en el análisis de consultas.
+[Arquitectura comercial y contenido] - Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Insights).
+[Mejorado] - Mejorados los informes y controles basados en información procedente de Google, Trends y otras fuentes. (#126)
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Insights).
+- Incorpora mejoras comerciales en carrito, checkout, portes, presupuestos y facturación, incluyendo cálculo de envío basado en las características del producto y generación de documentación para clientes.
+- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
+
+## 2.2.8 - Cierre de etiquetas legacy de producto
+Versión del monolito (no de Insights).
+- Los informes de contenido consideran la clasificación semántica canónica (TIPO y facetas) en lugar de depender de las keywords legacy.
+
+## 2.2.1 - Vocabulary bridge
+Versión del monolito (no de Insights).
+- `consumible` pasa a ser un ámbito/rol válido en importación, validación e informes.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Insights).
+- Separada la seleccion comercial del estado de sincronizacion.
+-   Informes de integridad.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.

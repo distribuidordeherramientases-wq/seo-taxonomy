@@ -54,3 +54,10 @@ English is the base source and UI language. Future localization should use stand
 * Added independent bounded feed worker.
 * Added safe legacy coexistence and settings migration.
 * Added Distribution admin tabs for overview, feeds, sitemaps and automation.
+
+== Historical origins (monolith; not standalone releases) ==
+* Legacy origin: sitemap output and commercial product feeds were developed in TaxoCommerce SEO before the Distribution 0.1.0 extraction; previous SEO releases are not Distribution versions.
+* The monolith 2.3.7 cycle documented commercial feeds alongside catalogue, market observations and Google Shopping integrations.
+* Distribution 0.1.0 separated feed generation and sitemap responsibilities into an independent module while keeping established content/catalogue relationships.
+* Modular compatibility work retained a fallback for Core role data so distribution does not require the legacy monolith at runtime.
+* Follow-up work addressed WordPress.org translation comments and package validation; these are maintenance changes to the same 0.1.0 line, not claimed additional releases.

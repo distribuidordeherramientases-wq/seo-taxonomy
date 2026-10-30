@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.38
+Stable tag: 0.4.39
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.39 =
+* Package-only Plugin Check remediation: deploy and distribute without development tests or hidden FTP state files.
+* Keep the full smoke/regression test suite in GitHub and CI; preserve all Core menus, country scopes, content, SEO architecture, Auto Test, and manuals.
+* Verify staged package contents and clean legacy Core FTP artifacts on STAGING after deployment. No changes to WordPress content or database.
+
 
 = 0.4.38 =
 * Align the Logistics extension catalog link and family submenu label with the standalone module's unique admin page.
@@ -141,3 +147,11 @@ Yes. Administrators may explicitly upload a verified module ZIP through Core's e
 
 = 0.3.0 =
 * Introduced the native cluster and hub hierarchy.
+
+== Historical origins (monolith; not standalone releases) ==
+* Historical source: the TaxoCommerce SEO monolith through 2.4.1 maintained the SEO architecture, category/product relationships, taxonomy and the original WordPress administration; these are not Core standalone versions.
+* The 2.2.x legacy work included the vocabulary bridge, canonical semantic labels and the product/category relationship model.
+* During 2.3.x the monolith organised clusters, primary and secondary hubs, landing pages, menus and associated WooCommerce categories/products.
+* Core became the administrative and integration point for independent TaxoCommerce extensions, preserving the existing data contracts rather than migrating every service into Core.
+* Later standalone work refined the Extensions panel, nested menu navigation, WordPress.org compliance and internal Auto Test. Individual learning, images and feeds remain owned by their respective modules.
+* The international storefront uses explicit country-based pages, templates and navigation; the Core layer retains role/menu selection while Templates owns frontend rendering.

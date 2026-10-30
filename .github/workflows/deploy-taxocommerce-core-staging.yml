@@ -8,6 +8,16 @@ on:
     paths:
       - 'taxocommerce-core/**'
       - '.github/workflows/deploy-taxocommerce-core-staging.yml'
+      - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
+      - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/workflows/deploy-taxocommerce-core-staging.yml'
+      - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
+      - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
   workflow_dispatch:
 
 jobs:
@@ -29,6 +39,37 @@ jobs:
 
       - name: Validate Core FTPS cleanup Python syntax
         run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
+      - name: Test Core FTPS legacy-artifact cleanup (offline)
+        run: python3 -m unittest discover -s .github/scripts/tests -p 'test_cleanup_taxocommerce_core_ftp_artifacts.py' -v
+
+      - name: Verify standalone Core installable ZIP has no tests or hidden files
+        run: |
+          set -euo pipefail
+          test -d taxocommerce-core/tests
+          test -f taxocommerce-core/taxocommerce-core.php
+          test -f taxocommerce-core/readme.txt
+          mkdir -p build/taxocommerce-core
+          rsync -a --exclude='tests/' --exclude='.*' --exclude='*.bak' \
+            taxocommerce-core/ build/taxocommerce-core/
+          python3 - <<'PY'
+          from pathlib import Path
+          plugin = Path('build/taxocommerce-core')
+          source = Path('taxocommerce-core')
+          assert (plugin / 'taxocommerce-core.php').is_file()
+          assert (plugin / 'readme.txt').is_file()
+          assert (source / 'tests' / 'editorial-guide-smoke.php').is_file()
+          assert (source / 'tests' / 'menu-editor-smoke.php').is_file()
+          assert (source / 'tests' / 'anomalies-smoke.php').is_file()
+          assert (source / 'tests' / 'modular-architecture-smoke.php').is_file()
+          bad = [str(p) for p in plugin.rglob('*')
+                 if p.name.startswith('.') or 'tests' in p.relative_to(plugin).parts]
+          if bad:
+              raise SystemExit('Development artifacts included in Core package: ' + str(bad))
+          print('Core package clean: no hidden files or development tests; CI tests remain in repository.')
+          PY
+          ( cd build && zip -qr "${RUNNER_TEMP}/taxocommerce-core-installable.zip" taxocommerce-core )
+          unzip -t "${RUNNER_TEMP}/taxocommerce-core-installable.zip"
 
       - name: Verify SEO architecture report before deploy
         run: php taxocommerce-core/tests/architecture-report-smoke.php
@@ -60,6 +101,7 @@ jobs:
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Core branch

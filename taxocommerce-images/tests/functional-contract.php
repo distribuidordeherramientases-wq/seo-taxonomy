@@ -89,6 +89,31 @@ $other = wp_insert_post( array( 'post_type' => 'product', 'post_title' => 'Produ
 wp_set_object_terms( $other, array( (int) $cat ), 'product_cat' ); set_post_thumbnail( $other, $other_image );
 $product = wp_insert_post( array( 'post_type' => 'product', 'post_title' => 'Producto sin imagen', 'post_status' => 'publish' ) );
 wp_set_object_terms( $product, array( (int) $cat ), 'product_cat' );
+
+// Exercise the optional supplier registry in this isolated WordPress test only.
+// Both supported ID columns must exclude actively imaged products from counts.
+global $wpdb;
+$supplier_test_table = $wpdb->prefix . 'seo_supplier_images';
+$supplier_table_created = $wpdb->query( $wpdb->prepare(
+	'CREATE TABLE %i (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, product_id BIGINT UNSIGNED NULL, object_id BIGINT UNSIGNED NULL, status VARCHAR(20) NOT NULL, image_url TEXT NOT NULL)',
+	$supplier_test_table
+) );
+taxocommerce_images_test_assert( false !== $supplier_table_created, 'isolated optional supplier image table created' );
+$supplier_product = wp_insert_post( array( 'post_type' => 'product', 'post_title' => 'Producto con imagen de proveedor', 'post_status' => 'publish' ) );
+$supplier_object = wp_insert_post( array( 'post_type' => 'product', 'post_title' => 'Producto con imagen externa por object_id', 'post_status' => 'publish' ) );
+$wpdb->insert( $supplier_test_table, array( 'product_id' => $supplier_product, 'status' => 'active', 'image_url' => 'https://example.test/a.jpg' ) );
+$wpdb->insert( $supplier_test_table, array( 'object_id' => $supplier_object, 'status' => 'active', 'image_url' => 'https://example.test/b.jpg' ) );
+$supplier_missing = TaxoCommerce_Images_Assignment::missing( 'product' );
+$supplier_missing_ids = wp_list_pluck( $supplier_missing['items'], 'id' );
+taxocommerce_images_test_assert(
+	in_array( $product, $supplier_missing_ids, true )
+	&& ! in_array( $supplier_product, $supplier_missing_ids, true )
+	&& ! in_array( $supplier_object, $supplier_missing_ids, true )
+	&& ! TaxoCommerce_Images_Assignment::has_image( 'product', $product )
+	&& TaxoCommerce_Images_Assignment::has_image( 'product', $supplier_product )
+	&& TaxoCommerce_Images_Assignment::has_image( 'product', $supplier_object ),
+	'live supplier images are excluded from missing-product report for both supported ID columns'
+);
 taxocommerce_images_test_assert( array() === TaxoCommerce_Images_Assignment::candidates( 'product', $product ), 'a product cannot use a category or another product photograph' );
 update_post_meta( $product, '_product_image_gallery', (string) $own_image );
 $choices = wp_list_pluck( TaxoCommerce_Images_Assignment::candidates( 'product', $product ), 'id' );

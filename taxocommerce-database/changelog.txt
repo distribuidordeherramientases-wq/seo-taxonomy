@@ -1,0 +1,79 @@
+HISTORIAL DE ORIGEN — Database
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: Clean Database and SEO Data Table were administration tools of TaxoCommerce SEO before being extracted; the monolith release identifiers 2.2.x–2.4.1 are not Database plugin versions.
+* The original clean-up workflow inspected persisted SEO, catalogue and maintenance data and required explicit administrator actions for destructive operations.
+* The SQL/data-table explorer and original cleanup checks formed two distinct functional areas; their historic behavior and existing tables were preserved during extraction.
+* The standalone migration was corrected to restore complete legacy Clean Database and SEO Data Table functions instead of replacing them with a simplified Data Layer design.
+* Later standalone releases brought six sibling tabs, documentation, 17 grouped Auto Test checks and a before/after baseline without removing the legacy cleanup actions.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Database).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Database).
+[Identidad pública y WordPress.org] - Se conservan por compatibilidad las constantes, tablas, opciones, metadatos, nombres de clases, funciones y slugs operativos internos históricos cuando cambiarlos pudiera romper instalaciones existentes.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Database).
+[Ingeniero, Clasificador y Semántica] - Añadida tabla global **Ingeniero → vocabulario** y acciones de aceptación individual o masiva que amplían los maestros canónicos sin asignar automáticamente datos a productos.
+[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
+[Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Database).
+[Inventarios y proveedores] - Creado un sistema de **inventarios comerciales por proveedor**.
+[Inventarios y proveedores] - Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
+[Inventarios y proveedores] - Añadidos procesos automáticos de actualización y sincronización de inventarios con proveedores.
+[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
+[Estabilidad y mantenimiento] - Realizadas correcciones adicionales en servicios de importación, análisis y generación de informes.
+[Estabilidad y mantenimiento] - Mejorada la separación entre procesos pesados y carga de las pantallas administrativas.
+[Estabilidad y mantenimiento] - Reforzada la generación de JSON como formato de intercambio y revisión externa.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Database).
+[Inventario y catálogo] - Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
+[Inventario y catálogo] - Añadida exportación JSON del inventario para análisis externo.
+[Inventario y catálogo] - Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+[Inventario y catálogo] - Adaptada la portada para poder utilizar información estadística y priorizar dinámicamente los contenidos con mayor interés.
+[Importación, proveedores e imágenes] - Corregida la rotación y limpieza de archivos generados por Importar/Exportar.
+[Mantenimiento] - Eliminados datos antiguos de componentes SEO ya obsoletos.
+[Mantenimiento] - Limpiadas tablas heredadas de plugins y sistemas anteriores que ya no forman parte de la arquitectura actual.
+[Mantenimiento] - Eliminadas copias y componentes redundantes detectados durante las validaciones de integridad.
+[Mantenimiento] - Mejorada la consistencia general del plugin antes del despliegue a Producción.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Database).
+[Mantenimiento y limpieza] - Eliminación de archivos de backup antiguos y residuos que ya no debían formar parte del árbol activo del plugin.
+[Mantenimiento y limpieza] - Limpieza progresiva de código legacy derivado de anteriores versiones de Dependiente e Intérprete.
+[Mantenimiento y limpieza] - Ajustes para reducir duplicidades y mantener una única implementación canónica de cada componente.
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Database).
+[Mejorado] - Mejorado el comparador de tablas y datos de productos. (#154)
+[Corregido] - Corregidos modos/configuraciones de MySQL que podían provocar errores. (#158)
+[Corregido] - Reclasificados avisos de MySQL que no representan errores reales para que se muestren como información. (#159)
+[Datos, SEO y compatibilidad] - Se han revisado diferencias de codificación y estructura de base de datos entre entornos; el issue #167 quedó cerrado como duplicado.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Database).
+- Refuerza el mantenimiento interno mediante limpieza de base de datos, rotación de logs, eliminación programada de imports antiguos y mejoras de observabilidad.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Database).
+-   Sistema de rollback seguro.
+-   Gestión de transacciones.
+-   Detección de anomalías estructurales.
+-   Exportación de tablas SEO.
+-   Herramientas de limpieza y validación de base de datos.
+-   Base de tablas internas del sistema SEO.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
