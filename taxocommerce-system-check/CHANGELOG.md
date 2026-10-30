@@ -2,14 +2,17 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.2.9
+Sin novedades pendientes documentadas.
+
+
+## [0.2.9]
 
 * Refresh WordPress.org metadata for the standalone System Check package.
 * Confirm current gettext calls use the standalone text domain and Action Scheduler table identifiers use prepared `%i` placeholders.
 
-### 0.2.8
+## [0.2.8]
 
 * Standalone system and plugin diagnostics with compatibility routes.
 * Local PHP checks and optional bounded HTTP URL audits.
