@@ -1,0 +1,73 @@
+name: Validate production deploy workflow (no deploy)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/despliege_de_main_a_pro.yml'
+      - '.github/workflows/validate-production-deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/despliege_de_main_a_pro.yml'
+      - '.github/workflows/validate-production-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install YAML parser
+        run: python3 -m pip install --user PyYAML
+      - name: Validate syntax and production safety contract
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          import subprocess
+          import tempfile
+          from pathlib import Path
+          import yaml
+
+          workflow = yaml.safe_load(Path('.github/workflows/despliege_de_main_a_pro.yml').read_text())
+          assert 'workflow_dispatch' in workflow.get('on', workflow.get(True, {}))
+          steps = workflow['jobs']['deploy']['steps']
+          checkout = next(step for step in steps if step.get('uses', '').startswith('actions/checkout@'))
+          assert checkout['with']['ref'] == 'staging', 'Production source must be validated staging'
+          ftp = next(step for step in steps if step.get('uses', '').startswith('SamKirkland/FTP-Deploy-Action@'))
+          excludes = ftp['with']['exclude']
+          assert 'wp-content/uploads/**' in excludes and '**/uploads/**' in excludes
+          code = '\n'.join(step.get('run', '') for step in steps)
+          assert 'readme.txt' in code and 'Stable tag:' in code
+          assert "grep -Fx 'readme.txt'" in code and '-x \'readme.txt\'' not in code
+          assert "zip -qr" in code and "unzip -t" in code
+          assert 'deploy-active-modules' in code and 'hash' in code
+          assert 'if ! cmp -s' in code
+          assert 'for slug in modules:' in code and 'Unmanaged files remain in' in code
+          assert not re.search(r'\bmirror\b.*--delete|\brm\s+-rf\s+\$\{?FTP', code)
+
+          count = 0
+          with tempfile.TemporaryDirectory() as temp:
+              for step in steps:
+                  script = step.get('run')
+                  if not isinstance(script, str):
+                      continue
+                  path = Path(temp) / ('script-' + str(count) + '.sh')
+                  path.write_text(script)
+                  subprocess.run(['bash', '-n', str(path)], check=True)
+                  lines = script.splitlines()
+                  n = 0
+                  while n < len(lines):
+                      if re.search(r"\bpython3\b.*<<'PY'\s*$", lines[n]):
+                          start = n + 1
+                          n = start
+                          while n < len(lines) and lines[n].strip() != 'PY':
+                              n += 1
+                          assert n < len(lines), 'Unclosed Python heredoc'
+                          compile('\n'.join(lines[start:n]), step.get('name', 'inline-python'), 'exec')
+                      n += 1
+                  count += 1
+          print('Production deployment YAML, Bash, Python and safety preflight OK:', count, 'scripts checked')
+          PY
