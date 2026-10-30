@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.38
+Stable tag: 0.4.39
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.39 =
+* Package-only Plugin Check remediation: deploy and distribute without development tests or hidden FTP state files.
+* Keep the full smoke/regression test suite in GitHub and CI; preserve all Core menus, country scopes, content, SEO architecture, Auto Test, and manuals.
+* Verify staged package contents and clean legacy Core FTP artifacts on STAGING after deployment. No changes to WordPress content or database.
+
 
 = 0.4.38 =
 * Align the Logistics extension catalog link and family submenu label with the standalone module's unique admin page.
