@@ -31,6 +31,7 @@ function check_admin_referer( $action ) {
     if ( 'tcs_auto_test_run' !== $action || ( $_GET['_wpnonce'] ?? '' ) !== 'test' ) { throw new RuntimeException( 'Missing nonce.' ); }
 }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( (string) $value ) ); }
