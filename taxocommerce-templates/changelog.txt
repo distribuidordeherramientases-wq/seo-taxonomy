@@ -1,0 +1,112 @@
+HISTORIAL DE ORIGEN — Templates
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Legacy origin: the WordPress/WooCommerce theme templates, content-role routing, cluster/hub page presentation and product/category layouts were developed within TaxoCommerce SEO; old monolith releases are not Templates versions.
+* The monolith 2.3.x–2.4.0 line included frontend content integration, editorial roles, product/category information blocks, menu assignments and canonical content relationships.
+* Standalone Templates evolved into an independent template library and editor with explicit assignment and compatibility checks for existing WordPress pages.
+* International storefront work introduced country-specific presentation for Spain, United States, Germany, Netherlands and France, with separate menus and country metadata.
+* Follow-up work aligned the United States template with the shared international layout and investigated header menu fallback where raw categories appeared instead of configured menus.
+* WordPress.org preparation addressed translation strings and template/FAQ rendering, while private PHP editing remained a controlled administrator-only capability.
+* Version 0.4.0 is the current standalone series; earlier monolith milestones must not be represented as fabricated 0.x Templates releases.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Templates).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Templates).
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+[Resumen ejecutivo del ciclo 2.4.0] - **Modularización:** inicio de la separación del monolito en TaxoCommerce Core y extensiones de Import-Export, Imágenes y System Check; diseño de Vocabulary y FAQs como módulos diferenciados.
+[Import / Export] - Páginas y entradas pueden exportarse incluyendo **Papelera (`trash`)** y reimportarse para enviar contenido existente a la papelera mediante el flujo nativo de WordPress.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Templates).
+- Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
+- Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
+- Añadido un rol editorial estable en Entradas para distinguir posts de **Preguntas habituales** e **Información técnica** sin inferirlo por el título; las plantillas consumen la relación explícita `post_to_category`.
+- Retirada la salida pública heredada de FAQs en estas plantillas para evitar duplicar el conocimiento migrado a los nuevos bloques editoriales.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Templates).
+[Auditor, Analista y control de calidad] - La tarjeta separa **Estado de la señal / Prioridad de trabajo / Tipo de intervención / Bloqueo** y `task_decision` pasa a ser la fuente única para contador, sección, etiqueta y JSON.
+[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+[Auditor, Analista y control de calidad] - Analista 3.8.1 comprueba metadatos efectivos de plugin/plantilla antes de declarar title/meta ausentes, consulta cobertura publicada de Dependiente/Ingeniero/Comparador antes de sugerir nueva URL y añade 7 pruebas de aceptación más diagnóstico de Action Scheduler.
+[Auditor, Analista y control de calidad] - Dividido **Auditor** en auditorías independientes por bloques: Productos, Categorías y arquitectura, Posts, Páginas/Landings, FAQs y Motor/índice de Dependiente.
+[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
+[Auditor, Analista y control de calidad] - Alineados los informes de GSC/GA4, excluyendo pruebas administrativas cuando corresponde y completando métricas de páginas.
+[Marketing, campañas y redes sociales] - Añadido **Calendario** mensual de redes sociales con entradas, landings y campañas, filtro por red, detección de huecos/colisiones y vista responsive.
+[Marketing, campañas y redes sociales] - Las piezas editoriales del mismo día ya no bloquean una oferta comercial; solo otra oferta de campaña ocupa el hueco comercial de las 18:00.
+[Frontend, contenidos y navegación] - Añadidas plantillas específicas para **categorías de entradas** del blog, con variantes desktop/móvil y resolución automática desde el gestor de plantillas.
+[Frontend, contenidos y navegación] - Las entradas del blog pueden mostrar hasta **8 productos relacionados** a partir de las categorías comerciales enlazadas explícitamente.
+[Frontend, contenidos y navegación] - Reorientadas varias plantillas para priorizar **producto y catálogo** y compactar los bloques de asistencia/Dependiente.
+[Frontend, contenidos y navegación] - Ajustados cabecera, ficha de producto y carrito para mejorar la jerarquía comercial y aprovechar mejor el primer pliegue.
+[Frontend, contenidos y navegación] - Creada la sección administrativa **Contenidos**, agrupando Productos, Categorías, Páginas, Entradas e Imágenes sin cambiar sus rutas internas.
+[Frontend, contenidos y navegación] - **Comentarista** se ha movido a **Herramientas**.
+[Frontend, contenidos y navegación] - **Solucionador** pasa a presentarse como **Editor** y queda integrado en Contenidos, manteniendo sus slugs y datos internos por compatibilidad.
+[Comparador, carrito y documentos comerciales] - Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
+[Comparador, carrito y documentos comerciales] - Mejorados Presupuesto y Proforma con resumen comercial, características relevantes, acompañamiento de compra y presentación más legible.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Templates).
+[Marketing y campañas comerciales] - Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
+[Issues principales] - #296 — Crear plantillas para campañas publicitarias.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Templates).
+[Dependiente] - Incorporada edición de las plantillas utilizadas por Dependiente.
+[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
+[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
+[SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
+[Inventario y catálogo] - Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+[Rendimiento y estabilidad] - Revisados los tiempos anómalos detectados durante los escaneos de páginas.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Templates).
+[Dependiente e Intérprete] - Corrección de la carga de imágenes en el frontend de Dependiente.
+[Dependiente e Intérprete] - Mejoras generales del comportamiento y presentación del Dependiente en frontend.
+[Arquitectura comercial y contenido] - Nuevas recomendaciones de arquitectura para **Clusters, Hubs primarios y Hubs secundarios**.
+[Arquitectura comercial y contenido] - Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
+[Arquitectura comercial y contenido] - Ajustes de frontend y helpers de plantillas para mantener coherencia entre STAGING y producción.
+[Arquitectura comercial y contenido] - Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Versión del monolito (no de Templates).
+* mejoras en plantillas y en su sistema de comprobación y sincronización;
+* incorporación de migas de pan en la cabecera;
+* ajustes en el cargador de plantillas, autoload y archivos de versión;
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Templates).
+[Añadido] - Añadido soporte para importar desde PRO a STAGING páginas, categorías, entradas y productos. (#146)
+[Añadido] - Añadida asociación de las etiquetas de páginas con el vocabulario SEO. (#152)
+[Mejorado] - Revisadas las plantillas para mostrar la información con una jerarquía más consistente. (#141)
+[Mejorado] - Mejorada la paridad entre STAGING y PRO para reducir diferencias en plantillas y comportamiento. (#155)
+[Corregido] - Corregido/eliminado el mensaje de afiliación de Amazon mostrado indebidamente en el pie de páginas. (#137)
+[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+## 2.2.8 - Cierre de etiquetas legacy de producto
+Versión del monolito (no de Templates).
+- Bloquea nuevas escrituras de `seo_nodes/product/product` desde el importador legacy y desde la pantalla antigua de clasificación de productos.
+
+## 2.2.4 - Edición manual del vocabulario semántico de producto
+Versión del monolito (no de Templates).
+- La pantalla Etiquetas añade filtro por SUBTIPO y enlaza directamente al bloque de clasificación del producto.
+
+## 2.2.1 - Vocabulary bridge
+Versión del monolito (no de Templates).
+- La cabecera CSV pública `ambito` se conserva, pero exporta el ROL canónico del producto.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Templates).
+-   Validación de imágenes, plantillas y contenido.
+-   Generación de páginas estructurales.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
