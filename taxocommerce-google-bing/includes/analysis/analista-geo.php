@@ -323,8 +323,11 @@ if ( ! function_exists( 'taxocommerce_google_bing_geo_recommendations' ) ) {
 }
 
 if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
-    function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array() ) {
-        $plan = seo_analista_decision_plan( $days, 25 );
+    function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array(), $plan = null ) {
+        // Reuse the unified Analysis decision portfolio when provided.
+        if ( ! is_array( $plan ) ) {
+            $plan = seo_analista_decision_plan( $days, 25 );
+        }
         $actions = taxocommerce_google_bing_geo_recommendations( (array) $plan, 5 );
         echo '<section class="seo-analista-section"><h3>Hasta cinco mejoras prioritarias verificables</h3>';
         echo '<p>SEO y preparación para que los asistentes encuentren información fiable. No son posiciones en ChatGPT, Gemini o Claude ni garantías de recomendación.</p>';
