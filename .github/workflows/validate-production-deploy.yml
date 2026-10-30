@@ -21,6 +21,59 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install YAML parser
         run: python3 -m pip install --user PyYAML
+      # Non-destructive investigation: no credentials, no changes to PRO.
+      - name: Diagnose PRO HTTP 403 (read-only public GETs)
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          import urllib.error
+          import urllib.request
+
+          base = 'https://www.distribuidordeherramientas.es'
+          paths = {
+              'homepage': '/',
+              'rest-root': '/wp-json/',
+              'inventory-rest': '/wp-json/taxocommerce/v1/deploy-active-modules',
+              'inventory-fallback': '/?rest_route=%2Ftaxocommerce%2Fv1%2Fdeploy-active-modules',
+          }
+          for name, path in paths.items():
+              request = urllib.request.Request(base + path, headers={
+                  'Accept': 'application/json' if name != 'homepage' else 'text/html',
+                  'Cache-Control': 'no-cache',
+                  'User-Agent': 'TaxoCommerce-Deploy-Inventory/1.0',
+              })
+              try:
+                  response = urllib.request.urlopen(request, timeout=20)
+              except urllib.error.HTTPError as exc:
+                  response = exc
+              except Exception as exc:
+                  print(name, 'network_error', type(exc).__name__, str(exc)[:150])
+                  continue
+              with response:
+                  body = response.read(4096)
+                  ctype = response.headers.get('Content-Type', '')
+                  title = ''
+                  if 'json' in ctype.lower():
+                      try:
+                          payload = json.loads(body)
+                          title = str(payload.get('code', '') if isinstance(payload, dict) else '')
+                      except (UnicodeDecodeError, ValueError):
+                          title = 'invalid_json'
+                  elif 'html' in ctype.lower():
+                      match = re.search(rb'<title[^>]*>(.*?)</title>', body, re.I | re.S)
+                      title = re.sub(r'\\s+', ' ', match.group(1).decode('utf-8', 'replace'))[:120] if match else 'html_without_title'
+                  print(name, 'http', response.status,
+                        'content_type', ctype[:75],
+                        'server', response.headers.get('Server', '')[:75],
+                        'title_or_code', title[:120])
+          PY
+      - name: Test PRO REST inventory fallback and strict response validation (offline)
+        run: |
+          python3 -m py_compile .github/scripts/fetch_pro_installed_modules.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_fetch_pro_installed_modules.py' -v
+
       - name: Validate syntax and production safety contract
         shell: bash
         run: |
@@ -43,7 +96,7 @@ jobs:
           assert 'readme.txt' in code and 'Stable tag:' in code
           assert "grep -Fx 'readme.txt'" in code and '-x \'readme.txt\'' not in code
           assert "zip -qr" in code and "unzip -t" in code
-          assert 'deploy-active-modules' in code and 'hash' in code
+          assert 'fetch_pro_installed_modules.py' in code and 'hash' in code
           assert 'if ! cmp -s' in code
           assert 'reconcile_taxocommerce_pro.py plan' in code
           assert 'reconcile_taxocommerce_pro.py apply' in code
