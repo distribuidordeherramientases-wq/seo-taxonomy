@@ -2,25 +2,28 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.4.5
+Sin novedades pendientes documentadas.
+
+
+## [0.4.5]
 
 * Fixed Auto Test false positives: an empty complete backup is a failure; absent SEO tables are reported as not executed instead of success.
 * Improved the 17-cleanup-action regression contract and documented the Auto Test in the user/developer manuals.
 * No changes to cleanup, repair, export engines or SQL operations.
 
-### 0.4.4
+## [0.4.4]
 
 * Use prepared SQL identifier placeholders for critical Database queries and fix the dynamic-role prepared statement.
 * Verify nonce in the object-reset action handler; keep all original cleanups, exports and Auto Test.
 
-### 0.4.3
+## [0.4.3]
 
 * Added read-only Database Auto Test: 17 independent checks of original services, MySQL connectivity, SEO schemas, read-only sampling, export availability, hooks, and developer manual.
 * Per-user last two reports (30-day expiration), showing changes between before/after deployments. No destructive SQL or real export downloads.
 
-### 0.4.2
+## [0.4.2]
 
 * Add a seventh Manual tab with complete user and developer documentation, readable in WordPress admin.
 * Document all existing buttons and cleanup actions, file architecture, hooks, SQL data model, limitations and extension testing.
@@ -29,19 +32,19 @@
 * Kept the original diagnostics, repairs, cleanup actions and data exports.
 * Excluded the cross-plugin Data Layer and historical rollback support.
 
-### 0.4.1
+## [0.4.1]
 
 * Organise the six restored database panels into one navigation bar.
 
-### 0.4.0
+## [0.4.0]
 
 * Restore Clean Database and SEO Data Table from the monolith.
 
-### 0.3.0
+## [0.3.0]
 
 * Restore the original three Clean Database panels and legacy maintenance checks.
 
-### 0.2.0
+## [0.2.0]
 
 * Introduce standalone database diagnostics and optional maintenance controls.
 
