@@ -7,6 +7,12 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.4.39]
+
+- Package-only Plugin Check remediation: distribute without development tests or hidden FTP state files.
+- Retain full regression tests in CI and keep Core menus, international scopes, SEO architecture and data unchanged.
+
+
 
 ## [0.4.38]
 
