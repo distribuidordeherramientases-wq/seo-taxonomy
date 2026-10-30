@@ -9,6 +9,7 @@ on:
         type: string
         default: ''
 
+
 permissions:
   contents: read
 
@@ -24,33 +25,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout production version from MAIN
+      # The workflow lives on MAIN, but the deployable source is STAGING.
+      # A workflow PR merged to MAIN must not silently deploy stale MAIN code.
+      - name: Checkout validated source from STAGING
         uses: actions/checkout@v6
         with:
-          ref: main
+          ref: staging
 
-      - name: Validate Core FTPS cleanup Python syntax
-        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+      - name: Record deployed source revision
+        run: |
+          echo "PRO source: staging @ $(git rev-parse HEAD)"
+          test "$(git branch --show-current)" = "staging"
 
       - name: Validate PRO reconciliation and protection rules
         run: |
           python3 -m py_compile .github/scripts/reconcile_taxocommerce_pro.py
           python3 -m unittest discover -s .github/scripts/tests -p 'test_reconcile_taxocommerce_pro.py' -v
 
-      - name: Validate Core readme and plugin version before production packaging
+      - name: Validate all TaxoCommerce version headers and readmes
         shell: bash
         run: |
           python3 - <<'PY'
           import re
           from pathlib import Path
 
-          main_file = Path("taxocommerce-core/taxocommerce-core.php").read_text(encoding="utf-8")
-          readme = Path("taxocommerce-core/readme.txt").read_text(encoding="utf-8")
-          main_version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main_file)
-          stable_tag = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
-          if not main_version or not stable_tag or main_version.group(1) != stable_tag.group(1):
-              raise SystemExit("Core version and readme Stable tag differ; stop before production upload.")
-          print("Core plugin and readme version verified:", main_version.group(1))
+          modules = sorted(
+              folder for folder in Path('.').glob('taxocommerce-*')
+              if folder.is_dir() and (folder / (folder.name + '.php')).is_file()
+          )
+          if not modules:
+              raise SystemExit("No TaxoCommerce modules available in STAGING")
+          for module in modules:
+              main = (module / (module.name + '.php')).read_text(encoding="utf-8")
+              readme_file = module / 'readme.txt'
+              if not readme_file.is_file():
+                  raise SystemExit(f"{module.name}: missing readme.txt, abort before PRO")
+              readme = readme_file.read_text(encoding="utf-8")
+              version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main)
+              stable = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
+              if not version or not stable or version.group(1) != stable.group(1):
+                  raise SystemExit(f"{module.name}: plugin Version and readme Stable tag differ")
+              print(f"{module.name}: Version/Stable tag {version.group(1)} OK")
+          print("Validated modules:", len(modules))
           PY
 
       - name: Subir TaxoCommerce SEO antiguo a producción por FTPS
@@ -75,6 +91,9 @@ jobs:
             **/*.pot
             taxocommerce-*/**
             packages/**
+            wp-content/uploads/**
+            **/uploads/**
+            **/.ftp-deploy-sync-state.json
 
       - name: Instalar cliente FTPS y compresor ZIP
         shell: bash
@@ -100,7 +119,7 @@ jobs:
           done
 
           if [ "${#valid_modules[@]}" -eq 0 ]; then
-            echo "::error::No se encontraron plugins TaxoCommerce válidos en MAIN."
+            echo "::error::No se encontraron plugins TaxoCommerce válidos en STAGING."
             exit 1
           fi
 
@@ -112,7 +131,7 @@ jobs:
           )"
 
           echo "modules=$modules_json" >> "$GITHUB_OUTPUT"
-          echo "Plugins TaxoCommerce disponibles en MAIN: $modules_json"
+          echo "Plugins TaxoCommerce disponibles en STAGING: $modules_json"
 
       - name: Leer plugins TaxoCommerce instalados en PRO
         id: installed
@@ -203,17 +222,13 @@ jobs:
             echo "Preparando ZIP instalable para $module..."
             zip -qr "$package" "$module" \
               -x "$module/tests/*" \
-                 "$module/readme.txt" \
+                 "$module/uploads/*" \
                  "$module/*.md" \
                  "$module/*.pot" \
                  "$module/node_modules/*" \
                  "$module/*.bak"
-
-            if [ "$module" = "taxocommerce-core" ]; then
-              # Core's WordPress.org readme must not be left behind on the server.
-              zip -q "$package" "$module/readme.txt"
-              unzip -Z1 "$package" | grep -Fx "$module/readme.txt" >/dev/null
-            fi
+            # Every plugin ships its own current readme, not only Core.
+            unzip -Z1 "$package" | grep -Fx "$module/readme.txt" >/dev/null
 
             unzip -t "$package" >/dev/null
             unzip -Z1 "$package" | grep -Fx "$module/$module.php" >/dev/null
@@ -269,7 +284,7 @@ jobs:
           )
 
           if [ "${#allowed_modules[@]}" -eq 0 ]; then
-            echo "::error::La lista de módulos de MAIN está vacía; comprueba ALL_MODULES_JSON antes de escribir en PRO."
+            echo "::error::La lista de módulos de STAGING está vacía; comprueba ALL_MODULES_JSON antes de escribir en PRO."
             exit 1
           fi
           echo "Validación previa: ${#installed_modules[@]} instalados en PRO; ${#allowed_modules[@]} disponibles en MAIN."
@@ -281,12 +296,12 @@ jobs:
 
           for module in "${installed_modules[@]}"; do
             if [ -z "${allowed_lookup[$module]:-}" ]; then
-              echo "::error::PRO devolvió un módulo TaxoCommerce instalado que no existe correctamente en MAIN: $module"
+              echo "::error::PRO devolvió un módulo TaxoCommerce instalado que no existe correctamente en STAGING: $module"
               exit 1
             fi
 
             if [ ! -f "$module/$module.php" ]; then
-              echo "::error::El módulo instalado $module no existe correctamente en MAIN."
+              echo "::error::El módulo instalado $module no existe correctamente en STAGING."
               exit 1
             fi
           done
@@ -330,23 +345,20 @@ jobs:
               cp -a includes/facturas/dompdf "$module/includes/dompdf"
             fi
 
-            echo "Empaquetando $module sin tests ni documentación..."
+            echo "Empaquetando $module sin tests ni datos, conservando readme.txt..."
             (
               cd "$module"
               zip -qr "$package" . \
                 -x 'tests/*' \
-                -x 'readme.txt' \
+                -x 'uploads/*' \
                 -x '*.md' \
                 -x '*.pot' \
                 -x 'node_modules/*' \
                 -x '*.bak'
             )
-
-            if [ "$module" = "taxocommerce-core" ]; then
-              # The delta installer updates existing files; ship the current readme too.
-              ( cd "$module" && zip -q "$package" readme.txt )
-              unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
-            fi
+            unzip -t "$package" >/dev/null
+            unzip -Z1 "$package" | grep -Fx "$module.php" >/dev/null
+            unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
 
             echo "Subiendo un único paquete temporal para $module..."
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
@@ -445,13 +457,114 @@ jobs:
 
           echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
 
-      - name: Remove obsolete Core developer artifacts from PRO after successful sync
-        if: ${{ contains(fromJSON(steps.installed.outputs.modules), 'taxocommerce-core') }}
+      - name: Remove obsolete deployment artifacts from installed TaxoCommerce plugins
+        # Runs only AFTER WordPress confirms every installed plugin was updated.
+        # Never recursively mirror --delete: unmanaged files and uploads are preserved.
+        if: ${{ steps.installed.outputs.modules != '[]' }}
+        shell: bash
         env:
-          TC_CORE_FTP_HOST: ${{ secrets.FTP_SERVER }}
-          TC_CORE_FTP_USER: ${{ secrets.FTP_USERNAME }}
-          TC_CORE_FTP_PASS: ${{ secrets.FTP_PASSWORD }}
-        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+          INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
+          FTP_HOST: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import ftplib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          modules = json.loads(os.environ["INSTALLED_MODULES_JSON"])
+          if not isinstance(modules, list):
+              raise SystemExit("Invalid installed plugin list")
+
+          legacy_core = (
+              "anomalies-smoke.php", "architecture-report-smoke.php",
+              "auto-test-navigation-smoke.php", "auto-test-smoke.php",
+              "content-inventory-smoke.php", "country-scope-smoke.php",
+              "editorial-guide-smoke.php", "extensions-dashboard-smoke.php",
+              "family-menu-smoke.php", "hierarchy-country-schema-smoke.php",
+              "menu-editor-smoke.php", "modular-architecture-smoke.php",
+              "user-guide-smoke.php",
+          )
+          legacy_images = (
+              "early-i18n-smoke.php", "functional-contract.php",
+              "audit-load-smoke.php", "auto-test-smoke.php", "manual-smoke.php",
+              "audit-browser-smoke.js",
+          )
+          ftp = ftplib.FTP_TLS(timeout=45)
+          ftp.connect(os.environ["FTP_HOST"], 21)
+          ftp.login(os.environ["FTP_USER"], os.environ["FTP_PASS"])
+          ftp.prot_p()
+
+          def remove_file(remote):
+              try:
+                  ftp.delete(remote)
+                  print("REMOVED obsolete deployment artifact:", remote)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+
+          def remove_dir_if_empty(remote):
+              try:
+                  ftp.rmd(remote)
+              except ftplib.error_perm as exc:
+                  if not str(exc).startswith("550"):
+                      raise
+                  # Distinguish an absent directory from one that is non-empty.
+                  try:
+                      ftp.cwd(remote)
+                  except ftplib.error_perm as missing:
+                      if not str(missing).startswith("550"):
+                          raise
+                      return
+                  ftp.cwd("..")
+                  raise RuntimeError(
+                      "Unmanaged files remain in " + remote +
+                      "; preserved, manual review required before deleting."
+                  ) from exc
+
+          try:
+              ftp.cwd("./wp-content/plugins/")
+              for slug in modules:
+                  if not isinstance(slug, str) or not re.fullmatch(r"taxocommerce-[a-z0-9-]+", slug):
+                      raise RuntimeError("Unrecognized plugin slug from production")
+                  source = Path(slug)
+                  if not (source / (slug + ".php")).is_file():
+                      raise RuntimeError("Plugin source missing in staging: " + slug)
+                  tests = source / "tests"
+                  files = set()
+                  dirs = set()
+                  if tests.is_dir():
+                      for file in tests.rglob("*"):
+                          relative = file.relative_to(source).as_posix()
+                          if file.is_symlink():
+                              raise RuntimeError("Unsafe symbolic link in tests: " + relative)
+                          if file.is_file():
+                              files.add(relative)
+                          elif file.is_dir():
+                              dirs.add(relative)
+                  if slug == "taxocommerce-core":
+                      files.update("tests/" + name for name in legacy_core)
+                  if slug == "taxocommerce-images":
+                      files.update("tests/" + name for name in legacy_images)
+
+                  ftp.cwd(slug)
+                  remove_file(".ftp-deploy-sync-state.json")
+                  for name in sorted(files):
+                      if not name.startswith("tests/") or ".." in Path(name).parts:
+                          raise RuntimeError("Unsafe tests path: " + name)
+                      remove_file(name)
+                  for dirname in sorted(dirs, key=lambda part: part.count("/"), reverse=True):
+                      remove_dir_if_empty(dirname)
+                  remove_dir_if_empty("tests")
+                  ftp.cwd("..")
+                  print(slug, ": known obsolete developer files cleaned; runtime files preserved.")
+          finally:
+              ftp.quit()
+          PY
 
       - name: Compare deployed ZIPs against PRO files and propose removals
         env:
