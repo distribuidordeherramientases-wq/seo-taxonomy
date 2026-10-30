@@ -254,12 +254,20 @@ final class TCD_Academy {
                 $result='quality_accept_rejected';
                 self::log('quality_accept_rejected',array('lesson'=>$lesson,'reason'=>'invalid_current_state'));
             }else{
-                $accepted=TCD_Intelligence::accept_failed_quality($lesson,$snapshot_id);
-                if(is_wp_error($accepted)){
+                global $wpdb;
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Keep acceptance, snapshot completion and staged knowledge promotion atomic.
+                $transaction=$wpdb->query('START TRANSACTION');
+                if(false===$transaction){
                     $result='quality_accept_rejected';
-                    self::log('quality_accept_rejected',array('lesson'=>$lesson,'error'=>$accepted->get_error_message()));
+                    self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'transaction_start_failed'));
                 }else{
-                    global $wpdb;
+                    $accepted=TCD_Intelligence::accept_failed_quality($lesson,$snapshot_id);
+                    if(is_wp_error($accepted)){
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Undo the explicit acceptance atomically on failure.
+                        $wpdb->query('ROLLBACK');
+                        $result='quality_accept_rejected';
+                        self::log('quality_accept_rejected',array('lesson'=>$lesson,'error'=>$accepted->get_error_message()));
+                    }else{
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Update the existing, audited plugin-owned snapshot after explicit owner acceptance.
                     $updated=$wpdb->update(
                         self::snapshots_table(),
@@ -267,8 +275,15 @@ final class TCD_Academy {
                         array('id'=>$snapshot_id,'status'=>'quality_failed')
                     );
                     if(1!==$updated){
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Roll back the quality decision and staged promotion if the snapshot cannot advance.
+                        $wpdb->query('ROLLBACK');
                         $result='quality_accept_rejected';
                         self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'snapshot_write_failed'));
+                    }elseif(false===$wpdb->query('COMMIT')){ // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Finalize atomic owner acceptance.
+                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed transaction must never leave a partial acceptance.
+                        $wpdb->query('ROLLBACK');
+                        $result='quality_accept_rejected';
+                        self::log('quality_accept_error',array('lesson'=>$lesson,'reason'=>'transaction_commit_failed'));
                     }else{
                         TCD_Intelligence::reset_quality_progress($lesson,$snapshot_id);
                         delete_option('tcd_learning_stop');
@@ -295,6 +310,7 @@ final class TCD_Academy {
                             'failed'=>$accepted['failed'],
                         ));
                         $result='quality_accepted';
+                    }
                     }
                 }
             }
