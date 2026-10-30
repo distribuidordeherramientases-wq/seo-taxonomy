@@ -2,14 +2,17 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.2.0
+Sin novedades pendientes documentadas.
+
+
+## [0.2.0]
 
 * Move WooCommerce sale-to-supplier purchasing from Logistics into Suppliers.
 * Add Purchasing dashboard with supplier source, cost, purchase URL, and missing-source detection.
 
-### 0.1.0
+## [0.1.0]
 
 * Initial independent Suppliers module.
 
