@@ -322,37 +322,126 @@ if ( ! function_exists( 'taxocommerce_google_bing_geo_recommendations' ) ) {
     }
 }
 
-if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
-    function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array(), $plan = null ) {
-        // Reuse the unified Analysis decision portfolio when provided.
-        if ( ! is_array( $plan ) ) {
-            $plan = seo_analista_decision_plan( $days, 25 );
+if ( ! function_exists( 'taxocommerce_google_bing_geo_commercial_candidates' ) ) {
+    /**
+     * Derive commercial investigations strictly from a saved GA4 funnel.
+     * Events are aggregate counts, not evidence of individual abandonments.
+     *
+     * @param array $ga4 GA4 snapshot supplied by Analysis.
+     * @return array
+     */
+    function taxocommerce_google_bing_geo_commercial_candidates( array $ga4 ) {
+        if ( empty( $ga4['available'] ) ) {
+            return array();
         }
-        $actions = taxocommerce_google_bing_geo_recommendations( (array) $plan, 5 );
-        echo '<section class="seo-analista-section"><h3>Hasta cinco mejoras prioritarias verificables</h3>';
-        echo '<p>SEO y preparación para que los asistentes encuentren información fiable. No son posiciones en ChatGPT, Gemini o Claude ni garantías de recomendación.</p>';
-        if ( ! $actions ) {
-            echo '<p>No hay acciones con evidencia y destino suficientes en las fuentes actuales. Revisar Plan de acción y Fuentes; no se proponen cambios inventados.</p>';
+        $funnel = (array) ( $ga4['funnel'] ?? array() );
+        $sessions = max( 0, (int) ( $ga4['sessions'] ?? 0 ) );
+        $purchases = max( 0, (int) ( $ga4['purchases'] ?? 0 ) );
+        $checkouts = max( 0, (int) ( $funnel['begin_checkout'] ?? 0 ) );
+        $carts = max( 0, (int) ( $funnel['add_to_cart'] ?? 0 ) );
+        $entries = array();
+
+        if ( $sessions > 0 && $checkouts > $purchases ) {
+            $entries[] = array(
+                'title' => 'Conversión: revisar checkout',
+                'url' => function_exists( 'wc_get_checkout_url' ) ? (string) wc_get_checkout_url() : '',
+                'action' => 'Comprobar pagos, transporte y medición en una compra de prueba. No atribuir abandonos sin datos por usuario.',
+                'evidence' => $checkouts . ' inicios de compra frente a ' . $purchases . ' compras; recuentos agregados de GA4.',
+                'source' => 'Google Analytics 4 · embudo de WooCommerce',
+                'bucket' => 'INVESTIGAR',
+                'origin' => 'comercial',
+            );
+        }
+        if ( $sessions > 0 && $carts > $checkouts ) {
+            $entries[] = array(
+                'title' => 'Conversión: revisar carrito',
+                'url' => function_exists( 'wc_get_cart_url' ) ? (string) wc_get_cart_url() : '',
+                'action' => 'Comprobar los costes finales y la transición del carrito al checkout antes de proponer cambios.',
+                'evidence' => $carts . ' eventos de añadir al carrito frente a ' . $checkouts . ' inicios de compra; recuentos agregados de GA4.',
+                'source' => 'Google Analytics 4 · embudo de WooCommerce',
+                'bucket' => 'INVESTIGAR',
+                'origin' => 'comercial',
+            );
+        }
+        return $entries;
+    }
+}
+
+if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
+    /**
+     * One strategic shortlist: commercial investigations plus validated Analista,
+     * Auditor, Product JSON-LD and Merchant signals. The complete action plan
+     * is rendered below by the historical roadmap function.
+     *
+     * @param int        $days Analysis window.
+     * @param array      $ga4 Saved analytics evidence, or unavailable.
+     * @param array|null $plan Shared decision-plan rows, computed by Insights.
+     * @return void
+     */
+    function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array(), $plan = null ) {
+        if ( ! is_array( $plan ) ) {
+            $plan = seo_analista_decision_plan( $days, 40 );
+        }
+        $seo = taxocommerce_google_bing_geo_recommendations( (array) $plan, 5 );
+        $commercial = taxocommerce_google_bing_geo_commercial_candidates( $ga4 );
+        $strategy = array();
+        $seen = array();
+        // Preserve source attribution, prioritise validated executable actions
+        // before investigations, and do not present any research as executable.
+        foreach ( $seo as $item ) {
+            if ( 'HACER_AHORA' === ( $item['bucket'] ?? '' ) ) {
+                $strategy[] = $item;
+            }
+        }
+        foreach ( array_merge( $commercial, $seo ) as $item ) {
+            if ( count( $strategy ) >= 5 ) {
+                break;
+            }
+            if ( 'HACER_AHORA' === ( $item['bucket'] ?? '' ) ) {
+                continue;
+            }
+            $strategy[] = $item;
+        }
+        $unique = array();
+        foreach ( $strategy as $item ) {
+            $key = strtolower( rtrim( (string) ( $item['url'] ?? '' ), '/' ) );
+            $key = $key ?: (string) ( $item['origin'] ?? '' ) . ':' . (string) ( $item['title'] ?? '' );
+            if ( isset( $seen[ $key ] ) ) {
+                continue;
+            }
+            $seen[ $key ] = true;
+            $unique[] = $item;
+            if ( count( $unique ) === 5 ) {
+                break;
+            }
+        }
+
+        echo '<section class="seo-analista-section seo-analista-strategy"><h2>Plan estratégico integrado: ventas, SEO y visibilidad en IA</h2>';
+        echo '<p>Una única selección de actuaciones basada en Analytics, Analista, Auditor, Merchant y evidencias de datos estructurados, cuando estén disponibles. Se distingue lo ejecutable de lo que requiere investigación.</p>';
+        if ( ! $unique ) {
+            echo '<p>No hay recomendaciones con evidencia suficiente en las fuentes disponibles. El plan de acción completo conserva las tareas para investigar o vigilar, sin fabricar intervenciones.</p>';
         } else {
             echo '<ol class="seo-analista-geo-priorities">';
-            foreach ( $actions as $action ) {
-                echo '<li><strong>' . esc_html( (string) $action['title'] ) . '</strong> · ' . esc_html( (string) $action['bucket'] );
-                echo '<p>' . esc_html( (string) $action['action'] ) . '</p>';
-                if ( '' !== (string) $action['evidence'] ) {
-                    echo '<p><small>Evidencia: ' . esc_html( (string) $action['evidence'] ) . '</small></p>';
+            foreach ( $unique as $item ) {
+                echo '<li><strong>' . esc_html( (string) ( $item['title'] ?? '' ) ) . '</strong> · ';
+                echo '<strong>' . esc_html( (string) ( $item['bucket'] ?? 'INVESTIGAR' ) ) . '</strong>';
+                echo '<p>' . esc_html( (string) ( $item['action'] ?? '' ) ) . '</p>';
+                echo '<p><small>Evidencia: ' . esc_html( (string) ( $item['evidence'] ?? 'No especificada' ) ) . '</small></p>';
+                echo '<p><small>Fuente: ' . esc_html( (string) ( $item['source'] ?? 'No especificada' ) ) . '</small>';
+                if ( ! empty( $item['url'] ) ) {
+                    echo ' · <a href="' . esc_url( (string) $item['url'] ) . '" target="_blank" rel="noopener noreferrer">Ver destino</a>';
                 }
-                echo '<p><small>Fuente: ' . esc_html( (string) ( $action['source'] ?: 'No especificada' ) ) . '</small> · ';
-                echo '<a href="' . esc_url( (string) $action['url'] ) . '" target="_blank" rel="noopener noreferrer">Ver URL</a></p></li>';
+                echo '</p></li>';
             }
             echo '</ol>';
         }
         if ( ! empty( $ga4['available'] ) ) {
-            echo '<p><strong>Visitas atribuidas a asistentes IA en GA4:</strong> '
+            echo '<p><strong>Sesiones atribuidas a asistentes IA en GA4:</strong> '
                 . esc_html( number_format_i18n( (int) ( $ga4['traffic_quality']['ai_sessions'] ?? 0 ) ) )
-                . '. No mide respuestas, citas ni menciones de marca.</p>';
+                . '. Es tráfico referido, no menciones de marca ni visibilidad en respuestas.</p>';
         } else {
-            echo '<p><strong>Visitas atribuidas a asistentes IA:</strong> N/D (GA4 no disponible).</p>';
+            echo '<p><strong>Sesiones atribuidas a asistentes IA:</strong> N/D (GA4 no disponible).</p>';
         }
-        echo '<p class="description">Los informes de Auditor, Merchant y competencia solo se aprovechan si existen snapshots recientes. Este bloque no consume APIs, no publica cambios y no calcula autoridad de backlinks sin fuente.</p></section>';
+        echo '<p class="description">Las buenas prácticas SEO/GEO no implican una integración con GPTCore ni garantizan apariciones en ChatGPT, Gemini o Claude. Las referencias a autoridad, backlinks o menciones reales se omiten si no hay mediciones verificables. No se ejecutan acciones automáticamente.</p></section>';
     }
 }
