@@ -53,3 +53,10 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 * Restored the two original database services and removed duplicated or non-original tools.
 * Kept the original diagnostics, repairs, cleanup actions and data exports.
 * Excluded the cross-plugin Data Layer and historical rollback support.
+
+= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+* Legacy origin: Clean Database and SEO Data Table were administration tools of TaxoCommerce SEO before being extracted; the monolith release identifiers 2.2.x–2.4.1 are not Database plugin versions.
+* The original clean-up workflow inspected persisted SEO, catalogue and maintenance data and required explicit administrator actions for destructive operations.
+* The SQL/data-table explorer and original cleanup checks formed two distinct functional areas; their historic behavior and existing tables were preserved during extraction.
+* The standalone migration was corrected to restore complete legacy Clean Database and SEO Data Table functions instead of replacing them with a simplified Data Layer design.
+* Later standalone releases brought six sibling tabs, documentation, 17 grouped Auto Test checks and a before/after baseline without removing the legacy cleanup actions.
