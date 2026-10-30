@@ -4,6 +4,13 @@
 
 ## Versiones independientes
 
+### En desarrollo — STAGING (posterior a 1.1.14)
+
+* Unify the former **Qué hacer** and **Plan de acción** reports into one executive Analysis view while preserving the original specialized reports.
+* Present commercial KPIs, up to five evidence-backed SEO/GEO recommendations and the full validated roadmap together; no unsupported immediate actions.
+* Reuse a single decision-plan computation for the GEO summary and roadmap, keep Analytics and source snapshots read-only, and add standalone regression coverage.
+* Preserve the historical SEO plugin and `changelog.txt` unchanged. No WordPress.org release or production deployment in this change.
+
 ### 1.1.14
 
 * Use the TaxoCommerce Insights plugin prefix for seven new GEO functions flagged by WordPress Plugin Check.
