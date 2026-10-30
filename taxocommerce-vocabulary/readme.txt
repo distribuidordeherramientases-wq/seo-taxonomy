@@ -40,7 +40,7 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 = 0.3.0 =
 * Canonical storage reuse, independent classifier and CSV master exchange.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: the monolith 2.2.1–2.2.8 cycles implemented the Vocabulary bridge, canonical product tags, semantic label editing and mapping between terms and catalogue records.
 * The old SEO relationships and vocabulary tables were an input to taxonomy, category mapping, catalogue search and Dependiente semantic interpretation.
 * Monolith 2.3.x evolved semantic classification and evidence-based relationships; vocabulary data had to remain stable while the plugins were separated.
