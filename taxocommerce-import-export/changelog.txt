@@ -1,0 +1,144 @@
+HISTORIAL DE ORIGEN — Import-Export
+
+Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
+Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se atribuyen fechas que no consten en las fuentes.
+
+EVOLUCIÓN Y EXTRACCIÓN
+* Monolith: Supplier Import / Sync V2 (2.2.0); supplier CSV/XLSX catalogues (2.3.x); VEVOR CSV and trash-aware content (2.4.0).
+* Standalone: CSV pilot (0.1.x), Media ZIP (0.2.0), multi-file queue (0.3.0), then 0.4.x resumable exports, country codes, adaptive batches and Auto Test.
+
+CAMBIOS RECOGIDOS EN EL MONOLITO
+
+## [2.4.1] - 2026-10-25
+Versión del monolito (no de Import-Export).
+
+## [2.4.0] - 2026-10-13
+Versión del monolito (no de Import-Export).
+[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
+[Resumen ejecutivo del ciclo 2.4.0] - **Catálogo y proveedores:** ampliación de importación/exportación CSV, estados de publicación y papelera, flujos de proveedores y piloto internacional VEVOR con categorías, idiomas y enlaces de afiliación.
+[Import / Export] - Páginas y entradas pueden exportarse incluyendo **Papelera (`trash`)** y reimportarse para enviar contenido existente a la papelera mediante el flujo nativo de WordPress.
+[Import / Export] - La importación acepta `trash`, `papelera` y `basura`; la exportación escribe siempre el valor canónico `trash`.
+[Import / Export] - Un CSV con estado de papelera no crea contenido nuevo ni realiza borrado definitivo; la simulación informa de la acción y un objeto en papelera puede restaurarse al importar otro estado válido.
+[Import / Export] - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
+[Import / Export] - Los callbacks GitHub/Python y Google/Python validan la estructura del CSV estándar antes del `sideload` seguro y habilitan el fallback MIME solo después de esa validación, evitando rechazos de CSV válidos introducidos por el endurecimiento de subidas para WordPress.org.
+[Consolidación funcional] - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
+[Consolidación funcional] - Dependiente incorpora estadísticas separadas de GA4, Search Console y uso interno, con exportación JSON para análisis.
+
+## [2.3.10] - 2026-10-06
+Versión del monolito (no de Import-Export).
+- Novedades distingue **Nueva categoría/familia**, **Hueco en catálogo**, **Producto/tecnología en tendencia** y **Expansión estratégica**, con exportación JSON auditable.
+- Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
+
+## [2.3.9] - 2026-09-30
+Versión del monolito (no de Import-Export).
+[Dependiente, Academia e Intérprete] - Añadido diagnóstico en vivo de la **Lección 9** del Intérprete, con fase actual, conservación semántica, ruido, patrones consolidados, regresión y exportación JSON sin alterar el algoritmo de aprendizaje.
+[Ingeniero, Clasificador y Semántica] - Añadida importación y exportación de conocimiento de Ingeniero en **CSV y JSON**, con remapeo de fuentes y estados de revisión.
+[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+[Auditor, Analista y control de calidad] - Analista 3.8.0 incorpora **Informe competitivo profundo**: dominios configurables, muestreo SERP automático con SerpApi → ScraperAPI, auditoría pública acotada, matriz 1–5 con confianza de evidencia, fortalezas/brechas, plan priorizado y exportación JSON.
+[Auditor, Analista y control de calidad] - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
+[Auditor, Analista y control de calidad] - Mejorado el informe de **Anomalías** para reducir falsos positivos en páginas funcionales/corporativas y añadir exportación JSON.
+[Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
+[Marketing, campañas y redes sociales] - Ampliada la importación/exportación de campañas a registros de campaña y producto, con resolución por `product_id`/SKU, modo fusión y sustitución explícita.
+[Marketing, campañas y redes sociales] - Añadida autodetección de filas de producto para mantener compatibilidad con CSV antiguos sin `record_type`.
+[Marketing, campañas y redes sociales] - Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
+[Marketing, campañas y redes sociales] - Añadida prioridad editorial para Noticias y soporte del campo `prioridad` en Programador/CSV.
+[Comparador, carrito y documentos comerciales] - Añadida exportación de comparativas a **PDF A4 apaisado** reutilizando Dompdf.
+[Comparador, carrito y documentos comerciales] - Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
+[Comparador, carrito y documentos comerciales] - Los documentos de cliente muestran la **referencia interna/object_id** en lugar del SKU real del proveedor, manteniendo el SKU para la operativa interna.
+[Comparador, carrito y documentos comerciales] - Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
+[Proveedores e importación] - Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
+
+## [2.3.8.1] - 2026-09-26
+Versión del monolito (no de Import-Export).
+[Marketing y campañas] - Ampliada la importación/exportación a un formato completo con registros `campaign` y `product`, incluyendo producto, SKU, precio de campaña y posición.
+[Marketing y campañas] - La importación completa mantiene compatibilidad con los CSV/JSON antiguos que solo contienen calendario.
+[Marketing y campañas] - Añadido modo de importación por **fusión** (predeterminado) y opción explícita para **sustituir completamente los productos** de las campañas incluidas.
+
+## [2.3.7] - 2026-09-25
+Versión del monolito (no de Import-Export).
+[Marketing y campañas comerciales] - Añadida exportación e importación de campañas y programación mediante **JSON**.
+[Inventarios y proveedores] - Creado un sistema de **inventarios comerciales por proveedor**.
+[Inventarios y proveedores] - Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
+[Inventarios y proveedores] - Añadidos procesos automáticos de actualización y sincronización de inventarios con proveedores.
+[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
+[Dependiente V3 y cobertura del catálogo] - Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
+[Solucionador] - Añadida exportación del informe de Solucionador en formato **JSON**.
+[Comentarista y opiniones externas] - Corregido un error en el sistema de **importación/exportación de Comentarista**.
+[Estabilidad y mantenimiento] - Realizadas correcciones adicionales en servicios de importación, análisis y generación de informes.
+[Issues principales] - #298 — Añadir imágenes de los posts/campañas y exportación JSON.
+[Issues principales] - #292 — Agregar procesos automáticos de inventarios con proveedores.
+[Issues principales] - #288 — Sistema de envío de productos a proveedores e inventarios comerciales.
+[Issues principales] - #283 — Corregir importación/exportación de Comentarista.
+
+## [2.3.6] - 2026-09-23
+Versión del monolito (no de Import-Export).
+[Ojeador y Google Shopping] - Añadidos logs y exportación JSON para facilitar el diagnóstico y el análisis de resultados.
+[Redirecciones] - Añadidas funciones de **exportación e importación**.
+[Redes sociales] - Añadidas funciones de exportación e importación para facilitar la gestión y automatización de publicaciones.
+[Inventario y catálogo] - Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
+[Inventario y catálogo] - Añadida exportación JSON del inventario para análisis externo.
+[Inventario y catálogo] - Mejoradas las plantillas con el objetivo de reforzar su orientación comercial.
+[Inventario y catálogo] - Adaptada la portada para poder utilizar información estadística y priorizar dinámicamente los contenidos con mayor interés.
+[Importación, proveedores e imágenes] - Corregida la rotación y limpieza de archivos generados por Importar/Exportar.
+[Importación, proveedores e imágenes] - Mejorada la eliminación automática de archivos antiguos ya procesados.
+[Importación, proveedores e imágenes] - Corregida la gestión de imágenes para evitar almacenar innecesariamente en Media imágenes que deben permanecer asociadas al proveedor.
+[Importación, proveedores e imágenes] - Mejorado el Clonador PRO para ampliar la cobertura de los elementos transferidos entre Producción y Staging.
+[Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+
+## [2.3.5]- 2026-09-17
+Versión del monolito (no de Import-Export).
+[Academia, Lingüista y aprendizaje] - Añadida exportación de la evolución y estado de Lingüista en formato JSON para diagnóstico y seguimiento.
+[Proveedores e importación] - Incorporado soporte para un **importador externo**.
+[Proveedores e importación] - Actualización de la integración con **Rubix** para procesos de scraping.
+[Proveedores e importación] - Añadido lanzador específico para Rubix.
+[Proveedores e importación] - Eliminada una receta antigua de importación de Emuca que ya no formaba parte del flujo vigente.
+[Proveedores e importación] - Mejoras en la gestión e inventario reducido utilizado durante procesos de importación.
+[Proveedores e importación] - Mejorado el exportador reducido de productos.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Versión del monolito (no de Import-Export).
+* nuevas herramientas para identificar y eliminar imágenes locales procedentes de proveedores;
+
+## [2.3.3] - 2026-09-08
+Versión del monolito (no de Import-Export).
+[Añadido] - Añadido soporte para importar desde PRO a STAGING páginas, categorías, entradas y productos. (#146)
+[Mejorado] - Mejorado el sistema de actualización de productos durante los procesos de importación. (#163)
+[Corregido] - Recuperado el pie específico de VEVOR. (#138)
+[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Versión del monolito (no de Import-Export).
+- Evoluciona Dependiente con entrenamiento, conocimiento persistente, importación/exportación de conocimiento y mejores respuestas ante búsquedas sin resultados.
+- Amplía la integración de producto con Amazon y otros proveedores, incorporando productos alternativos y mejorando la disponibilidad de resultados en consultas y comparativas.
+- Mejora los procesos de importación, exportación y sincronización de proveedores, incluyendo peso, dimensiones, imágenes, enlaces, control de procesos y exportaciones de apoyo para futuras cargas.
+- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
+- Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
+
+## 2.2.8 - Cierre de etiquetas legacy de producto
+Versión del monolito (no de Import-Export).
+- Bloquea nuevas escrituras de `seo_nodes/product/product` desde el importador legacy y desde la pantalla antigua de clasificación de productos.
+- El importador mantiene la columna `etiquetas` por compatibilidad de formato, pero ya no la persiste como etiqueta legacy de producto.
+- La exportación V2 rellena `etiquetas` con las facetas canónicas públicas (APLICACIÓN / PLATAFORMA / SUBTIPO), no con keywords legacy.
+
+## 2.2.2 - Canonical product role reads
+Versión del monolito (no de Import-Export).
+- Product CSV export no longer reads `seo_nodes/product/ambito` directly; public column `ambito` is still emitted from canonical ROL.
+
+## 2.2.1 - Vocabulary bridge
+Versión del monolito (no de Import-Export).
+- La cabecera CSV pública `ambito` se conserva, pero exporta el ROL canónico del producto.
+- Las importaciones legacy no pueden contradecir un ROL canónico existente; si no existe todavía, pueden crear un ROL provisional de compatibilidad.
+- `consumible` pasa a ser un ámbito/rol válido en importación, validación e informes.
+
+## 2.2.0 - Supplier Import / Sync V2
+Versión del monolito (no de Import-Export).
+- Actualizacion automatica por proveedor + SKU conservando object_id.
+- Modo de imagen persistente local/external; externo como opcion recomendada para nuevas importaciones.
+- CSV del crawler limitado a registros vistos en el ciclo actual.
+-   Exportación de tablas SEO.
+-   Importación y sincronización de datos.
+
+TRANSICIÓN A PLUGINS INDEPENDIENTES
+TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
+Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
