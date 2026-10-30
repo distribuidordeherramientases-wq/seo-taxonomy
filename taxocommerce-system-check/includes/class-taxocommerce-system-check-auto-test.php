@@ -176,8 +176,10 @@ final class TaxoCommerce_System_Check_Auto_Test {
         echo '<section class="wrap tcs-auto-test"><h2>Auto Test · System Check</h2>';
         echo '<p>Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.</p>';
         echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Auto Test</a></p>';
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selection only; check_admin_referer validates before running.
-        $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] ) && '1' === (string) wp_unslash( $_GET['tcs_run'] );
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
+        $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] )
+            && '1' === sanitize_key( wp_unslash( $_GET['tcs_run'] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( ! $requested ) {
             echo '<p class="description">Las pruebas no se ejecutan al abrir esta pestaña. Pulsa el botón para obtener un resultado actual.</p></section>';
             return;
