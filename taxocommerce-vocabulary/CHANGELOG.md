@@ -2,19 +2,22 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.3.3
+Sin novedades pendientes documentadas.
+
+
+## [0.3.3]
 
 * Replace direct PHP filesystem access in CSV import/export with WordPress-compatible handling.
 * Render import forms directly with escaped values instead of concatenating raw form markup.
 
-### 0.3.2
+## [0.3.2]
 
 * Portable semantic backups, object identity resolution and import simulation.
 * MERGE/MIRROR assignment controls and fingerprinted exports.
 
-### 0.3.0
+## [0.3.0]
 
 * Canonical storage reuse, independent classifier and CSV master exchange.
 
