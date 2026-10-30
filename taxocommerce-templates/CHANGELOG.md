@@ -2,9 +2,12 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.4.0
+Sin novedades pendientes documentadas.
+
+
+## [0.4.0]
 
 * Standalone request and WooCommerce template routing.
 * Existing editorial role and assignment compatibility.
