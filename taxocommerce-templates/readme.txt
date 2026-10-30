@@ -53,7 +53,7 @@ Use `tct_request_definitions` to extend named request definitions and `tct_reque
 * Existing editorial role and assignment compatibility.
 * Independent custom PHP template library, variants and audit reports.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: the WordPress/WooCommerce theme templates, content-role routing, cluster/hub page presentation and product/category layouts were developed within TaxoCommerce SEO; old monolith releases are not Templates versions.
 * The monolith 2.3.x–2.4.0 line included frontend content integration, editorial roles, product/category information blocks, menu assignments and canonical content relationships.
 * Standalone Templates evolved into an independent template library and editor with explicit assignment and compatibility checks for existing WordPress pages.
