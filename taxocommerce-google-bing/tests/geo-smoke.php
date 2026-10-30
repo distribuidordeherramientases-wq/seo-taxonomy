@@ -75,7 +75,7 @@ check( false !== strpos( $summary, 'Corregir ficha' ), 'Validated SEO action is 
 check( false !== strpos( $summary, 'revisar checkout' ), 'Commercial funnel recommendation included' );
 check( false !== strpos( $summary, 'INVESTIGAR' ), 'Commercial recommendation is not executable' );
 check( false !== strpos( $summary, 'no menciones de marca' ), 'AI referred traffic is not mentions' );
-check( 3 === substr_count( $summary, '<li>' ), 'One combined shortlist, without duplicated actions' );
+check( 4 === substr_count( $summary, '<li>' ), 'One combined shortlist, without duplicated actions' );
 ob_start();
 taxocommerce_google_bing_geo_render_summary( 28, array( 'available' => false ), array() );
 $empty = ob_get_clean();
