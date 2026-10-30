@@ -132,10 +132,7 @@ The package transports original image files plus title, ALT, caption, descriptio
 = 0.1.0 =
 * Initial CSV import/export pilot.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
-* Legacy origin: CSV/XLSX product imports, supplier recipes, inventory staging, queued batches and export tools were developed in TaxoCommerce SEO prior to the modular Import-Export series.
-* The legacy 2.2.0 cycle described Supplier Import / Sync V2, while 2.3.5–2.3.9 included supplier import, catalogue synchronisation and CSV data pipelines.
-* The monolith 2.4.0 added trash-aware post/page round trips and updates to VEVOR CSV validation and image-source handling.
-* The 0.1.x standalone pilot established CSV import/export; 0.2.0 moved Media ZIP import/export out of Images; 0.3.0 extracted the bounded multi-file queue.
-* Standalone 0.4.x evolved resumable exports, country fields (ES/US/FR/DE/NL), safe deletion of pending files, queue watchdogs, adaptive performance, detailed progress, Auto Test and documentation.
-* Historical import recipes and staging tables are not themselves new standalone release versions; existing catalogue records and processing offsets require compatibility during migration.
+== Historical origins (monolith; not standalone releases) ==
+* Monolith 2.2.0: Supplier Import / Sync V2; 2.3.x: CSV/XLSX supplier recipes and inventory; 2.4.0: VEVOR CSV and trash-aware content handling.
+* Standalone 0.1.x: CSV pilot; 0.2.0: Media ZIP migrated from Images; 0.3.0: bounded multi-file import queue.
+* Standalone 0.4.x: resumable exports, country codes, protected CSV deletion, adaptive batches, watchdog, progress, Auto Test and manuals.
