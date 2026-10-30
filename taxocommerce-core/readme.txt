@@ -143,6 +143,8 @@ Yes. Administrators may explicitly upload a verified module ZIP through Core's e
 * Introduced the native cluster and hub hierarchy.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-core) (changelog.txt / CHANGELOG.md).
+
 * Historical source: the TaxoCommerce SEO monolith through 2.4.1 maintained the SEO architecture, category/product relationships, taxonomy and the original WordPress administration; these are not Core standalone versions.
 * The 2.2.x legacy work included the vocabulary bridge, canonical semantic labels and the product/category relationship model.
 * During 2.3.x the monolith organised clusters, primary and secondary hubs, landing pages, menus and associated WooCommerce categories/products.
