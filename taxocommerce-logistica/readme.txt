@@ -62,7 +62,7 @@ It does not contain supplier matching, purchasing, or supplier-catalog logic.
 = 0.1.0 =
 * Migrated the existing Order Management and Shipping modules into an independent TaxoCommerce plugin.
 
-= Historical origin in TaxoCommerce SEO (through 2.4.1; not a standalone release) =
+== Historical origins (monolith; not standalone releases) ==
 * Legacy origin: shipping, transport-rate settings and WooCommerce checkout integration were originally functions of the TaxoCommerce SEO monolith; former monolith versions are not Logistics releases.
 * The original implementation stored transport configuration in seo_transporte_costes_settings; extracting Logistics preserved existing shipping rules.
 * The independent plugin was created by a one-to-one migration together with Billing, with original shipping logic retained rather than replaced.
