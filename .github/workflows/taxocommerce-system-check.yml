@@ -7,6 +7,12 @@ on:
     paths:
       - 'taxocommerce-system-check/**'
       - '.github/workflows/taxocommerce-system-check.yml'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-system-check/**'
+      - '.github/workflows/taxocommerce-system-check.yml'
   workflow_dispatch:
 
 permissions:
