@@ -1,0 +1,95 @@
+HISTORIAL LEGADO — TAXOCOMMERCE SUPPLIERS
+
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
+
+ORIGEN Y EXTRACCIÓN
+* Legacy origin: supplier catalogue recipes, CSV feeds, stock/availability imports and commercial supplier relations were maintained in TaxoCommerce SEO; legacy 2.2.x–2.4.1 are not Suppliers standalone versions.
+* The monolith 2.2.0 cycle documented Supplier Import / Sync V2; 2.3.5–2.3.9 introduced successive supplier/inventory and catalogue import improvements.
+* The original catalogue workflow used supplier data and an intermediate product inventory before WooCommerce publication, with availability and images kept attributable to their suppliers.
+* Standalone Suppliers 0.1.0 established CSV-based supplier catalogue handling and integration with the family of modular plugins.
+* Standalone 0.2.0 moved purchasing functions out of Logistics and into Suppliers, separating procurement from delivery and transport calculation.
+
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
+
+## [2.4.0] - 2026-10-13
+Cambios realizados en el plugin monolítico:
+[Resumen ejecutivo del ciclo 2.4.0] - **Catálogo y proveedores:** ampliación de importación/exportación CSV, estados de publicación y papelera, flujos de proveedores y piloto internacional VEVOR con categorías, idiomas y enlaces de afiliación.
+[Import / Export] - La receta VEVOR 1.6.0 simplifica las importaciones manuales: conserva la imagen principal externa del feed e importa directamente al catálogo intermedio, sin pasar por GitHub/Python ni por el Gestor de workers cuando no se necesita enriquecimiento F1-F12/M1-M12.
+
+## [2.3.10] - 2026-10-06
+Cambios realizados en el plugin monolítico:
+- Cada tarea de Auditor incluye `task_id`, estado, dependencia, evidencia, recomendación e impacto esperado; las contradicciones de identidad que necesitan proveedor quedan bloqueadas en `NEEDS_SOURCE_VERIFICATION` y las métricas de tráfico quedan pendientes de Analista.
+
+## [2.3.9] - 2026-09-30
+Cambios realizados en el plugin monolítico:
+[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
+[Auditor, Analista y control de calidad] - Auditor 0.13.0 añade `contexto_de_decision`: consume exclusivamente snapshots/lecturas persistidas de Analista, Ojeador, Dependiente, Comparador y proveedores, sin abrir nuevas llamadas externas durante la auditoría.
+[Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
+[Marketing, campañas y redes sociales] - Ampliada la importación/exportación de campañas a registros de campaña y producto, con resolución por `product_id`/SKU, modo fusión y sustitución explícita.
+[Marketing, campañas y redes sociales] - Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
+[Comparador, carrito y documentos comerciales] - Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
+[Comparador, carrito y documentos comerciales] - Los documentos de cliente muestran la **referencia interna/object_id** en lugar del SKU real del proveedor, manteniendo el SKU para la operativa interna.
+[Comparador, carrito y documentos comerciales] - Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
+[Proveedores e importación] - Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
+
+## [2.3.8.1] - 2026-09-26
+Cambios realizados en el plugin monolítico:
+[Marketing y campañas] - Ampliada la importación/exportación a un formato completo con registros `campaign` y `product`, incluyendo producto, SKU, precio de campaña y posición.
+[Marketing y campañas] - Los productos importados se resuelven por `product_id` y, como respaldo, por SKU; se mantienen las validaciones de solapamiento entre campañas.
+
+## [2.3.7] - 2026-09-25
+Cambios realizados en el plugin monolítico:
+[Inventarios y proveedores] - Creado un sistema de **inventarios comerciales por proveedor**.
+[Inventarios y proveedores] - Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
+[Inventarios y proveedores] - Añadidos procesos automáticos de actualización y sincronización de inventarios con proveedores.
+[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
+[Issues principales] - #292 — Agregar procesos automáticos de inventarios con proveedores.
+[Issues principales] - #288 — Sistema de envío de productos a proveedores e inventarios comerciales.
+
+## [2.3.6] - 2026-09-23
+Cambios realizados en el plugin monolítico:
+[Inventario y catálogo] - Incorporado un inventario de relación **categoría-producto** para analizar la distribución real del catálogo.
+[Inventario y catálogo] - Añadida exportación JSON del inventario para análisis externo.
+[Importación, proveedores e imágenes] - Corregida la gestión de imágenes para evitar almacenar innecesariamente en Media imágenes que deben permanecer asociadas al proveedor.
+[Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+
+## [2.3.5]- 2026-09-17
+Cambios realizados en el plugin monolítico:
+[Proveedores e importación] - Incorporado soporte para un **importador externo**.
+[Proveedores e importación] - Actualización de la integración con **Rubix** para procesos de scraping.
+[Proveedores e importación] - Añadido lanzador específico para Rubix.
+[Proveedores e importación] - Eliminada una receta antigua de importación de Emuca que ya no formaba parte del flujo vigente.
+[Proveedores e importación] - Mejoras en la gestión e inventario reducido utilizado durante procesos de importación.
+[Proveedores e importación] - Mejorado el exportador reducido de productos.
+
+## [2.3.4] 2026-09-13 Reorganización interna y consolidación de `seo-taxonomy`
+Cambios realizados en el plugin monolítico:
+* nuevas herramientas para identificar y eliminar imágenes locales procedentes de proveedores;
+
+## [2.3.3] - 2026-09-08
+Cambios realizados en el plugin monolítico:
+[Corregido] - Recuperado el pie específico de VEVOR. (#138)
+[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Cambios realizados en el plugin monolítico:
+- Amplía la integración de producto con Amazon y otros proveedores, incorporando productos alternativos y mejorando la disponibilidad de resultados en consultas y comparativas.
+- Mejora los procesos de importación, exportación y sincronización de proveedores, incluyendo peso, dimensiones, imágenes, enlaces, control de procesos y exportaciones de apoyo para futuras cargas.
+- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
+- Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
+
+## 2.2.3 - Etiquetas / vocabulary control view
+Cambios realizados en el plugin monolítico:
+- Filtros por producto/SKU/ID, TIPO, ROL, APLICACIÓN, PLATAFORMA y cobertura de facetas.
+
+## 2.2.0 - Supplier Import / Sync V2
+Cambios realizados en el plugin monolítico:
+- Actualizacion automatica por proveedor + SKU conservando object_id.
+- Reconstruccion autoritativa de galerias externas por SKU.
+
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.
