@@ -52,7 +52,7 @@ La unidad de documentación es **el cambio funcional**, no el nombre de la branc
 
 ### `readme.txt`
 
-El `readme.txt` raíz queda asociado al monolito 2.4.1. Cada plugin `taxocommerce-*` mantiene su propio `readme.txt`, que es su historial y documento público de versión.
+El `readme.txt` raíz corresponde al monolito 2.4.1. Cada plugin `taxocommerce-*` mantiene su `readme.txt` como documento público para WordPress.org; el historial **editorial maestro** de nuevas versiones se conserva en su `CHANGELOG.md` y la evolución original del monolito en su `changelog.txt`.
 
 Contiene:
 
@@ -67,7 +67,15 @@ Contiene:
 - aviso de actualización;
 - licencia.
 
-Su changelog debe ser comprensible para un usuario final y puede resumir el detalle técnico de `CHANGELOG.md`.
+Su sección `== Changelog ==` contiene un **resumen público de la versión vigente y las recientes**, redactado a partir del `CHANGELOG.md` del mismo plugin. WordPress.org no lee ni muestra automáticamente `CHANGELOG.md` o `changelog.txt`: al preparar una publicación se debe sincronizar expresamente el resumen público. El archivo `changelog.txt` es documentación histórica auxiliar, no una sección automática del directorio.
+
+
+### `changelog.txt` y `CHANGELOG.md` de cada plugin
+
+- `changelog.txt` registra hechos y funciones verificables del antiguo TaxoCommerce SEO hasta 2.4.1, con las versiones originales del monolito. No atribuye esas versiones al nuevo módulo.
+- `CHANGELOG.md` es el registro maestro **solo de las versiones autónomas**. Se conserva completo y se actualiza al implementar y verificar cada nueva versión. No se inventan fechas ni se presentan propuestas no integradas como publicaciones.
+- **Flujo de un solo archivo durante el desarrollo:** editar `CHANGELOG.md` del plugin afectado. **Paso obligatorio antes de publicar:** copiar o generar un resumen de la versión vigente en el `readme.txt` de ese plugin. Actualmente esa sincronización no está automatizada; no debe afirmarse que WordPress.org la realiza por sí mismo.
+- El `changelog.txt` histórico permanece congelado salvo correcciones justificadas por nuevas evidencias.
 
 ### `README.md`
 
@@ -106,8 +114,8 @@ La documentación pública debe indicar la misma licencia que este archivo.
 Cuando un cambio de un plugin independiente queda validado en staging:
 
 1. documentar la interfaz si ha cambiado;
-2. añadir la entrada de versión/changelog al `readme.txt` de ese plugin;
-3. actualizar documentación específica si existe;
+2. registrar las novedades validadas en el `CHANGELOG.md` del plugin; la edición diaria del historial se realiza **solo en ese archivo**;
+3. al preparar la publicación, trasladar al `readme.txt` el resumen público de la versión actual desde `CHANGELOG.md` y comprobar su formato con el validador de WordPress.org; actualizar manuales cuando proceda;
 4. no modificar `CHANGELOG.md` ni `readme.txt` raíz salvo que el cambio sea un hotfix crítico del monolito 2.4.1.
 
 ---
@@ -124,7 +132,7 @@ TaxoCommerce Images     0.2.8  -> 0.2.9
 TaxoCommerce Auditor    0.x    -> 0.x+1
 ```
 
-Sólo incrementa versión el plugin cuyo código cambia. Cada plugin registra sus cambios en su propio `readme.txt`. Los milestones globales coordinan el trabajo, pero no sustituyen al versionado individual.
+Sólo incrementa versión el plugin cuyo código cambia. Cada plugin registra su historial completo **a partir de su independencia** en `taxocommerce-*/CHANGELOG.md` y su etapa anterior en `taxocommerce-*/changelog.txt`. El `readme.txt` mantiene la versión vigente y el resumen visible en WordPress.org. Los milestones globales coordinan el trabajo, pero no sustituyen al versionado individual.
 
 El `CHANGELOG.md` raíz y el `readme.txt` raíz permanecen congelados en 2.4.1 salvo correcciones críticas específicas del monolito.
 
@@ -134,7 +142,7 @@ El `CHANGELOG.md` raíz y el `readme.txt` raíz permanecen congelados en 2.4.1 s
 
 Esta mecánica se conserva únicamente como referencia de cómo se publicaba el monolito antes de 2.4.1. **No se abrirá una nueva sección `Unreleased` en el `CHANGELOG.md` raíz.**
 
-Para los plugins independientes, el trabajo pendiente se gestiona mediante Issues, PRs y milestones; al publicar un cambio, se actualiza el changelog del `readme.txt` del plugin afectado.
+Para los plugins independientes, el trabajo pendiente se gestiona mediante Issues, PRs y milestones. Se registran solo cambios desarrollados y verificados en el `CHANGELOG.md`; antes de publicar, se sincroniza el resumen del `readme.txt`. Una PR sin fusionar no constituye por sí misma una versión publicada.
 ---
 
 ## 5. Corte semanal de producción
@@ -154,7 +162,7 @@ Para plugins independientes, comprobar coherencia únicamente dentro del plugin 
 - cabecera `Version:` de `taxocommerce-<plugin>.php`;
 - constante de versión propia, cuando exista;
 - `Stable tag` de su `readme.txt`;
-- entrada correspondiente de su changelog.
+- entrada correspondiente en su `CHANGELOG.md` y resumen coherente en su `readme.txt` antes de publicar;
 
 No se incrementa la versión de otros plugins que no hayan cambiado. El monolito conserva `2.4.1`, `SEO_SYSTEM_VERSION = 2.4.1` y `Stable tag: 2.4.1`.
 
@@ -228,7 +236,7 @@ fix/hotfix-...
  producción
 ```
 
-Un hotfix de un plugin independiente debe quedar registrado en el `readme.txt` de ese plugin. `CHANGELOG.md` y `readme.txt` raíz sólo se modifican si el hotfix afecta específicamente al monolito 2.4.1.
+Un hotfix de un plugin independiente debe quedar registrado en su `CHANGELOG.md` y resumido en el `readme.txt` al publicarse. `CHANGELOG.md` y `readme.txt` raíz sólo se modifican si el hotfix afecta específicamente al monolito 2.4.1.
 
 ---
 
@@ -263,7 +271,7 @@ Sí deben aparecer:
 - **Milestones globales (`2.4.2`, posteriores):** coordinan trabajo y no son versiones del monolito.
 - **Plugins independientes:** cada uno evoluciona con su propio versionado (`0.4.29`, `0.2.9`, etc.).
 - Cambiar un plugin no obliga a versionar ni publicar los demás.
-- El changelog canónico de cada plugin independiente vive en su propio `readme.txt`.
+- El historial maestro de las versiones independientes vive en `taxocommerce-*/CHANGELOG.md`; `changelog.txt` documenta la evolución anterior en el monolito; `readme.txt` muestra el resumen público exigido por WordPress.org.
 ---
 
 ## 10. Checklist resumido
@@ -272,7 +280,7 @@ Antes de producción:
 
 - [ ] Cambios integrados en staging.
 - [ ] Pruebas funcionales realizadas.
-- [ ] `readme.txt` del plugin afectado actualizado.
+- [ ] Novedades registradas en `CHANGELOG.md` del plugin y resumen publicado en su `readme.txt`.
 - [ ] Versión del plugin afectado consistente en su cabecera, constante y `Stable tag`.
 - [ ] Manual/Wiki actualizado si cambió la interfaz.
 - [ ] Sintaxis PHP validada.
@@ -289,7 +297,10 @@ Para evitar documentación divergente:
 
 - `CHANGELOG.md` raíz = histórico congelado del monolito hasta 2.4.1.
 - `readme.txt` raíz = documento público final del monolito 2.4.1.
-- `taxocommerce-*/readme.txt` = versión e historial canónico de cada plugin independiente.
+- `taxocommerce-*/changelog.txt` = evolución previa en el monolito (histórica, no versiones autónomas).
+- `taxocommerce-*/CHANGELOG.md` = historial maestro de versiones independientes; único archivo de novedades que editamos durante el desarrollo.
+- `taxocommerce-*/readme.txt` = metadatos públicos y extracto de versiones que WordPress.org efectivamente presenta.
+- `docs/PLUGIN-HISTORY-SOURCES.md` = índice de evidencias originales y PRs; no implica pruebas o despliegues no verificados.
 - `docs/` = documentación funcional y operativa.
 - GitHub Wiki = publicación navegable de la documentación canónica.
 - `main` = código aprobado para producción.
