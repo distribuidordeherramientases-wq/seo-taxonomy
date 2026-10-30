@@ -148,9 +148,10 @@ final class TaxoCommerce_System_Check_User_Guide {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only manual selection.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only manual selection without state changes.
         $requested = isset( $_GET['tcs_manual'] ) && is_scalar( $_GET['tcs_manual'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_manual'] ) ) : 'user';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $technical = 'technical' === $requested;
         $sections = self::sections( $technical );
         $manual_id = $technical ? 'technical' : 'user';
