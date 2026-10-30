@@ -1,10 +1,10 @@
-HISTORIAL DE ORIGEN — Scrappers / Ojeador e Ingeniero
+HISTORIAL LEGADO — TAXOCOMMERCE SCRAPPERS / OJEADOR E INGENIERO
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
-Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-No se atribuyen fechas que no consten en las fuentes.
+Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.
+Changelog original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se incorpora 2.0.0 como publicación: el documento la señala como «Próxima versión».
 
-EVOLUCIÓN Y EXTRACCIÓN
+ORIGEN Y SEPARACIÓN
 * Legacy origin: Ojeador market observation and Ingeniero technical/editorial research operated as services of TaxoCommerce SEO; no earlier Scrappers standalone versions are asserted.
 * Monolith 2.3.6–2.3.7 documented Ojeador and Google Shopping/Trends observation, commercial gaps and evidence-based opportunities.
 * The 2.3.9–2.4.0 cycles documented Ingeniero source collection, technical dossiers, evidence review and controlled editorial drafts.
@@ -12,20 +12,17 @@ EVOLUCIÓN Y EXTRACCIÓN
 * The first standalone release added a module bootstrap, Core registration, smoke tests and a staging ZIP/deployment workflow, with coexistence protections while the monolith was still installed.
 * External scraping, ranking and publication require the administrator's configured providers and review; extraction alone is not proof of autonomous third-party access or automated publishing.
 
-CAMBIOS RECOGIDOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+HITOS DOCUMENTADOS EN LAS VERSIONES ORIGINALES
 
 ## [2.4.0] - 2026-10-13
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+Notas del monolito (no releases de este plugin):
 [Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
 [Resumen ejecutivo del ciclo 2.4.0] - **Mercado y comercio:** reorganización de la capa Mercado (Analista, Ingeniero y Ojeador), observación de competencia y oportunidades, e integración progresiva de fuentes comerciales.
 [Consolidación funcional] - La release consolida el trabajo ya integrado en staging desde 2.3.10, incluyendo la evolución de Dependiente, Ingeniero, Auditor, Ojeador, Analista, importaciones y el Gestor de workers.
 [Consolidación funcional] - Ingeniero consolida investigación L1 técnica, L2 práctica y L3 actualidad con trazabilidad y propuestas editoriales diferenciadas.
 
 ## [2.3.10] - 2026-10-06
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+Notas del monolito (no releases de este plugin):
 - Ojeador 0.10.0 añade la pestaña **Novedades**, un radar externo que usa **Clusters + Hubs primarios** como frontera comercial para descubrir categorías, subfamilias y tecnologías que todavía no están representadas en el catálogo.
 - El radar usa **Google Trends** para señales crecientes y valida cada candidato con **Google Shopping + Google Search** mediante la conexión compartida SerpApi → ScraperAPI; conserva fuentes, cobertura, score explicable y estado humano sin crear categorías/productos automáticamente.
 - Separado **Ingeniero** de Dependiente como servicio propio en **Contenidos**, con pestañas Investigación, Editorial, Datos y fuentes y Pruebas.
@@ -36,7 +33,7 @@ Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
 - Integradas en las plantillas públicas de producto y categoría las capas de **Comparador, Dependiente, Comentarista e Ingeniero**, ocultando completamente cada bloque cuando no existe contenido publicado válido.
 
 ## [2.3.9] - 2026-09-30
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+Notas del monolito (no releases de este plugin):
 [Ingeniero, Clasificador y Semántica] - Creado **Ingeniero** como servicio técnico dentro de Dependiente para investigar conocimiento externo por categoría, separado del catálogo y de las respuestas públicas.
 [Ingeniero, Clasificador y Semántica] - Añadidas fuentes trazables, niveles de confianza, evidencias breves y relación conocimiento → fuente → URL original.
 [Ingeniero, Clasificador y Semántica] - Corregido el tratamiento de **HTTP 429 de SerpApi** para pausar Ingeniero sin avanzar la categoría ni perder trabajo pendiente.
@@ -53,7 +50,7 @@ Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
 [Documentación y proceso de publicación] - Ampliada la documentación de Marketing, campañas, Clasificador, Ingeniero, Categorías, Contenidos, Dependiente y sistema documental.
 
 ## [2.3.7] - 2026-09-25
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+Notas del monolito (no releases de este plugin):
 [Ojeador y análisis de mercado] - Mejorados los indicadores de **Ojeador** para presentar comparativas de precios más claras.
 [Ojeador y análisis de mercado] - Incorporado un sistema de clasificación visual mediante **semáforo de precios**:
 [Ojeador y análisis de mercado] - precio competitivo;
@@ -68,7 +65,7 @@ Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
 [Issues principales] - #287 — Añadir capa de análisis de mercado y acciones prioritarias a Ojeador.
 
 ## [2.3.6] - 2026-09-23
-Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
+Notas del monolito (no releases de este plugin):
 [Ojeador y Google Shopping] - Incorporado el nuevo servicio **Ojeador** para obtener y analizar información externa de mercado.
 [Ojeador y Google Shopping] - Mejorada la priorización de las consultas para concentrar recursos en categorías y áreas con mejores señales de rendimiento.
 [Ojeador y Google Shopping] - Adaptadas las búsquedas a la nomenclatura y clasificación utilizada por **Google Product Taxonomy**.
@@ -78,6 +75,7 @@ Versión del monolito (no de Scrappers / Ojeador e Ingeniero).
 [Ojeador y Google Shopping] - Corregidos errores detectados durante la ejecución del servicio Ojeador.
 [Resumen de la release] - **Ojeador** amplía la inteligencia competitiva y la integración con Google Shopping.
 
-TRANSICIÓN A PLUGINS INDEPENDIENTES
-TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
-Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
+CONTINUIDAD
+El monolito TaxoCommerce SEO cerró en 2.4.1 (25/10/2026).
+La evolución del plugin independiente se registra exclusivamente en CHANGELOG.md.
+Referencias de reconstrucción: docs/PLUGIN-HISTORY-SOURCES.md.
