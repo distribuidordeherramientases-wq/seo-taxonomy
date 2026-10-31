@@ -3334,8 +3334,9 @@ function seo_core_system_test_collect_database_link_references(&$link_map, $limi
     $limit = max(1, (int) $limit);
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT ID, post_type, post_title, post_content FROM %i WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE '%%href=%%' ORDER BY post_modified_gmt DESC LIMIT %d",
+            "SELECT ID, post_type, post_title, post_content FROM %i WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE %s ORDER BY post_modified_gmt DESC LIMIT %d",
             $wpdb->posts,
+            '%' . $wpdb->esc_like('href=') . '%',
             $limit
         ),
         ARRAY_A
