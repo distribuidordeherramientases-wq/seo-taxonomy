@@ -1,5 +1,12 @@
 # Changelog
 
+## Corrección de infraestructura FTPS - 2026-11-01 (Issue #1993)
+
+- El despliegue incremental a PRO tolera carpetas temporales FTPS ya existentes (error 550 de `mkdir -p`) y verifica el acceso real mediante `cd` antes de transferir archivos.
+- Restaurada la comprobación estricta tras la creación tolerante; añadida prueba de regresión de workflow sin realizar conexiones FTPS ni despliegues.
+- Corrección limitada al mecanismo CI de transferencia: sin cambios en plugins, datos, uploads ni ejecución en producción. La causa precisa del fallo de la ejecución #152 sigue pendiente de los registros completos.
+
+
 > **Histórico del monolito cerrado.** TaxoCommerce SEO 2.4.1 es la última versión planificada de la línea monolítica. A partir del milestone 2.4.2, los cambios funcionales y sus versiones se documentan en el `readme.txt` de cada plugin independiente. Este archivo raíz queda congelado salvo una corrección crítica que afecte específicamente al monolito.
 
 ## Corrección crítica de despliegue - 2026-10-31 (Issue #1973)
