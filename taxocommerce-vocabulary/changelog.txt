@@ -1,0 +1,118 @@
+HISTORIAL LEGADO — TAXOCOMMERCE VOCABULARY
+
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
+
+ORIGEN Y EXTRACCIÓN
+* Legacy origin: the monolith 2.2.1–2.2.8 cycles implemented the Vocabulary bridge, canonical product tags, semantic label editing and mapping between terms and catalogue records.
+* The old SEO relationships and vocabulary tables were an input to taxonomy, category mapping, catalogue search and Dependiente semantic interpretation.
+* Monolith 2.3.x evolved semantic classification and evidence-based relationships; vocabulary data had to remain stable while the plugins were separated.
+* Standalone Vocabulary 0.3.x centralised semantic labels and catalogue relation administration with controlled import/export and integrity checks.
+* Later standalone fixes tightened CSV upload limits and SQL identifier preparation, and resolved WordPress.org Plugin Check issues without inventing or recreating the historical taxonomy data.
+* Vocabulary, Core and Assistant retain separate responsibilities: semantic terms, shared family administration and learning/search respectively.
+
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
+
+## [2.4.0] - 2026-10-13
+Cambios realizados en el plugin monolítico:
+[Resumen ejecutivo del ciclo 2.4.0] - **Modularización:** inicio de la separación del monolito en TaxoCommerce Core y extensiones de Import-Export, Imágenes y System Check; diseño de Vocabulary y FAQs como módulos diferenciados.
+
+## [2.3.10] - 2026-10-06
+Cambios realizados en el plugin monolítico:
+- La evidencia se guarda aunque todos los términos de la consulta ya sean conocidos; sirve para aprender rutas/ranking y no activa reglas semánticas automáticamente.
+- Los borradores de Ingeniero usan el rol estable **ingeniero_qa_specialized**, relación **post_to_category**, Vocabulary canónico y metadatos de dossier/hash; nunca se autopublican.
+
+## [2.3.9] - 2026-09-30
+Cambios realizados en el plugin monolítico:
+[Dependiente, Academia e Intérprete] - Añadido diagnóstico en vivo de la **Lección 9** del Intérprete, con fase actual, conservación semántica, ruido, patrones consolidados, regresión y exportación JSON sin alterar el algoritmo de aprendizaje.
+[Dependiente, Academia e Intérprete] - Corregida la finalización y persistencia de la **Lección 10**, incluyendo conservación de la marca de currículo `semantic-v2`, recuperación tardía tras despliegues y restauración conservadora de cursos completados.
+[Ingeniero, Clasificador y Semántica] - Reorganizada la navegación de **Semántica** para mostrar **Clasificador** como sección propia junto a Etiquetas y Atributos.
+[Ingeniero, Clasificador y Semántica] - Integrado Clasificador con el conocimiento de Ingeniero para detectar posibles **nuevos atributos, valores y conceptos semánticos** por categoría.
+[Ingeniero, Clasificador y Semántica] - Añadida tabla global **Ingeniero → vocabulario** y acciones de aceptación individual o masiva que amplían los maestros canónicos sin asignar automáticamente datos a productos.
+[Auditor, Analista y control de calidad] - Añadida una **puntuación interna de calidad SEO** por entidad, con desglose de relevancia, rigor, diferenciación, arquitectura semántica y preparación técnica.
+
+## [2.3.7] - 2026-09-25
+Cambios realizados en el plugin monolítico:
+[Dependiente V3 y cobertura del catálogo] - Intérprete / Lingüista L9 incorpora diagnóstico en vivo sin modificar el algoritmo de aprendizaje: fase actual, repaso L8, conservación semántica, evidencias de ruido, patrones consolidados, regresión final, últimos 30 casos y exportación JSON del estado en curso.
+[Dependiente V3 y cobertura del catálogo] - Reforzada la cobertura editorial y semántica utilizada por Dependiente.
+
+## [2.3.5]- 2026-09-17
+Cambios realizados en el plugin monolítico:
+[Academia, Lingüista y aprendizaje] - Incorporación y evolución del módulo **Lingüista** como soporte semántico del Intérprete.
+
+## [2.3.3] - 2026-09-08
+Cambios realizados en el plugin monolítico:
+[Añadido] - Añadida asociación de las etiquetas de páginas con el vocabulario SEO. (#152)
+[Añadido] - Añadida asociación de las etiquetas de FAQs con el vocabulario SEO. (#165)
+[Mejorado] - Mejorada la sincronización de atributos y etiquetas entre STAGING y PRO. (#145)
+[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Cambios realizados en el plugin monolítico:
+- Refuerza el sistema de clasificación semántica y vocabulario, utilizando diccionarios y datos canónicos para mantener coherencia entre productos, etiquetas, atributos y categorías.
+
+## 2.2.8 - Cierre de etiquetas legacy de producto
+Cambios realizados en el plugin monolítico:
+- Elimina el fallback público a `wp_seo_nodes` para etiquetas de producto: la ficha solo muestra APLICACIÓN, PLATAFORMA y SUBTIPO canónicos.
+- El importador mantiene la columna `etiquetas` por compatibilidad de formato, pero ya no la persiste como etiqueta legacy de producto.
+- La exportación V2 rellena `etiquetas` con las facetas canónicas públicas (APLICACIÓN / PLATAFORMA / SUBTIPO), no con keywords legacy.
+- Los informes de contenido consideran la clasificación semántica canónica (TIPO y facetas) en lugar de depender de las keywords legacy.
+- Las propuestas de categoría que usan señales de producto leen las facetas canónicas públicas.
+- La pantalla Etiquetas pasa de modo transición a modo canónico y conserva el contador legacy como control de regresión.
+
+## 2.2.7 - Guardado semantico seguro
+Cambios realizados en el plugin monolítico:
+- El editor de APLICACION, PLATAFORMA y SUBTIPO ya no reescribe asignaciones sin cambios.
+
+## 2.2.6 - Hotfix filtro SUBTIPO en Etiquetas
+Cambios realizados en el plugin monolítico:
+- Corrige el error crítico al abrir TaxoCommerce SEO → Etiquetas después de cargar SUBTIPO.
+- El selector de filtros inicializa ahora el grupo `subtipo` igual que ROL, APLICACIÓN y PLATAFORMA.
+- No modifica datos, vocabulario ni asignaciones existentes.
+
+## 2.2.5 - Etiquetas canónicas visibles y editor integrado
+Cambios realizados en el plugin monolítico:
+- La ficha pública prioriza APLICACIÓN, PLATAFORMA y SUBTIPO canónicos en «Aplicaciones y características».
+- La edición semántica se integra como pestaña «Etiquetas semánticas» dentro de «Datos del producto» de WooCommerce.
+- TIPO y Ámbito/ROL siguen siendo solo lectura; APLICACIÓN, PLATAFORMA y SUBTIPO son editables y guardan source=manual.
+- No elimina etiquetas legacy ni atributos técnicos.
+
+## 2.2.4 - Edición manual del vocabulario semántico de producto
+Cambios realizados en el plugin monolítico:
+- Añade metabox `Clasificación semántica / Etiquetas` en la ficha nativa de producto.
+- APLICACIÓN, PLATAFORMA y SUBTIPO se pueden seleccionar, limpiar y crear manualmente.
+- La pantalla Etiquetas añade filtro por SUBTIPO y enlaza directamente al bloque de clasificación del producto.
+- Control de integridad muestra también asignaciones inválidas de SUBTIPO.
+- No elimina etiquetas legacy ni modifica atributos técnicos.
+
+## 2.2.3 - Etiquetas / vocabulary control view
+Cambios realizados en el plugin monolítico:
+- Añade la pestaña visible **TaxoCommerce SEO > Etiquetas**.
+- Vista de producto en solo lectura con Ámbito/ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y etiquetas SEO legacy en la misma fila.
+- Filtros por producto/SKU/ID, TIPO, ROL, APLICACIÓN, PLATAFORMA y cobertura de facetas.
+- Añade explorador del vocabulario canónico por grupo, con términos, productos, asignaciones, confianza y fuentes.
+- No modifica datos de catálogo ni elimina etiquetas antiguas; esta versión sirve para validar visualmente el resultado de la migración antes de continuar con SUBTIPO y la retirada del modelo legacy.
+
+## 2.2.2 - Canonical product role reads
+Cambios realizados en el plugin monolítico:
+- Product semantic validation now reads the canonical ROL derived from active TIPO -> `wp_seo_type_role_map`; `seo_nodes/product/ambito` remains fallback only.
+- Fixes a category semantic-validation regression where a product-role lookup could be referenced in category scope evaluation.
+
+## 2.2.0 - Supplier Import / Sync V2
+Cambios realizados en el plugin monolítico:
+- Proteccion de titulo, descripcion, excerpt, categorias, atributos y etiquetas en actualizaciones.
+
+# \[1.4.0\]
+Cambios realizados en el plugin monolítico:
+[Arquitectura SEO] -   Relaciones semánticas entre niveles.
+
+# \[1.2.0\]
+Cambios realizados en el plugin monolítico:
+[Automatización] -   Diccionario SEO.
+[Automatización] -   Gestión de etiquetas.
+
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.

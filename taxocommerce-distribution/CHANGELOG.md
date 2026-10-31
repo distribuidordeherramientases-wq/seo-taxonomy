@@ -2,9 +2,12 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
-## Versiones independientes
+## [Unreleased]
 
-### 0.1.0
+Sin novedades pendientes documentadas.
+
+
+## [0.1.0]
 
 * Initial modular migration of commercial feeds and sitemap generation.
 * Added independent bounded feed worker.

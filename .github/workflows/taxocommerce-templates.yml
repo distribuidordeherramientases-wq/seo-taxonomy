@@ -19,6 +19,10 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: find taxocommerce-templates -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Check FRONT composer JavaScript and smoke tests
+        run: |
+          node --check taxocommerce-templates/assets/front-composer.js
+          php taxocommerce-templates/tests/smoke.php
       - name: Check plugin independence
         run: |
           test -s taxocommerce-templates/taxocommerce-templates.php

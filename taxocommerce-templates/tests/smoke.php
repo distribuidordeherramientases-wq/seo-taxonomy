@@ -196,4 +196,78 @@ foreach ( $pilot_renderers as $view ) {
         'WordPress must not replace an unavailable country menu with an unrelated menu.' );
 }
 
+// Country-aware clusters: ES stays on the original mobile/desktop variants.
+// US/DE/NL/FR use one responsive market view with their own WordPress menu.
+$cluster_view = file_get_contents( TCT_DIR . 'templates/template-cluster-international.php' );
+$cluster_market = file_get_contents( TCT_DIR . 'templates/template-cluster-market.php' );
+tct_assert( strpos( $cluster_market, "'_seo_pais_origen'" ) !== false,
+    'Cluster market must use the canonical country metadata.' );
+tct_assert( strpos( $cluster_view, "'TaxoCommerce - ' . \$market" ) !== false
+    && strpos( $cluster_view, "'fallback_cb' => false" ) !== false,
+    'International clusters must use only their native country menu.' );
+tct_assert( strpos( $cluster_view, "'inLanguage' => \$t['lang']" ) !== false,
+    'International cluster schema must use the page market language.' );
+tct_assert( strpos( $cluster_view, 'dht_cluster_country_for_page( $id ) === $market' ) !== false
+    && strpos( $cluster_view, 'TaxoCommerce_Core_Country::term( $term_id ) === $market' ) !== false,
+    'International cluster related content must be scoped to its country.' );
+tct_assert( strpos( $cluster_view, 'wp_footer();' ) !== false
+    && strpos( $cluster_view, 'wp_head();' ) !== false,
+    'International clusters must retain WordPress frontend hooks.' );
+foreach ( array( 'desktop', 'mobile' ) as $device ) {
+    $variant = file_get_contents( TCT_DIR . 'templates/template-cluster-' . $device . '.php' );
+    tct_assert( strpos( $variant, "require __DIR__ . '/template-cluster-international.php';" ) !== false,
+        'Both cluster variants must route international pages.' );
+    tct_assert( strpos( $variant, 'dht_template_render_header();' ) !== false,
+        'Spanish cluster markup must remain unchanged.' );
+}
+tct_assert( strpos( $cluster_view, 'dht_template_render_dependiente_cta' ) === false
+    && strpos( $cluster_view, 'dht_template_shop_url' ) === false
+    && strpos( $cluster_view, 'seo_marketing_campaigns_get_public_active' ) === false,
+    'International clusters must not expose Spanish sales, assistant, or campaign components.' );
+tct_assert( strpos( $cluster_view, 'wp_get_attachment_image_url(' ) === false
+    && strpos( $cluster_view, 'media_handle_sideload' ) === false,
+    'Cluster presentation must not fetch or store supplier images locally.' );
+tct_assert( strpos( $cluster_view, 'dht_cluster_external_image_url(' ) !== false
+    && strpos( $cluster_view, "\$host !== \$site_host" ) !== false
+    && strpos( $cluster_view, 'dht_template_structural_image_url' ) !== false,
+    'External supplier images must preserve visual slots without using local Media.' );
+$legacy_cluster = dirname( TCT_DIR ) . '/seo-system/templates/template-cluster-international.php';
+if ( is_file( $legacy_cluster ) ) {
+    tct_assert( file_get_contents( $legacy_cluster ) === $cluster_view,
+        'Legacy and modular international cluster renderers must be identical.' );
+}
+
+// FRONT composer pilot: pure configuration contracts and no changes to public PHP.
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field($text) { return trim(strip_tags((string)$text)); }
+}
+require_once TCT_DIR . 'includes/class-tct-front-composer.php';
+$front_default = TCT_Front_Composer::defaults('ES');
+$front_fr = TCT_Front_Composer::defaults('FR');
+tct_assert($front_default['role'] === 'front_page', 'El piloto debe conservar el rol FRONT.');
+tct_assert($front_default['market'] === 'ES' && $front_fr['market'] === 'FR', 'Mercado determinado explicitamente.');
+tct_assert(count($front_default['desktop']) > 0 && count($front_default['mobile']) > 0, 'Composicion para dos dispositivos.');
+tct_assert(!in_array('campaigns',array_column($front_fr['desktop'],'id'),true), 'No inventar campañas españolas en una portada FR.');
+tct_assert(count(TCT_Front_Composer::catalog()) >= 10, 'Inventario de modulos disponible.');
+$dirty_layout = array(
+    array('id'=>'header','enabled'=>true,'title'=>'Test <b>unsafe</b>'),
+    array('id'=>'header','enabled'=>false,'title'=>'Duplicado'),
+    array('id'=>'php_injection','enabled'=>true,'title'=>'No disponible'),
+    array('id'=>'footer','enabled'=>false,'title'=>''),
+);
+$valid_layout = TCT_Front_Composer::normalize_layout($dirty_layout);
+tct_assert(count($valid_layout) === 2 && $valid_layout[0]['id'] === 'header' && $valid_layout[1]['id'] === 'footer',
+    'No se admiten modulos duplicados o ajenos al inventario.');
+tct_assert($valid_layout[0]['title'] === 'Test unsafe' && $valid_layout[1]['enabled'] === false,
+    'Saneamiento de nombre y visibilidad.');
+$front_desktop = file_get_contents(TCT_DIR . 'templates/template-front-desktop.php');
+$front_mobile = file_get_contents(TCT_DIR . 'templates/template-front-mobile.php');
+tct_assert(strpos($front_desktop, 'dht_template_render_header();') !== false
+    && strpos($front_mobile, 'dht_template_render_header();') !== false,
+    'Las plantillas FRONT existentes deben permanecer intactas.');
+$entrypoint = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
+tct_assert(strpos($entrypoint, "TCT_Front_Composer::render();") !== false
+    && strpos($entrypoint, "admin_post_tct_front_composer_save") !== false,
+    'El compositor se conecta solo a la interfaz de administracion.');
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";

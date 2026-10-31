@@ -1,0 +1,43 @@
+HISTORIAL LEGADO — TAXOCOMMERCE SOCIAL
+
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
+
+ORIGEN Y EXTRACCIÓN
+* Legacy origin: social-network publishing, scheduling and commercial reporting were features of TaxoCommerce SEO before the independent Social plugin; those monolith versions are not Social standalone releases.
+* The monolith 2.3.6 and 2.3.9 cycles documented social channels and marketing/reporting connections alongside commercial campaigns.
+* Standalone 0.1.0 moved network integrations and scheduled publication into an independent module with its own bootstrap, navigation and Core registration.
+* Staging and deployment work subsequently introduced a separate ZIP workflow and reconciled the canonical shared storage used by the former monolith and the new plugin.
+* Marketing campaign planning and banners belong to Campaigns, while Social owns its authorised publishing actions; no external-network publication is implied merely by installing the module.
+
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
+
+## [2.3.9] - 2026-09-30
+Cambios realizados en el plugin monolítico:
+[Marketing, campañas y redes sociales] - Completada la gestión de campañas con edición, vaciado seguro, eliminación, restauración de precios y cancelación de tareas programadas.
+[Marketing, campañas y redes sociales] - Ampliada la importación/exportación de campañas a registros de campaña y producto, con resolución por `product_id`/SKU, modo fusión y sustitución explícita.
+[Marketing, campañas y redes sociales] - Añadida autodetección de filas de producto para mantener compatibilidad con CSV antiguos sin `record_type`.
+[Marketing, campañas y redes sociales] - Las campañas y publicaciones sociales reutilizan imágenes reales de producto desde **Media o proveedor externo**, sin importar imágenes externas a la biblioteca.
+[Marketing, campañas y redes sociales] - Las creatividades de campaña incorporan producto, precio anterior, precio de oferta y descuento, con fallback seguro cuando una imagen remota no puede componerse.
+[Marketing, campañas y redes sociales] - Añadido **Calendario** mensual de redes sociales con entradas, landings y campañas, filtro por red, detección de huecos/colisiones y vista responsive.
+[Marketing, campañas y redes sociales] - Añadidos **Informes de Marketing** para campañas y redes sociales con visitas, interacciones, pedidos, facturación, conversión y atribución.
+[Marketing, campañas y redes sociales] - Implementada atribución campaña → publicación → visita → pedido con ventana de última interacción de 30 días y sin almacenar PII adicional.
+[Marketing, campañas y redes sociales] - Reservadas las **18:00** para ofertas de campañas y las **20:00** para Noticias.
+[Marketing, campañas y redes sociales] - Añadida prioridad editorial para Noticias y soporte del campo `prioridad` en Programador/CSV.
+[Marketing, campañas y redes sociales] - Las piezas editoriales del mismo día ya no bloquean una oferta comercial; solo otra oferta de campaña ocupa el hueco comercial de las 18:00.
+
+## [2.3.7] - 2026-09-25
+Cambios realizados en el plugin monolítico:
+[Marketing y campañas comerciales] - Integradas las campañas comerciales en el **programador de redes sociales**.
+
+## [2.3.6] - 2026-09-23
+Cambios realizados en el plugin monolítico:
+[Redes sociales] - Mejorado el sistema de redes sociales.
+[Redes sociales] - Añadidas funciones de exportación e importación para facilitar la gestión y automatización de publicaciones.
+[Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
+
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.

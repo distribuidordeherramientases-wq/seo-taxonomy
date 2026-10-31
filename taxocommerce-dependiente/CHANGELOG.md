@@ -4,6 +4,11 @@
 
 ## Versiones independientes
 
+### Pendiente de publicación
+
+* Sanitize the admin-post L1-L10 quality thresholds recursively with WordPress `map_deep()` and `sanitize_text_field()` before applying existing strict numeric validation; resolves the Plugin Check unsanitized `$_POST['thresholds']` warning.
+* Add a regression guard for the sanitized control input. Preserve saved thresholds, lesson scores, user permissions, nonces and explicit quality-acceptance behavior.
+
 ### 0.3.22
 
 * Allow administrators to set an independent Top-8 quality threshold for each L1-L10 lesson (0–100%), preserving previous defaults.

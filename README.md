@@ -6,7 +6,7 @@
 
 A partir de este punto, el desarrollo funcional continúa en los plugins independientes de la familia TaxoCommerce. El plugin monolítico queda congelado para desarrollo ordinario y sólo podrá recibir correcciones críticas de compatibilidad, migración o seguridad cuando sean estrictamente necesarias.
 
-Cada plugin independiente mantiene su propia versión y su propio historial en el `readme.txt` incluido en su carpeta. Los milestones globales, como `2.4.2`, coordinan trabajo entre plugins pero no son versiones del monolito ni obligan a sincronizar las versiones de toda la familia.
+Cada plugin independiente mantiene su versión y resumen público en `readme.txt`, su evolución histórica procedente del monolito en `changelog.txt` y el historial maestro de nuevas versiones en `CHANGELOG.md`, dentro de su propia carpeta. Los milestones globales, como `2.4.2`, coordinan trabajo entre plugins pero no son versiones del monolito ni obligan a sincronizar las versiones de toda la familia.
 
 
 **TaxoCommerce SEO** es un plugin para WordPress y WooCommerce orientado a la gestión centralizada de la arquitectura SEO de un sitio web.
