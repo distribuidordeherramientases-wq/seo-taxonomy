@@ -8,7 +8,7 @@ $admin = file_get_contents( $root . '/includes/admin.php' );
 $sitemaps = file_get_contents( $root . '/includes/sitemaps/engine.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 0.1.1' ) !== false,
+    strpos( $main, 'Version: 0.1.2' ) !== false,
     strpos( $main, "TCDIST_LEGACY_FEED_ACTIVE" ) !== false,
     strpos( $main, "TCDIST_LEGACY_SITEMAP_ACTIVE" ) !== false,
     strpos( $main, "taxocommerce_distribution_migrate_legacy_settings" ) !== false,

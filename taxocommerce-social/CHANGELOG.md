@@ -6,6 +6,14 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.1.2]
+
+* Reorganizado el Manual en dos guías claramente independientes con H1, índice navegable y H2/H3: manual de usuario y manual técnico para futuros desarrolladores, siguiendo el patrón utilizado por TaxoCommerce Database.
+* El manual de usuario incluye acceso, cinco conexiones, pasos de autorización, plantillas, programación, estados de tarea, calendario, limitaciones CSV, errores habituales y Auto Test.
+* El manual técnico documenta mapa de archivos, clases y funciones, esquema y opciones persistentes, callbacks de proveedores, endpoints/nonce, hooks, WP-Cron, seguimiento, contratos CSV, pruebas offline, seguridad de tokens y procedimiento Issue/PR/CI/STAGING.
+* Corregida la documentación heredada de CSV: existen APIs de backend, pero el calendario del plugin independiente no presenta actualmente controles CSV; no se han añadido funcionalidades.
+* Sin cambios en conexiones, datos, comportamiento de publicaciones ni Auto Test; actualizadas pruebas de estructura documental.
+
 ## [0.1.1]
 
 * Añadidas las pestañas Auto Test y Manual dentro de Social; conservadas Conexiones, Plantillas y Calendario.

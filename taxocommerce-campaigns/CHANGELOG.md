@@ -6,6 +6,7 @@
 ## [Unreleased]
 
 - Incorporadas pestañas Manual (usuario y técnico) y Autotest interno de solo lectura; comprueba carga, tablas, versión de esquema y dependencias sin modificar campañas, precios ni programación.
+- Ampliados y separados claramente el manual operativo para usuarios y la guía técnica para desarrolladores futuros: navegación, procedimientos comerciales, estructura del código, tablas y migraciones, hooks, compatibilidad, seguridad, pruebas y diagnóstico, siguiendo el formato de los plugins Suppliers, Billing y Scrappers.
 
 
 ## [0.1.0]

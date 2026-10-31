@@ -52,6 +52,15 @@ jobs:
           assert 'handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"' in code
           assert "get_param( 'modules' )" in php
           assert 'manifest_sha256' in code and 'verified_files' in code
+          # lftp can return 550 when a directory already exists.
+          # The handoff must be idempotent but still verify cd strictly.
+          handoff_step = next(s for s in steps if s.get('name') == 'Upload and apply changed files only')
+          ftp_script = handoff_step['run']
+          assert 'set cmd:fail-exit no' in ftp_script
+          assert 'mkdir -p ".taxocommerce-deploy"' in ftp_script
+          assert 'mkdir -p "$handoff"' in ftp_script
+          assert ftp_script.index('set cmd:fail-exit yes', ftp_script.index('mkdir -p "$handoff"')) < ftp_script.index('cd "$handoff"')
+          assert ftp_script.index('mkdir -p "$handoff"') < ftp_script.index('cd "$handoff"')
           assert 'Subir TaxoCommerce SEO antiguo' not in code
           assert not re.search(r'\bmirror\b.*--delete|\brm\s+-rf\s+\$\{?FTP', code)
           with tempfile.TemporaryDirectory() as temp:

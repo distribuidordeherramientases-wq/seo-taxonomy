@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,8 @@ TaxoCommerce Social supports optional Facebook, Instagram, LinkedIn, Pinterest a
 
 * Administration areas: Connections, Templates, Calendar, Auto Test and Manual.
 * Auto Test: 16 local checks of providers, routes, tables, scheduler and security, without remote requests, publishing or file operations. Two recent results per administrator are stored for 30 days.
-* Integrated user and technical manuals cover authorization, templates, scheduling, CSV, WP-Cron, privacy and troubleshooting.
+* Two distinct, indexed in-plugin manuals: step-by-step user guide and detailed technical reference for future developers, including architecture, hooks, data models, security and CI.
+* Documents which CSV handlers are retained in the backend but are not exposed by the standalone plugin menu; avoids advertising controls not present in the current interface.
 * Existing social settings and publication/schedule tables are reused on migrating sites.
 * Dedicated local calendar; offer/campaign planning belongs to TaxoCommerce Campaigns.
 * No social account is connected or published to by default. Administrators must authorize a provider and perform the action.
@@ -35,6 +36,12 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.2 =
+* Expand the in-plugin Manual into two separately headed, indexed user and future-developer guides with practical procedures and source-grounded technical contracts.
+* Clarify that historical CSV backend handlers exist without a visible standalone Calendar CSV screen.
+* Keep providers, credentials, existing tabs, scheduler, database and read-only Auto Test unchanged.
+
 
 = 0.1.1 =
 * Add in-plugin Auto Test with 16 safe local checks, two reports per administrator and version-to-version comparison.

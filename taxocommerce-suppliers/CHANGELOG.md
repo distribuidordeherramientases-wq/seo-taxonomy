@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+Sin novedades adicionales pendientes.
+
+## [0.2.2]
+
+- Reestructurado y ampliado el Manual integrado: dos guías completas y diferenciadas, usuario y desarrolladores, con índice, H1/H2/H3, tablas, funcionamiento y riesgos reales.
+- Documentados flujos de CSV, decisiones, creación de borradores WooCommerce, precios, imágenes, compras, arquitectura, claves, hooks, permisos, pruebas y despliegue.
+- Ampliadas las regresiones smoke y los estilos adaptables del manual; sin cambios de lógica de negocio ni del monolítico.
+
+
 - Documentación integrada de usuario y técnica en la pestaña Manual del módulo independiente.
 - Autotest manual de solo lectura para componentes, hooks, integración WooCommerce, plantillas, ajustes y esquema, con permisos y nonce.
 - Conservadas las seis pestañas anteriores y añadidas Manual y Autotest; ampliada la verificación smoke.
