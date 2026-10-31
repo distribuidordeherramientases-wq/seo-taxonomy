@@ -53,8 +53,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $stale = gmdate( 'Y-m-d H:i:s', time() - 90 );
         $ids = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE mode='local' AND status IN ('queued','running')
+                "SELECT id FROM %i WHERE mode='local' AND status IN ('queued','running')
                  AND updated_at<=%s ORDER BY id ASC LIMIT 1",
+                 $table,
                 $stale
             )
         );
@@ -84,8 +85,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $now = current_time( 'mysql', true );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$runs} SET status='cancelled',error_message='Plugin desactivado.',
+                "UPDATE %i SET status='cancelled',error_message='Plugin desactivado.',
                  completed_at=%s,updated_at=%s WHERE mode='local' AND status IN ('queued','running')",
+                 $runs,
                 $now,
                 $now
             )
@@ -216,8 +218,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // progressively; there is no giant GitHub payload or PHP request.
         $reserved = $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET queued_scan_id=%d,queued_at=%s
+                "UPDATE %i SET queued_scan_id=%d,queued_at=%s
                  WHERE scope=%s AND active=1 AND queued_scan_id=0",
+                 $items,
                 $run_id,
                 $now,
                 $scope
@@ -293,8 +296,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $items = self::table( 'items' );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET active=0,queued_scan_id=0,queued_at=NULL
+                "UPDATE %i SET active=0,queued_scan_id=0,queued_at=NULL
                  WHERE scope=%s AND active=1 AND sync_token<>%s",
+                 $items,
                 'image',
                 $token
             )
@@ -319,7 +323,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                 $items,
                 absint( $run_id )
             )
         );
@@ -359,7 +364,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $runs  = self::table( 'runs' );
             $items = self::table( 'items' );
             $run = $wpdb->get_row(
-                $wpdb->prepare( "SELECT * FROM {$runs} WHERE id=%d LIMIT 1", $run_id ),
+                $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
+                 $runs, $run_id ),
                 ARRAY_A
             );
             if ( ! is_array( $run ) || ! in_array( $run['status'], array( 'queued', 'running' ), true ) || 'local' !== $run['mode'] ) {
@@ -380,7 +386,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $size = max( 1, min( 8, (int) apply_filters( 'taxocommerce_system_check_url_batch_size', 5 ) ) );
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,url FROM {$items} WHERE queued_scan_id=%d ORDER BY id ASC LIMIT %d",
+                    "SELECT id,url FROM %i WHERE queued_scan_id=%d ORDER BY id ASC LIMIT %d",
+                 $items,
                     $run_id,
                     $size
                 ),
@@ -400,7 +407,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
             // The administrator may cancel while a remote request is in flight.
             $current_state = (string) $wpdb->get_var(
-                $wpdb->prepare( "SELECT status FROM {$runs} WHERE id=%d LIMIT 1", $run_id )
+                $wpdb->prepare( "SELECT status FROM %i WHERE id=%d LIMIT 1",
+                 $runs, $run_id )
             );
             if ( ! in_array( $current_state, array( 'queued', 'running' ), true ) ) {
                 return;
@@ -413,7 +421,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             seo_health_scan_refresh_run( $run_id );
 
             $remaining = (int) $wpdb->get_var(
-                $wpdb->prepare( "SELECT COUNT(*) FROM {$items} WHERE queued_scan_id=%d", $run_id )
+                $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE queued_scan_id=%d",
+                 $items, $run_id )
             );
             if ( $remaining <= 0 ) {
                 self::complete( $run_id );
@@ -431,7 +440,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $items = self::table( 'items' );
         seo_health_scan_refresh_run( $run_id );
         $run = $wpdb->get_row(
-            $wpdb->prepare( "SELECT * FROM {$runs} WHERE id=%d LIMIT 1", absint( $run_id ) ),
+            $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
+                 $runs, absint( $run_id ) ),
             ARRAY_A
         );
         if ( ! is_array( $run ) || ! in_array( $run['status'], array( 'queued', 'running' ), true ) ) {
@@ -445,12 +455,14 @@ final class TaxoCommerce_System_Check_URL_Audit {
         }
 
         $average = $wpdb->get_var(
-            $wpdb->prepare( "SELECT AVG(response_ms) FROM {$items} WHERE last_scan_id=%d", $run_id )
+            $wpdb->prepare( "SELECT AVG(response_ms) FROM %i WHERE last_scan_id=%d",
+                 $items, $run_id )
         );
         $offset = max( 0, (int) ceil( $processed * 0.95 ) - 1 );
         $p95 = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT response_ms FROM {$items} WHERE last_scan_id=%d ORDER BY response_ms ASC LIMIT 1 OFFSET %d",
+                "SELECT response_ms FROM %i WHERE last_scan_id=%d ORDER BY response_ms ASC LIMIT 1 OFFSET %d",
+                 $items,
                 $run_id,
                 $offset
             )
@@ -667,7 +679,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 );
                 $items = self::table( 'items' );
                 $wpdb->query(
-                    $wpdb->prepare( "UPDATE {$items} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", $run_id )
+                    $wpdb->prepare( "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                 $items, $run_id )
                 );
                 self::redirect_notice( $scope, 'Chequeo cancelado; los elementos pendientes han quedado liberados.' );
             }
@@ -732,8 +745,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
                     "SELECT id,object_id,label,url,source,status_bucket,http_status,final_status,
                             final_url,response_ms,ttfb_ms,content_type,content_length,error_type,
                             error_message,warnings,last_checked_at,last_ok_at,last_error_at
-                     FROM {$items} WHERE scope=%s AND active=1 AND id>%d
+                     FROM %i WHERE scope=%s AND active=1 AND id>%d
                      ORDER BY id ASC LIMIT %d",
+                 $items,
                     $scope, $last_id, 250
                 ),
                 ARRAY_A
@@ -810,7 +824,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
                         SUM(last_checked_at IS NOT NULL AND final_status BETWEEN 400 AND 499) AS http_4xx,
                         SUM(last_checked_at IS NOT NULL AND final_status=404) AS http_404,
                         SUM(last_checked_at IS NOT NULL AND final_status BETWEEN 500 AND 599) AS http_5xx
-                 FROM {$table} WHERE scope=%s AND active=1",
+                 FROM %i WHERE scope=%s AND active=1",
+                 $table,
                 $scope
             ),
             ARRAY_A
