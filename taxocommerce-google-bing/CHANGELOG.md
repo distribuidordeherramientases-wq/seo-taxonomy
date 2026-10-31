@@ -6,6 +6,8 @@
 
 ### En desarrollo — STAGING (posterior a 1.1.14)
 
+* Documentadas 26 excepciones PHPCS precisas para constantes `SEO_GOOGLE_*` heredadas utilizadas por el módulo, sin renombrarlas ni cambiar valores, opciones guardadas, conexiones o APIs del monolítico (issue #1945). Sin exclusiones generales del Plugin Check.
+
 * Unify the former **Qué hacer** and **Plan de acción** reports into one executive Analysis view while preserving the original specialized reports.
 * Build one prioritised strategic shortlist from GA4 funnel investigations and up to five evidence-backed SEO/GEO signals drawn from Analista, Auditor, Merchant and Product JSON-LD; the complete validated roadmap remains available below.
 * Never equate referred AI traffic with brand mentions, infer individual checkout abandonment from aggregate events, or claim direct GPTCore integration.
