@@ -107,6 +107,14 @@ final class TCT_Designs {
     }
 
     public static function can_activate( $all, $id, $route, $countries, $file ) {
+        // WooCommerce partials/emails/comments use specialized hooks rather
+        // than the template_include candidates used by this new engine.
+        if ( 0 === strpos( $route, 'woo_file_' ) || in_array( $route, array(
+            'comments', 'email_processing', 'email_completed',
+            'email_refunded', 'email_cancelled',
+        ), true ) ) {
+            return 'Esta petición usa un controlador especializado. Puedes diseñarla, pero aún no se puede activar desde el enrutador principal.';
+        }
         if ( '' === $file || ! TCT_Router::path( $file ) ) {
             return 'Para activar una ruta necesitas seleccionar un archivo PHP existente. El compositor por módulos continúa siendo un borrador hasta disponer de renderizador.';
         }
@@ -335,7 +343,10 @@ final class TCT_Designs {
             echo '<td>' . esc_html( $design['name'] ) . '</td><td><code>' .
                 esc_html( $design['file'] ? $design['file'] : 'Borrador visual' ) . '</code></td><td>' .
                 esc_html( implode( ' · ', $design['countries'] ) ) . '</td><td>' .
-                ( $design['active'] ? 'Activa en el nuevo enrutador' : 'Borrador / sin activar' ) .
+                ( $design['active']
+                    ? ( get_option( TaxoCommerce_Templates::ENABLE_OPTION, 0 )
+                        ? 'Regla activada' : 'Activada; enrutador global desactivado' )
+                    : 'Borrador / sin activar' ) .
                 '</td><td><a class="button button-secondary" href="' . esc_url( $link ) . '">Editar</a></td></tr>';
         }
         echo '</tbody></table>';
