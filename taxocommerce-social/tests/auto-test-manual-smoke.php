@@ -67,7 +67,7 @@ require dirname( __DIR__ ) . '/taxocommerce-social.php';
 function social_assert( $condition, $message ) {
     if ( ! $condition ) { fwrite( STDERR, 'FAIL: ' . $message . "\n" ); exit( 1 ); }
 }
-social_assert( TAXOCOMMERCE_SOCIAL_VERSION === '0.1.1', 'Social version 0.1.1' );
+social_assert( TAXOCOMMERCE_SOCIAL_VERSION === '0.1.2', 'Social version 0.1.2' );
 social_assert( has_action( 'admin_post_tcsocial_run_auto_test' ), 'Auto Test action registered' );
 social_assert( count( TCSocial_Auto_Test::cases() ) === 16, 'Exactly sixteen checks' );
 
@@ -96,6 +96,22 @@ ob_start(); tcsocial_manual_render(); $manual = ob_get_clean();
 foreach ( array( 'Manual de usuario', 'Manual técnico', 'Facebook', 'Instagram', 'LinkedIn', 'Pinterest', 'WP-Cron', 'CSV', 'Auto Test' ) as $value ) {
     social_assert( strpos( $manual, $value ) !== false, 'manual topic ' . $value );
 }
+// The manual must contain two independent guides with an index and tested contracts.
+social_assert( preg_match_all( '/<h1\\b/', $manual ) === 2, 'two separate H1 manuals' );
+social_assert( preg_match( '/<h1[^>]*>Manual de usuario<\\/h1>/', $manual ) === 1, 'standalone user manual' );
+social_assert( preg_match( '/<h1[^>]*>Manual técnico para futuros desarrolladores<\\/h1>/', $manual ) === 1, 'developer technical manual' );
+foreach ( array(
+    'tcsocial-manual-index', 'tcsocial-user-connections', 'tcsocial-user-calendar',
+    'tcsocial-dev-architecture', 'tcsocial-dev-storage', 'tcsocial-dev-providers',
+    'tcsocial-dev-hooks', 'tcsocial-dev-cron', 'tcsocial-dev-csv', 'tcsocial-dev-autotest',
+    'tcsocial-dev-workflow', 'seo_social_network_settings_v1',
+    'tcsocial_programador_run_job', 'check_admin_referer', 'CHANGELOG.md',
+    'no muestra actualmente el formulario CSV',
+) as $anchor ) {
+    social_assert( strpos( $manual, $anchor ) !== false, 'developer and user manuals contain ' . $anchor );
+}
+social_assert( preg_match_all( '/<h2\\b/', $manual ) >= 14, 'detailed manuals with H2 hierarchy' );
+social_assert( preg_match_all( '/<h3\\b/', $manual ) >= 17, 'detailed manuals with H3 procedures' );
 $_GET['tab'] = 'manual';
 social_assert( tcsocial_admin_current_tab() === 'manual', 'manual tab selected' );
 $_GET['tab'] = 'auto-test';
