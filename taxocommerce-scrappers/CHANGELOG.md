@@ -4,7 +4,14 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+- Corregidos cinco usos del dominio de traducción heredado `taxocommerce-seo` en Ojeador e Ingeniero, sustituidos por `taxocommerce-scrappers` para superar el control de internacionalización del plugin independiente.
+- Parametrizados los identificadores SQL de las tablas de vocabulario mediante `%i` en la consulta de asignación de categorías, conservando los filtros y resultados. Seguimiento de Plugin Check: #1926.
+
+
+## [0.1.1]
+
+- Corregido el fallo fatal en la activación independiente de Scrappers al no estar definida la interfaz del proceso Ingeniero. Contrato compatible y protegido frente a redeclaración cuando coexiste con el monolítico.
+- Se conserva el supervisor existente, sin duplicar procesos ni modificar el monolítico. Issue #1926.
 
 
 ## [0.1.0]
