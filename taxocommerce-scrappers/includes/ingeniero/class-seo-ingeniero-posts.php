@@ -481,8 +481,8 @@ final class SEO_Ingeniero_Posts {
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT v.id,v.semantic_group
-                 FROM {$objects} ov
-                 INNER JOIN {$vocabulary} v
+                 FROM %i ov
+                 INNER JOIN %i v
                     ON v.id=ov.vocabulary_id
                    AND v.active=1
                  WHERE ov.object_type='product_cat'
@@ -490,6 +490,8 @@ final class SEO_Ingeniero_Posts {
                    AND ov.status=1
                    AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
                  ORDER BY v.semantic_group,v.id",
+                $objects,
+                $vocabulary,
                 absint($term_id)
             ),
             ARRAY_A
