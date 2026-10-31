@@ -27,7 +27,9 @@ jobs:
           find taxocommerce-distribution -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Distribution smoke
-        run: php taxocommerce-distribution/tests/distribution-smoke.php
+        run: |
+          php taxocommerce-distribution/tests/distribution-smoke.php
+          php taxocommerce-distribution/tests/manual-autocheck-smoke.php
 
       - name: Build distributable package
         run: |
@@ -61,7 +63,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-distribution-0.1.0
+          name: taxocommerce-distribution-0.1.1
           path: taxocommerce-distribution.zip
           retention-days: 30
           if-no-files-found: error
