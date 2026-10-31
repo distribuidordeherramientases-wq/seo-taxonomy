@@ -193,7 +193,7 @@ final class Auto_Test {
 
     private static function test_context() {
         return class_exists( __NAMESPACE__ . '\\Decision_Context' )
-            && method_exists( __NAMESPACE__ . '\\Decision_Context', 'for_finding' )
+            && method_exists( __NAMESPACE__ . '\\Decision_Context', 'decorate' )
             ? self::pass( 'Contrato de evidencia local disponible; no se consultan servicios externos.' )
             : self::fail( 'No está disponible el contrato de contexto local.' );
     }
