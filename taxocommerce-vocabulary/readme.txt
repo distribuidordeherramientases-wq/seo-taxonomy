@@ -32,7 +32,7 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 == Changelog ==
 
 = 0.3.5 =
-* Prepare canonical vocabulary SQL identifiers with WordPress %i placeholders across admin, classifier and CSV import/export.
+* Prepare canonical vocabulary SQL identifiers with WordPress %i placeholders across admin, classifier, CSV and portable JSON import/export.
 * Validate uploaded CSV metadata and sanitize classifier filters before use.
 * Keep existing manual, Auto Test, data model and CSV/JSON behaviour; exclude tests and FTP metadata from the release ZIP.
 
