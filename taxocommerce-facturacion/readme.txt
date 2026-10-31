@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -38,6 +38,11 @@ It does not create a parallel document database and does not include a destructi
 5. Confirm PDF generation and permitted customer downloads in a staging environment before live billing.
 
 == Changelog ==
+
+= 0.1.2 =
+* Billing administration now has a unique route, separate from the monolithic plugin, with eight visible tabs including Manual and Autotest.
+* Preserved existing invoice, proforma and quotation functionality while removing duplicate legacy navigation from the independent screen.
+* Added an isolated routing regression test covering coexistence with the legacy controller.
 
 = 0.1.1 =
 * Added in-plugin user and technical manuals for Billing administration and WooCommerce integrations.
