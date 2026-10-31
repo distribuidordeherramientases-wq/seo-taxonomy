@@ -330,12 +330,14 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Reutiliza URLs realmente observadas en páginas por el escáner anterior.
         if (seo_health_scan_table_exists($scan_items)) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table name is built from $wpdb->prefix; query has no external values.
             $observed = $wpdb->get_results(
-                "SELECT image_url, MAX(page_id) AS page_id
-                 FROM {$scan_items}
-                 WHERE active_on_page=1 AND image_url<>''
-                 GROUP BY image_url_hash, image_url",
+                $wpdb->prepare(
+                    "SELECT image_url, MAX(page_id) AS page_id
+                     FROM %i
+                     WHERE active_on_page=1 AND image_url<>''
+                     GROUP BY image_url_hash, image_url",
+                    $scan_items
+                ),
                 ARRAY_A
             );
             foreach ((array) $observed as $row) {
@@ -354,15 +356,19 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Añade media local actualmente referenciada por seo_media_usos sin abrir páginas HTML.
         if (seo_health_scan_table_exists($media_usages)) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table name is built from $wpdb->prefix; query has no external values.
             $local = $wpdb->get_results(
-                "SELECT DISTINCT u.attachment_id, p.post_title, p.guid,
-                        MAX(CASE WHEN pm.meta_key='_wp_attached_file' THEN pm.meta_value ELSE '' END) AS attached_file
-                 FROM {$media_usages} u
-                 INNER JOIN {$wpdb->posts} p ON p.ID=u.attachment_id
-                 LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id=p.ID AND pm.meta_key='_wp_attached_file'
-                 WHERE p.post_type='attachment' AND p.post_mime_type LIKE 'image/%'
-                 GROUP BY u.attachment_id,p.post_title,p.guid",
+                $wpdb->prepare(
+                    "SELECT DISTINCT u.attachment_id, p.post_title, p.guid,
+                            MAX(CASE WHEN pm.meta_key='_wp_attached_file' THEN pm.meta_value ELSE '' END) AS attached_file
+                     FROM %i u
+                     INNER JOIN %i p ON p.ID=u.attachment_id
+                     LEFT JOIN %i pm ON pm.post_id=p.ID AND pm.meta_key='_wp_attached_file'
+                     WHERE p.post_type='attachment' AND p.post_mime_type LIKE 'image/%%'
+                     GROUP BY u.attachment_id,p.post_title,p.guid",
+                    $media_usages,
+                    $wpdb->posts,
+                    $wpdb->postmeta
+                ),
                 ARRAY_A
             );
             $upload = wp_upload_dir(null, false);
@@ -476,21 +482,18 @@ if (!function_exists('seo_health_scan_expire_stale')) {
                 return;
             }
 
+            // The ID list contains only generated %d placeholders, never raw IDs.
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            // Only internal table names are interpolated. Dates and IDs are
-            // bound through prepare() rather than embedded into SQL strings.
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$tables['runs']} SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN ({$placeholders})",
-                    array_merge(array($now, $now), $ids)
+                    "UPDATE %i SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN (" . $placeholders . ")",
+                    array_merge(array($tables['runs'], $now, $now), $ids)
                 )
             );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN ({$placeholders})",
-                    $ids
+                    "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN (" . $placeholders . ")",
+                    array_merge(array($tables['items']), $ids)
                 )
             );
         }
@@ -1162,8 +1165,10 @@ add_action('rest_api_init', 'seo_health_scan_register_rest');
 
 if (!function_exists('seo_health_scan_notice')) {
     function seo_health_scan_notice() {
-        $msg = isset($_GET['health_msg']) ? sanitize_key(wp_unslash($_GET['health_msg'])) : '';
-        $detail_encoded = isset($_GET['health_detail']) ? sanitize_text_field(wp_unslash($_GET['health_detail'])) : '';
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only notices after a redirect; never mutate inventory or settings.
+        $msg = isset($_GET['health_msg']) && is_string($_GET['health_msg']) ? sanitize_key(wp_unslash($_GET['health_msg'])) : '';
+        $detail_encoded = isset($_GET['health_detail']) && is_string($_GET['health_detail']) ? sanitize_text_field(wp_unslash($_GET['health_detail'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $detail = '' !== $detail_encoded ? sanitize_text_field(rawurldecode($detail_encoded)) : '';
         if ($msg === '') {
             return;
