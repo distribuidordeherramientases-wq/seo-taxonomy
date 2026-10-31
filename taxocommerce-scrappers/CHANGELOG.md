@@ -13,6 +13,11 @@
 - Corregido el fallo fatal en la activación independiente de Scrappers al no estar definida la interfaz del proceso Ingeniero. Contrato compatible y protegido frente a redeclaración cuando coexiste con el monolítico.
 - Se conserva el supervisor existente, sin duplicar procesos ni modificar el monolítico. Issue #1926.
 
+## [0.1.1]
+
+- Corregido el fallo fatal en la activación independiente de Scrappers al no estar definida la interfaz del proceso Ingeniero. Contrato compatible y protegido frente a redeclaración cuando coexiste con el monolítico.
+- Se conserva el supervisor existente, sin duplicar procesos ni modificar el monolítico. Issue #1926.
+
 
 ## [0.1.0]
 
