@@ -26,16 +26,16 @@ final class TaxoCommerce_Scrappers_Manual {
         echo '<h2 id="tcs-manual-usuario">Manual de usuario</h2>';
         echo '<h3 id="tcs-manual-acceso">1. Acceso y navegación</h3>';
         echo '<p>Abre <strong>TaxoCommerce &gt; Scrappers</strong> (con Core activo) o <strong>Scrappers</strong> en el menú principal si Core no está instalado. Se necesita el permiso <code>manage_options</code>. Las pestañas del plugin son '
-            . self::link( 'connections', 'Connections' ) . ', ' . self::link( 'ojeador', 'Ojeador' ) . ', ' . self::link( 'ingeniero', 'Ingeniero' ) . ', '
-            . self::link( 'autotest', 'Autotest' ) . ' y ' . self::link( 'manual', 'Manual' ) . '.</p>';
+            . wp_kses_post( self::link( 'connections', 'Connections' ) ) . ', ' . wp_kses_post( self::link( 'ojeador', 'Ojeador' ) ) . ', ' . wp_kses_post( self::link( 'ingeniero', 'Ingeniero' ) ) . ', '
+            . wp_kses_post( self::link( 'autotest', 'Autotest' ) ) . ' y ' . wp_kses_post( self::link( 'manual', 'Manual' ) ) . '.</p>';
 
         echo '<h3 id="tcs-manual-proveedores">2. Connections: proveedores externos</h3>';
-        echo '<p>En ' . self::link( 'connections', 'Connections' ) . ' se configuran las API keys de <strong>SerpApi</strong> (principal) y <strong>ScraperAPI</strong> (respaldo para búsquedas compatibles). Guarda las claves en el formulario; dejar un campo de clave vacío conserva la que ya estuviera configurada. Las credenciales son compartidas por Ojeador e Ingeniero.</p>';
+        echo '<p>En ' . wp_kses_post( self::link( 'connections', 'Connections' ) ) . ' se configuran las API keys de <strong>SerpApi</strong> (principal) y <strong>ScraperAPI</strong> (respaldo para búsquedas compatibles). Guarda las claves en el formulario; dejar un campo de clave vacío conserva la que ya estuviera configurada. Las credenciales son compartidas por Ojeador e Ingeniero.</p>';
         echo '<p>La cadena de búsqueda sigue el orden <strong>SerpApi → ScraperAPI</strong>. Un resultado válido sin coincidencias no es un fallo ni obliga a cambiar de proveedor. Ajusta el límite mensual local de SerpApi según tu contrato. Las cifras de peticiones locales no sustituyen la facturación oficial de los proveedores.</p>';
         echo '<p>El botón <strong>Probar cadena</strong> es una comprobación real de conexión: SerpApi utiliza su consulta de cuenta; si necesita pasar a ScraperAPI puede consumir una solicitud externa. No confundir esta acción con Autotest.</p>';
 
         echo '<h3 id="tcs-manual-ojeador">3. Ojeador: mercado y precios</h3>';
-        echo '<p>En ' . self::link( 'ojeador', 'Ojeador' ) . ' se consultan las siguientes áreas de trabajo:</p>';
+        echo '<p>En ' . wp_kses_post( self::link( 'ojeador', 'Ojeador' ) ) . ' se consultan las siguientes áreas de trabajo:</p>';
         echo '<ul style="list-style:disc;padding-left:25px">';
         echo '<li><strong>Análisis y recomendaciones:</strong> indicadores por categoría, oportunidades comerciales, bloqueo operativo y comercios representados en la muestra.</li>';
         echo '<li><strong>Posición de precio:</strong> compara tu producto con el rango de mercado; permite filtrar por categoría, proveedor y visibilidad.</li>';
@@ -47,13 +47,13 @@ final class TaxoCommerce_Scrappers_Manual {
         echo '<p>Utiliza las exportaciones JSON existentes para conservar resultados y trazabilidad. Revisa fecha, cobertura y fuentes antes de tomar decisiones comerciales.</p>';
 
         echo '<h3 id="tcs-manual-ingeniero">4. Ingeniero: investigación técnica y editorial</h3>';
-        echo '<p>En ' . self::link( 'ingeniero', 'Ingeniero' ) . ' se organiza la investigación por categoría y tres capas: <strong>L1 documentación técnica</strong>, <strong>L2 experiencia práctica</strong> y <strong>L3 actualidad sectorial</strong>. Las opiniones prácticas no deben tratarse como datos técnicos contrastados.</p>';
+        echo '<p>En ' . wp_kses_post( self::link( 'ingeniero', 'Ingeniero' ) ) . ' se organiza la investigación por categoría y tres capas: <strong>L1 documentación técnica</strong>, <strong>L2 experiencia práctica</strong> y <strong>L3 actualidad sectorial</strong>. Las opiniones prácticas no deben tratarse como datos técnicos contrastados.</p>';
         echo '<p>La interfaz incluye <strong>Investigación</strong>, <strong>Editorial</strong>, <strong>Posts</strong>, <strong>Landings</strong>, <strong>Radar externo</strong>, <strong>Datos y fuentes</strong> y <strong>Pruebas</strong>. Algunas vistas editoriales dependen de los módulos especializados disponibles en la instalación.</p>';
         echo '<p>Para trabajar: selecciona las categorías y la capa, configura las búsquedas por categoría, recopila las fuentes, revisa evidencias y confianza, y utiliza los controles de revisión y aprobación antes de aceptar propuestas o generar borradores. La investigación por sí sola no publica contenidos.</p>';
         echo '<p><strong>Datos y fuentes</strong> permite consultar la información conservada; <strong>Pruebas</strong> contiene comprobaciones propias del proceso editorial, distintas del Autotest general de Scrappers.</p>';
 
         echo '<h3 id="tcs-manual-autotest">5. Autotest y resultados</h3>';
-        echo '<p>Abre ' . self::link( 'autotest', 'Autotest' ) . ' y pulsa <strong>Ejecutar autotest</strong>. El sistema mostrará un resultado por componente, junto a avisos de configuración y errores de disponibilidad. No inicia Ojeador, no ejecuta Ingeniero, no consulta APIs externas y no guarda los resultados.</p>';
+        echo '<p>Abre ' . wp_kses_post( self::link( 'autotest', 'Autotest' ) ) . ' y pulsa <strong>Ejecutar autotest</strong>. El sistema mostrará un resultado por componente, junto a avisos de configuración y errores de disponibilidad. No inicia Ojeador, no ejecuta Ingeniero, no consulta APIs externas y no guarda los resultados.</p>';
         echo '<p>Una clave API pendiente de configurar aparece como <strong>Aviso</strong> y no como error de programación. Si falta una tabla o un controlador, consulta el bloque técnico y comprueba la instalación antes de ejecutar servicios.</p>';
 
         echo '<h2 id="tcs-manual-tecnico">Manual técnico</h2>';
