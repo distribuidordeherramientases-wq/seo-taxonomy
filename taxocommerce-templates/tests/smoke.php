@@ -50,7 +50,9 @@ function is_cart() { return $GLOBALS['scenario'] === 'cart'; }
 function is_shop() { return $GLOBALS['scenario'] === 'shop'; }
 function is_account_page() { return $GLOBALS['scenario'] === 'account'; }
 function is_paged() { return false; }
-function get_option($key, $default = false) { return false; }
+function get_option($key, $default = false) { return isset($GLOBALS['test_options'][$key]) ? $GLOBALS['test_options'][$key] : false; }
+function get_post_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
+function get_term_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
 function absint($number) { return abs((int)$number); }
 function get_queried_object_id() { return 5; }
 function get_queried_object() { return (object)array('term_id'=>1); }
@@ -345,5 +347,81 @@ $front_composer_class = file_get_contents(TCT_DIR . 'includes/class-tct-front-co
 tct_assert(strpos($front_composer_class, "'designer', 'manager', 'composer', 'editor'") !== false,
     'Composer scripts must load in the Designer tab.');
 
+
+// Individually stored country-aware designs: identity, conflict resolution,
+// per-market/module settings and no automatic frontend takeover.
+require_once TCT_DIR . 'includes/class-tct-designs.php';
+tct_assert(TCT_Designs::countries(array('ES','FR','ES','XX')) === array('ES','FR'),
+    'Country selection must be validated and deduplicated.');
+tct_assert(TCT_Designs::name_for('Clúster', array('ES'), 3) !== '',
+    'A newly created template receives a recognizable name.');
+$design = array(
+    'id'=>'one', 'route'=>'cluster', 'name'=>'Clúster ES',
+    'countries'=>array('ES','FR'), 'file'=>'template-cluster.php',
+    'active'=>false, 'layouts'=>array('FR'=>array(
+        'desktop'=>array(array('id'=>'header','enabled'=>true,'title'=>'FR header')),
+        'mobile'=>array(array('id'=>'menu','enabled'=>true,'title'=>'FR menu')),
+    )),
+);
+$es_design = TCT_Designs::config($design, 'ES');
+$fr_design = TCT_Designs::config($design, 'FR');
+tct_assert($es_design['desktop'][0]['id'] === 'header'
+    && count($es_design['desktop']) > 1
+    && count($fr_design['desktop']) === 1
+    && $fr_design['desktop'][0]['title'] === 'FR header',
+    'Market layouts must be independent inside one template instance.');
+$others = array('other'=>array(
+    'route'=>'cluster','active'=>true,'countries'=>array('FR'),
+    'file'=>'template-cluster.php',
+));
+tct_assert(TCT_Designs::can_activate($others, 'one', 'cluster', array('ES','FR'), 'template-cluster.php') !== '',
+    'Overlapping active templates for the same route must be rejected.');
+tct_assert(TCT_Designs::can_activate($others, 'one', 'cluster', array('ES'), 'template-cluster.php') === '',
+    'Disjoint countries for one role must remain valid.');
+tct_assert(TCT_Designs::can_activate(array(), 'one', 'cluster', array('ES'), '') !== '',
+    'A visual-only composition cannot be activated without PHP renderer.');
+tct_assert(TCT_Designs::can_activate(array(), 'one', 'woo_file_abc', array('ES'), 'template-cluster.php') !== '',
+    'WooCommerce partials must not claim support from the main template resolver.');
+$GLOBALS['test_options'] = array(TCT_Designs::OPTION => array(
+    'one'=>array('id'=>'one', 'route'=>'cluster', 'name'=>'Cluster ES',
+        'countries'=>array('ES'), 'file'=>'template-cluster.php', 'active'=>true),
+    'two'=>array('id'=>'two', 'route'=>'cluster', 'name'=>'Cluster FR',
+        'countries'=>array('FR'), 'file'=>'template-cluster.php', 'active'=>true),
+));
+$GLOBALS['scenario'] = 'front';
+$GLOBALS['test_market'] = 'ES';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'one',
+    'A route must resolve to the individually configured design for the current country.');
+$GLOBALS['test_market'] = 'FR';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'two',
+    'The same SEO role must resolve a different design in France.');
+$GLOBALS['test_market'] = 'DE';
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Unconfigured countries must fall back to legacy WordPress routing.');
+unset($GLOBALS['test_options'], $GLOBALS['test_market'], $GLOBALS['tct_template_design_id']);
+$design_class = file_get_contents(TCT_DIR . 'includes/class-tct-designs.php');
+tct_assert(strpos($design_class, "const OPTION = 'tct_template_designs_v1'") !== false
+    && strpos($design_class, "check_admin_referer( 'tct_design_save' )") !== false
+    && strpos($design_class, "check_admin_referer( 'tct_design_create' )") !== false
+    && strpos($design_class, 'TCT_Front_Composer::normalize_layout') !== false,
+    'Designs must have independent durable storage and secured module validation.');
+tct_assert(strpos($entrypoint, "admin_post_tct_design_create") !== false
+    && strpos($entrypoint, "admin_post_tct_design_save") !== false,
+    'New template actions must be registered in the WordPress plugin.');
+$registry_code = file_get_contents(TCT_DIR . 'includes/class-tct-request-registry.php');
+tct_assert(strpos($registry_code, 'TCT_Designs::resolve($candidates)') !== false
+    && strpos($registry_code, '$pilot = TCT_Pilot_Router::resolve();') <
+        strpos($registry_code, 'TCT_Designs::resolve($candidates)'),
+    'Country-aware designs only execute after the existing protected pilot routing.');
+$ui_code = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
+$manager_code = file_get_contents(TCT_DIR . 'includes/class-tct-unified-manager.php');
+$js_code = file_get_contents(TCT_DIR . 'assets/front-composer.js');
+tct_assert(strpos($ui_code, 'TCT_Designs::render_routes(') !== false
+    && strpos($ui_code, 'TCT_Designs::create_form(') !== false
+    && strpos($manager_code, 'TCT_Designs::render( $design_id )') !== false
+    && strpos($js_code, "typeof TCTDesignComposer !== 'undefined'") !== false,
+    'Edit must load the selected instance and its own market/device module configuration.');
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";

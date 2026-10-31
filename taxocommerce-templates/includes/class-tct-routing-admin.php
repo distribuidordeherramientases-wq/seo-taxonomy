@@ -220,6 +220,7 @@ final class TCT_Routing_Admin {
         }
         $items = self::items( 'all' === $view );
         $request_defs = TCT_Request_Registry::definitions( 'all' === $view );
+        $designs = TCT_Designs::all();
         $mapping = array();
         if ( $installed ) {
             foreach ( TCT_Router::rows() as $row ) {
@@ -243,6 +244,12 @@ final class TCT_Routing_Admin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI pagination is read-only.
         $page = isset( $_GET['tct_paged'] ) ? max( 1, absint( $_GET['tct_paged'] ) ) : 1;
         $visible = self::visible( $items, $mapping, $view, $group, $search );
+        // A created design no longer needs another "pending" entry.
+        if ( 'pending' === $view ) {
+            foreach ( $designs as $design ) {
+                unset( $visible[ $design['route'] ] );
+            }
+        }
         $total = count( $visible );
         $page_size = 40;
         $visible = array_slice( $visible, ( $page - 1 ) * $page_size, $page_size, true );
@@ -271,7 +278,14 @@ final class TCT_Routing_Admin {
         }
 
         $managed_count = count( self::visible( $items, $mapping, 'managed' ) );
-        $pending_count = count( self::visible( $items, $mapping, 'pending' ) );
+        $pending_items = self::visible( $items, $mapping, 'pending' );
+        foreach ( $designs as $design ) {
+            if ( isset( $items[ $design['route'] ] ) ) {
+                ++$managed_count;
+                unset( $pending_items[ $design['route'] ] );
+            }
+        }
+        $pending_count = count( $pending_items );
         echo '<nav class="tct-routing-views" aria-label="Vista de enrutamiento">';
         foreach ( array(
             'managed' => 'Mis plantillas (' . $managed_count . ')',
@@ -304,16 +318,30 @@ final class TCT_Routing_Admin {
         echo '<input id="tct-routing-search" name="tct_search" type="search" value="' . esc_attr( $search ) . '" placeholder="Rol, petición o archivo">';
         submit_button( 'Filtrar', 'secondary', 'submit', false );
         echo '</form>';
-        echo '<p><strong>' . (int) $total . '</strong> ' . esc_html(
-            'managed' === $view ? 'plantillas gestionadas' : ( 'pending' === $view ? 'tipos pendientes' : 'opciones del catálogo' )
+        $design_count = 0;
+        if ( 'pending' !== $view ) {
+            foreach ( $designs as $design ) {
+                if ( ! isset( $items[ $design['route'] ] ) ) { continue; }
+                if ( 'all' !== $group && $items[ $design['route'] ]['group'] !== $group ) { continue; }
+                if ( '' !== $search && false === stripos(
+                    $design['name'] . ' ' . $design['route'] . ' ' . implode( ' ', $design['countries'] ), $search
+                ) ) { continue; }
+                ++$design_count;
+            }
+        }
+        echo '<p><strong>' . (int) ( $total + $design_count ) . '</strong> ' . esc_html(
+            'managed' === $view ? 'plantillas y rutas propias' : ( 'pending' === $view ? 'tipos pendientes' : 'opciones y plantillas' )
         ) . '. <a href="' . esc_url( TCT_Request_Admin::admin_url( 'designer' ) ) .
             '">Ir al Diseñador de plantillas</a></p>';
+        TCT_Designs::render_routes( $view, $items, $search, $group );
         if ( ! $total && 'managed' === $view ) {
             echo '<p>Aún no tienes plantillas asignadas y activas. <a href="' .
                 esc_url( TCT_Request_Admin::admin_url( 'routing', array( 'tct_view' => 'pending' ) ) ) .
                 '">Elegir el primer tipo de contenido para configurar</a>.</p>';
         }
 
+        if ( $total ) {
+        echo '<h3>' . esc_html( 'managed' === $view ? 'Rutas heredadas existentes' : 'Catálogo de peticiones' ) . '</h3>';
         echo '<div class="tct-routing-scroll"><table class="widefat striped tct-routing-table"><thead><tr>';
         echo '<th>Petición WordPress / WooCommerce</th><th>Rol SEO</th><th>Archivo / plantilla</th><th>Estado y origen</th><th>Diseñador</th>';
         echo '</tr></thead><tbody>';
@@ -370,9 +398,25 @@ final class TCT_Routing_Admin {
             if ( in_array( $key, array( 'taxonomy_product_cat', 'single_product', 'landing' ), true ) ) {
                 echo '<br><small>VEVOR US/DE/NL/FR: ruta especializada con prioridad.</small>';
             }
-            echo '</td><td><a href="' . esc_url( $editor_url ) . '">Ver / editar plantilla</a></td></tr>';
+            echo '</td><td>';
+            $editing = '';
+            foreach ( $designs as $design_id => $design ) {
+                if ( $key === (string) $design['route'] ) {
+                    $editing = TCT_Request_Admin::admin_url( 'designer', array( 'tct_design' => $design_id ) );
+                    break;
+                }
+            }
+            if ( $editing ) {
+                echo '<a class="button button-secondary" href="' . esc_url( $editing ) . '">Editar</a> ';
+                TCT_Designs::create_form( $key, 'Crear otra plantilla' );
+            } else {
+                TCT_Designs::create_form( $key, 'pending' === $view ? 'Crear plantilla' : 'Editar');
+            }
+            echo '<p><a href="' . esc_url( $editor_url ) . '">Ver archivo PHP</a></p>';
+            echo '</td></tr>';
         }
         echo '</tbody></table></div>';
+        } // End legacy/pending table.
 
         $pages = (int) ceil( $total / $page_size );
         if ( $pages > 1 ) {

@@ -281,6 +281,12 @@ final class TCT_Request_Registry {
         if (!$candidates) {
             return $original;
         }
+        // Explicitly activated, country-scoped designs override the generic
+        // role mapping, after the existing protected VEVOR pilot resolver.
+        $design_path = TCT_Designs::resolve($candidates);
+        if ('' !== $design_path) {
+            return $design_path;
+        }
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $slots = implode(', ', array_fill(0, count($candidates), '%s'));

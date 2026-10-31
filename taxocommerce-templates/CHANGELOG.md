@@ -1,5 +1,15 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.6 — 2026-10-31
+- Instancias de plantilla identificables con nombres autogenerados editables para una misma petición/rol, sin sobrescribir las rutas históricas de `seo_templates`.
+- Cada plantilla guarda su identificador, petición/rol, archivo PHP opcional, países ES/US/DE/NL/FR y composiciones separadas por **país y dispositivo** mediante la opción `tct_template_designs_v1` (`autoload=false`); no se añade ninguna tabla SQL.
+- El botón **Editar** de Enrutamiento abre exclusivamente la configuración guardada de esa plantilla. **Crear otra plantilla** permite múltiples diseños para el mismo tipo y rol, asignados a países distintos.
+- El enrutamiento público puede usar plantillas PHP activadas explícitamente por país y rol, respetando el interruptor general y las rutas VEVOR con prioridad; detecta y rechaza solapamientos de países entre dos instancias activas de la misma ruta.
+- Las composiciones visuales sin archivo PHP quedan como borradores hasta implementar y validar el renderizador modular. Los diseños nuevos no reemplazan páginas públicas ni se activan automáticamente.
+- Se reutilizan los módulos y controles del compositor anterior, preservando los borradores FRONT existentes, las asociaciones legadas, la biblioteca y los formularios técnicos.
+- Pruebas ampliadas para identidad, países, independencia de configuraciones, seguridad y fallback.
+
+
 ## 0.4.5 — 2026-10-31
 - Enrutamiento abre por defecto **Mis plantillas**: solo asociaciones con archivo y estado activo, incluidas aquellas cuyo archivo falta para poder corregirlas.
 - Filtros de trabajo **Mis plantillas**, **Por configurar** y **Todas**, conservando búsqueda, familia y paginación. Los fragmentos internos de WooCommerce quedan fuera de la vista de pendientes y solo se enumeran en el inventario completo, sin perder ninguna opción.

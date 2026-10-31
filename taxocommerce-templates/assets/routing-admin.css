@@ -23,3 +23,10 @@
 .tct-routing-view{display:inline-block;padding:10px 15px;border:1px solid #c3c4c7;border-radius:6px;background:#fff;text-decoration:none;font-weight:600}
 .tct-routing-view:hover,.tct-routing-view:focus-visible{border-color:#2271b1}
 .tct-routing-view.is-active{background:#f0f6fc;border-color:#2271b1;color:#135e96}
+
+
+.tct-design-routes{margin:12px 0 22px}
+.tct-design-routes th,.tct-design-routes td{vertical-align:middle}
+.tct-routing-table .tct-design-create{display:inline-flex;margin:5px 4px}
+.tct-routing-table .tct-design-create .submit{margin:0;padding:0}
+.tct-design-routes .button{white-space:nowrap}

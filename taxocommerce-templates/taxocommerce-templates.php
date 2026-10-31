@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.5
+ * Version: 0.4.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.5');
+define('TCT_VERSION','0.4.6');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -22,6 +22,7 @@ require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 require_once TCT_DIR . 'includes/class-tct-front-composer.php';
 require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
 require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
+require_once TCT_DIR . 'includes/class-tct-designs.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
@@ -111,6 +112,9 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
         add_action('admin_post_tct_front_composer_save',array('TCT_Front_Composer','save'));
         add_action('admin_enqueue_scripts',array('TCT_Front_Composer','enqueue'));
+        add_action('admin_enqueue_scripts',array('TCT_Designs','enqueue'));
+        add_action('admin_post_tct_design_create',array('TCT_Designs','create'));
+        add_action('admin_post_tct_design_save',array('TCT_Designs','save'));
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
         add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
