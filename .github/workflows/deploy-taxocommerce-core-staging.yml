@@ -48,7 +48,8 @@ jobs:
       - name: Verify standalone Core installable ZIP has no tests or hidden files
         run: |
           set -euo pipefail
-          test -d taxocommerce-core/tests
+          test -d .github/tests/taxocommerce-core
+          test ! -e taxocommerce-core/tests
           test -f taxocommerce-core/taxocommerce-core.php
           test -f taxocommerce-core/readme.txt
           mkdir -p build/taxocommerce-core
