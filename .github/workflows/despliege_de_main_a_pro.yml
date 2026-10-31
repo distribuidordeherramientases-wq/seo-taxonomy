@@ -81,6 +81,8 @@ jobs:
           port: 21
           local-dir: ./
           server-dir: ./
+          # Store FTP-Deploy-Action state outside the monolithic plugin.
+          state-name: ../.taxocommerce-seo-ftp-state.json
           dry-run: false
           security: strict
           exclude: |
@@ -216,6 +218,10 @@ jobs:
             unzip -Z1 "$package" | grep -Fx "$module/readme.txt" >/dev/null
 
             unzip -t "$package" >/dev/null
+            if unzip -Z1 "$package" | grep -E '(^|/)(\.ftp-deploy-sync-state\.json|\.taxocommerce-deploy)(/|$)'; then
+              echo "::error::$module installer contains deployment artifacts"
+              exit 1
+            fi
             unzip -Z1 "$package" | grep -Fx "$module/$module.php" >/dev/null
 
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
@@ -292,7 +298,8 @@ jobs:
           done
           deploy_token="$(openssl rand -hex 32)"
           token_hash="$(printf '%s' "$deploy_token" | sha256sum | awk '{print $1}')"
-          handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"
+          # Keep ZIP handoff outside WP_PLUGIN_DIR; PHP uses WP_CONTENT_DIR.
+          handoff="wp-content/.taxocommerce-deploy/$GITHUB_RUN_ID"
 
           cleanup_handoff() {
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF || true
@@ -313,6 +320,7 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
+          mkdir -p "wp-content/.taxocommerce-deploy"
           mkdir -p "$handoff"
           set cmd:fail-exit yes
           cd "$handoff"
@@ -342,6 +350,11 @@ jobs:
                 -x '*.bak'
             )
             unzip -t "$package" >/dev/null
+            # Reject deployment metadata in a distributable plugin ZIP.
+            if unzip -Z1 "$package" | grep -E '(^|/)(\.ftp-deploy-sync-state\.json|\.taxocommerce-deploy)(/|$)'; then
+              echo "::error::$module includes deployment artifacts"
+              exit 1
+            fi
             unzip -Z1 "$package" | grep -Fx "$module.php" >/dev/null
             unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
 
