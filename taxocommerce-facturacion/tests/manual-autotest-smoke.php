@@ -121,7 +121,8 @@ billing_smoke_assert(
     strpos( $admin, 'TaxoCommerce_Billing_Manual::render();' ) !== false &&
     strpos( $main, 'class-taxocommerce-billing-autotest.php' ) !== false &&
     strpos( $main, 'taxocommerce_facturacion_render_page' ) !== false &&
-    strpos( $main, 'taxocommerce_facturacion_legacy_admin_links' ) !== false &&
+    strpos( $main, "'page' => 'taxocommerce-facturacion'" ) !== false &&
+    strpos( $main, 'taxocommerce-billing-tabs' ) !== false &&
     strpos( $manual, 'Manual de usuario' ) !== false &&
     strpos( $manual, 'Manual técnico' ) !== false,
     'both documentation and autotest routed inside existing Billing admin screen'
