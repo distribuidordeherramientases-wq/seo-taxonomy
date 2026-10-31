@@ -144,6 +144,53 @@ class FamilyCleanupTests(unittest.TestCase):
                 CLEAN.perform("apply")
                 CLEAN.perform("verify")
 
+    def test_scoped_staging_cleanup_removes_only_three_selected_plugins(self):
+        ftp = FakeFTP()
+        ftp.dirs.update({
+            "taxocommerce-database", "taxocommerce-database/tests",
+            "taxocommerce-images", "taxocommerce-images/tests",
+        })
+        ftp.files["taxocommerce-database/tests/auto-test-results-smoke.php"] = b"<?php // dev"
+        ftp.files["taxocommerce-images/tests/early-i18n-smoke.php"] = b"<?php // dev"
+        ftp.files["taxocommerce-database/includes/live.php"] = b"<?php // live"
+        ftp.files["taxocommerce-images/includes/live.php"] = b"<?php // live"
+        ftp.dirs.update({
+            "taxocommerce-database/includes", "taxocommerce-images/includes",
+        })
+        setting = {"TC_STAGING_THREE_MODULE_CLEANUP":
+                   "taxocommerce-core,taxocommerce-database,taxocommerce-images"}
+        with tempfile.TemporaryDirectory() as work:
+            with patch.dict("os.environ", setting), \
+                 patch.object(CLEAN, "OUT", Path(work)), \
+                 patch.object(CLEAN, "allowed_modules",
+                              return_value={"taxocommerce-core", "taxocommerce-database",
+                                            "taxocommerce-images", "taxocommerce-logistica"}), \
+                 patch.object(CLEAN, "connect", side_effect=lambda: (ftp, ftp.root)), \
+                 patch.object(ftp, "quit", return_value=None):
+                CLEAN.perform("plan")
+                self.assertEqual(ftp.removed, [])
+                CLEAN.perform("apply")
+                CLEAN.perform("verify")
+                self.assertEqual(len(ftp.removed), 5)
+                self.assertIn("taxocommerce-logistica/tests/smoke.php", ftp.files)
+                self.assertIn("taxocommerce-database/includes/live.php", ftp.files)
+                self.assertIn("taxocommerce-images/includes/live.php", ftp.files)
+                self.assertIn("seo-taxonomy/tests/monolith-test.php", ftp.files)
+
+    def test_scoped_staging_cleanup_requires_all_three_remote_plugins(self):
+        ftp = FakeFTP()  # DB and Images are deliberately absent.
+        setting = {"TC_STAGING_THREE_MODULE_CLEANUP":
+                   "taxocommerce-core,taxocommerce-database,taxocommerce-images"}
+        with patch.dict("os.environ", setting), \
+             patch.object(CLEAN, "allowed_modules",
+                          return_value={"taxocommerce-core", "taxocommerce-database",
+                                        "taxocommerce-images"}), \
+             patch.object(CLEAN, "connect", side_effect=lambda: (ftp, ftp.root)), \
+             patch.object(ftp, "quit", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "Expected Core, Database and Images"):
+                CLEAN.perform("plan")
+            self.assertEqual(ftp.removed, [])
+
     def test_modified_remote_file_aborts_without_deleting_anything(self):
         ftp = FakeFTP()
         with tempfile.TemporaryDirectory() as work:
