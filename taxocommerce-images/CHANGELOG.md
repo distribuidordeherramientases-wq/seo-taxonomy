@@ -4,7 +4,9 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+* Corregida la limpieza del despliegue en producción: retirar únicamente `tests/early-i18n-smoke.php` y `tests/functional-contract.php` si permanecen en el directorio real de Images después de actualizar el ZIP.
+* Verificar nombres, firmas y ausencia en el paquete antes de eliminarlos; crear y verificar una copia ZIP en el directorio temporal privado de WordPress. Conservar las pruebas en GitHub y los demás archivos y datos del plugin.
+* Ningún cambio en las funcionalidades de Images, en la versión 0.2.15 ni en el proceso de validación de WordPress.org.
 
 
 ## [0.2.15]
