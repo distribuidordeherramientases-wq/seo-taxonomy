@@ -70,7 +70,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         );
         $ojeador_tables = self::tables( 'SEO_Ojeador_DB', array( 'products', 'offers', 'categories', 'category_results', 'runs', 'query_log' ) );
         self::add( $results, 'Ojeador', 'Tablas de mercado', $ojeador_tables['status'], $ojeador_tables['detail'] );
-        $cron_hook = class_exists( 'SEO_Ojeador_Worker', false ) ? SEO_Ojeador_Worker::CRON_HOOK : '';
+        $cron_hook = class_exists( 'SEO_Ojeador_Worker', false ) && defined( 'SEO_Ojeador_Worker::CRON_HOOK' ) ? SEO_Ojeador_Worker::CRON_HOOK : '';
         $cron_ok   = '' !== $cron_hook && false !== has_action( $cron_hook, array( 'SEO_Ojeador_Worker', 'cron_tick' ) );
         self::add(
             $results, 'Ojeador', 'Registro del proceso programado',
@@ -115,6 +115,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         $ingeniero_admin = false !== has_action( 'admin_post_seo_ingeniero_prepare', array( 'SEO_Ingeniero_Admin', 'handle_prepare' ) );
         self::add( $results, 'Ingeniero', 'Control administrativo', $ingeniero_admin ? 'ok' : 'warning', 'Se valida el handler de preparación, sin preparar ni modificar categorías.' );
         $ingeniero_cron = class_exists( 'SEO_Ingeniero_Process', false )
+            && defined( 'SEO_Ingeniero_Process::EDITORIAL_REFRESH_HOOK' )
             && false !== has_action( SEO_Ingeniero_Process::EDITORIAL_REFRESH_HOOK, array( 'SEO_Ingeniero_Process', 'editorial_refresh' ) );
         self::add(
             $results, 'Ingeniero', 'Actualización editorial programada',
