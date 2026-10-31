@@ -101,7 +101,7 @@ jobs:
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
-    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[staging-clean-three-20261031]')
+    if: github.event_name != 'pull_request' && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Core branch
