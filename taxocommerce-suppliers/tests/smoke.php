@@ -34,7 +34,12 @@ tcsup_assert( false !== strpos( $main, 'class-tcsup-manual.php' ), 'manual loade
 tcsup_assert( false !== strpos( $main, 'class-tcsup-autotest.php' ), 'autotest loaded' );
 tcsup_assert( false !== strpos( $admin, "'manual' => 'Manual'" ), 'manual tab' );
 tcsup_assert( false !== strpos( $admin, "'autotest' => 'Autotest'" ), 'autotest tab' );
-tcsup_assert( false !== strpos( $manual, 'Manual de usuario' ) && false !== strpos( $manual, 'Manual técnico' ), 'two manual sections' );
+tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-user">Manual de usuario</h1>' ), 'full user manual heading' );
+tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-dev">Manual técnico para futuros desarrolladores</h1>' ), 'full developer manual heading' );
+tcsup_assert( substr_count( $manual, 'class="tcsup-manual-section"' ) >= 16, 'comprehensive indexed manual sections' );
+tcsup_assert( false !== strpos( $manual, 'tcsup-manual-index' ) && false !== strpos( $manual, 'tcsup-manual-scroll' ), 'manual navigation and tables' );
+tcsup_assert( false !== strpos( $manual, 'class-tcsup-schema.php' ) && false !== strpos( $manual, 'taxocommerce_suppliers_get_sources' ), 'developer architecture and public contracts' );
+tcsup_assert( false !== strpos( $manual, 'borrador' ) && false !== strpos( $manual, 'Apply Woo prices' ), 'user side effects documented' );
 tcsup_assert( false !== strpos( $autotest, "check_admin_referer( 'tcsup_autotest' )" ), 'autotest nonce' );
 tcsup_assert( false !== strpos( $autotest, 'SHOW TABLES LIKE' ), 'read-only schema check' );
 echo "OK\n";
