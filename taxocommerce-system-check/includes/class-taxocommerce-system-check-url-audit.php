@@ -783,9 +783,10 @@ final class TaxoCommerce_System_Check_URL_Audit {
             return;
         }
         seo_health_scan_maybe_upgrade();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted tab selection, no state change.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted tab selection; no state changes.
         $scope = self::scope( isset( $_GET['tcs_scope'] ) && is_string( $_GET['tcs_scope'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_scope'] ) ) : 'page' );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         echo '<nav class="nav-tab-wrapper">';
         foreach ( self::scopes() as $code => $label ) {
             echo '<a class="nav-tab' . ( $scope === $code ? ' nav-tab-active' : '' ) . '" href="' . esc_url( self::url( $code ) ) . '">' . esc_html( $label ) . '</a>';
