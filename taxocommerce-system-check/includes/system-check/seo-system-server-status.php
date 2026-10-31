@@ -2454,8 +2454,7 @@ function seo_server_status_mysql_query_benchmark() {
     foreach ($tests as $test) {
         $wpdb->last_error = '';
         $started = microtime(true);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL definido exclusivamente en la lista interna de pruebas de solo lectura.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL definido exclusivamente en la lista interna de pruebas de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
         $wpdb->get_var($test['sql']);
         $elapsed_ms = max(0.0, (microtime(true) - $started) * 1000.0);
         $samples[] = array(
@@ -3120,8 +3119,7 @@ function seo_server_status_count_products_without_any_image_source() {
                      AND si.image_url IS NOT NULL
                      AND TRIM(si.image_url) <> ''
               )";
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
     return (int) $wpdb->get_var($sql);
 }
 
