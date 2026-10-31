@@ -148,6 +148,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_masters() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -217,6 +219,7 @@ final class TCV_Portable {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function product_identity( $product_id ) {
         $post = get_post( $product_id );
         return array(
@@ -228,6 +231,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_products( $scopes ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -306,6 +311,7 @@ final class TCV_Portable {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function category_identity( $term ) {
         $path = array();
         $parent = absint( $term->parent );
@@ -326,6 +332,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_categories() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -357,6 +365,7 @@ final class TCV_Portable {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function counts( $sections ) {
         return array(
             'vocabulary'  => count( (array) ( $sections['masters']['vocabulary'] ?? array() ) ),
@@ -369,6 +378,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function integrity_summary() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -404,12 +415,14 @@ final class TCV_Portable {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function read_uploaded_document() {
         // The only caller is nonce-protected; check here too so the upload
         // cannot be read through a future unprotected caller.
         check_admin_referer( 'tcv_import_portable_json' );
         // An uploaded temporary path must remain unchanged, so validate its
         // PHP origin and upload error rather than rewriting the path.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP's uploaded-file metadata must remain unmodified; validated with UPLOAD_ERR_OK, is_uploaded_file() and size.
         $upload = isset( $_FILES['portable_json'] ) && is_array( $_FILES['portable_json'] ) ? $_FILES['portable_json'] : array();
         $tmp_path = isset( $upload['tmp_name'] ) && is_string( $upload['tmp_name'] ) ? $upload['tmp_name'] : '';
         $upload_error = isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE;
@@ -551,6 +564,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function resolve_product( $identity ) {
         global $wpdb;
         $provider = sanitize_text_field( (string) ( $identity['provider'] ?? '' ) );
@@ -602,6 +617,7 @@ final class TCV_Portable {
         return new WP_Error( 'tcv_product_unresolved', 'no se pudo resolver ' . ( $sku ?: $external ?: $slug ?: 'sin identidad portable' ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function resolve_category( $identity ) {
         $slug = sanitize_title( (string) ( $identity['slug'] ?? '' ) );
         if ( '' === $slug ) {
@@ -622,6 +638,8 @@ final class TCV_Portable {
         return absint( $term->term_id );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function vocabulary_id( $group, $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -636,12 +654,18 @@ final class TCV_Portable {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_id( $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE slug=%s LIMIT 1", $t['attributes'], sanitize_title( $slug ) ) ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_term_id( $attribute_id, $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -651,6 +675,9 @@ final class TCV_Portable {
         return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE atributo_id=%d AND slug=%s LIMIT 1", $t['terms'], $attribute_id, sanitize_title( $slug ) ) ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function apply_document( $document, $mode ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -885,6 +912,7 @@ final class TCV_Portable {
         return array( 'masters'=>$masters_count, 'objects'=>$objects_count );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function redirect( $status, $message ) {
         wp_safe_redirect(
             add_query_arg(
