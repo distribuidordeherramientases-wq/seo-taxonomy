@@ -44,3 +44,8 @@
 .tct-manager-section-link{display:flex;flex-direction:column;gap:5px;padding:18px 21px;text-decoration:none;color:inherit}
 .tct-manager-section-link:hover,.tct-manager-section-link:focus-visible{background:#f6f7f7;border-color:#2271b1}
 .tct-manager-section-link .tct-manager-section-title{color:#1d2327}
+
+
+.tct-design-editor .tct-design-countries{margin:14px 0;padding:14px;border:1px solid #c3c4c7;border-radius:6px}
+.tct-design-editor .tct-design-countries label{display:inline-flex;gap:5px;align-items:center;margin-right:18px}
+.tct-design-editor .tct-front-fields select{width:100%;max-width:400px}
