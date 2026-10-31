@@ -1,23 +1,11 @@
 # CHANGELOG — TaxoCommerce Templates
 
-> Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
+## 0.4.1 — 2026-10-30
+- Se añade el **compositor FRONT** como piloto administrativo dentro de TaxoCommerce Templates.
+- Inventario cerrado de módulos con altas/bajas, ordenación mediante arrastre y controles de teclado, visibilidad y etiqueta opcional.
+- Configuración independiente por **mercado (ES/US/DE/NL/FR)** y por dispositivo (**ordenador/móvil**), con nombre y rol automático `front_page`.
+- Guardado de borradores con capacidades de administrador, nonce, saneamiento y lista blanca de módulos.
+- **No activa el nuevo renderizador ni altera la portada existente, las asignaciones, las campañas o las imágenes VEVOR.** La activación pública queda para una fase posterior, después de probar la interfaz en staging.
+- Se incluyen pruebas de validación de composiciones e invariantes del FRONT original.
 
-## [Unreleased]
-
-Sin novedades pendientes documentadas.
-
-
-## [0.4.0]
-
-* Standalone request and WooCommerce template routing.
-* Existing editorial role and assignment compatibility.
-* Independent custom PHP template library, variants and audit reports.
-
-## Fuentes
-
-- [`changelog.txt`](changelog.txt), etapa monolítica.
-- [`docs/PLUGIN-HISTORY-SOURCES.md`](../docs/PLUGIN-HISTORY-SOURCES.md), PR y referencias históricas.
-
-## Actualizaciones
-
-Para nuevas funcionalidades se edita este `CHANGELOG.md`. Antes de publicar, se debe reflejar el resumen de la versión en `readme.txt`, que es el único Changelog mostrado automáticamente por WordPress.org.
+> Este fichero documenta únicamente cambios verificables desde la versión 0.4.1. No reconstruye ni atribuye versiones históricas sin evidencia.

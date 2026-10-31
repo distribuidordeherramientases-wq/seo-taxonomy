@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,8 +54,6 @@ Use `tct_request_definitions` to extend named request definitions and `tct_reque
 * Independent custom PHP template library, variants and audit reports.
 
 == Historical origins (monolith; not standalone releases) ==
-* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-templates) (changelog.txt / CHANGELOG.md).
-
 * Legacy origin: the WordPress/WooCommerce theme templates, content-role routing, cluster/hub page presentation and product/category layouts were developed within TaxoCommerce SEO; old monolith releases are not Templates versions.
 * The monolith 2.3.x–2.4.0 line included frontend content integration, editorial roles, product/category information blocks, menu assignments and canonical content relationships.
 * Standalone Templates evolved into an independent template library and editor with explicit assignment and compatibility checks for existing WordPress pages.

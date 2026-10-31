@@ -325,7 +325,7 @@ if (!function_exists('seo_analista_competitive_html_metrics')) {
                 return (bool) preg_match('#/(categoria|category|categorias|categories|coleccion|collection|collections)/#i', (string) $url);
             })),
             'schema_types'=>$schema_types,
-            'schema_product'=>function_exists('seo_analista_geo_schema_product') ? seo_analista_geo_schema_product($html) : array('status'=>'unknown'),
+            'schema_product'=>function_exists('taxocommerce_google_bing_geo_schema_product') ? taxocommerce_google_bing_geo_schema_product($html) : array('status'=>'unknown'),
             'signals'=>$signals,
         );
     }

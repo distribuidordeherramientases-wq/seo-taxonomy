@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.13
+ * Version: 1.1.14
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.13' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.14' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -211,7 +211,7 @@ add_action( 'admin_enqueue_scripts', 'taxocommerce_google_bing_analysis_assets' 
 function taxocommerce_google_bing_analysis_screen() {
     $legacy_available = function_exists( 'seo_analista_lazy_reports' )
         && function_exists( 'seo_analista_lazy_render_partial' )
-        && has_action( 'wp_ajax_seo_analista_partial_report', 'seo_analista_ajax_partial_report' );
+        && function_exists( 'taxocommerce_google_bing_analysis_reports' );
 
     if ( ! $legacy_available ) {
         echo '<div class="notice notice-warning inline"><p>'
@@ -252,7 +252,7 @@ function taxocommerce_google_bing_analysis_screen() {
     echo '<div class="seo-analista-wrap">';
     echo '<div class="seo-analista-toolbar">';
     echo '<div><h2 style="margin:0 0 4px">Analysis</h2>';
-    echo '<p style="margin:0;color:#646970">Los once informes originales de Analista, bajo demanda. No se ejecutan al abrir la página.</p></div>';
+    echo '<p style="margin:0;color:#646970">Qué hacer y Plan de acción se presentan juntos; el resto de informes sigue bajo demanda.</p></div>';
     echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '">';
     echo '<input type="hidden" name="page" value="taxocommerce-google-bing">';
     echo '<input type="hidden" name="tgb_tab" value="analysis">';
@@ -270,7 +270,7 @@ function taxocommerce_google_bing_analysis_screen() {
 
     // Do not call seo_analista_lazy_render_shell: it would enqueue the same
     // click handler again and issue two AJAX requests per button click.
-    $reports = seo_analista_lazy_reports();
+    $reports = taxocommerce_google_bing_analysis_reports();
     echo '<div class="seo-analista-lazy-intro"><strong>Analista '
         . esc_html( defined( 'SEO_ANALISTA_VERSION' ) ? SEO_ANALISTA_VERSION : '' )
         . '</strong> · carga bajo demanda<p>Ejecuta únicamente el informe elegido.</p></div>';
