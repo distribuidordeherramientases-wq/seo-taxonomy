@@ -918,7 +918,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
     private static function render_rows( $scope ) {
         global $wpdb;
         $items = self::table( 'items' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filters.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- The following allowlisted GET values only filter read-only result lists; no data is mutated.
         $filter = isset( $_GET['tcs_filter'] ) && is_string( $_GET['tcs_filter'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_filter'] ) ) : 'error';
         if ( ! in_array( $filter, array( 'error', 'warning', 'pending', 'ok', 'all' ), true ) ) {
@@ -930,6 +930,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
         $page = isset( $_GET['tcs_paged'] ) && is_scalar( $_GET['tcs_paged'] )
             ? max( 1, absint( wp_unslash( $_GET['tcs_paged'] ) ) ) : 1;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $where = array( 'scope=%s', 'active=1' );
         $params = array( $scope );
         if ( 'pending' === $filter ) {
@@ -949,6 +950,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Constant WHERE templates and bound values; identifier is parameterized.
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $count_sql is assembled only from fixed WHERE fragments; %i and submitted values bind via prepare().
         $count = (int) $wpdb->get_var(
             $wpdb->prepare( $count_sql, array_merge( array( $items ), $params ) )
         );
@@ -960,6 +962,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             . ' last_checked_at ASC,id ASC LIMIT %d OFFSET %d';
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $page_sql uses only allowlisted WHERE clauses with bound values, identifier, limit and offset.
         $rows = $wpdb->get_results(
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are fixed, values and pagination use prepare().
             $wpdb->prepare(
