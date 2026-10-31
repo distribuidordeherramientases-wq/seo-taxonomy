@@ -278,7 +278,14 @@ final class TCT_Routing_Admin {
         }
 
         $managed_count = count( self::visible( $items, $mapping, 'managed' ) );
-        $pending_count = count( self::visible( $items, $mapping, 'pending' ) );
+        $pending_items = self::visible( $items, $mapping, 'pending' );
+        foreach ( $designs as $design ) {
+            if ( isset( $items[ $design['route'] ] ) ) {
+                ++$managed_count;
+                unset( $pending_items[ $design['route'] ] );
+            }
+        }
+        $pending_count = count( $pending_items );
         echo '<nav class="tct-routing-views" aria-label="Vista de enrutamiento">';
         foreach ( array(
             'managed' => 'Mis plantillas (' . $managed_count . ')',
