@@ -34,6 +34,7 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 = 0.3.6 =
 * Validate uploaded portable JSON metadata and repeat nonce verification at input readers.
 * Document bounded taxonomy queries and scoped read-only admin URL nonce exceptions.
+* Document narrowly scoped PHPCS exceptions for live custom-table queries without cross-plugin cache invalidation; keep all real SQL identifier preparation checks enabled.
 
 = 0.3.5 =
 * Prepare canonical vocabulary SQL identifiers with WordPress %i placeholders across admin, classifier, CSV and portable JSON import/export.
