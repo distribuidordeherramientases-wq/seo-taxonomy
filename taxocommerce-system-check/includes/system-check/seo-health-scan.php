@@ -485,6 +485,7 @@ if (!function_exists('seo_health_scan_expire_stale')) {
 
             // The ID list contains only generated %d placeholders, never raw IDs.
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d ID placeholders are concatenated. Both table identifiers and all timestamp/ID values are passed to prepare().
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN (" . $placeholders . ")",
@@ -497,6 +498,7 @@ if (!function_exists('seo_health_scan_expire_stale')) {
                     array_merge(array($tables['items']), $ids)
                 )
             );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
     }
 }
