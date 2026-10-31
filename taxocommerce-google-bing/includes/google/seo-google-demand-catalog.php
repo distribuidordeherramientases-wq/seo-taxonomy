@@ -15,6 +15,7 @@ if (!defined('ABSPATH')) {
  */
 
 if (!defined('SEO_GOOGLE_DEMAND_CATALOG_VERSION')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
     define('SEO_GOOGLE_DEMAND_CATALOG_VERSION', '1.4.0');
 }
 
