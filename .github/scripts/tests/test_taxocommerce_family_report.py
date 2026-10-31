@@ -23,6 +23,9 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(entries[0]["file"], "includes/example.php")
         self.assertEqual(entries[1]["type"], "WARNING")
         self.assertEqual(MODULE.scan_findings(""), [])
+        self.assertEqual(MODULE.scan_findings("Success: Checks complete. No errors found.\n"), [])
+        with self.assertRaisesRegex(ValueError, "Unrecognized"):
+            MODULE.scan_findings("Success: Checks complete. No errors found.\nUNEXPECTED")
         with self.assertRaisesRegex(ValueError, "Unrecognized"):
             MODULE.scan_findings("broken scanner output")
         with self.assertRaisesRegex(ValueError, "Incomplete"):
@@ -44,6 +47,17 @@ class ReportTests(unittest.TestCase):
             self.assertFalse(result["complete"])
             result = MODULE.scan("taxocommerce-core", root / "absent", "success", out)
             self.assertFalse(result["complete"])
+
+    def test_clean_wordpress_plugin_check_message_is_complete(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            report = root / "plugin-check-results.txt"
+            report.write_text("Success: Checks complete. No errors found.\n")
+            output = root / "quality-state.json"
+            record = MODULE.scan("taxocommerce-images", report, "success", output)
+            self.assertTrue(record["complete"])
+            self.assertEqual((record["errors"], record["warnings"]), (0, 0))
+            self.assertEqual(MODULE.summarize(root / "reports", '[]', root / "summary.md"), [0, 0])
 
     def test_full_summary_and_incomplete_artifact_protection(self):
         with tempfile.TemporaryDirectory() as t:
