@@ -5,6 +5,7 @@
 
 ## [Unreleased]
 
+- Publicar como artefacto de CI el ZIP instalable de Core para WordPress Playground, generado a partir de un paquete verificado sin `tests/` ni archivos ocultos. Resuelve los 15 avisos del informe de Playground originados por pruebas CLI incluidas en un ZIP de desarrollo, sin modificar el código operativo ni las pruebas del repositorio (issue #1898).
 - Auditoría de calidad unificada de los 20 módulos independientes: Plugin Check automático tras cada integración en STAGING, informes por módulo y resumen consolidado con errores, advertencias y archivos de diagnóstico; el monolítico permanece excluido (issue #1921).
 - El comprobador de CI analiza paquetes distribuibles y no sustituye las comprobaciones de la instalación WordPress en PRO; ningún despliegue a PRO se ejecuta desde este control.
 - Endurecido el despliegue de la familia modular: las pruebas de desarrollo y el estado FTP se mantienen fuera de las instalaciones WordPress.
