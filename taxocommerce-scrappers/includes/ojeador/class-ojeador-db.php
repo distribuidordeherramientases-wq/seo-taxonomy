@@ -1254,7 +1254,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $products = esc_sql( self::table('products') );
         $offers = esc_sql( self::table('offers') );
-        $rows = $wpdb->get_results("SELECT status,own_price_snapshot,market_median,offer_count FROM {$products}", ARRAY_A);
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT status,own_price_snapshot,market_median,offer_count FROM %i", $products ), ARRAY_A);
         $out = array(
             'published' => self::count_published_products(),
             'scanned' => count($rows),
@@ -1263,7 +1263,7 @@ final class SEO_Ojeador_DB {
             'aligned' => 0,
             'dearer' => 0,
             'no_data' => 0,
-            'offers' => absint($wpdb->get_var("SELECT COUNT(*) FROM {$offers} WHERE active=1")),
+            'offers' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE active=1", $offers ))),
             'due' => self::count_due_products(),
         );
         foreach ($rows as $row) {
@@ -1381,7 +1381,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $query_log_table = self::table('query_log');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        return $wpdb->get_row("SELECT * FROM {$query_log_table} ORDER BY id DESC LIMIT 1", ARRAY_A);
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT 1", $query_log_table ), ARRAY_A);
     }
 
     /* ---------------------------------------------------------------------
@@ -1404,14 +1404,14 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $runs_table = self::table('runs');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        return $wpdb->get_row("SELECT * FROM {$runs_table} WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 1", ARRAY_A);
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 1", $runs_table ), ARRAY_A);
     }
 
     public static function latest_run() {
         global $wpdb;
         $runs_table = self::table('runs');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        return $wpdb->get_row("SELECT * FROM {$runs_table} ORDER BY id DESC LIMIT 1", ARRAY_A);
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT 1", $runs_table ), ARRAY_A);
     }
 
     public static function update_run($run_id, $data) {
