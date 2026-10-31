@@ -69,7 +69,7 @@ ob_start();
 Manual::render();
 $manual = ob_get_clean();
 foreach ( array(
-    'Manual de usuario', 'Manual técnico', 'Auditoría completa',
+    'Manual de usuario', 'Manual técnico', 'auditoría completa',
     'Productos', 'FAQs', 'JSON Lines', 'WP-Cron', 'manage_options', 'Auto Test',
 ) as $word ) {
     verify( strpos( $manual, $word ) !== false, 'Manual covers ' . $word );
