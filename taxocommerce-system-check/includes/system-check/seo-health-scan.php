@@ -283,8 +283,7 @@ if (!function_exists('seo_health_scan_upsert_rows')) {
                     active=1,
                     sync_token=VALUES(sync_token),
                     last_seen_at=VALUES(last_seen_at)";
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table/query shape with generated placeholders; all data values are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table/query shape with generated placeholders; all data values are bound through prepare(). / Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $result = $wpdb->query($wpdb->prepare($sql, $params));
             if ($result === false) {
                 return new WP_Error('seo_health_inventory_write', $wpdb->last_error ?: 'No se pudo actualizar el inventario.');
@@ -713,8 +712,7 @@ if (!function_exists('seo_health_scan_launch')) {
             $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
             $queue_sql = "UPDATE {$tables['items']} SET queued_scan_id=%d,queued_at=%s WHERE id IN ({$id_placeholders})";
             $queue_params = array_merge(array($run_id, $now), $ids);
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table/placeholder list; all values are integers/text bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table/placeholder list; all values are integers/text bound through prepare(). / Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $queued = $wpdb->query($wpdb->prepare($queue_sql, $queue_params));
         }
 
@@ -857,8 +855,7 @@ if (!function_exists('seo_health_scan_auth_run')) {
         $tables['runs']  = esc_sql( $tables['runs'] );
         $tables['items'] = esc_sql( $tables['items'] );
         $runs_table = $tables['runs'];
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; scan_uuid is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table name from $wpdb->prefix; scan_uuid is bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
         $run = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE scan_uuid=%s LIMIT 1",
                     $runs_table, $scan_uuid),
@@ -890,8 +887,7 @@ if (!function_exists('seo_health_scan_rest_batch')) {
         $tables['runs']  = esc_sql( $tables['runs'] );
         $tables['items'] = esc_sql( $tables['items'] );
         $items_table = $tables['items'];
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; queued_scan_id is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table name from $wpdb->prefix; queued_scan_id is bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
         $items = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM %i WHERE queued_scan_id=%d ORDER BY id ASC",
@@ -1357,13 +1353,11 @@ if (!function_exists('seo_health_render_scope_tab')) {
         }
         $where_sql = implode(' AND ', $where);
         $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
         $total_rows = (int) $wpdb->get_var($wpdb->prepare($count_sql, $params));
         $offset = ($paged - 1) * $per_page;
         $rows_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,last_checked_at ASC,id ASC LIMIT %d OFFSET %d";
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = $wpdb->get_results($wpdb->prepare($rows_sql, array_merge($params,array($per_page,$offset))), ARRAY_A);
 
         echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Estado por elemento</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
