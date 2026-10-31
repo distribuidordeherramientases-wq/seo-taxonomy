@@ -69,11 +69,14 @@ final class TCT_Router {
             $saved = $wpdb->insert($table, array(
                 'template_key'            => $key,
                 'template_name'           => $row[0],
-                'template_file'           => $row[1],
+                // A new installation exposes catalog suggestions without
+                // assigning or activating a public template automatically.
+                // Existing rows are skipped above, preserving legacy sites.
+                'template_file'           => '',
                 'template_type'           => $row[2],
                 'assignment_mode'         => $row[3],
                 'is_assignable'          => ('automatic' === $row[3]) ? 0 : 1,
-                'is_active'              => 1,
+                'is_active'              => 0,
                 'is_public'              => 1,
                 'device_variants_enabled' => 0,
                 'created_at'              => current_time('mysql'),

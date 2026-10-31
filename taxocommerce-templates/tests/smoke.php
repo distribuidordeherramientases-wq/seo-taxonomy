@@ -287,6 +287,40 @@ tct_assert(isset($routing['front_page'], $routing['page'], $routing['single_post
     'The routing inventory must include WordPress, WooCommerce and editorial roles.');
 tct_assert($routing['cluster']['role'] === 'cluster' && $routing['front_page']['role'] === '',
     'SEO roles and automatic WordPress requests remain distinct.');
+// One-click workload filters keep installed routes accessible without showing
+// hundreds of native WooCommerce fragments in the everyday admin view.
+$empty_map = array();
+$sample = array(
+    'front_page' => array('label'=>'Portada', 'group'=>'WordPress', 'native'=>'front-page.php', 'role'=>''),
+    'cluster' => array('label'=>'Clúster', 'group'=>'TaxoCommerce - roles y rutas', 'native'=>'', 'role'=>'cluster'),
+    'wc_partial' => array('label'=>'Mini-cart', 'group'=>'WooCommerce - fragmentos', 'native'=>'cart/mini-cart.php', 'role'=>''),
+);
+tct_assert(count(TCT_Routing_Admin::visible($sample, $empty_map, 'managed')) === 0,
+    'An empty new installation must show zero managed routes.');
+$unconfigured = TCT_Routing_Admin::visible($sample, $empty_map, 'pending');
+tct_assert(count($unconfigured) === 2 && !isset($unconfigured['wc_partial']),
+    'Unconfigured view excludes internal WooCommerce partial files.');
+$sample_map = array(
+    'front_page' => (object)array('template_file'=>'template-front.php', 'is_active'=>1),
+    'cluster' => (object)array('template_file'=>'template-cluster.php', 'is_active'=>0),
+);
+$managed = TCT_Routing_Admin::visible($sample, $sample_map, 'managed');
+tct_assert(count($managed) === 1 && isset($managed['front_page']),
+    'Managed view requires an active, nonempty file association.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'all')) === 3,
+    'The full inventory must remain available.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'pending')) === 1,
+    'A disabled saved mapping is available to configure again.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'managed', 'WordPress', 'front')) === 1,
+    'The view preserves family/search filtering.');
+$seed_source = file_get_contents(TCT_DIR . 'includes/class-tct-router.php');
+tct_assert(strpos($seed_source, "'template_file'           => ''") !== false
+    && strpos($seed_source, "'is_active'              => 0") !== false
+    && strpos($seed_source, 'if (isset($existing[$key]))') !== false,
+    'New installations must seed inactive routes and leave existing assignments untouched.');
+$short_inventory = TCT_Routing_Admin::items(false);
+tct_assert(isset($short_inventory['front_page'], $short_inventory['cluster'], $short_inventory['single_product']),
+    'Working inventory includes the main native requests and all TaxoCommerce roles.');
 $router_view = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
 tct_assert(strpos($router_view, "check_admin_referer( 'tct_save_route_mapping' )") !== false
     && strpos($router_view, "current_user_can( 'manage_options' )") !== false
