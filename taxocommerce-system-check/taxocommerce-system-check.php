@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.9
+ * Version: 0.2.10
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.9' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.10' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -72,6 +72,8 @@ function taxocommerce_system_check_boot() {
         }
     }
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-auto-test.php';
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-user-guide.php';
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
         require_once $url_audit_module;
@@ -130,7 +132,7 @@ function taxocommerce_system_check_register_legacy_routes() {
     add_submenu_page( null, 'Estado del sistema', 'Estado del sistema', 'manage_options', 'seo_server_status', 'taxocommerce_system_check_server_screen' );
 }
 
-/** Exactly one parent screen owns the three feature tabs. */
+/** Exactly one parent screen owns all feature tabs. */
 function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
     return add_query_arg(
         array_merge( array( 'page' => 'taxocommerce-system-check', 'tcs_tab' => $tab ), $args ),
@@ -141,12 +143,12 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function taxocommerce_system_check_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
     $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'plugin', 'http' ), true ) ? $tab : 'system';
+    return in_array( $tab, array( 'system', 'plugin', 'http', 'auto-test', 'manual' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'auto-test' => 'Auto Test', 'manual' => 'Manual' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -267,6 +269,10 @@ function taxocommerce_system_check_home() {
         taxocommerce_system_check_validation_screen();
     } elseif ( 'http' === $tab ) {
         taxocommerce_system_check_url_audit_screen();
+    } elseif ( 'auto-test' === $tab ) {
+        TaxoCommerce_System_Check_Auto_Test::render();
+    } elseif ( 'manual' === $tab ) {
+        TaxoCommerce_System_Check_User_Guide::render();
     } else {
         taxocommerce_system_check_server_screen();
     }
