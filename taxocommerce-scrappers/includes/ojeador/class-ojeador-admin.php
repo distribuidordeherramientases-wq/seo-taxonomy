@@ -174,13 +174,16 @@ final class SEO_Ojeador_Admin {
         $settings = SEO_Ojeador_Shopping::settings();
         $usage = SEO_Ojeador_Shopping::usage_month();
         $scraper_usage = SEO_Ojeador_Shopping::scraperapi_usage_month();
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Avisos GET informativos de conexión; las acciones de guardar/probar requieren nonce.
         $notice = isset($_GET['ojeador_google_notice'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_notice']))
             : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET informativo y saneado; no autoriza ninguna operación.
         $error_encoded = isset($_GET['ojeador_google_error'])
             ? sanitize_text_field(wp_unslash($_GET['ojeador_google_error']))
             : '';
         $error = '' !== $error_encoded ? sanitize_text_field(rawurldecode($error_encoded)) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET informativo y saneado; no autoriza ninguna operación.
         $tested_provider = isset($_GET['ojeador_google_provider'])
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_provider']))
             : '';
