@@ -1,6 +1,11 @@
 name: Build and Deploy TaxoCommerce Auditor to STAGING
 
 on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-auditor/**'
+      - '.github/workflows/taxocommerce-auditor.yml'
   push:
     branches: [staging]
     paths:
@@ -32,7 +37,9 @@ jobs:
         run: find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Auditor smoke tests
-        run: php taxocommerce-auditor/tests/smoke.php
+        run: |
+          php taxocommerce-auditor/tests/smoke.php
+          php taxocommerce-auditor/tests/auto-test-manual-smoke.php
 
   deploy:
     needs: verify
@@ -49,8 +56,11 @@ jobs:
             -x 'taxocommerce-auditor/tests/*' \
                'taxocommerce-auditor/**/*.bak' \
                'taxocommerce-auditor/**/*.md' \
-               'taxocommerce-auditor/**/*.pot'
+               'taxocommerce-auditor/**/*.pot' \
+               'taxocommerce-auditor/.ftp-deploy-sync-state.json'
           unzip -t build-auditor-package/taxocommerce-auditor.zip
+          unzip -Z1 build-auditor-package/taxocommerce-auditor.zip | grep -Fx 'taxocommerce-auditor/readme.txt'
+          ! unzip -Z1 build-auditor-package/taxocommerce-auditor.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'
 
       - name: Upload Auditor ZIP to Core local repository
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
