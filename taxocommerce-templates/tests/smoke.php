@@ -270,27 +270,46 @@ tct_assert(strpos($entrypoint, "TCT_Unified_Manager::render(\$tab);") !== false
     && strpos($entrypoint, "admin_post_tct_front_composer_save") !== false,
     'El compositor sigue conectado al gestor administrativo.');
 
-// UI consolidation must not remove the four original handlers or their links.
+// Routing controls must use the existing SEO template table, never rewrite PHP.
 require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
+require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
 $manager_sections = TCT_Unified_Manager::sections();
-tct_assert(count($manager_sections) === 4
-    && isset($manager_sections['composer'], $manager_sections['roles'], $manager_sections['editor'], $manager_sections['requests']),
-    'All original workflows remain accessible within the manager.');
-tct_assert(strpos($entrypoint, "'manager' => 'Gestor de plantillas'") !== false
-    && strpos($entrypoint, "'audit'   => 'Auditoría de asociaciones'") !== false,
-    'Only the manager and audit remain as top-level tabs.');
+tct_assert(count($manager_sections) === 2
+    && isset($manager_sections['composer'], $manager_sections['editor']),
+    'Designer must contain only the compositor and PHP library.');
+tct_assert(strpos($entrypoint, "'routing'  => 'Enrutamiento'") !== false
+    && strpos($entrypoint, "'designer' => 'Diseñador de plantillas'") !== false,
+    'The Templates navigation must expose Enrutamiento and Diseñador only.');
+$routing = TCT_Routing_Admin::items();
+tct_assert(isset($routing['front_page'], $routing['page'], $routing['single_post'],
+    $routing['taxonomy_product_cat'], $routing['single_product'], $routing['cluster'],
+    $routing['hub_primary'], $routing['hub_secondary'], $routing['error_404']),
+    'The routing inventory must include WordPress, WooCommerce and editorial roles.');
+tct_assert($routing['cluster']['role'] === 'cluster' && $routing['front_page']['role'] === '',
+    'SEO roles and automatic WordPress requests remain distinct.');
+$router_view = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
+tct_assert(strpos($router_view, "check_admin_referer( 'tct_save_route_mapping' )") !== false
+    && strpos($router_view, "current_user_can( 'manage_options' )") !== false
+    && strpos($router_view, 'TCT_Router::path( $file )') !== false,
+    'Route writes must use nonce, capability and existing safe library files.');
+tct_assert(strpos($router_view, "'template_file' => " . '$file') !== false
+    && strpos($router_view, "'is_active' => '' !== " . '$file' . " ? 1 : 0") !== false,
+    'Route changes must persist in seo_templates and support WordPress fallback.');
+tct_assert(strpos($router_view, 'VEVOR US/DE/NL/FR: ruta especializada con prioridad.') !== false
+    && strpos($router_view, 'Enrutador TaxoCommerce desactivado.') !== false,
+    'Router must disclose its activation status and country-specific priority.');
+tct_assert(strpos($entrypoint, "add_action('admin_post_tct_save_route_mapping'") !== false
+    && strpos($entrypoint, "TCT_Association_Audit::render();") !== false
+    && strpos($entrypoint, "add_action('admin_post_tct_assign_page'") !== false,
+    'New routing must keep the existing audit and page-to-role forms.');
 $manager_view = file_get_contents(TCT_DIR . 'includes/class-tct-unified-manager.php');
 tct_assert(strpos($manager_view, 'TCT_Front_Composer::render( true )') !== false
-    && strpos($manager_view, 'TaxoCommerce_Templates::render_roles_screen( true )') !== false
-    && strpos($manager_view, 'TCT_Request_Admin::render( true )') !== false
-    && strpos($manager_view, 'TCT_Template_Editor::render( true )') !== false,
-    'The unified manager uses the original components without duplicating their handlers.');
-tct_assert(strpos($entrypoint, "TCT_Association_Audit::render();") !== false
-    && strpos($entrypoint, "add_action('admin_post_tct_assign_page'") !== false,
-    'Auditing and role association actions remain available.');
+    && strpos($manager_view, 'TCT_Template_Editor::render( true )') !== false
+    && strpos($manager_view, "TCT_Request_Admin::admin_url( 'routing' )") !== false,
+    'Designer must link back to routing and reuse the existing editor.');
 $front_composer_class = file_get_contents(TCT_DIR . 'includes/class-tct-front-composer.php');
-tct_assert(strpos($front_composer_class, "'manager', 'composer', 'roles', 'editor', 'requests'") !== false,
-    'Front composer JS must load on the unified and legacy URLs.');
+tct_assert(strpos($front_composer_class, "'designer', 'manager', 'composer', 'editor'") !== false,
+    'Composer scripts must load in the Designer tab.');
 
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";

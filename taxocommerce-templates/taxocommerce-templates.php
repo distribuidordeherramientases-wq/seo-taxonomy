@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.3
+ * Version: 0.4.4
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.3');
+define('TCT_VERSION','0.4.4');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -21,6 +21,7 @@ require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 require_once TCT_DIR . 'includes/class-tct-front-composer.php';
 require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
+require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
@@ -105,6 +106,8 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
         add_action('admin_post_tct_upload_template',array('TCT_Template_Editor','upload'));
         add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
+        add_action('admin_post_tct_save_route_mapping',array('TCT_Routing_Admin','save'));
+        add_action('admin_enqueue_scripts',array('TCT_Routing_Admin','enqueue'));
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
         add_action('admin_post_tct_front_composer_save',array('TCT_Front_Composer','save'));
         add_action('admin_enqueue_scripts',array('TCT_Front_Composer','enqueue'));
@@ -330,18 +333,17 @@ final class TaxoCommerce_Templates {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
-        // Preserve legacy tab URLs for forms, pagination and deep links;
-        // they open the corresponding section in the unified manager.
+        // The legacy URLs still resolve, preserving form redirects and old bookmarks.
         $tab = isset($_GET['tab']) && is_string($_GET['tab'])
-            ? sanitize_key(wp_unslash($_GET['tab'])) : 'manager';
-        if (!in_array($tab, array('manager','requests','roles','editor','audit','composer'), true)) {
-            $tab = 'manager';
+            ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
+        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer'), true)) {
+            $tab = 'routing';
         }
-        $main_tab = 'audit' === $tab ? 'audit' : 'manager';
+        $main_tab = in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer';
         echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
         foreach (array(
-            'manager' => 'Gestor de plantillas',
-            'audit'   => 'Auditoría de asociaciones',
+            'routing'  => 'Enrutamiento',
+            'designer' => 'Diseñador de plantillas',
         ) as $key => $label) {
             echo '<a class="nav-tab ' . ($key === $main_tab ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(TCT_Request_Admin::admin_url($key)) . '">' . esc_html($label) . '</a>';
@@ -352,8 +354,17 @@ final class TaxoCommerce_Templates {
         }
         echo '</div>';
 
-        if ('audit' === $main_tab) {
-            TCT_Association_Audit::render();
+        if ('routing' === $main_tab) {
+            if ('audit' === $tab) {
+                TCT_Association_Audit::render();
+            } elseif ('roles' === $tab) {
+                // Advanced legacy page-to-role mappings remain accessible.
+                self::render_roles_screen();
+            } elseif ('requests' === $tab) {
+                TCT_Request_Admin::render();
+            } else {
+                TCT_Routing_Admin::render();
+            }
         } else {
             TCT_Unified_Manager::render($tab);
         }
