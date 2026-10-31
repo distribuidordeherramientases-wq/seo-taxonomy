@@ -135,11 +135,18 @@ final class TCV_IO {
         self::guard();
         check_admin_referer( 'tcv_import' );
         $domain = isset( $_POST['domain'] ) ? sanitize_key( wp_unslash( $_POST['domain'] ) ) : '';
-        if ( empty( $_FILES['csv']['tmp_name'] ) || ! is_uploaded_file( $_FILES['csv']['tmp_name'] )
-            || empty( $_FILES['csv']['size'] ) || (int) $_FILES['csv']['size'] > 10 * MB_IN_BYTES ) {
+        // The upload's PHP temporary path must be used unchanged. Validate that
+        // PHP created it, instead of sanitizing a filesystem path into another one.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata is checked by type, PHP upload status, size and is_uploaded_file().
+        $upload = isset( $_FILES['csv'] ) && is_array( $_FILES['csv'] ) ? $_FILES['csv'] : array();
+        $tmp = isset( $upload['tmp_name'] ) && is_string( $upload['tmp_name'] ) ? $upload['tmp_name'] : '';
+        $size = isset( $upload['size'] ) ? absint( $upload['size'] ) : 0;
+        $error = isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE;
+        if ( UPLOAD_ERR_OK !== $error || '' === $tmp || ! is_uploaded_file( $tmp )
+            || 0 === $size || $size > 10 * MB_IN_BYTES ) {
             self::redirect( 'error', 'Selecciona un CSV válido de hasta 10 MB.' );
         }
-        $rows = self::read_csv( $_FILES['csv']['tmp_name'] );
+        $rows = self::read_csv( $tmp );
         if ( is_wp_error( $rows ) ) {
             self::redirect( 'error', $rows->get_error_message() );
         }
