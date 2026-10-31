@@ -506,8 +506,9 @@ function seo_system_mysql_audit_explain_plans() {
         // Each statement is an internal constant SELECT template containing exactly one %i;
         // the identifier is the validated canonical table from the same definition.
         // No user-controlled SQL or raw table names are concatenated into EXPLAIN.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Each allowlisted EXPLAIN definition contains exactly one %i table placeholder; the table is bound as a canonical identifier.
         $explain_query = $wpdb->prepare( 'EXPLAIN ' . $def['sql'], $table );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $explain_query is prepared above using the canonical %i table. / This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $explain_query is prepared above using one canonical %i table; no untrusted SQL. / This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = (array) $wpdb->get_results( $explain_query, ARRAY_A );
         if ($wpdb->last_error !== '' || !$rows) continue;
 
