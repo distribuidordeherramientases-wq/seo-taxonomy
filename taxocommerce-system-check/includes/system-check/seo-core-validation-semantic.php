@@ -1772,17 +1772,27 @@ function seo_core_system_test_semantic_snapshot() {
     );
 
     if ($faq_available) {
-        $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
-        // Optional legacy column selection is one of two fixed internal SQL templates.
-        $faq_rows = $wpdb->get_results(
-            $wpdb->prepare(
-                'SELECT id, object_type, object_id, ' . $faq_scope_select
-                . ', question, answer, sort_order, active, load_count, open_count, created_at, updated_at'
-                . ' FROM %i ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC',
-                $faq_table
-            ),
-            ARRAY_A
-        );
+        // Only the historic FAQ schema contains ambito; both queries use
+        // literal column lists and the table identifier is parameterized.
+        if ($faq_has_legacy_scope) {
+            $faq_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, object_type, object_id, ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
+                     FROM %i ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
+                    $faq_table
+                ),
+                ARRAY_A
+            );
+        } else {
+            $faq_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, object_type, object_id, '' AS ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
+                     FROM %i ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
+                    $faq_table
+                ),
+                ARRAY_A
+            );
+        }
 
         $faq_counts['total'] = count((array) $faq_rows);
         $active_by_object = array();
