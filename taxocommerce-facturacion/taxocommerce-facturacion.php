@@ -38,77 +38,84 @@ function taxocommerce_facturacion_boot_module() {
 add_action( 'plugins_loaded', 'taxocommerce_facturacion_boot_module', 5 );
 
 /**
- * Keep the legacy Billing controller while exposing Manual and Autotest even
- * when the monolith has loaded SEO_Facturas_Admin first.
+ * Billing owns its administration page and tab navigation.
+ * The existing document controller retains responsibility for its six
+ * financial workflows without registering any duplicate billing handlers.
  */
 function taxocommerce_facturacion_render_page() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Sin permisos para acceder a Billing.', 'taxocommerce-facturacion' ) );
     }
-
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
-    $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-    if ( 'manual' === $tab || 'autotest' === $tab ) {
-        $tabs = array(
-            'company'   => 'Datos empresa',
-            'tax'       => 'Fiscalidad',
-            'invoices'  => 'Facturas',
-            'proformas' => 'Proformas',
-            'quotes'    => 'Presupuestos',
-            'documents' => 'Documentos',
-            'manual'    => 'Manual',
-            'autotest'  => 'Autotest',
-        );
-        echo '<div class="wrap seo-facturas-wrap"><h1>Facturas y presupuestos</h1>';
-        echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Billing">';
-        foreach ( $tabs as $key => $label ) {
-            $url = add_query_arg( array( 'page' => 'seo-facturas', 'tab' => $key ), admin_url( 'admin.php' ) );
-            echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
-        }
-        echo '</nav>';
-        if ( 'manual' === $tab ) {
-            TaxoCommerce_Billing_Manual::render();
-        } else {
-            TaxoCommerce_Billing_Autotest::render();
-        }
-        echo '</div>';
-        return;
+    $tabs = array(
+        'company'   => 'Datos empresa',
+        'tax'       => 'Fiscalidad',
+        'invoices'  => 'Facturas',
+        'proformas' => 'Proformas',
+        'quotes'    => 'Presupuestos',
+        'documents' => 'Documentos',
+        'manual'    => 'Manual',
+        'autotest'  => 'Autotest',
+    );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selector.
+    $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'company';
+    if ( ! isset( $tabs[ $tab ] ) ) {
+        $tab = 'company';
     }
 
-    // Preserve existing emission settings, actions, access and legacy UI.
-    SEO_Facturas_Admin::render_page();
+    echo '<div class="wrap seo-facturas-wrap taxocommerce-billing-shell">';
+    echo '<h1>TaxoCommerce Billing</h1>';
+    echo '<nav class="nav-tab-wrapper taxocommerce-billing-tabs" aria-label="Secciones de TaxoCommerce Billing">';
+    foreach ( $tabs as $key => $label ) {
+        $url = add_query_arg(
+            array( 'page' => 'taxocommerce-facturacion', 'tab' => $key ),
+            admin_url( 'admin.php' )
+        );
+        echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' .
+            esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+    }
+    echo '</nav>';
+    if ( 'manual' === $tab ) {
+        TaxoCommerce_Billing_Manual::render();
+    } elseif ( 'autotest' === $tab ) {
+        TaxoCommerce_Billing_Autotest::render();
+    } elseif ( class_exists( 'SEO_Facturas_Admin', false ) ) {
+        // Preserve the original six workflows. Only hide their duplicated UI tabs.
+        echo '<div class="taxocommerce-billing-existing-settings">';
+        SEO_Facturas_Admin::render_page();
+        echo '</div>';
+    } else {
+        echo '<div class="notice notice-error inline"><p>El módulo documental de Billing no está disponible.</p></div>';
+    }
+    echo '</div>';
 }
 
-function taxocommerce_facturacion_legacy_admin_links() {
+/**
+ * The standalone route needs its own stylesheet and media picker.
+ */
+function taxocommerce_facturacion_enqueue_admin_assets() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page selector.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( 'seo-facturas' !== $page || ! current_user_can( 'manage_options' ) || ! class_exists( 'SEO_Facturas_Admin' ) ) {
+    if ( 'taxocommerce-facturacion' !== $page ) {
         return;
     }
-    $owner = new ReflectionMethod( 'SEO_Facturas_Admin', 'render_page' );
-    $original = wp_normalize_path( TAXOCOMMERCE_FACTURACION_DIR . 'includes/class-seo-facturas-admin.php' );
-    if ( wp_normalize_path( $owner->getFileName() ) === $original ) {
-        return;
-    }
-    // The monolith screen does not know our two new tab labels; show links here.
-    $manual = add_query_arg( array( 'page' => 'seo-facturas', 'tab' => 'manual' ), admin_url( 'admin.php' ) );
-    $autotest = add_query_arg( array( 'page' => 'seo-facturas', 'tab' => 'autotest' ), admin_url( 'admin.php' ) );
-    echo '<div class="notice notice-info inline"><p>Herramientas de Billing: <a href="' . esc_url( $manual ) . '">Manual de usuario y técnico</a> · <a href="' . esc_url( $autotest ) . '">Autotest</a>.</p></div>';
+    wp_enqueue_media();
+    wp_enqueue_style(
+        'taxocommerce-billing-admin',
+        TAXOCOMMERCE_FACTURACION_URL . 'includes/assets/admin.css',
+        array(),
+        TAXOCOMMERCE_FACTURACION_VERSION
+    );
 }
-add_action( 'admin_notices', 'taxocommerce_facturacion_legacy_admin_links' );
+add_action( 'admin_enqueue_scripts', 'taxocommerce_facturacion_enqueue_admin_assets' );
 
 function taxocommerce_facturacion_register_menu() {
-    if ( ! class_exists( 'SEO_Facturas_Admin' ) ) {
-        return;
-    }
-
     if ( function_exists( 'taxocommerce_core' ) ) {
         add_submenu_page(
             'taxocommerce-core',
             'Facturas y presupuestos',
             'Billing',
             'manage_options',
-            'seo-facturas',
+            'taxocommerce-facturacion',
             'taxocommerce_facturacion_render_page'
         );
         return;
@@ -118,7 +125,7 @@ function taxocommerce_facturacion_register_menu() {
         'Facturas y presupuestos',
         'TaxoCommerce Billing',
         'manage_options',
-        'seo-facturas',
+        'taxocommerce-facturacion',
         'taxocommerce_facturacion_render_page',
         'dashicons-media-spreadsheet',
         60
@@ -138,7 +145,7 @@ function taxocommerce_facturacion_register_core( $core ) {
             'version'     => TAXOCOMMERCE_FACTURACION_VERSION,
             'status'      => 'active',
             'description' => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
-            'admin_url'   => admin_url( 'admin.php?page=seo-facturas' ),
+            'admin_url'   => admin_url( 'admin.php?page=taxocommerce-facturacion' ),
         )
     );
 }
@@ -156,7 +163,7 @@ function taxocommerce_facturacion_family_catalog( $extensions ) {
         'org_slug'      => 'taxocommerce-facturacion',
         'search_term'   => 'TaxoCommerce Billing',
         'wordpress_org' => false,
-        'admin_url'     => admin_url( 'admin.php?page=seo-facturas' ),
+        'admin_url'     => admin_url( 'admin.php?page=taxocommerce-facturacion' ),
         'description'   => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
     );
     return $extensions;
@@ -166,7 +173,7 @@ add_filter( 'taxocommerce_core_family_extensions', 'taxocommerce_facturacion_fam
 function taxocommerce_facturacion_force_core_parent( $parent_file ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( function_exists( 'taxocommerce_core' ) && 'seo-facturas' === $page ) {
+    if ( function_exists( 'taxocommerce_core' ) && 'taxocommerce-facturacion' === $page ) {
         return 'taxocommerce-core';
     }
     return $parent_file;
@@ -176,8 +183,8 @@ add_filter( 'parent_file', 'taxocommerce_facturacion_force_core_parent', 999 );
 function taxocommerce_facturacion_force_core_submenu( $submenu_file ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin routing.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( function_exists( 'taxocommerce_core' ) && 'seo-facturas' === $page ) {
-        return 'seo-facturas';
+    if ( function_exists( 'taxocommerce_core' ) && 'taxocommerce-facturacion' === $page ) {
+        return 'taxocommerce-facturacion';
     }
     return $submenu_file;
 }
