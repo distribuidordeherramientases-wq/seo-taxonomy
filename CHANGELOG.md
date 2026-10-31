@@ -2,6 +2,14 @@
 
 > **Histórico del monolito cerrado.** TaxoCommerce SEO 2.4.1 es la última versión planificada de la línea monolítica. A partir del milestone 2.4.2, los cambios funcionales y sus versiones se documentan en el `readme.txt` de cada plugin independiente. Este archivo raíz queda congelado salvo una corrección crítica que afecte específicamente al monolito.
 
+## Corrección crítica de despliegue - 2026-10-31 (Issue #1973)
+
+- Desactivado el despliegue automático del monolito en el flujo modular de PRODUCCIÓN.
+- Generación de paquetes incrementales exclusivamente con archivos distribuibles modificados desde el último despliegue de PRODUCCIÓN verificado; si falta una referencia fiable, se aborta.
+- Preparación de ZIP de módulos no instalados solo cuando su código ha cambiado.
+- Recuperada la ubicación temporal FTPS/REST que funcionó en la ejecución #41243555528; validación del destino mediante lectura remota, copia previa y sustitución atómica de un único receptor PHP cuando es necesario.
+- El receptor admite la lista explícita de módulos modificados, conserva compatibilidad con clientes previos y verifica SHA-256. Los archivos de desarrollo, las eliminaciones automáticas y los datos de usuarios quedan fuera del despliegue.
+
 ## [2.4.1] - 2026-10-25
 
 ### Cierre de la arquitectura monolítica
