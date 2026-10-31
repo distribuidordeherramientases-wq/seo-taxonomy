@@ -36,7 +36,7 @@ function seo_core_system_test_semantic_table_has_column($table, $column) {
     }
 
     $found = $wpdb->get_var(
-        $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", (string) $column)
+        $wpdb->prepare('SHOW COLUMNS FROM %i LIKE %s', $table, (string) $column)
     );
 
     return (string) $found === (string) $column;
@@ -116,21 +116,15 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
               . "MAX(CASE WHEN http_status IN (404,410) THEN 1 ELSE 0 END) AS has_missing"
             : "0 AS has_valid, 1 AS has_retry, 0 AS has_missing";
         $status_where = $has_status ? "AND status = 'active'" : '';
-        // $column procede de una lista blanca fija; tabla y fragmentos SELECT/WHERE son internos.
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identificadores y fragmentos proceden de listas blancas/estado interno; consulta de solo lectura.
-        $rows = $wpdb->get_results(
-            "SELECT {$column} AS linked_product_id,\n"
-            . "       1 AS has_registered,\n"
-            . "       {$http_select}\n"
-            . "FROM {$table}\n"
-            . "WHERE {$column} IS NOT NULL\n"
-            . "  AND {$column} > 0\n"
-            . "  {$status_where}\n"
-            . "  AND image_url IS NOT NULL\n"
-            . "  AND TRIM(image_url) <> ''\n"
-            . "GROUP BY {$column}",
-            ARRAY_A
-        );
+        // Identifiers are allowlisted (product_id/object_id) and both optional SQL
+        // fragments come solely from constant, schema-checked internal templates.
+        $query = 'SELECT %i AS linked_product_id, 1 AS has_registered, '
+            . $http_select
+            . ' FROM %i WHERE %i IS NOT NULL AND %i > 0 '
+            . $status_where
+            . " AND image_url IS NOT NULL AND TRIM(image_url) <> '' GROUP BY %i";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal schema-dependent SQL fragments; all identifiers use %i.
+        $rows = $wpdb->get_results($wpdb->prepare($query, $column, $table, $column, $column, $column), ARRAY_A);
 
         foreach ((array) $rows as $row) {
             $product_id = absint($row['linked_product_id'] ?? 0);
@@ -435,12 +429,12 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     }
 
     $placeholders = implode(',', array_fill(0, count($roles), '%s'));
-    $params = array_merge(array(sanitize_key($object_type)), $roles);
+    $params = array_merge(array($table, sanitize_key($object_type)), $roles);
     $query = $wpdb->prepare(
         "SELECT id, object_id, seo_role, keywords, status, updated_at
-         FROM {$table}
+         FROM %i
          WHERE object_type = %s
-           AND seo_role IN ({$placeholders})
+           AND seo_role IN (" . $placeholders . ")
            AND status = 1
          ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC",
         $params
@@ -498,28 +492,31 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
-             FROM {$object_table} ov
-             INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+             FROM %i ov
+             INNER JOIN %i v ON v.id = ov.vocabulary_id
              WHERE ov.object_type = 'product_cat'
                AND ov.status = 1
                AND v.active = 1
                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-               AND ov.object_id IN ({$placeholders})
+               AND ov.object_id IN (" . $placeholders . ")
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
-            ...$category_ids
+            array_merge(array($object_table, $vocab_table), $category_ids)
         );
     } else {
-        $sql = "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
-                FROM {$object_table} ov
-                INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
-                WHERE ov.object_type = 'product_cat'
-                  AND ov.status = 1
-                  AND v.active = 1
-                  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-                ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC";
+        $sql = $wpdb->prepare(
+            "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
+             FROM %i ov
+             INNER JOIN %i v ON v.id = ov.vocabulary_id
+             WHERE ov.object_type = 'product_cat'
+               AND ov.status = 1
+               AND v.active = 1
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+             ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
+            $object_table,
+            $vocab_table
+        );
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare().
