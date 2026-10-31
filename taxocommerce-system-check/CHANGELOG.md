@@ -7,7 +7,8 @@
 ## [0.2.11]
 
 * Seguridad SQL: preparados con `%i` los identificadores de las ocho consultas `EXPLAIN` de `seo_system_mysql_audit_explain_plans()`; se mantienen el nombre canónico de cada tabla, los filtros y los índices inspeccionados.
-* Nueva prueba CLI de contratos SQL y matriz de CI PHP 7.4/8.4; ZIP sin archivos `tests/` ni archivos ocultos como antes.
+* Endurecidas las entradas `tcs_task`, `tcs_filter`, `tcs_search` y `tcs_paged` contra parámetros GET/POST no escalares, sin cambiar las acciones válidas ni las rutas.
+* Nueva prueba CLI de contratos SQL y entradas y matriz de CI PHP 7.4/8.4; ZIP sin archivos `tests/` ni archivos ocultos como antes.
 * Continúan pendientes y documentadas las advertencias de funciones/consultas heredadas (issue #1958). Se exige una nueva revisión del paquete y comprobación funcional en STAGING antes de considerar WordPress.org.
 * Sin cambios en el plugin monolítico ni publicación en PRODUCCIÓN.
 
