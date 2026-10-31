@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * Chequeos pasivos del modulo de facturas, proformas y presupuestos.
  *
@@ -123,6 +124,7 @@ if (!function_exists('seo_core_system_test_billing_table_check')) {
         $table = SEO_Facturas_Install::table_name();
         $exists = function_exists('seo_core_system_test_table_exists')
             ? seo_core_system_test_table_exists($table)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             : ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table);
 
         if (!$exists) {
@@ -152,7 +154,9 @@ if (!function_exists('seo_core_system_test_billing_table_check')) {
 
         // WordPress 6.2+ supports %i for SQL identifiers; do not interpolate
         // backtick-escaped names into the live billing diagnostics query.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $columns_raw = $wpdb->get_results($wpdb->prepare('SHOW COLUMNS FROM %i', $table), ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $indexes_raw = $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $table), ARRAY_A);
 
         $columns = array();
@@ -799,6 +803,7 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
             $cutoff,
             $identifier
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $stats = $wpdb->get_row($sql, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         if (!empty($wpdb->last_error)) {
             return seo_core_system_test_result(
@@ -835,6 +840,7 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
             );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $sample = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, document_number, pdf_path, file_hash
