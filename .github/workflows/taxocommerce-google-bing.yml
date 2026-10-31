@@ -64,6 +64,11 @@ jobs:
           if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-google-bing --include='*.php'; then exit 1; fi
       - name: Build clean WordPress.org distribution
         run: |
+          # These discarded executive-report files were deleted from source on 2026-10-27.
+          # Fail instead of republishing a stale package that contains any of them.
+          for retired in class-taxocommerce-google-bing-executive.php class-taxocommerce-google-bing-analyst.php class-taxocommerce-google-bing-board.php class-taxocommerce-google-bing-market.php class-taxocommerce-google-bing-prepared.php; do
+            test ! -e "taxocommerce-google-bing/includes/$retired"
+          done
           mkdir -p build/taxocommerce-google-bing
           rsync -a \
             --exclude='/tests/' \
@@ -120,7 +125,10 @@ jobs:
         run: |
           python3 - <<'PY'
           import ftplib
+          import hashlib
           import os
+          import zipfile
+          from pathlib import Path
           ftp = ftplib.FTP_TLS()
           ftp.connect(os.environ['FTP_HOST'], 21, timeout=40)
           try:
@@ -134,26 +142,92 @@ jobs:
                   if not str(exc).startswith('550'):
                       raise
                   print('Legacy hidden state file is absent.')
-              # Development-only test files from previous deploys are not part of the public plugin.
-              try:
+              # Only known CI scripts are eligible for removal; never remove unknown files.
+              known_tests = {
+                  'analysis-unified-smoke.php',
+                  'auto-test-smoke.php',
+                  'connections-merged-smoke.php',
+                  'connections-status-smoke.php',
+                  'geo-bridge-smoke.php',
+                  'geo-smoke.php',
+                  'gsc-connection-fallback-smoke.php',
+                  'reporting-smoke.php',
+                  'trends-hierarchy-browser-smoke.js',
+                  'trends-hierarchy-smoke.php',
+                  'trends-smoke.php',
+                  'user-guide-smoke.php',
+              }
+              def names():
+                  return {
+                      entry.rstrip('/').rsplit('/', 1)[-1]
+                      for entry in ftp.nlst()
+                      if entry.rstrip('/').rsplit('/', 1)[-1] not in ('', '.', '..')
+                  }
+              if 'tests' in names():
                   ftp.cwd('tests')
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith('550'):
-                      raise
-              else:
-                  for entry in ftp.nlst():
-                      name = entry.rstrip('/').rsplit('/', 1)[-1]
-                      if not name or name in ('.', '..'):
-                          continue
-                      if name.endswith(('.php', '.js', '.json', '.md')):
-                          ftp.delete(name)
-                  ftp.cwd('..')
                   try:
-                      ftp.rmd('tests')
+                      present = names()
                   except ftplib.error_perm as exc:
                       if not str(exc).startswith('550'):
                           raise
-                  print('Removed legacy development-only tests from Insights staging directory.')
+                      present = set()
+                  unknown = present - known_tests
+                  if unknown:
+                      raise RuntimeError('Unknown files in Insights STAGING tests directory: ' + repr(sorted(unknown)))
+                  for filename in sorted(present):
+                      ftp.delete(filename)
+                  ftp.cwd('..')
+                  ftp.rmd('tests')
+                  print('Removed %d obsolete Insights STAGING test files.' % len(present))
+              else:
+                  print('Insights STAGING tests directory was already absent.')
+              if 'tests' in names():
+                  raise RuntimeError('Insights STAGING cleanup incomplete: tests/ still exists')
+              print('VERIFIED Insights STAGING: tests/ absent.')
+              # These five PHP files were explicitly deleted upstream in 2026-10-27.
+              # Preserve a verified backup before removing only these obsolete files.
+              retired_files = {
+                  'class-taxocommerce-google-bing-executive.php',
+                  'class-taxocommerce-google-bing-analyst.php',
+                  'class-taxocommerce-google-bing-board.php',
+                  'class-taxocommerce-google-bing-market.php',
+                  'class-taxocommerce-google-bing-prepared.php',
+              }
+              if any((Path('taxocommerce-google-bing/includes') / name).exists() for name in retired_files):
+                  raise RuntimeError('A retired Insights source file exists in the current checkout; refusing removal')
+              ftp.cwd('includes')
+              present = sorted(retired_files & names())
+              if present:
+                  backup = Path(os.environ['RUNNER_TEMP']) / 'insights-staging-retired-files-backup.zip'
+                  with zipfile.ZipFile(backup, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+                      for filename in present:
+                          data = bytearray()
+                          ftp.retrbinary('RETR ' + filename, data.extend)
+                          z.writestr('includes/' + filename, bytes(data))
+                          print('BACKED_UP', filename, hashlib.sha256(data).hexdigest())
+                      # Only delete after the full backup archive is written and closed.
+                  with zipfile.ZipFile(backup, 'r') as z:
+                      for filename in present:
+                          data = z.read('includes/' + filename)
+                          remote = bytearray()
+                          ftp.retrbinary('RETR ' + filename, remote.extend)
+                          if hashlib.sha256(remote).digest() != hashlib.sha256(data).digest():
+                              raise RuntimeError('File changed since backup: ' + filename)
+                      for filename in present:
+                          ftp.delete(filename)
+                          print('REMOVED retired Insights source:', filename)
+              if retired_files & names():
+                  raise RuntimeError('Insights STAGING cleanup incomplete: retired PHP files still exist')
+              ftp.cwd('..')
+              print('VERIFIED Insights STAGING: 5 retired PHP files absent.')
           finally:
               ftp.quit()
           PY
+      - name: Preserve backup of retired Insights files from STAGING (if any)
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-staging-retired-files-backup
+          path: ${{ runner.temp }}/insights-staging-retired-files-backup.zip
+          if-no-files-found: ignore
+          retention-days: 14
