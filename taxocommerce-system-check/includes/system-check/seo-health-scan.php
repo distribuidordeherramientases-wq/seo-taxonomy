@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * TaxoCommerce SEO - auditor externo por tipo de recurso.
  *
@@ -41,6 +42,7 @@ if (!function_exists('seo_health_scan_tables')) {
 if (!function_exists('seo_health_scan_table_exists')) {
     function seo_health_scan_table_exists($table) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         return (string) $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like((string) $table))
         ) === (string) $table;
@@ -282,6 +284,7 @@ if (!function_exists('seo_health_scan_upsert_rows')) {
                     sync_token=VALUES(sync_token),
                     last_seen_at=VALUES(last_seen_at)";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table/query shape with generated placeholders; all data values are bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $result = $wpdb->query($wpdb->prepare($sql, $params));
             if ($result === false) {
                 return new WP_Error('seo_health_inventory_write', $wpdb->last_error ?: 'No se pudo actualizar el inventario.');
@@ -295,6 +298,7 @@ if (!function_exists('seo_health_scan_upsert_rows')) {
 if (!function_exists('seo_health_scan_collect_posts')) {
     function seo_health_scan_collect_posts($post_type) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->posts}
@@ -330,6 +334,7 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Reutiliza URLs realmente observadas en páginas por el escáner anterior.
         if (seo_health_scan_table_exists($scan_items)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $observed = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT image_url, MAX(page_id) AS page_id
@@ -356,6 +361,7 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Añade media local actualmente referenciada por seo_media_usos sin abrir páginas HTML.
         if (seo_health_scan_table_exists($media_usages)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $local = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT DISTINCT u.attachment_id, p.post_title, p.guid,
@@ -421,6 +427,7 @@ if (!function_exists('seo_health_scan_sync_inventory')) {
         }
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['items'] );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE %i
@@ -439,6 +446,7 @@ if (!function_exists('seo_health_scan_summary')) {
     function seo_health_scan_summary($scope) {
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['items'] );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT
@@ -470,6 +478,7 @@ if (!function_exists('seo_health_scan_expire_stale')) {
         $tables['items'] = esc_sql( $tables['items'] );
         $cutoff = gmdate('Y-m-d H:i:s', time() - 2 * HOUR_IN_SECONDS);
         $now = current_time('mysql', true);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $stale_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT id FROM %i WHERE status IN ('queued','running') AND updated_at<%s",
@@ -486,12 +495,14 @@ if (!function_exists('seo_health_scan_expire_stale')) {
             // The ID list contains only generated %d placeholders, never raw IDs.
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d ID placeholders are concatenated. Both table identifiers and all timestamp/ID values are passed to prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN (" . $placeholders . ")",
                     ...array_merge(array($tables['runs'], $now, $now), $ids)
                 )
             );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN (" . $placeholders . ")",
@@ -508,6 +519,7 @@ if (!function_exists('seo_health_scan_active_run')) {
         seo_health_scan_expire_stale();
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['runs'] );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         return $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM %i WHERE scope=%s AND status IN ('queued','running') ORDER BY id DESC LIMIT 1",
@@ -523,6 +535,7 @@ if (!function_exists('seo_health_scan_latest_run')) {
     function seo_health_scan_latest_run($scope) {
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['runs'] );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         return $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE scope=%s ORDER BY id DESC LIMIT 1",
                     $table, $scope),
@@ -548,6 +561,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
         $limit = max(1, min(2000, absint($limit)));
 
         if ($mode === 'load_test') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             return $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_id,url,label,source FROM %i
@@ -562,6 +576,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
         }
 
         if ('page' === sanitize_key((string) $scope)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             return $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_id,url,label,source FROM %i
@@ -575,6 +590,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
         }
 
         // Compatibilidad para posts, productos e imágenes: primero pendientes.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $pending = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM %i
@@ -593,6 +609,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
         // Cuando ya existe cobertura, revisamos primero incidencias y después
         // los OK más antiguos para mantener el inventario fresco.
         $selected = array();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $issues = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM %i
@@ -610,6 +627,7 @@ if (!function_exists('seo_health_scan_select_batch')) {
 
         $remaining = $limit - count($selected);
         if ($remaining > 0) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $oldest = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_id,url,label,source FROM %i
@@ -667,6 +685,7 @@ if (!function_exists('seo_health_scan_launch')) {
         $scan_uuid = wp_generate_uuid4();
         $callback_token = bin2hex(random_bytes(32));
         $now = current_time('mysql', true);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $inserted = $wpdb->insert(
             $tables['runs'],
             array(
@@ -693,11 +712,13 @@ if (!function_exists('seo_health_scan_launch')) {
             $queue_sql = "UPDATE {$tables['items']} SET queued_scan_id=%d,queued_at=%s WHERE id IN ({$id_placeholders})";
             $queue_params = array_merge(array($run_id, $now), $ids);
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table/placeholder list; all values are integers/text bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $queued = $wpdb->query($wpdb->prepare($queue_sql, $queue_params));
         }
 
         if ($queued === false || (int) $queued < 1) {
             $message = $wpdb->last_error ?: 'No se pudieron reservar los elementos del escaneo.';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update(
                 $tables['runs'],
                 array('status'=>'failed','error_message'=>substr($message,0,4000),'callback_token_hash'=>'','completed_at'=>$now,'updated_at'=>$now),
@@ -711,6 +732,7 @@ if (!function_exists('seo_health_scan_launch')) {
         // El total de la ejecución es exactamente el lote reservado, no todo el
         // inventario del ámbito.
         $total_items = (int) $queued;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->update(
             $tables['runs'],
             array('total_items'=>$total_items,'updated_at'=>$now),
@@ -742,6 +764,7 @@ if (!function_exists('seo_health_scan_launch')) {
         );
         $response = seo_github_python_runner_api_request('POST', $endpoint, $payload);
         if (is_wp_error($response)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update(
                 $tables['runs'],
                 array('status'=>'failed','error_message'=>substr($response->get_error_message(),0,4000),'callback_token_hash'=>'','completed_at'=>$now,'updated_at'=>$now),
@@ -749,6 +772,7 @@ if (!function_exists('seo_health_scan_launch')) {
                 array('%s','%s','%s','%s','%s'),
                 array('%d')
             );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
                     $tables['items'], absint($run_id)));
             return new WP_Error('seo_health_dispatch', $response->get_error_message());
@@ -778,6 +802,7 @@ if (!function_exists('seo_health_scan_handle_action')) {
             $active = seo_health_scan_active_run($scope);
             if ($active) {
                 $now = current_time('mysql', true);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
                 $wpdb->update(
                     $tables['runs'],
                     array('status'=>'cancelled','callback_token_hash'=>'','error_message'=>'Cancelado manualmente.','completed_at'=>$now,'updated_at'=>$now),
@@ -785,6 +810,7 @@ if (!function_exists('seo_health_scan_handle_action')) {
                     array('%s','%s','%s','%s','%s'),
                     array('%d')
                 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
                 $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
                     $tables['items'], absint($active['id'])));
                 $msg = 'synced';
@@ -830,6 +856,7 @@ if (!function_exists('seo_health_scan_auth_run')) {
         $tables['items'] = esc_sql( $tables['items'] );
         $runs_table = $tables['runs'];
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; scan_uuid is bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $run = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE scan_uuid=%s LIMIT 1",
                     $runs_table, $scan_uuid),
@@ -862,6 +889,7 @@ if (!function_exists('seo_health_scan_rest_batch')) {
         $tables['items'] = esc_sql( $tables['items'] );
         $items_table = $tables['items'];
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; queued_scan_id is bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $items = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,object_id,url,label,source FROM %i WHERE queued_scan_id=%d ORDER BY id ASC",
@@ -941,6 +969,7 @@ if (!function_exists('seo_health_scan_store_results')) {
 
             $item = null;
             if (!empty($row['item_id'])) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
                 $item = $wpdb->get_row(
                     $wpdb->prepare(
                         "SELECT id,queued_scan_id,last_scan_id FROM %i WHERE id=%d AND scope=%s AND active=1 LIMIT 1",
@@ -954,6 +983,7 @@ if (!function_exists('seo_health_scan_store_results')) {
 
             // Compatibilidad con workers anteriores que todavía no devuelven item_id.
             if (!$item) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
                 $item = $wpdb->get_row(
                     $wpdb->prepare(
                         "SELECT id,queued_scan_id,last_scan_id FROM %i WHERE scope=%s AND url_hash=%s AND active=1 LIMIT 1",
@@ -988,6 +1018,7 @@ if (!function_exists('seo_health_scan_store_results')) {
             $bucket = $is_error ? 'error' : (!empty($row['warnings']) ? 'warning' : 'ok');
             $warnings_json = wp_json_encode($row['warnings'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $updated = $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET
@@ -1025,6 +1056,7 @@ if (!function_exists('seo_health_scan_refresh_run')) {
         // WP 5.8 compatibility: do not require the %i placeholder.
         $tables['runs']  = esc_sql( $tables['runs'] );
         $tables['items'] = esc_sql( $tables['items'] );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT
@@ -1040,6 +1072,7 @@ if (!function_exists('seo_health_scan_refresh_run')) {
             ),
             ARRAY_A
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->update(
             $tables['runs'],
             array(
@@ -1078,6 +1111,7 @@ if (!function_exists('seo_health_scan_rest_results')) {
         $tables['items'] = esc_sql( $tables['items'] );
 
         if ($event === 'start') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update($tables['runs'], array('status'=>'running','started_at'=>$now,'updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s','%s'), array('%d'));
             return rest_ensure_response(array('ok'=>true));
         }
@@ -1085,6 +1119,7 @@ if (!function_exists('seo_health_scan_rest_results')) {
             $results = isset($payload['results']) && is_array($payload['results']) ? array_values($payload['results']) : array();
             $store = seo_health_scan_store_results($run, $results);
             seo_health_scan_refresh_run(absint($run['id']));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update($tables['runs'], array('status'=>'running','updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s'), array('%d'));
             return rest_ensure_response(array(
                 'ok'=>true,
@@ -1097,6 +1132,7 @@ if (!function_exists('seo_health_scan_rest_results')) {
             $summary = isset($payload['summary']) && is_array($payload['summary']) ? $payload['summary'] : array();
             seo_health_scan_refresh_run(absint($run['id']));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $fresh_run = $wpdb->get_row(
                 $wpdb->prepare("SELECT total_items,processed_items FROM %i WHERE id=%d LIMIT 1",
                     $tables['runs'], absint($run['id'])),
@@ -1110,6 +1146,7 @@ if (!function_exists('seo_health_scan_rest_results')) {
                 ? ''
                 : sprintf('Resultados incompletos del worker: %d/%d elementos actualizados. Revisa el callback y el workflow GitHub.', $processed, $expected);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update(
                 $tables['runs'],
                 array(
@@ -1127,13 +1164,16 @@ if (!function_exists('seo_health_scan_rest_results')) {
                 array('%s','%d','%d','%d','%d','%s','%s','%s','%s'),
                 array('%d')
             );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
                     $tables['items'], absint($run['id'])));
             return rest_ensure_response(array('ok'=>$complete_ok,'processed'=>$processed,'expected'=>$expected));
         }
         if ($event === 'failed') {
             $message = substr(sanitize_text_field((string) ($payload['error_message'] ?? 'Fallo del worker.')), 0, 4000);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->update($tables['runs'], array('status'=>'failed','error_message'=>$message,'callback_token_hash'=>'','completed_at'=>$now,'updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s','%s','%s','%s'), array('%d'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
                     $tables['items'], absint($run['id'])));
             return rest_ensure_response(array('ok'=>true));
@@ -1316,10 +1356,12 @@ if (!function_exists('seo_health_render_scope_tab')) {
         $where_sql = implode(' AND ', $where);
         $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $total_rows = (int) $wpdb->get_var($wpdb->prepare($count_sql, $params));
         $offset = ($paged - 1) * $per_page;
         $rows_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,last_checked_at ASC,id ASC LIMIT %d OFFSET %d";
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = $wpdb->get_results($wpdb->prepare($rows_sql, array_merge($params,array($per_page,$offset))), ARRAY_A);
 
         echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Estado por elemento</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
