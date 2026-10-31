@@ -14,7 +14,7 @@ add_action('admin_menu','tccampaigns_admin_menu');
 function tccampaigns_admin_tab(){
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only.
     $tab=isset($_GET['tab'])?sanitize_key(wp_unslash($_GET['tab'])):'campaigns';
-    return in_array($tab,array('campaigns','calendar','banners'),true)?$tab:'campaigns';
+    return in_array($tab,array('campaigns','calendar','banners','autotest','manual'),true)?$tab:'campaigns';
 }
 
 function tccampaigns_admin_tab_url($tab,$args=array()){
@@ -75,7 +75,7 @@ function tccampaigns_admin_render(){
     tccampaigns_calendar_styles();
     echo '<div class="wrap"><h1>TaxoCommerce Campaigns</h1><p class="description">Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.</p>';
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
-    foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación') as $key=>$label){
+    foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación','autotest'=>'Autotest','manual'=>'Manual') as $key=>$label){
         echo '<a class="nav-tab '.($tab===$key?'nav-tab-active':'').'" href="'.esc_url(tccampaigns_admin_tab_url($key)).'">'.esc_html($label).'</a>';
     }
     echo '</nav>';
@@ -89,8 +89,12 @@ function tccampaigns_admin_render(){
             echo '<div class="notice notice-info inline"><p>TaxoCommerce Social no está activo. El calendario comercial funciona igualmente; la programación de ofertas en redes se habilitará cuando Social esté disponible.</p></div>';
         }
         tccampaigns_calendar_render();
-    }else{
+    }elseif('banners'===$tab){
         tccampaigns_render_banners();
+    }elseif('autotest'===$tab){
+        tccampaigns_render_autotest();
+    }else{
+        tccampaigns_render_manual();
     }
     echo '</div>';
 }
