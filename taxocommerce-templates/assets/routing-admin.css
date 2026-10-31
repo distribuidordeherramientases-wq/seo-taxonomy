@@ -1,0 +1,19 @@
+.tct-routing-admin{max-width:none}
+.tct-routing-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:19px 0}
+.tct-routing-filters select{max-width:330px}
+.tct-routing-filters input[type=search]{min-width:220px}
+.tct-routing-filters .submit{margin:0;padding:0}
+.tct-routing-scroll{overflow-x:auto;border:1px solid #c3c4c7;background:#fff}
+.tct-routing-table{min-width:1060px}
+.tct-routing-table td{vertical-align:middle}
+.tct-routing-table th:first-child{width:24%}
+.tct-routing-table th:nth-child(2){width:13%}
+.tct-routing-table th:nth-child(3){width:30%}
+.tct-routing-table td form{display:flex;gap:7px;align-items:center}
+.tct-routing-table td select{max-width:310px;width:100%}
+.tct-routing-table td .submit{margin:0;padding:0}
+.tct-routing-table td small{color:#50575e}
+.tct-routing-error{color:#b32d2e}
+.tct-routing-activation,.tct-routing-special{padding:12px 15px;background:#fff;border:1px solid #c3c4c7;margin:16px 0}
+.tct-routing-activation summary,.tct-routing-special summary{cursor:pointer;font-weight:600}
+@media(max-width:782px){.tct-routing-filters{align-items:stretch}.tct-routing-table td form{flex-wrap:wrap}}
