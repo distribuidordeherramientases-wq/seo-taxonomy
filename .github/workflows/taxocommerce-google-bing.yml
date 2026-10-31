@@ -66,7 +66,7 @@ jobs:
         run: |
           # These discarded executive-report files were deleted from source on 2026-10-27.
           # Fail instead of republishing a stale package that contains any of them.
-          for retired in class-taxocommerce-google-bing-executive.php class-taxocommerce-google-bing-analyst.php class-taxocommerce-google-bing-board.php class-taxocommerce-google-bing-market.php; do
+          for retired in class-taxocommerce-google-bing-executive.php class-taxocommerce-google-bing-analyst.php class-taxocommerce-google-bing-board.php class-taxocommerce-google-bing-market.php class-taxocommerce-google-bing-prepared.php; do
             test ! -e "taxocommerce-google-bing/includes/$retired"
           done
           mkdir -p build/taxocommerce-google-bing
@@ -184,13 +184,14 @@ jobs:
               if 'tests' in names():
                   raise RuntimeError('Insights STAGING cleanup incomplete: tests/ still exists')
               print('VERIFIED Insights STAGING: tests/ absent.')
-              # These four PHP files were explicitly deleted upstream in 2026-10-27.
+              # These five PHP files were explicitly deleted upstream in 2026-10-27.
               # Preserve a verified backup before removing only these obsolete files.
               retired_files = {
                   'class-taxocommerce-google-bing-executive.php',
                   'class-taxocommerce-google-bing-analyst.php',
                   'class-taxocommerce-google-bing-board.php',
                   'class-taxocommerce-google-bing-market.php',
+                  'class-taxocommerce-google-bing-prepared.php',
               }
               if any((Path('taxocommerce-google-bing/includes') / name).exists() for name in retired_files):
                   raise RuntimeError('A retired Insights source file exists in the current checkout; refusing removal')
@@ -218,7 +219,7 @@ jobs:
               if retired_files & names():
                   raise RuntimeError('Insights STAGING cleanup incomplete: retired PHP files still exist')
               ftp.cwd('..')
-              print('VERIFIED Insights STAGING: 4 retired PHP files absent.')
+              print('VERIFIED Insights STAGING: 5 retired PHP files absent.')
           finally:
               ftp.quit()
           PY
