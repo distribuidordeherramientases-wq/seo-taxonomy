@@ -290,10 +290,10 @@ tct_assert($routing['cluster']['role'] === 'cluster' && $routing['front_page']['
 $router_view = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
 tct_assert(strpos($router_view, "check_admin_referer( 'tct_save_route_mapping' )") !== false
     && strpos($router_view, "current_user_can( 'manage_options' )") !== false
-    && strpos($router_view, "TCT_Router::path( $file )") !== false,
+    && strpos($router_view, 'TCT_Router::path( $file )') !== false,
     'Route writes must use nonce, capability and existing safe library files.');
-tct_assert(strpos($router_view, "'template_file' => $file") !== false
-    && strpos($router_view, "'is_active' => '' !== $file ? 1 : 0") !== false,
+tct_assert(strpos($router_view, "'template_file' => " . '$file') !== false
+    && strpos($router_view, "'is_active' => '' !== " . '$file' . " ? 1 : 0") !== false,
     'Route changes must persist in seo_templates and support WordPress fallback.');
 tct_assert(strpos($router_view, 'VEVOR US/DE/NL/FR: ruta especializada con prioridad.') !== false
     && strpos($router_view, 'Enrutador TaxoCommerce desactivado.') !== false,
