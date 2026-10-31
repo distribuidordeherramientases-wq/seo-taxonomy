@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/despliege_de_main_a_pro.yml'
       - '.github/workflows/validate-production-deploy.yml'
+      - 'includes/seo-deploy-status.php'
   push:
     branches: [main]
     paths:
@@ -92,6 +93,12 @@ jobs:
           ftp = next(step for step in steps if step.get('uses', '').startswith('SamKirkland/FTP-Deploy-Action@'))
           excludes = ftp['with']['exclude']
           assert 'wp-content/uploads/**' in excludes and '**/uploads/**' in excludes
+          assert ftp['with']['state-name'] == '../.taxocommerce-seo-ftp-state.json', 'FTP state must not be inside a plugin'
+          php = Path('includes/seo-deploy-status.php').read_text()
+          assert "return WP_CONTENT_DIR . '/.taxocommerce-deploy';" in php
+          assert 'handoff="wp-content/.taxocommerce-deploy/$GITHUB_RUN_ID"' in '\n'.join(s.get('run','') for s in steps)
+          assert '.ftp-deploy-sync-state' in '\n'.join(s.get('run','') for s in steps)
+          assert 'mkdir -p "wp-content/.taxocommerce-deploy"' in '\n'.join(s.get('run','') for s in steps)
           code = '\n'.join(step.get('run', '') for step in steps)
           assert 'readme.txt' in code and 'Stable tag:' in code
           assert "grep -Fx 'readme.txt'" in code and '-x \'readme.txt\'' not in code
