@@ -1,5 +1,13 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.5 — 2026-10-31
+- Enrutamiento abre por defecto **Mis plantillas**: solo asociaciones con archivo y estado activo, incluidas aquellas cuyo archivo falta para poder corregirlas.
+- Filtros de trabajo **Mis plantillas**, **Por configurar** y **Todas**, conservando búsqueda, familia y paginación. Los fragmentos internos de WooCommerce quedan fuera de la vista de pendientes y solo se enumeran en el inventario completo, sin perder ninguna opción.
+- El total ahora describe plantillas asignadas, rutas pendientes u opciones de catálogo, según el filtro, en lugar de llamar «relaciones» a las posibles rutas.
+- Las instalaciones nuevas se inicializan **sin archivos asignados y con rutas inactivas**; permanecen disponibles todas las sugerencias para que el administrador las configure progresivamente. En instalaciones existentes no se modifica ni desactiva ninguna relación guardada.
+- Se reutilizan los gestores y la tabla `seo_templates`; no se alteran los renderizadores públicos, el motor VEVOR ni las plantillas existentes. Se amplían las pruebas de regresión de vistas y migración.
+
+
 ## 0.4.4 — 2026-10-31
 - La administración pasa a **Enrutamiento** y **Diseñador de plantillas**. Auditoría queda accesible como diagnóstico técnico, sin pestaña principal.
 - Nueva tabla editable y filtrable que combina peticiones WordPress/WooCommerce, roles SEO registrados, asignación de archivo y estado del motor. Incluye los tipos públicos de contenido y taxonomías que registra WordPress.
