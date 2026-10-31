@@ -4,7 +4,11 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+* WordPress Plugin Check: corregidas las 12 advertencias de `includes/seo-transporte.php` sin cambiar las reglas, costes ni rutas de checkout.
+* Mantener parámetros GET de enrutado y avisos como lecturas inofensivas y justificar sus excepciones de nonce solo en esos puntos.
+* Exigir los nonces nativos `update-order-review` o `woocommerce-process_checkout` para aceptar destino enviado por POST; datos de destino saneados por campo y respaldo con paquete/sesión cuando no hay petición válida.
+* Añadir regresión CLI de checkout (nonce ausente, inválido, revisión y finalización válidas, campos mal formados), excluirla del ZIP e impedir que Plugin Check ignore advertencias en CI.
+* Issue #1947. Sin cambios en el plugin monolítico ni despliegue a producción.
 
 
 ## [0.2.4]

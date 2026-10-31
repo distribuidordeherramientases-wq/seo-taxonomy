@@ -109,10 +109,12 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
         }
 
         private static function is_page() {
-            if (!is_admin() || !isset($_GET['page'])) {
+            // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only WordPress admin page routing; no form submission or state change.
+            if (!is_admin() || !isset($_GET['page']) || !is_string($_GET['page'])) {
                 return false;
             }
             $page = sanitize_key(wp_unslash($_GET['page']));
+            // phpcs:enable WordPress.Security.NonceVerification.Recommended
             return in_array($page, array(self::PAGE, self::LEGACY_PAGE), true);
         }
 
@@ -395,10 +397,11 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             }
             check_admin_referer('seo_transporte_save');
 
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Transport settings are normalized field by field by sanitize_settings_payload().
+            // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The admin nonce has been verified and sanitize_settings_payload() validates every permitted rule and setting field before persistence.
             $raw = isset($_POST['seo_transporte']) && is_array($_POST['seo_transporte'])
                 ? wp_unslash($_POST['seo_transporte'])
                 : array();
+            // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
             $normalized = self::sanitize_settings_payload($raw);
             $settings = (array) ($normalized['settings'] ?? array());
@@ -655,7 +658,10 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             if (empty($rules)) {
                 $rules = array(self::blank_rule());
             }
-            $status = isset($_GET['seo_transport_status']) ? sanitize_key(wp_unslash($_GET['seo_transport_status'])) : '';
+            // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only status notice from the post-save redirect; does not change settings.
+            $status = isset($_GET['seo_transport_status']) && is_string($_GET['seo_transport_status'])
+                ? sanitize_key(wp_unslash($_GET['seo_transport_status'])) : '';
+            // phpcs:enable WordPress.Security.NonceVerification.Recommended
             ?>
             <div class="wrap seo-transporte-wrap">
                 <h1>Logistics — Shipping Weight & Costs</h1>
@@ -779,6 +785,30 @@ if (did_action('admin_print_footer_scripts')) {
          * caso se completan, por este orden, desde el POST del checkout y desde el
          * cliente de WooCommerce.
          */
+        /**
+         * Accept checkout POST fields only with a native WooCommerce checkout nonce.
+         *
+         * The classic update_order_review AJAX endpoint uses "security" and
+         * the final classic checkout form uses "woocommerce-process-checkout-nonce".
+         * Both nonces belong to WooCommerce; no additional nonce is introduced.
+         */
+        private static function verified_checkout_post() {
+            $review_nonce = isset($_POST['security']) && is_string($_POST['security'])
+                ? sanitize_text_field(wp_unslash($_POST['security'])) : '';
+            if ('' !== $review_nonce && wp_verify_nonce($review_nonce, 'update-order-review')) {
+                return true;
+            }
+
+            $checkout_nonce = isset($_POST['woocommerce-process-checkout-nonce'])
+                && is_string($_POST['woocommerce-process-checkout-nonce'])
+                ? sanitize_text_field(wp_unslash($_POST['woocommerce-process-checkout-nonce'])) : '';
+            if ('' !== $checkout_nonce && wp_verify_nonce($checkout_nonce, 'woocommerce-process_checkout')) {
+                return true;
+            }
+
+            return false;
+        }
+
         private static function resolve_destination($package) {
             $destination = isset($package['destination']) && is_array($package['destination'])
                 ? $package['destination']
@@ -793,17 +823,24 @@ if (did_action('admin_print_footer_scripts')) {
                 'address_2'=> '',
             ));
 
-            // AJAX clasico de WooCommerce: los campos llegan serializados en post_data.
+            // WooCommerce accepts checkout changes only with its own valid
+            // review/checkout nonce. Otherwise rely on package/customer data.
             $posted = array();
-            if (isset($_POST['post_data']) && is_string($_POST['post_data'])) {
-                parse_str(wp_unslash($_POST['post_data']), $posted);
-            }
-
-            // Algunas peticiones pueden enviar los campos directamente.
-            foreach (array('billing_country','billing_state','billing_postcode','billing_city','shipping_country','shipping_state','shipping_postcode','shipping_city','ship_to_different_address') as $key) {
-                if (isset($_POST[$key]) && !isset($posted[$key]) && is_scalar($_POST[$key])) {
-                    $posted[$key] = sanitize_text_field(wp_unslash((string) $_POST[$key]));
+            if (self::verified_checkout_post()) {
+                // phpcs:disable WordPress.Security.NonceVerification.Missing -- Both native WooCommerce checkout nonces are checked before reading any POST fields.
+                // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The serialized form is parsed, but only explicitly allowed destination fields are used after sanitize_text_field().
+                if (isset($_POST['post_data']) && is_string($_POST['post_data'])) {
+                    parse_str(wp_unslash($_POST['post_data']), $posted);
                 }
+
+                // Algunas peticiones pueden enviar los campos directamente.
+                foreach (array('billing_country','billing_state','billing_postcode','billing_city','shipping_country','shipping_state','shipping_postcode','shipping_city','ship_to_different_address') as $key) {
+                    if (isset($_POST[$key]) && !isset($posted[$key]) && is_scalar($_POST[$key])) {
+                        $posted[$key] = sanitize_text_field(wp_unslash((string) $_POST[$key]));
+                    }
+                }
+                // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                // phpcs:enable WordPress.Security.NonceVerification.Missing
             }
 
             if (!empty($posted)) {
