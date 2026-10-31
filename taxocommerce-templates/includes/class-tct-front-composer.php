@@ -154,7 +154,7 @@ final class TCT_Front_Composer {
         }
         // This tab is the only caller of the pilot's scripts and styles.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-        if ( ! in_array( $tab, array( 'manager', 'composer', 'roles', 'editor', 'requests' ), true ) ) {
+        if ( ! in_array( $tab, array( 'designer', 'manager', 'composer', 'editor' ), true ) ) {
             return;
         }
         wp_enqueue_style( 'tct-front-composer', TCT_URL . 'assets/front-composer.css', array(), TCT_VERSION );
