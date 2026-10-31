@@ -221,7 +221,7 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;$table=self::table();$now=gmdate('Y-m-d H:i:s');
         $key=hash('sha256',self::norm($row['title']??'').'|'.absint($row['hub_primary_id']??0));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table name.
-        $existing=$wpdb->get_row($wpdb->prepare("SELECT id,status,first_seen_at FROM {$table} WHERE opportunity_key=%s LIMIT 1",$key),ARRAY_A);
+        $existing=$wpdb->get_row($wpdb->prepare("SELECT id,status,first_seen_at FROM %i WHERE opportunity_key=%s LIMIT 1", $table,$key),ARRAY_A);
         $data=array(
             'opportunity_key'=>$key,'title'=>sanitize_text_field((string)($row['title']??'')),
             'opportunity_type'=>sanitize_key((string)($row['opportunity_type']??'new_category')),
@@ -335,7 +335,7 @@ final class SEO_Ojeador_Novedades {
     public static function rows($args=array()){
         global $wpdb;$a=wp_parse_args($args,array('status'=>'','type'=>'','min_score'=>0,'q'=>'','limit'=>500));$table=self::table();$limit=max(1,min(2000,absint($a['limit'])));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table, limit prepared.
-        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY score DESC,last_seen_at DESC LIMIT %d",$limit),ARRAY_A);
+        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY score DESC,last_seen_at DESC LIMIT %d", $table,$limit),ARRAY_A);
         $status=sanitize_key((string)$a['status']);$type=sanitize_key((string)$a['type']);$min=absint($a['min_score']);$q=self::norm($a['q']);$out=array();
         foreach($rows as $r){
             if($status!==''&&$r['status']!==$status)continue;if($type!==''&&$r['opportunity_type']!==$type)continue;if(absint($r['score'])<$min)continue;
