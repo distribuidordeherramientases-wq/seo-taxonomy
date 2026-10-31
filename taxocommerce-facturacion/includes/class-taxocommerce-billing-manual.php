@@ -49,7 +49,7 @@ final class TaxoCommerce_Billing_Manual {
         echo '<h2 id="billing-tech">Manual técnico</h2>';
         echo '<h3>9. Arquitectura y compatibilidad</h3>';
         echo '<p>Entrada: <code>taxocommerce-facturacion.php</code>. El bootstrap <code>includes/seo-facturas-bootstrap.php</code> carga los controladores legados <code>SEO_Facturas_*</code>. El plugin reaprovecha las clases ya cargadas cuando el monolito original está activo; no debe declararlas dos veces ni introducir un segundo emisor de facturas.</p>';
-        echo '<p>La administración mantiene la URL <code>admin.php?page=seo-facturas</code>. Las pestañas utilizan el parámetro de navegación <code>tab</code>. Se integra en Core mediante <code>taxocommerce_core_register_modules</code> y conserva la capacidad <code>manage_options</code>.</p>';
+        echo '<p>La administración independiente utiliza <code>admin.php?page=taxocommerce-facturacion</code>, distinta de la ruta histórica del monolito. Las pestañas utilizan el parámetro de navegación <code>tab</code>. Se integra en Core mediante <code>taxocommerce_core_register_modules</code> y conserva la capacidad <code>manage_options</code>.</p>';
 
         echo '<h3>10. Persistencia y migraciones</h3>';
         echo '<p>Una única tabla de documentos <code>{prefijo}seo_factura_documents</code> (nombre devuelto por <code>SEO_Facturas_Install::table_name()</code>). Cada registro conserva tipo, serie, secuencia, número, pedido asociado, estado, instantánea, HTML, ruta y hash del PDF, fecha de emisión y último error.</p>';
