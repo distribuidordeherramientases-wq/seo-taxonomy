@@ -48,8 +48,21 @@ jobs:
             exit 1
           fi
 
-      - name: Build installable ZIP
-        run: zip -qr taxocommerce-system-check.zip taxocommerce-system-check
+      - name: Build and inspect clean installable ZIP
+        run: |
+          mkdir -p dist/taxocommerce-system-check
+          rsync -a --exclude '/tests/' --exclude '/.*' --exclude '**/.*' --exclude '*.bak' taxocommerce-system-check/ dist/taxocommerce-system-check/
+          (cd dist && zip -qr ../taxocommerce-system-check.zip taxocommerce-system-check)
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          with ZipFile('taxocommerce-system-check.zip') as archive:
+              paths = archive.namelist()
+              assert 'taxocommerce-system-check/taxocommerce-system-check.php' in paths
+              assert 'taxocommerce-system-check/readme.txt' in paths
+              assert not any('/tests/' in '/' + path or any(part.startswith('.') for part in path.split('/')) for path in paths)
+              assert not any(path.endswith('.bak') for path in paths)
+          print('Verified clean System Check ZIP: no tests, hidden files or backup files.')
+          PY
 
       - name: Upload plugin ZIP
         uses: actions/upload-artifact@v4
