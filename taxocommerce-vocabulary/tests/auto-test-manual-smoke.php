@@ -1,7 +1,7 @@
 <?php
 /** Offline smoke for Vocabulary Auto Test/Manual; never contacts WordPress or MySQL. */
 define( 'ABSPATH', __DIR__ . '/' );
-define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.4' );
+define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.5' );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'ARRAY_A', 'ARRAY_A' );
 $tcv_hooks = array();
