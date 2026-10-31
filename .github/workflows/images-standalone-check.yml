@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - 'taxocommerce-images/**'
+      - 'includes/seo-deploy-status.php'
+      - '.github/tests/images-pro-deploy-cleanup-smoke.php'
       - '.github/workflows/images-standalone-check.yml'
   # Catch warning regressions in the exact commit deployed to STAGING.
   push:
     branches: [staging]
     paths:
       - 'taxocommerce-images/**'
+      - 'includes/seo-deploy-status.php'
+      - '.github/tests/images-pro-deploy-cleanup-smoke.php'
       - '.github/workflows/images-standalone-check.yml'
   workflow_dispatch:
 
@@ -24,6 +28,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: PHP syntax check (Images only)
         run: find taxocommerce-images -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Validate PRO Images cleanup (offline, no deletion of installed plugins)
+        run: |
+          php -l includes/seo-deploy-status.php
+          php .github/tests/images-pro-deploy-cleanup-smoke.php
       - name: Validate read-only user and developer manual
         run: php taxocommerce-images/tests/manual-smoke.php
       - name: Ensure standalone package has no monolith includes
