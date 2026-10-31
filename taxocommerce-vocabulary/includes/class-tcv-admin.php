@@ -148,13 +148,14 @@ final class TCV_Admin {
     }
 
     private static function classifier() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET filters; changes require separate nonce-protected POST actions.
         $filters = TCV_Classifier::sanitize_filters(
             array(
-                'search'      => isset( $_GET['search'] ) ? wp_unslash( $_GET['search'] ) : '',
-                'category_id' => isset( $_GET['category_id'] ) ? wp_unslash( $_GET['category_id'] ) : 0,
-                'coverage'    => isset( $_GET['coverage'] ) ? wp_unslash( $_GET['coverage'] ) : 'missing_any',
-                'priority'    => isset( $_GET['priority'] ) ? wp_unslash( $_GET['priority'] ) : 'all',
-                'rows'        => isset( $_GET['rows'] ) ? wp_unslash( $_GET['rows'] ) : 25,
+                'search'      => isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '',
+                'category_id' => isset( $_GET['category_id'] ) ? absint( wp_unslash( $_GET['category_id'] ) ) : 0,
+                'coverage'    => isset( $_GET['coverage'] ) ? sanitize_key( wp_unslash( $_GET['coverage'] ) ) : 'missing_any',
+                'priority'    => isset( $_GET['priority'] ) ? sanitize_key( wp_unslash( $_GET['priority'] ) ) : 'all',
+                'rows'        => isset( $_GET['rows'] ) ? absint( wp_unslash( $_GET['rows'] ) ) : 25,
             )
         );
         $categories = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'number'=>250, 'orderby'=>'name', 'order'=>'ASC' ) );
@@ -281,11 +282,11 @@ final class TCV_Admin {
         }
         check_admin_referer( 'tcv_analyze_filtered' );
         $filters = TCV_Classifier::sanitize_filters( array(
-            'search'      => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
-            'category_id' => isset( $_POST['category_id'] ) ? wp_unslash( $_POST['category_id'] ) : 0,
-            'coverage'    => isset( $_POST['coverage'] ) ? wp_unslash( $_POST['coverage'] ) : 'missing_any',
-            'priority'    => isset( $_POST['priority'] ) ? wp_unslash( $_POST['priority'] ) : 'all',
-            'rows'        => isset( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : 25,
+            'search'      => isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '',
+            'category_id' => isset( $_POST['category_id'] ) ? absint( wp_unslash( $_POST['category_id'] ) ) : 0,
+            'coverage'    => isset( $_POST['coverage'] ) ? sanitize_key( wp_unslash( $_POST['coverage'] ) ) : 'missing_any',
+            'priority'    => isset( $_POST['priority'] ) ? sanitize_key( wp_unslash( $_POST['priority'] ) ) : 'all',
+            'rows'        => isset( $_POST['rows'] ) ? absint( wp_unslash( $_POST['rows'] ) ) : 25,
         ) );
         $report = TCV_Classifier::analyze_filtered_products( $filters );
         $args = array_merge( array( 'page'=>'taxocommerce-vocabulary','tab'=>'classifier','tcv_status'=>'success','tcv_message'=>rawurlencode( sprintf( 'Análisis completado: %d productos procesados.', absint( $report['processed'] ?? 0 ) ) ) ), $filters );
