@@ -150,9 +150,10 @@ if (!function_exists('seo_core_system_test_billing_table_check')) {
             );
         }
 
-        $identifier = '`' . str_replace('`', '``', $table) . '`';
-        $columns_raw = $wpdb->get_results('SHOW COLUMNS FROM ' . $identifier, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        $indexes_raw = $wpdb->get_results('SHOW INDEX FROM ' . $identifier, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // WordPress 6.2+ supports %i for SQL identifiers; do not interpolate
+        // backtick-escaped names into the live billing diagnostics query.
+        $columns_raw = $wpdb->get_results($wpdb->prepare('SHOW COLUMNS FROM %i', $table), ARRAY_A);
+        $indexes_raw = $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $table), ARRAY_A);
 
         $columns = array();
         foreach ((array) $columns_raw as $column) {
