@@ -1,5 +1,13 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.3 — 2026-10-31
+- Unificada la administración de plantillas en solo dos pestañas: **Gestor de plantillas** y **Auditoría**.
+- El gestor organiza el compositor FRONT, asociaciones de rol/archivo, biblioteca PHP y rutas WordPress/WooCommerce en secciones de una sola pantalla, que se abren con un clic. La sección no seleccionada no ejecuta consultas costosas.
+- Se mantienen operativos los enlaces anteriores (`tab=composer`, `tab=roles`, `tab=editor`, `tab=requests`), sus filtros, permisos, redirecciones, subida y edición PHP.
+- Conservadas las bases de datos, la composición FRONT y sus borradores, la asignación de roles y las plantillas públicas sin alteración. No se activa el renderizador modular.
+- Añadidas comprobaciones de regresión para la navegación consolidada.
+
+
 ## 0.4.2 — 2026-10-31
 - Clústeres de US/DE/NL/FR: presentación internacional adaptable con idioma, menú por país y contenido relacionado filtrado por mercado; sin elementos comerciales españoles ni descarga de imágenes de proveedor.
 - Los clústeres españoles mantienen las plantillas originales de móvil y ordenador.
