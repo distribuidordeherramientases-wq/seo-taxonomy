@@ -150,20 +150,18 @@ final class SEO_Ingeniero_DB {
         $legacy_knowledge_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_knowledge)) === $legacy_knowledge;
 
         if ($legacy_sources_exists) {
-            $wpdb->query(
-                "INSERT IGNORE INTO {$sources}
+            $wpdb->query($wpdb->prepare("INSERT IGNORE INTO %i
                 (id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at)
                 SELECT id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at
-                FROM {$legacy_sources}"
+                FROM %i", $sources, $legacy_sources )
             );
         }
 
         if ($legacy_knowledge_exists) {
-            $wpdb->query(
-                "INSERT IGNORE INTO {$knowledge}
+            $wpdb->query($wpdb->prepare("INSERT IGNORE INTO %i
                 (id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at)
                 SELECT id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at
-                FROM {$legacy_knowledge}"
+                FROM %i", $knowledge, $legacy_knowledge )
             );
         }
 
@@ -458,11 +456,11 @@ final class SEO_Ingeniero_DB {
             ),ARRAY_A);
         } else {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            $src = (array)$wpdb->get_results("SELECT * FROM {$sources} WHERE status<>'superseded' ORDER BY term_id,id ASC",ARRAY_A);
+            $src = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,id ASC", $sources ),ARRAY_A);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            $kn = (array)$wpdb->get_results("SELECT * FROM {$knowledge} WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC",ARRAY_A);
+            $kn = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC", $knowledge ),ARRAY_A);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            $ed = (array)$wpdb->get_results("SELECT * FROM {$editorial_table} ORDER BY term_id,id ASC",ARRAY_A);
+            $ed = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY term_id,id ASC", $editorial_table ),ARRAY_A);
         }
 
         foreach ($src as &$row) {
@@ -730,8 +728,7 @@ final class SEO_Ingeniero_DB {
     public static function editorial_counts() {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
-        $rows = (array) $wpdb->get_results(
-            "SELECT recommended_action,status,COUNT(*) total FROM {$table} GROUP BY recommended_action,status",
+        $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT recommended_action,status,COUNT(*) total FROM %i GROUP BY recommended_action,status", $table ),
             ARRAY_A
         );
         $out = array(
