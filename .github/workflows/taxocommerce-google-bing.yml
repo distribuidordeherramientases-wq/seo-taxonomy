@@ -134,26 +134,48 @@ jobs:
                   if not str(exc).startswith('550'):
                       raise
                   print('Legacy hidden state file is absent.')
-              # Development-only test files from previous deploys are not part of the public plugin.
-              try:
+              # Only known CI scripts are eligible for removal; never remove unknown files.
+              known_tests = {
+                  'analysis-unified-smoke.php',
+                  'auto-test-smoke.php',
+                  'connections-merged-smoke.php',
+                  'connections-status-smoke.php',
+                  'geo-bridge-smoke.php',
+                  'geo-smoke.php',
+                  'gsc-connection-fallback-smoke.php',
+                  'reporting-smoke.php',
+                  'trends-hierarchy-browser-smoke.js',
+                  'trends-hierarchy-smoke.php',
+                  'trends-smoke.php',
+                  'user-guide-smoke.php',
+              }
+              def names():
+                  return {
+                      entry.rstrip('/').rsplit('/', 1)[-1]
+                      for entry in ftp.nlst()
+                      if entry.rstrip('/').rsplit('/', 1)[-1] not in ('', '.', '..')
+                  }
+              if 'tests' in names():
                   ftp.cwd('tests')
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith('550'):
-                      raise
-              else:
-                  for entry in ftp.nlst():
-                      name = entry.rstrip('/').rsplit('/', 1)[-1]
-                      if not name or name in ('.', '..'):
-                          continue
-                      if name.endswith(('.php', '.js', '.json', '.md')):
-                          ftp.delete(name)
-                  ftp.cwd('..')
                   try:
-                      ftp.rmd('tests')
+                      present = names()
                   except ftplib.error_perm as exc:
                       if not str(exc).startswith('550'):
                           raise
-                  print('Removed legacy development-only tests from Insights staging directory.')
+                      present = set()
+                  unknown = present - known_tests
+                  if unknown:
+                      raise RuntimeError('Unknown files in Insights STAGING tests directory: ' + repr(sorted(unknown)))
+                  for filename in sorted(present):
+                      ftp.delete(filename)
+                  ftp.cwd('..')
+                  ftp.rmd('tests')
+                  print('Removed %d obsolete Insights STAGING test files.' % len(present))
+              else:
+                  print('Insights STAGING tests directory was already absent.')
+              if 'tests' in names():
+                  raise RuntimeError('Insights STAGING cleanup incomplete: tests/ still exists')
+              print('VERIFIED Insights STAGING: tests/ absent.')
           finally:
               ftp.quit()
           PY
