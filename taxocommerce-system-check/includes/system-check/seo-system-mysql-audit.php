@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * Auditoría SQL de solo lectura para Estado del servidor > MySQL.
  */
@@ -6,14 +7,17 @@ defined('ABSPATH') || exit;
 
 function seo_system_mysql_audit_variable($name) {
     global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $row = $wpdb->get_row($wpdb->prepare('SHOW VARIABLES LIKE %s', sanitize_key($name)), ARRAY_A);
     return is_array($row) && array_key_exists('Value', $row) ? $row['Value'] : null;
 }
 
 function seo_system_mysql_audit_status_value($name) {
     global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $row = $wpdb->get_row($wpdb->prepare('SHOW GLOBAL STATUS LIKE %s', sanitize_key($name)), ARRAY_A);
     if (!is_array($row) || !array_key_exists('Value', $row)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $row = $wpdb->get_row($wpdb->prepare('SHOW STATUS LIKE %s', sanitize_key($name)), ARRAY_A);
     }
     return is_array($row) && array_key_exists('Value', $row) ? $row['Value'] : null;
@@ -113,6 +117,7 @@ function seo_system_mysql_audit_database_overview() {
     if (is_array($cache)) return $cache;
 
     global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $aggregate = $wpdb->get_row($wpdb->prepare(
         "SELECT COUNT(*) table_count,
                 COALESCE(SUM(TABLE_ROWS),0) estimated_rows,
@@ -125,6 +130,7 @@ function seo_system_mysql_audit_database_overview() {
         DB_NAME
     ), ARRAY_A);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $largest = (array) $wpdb->get_results($wpdb->prepare(
         "SELECT TABLE_NAME table_name,ENGINE engine,TABLE_ROWS table_rows,
                 DATA_LENGTH data_length,INDEX_LENGTH index_length
@@ -135,11 +141,13 @@ function seo_system_mysql_audit_database_overview() {
         DB_NAME
     ), ARRAY_A);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $options_size = (float) $wpdb->get_var($wpdb->prepare(
         'SELECT COALESCE(DATA_LENGTH+INDEX_LENGTH,0) FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s',
         DB_NAME,
         $wpdb->options
     ));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $autoload_size = (float) $wpdb->get_var("SELECT COALESCE(SUM(LENGTH(option_value)),0) FROM {$wpdb->options} WHERE autoload IN ('yes','on','auto-on','auto')");
 
     $data_size = (float) ($aggregate['data_size'] ?? 0);
@@ -355,6 +363,7 @@ function seo_system_mysql_audit_custom_tables() {
     global $wpdb;
     $pattern = $wpdb->esc_like($wpdb->prefix . 'seo_') . '%';
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $tables = (array) $wpdb->get_results($wpdb->prepare(
         "SELECT TABLE_NAME,ENGINE,TABLE_ROWS,DATA_LENGTH,INDEX_LENGTH
          FROM information_schema.TABLES
@@ -364,6 +373,7 @@ function seo_system_mysql_audit_custom_tables() {
         $pattern
     ), ARRAY_A);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $index_rows = (array) $wpdb->get_results($wpdb->prepare(
         "SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME
          FROM information_schema.STATISTICS
@@ -373,6 +383,7 @@ function seo_system_mysql_audit_custom_tables() {
         $pattern
     ), ARRAY_A);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $column_rows = (array) $wpdb->get_results($wpdb->prepare(
         "SELECT TABLE_NAME,COLUMN_NAME
          FROM information_schema.COLUMNS
@@ -497,6 +508,7 @@ function seo_system_mysql_audit_explain_plans() {
         // No user-controlled SQL or raw table names are concatenated into EXPLAIN.
         $explain_query = $wpdb->prepare( 'EXPLAIN ' . $def['sql'], $table );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $explain_query is prepared above using the canonical %i table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = (array) $wpdb->get_results( $explain_query, ARRAY_A );
         if ($wpdb->last_error !== '' || !$rows) continue;
 
