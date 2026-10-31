@@ -1,6 +1,11 @@
 name: Build and Deploy TaxoCommerce Social to STAGING
 
 on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-social/**'
+      - '.github/workflows/taxocommerce-social.yml'
   push:
     branches: [staging]
     paths:
@@ -14,15 +19,22 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: ${{ matrix.php }}
           coverage: none
 
       - name: PHP syntax
         run: find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+      - name: Social Auto Test and Manual offline smoke
+        run: php taxocommerce-social/tests/auto-test-manual-smoke.php
 
       - name: Verify canonical shared storage
         run: |
@@ -45,8 +57,11 @@ jobs:
             -x 'taxocommerce-social/tests/*' \
                'taxocommerce-social/**/*.bak' \
                'taxocommerce-social/**/*.md' \
-               'taxocommerce-social/**/*.pot'
+               'taxocommerce-social/**/*.pot' \
+               'taxocommerce-social/.ftp-deploy-sync-state.json'
           unzip -t build-social-package/taxocommerce-social.zip
+          unzip -Z1 build-social-package/taxocommerce-social.zip | grep -Fx 'taxocommerce-social/readme.txt'
+          ! unzip -Z1 build-social-package/taxocommerce-social.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'
 
       - uses: actions/upload-artifact@v4
         with:
@@ -68,8 +83,11 @@ jobs:
             -x 'taxocommerce-social/tests/*' \
                'taxocommerce-social/**/*.bak' \
                'taxocommerce-social/**/*.md' \
-               'taxocommerce-social/**/*.pot'
+               'taxocommerce-social/**/*.pot' \
+               'taxocommerce-social/.ftp-deploy-sync-state.json'
           unzip -t build-social-package/taxocommerce-social.zip
+          unzip -Z1 build-social-package/taxocommerce-social.zip | grep -Fx 'taxocommerce-social/readme.txt'
+          ! unzip -Z1 build-social-package/taxocommerce-social.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'
 
       - name: Upload Social ZIP to Core local repository
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0

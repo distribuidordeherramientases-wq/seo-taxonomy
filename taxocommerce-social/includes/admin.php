@@ -40,7 +40,7 @@ function tcsocial_admin_current_tab() {
     if ( in_array( $legacy, array( 'calendar', 'programador', 'scheduler' ), true ) ) {
         return 'calendar';
     }
-    return in_array( $tab, array( 'connections', 'templates', 'calendar' ), true ) ? $tab : 'connections';
+    return in_array( $tab, array( 'connections', 'templates', 'calendar', 'auto-test', 'manual' ), true ) ? $tab : 'connections';
 }
 
 function tcsocial_admin_tab_url( $tab, $args = array() ) {
@@ -61,14 +61,16 @@ function tcsocial_admin_render() {
         return;
     }
 
-    tcsocial_network_maybe_install_tables();
-    tcsocial_programador_maybe_install_table();
-
     $tab = tcsocial_admin_current_tab();
+    // Opening documentation or diagnostics must not request schema changes.
+    if ( ! in_array( $tab, array( 'auto-test', 'manual' ), true ) ) {
+        tcsocial_network_maybe_install_tables();
+        tcsocial_programador_maybe_install_table();
+    }
     tcsocial_network_render_styles();
     tcsocial_network_render_notice();
 
-    echo '<div class="wrap"><h1>TaxoCommerce Social</h1>';
+    echo '<div class="wrap"><h1>TaxoCommerce Social <small>v' . esc_html( TAXOCOMMERCE_SOCIAL_VERSION ) . '</small></h1>';
     echo '<p class="description">Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.</p>';
 
     $settings = tcsocial_network_get_settings();
@@ -86,6 +88,8 @@ function tcsocial_admin_render() {
         'connections' => 'Conexiones',
         'templates'   => 'Plantillas',
         'calendar'    => 'Calendario',
+        'auto-test'   => 'Auto Test',
+        'manual'      => 'Manual',
     );
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
     foreach ( $tabs as $key => $label ) {
@@ -97,6 +101,10 @@ function tcsocial_admin_render() {
         tcsocial_network_render_connections();
     } elseif ( 'templates' === $tab ) {
         tcsocial_network_render_templates();
+    } elseif ( 'auto-test' === $tab ) {
+        TCSocial_Auto_Test::render();
+    } elseif ( 'manual' === $tab ) {
+        tcsocial_manual_render();
     } else {
         echo '<section class="seo-social-card"><div class="seo-social-intro"><div><h2>Agenda social</h2><p>Programa publicaciones manualmente o por CSV y revisa el resultado en el calendario mensual. No se incorporan campañas de Marketing ni se reserva ninguna franja para Noticias.</p></div><span class="seo-social-state is-scheduled">Solo redes sociales</span></div></section>';
         tcsocial_programador_render_admin();

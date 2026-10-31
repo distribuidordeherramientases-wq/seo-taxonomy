@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Social
  * Description: Social network connections, publishing templates and calendar for the TaxoCommerce family.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SOCIAL_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_SOCIAL_VERSION', '0.1.1' );
 define( 'TAXOCOMMERCE_SOCIAL_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SOCIAL_URL', plugin_dir_url( __FILE__ ) );
 
@@ -26,6 +26,8 @@ require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/x.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/programador.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/calendar.php';
 require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/admin.php';
+require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/class-manual.php';
+require_once TAXOCOMMERCE_SOCIAL_PATH . 'includes/class-auto-test.php';
 
 register_activation_hook(
     __FILE__,
