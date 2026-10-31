@@ -1,5 +1,5 @@
 <?php
-$root = dirname( __DIR__, 2 );
+$root = dirname( __DIR__, 3 );
 $images = file_get_contents( $root . '/taxocommerce-images/includes/class-taxocommerce-images.php' );
 $vocabulary = file_get_contents( $root . '/taxocommerce-vocabulary/includes/class-tcv-admin.php' );
 $core = file_get_contents( $root . '/taxocommerce-core/includes/class-taxocommerce-core.php' );

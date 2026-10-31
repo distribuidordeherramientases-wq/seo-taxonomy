@@ -2,7 +2,7 @@
 /**
  * Deterministic, no-database regression for SEO architecture distribution.
  *
- * Run: php taxocommerce-core/tests/architecture-report-smoke.php
+ * Run: php .github/tests/taxocommerce-core/architecture-report-smoke.php
  */
 if ( 'cli' !== PHP_SAPI ) {
     exit;
@@ -28,7 +28,7 @@ class WP_Error { private $message; public function __construct( $code, $message 
 // Standalone smoke: supply the Content route without booting WordPress or Core.
 class TaxoCommerce_Core_Content_Manager { const PAGE_SLUG = 'taxocommerce-core-content'; }
 
-require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-architecture-report.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-architecture-report.php';
 
 $roles = array(
     array( 'id' => 1, 'role' => 'cluster' ),
@@ -123,7 +123,7 @@ if ( ! empty( $GLOBALS['tc_test_styles'] ) ) {
     fwrite( STDERR, "FAIL architecture CSS leaks onto unrelated screen\n" );
     exit( 1 );
 }
-$architecture_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core-architecture-report.php' );
+$architecture_source = file_get_contents( ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-architecture-report.php' );
 if ( false === strpos( $architecture_source, "esc_html( self::amount( \$count ) )" )
     || false === strpos( $architecture_source, "esc_html( self::amount( \$cluster['products'] ) )" ) ) {
     fwrite( STDERR, "FAIL hierarchy numeric outputs must be escaped\\n" );

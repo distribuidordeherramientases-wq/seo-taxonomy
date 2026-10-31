@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   validate:
-    if: contains(github.event.head_commit.message, '[staging-clean-three-20261031]')
+    if: (contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

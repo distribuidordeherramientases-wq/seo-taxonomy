@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'taxocommerce-core/**'
+      - '.github/tests/taxocommerce-core/**'
       - '.github/workflows/taxocommerce-core-editorial-guide.yml'
   push:
     branches:
       - staging
     paths:
       - 'taxocommerce-core/**'
+      - '.github/tests/taxocommerce-core/**'
   workflow_dispatch:
 
 permissions:
@@ -37,13 +39,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          find taxocommerce-core .github/tests/taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Verify four guides in overview and editor
-        run: php taxocommerce-core/tests/editorial-guide-smoke.php
+        run: php .github/tests/taxocommerce-core/editorial-guide-smoke.php
 
       - name: Verify SEO architecture distribution
-        run: php taxocommerce-core/tests/architecture-report-smoke.php
+        run: php .github/tests/taxocommerce-core/architecture-report-smoke.php
 
       - name: Verify cached content inventory
-        run: php taxocommerce-core/tests/content-inventory-smoke.php
+        run: php .github/tests/taxocommerce-core/content-inventory-smoke.php

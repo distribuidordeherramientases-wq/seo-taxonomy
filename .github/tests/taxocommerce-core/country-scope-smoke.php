@@ -15,7 +15,7 @@ function get_term_meta( $id, $key, $single = true ) { return $GLOBALS['term_meta
 function get_post( $id ) { return $GLOBALS['posts'][ $id ] ?? null; }
 function get_term( $id, $taxonomy = '' ) { return $GLOBALS['terms'][ $id ] ?? null; }
 function get_ancestors( $id, $taxonomy, $type = 'taxonomy' ) { return 12 === $id ? array( 14 ) : array(); }
-require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-country.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-country.php';
 function check( $yes, $label ) { if ( ! $yes ) { fwrite( STDERR, 'FAIL: ' . $label . "\n" ); exit( 1 ); } }
 check( TaxoCommerce_Core_Country::post( 1 ) === 'ES', 'Spanish legacy page' );
 check( TaxoCommerce_Core_Country::post( 2 ) === 'FR', 'Explicit French page' );

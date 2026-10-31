@@ -75,7 +75,7 @@ PHP;
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-menu*.php</code></th><td><?php esc_html_e( 'Menús de WordPress y sincronización por país.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-country.php</code></th><td><?php esc_html_e( 'Normalización y lectura del país de cada contenido.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-auto-test.php</code></th><td><?php esc_html_e( 'Comprobaciones funcionales no destructivas.', 'taxocommerce-core' ); ?></td></tr>
-								<tr><th scope="row"><code>assets/</code> y <code>tests/</code></th><td><?php esc_html_e( 'Estilos y scripts administrativos; pruebas de regresión.', 'taxocommerce-core' ); ?></td></tr>
+								<tr><th scope="row"><code>assets/</code></th><td><?php esc_html_e( 'Estilos y scripts administrativos; las pruebas de regresión se ejecutan en GitHub Actions, fuera del plugin instalable.', 'taxocommerce-core' ); ?></td></tr>
 							</tbody>
 						</table>
 					</div>
@@ -168,7 +168,7 @@ PHP;
 					<h2><?php esc_html_e( '9. Validación, versiones y despliegue', 'taxocommerce-core' ); ?></h2>
 					<ol>
 						<li><?php esc_html_e( 'Trabaja sobre una rama de Git y modifica solo los archivos del plugin afectados. Ajusta la versión declarada en la cabecera y en TAXOCOMMERCE_CORE_VERSION.', 'taxocommerce-core' ); ?></li>
-						<li><?php esc_html_e( 'Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en taxocommerce-core/tests/.', 'taxocommerce-core' ); ?></li>
+						<li><?php esc_html_e( 'Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en .github/tests/taxocommerce-core/.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'Crea una pull request hacia staging y revisa sus comprobaciones antes de fusionar.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'El workflow .github/workflows/deploy-taxocommerce-core-staging.yml valida Core y realiza el despliegue FTPS a staging cuando se cumplen sus condiciones y están disponibles sus credenciales.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'Comprueba el resultado en WordPress staging antes de planificar una subida independiente a producción. Fusionar una rama no confirma por sí solo el despliegue.', 'taxocommerce-core' ); ?></li>

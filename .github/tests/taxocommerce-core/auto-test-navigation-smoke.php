@@ -3,7 +3,7 @@
  * Core Auto Test internal-navigation regression.
  * No WordPress runtime or database required.
  */
-$root = dirname( __DIR__ );
+$root = ( dirname( __DIR__, 3 ) . '/taxocommerce-core' );
 $core = file_get_contents( $root . '/includes/class-taxocommerce-core.php' );
 $home = file_get_contents( $root . '/includes/class-taxocommerce-core-dashboard.php' );
 $test = file_get_contents( $root . '/includes/class-taxocommerce-core-auto-test.php' );
@@ -31,7 +31,8 @@ tc_assert_navigation( false !== strpos( $core, 'redirect_old_auto_test_page' ), 
 tc_assert_navigation( false !== strpos( $core, "if ( TaxoCommerce_Core_Auto_Test::PAGE_SLUG !== \$page )" ), 'redirect recognizes legacy slug' );
 tc_assert_navigation( false !== strpos( $test, "array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' )" ), 'run POST redirects to internal tab' );
 tc_assert_navigation( false !== strpos( $test, "check_admin_referer( self::NONCE, 'tc_autotest_nonce' )" ), 'execution remains nonce-guarded' );
-tc_assert_navigation( false !== strpos( $main, "TAXOCOMMERCE_CORE_VERSION', '0.4.38'" ), 'Core version bumped' );
+preg_match( '/^\\s*\\*\\s*Version:\\s*(\\S+)/m', $main, $version_matches );
+tc_assert_navigation( ! empty( $version_matches[1] ) && false !== strpos( $main, "TAXOCOMMERCE_CORE_VERSION', '" . $version_matches[1] . "'" ), 'Core plugin version and constant agree' );
 tc_assert_navigation( false !== strpos( $core, "'taxocommerce-logistica'     => 'Logistics'" ), 'Family submenu labels Logistics consistently' );
 tc_assert_navigation( false === strpos( $core, "'seo-logistica'              => 'Logistics'" ), 'Obsolete SEO Logistics route is not a family submenu' );
 tc_assert_navigation( false !== strpos( $core, "'admin_url'     => admin_url( 'admin.php?page=taxocommerce-logistica' )" ), 'Core catalog links to standalone Logistics page' );

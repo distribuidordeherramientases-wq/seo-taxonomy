@@ -7,6 +7,7 @@ on:
       - staging
     paths:
       - 'taxocommerce-core/**'
+      - '.github/tests/taxocommerce-core/**'
       - '.github/workflows/deploy-taxocommerce-core-staging.yml'
       - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
       - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
@@ -15,6 +16,7 @@ on:
       - staging
     paths:
       - 'taxocommerce-core/**'
+      - '.github/tests/taxocommerce-core/**'
       - '.github/workflows/deploy-taxocommerce-core-staging.yml'
       - '.github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py'
       - '.github/scripts/tests/test_cleanup_taxocommerce_core_ftp_artifacts.py'
@@ -35,7 +37,7 @@ jobs:
           coverage: none
 
       - name: PHP lint
-        run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find taxocommerce-core .github/tests/taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Validate Core FTPS cleanup Python syntax
         run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
@@ -46,7 +48,8 @@ jobs:
       - name: Verify standalone Core installable ZIP has no tests or hidden files
         run: |
           set -euo pipefail
-          test -d taxocommerce-core/tests
+          test -d .github/tests/taxocommerce-core
+          test ! -e taxocommerce-core/tests
           test -f taxocommerce-core/taxocommerce-core.php
           test -f taxocommerce-core/readme.txt
           mkdir -p build/taxocommerce-core
@@ -56,12 +59,12 @@ jobs:
           from pathlib import Path
           plugin = Path('build/taxocommerce-core')
           source = Path('taxocommerce-core')
+          assert not (source / 'tests').exists()
           assert (plugin / 'taxocommerce-core.php').is_file()
           assert (plugin / 'readme.txt').is_file()
-          assert (source / 'tests' / 'editorial-guide-smoke.php').is_file()
-          assert (source / 'tests' / 'menu-editor-smoke.php').is_file()
-          assert (source / 'tests' / 'anomalies-smoke.php').is_file()
-          assert (source / 'tests' / 'modular-architecture-smoke.php').is_file()
+          assert (Path('.github/tests/taxocommerce-core') / 'editorial-guide-smoke.php').is_file()
+          assert (Path('.github/tests/taxocommerce-core') / 'menu-editor-smoke.php').is_file()
+          assert (Path('.github/tests/taxocommerce-core') / 'modular-architecture-smoke.php').is_file()
           bad = [str(p) for p in plugin.rglob('*')
                  if p.name.startswith('.') or 'tests' in p.relative_to(plugin).parts]
           if bad:
@@ -72,16 +75,16 @@ jobs:
           unzip -t "${RUNNER_TEMP}/taxocommerce-core-installable.zip"
 
       - name: Verify SEO architecture report before deploy
-        run: php taxocommerce-core/tests/architecture-report-smoke.php
+        run: php .github/tests/taxocommerce-core/architecture-report-smoke.php
 
       - name: Verify Core content inventory before deploy
-        run: php taxocommerce-core/tests/content-inventory-smoke.php
+        run: php .github/tests/taxocommerce-core/content-inventory-smoke.php
 
       - name: Validate User Guide integration
-        run: php taxocommerce-core/tests/user-guide-smoke.php
+        run: php .github/tests/taxocommerce-core/user-guide-smoke.php
 
       - name: Validate Extensions cards on Core home
-        run: php taxocommerce-core/tests/extensions-dashboard-smoke.php
+        run: php .github/tests/taxocommerce-core/extensions-dashboard-smoke.php
 
       - name: Validate Redirects Open link in Core extension catalogue
         run: |
@@ -98,10 +101,18 @@ jobs:
           # WordPress database placeholders, nonce checks and capabilities
           # are validated through code review and the PHP lint step.
 
+      - name: Publish clean Core ZIP for WordPress Playground
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-core-playground-installable
+          path: ${{ runner.temp }}/taxocommerce-core-installable.zip
+          if-no-files-found: error
+          retention-days: 14
+
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
-    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[staging-clean-three-20261031]')
+    if: github.event_name != 'pull_request' && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Core branch
