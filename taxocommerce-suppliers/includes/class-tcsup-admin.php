@@ -84,7 +84,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'images', 'purchasing' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'images', 'purchasing', 'manual', 'autotest' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -110,6 +110,8 @@ final class TCSUP_Admin {
 					'prices'    => 'Prices',
 					'images'     => 'External Images',
 					'purchasing' => 'Purchasing',
+					'manual' => 'Manual',
+					'autotest' => 'Autotest',
 				);
 				foreach ( $tabs as $key => $label ) {
 					printf(
@@ -138,6 +140,12 @@ final class TCSUP_Admin {
 					break;
 				case 'purchasing':
 					TCSUP_Purchasing::render();
+					break;
+				case 'manual':
+					TCSUP_Manual::render();
+					break;
+				case 'autotest':
+					TCSUP_Autotest::render();
 					break;
 				default:
 					self::render_import();
