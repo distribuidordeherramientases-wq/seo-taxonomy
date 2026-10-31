@@ -802,28 +802,31 @@ final class SEO_Ojeador_DB {
         }
 
         if ($has_schema) {
+            $sql_params = array($wpdb->term_taxonomy, $wpdb->terms, $categories, $schema);
             $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
                            c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
                            c.last_scan_at,c.next_scan_at,c.last_error,
                            gm.status AS google_schema_status,gm.shopping_query AS trusted_query
-                    FROM {$wpdb->term_taxonomy} tt
-                    JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                    LEFT JOIN {$categories} c ON c.term_id=tt.term_id
-                    LEFT JOIN {$schema} gm ON gm.object_type='product_cat' AND gm.object_id=tt.term_id
+                    FROM %i tt
+                    JOIN %i t ON t.term_id=tt.term_id
+                    LEFT JOIN %i c ON c.term_id=tt.term_id
+                    LEFT JOIN %i gm ON gm.object_type='product_cat' AND gm.object_id=tt.term_id
                     {$where}
                     LIMIT %d";
         } else {
+            $sql_params = array($wpdb->term_taxonomy, $wpdb->terms, $categories);
             $sql = "SELECT tt.term_id,t.name AS woo_category,tt.count AS woo_product_count,
                            c.category_name,c.query_text,c.status,c.result_count,c.unique_result_count,
                            c.last_scan_at,c.next_scan_at,c.last_error,
                            '' AS google_schema_status,'' AS trusted_query
-                    FROM {$wpdb->term_taxonomy} tt
-                    JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-                    LEFT JOIN {$categories} c ON c.term_id=tt.term_id
+                    FROM %i tt
+                    JOIN %i t ON t.term_id=tt.term_id
+                    LEFT JOIN %i c ON c.term_id=tt.term_id
                     {$where}
                     LIMIT %d";
         }
         $params[] = $limit;
+        $params = array_merge($sql_params, $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador/Schema tables and fixed WHERE fragments; search values and LIMIT are bound through prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
@@ -1241,12 +1244,13 @@ final class SEO_Ojeador_DB {
             $params = array($like,$like,$like,$like,$like);
         }
         $sql = "SELECT m.*,p.post_title
-                FROM {$products} m
-                LEFT JOIN {$wpdb->posts} p ON p.ID=m.object_id
+                FROM %i m
+                LEFT JOIN %i p ON p.ID=m.object_id
                 {$where}
                 ORDER BY CASE WHEN m.status='ok' THEN 0 ELSE 1 END, m.last_scan_at DESC, m.object_id DESC
                 LIMIT %d";
         $params[] = $limit;
+        $params = array_merge(array($products, $wpdb->posts), $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table and fixed status WHERE; search values and LIMIT are bound through prepare().
         return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
     }
