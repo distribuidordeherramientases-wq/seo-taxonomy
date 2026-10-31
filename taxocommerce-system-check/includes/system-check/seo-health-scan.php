@@ -363,11 +363,12 @@ if (!function_exists('seo_health_scan_collect_images')) {
                      FROM %i u
                      INNER JOIN %i p ON p.ID=u.attachment_id
                      LEFT JOIN %i pm ON pm.post_id=p.ID AND pm.meta_key='_wp_attached_file'
-                     WHERE p.post_type='attachment' AND p.post_mime_type LIKE 'image/%%'
+                     WHERE p.post_type='attachment' AND p.post_mime_type LIKE %s
                      GROUP BY u.attachment_id,p.post_title,p.guid",
                     $media_usages,
                     $wpdb->posts,
-                    $wpdb->postmeta
+                    $wpdb->postmeta,
+                    $wpdb->esc_like('image/') . '%'
                 ),
                 ARRAY_A
             );
