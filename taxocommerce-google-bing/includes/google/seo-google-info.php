@@ -41,15 +41,25 @@ if (!function_exists('seo_google_add_inline_script')) {
  * - documenta los errores OAuth más habituales.
  */
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_SCOPE_SEARCH_CONSOLE = 'https://www.googleapis.com/auth/webmasters.readonly';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_OPTION_SETTINGS       = 'seo_google_intelligence_settings';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_OPTION_TOKENS         = 'seo_google_intelligence_tokens';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_OPTION_DB_VERSION     = 'seo_google_intelligence_db_version';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_MODULE_VERSION        = '2.1.0';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_DB_VERSION            = '1.5.0';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_INITIAL_SYNC_DAYS      = 90;
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_FINAL_DATA_DELAY_DAYS = 3;
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_ROW_LIMIT              = 25000;
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 const SEO_GOOGLE_MAX_ROWS_PER_DAY       = 50000;
 
 // Analisis separado de demanda vs. catalogo para mantener este archivo estable.
