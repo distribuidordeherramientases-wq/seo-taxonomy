@@ -70,3 +70,17 @@
         padding: 0;
     }
 }
+
+/* The standalone Billing screen always owns one visible eight-tab navigation. */
+.taxocommerce-billing-shell > .taxocommerce-billing-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-x: visible;
+    row-gap: 4px;
+}
+.taxocommerce-billing-shell .taxocommerce-billing-existing-settings > .seo-facturas-wrap > h1,
+.taxocommerce-billing-shell .taxocommerce-billing-existing-settings > .seo-facturas-wrap > p:first-of-type,
+.taxocommerce-billing-shell .taxocommerce-billing-existing-settings > .seo-facturas-wrap > .nav-tab-wrapper {
+    display: none;
+}
