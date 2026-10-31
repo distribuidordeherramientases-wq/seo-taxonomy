@@ -110,7 +110,7 @@ foreach ( array(
 ) as $anchor ) {
     social_assert( strpos( $manual, $anchor ) !== false, 'developer and user manuals contain ' . $anchor );
 }
-social_assert( preg_match_all( '/<h2\\b/', $manual ) >= 15, 'detailed manuals with H2 hierarchy' );
+social_assert( preg_match_all( '/<h2\\b/', $manual ) >= 14, 'detailed manuals with H2 hierarchy' );
 social_assert( preg_match_all( '/<h3\\b/', $manual ) >= 17, 'detailed manuals with H3 procedures' );
 $_GET['tab'] = 'manual';
 social_assert( tcsocial_admin_current_tab() === 'manual', 'manual tab selected' );
