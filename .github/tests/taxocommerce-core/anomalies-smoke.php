@@ -1,9 +1,9 @@
 <?php
 /**
  * Static smoke test for the copied legacy anomalies screen.
- * Run: php taxocommerce-core/tests/anomalies-smoke.php
+ * Run: php .github/tests/taxocommerce-core/anomalies-smoke.php
  */
-$root = dirname(__DIR__);
+$root = ( dirname( __DIR__, 3 ) . '/taxocommerce-core' );
 $core = file_get_contents($root . '/includes/class-taxocommerce-core.php');
 $bootstrap = file_get_contents($root . '/taxocommerce-core.php');
 $report = file_get_contents($root . '/includes/class-taxocommerce-core-anomalies.php');

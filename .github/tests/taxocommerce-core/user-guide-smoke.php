@@ -1,6 +1,6 @@
 <?php
-/** Read-only Core User Guide contract regression. Run: php taxocommerce-core/tests/user-guide-smoke.php */
-$root = dirname( __DIR__ );
+/** Read-only Core User Guide contract regression. Run: php .github/tests/taxocommerce-core/user-guide-smoke.php */
+$root = ( dirname( __DIR__, 3 ) . '/taxocommerce-core' );
 $entry = file_get_contents( $root . '/taxocommerce-core.php' );
 $core = file_get_contents( $root . '/includes/class-taxocommerce-core.php' );
 $home = file_get_contents( $root . '/includes/class-taxocommerce-core-dashboard.php' );

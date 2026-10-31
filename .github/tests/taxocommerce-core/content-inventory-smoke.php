@@ -2,7 +2,7 @@
 /**
  * Deterministic standalone regression for the Core content inventory.
  *
- * Run: php taxocommerce-core/tests/content-inventory-smoke.php
+ * Run: php .github/tests/taxocommerce-core/content-inventory-smoke.php
  */
 if ( 'cli' !== PHP_SAPI ) {
     exit;
@@ -30,7 +30,7 @@ function is_wp_error( $value ) { return $value instanceof WP_Error; }
 class WP_Error {}
 function get_transient( $key ) { return $GLOBALS['tc_cache'][ $key ] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['tc_cache'][ $key ] = $value; return true; }
-require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-content-inventory.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-content-inventory.php';
 function verify( $condition, $label ) {
     if ( ! $condition ) { fwrite( STDERR, "FAILED: " . $label . "\n" ); exit( 1 ); }
 }

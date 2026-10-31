@@ -2,7 +2,7 @@
 /**
  * Standalone sanity check for the four TaxoCommerce Core editorial guides.
  *
- * Run: php taxocommerce-core/tests/editorial-guide-smoke.php
+ * Run: php .github/tests/taxocommerce-core/editorial-guide-smoke.php
  * No WordPress database, network or plugin activation is required.
  *
  * @package TaxoCommerceCore
@@ -40,7 +40,7 @@ function sanitize_key( $value ) {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
 }
 
-require_once dirname( __DIR__ ) . '/includes/class-taxocommerce-core-editorial-guide.php';
+require_once ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-editorial-guide.php';
 
 $cases = array(
 	'products'   => 'Productos',

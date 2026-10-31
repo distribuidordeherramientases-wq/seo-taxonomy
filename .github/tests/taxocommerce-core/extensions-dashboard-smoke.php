@@ -1,11 +1,11 @@
 <?php
 /**
  * Core homepage Extensions layout regression, no WordPress database needed.
- * php taxocommerce-core/tests/extensions-dashboard-smoke.php
+ * php .github/tests/taxocommerce-core/extensions-dashboard-smoke.php
  */
-$core = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core.php' );
-$home = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-core-dashboard.php' );
-$css  = file_get_contents( dirname( __DIR__ ) . '/assets/admin.css' );
+$core = file_get_contents( ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core.php' );
+$home = file_get_contents( ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-dashboard.php' );
+$css  = file_get_contents( ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/assets/admin.css' );
 function tcc_extension_assert( $condition, $message ) {
     if ( ! $condition ) {
         fwrite( STDERR, 'FAIL Core Extensions dashboard: ' . $message . PHP_EOL );

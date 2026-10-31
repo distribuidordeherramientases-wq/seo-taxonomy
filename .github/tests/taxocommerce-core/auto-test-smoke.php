@@ -35,7 +35,7 @@ function verify( $pass, $label ) {
     $GLOBALS['count'] = ( $GLOBALS['count'] ?? 0 ) + 1;
 }
 
-require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-auto-test.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-auto-test.php';
 $cases = TaxoCommerce_Core_Auto_Test::cases();
 verify( count( $cases ) >= 15, 'Suite covers principal Core areas' );
 verify( isset( $cases['menus'], $cases['nodes'], $cases['relations'], $cases['post_country'] ), 'All major Core paths present' );

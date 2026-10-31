@@ -3,7 +3,7 @@
  * Core Auto Test internal-navigation regression.
  * No WordPress runtime or database required.
  */
-$root = dirname( __DIR__ );
+$root = ( dirname( __DIR__, 3 ) . '/taxocommerce-core' );
 $core = file_get_contents( $root . '/includes/class-taxocommerce-core.php' );
 $home = file_get_contents( $root . '/includes/class-taxocommerce-core-dashboard.php' );
 $test = file_get_contents( $root . '/includes/class-taxocommerce-core-auto-test.php' );
