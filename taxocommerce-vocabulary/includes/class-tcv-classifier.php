@@ -234,6 +234,8 @@ final class TCV_Classifier {
         $ids = get_posts( array(
             'post_type' => 'product', 'post_status' => 'publish', 'fields' => 'ids',
             'posts_per_page' => 50, 'orderby' => 'ID', 'order' => 'DESC',
+            // Bounded to 50 IDs; the taxonomy relationship is required to analyse this category.
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
             'tax_query' => array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( absint( $term_id ) ) ) ),
         ) );
         $sample = array();
@@ -378,6 +380,8 @@ final class TCV_Classifier {
             $query_args['s'] = $filters['search'];
         }
         if ( $filters['category_id'] ) {
+            // Bounded to at most 500 IDs; indexed product_cat relationship is intentional.
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
             $query_args['tax_query'] = array(
                 array(
                     'taxonomy' => 'product_cat',
