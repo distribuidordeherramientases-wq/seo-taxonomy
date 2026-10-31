@@ -64,6 +64,11 @@ jobs:
           if grep -R 'SEO_SYSTEM_PATH\|SEO_SYSTEM_FILE\|require_once.*seo-taxonomy' taxocommerce-google-bing --include='*.php'; then exit 1; fi
       - name: Build clean WordPress.org distribution
         run: |
+          # These discarded executive-report files were deleted from source on 2026-10-27.
+          # Fail instead of republishing a stale package that contains any of them.
+          for retired in class-taxocommerce-google-bing-executive.php class-taxocommerce-google-bing-analyst.php class-taxocommerce-google-bing-board.php class-taxocommerce-google-bing-market.php; do
+            test ! -e "taxocommerce-google-bing/includes/$retired"
+          done
           mkdir -p build/taxocommerce-google-bing
           rsync -a \
             --exclude='/tests/' \
@@ -120,7 +125,10 @@ jobs:
         run: |
           python3 - <<'PY'
           import ftplib
+          import hashlib
           import os
+          import zipfile
+          from pathlib import Path
           ftp = ftplib.FTP_TLS()
           ftp.connect(os.environ['FTP_HOST'], 21, timeout=40)
           try:
@@ -176,6 +184,49 @@ jobs:
               if 'tests' in names():
                   raise RuntimeError('Insights STAGING cleanup incomplete: tests/ still exists')
               print('VERIFIED Insights STAGING: tests/ absent.')
+              # These four PHP files were explicitly deleted upstream in 2026-10-27.
+              # Preserve a verified backup before removing only these obsolete files.
+              retired_files = {
+                  'class-taxocommerce-google-bing-executive.php',
+                  'class-taxocommerce-google-bing-analyst.php',
+                  'class-taxocommerce-google-bing-board.php',
+                  'class-taxocommerce-google-bing-market.php',
+              }
+              if any((Path('taxocommerce-google-bing/includes') / name).exists() for name in retired_files):
+                  raise RuntimeError('A retired Insights source file exists in the current checkout; refusing removal')
+              ftp.cwd('includes')
+              present = sorted(retired_files & names())
+              if present:
+                  backup = Path(os.environ['RUNNER_TEMP']) / 'insights-staging-retired-files-backup.zip'
+                  with zipfile.ZipFile(backup, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+                      for filename in present:
+                          data = bytearray()
+                          ftp.retrbinary('RETR ' + filename, data.extend)
+                          z.writestr('includes/' + filename, bytes(data))
+                          print('BACKED_UP', filename, hashlib.sha256(data).hexdigest())
+                      # Only delete after the full backup archive is written and closed.
+                  with zipfile.ZipFile(backup, 'r') as z:
+                      for filename in present:
+                          data = z.read('includes/' + filename)
+                          remote = bytearray()
+                          ftp.retrbinary('RETR ' + filename, remote.extend)
+                          if hashlib.sha256(remote).digest() != hashlib.sha256(data).digest():
+                              raise RuntimeError('File changed since backup: ' + filename)
+                      for filename in present:
+                          ftp.delete(filename)
+                          print('REMOVED retired Insights source:', filename)
+              if retired_files & names():
+                  raise RuntimeError('Insights STAGING cleanup incomplete: retired PHP files still exist')
+              ftp.cwd('..')
+              print('VERIFIED Insights STAGING: 4 retired PHP files absent.')
           finally:
               ftp.quit()
           PY
+      - name: Preserve backup of retired Insights files from STAGING (if any)
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-staging-retired-files-backup
+          path: ${{ runner.temp }}/insights-staging-retired-files-backup.zip
+          if-no-files-found: ignore
+          retention-days: 14
