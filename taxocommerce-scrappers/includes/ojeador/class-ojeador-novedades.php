@@ -350,6 +350,7 @@ final class SEO_Ojeador_Novedades {
 
     public static function render($d){
         $rows=(array)($d['rows']??array());$stats=(array)($d['stats']??array());$seeds=(array)($d['seeds']??array());$last=(array)($d['last_run']??array());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de consulta: no alteran estado ni inician procesos.
         $fs=sanitize_key((string)wp_unslash($_GET['nstatus']??''));$ft=sanitize_key((string)wp_unslash($_GET['ntype']??''));$fm=absint(wp_unslash($_GET['nscore']??0));$fq=sanitize_text_field(wp_unslash($_GET['nq']??''));
         ?>
         <section style="margin-top:18px">
