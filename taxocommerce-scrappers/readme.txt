@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,11 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.1 =
+* Fix fatal activation when Ingeniero runs without the historical monolithic plugin: provide a guarded process interface.
+* Preserve coexistence with the legacy process contract without registering another supervisor.
+
 
 = 0.1.0 =
 * Created standalone TaxoCommerce Scrappers plugin.
