@@ -17,16 +17,27 @@ if (!defined('ABSPATH')) {
  *   concedido/allowlist; este conector no la usa hasta que exista autorizacion.
  * - CSV y proveedores externos siguen disponibles como respaldo/extensión.
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_VERSION')) define('SEO_GOOGLE_TRENDS_VERSION', '2.2.0');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_DB_VERSION')) define('SEO_GOOGLE_TRENDS_DB_VERSION', '2.0.0');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_DB_OPTION')) define('SEO_GOOGLE_TRENDS_DB_OPTION', 'seo_google_trends_db_version');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_SETTINGS_OPTION')) define('SEO_GOOGLE_TRENDS_SETTINGS_OPTION', 'seo_google_trends_settings_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION')) define('SEO_GOOGLE_TRENDS_LAST_SYNC_OPTION', 'seo_google_trends_last_sync_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT')) define('SEO_GOOGLE_TRENDS_LAST_ERROR_TRANSIENT', 'seo_google_trends_last_error_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT')) define('SEO_GOOGLE_TRENDS_SYNC_LOCK_TRANSIENT', 'seo_google_trends_sync_lock_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_CRON_HOOK')) define('SEO_GOOGLE_TRENDS_CRON_HOOK', 'seo_google_trends_cron_sync_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_RUNTIME_MIGRATION_OPTION')) define('SEO_GOOGLE_TRENDS_RUNTIME_MIGRATION_OPTION', 'seo_google_trends_runtime_migration_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_PUBLIC_CURSOR_OPTION')) define('SEO_GOOGLE_TRENDS_PUBLIC_CURSOR_OPTION', 'seo_google_trends_public_cursor_v2');
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT')) define('SEO_GOOGLE_TRENDS_PUBLIC_BACKOFF_TRANSIENT', 'seo_google_trends_public_backoff_v2');
 
 add_action('admin_init', 'seo_google_trends_maybe_install', 2);
