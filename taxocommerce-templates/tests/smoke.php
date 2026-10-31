@@ -50,7 +50,9 @@ function is_cart() { return $GLOBALS['scenario'] === 'cart'; }
 function is_shop() { return $GLOBALS['scenario'] === 'shop'; }
 function is_account_page() { return $GLOBALS['scenario'] === 'account'; }
 function is_paged() { return false; }
-function get_option($key, $default = false) { return false; }
+function get_option($key, $default = false) { return isset($GLOBALS['test_options'][$key]) ? $GLOBALS['test_options'][$key] : false; }
+function get_post_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
+function get_term_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
 function absint($number) { return abs((int)$number); }
 function get_queried_object_id() { return 5; }
 function get_queried_object() { return (object)array('term_id'=>1); }
@@ -378,6 +380,27 @@ tct_assert(TCT_Designs::can_activate($others, 'one', 'cluster', array('ES'), 'te
     'Disjoint countries for one role must remain valid.');
 tct_assert(TCT_Designs::can_activate(array(), 'one', 'cluster', array('ES'), '') !== '',
     'A visual-only composition cannot be activated without PHP renderer.');
+tct_assert(TCT_Designs::can_activate(array(), 'one', 'woo_file_abc', array('ES'), 'template-cluster.php') !== '',
+    'WooCommerce partials must not claim support from the main template resolver.');
+$GLOBALS['test_options'] = array(TCT_Designs::OPTION => array(
+    'one'=>array('id'=>'one', 'route'=>'cluster', 'name'=>'Cluster ES',
+        'countries'=>array('ES'), 'file'=>'template-cluster.php', 'active'=>true),
+    'two'=>array('id'=>'two', 'route'=>'cluster', 'name'=>'Cluster FR',
+        'countries'=>array('FR'), 'file'=>'template-cluster.php', 'active'=>true),
+));
+$GLOBALS['scenario'] = 'front';
+$GLOBALS['test_market'] = 'ES';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'one',
+    'A route must resolve to the individually configured design for the current country.');
+$GLOBALS['test_market'] = 'FR';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'two',
+    'The same SEO role must resolve a different design in France.');
+$GLOBALS['test_market'] = 'DE';
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Unconfigured countries must fall back to legacy WordPress routing.');
+unset($GLOBALS['test_options'], $GLOBALS['test_market'], $GLOBALS['tct_template_design_id']);
 $design_class = file_get_contents(TCT_DIR . 'includes/class-tct-designs.php');
 tct_assert(strpos($design_class, "const OPTION = 'tct_template_designs_v1'") !== false
     && strpos($design_class, "check_admin_referer( 'tct_design_save' )") !== false
