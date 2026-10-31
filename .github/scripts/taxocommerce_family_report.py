@@ -17,6 +17,10 @@ STATUS = frozenset({"success", "failure", "cancelled", "skipped", "timed_out"})
 
 def scan_findings(payload):
     """Parse the JSON output that wordpress/plugin-check-action produces."""
+    # A clean Plugin Check run can emit only this success line instead of JSON.
+    # Accept exactly the canonical message; never treat arbitrary text as clean.
+    if payload.strip() == "Success: Checks complete. No errors found.":
+        return []
     rows = []
     pending = ""
     current_file = ""

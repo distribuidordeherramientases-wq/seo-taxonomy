@@ -75,7 +75,7 @@ PHP;
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-menu*.php</code></th><td><?php esc_html_e( 'Menús de WordPress y sincronización por país.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-country.php</code></th><td><?php esc_html_e( 'Normalización y lectura del país de cada contenido.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-auto-test.php</code></th><td><?php esc_html_e( 'Comprobaciones funcionales no destructivas.', 'taxocommerce-core' ); ?></td></tr>
-								<tr><th scope="row"><code>assets/</code> y <code>tests/</code></th><td><?php esc_html_e( 'Estilos y scripts administrativos; pruebas de regresión.', 'taxocommerce-core' ); ?></td></tr>
+								<tr><th scope="row"><code>assets/</code></th><td><?php esc_html_e( 'Estilos y scripts administrativos; las pruebas de regresión se ejecutan en GitHub Actions, fuera del plugin instalable.', 'taxocommerce-core' ); ?></td></tr>
 							</tbody>
 						</table>
 					</div>

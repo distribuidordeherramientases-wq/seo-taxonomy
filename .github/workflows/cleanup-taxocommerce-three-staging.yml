@@ -1,0 +1,60 @@
+name: Clean obsolete Core, Images and Database files on STAGING only
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - '.github/workflows/cleanup-taxocommerce-three-staging.yml'
+      - '.github/scripts/cleanup_taxocommerce_family_ftp.py'
+      - '.github/scripts/tests/test_cleanup_taxocommerce_family_ftp.py'
+      - 'taxocommerce-core/CHANGELOG.md'
+      - 'taxocommerce-images/CHANGELOG.md'
+      - 'taxocommerce-database/CHANGELOG.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-three-staging-cleanup
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: (contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify offline cleanup safety and targeted paths
+        run: |
+          set -euo pipefail
+          python3 -m py_compile .github/scripts/cleanup_taxocommerce_family_ftp.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_cleanup_taxocommerce_family_ftp.py' -v
+          test -f taxocommerce-core/taxocommerce-core.php
+          test -f taxocommerce-database/taxocommerce-database.php
+          test -f taxocommerce-images/taxocommerce-images.php
+
+  clean-staging:
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      TC_STAGING_THREE_MODULE_CLEANUP: taxocommerce-core,taxocommerce-database,taxocommerce-images
+      TC_FAMILY_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+      TC_FAMILY_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+      TC_FAMILY_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inventory and back up ONLY selected STAGING development artifacts
+        run: python3 .github/scripts/cleanup_taxocommerce_family_ftp.py plan
+      - name: Retain backup and SHA-256 inventory before any deletion
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-core-images-database-staging-cleanup-backup
+          path: .family-module-cleanup/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Delete only audited test and legacy FTP files and verify absence
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/cleanup_taxocommerce_family_ftp.py apply
+          python3 .github/scripts/cleanup_taxocommerce_family_ftp.py verify

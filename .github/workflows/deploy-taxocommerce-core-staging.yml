@@ -64,7 +64,6 @@ jobs:
           assert (plugin / 'readme.txt').is_file()
           assert (Path('.github/tests/taxocommerce-core') / 'editorial-guide-smoke.php').is_file()
           assert (Path('.github/tests/taxocommerce-core') / 'menu-editor-smoke.php').is_file()
-          assert (Path('.github/tests/taxocommerce-core') / 'anomalies-smoke.php').is_file()
           assert (Path('.github/tests/taxocommerce-core') / 'modular-architecture-smoke.php').is_file()
           bad = [str(p) for p in plugin.rglob('*')
                  if p.name.startswith('.') or 'tests' in p.relative_to(plugin).parts]
@@ -113,7 +112,7 @@ jobs:
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Core branch

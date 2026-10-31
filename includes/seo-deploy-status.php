@@ -254,6 +254,114 @@ function seo_taxocommerce_deploy_apply_zip_delta( $zip_file, $target_dir ) {
 }
 
 /**
+ * Remove only obsolete Images developer tests from the installed WP_PLUGIN_DIR.
+ *
+ * These two scripts were deployed by an older FTP process. Keep the originals
+ * in GitHub for CI; never distribute them in an Images release ZIP. Backup is
+ * written to WordPress's private temporary directory before deletion.
+ *
+ * @param string $target_dir Actual installed Images directory.
+ * @param string $zip_file   Validated Images release archive.
+ * @return array|WP_Error Removed paths and backup name, or a safe failure.
+ */
+function seo_taxocommerce_deploy_cleanup_images_tests( $target_dir, $zip_file ) {
+	$expected_dir = realpath( WP_PLUGIN_DIR . '/taxocommerce-images' );
+	$actual_dir   = realpath( $target_dir );
+	if ( false === $expected_dir || false === $actual_dir || $expected_dir !== $actual_dir
+		|| is_link( $target_dir ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_path', 'La ruta del plugin Images no coincide con WP_PLUGIN_DIR.' );
+	}
+
+	$tests_dir = $actual_dir . '/tests';
+	if ( ! is_dir( $tests_dir ) ) {
+		return array( 'removed' => array(), 'backup_name' => '' );
+	}
+	if ( is_link( $tests_dir ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_symlink', 'No se puede limpiar un directorio tests enlazado.' );
+	}
+
+	$allowed = array(
+		'early-i18n-smoke.php' => 'Early translation regression in Images registration',
+		'functional-contract.php' => 'IMAGES_CONTRACT_TEST',
+	);
+	$zip = new ZipArchive();
+	if ( true !== $zip->open( $zip_file ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_zip', 'No se pudo verificar el ZIP de Images.' );
+	}
+
+	$files = array();
+	foreach ( $allowed as $name => $signature ) {
+		$relative = 'tests/' . $name;
+		if ( false !== $zip->locateName( $relative ) ) {
+			$zip->close();
+			return new WP_Error( 'taxocommerce_images_cleanup_package', 'Los tests no deben formar parte del ZIP de Images.' );
+		}
+		$path = $tests_dir . '/' . $name;
+		if ( ! file_exists( $path ) && ! is_link( $path ) ) {
+			continue;
+		}
+		if ( is_link( $path ) || ! is_file( $path ) || filesize( $path ) > 262144 ) {
+			$zip->close();
+			return new WP_Error( 'taxocommerce_images_cleanup_unexpected', 'Archivo de pruebas inesperado: ' . $name );
+		}
+		$content = file_get_contents( $path );
+		if ( ! is_string( $content ) || false === strpos( $content, $signature ) ) {
+			$zip->close();
+			return new WP_Error( 'taxocommerce_images_cleanup_unrecognized', 'No se reconoce el contenido del archivo: ' . $name );
+		}
+		$files[ $relative ] = $content;
+	}
+	$zip->close();
+
+	if ( ! $files ) {
+		return array( 'removed' => array(), 'backup_name' => '' );
+	}
+
+	// Do not keep PHP source backups anywhere inside the public WordPress root.
+	$temp_dir = realpath( get_temp_dir() );
+	$web_root = realpath( ABSPATH );
+	if ( false === $temp_dir || ! is_writable( $temp_dir )
+		|| ( false !== $web_root && 0 === strpos( wp_normalize_path( $temp_dir ) . '/', rtrim( wp_normalize_path( $web_root ), '/' ) . '/' ) ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_backup', 'No hay un directorio temporal privado para la copia de seguridad.' );
+	}
+	$backup_name = 'taxocommerce-images-developer-tests-' . wp_generate_uuid4() . '.zip';
+	$backup_path = $temp_dir . '/' . $backup_name;
+	$backup = new ZipArchive();
+	if ( true !== $backup->open( $backup_path, ZipArchive::CREATE | ZipArchive::EXCL ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_backup', 'No se pudo crear la copia de seguridad.' );
+	}
+	foreach ( $files as $name => $content ) {
+		if ( ! $backup->addFromString( $name, $content ) ) {
+			$backup->close();
+			return new WP_Error( 'taxocommerce_images_cleanup_backup', 'No se pudo guardar un archivo en la copia.' );
+		}
+	}
+	if ( ! $backup->close() || true !== $backup->open( $backup_path ) ) {
+		return new WP_Error( 'taxocommerce_images_cleanup_backup', 'No se pudo verificar la copia de seguridad.' );
+	}
+	foreach ( $files as $name => $content ) {
+		if ( $backup->getFromName( $name ) !== $content ) {
+			$backup->close();
+			return new WP_Error( 'taxocommerce_images_cleanup_backup', 'La copia de seguridad no coincide con los archivos originales.' );
+		}
+	}
+	$backup->close();
+
+	$removed = array();
+	foreach ( array_keys( $files ) as $relative ) {
+		$path = $actual_dir . '/' . $relative;
+		wp_delete_file( $path );
+		clearstatcache( true, $path );
+		if ( file_exists( $path ) || is_link( $path ) ) {
+			return new WP_Error( 'taxocommerce_images_cleanup_delete', 'No se pudo retirar ' . $relative . '; copia disponible: ' . $backup_name );
+		}
+		$removed[] = $relative;
+	}
+
+	return array( 'removed' => $removed, 'backup_name' => $backup_name );
+}
+
+/**
  * Remove a temporary directory tree.
  *
  * @param string $path Directory path.
@@ -333,6 +441,15 @@ function seo_taxocommerce_deploy_sync_rest( $request ) {
 			return $result;
 		}
 
+		$cleanup = array( 'removed' => array(), 'backup_name' => '' );
+		if ( 'taxocommerce-images' === $slug ) {
+			$cleanup = seo_taxocommerce_deploy_cleanup_images_tests( $paths['target_dir'], $paths['zip_file'] );
+			if ( is_wp_error( $cleanup ) ) {
+				seo_taxocommerce_deploy_remove_tree( $handoff );
+				return $cleanup;
+			}
+		}
+
 		clearstatcache( true, $paths['target_main'] );
 		$header = get_file_data( $paths['target_main'], array( 'Version' => 'Version' ), 'plugin' );
 
@@ -343,6 +460,8 @@ function seo_taxocommerce_deploy_sync_rest( $request ) {
 			'unchanged' => (int) $result['unchanged'],
 			'verified_files'  => (int) $result['verified_files'],
 			'manifest_sha256' => $result['manifest_sha256'],
+			'removed_legacy_test_files' => $cleanup['removed'],
+			'cleanup_backup_name' => $cleanup['backup_name'],
 		);
 	}
 
