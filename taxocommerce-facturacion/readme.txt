@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -23,11 +23,18 @@ Features:
 * PDF generation using the same Dompdf 3.1.6 engine as the historical module.
 * Email attachments and resending.
 * WooCommerce order metabox and customer documents.
+* Integrated user and technical Manual on the Billing settings screen.
+* On-demand, read-only Autotest to check module availability, saved settings, document table, PDF loader and WooCommerce hooks without issuing documents or sending emails.
 
 The plugin reuses the existing seo_facturas_* options and seo_factura_documents table.
 It does not create a parallel document database and does not include a destructive uninstall routine.
 
 == Changelog ==
+
+= 0.1.1 =
+* Added in-plugin user and technical manuals for Billing administration and WooCommerce integrations.
+* Added a read-only Autotest, restricted to administrators, without document generation, database modification or outgoing requests.
+* Added isolated regression coverage; developer tests remain excluded from release ZIPs.
 
 = 0.1.0 =
 * Migrated the existing document module into an independent TaxoCommerce plugin.
