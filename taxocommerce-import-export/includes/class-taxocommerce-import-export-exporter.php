@@ -575,6 +575,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			if ( ! $category_ids ) {
 				return array();
 			}
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Required product_cat restriction by sanitized term IDs; uses WordPress taxonomy relationships.
 			$args['tax_query'] = array(
 				array(
 					'taxonomy'         => 'product_cat',
@@ -626,6 +627,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			if ( ! $ids ) {
 				return 0;
 			}
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Category-scoped export count must apply the same sanitized product_cat filter as the export query.
 			$args['tax_query'] = array(
 				array(
 					'taxonomy'         => 'product_cat',
@@ -784,7 +786,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 				'fields'         => 'ids',
 				'orderby'        => 'title',
 				'order'          => 'ASC',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Existing exact SEO role lookup needs the indexed postmeta key.
 				'meta_key'       => '_taxocommerce_core_seo_role',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Required equality on a single sanitized SEO role; filtering in PHP would scan all pages.
 				'meta_value'     => sanitize_key( $role ),
 			)
 		);
@@ -819,6 +823,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 				'fields'         => 'ids',
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Existing parent relationship lookup uses sanitized numeric IDs; keep hierarchy filtering in SQL.
 				'meta_query'     => array(
 					array(
 						'key'     => sanitize_key( $meta_key ),
@@ -850,6 +855,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 				'fields'     => 'ids',
 				'orderby'    => 'id',
 				'order'      => 'ASC',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Category termmeta relationship requires matching exact sanitized secondary-hub IDs.
 				'meta_query' => array(
 					array(
 						'key'     => '_taxocommerce_core_parent_hub_secondary',
