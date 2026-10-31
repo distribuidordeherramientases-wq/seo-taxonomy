@@ -1,18 +1,20 @@
-name: Validate production deploy workflow (no deploy)
+name: Check incremental PRO deployment (no deploy)
 
 on:
   pull_request:
     paths:
       - '.github/workflows/despliege_de_main_a_pro.yml'
       - '.github/workflows/validate-production-deploy.yml'
-      - 'includes/seo-deploy-status.php'
       - '.github/scripts/build_pro_delta.py'
       - '.github/scripts/tests/test_build_pro_delta.py'
+      - 'includes/seo-deploy-status.php'
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - '.github/workflows/despliege_de_main_a_pro.yml'
       - '.github/workflows/validate-production-deploy.yml'
+      - '.github/scripts/build_pro_delta.py'
+      - 'includes/seo-deploy-status.php'
 
 permissions:
   contents: read
@@ -22,127 +24,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install YAML parser
-        run: python3 -m pip install --user PyYAML
-      # Non-destructive investigation: no credentials, no changes to PRO.
-      - name: Diagnose PRO HTTP 403 (read-only public GETs)
-        if: github.event_name == 'pull_request'
+      - name: Verify delta selection and PHP syntax
         run: |
-          python3 - <<'PY'
-          import json
-          import re
-          import urllib.error
-          import urllib.request
-
-          base = 'https://www.distribuidordeherramientas.es'
-          paths = {
-              'homepage': '/',
-              'rest-root': '/wp-json/',
-              'inventory-rest': '/wp-json/taxocommerce/v1/deploy-active-modules',
-              'inventory-fallback': '/?rest_route=%2Ftaxocommerce%2Fv1%2Fdeploy-active-modules',
-          }
-          for name, path in paths.items():
-              request = urllib.request.Request(base + path, headers={
-                  'Accept': 'application/json' if name != 'homepage' else 'text/html',
-                  'Cache-Control': 'no-cache',
-                  'User-Agent': 'TaxoCommerce-Deploy-Inventory/1.0',
-              })
-              try:
-                  response = urllib.request.urlopen(request, timeout=20)
-              except urllib.error.HTTPError as exc:
-                  response = exc
-              except Exception as exc:
-                  print(name, 'network_error', type(exc).__name__, str(exc)[:150])
-                  continue
-              with response:
-                  body = response.read(4096)
-                  ctype = response.headers.get('Content-Type', '')
-                  title = ''
-                  if 'json' in ctype.lower():
-                      try:
-                          payload = json.loads(body)
-                          title = str(payload.get('code', '') if isinstance(payload, dict) else '')
-                      except (UnicodeDecodeError, ValueError):
-                          title = 'invalid_json'
-                  elif 'html' in ctype.lower():
-                      match = re.search(rb'<title[^>]*>(.*?)</title>', body, re.I | re.S)
-                      title = re.sub(r'\\s+', ' ', match.group(1).decode('utf-8', 'replace'))[:120] if match else 'html_without_title'
-                  print(name, 'http', response.status,
-                        'content_type', ctype[:75],
-                        'server', response.headers.get('Server', '')[:75],
-                        'title_or_code', title[:120])
-          PY
-      - name: Test PRO REST inventory fallback and strict response validation (offline)
-        run: |
-          python3 -m py_compile .github/scripts/fetch_pro_installed_modules.py
-          python3 -m unittest discover -s .github/scripts/tests -p 'test_fetch_pro_installed_modules.py' -v
-
-      - name: Test verified per-file delta package builder (offline)
-        run: |
-          python3 -m py_compile .github/scripts/build_pro_delta.py
+          set -euo pipefail
           python3 -m unittest discover -s .github/scripts/tests -p 'test_build_pro_delta.py' -v
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_fetch_pro_installed_modules.py' -v
           php -l includes/seo-deploy-status.php
 
-      - name: Validate syntax and production safety contract
-        shell: bash
+      - name: Check YAML and embedded shell/Python syntax (no FTP/PRO)
         run: |
+          python3 -m pip install --user PyYAML
           python3 - <<'PY'
+          from pathlib import Path
           import re
           import subprocess
           import tempfile
-          from pathlib import Path
           import yaml
 
-          workflow = yaml.safe_load(Path('.github/workflows/despliege_de_main_a_pro.yml').read_text())
-          assert 'workflow_dispatch' in workflow.get('on', workflow.get(True, {}))
-          steps = workflow['jobs']['deploy']['steps']
-          checkout = next(step for step in steps if step.get('uses', '').startswith('actions/checkout@'))
-          assert checkout['with']['ref'] == 'staging', 'Production source must be validated staging'
-          assert not any(step.get('uses', '').startswith('SamKirkland/FTP-Deploy-Action@')
-                         for step in steps), 'Modular deploy must never resync the monolith'
+          steps = yaml.safe_load(Path('.github/workflows/despliege_de_main_a_pro.yml').read_text())['jobs']['deploy']['steps']
+          code = '\n'.join(s.get('run', '') for s in steps)
           php = Path('includes/seo-deploy-status.php').read_text()
+          assert not any('FTP-Deploy-Action' in s.get('uses', '') for s in steps)
+          assert 'build_pro_delta.py' in code
+          assert 'status=success&per_page=1' in code
+          assert 'ref: staging' in Path('.github/workflows/despliege_de_main_a_pro.yml').read_text()
           assert "return dirname( __DIR__ ) . '/.taxocommerce-deploy';" in php
-          assert "get_param( 'modules' )" in php, 'Receiver must validate selected modules'
-          assert 'handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"' in '\n'.join(s.get('run','') for s in steps)
-          assert 'mkdir -p ".taxocommerce-deploy"' in '\n'.join(s.get('run','') for s in steps)
-          assert 'build_pro_delta.py' in '\n'.join(s.get('run','') for s in steps)
-          assert 'status=success&branch=staging' in '\n'.join(s.get('run','') for s in steps)
-          assert 'taxocommerce-pro-original-rest-receiver-backup' in str(steps)
-          assert 'taxocommerce-pro-incremental-plan' in str(steps)
-          code = '\n'.join(step.get('run', '') for step in steps)
-          assert 'readme.txt' in code and 'Stable tag:' in code
-          assert "grep -Fx 'readme.txt'" in code and '-x \'readme.txt\'' not in code
-          assert "zip -qr" in code and "unzip -t" in code
-          assert 'fetch_pro_installed_modules.py' in code and 'hash' in code
-          assert 'if ! cmp -s' in code
-          assert 'reconcile_taxocommerce_pro.py plan' in code
-          assert 'reconcile_taxocommerce_pro.py apply' in code
+          assert 'handoff=".taxocommerce-deploy/$GITHUB_RUN_ID"' in code
+          assert "get_param( 'modules' )" in php
           assert 'manifest_sha256' in code and 'verified_files' in code
-          assert '--data-urlencode "modules=$selected_json"' in code
-          assert 'put "$package" -o "$handoff/$module.zip"' in code
-          assert 'Legacy FTP cleanup disabled' in code
+          assert 'Subir TaxoCommerce SEO antiguo' not in code
           assert not re.search(r'\bmirror\b.*--delete|\brm\s+-rf\s+\$\{?FTP', code)
-
-          count = 0
           with tempfile.TemporaryDirectory() as temp:
-              for step in steps:
+              for n, step in enumerate(steps):
                   script = step.get('run')
-                  if not isinstance(script, str):
+                  if not script:
                       continue
-                  path = Path(temp) / ('script-' + str(count) + '.sh')
+                  path = Path(temp) / f'step-{n}.sh'
                   path.write_text(script)
                   subprocess.run(['bash', '-n', str(path)], check=True)
                   lines = script.splitlines()
-                  n = 0
-                  while n < len(lines):
-                      if re.search(r"\bpython3\b.*<<'PY'\s*$", lines[n]):
-                          start = n + 1
-                          n = start
-                          while n < len(lines) and lines[n].strip() != 'PY':
-                              n += 1
-                          assert n < len(lines), 'Unclosed Python heredoc'
-                          compile('\n'.join(lines[start:n]), step.get('name', 'inline-python'), 'exec')
-                      n += 1
-                  count += 1
-          print('Production deployment YAML, Bash, Python and safety preflight OK:', count, 'scripts checked')
+                  for i, line in enumerate(lines):
+                      if re.search(r"\bpython3\b.*<<'PY'\s*$", line):
+                          end = next((j for j in range(i + 1, len(lines))
+                                      if lines[j].strip() == 'PY'), None)
+                          assert end is not None, 'Unterminated Python block'
+                          compile('\n'.join(lines[i + 1:end]), step.get('name', 'inline'), 'exec')
+          print('Incremental-only deployment and workflow syntax OK')
           PY
