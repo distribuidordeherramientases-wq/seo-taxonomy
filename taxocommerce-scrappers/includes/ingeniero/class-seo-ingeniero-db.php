@@ -783,9 +783,13 @@ final class SEO_Ingeniero_DB {
         global $wpdb;
         $ids = array_values(array_unique(array_filter(array_map('absint', (array) $ids))));
         if (!$ids) return array();
-        $table = esc_sql( self::table('sources') );
+        $table = self::table('sources');
+        // Every identifier in the IN list is normalized by absint() above.
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} WHERE id IN ({$placeholders}) ORDER BY id ASC", $ids), ARRAY_A);
+        $query = 'SELECT * FROM %i WHERE id IN (' . $placeholders . ') ORDER BY id ASC';
+        $bindings = array_merge(array($table), $ids);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The SQL is built solely from fixed %i/%d placeholders; all identifiers and values are bound.
+        $rows = (array) $wpdb->get_results($wpdb->prepare($query, $bindings), ARRAY_A);
         foreach ($rows as &$row) {
             $row['metadata'] = self::decode_json($row['metadata_json'] ?? '');
             unset($row['metadata_json']);
