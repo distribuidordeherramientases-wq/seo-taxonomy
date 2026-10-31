@@ -127,7 +127,7 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
             . ' FROM %i WHERE %i IS NOT NULL AND %i > 0 '
             . $status_where
             . " AND image_url IS NOT NULL AND TRIM(image_url) <> '' GROUP BY %i";
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal schema-dependent SQL fragments; all identifiers use %i.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query uses only allowlisted product_id/object_id and fixed schema-checked SQL expressions; all identifiers are %i bound.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = $wpdb->get_results($wpdb->prepare($query, $column, $table, $column, $column, $column), ARRAY_A);
 
@@ -436,6 +436,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     $placeholders = implode(',', array_fill(0, count($roles), '%s'));
     $params = array_merge(array($table, sanitize_key($object_type)), $roles);
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- SEO-role list contains generated %s placeholders only; identifier %i and values are bound.
+    // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated %s placeholders; each sanitized role is present in the spread $params array.
     $query = $wpdb->prepare(
         "SELECT id, object_id, seo_role, keywords, status, updated_at
          FROM %i
@@ -447,6 +448,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
+    // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($query, ARRAY_A);
@@ -501,6 +503,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use generated %d placeholders and are all bound with prepare(); tables use %i.
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated %d placeholders are paired with all normalized category IDs via spread array.
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
              FROM %i ov
@@ -513,6 +516,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
             ...array_merge(array($object_table, $vocab_table), $category_ids)
         );
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     } else {
         $sql = $wpdb->prepare(
