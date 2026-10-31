@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [Unreleased]
+
+* Lectura CSV y JSON portable: comprobación local del nonce y validación del estado y la ruta temporal de la subida PHP; no se modifica el contenido del archivo ni los modos MERGE/MIRROR.
+* Documentados de manera localizada los filtros GET de solo lectura (no requieren nonce) y las consultas por categoría, ya limitadas a 50 y 500 registros.
+* Mantener las advertencias de acceso directo/caché de tablas canónicas visibles hasta establecer una política de invalidación compatible con las escrituras de otros módulos; no alterar su semántica.
+
 ## [0.3.5]
 
 * Se preparan los identificadores de tablas de las consultas SQL de administrador, Clasificador, importación/exportación CSV y JSON portable usando `%i`, manteniendo el esquema canónico y la semántica de las consultas.
