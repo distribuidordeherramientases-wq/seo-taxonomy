@@ -53,8 +53,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $stale = gmdate( 'Y-m-d H:i:s', time() - 90 );
         $ids = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE mode='local' AND status IN ('queued','running')
+                "SELECT id FROM %i WHERE mode='local' AND status IN ('queued','running')
                  AND updated_at<=%s ORDER BY id ASC LIMIT 1",
+                 $table,
                 $stale
             )
         );
@@ -72,7 +73,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
         $run_ids = $wpdb->get_col(
-            "SELECT id FROM {$runs} WHERE mode='local' AND status IN ('queued','running')"
+            $wpdb->prepare("SELECT id FROM %i WHERE mode='local' AND status IN ('queued','running')", $runs)
         );
         foreach ( (array) $run_ids as $id ) {
             $args = array( absint( $id ) );
@@ -84,15 +85,16 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $now = current_time( 'mysql', true );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$runs} SET status='cancelled',error_message='Plugin desactivado.',
+                "UPDATE %i SET status='cancelled',error_message='Plugin desactivado.',
                  completed_at=%s,updated_at=%s WHERE mode='local' AND status IN ('queued','running')",
+                 $runs,
                 $now,
                 $now
             )
         );
         $wpdb->query(
-            "UPDATE {$items} SET queued_scan_id=0,queued_at=NULL
-             WHERE queued_scan_id IN (SELECT id FROM {$runs} WHERE mode='local' AND status='cancelled')"
+            $wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL
+             WHERE queued_scan_id IN (SELECT id FROM %i WHERE mode='local' AND status='cancelled')", $items, $runs)
         );
         delete_option( self::LOCK );
     }
@@ -168,7 +170,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $table = self::table( 'runs' );
         // Older GitHub scans also count: do not run two resource-heavy scans together.
         return (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table} WHERE status IN ('queued','running','paused')"
+            $wpdb->prepare("SELECT COUNT(*) FROM %i WHERE status IN ('queued','running','paused')", $table)
         ) > 0;
     }
 
@@ -216,8 +218,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // progressively; there is no giant GitHub payload or PHP request.
         $reserved = $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET queued_scan_id=%d,queued_at=%s
+                "UPDATE %i SET queued_scan_id=%d,queued_at=%s
                  WHERE scope=%s AND active=1 AND queued_scan_id=0",
+                 $items,
                 $run_id,
                 $now,
                 $scope
@@ -293,8 +296,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $items = self::table( 'items' );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET active=0,queued_scan_id=0,queued_at=NULL
+                "UPDATE %i SET active=0,queued_scan_id=0,queued_at=NULL
                  WHERE scope=%s AND active=1 AND sync_token<>%s",
+                 $items,
                 'image',
                 $token
             )
@@ -319,7 +323,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$items} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                 $items,
                 absint( $run_id )
             )
         );
@@ -359,7 +364,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $runs  = self::table( 'runs' );
             $items = self::table( 'items' );
             $run = $wpdb->get_row(
-                $wpdb->prepare( "SELECT * FROM {$runs} WHERE id=%d LIMIT 1", $run_id ),
+                $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
+                 $runs, $run_id ),
                 ARRAY_A
             );
             if ( ! is_array( $run ) || ! in_array( $run['status'], array( 'queued', 'running' ), true ) || 'local' !== $run['mode'] ) {
@@ -380,7 +386,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $size = max( 1, min( 8, (int) apply_filters( 'taxocommerce_system_check_url_batch_size', 5 ) ) );
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,url FROM {$items} WHERE queued_scan_id=%d ORDER BY id ASC LIMIT %d",
+                    "SELECT id,url FROM %i WHERE queued_scan_id=%d ORDER BY id ASC LIMIT %d",
+                 $items,
                     $run_id,
                     $size
                 ),
@@ -400,7 +407,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
             // The administrator may cancel while a remote request is in flight.
             $current_state = (string) $wpdb->get_var(
-                $wpdb->prepare( "SELECT status FROM {$runs} WHERE id=%d LIMIT 1", $run_id )
+                $wpdb->prepare( "SELECT status FROM %i WHERE id=%d LIMIT 1",
+                 $runs, $run_id )
             );
             if ( ! in_array( $current_state, array( 'queued', 'running' ), true ) ) {
                 return;
@@ -413,7 +421,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             seo_health_scan_refresh_run( $run_id );
 
             $remaining = (int) $wpdb->get_var(
-                $wpdb->prepare( "SELECT COUNT(*) FROM {$items} WHERE queued_scan_id=%d", $run_id )
+                $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE queued_scan_id=%d",
+                 $items, $run_id )
             );
             if ( $remaining <= 0 ) {
                 self::complete( $run_id );
@@ -431,7 +440,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $items = self::table( 'items' );
         seo_health_scan_refresh_run( $run_id );
         $run = $wpdb->get_row(
-            $wpdb->prepare( "SELECT * FROM {$runs} WHERE id=%d LIMIT 1", absint( $run_id ) ),
+            $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
+                 $runs, absint( $run_id ) ),
             ARRAY_A
         );
         if ( ! is_array( $run ) || ! in_array( $run['status'], array( 'queued', 'running' ), true ) ) {
@@ -445,12 +455,14 @@ final class TaxoCommerce_System_Check_URL_Audit {
         }
 
         $average = $wpdb->get_var(
-            $wpdb->prepare( "SELECT AVG(response_ms) FROM {$items} WHERE last_scan_id=%d", $run_id )
+            $wpdb->prepare( "SELECT AVG(response_ms) FROM %i WHERE last_scan_id=%d",
+                 $items, $run_id )
         );
         $offset = max( 0, (int) ceil( $processed * 0.95 ) - 1 );
         $p95 = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT response_ms FROM {$items} WHERE last_scan_id=%d ORDER BY response_ms ASC LIMIT 1 OFFSET %d",
+                "SELECT response_ms FROM %i WHERE last_scan_id=%d ORDER BY response_ms ASC LIMIT 1 OFFSET %d",
+                 $items,
                 $run_id,
                 $offset
             )
@@ -621,8 +633,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
             wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );
         }
         check_admin_referer( self::ACTION );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately above.
-        $scope = self::scope( isset( $_POST['tcs_scope'] ) ? wp_unslash( $_POST['tcs_scope'] ) : 'page' );
+        // The action nonce is verified above. Scope is restricted to four known values.
+        $scope = self::scope( isset( $_POST['tcs_scope'] ) && is_string( $_POST['tcs_scope'] )
+            ? sanitize_key( wp_unslash( $_POST['tcs_scope'] ) ) : 'page' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately above.
         $task = isset( $_POST['tcs_task'] ) ? sanitize_key( wp_unslash( $_POST['tcs_task'] ) ) : '';
 
@@ -667,7 +680,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 );
                 $items = self::table( 'items' );
                 $wpdb->query(
-                    $wpdb->prepare( "UPDATE {$items} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", $run_id )
+                    $wpdb->prepare( "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                 $items, $run_id )
                 );
                 self::redirect_notice( $scope, 'Chequeo cancelado; los elementos pendientes han quedado liberados.' );
             }
@@ -700,8 +714,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
             wp_die( esc_html__( 'El inventario HTTP no está disponible.', 'taxocommerce-system-check' ) );
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above.
-        $scope = self::scope( isset( $_GET['tcs_scope'] ) ? wp_unslash( $_GET['tcs_scope'] ) : 'page' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately above; read-only JSON export scope.
+        $scope = self::scope( isset( $_GET['tcs_scope'] ) && is_string( $_GET['tcs_scope'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_scope'] ) ) : 'page' );
         seo_health_scan_maybe_upgrade();
         $summary = seo_health_scan_summary( $scope );
         $latest = function_exists( 'seo_health_scan_latest_run' ) ? seo_health_scan_latest_run( $scope ) : null;
@@ -732,8 +747,9 @@ final class TaxoCommerce_System_Check_URL_Audit {
                     "SELECT id,object_id,label,url,source,status_bucket,http_status,final_status,
                             final_url,response_ms,ttfb_ms,content_type,content_length,error_type,
                             error_message,warnings,last_checked_at,last_ok_at,last_error_at
-                     FROM {$items} WHERE scope=%s AND active=1 AND id>%d
+                     FROM %i WHERE scope=%s AND active=1 AND id>%d
                      ORDER BY id ASC LIMIT %d",
+                 $items,
                     $scope, $last_id, 250
                 ),
                 ARRAY_A
@@ -767,8 +783,10 @@ final class TaxoCommerce_System_Check_URL_Audit {
             return;
         }
         seo_health_scan_maybe_upgrade();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
-        $scope = self::scope( isset( $_GET['tcs_scope'] ) ? wp_unslash( $_GET['tcs_scope'] ) : 'page' );
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted tab selection; no state changes.
+        $scope = self::scope( isset( $_GET['tcs_scope'] ) && is_string( $_GET['tcs_scope'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_scope'] ) ) : 'page' );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         echo '<nav class="nav-tab-wrapper">';
         foreach ( self::scopes() as $code => $label ) {
             echo '<a class="nav-tab' . ( $scope === $code ? ' nav-tab-active' : '' ) . '" href="' . esc_url( self::url( $code ) ) . '">' . esc_html( $label ) . '</a>';
@@ -810,7 +828,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
                         SUM(last_checked_at IS NOT NULL AND final_status BETWEEN 400 AND 499) AS http_4xx,
                         SUM(last_checked_at IS NOT NULL AND final_status=404) AS http_404,
                         SUM(last_checked_at IS NOT NULL AND final_status BETWEEN 500 AND 599) AS http_5xx
-                 FROM {$table} WHERE scope=%s AND active=1",
+                 FROM %i WHERE scope=%s AND active=1",
+                 $table,
                 $scope
             ),
             ARRAY_A
@@ -895,21 +914,29 @@ final class TaxoCommerce_System_Check_URL_Audit {
             array_push( $params, $needle, $needle, $needle );
         }
         $condition = implode( ' AND ', $where );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Whitelisted SQL fragments, internal table name, prepared values.
+        // The WHERE clause contains only fixed filter templates; all submitted values are bound.
+        $count_sql = 'SELECT COUNT(*) FROM %i WHERE ' . $condition;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Constant WHERE templates and bound values; identifier is parameterized.
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
         $count = (int) $wpdb->get_var(
-            $wpdb->prepare( "SELECT COUNT(*) FROM {$items} WHERE {$condition}", $params )
+            $wpdb->prepare( $count_sql, array_merge( array( $items ), $params ) )
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         $per_page = 40;
+        $page_sql = 'SELECT id,label,url,status_bucket,http_status,final_status,response_ms,error_type,error_message,last_checked_at,warnings'
+            . ' FROM %i WHERE ' . $condition
+            . " ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,"
+            . ' last_checked_at ASC,id ASC LIMIT %d OFFSET %d';
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
         $rows = $wpdb->get_results(
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are fixed, values and pagination use prepare().
             $wpdb->prepare(
-                "SELECT id,label,url,status_bucket,http_status,final_status,response_ms,error_type,error_message,last_checked_at,warnings
-                 FROM {$items} WHERE {$condition}
-                 ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,
-                          last_checked_at ASC,id ASC LIMIT %d OFFSET %d",
-                array_merge( $params, array( $per_page, ( $page - 1 ) * $per_page ) )
+                $page_sql,
+                array_merge( array( $items ), $params, array( $per_page, ( $page - 1 ) * $per_page ) )
             ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
         echo '<h2>Detalle por URL</h2><div class="tcs-filter">';
         foreach ( array( 'error' => 'Errores', 'warning' => 'Avisos', 'pending' => 'Pendientes', 'ok' => 'Correctas', 'all' => 'Todas' ) as $code => $label ) {

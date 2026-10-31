@@ -130,8 +130,12 @@ function seo_core_system_test_missing_product_excerpt_rows() {
         ORDER BY p.ID ASC
     ";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tablas core, sin entrada de usuario.
+    // This is an explicit, one-off admin diagnostic export of live WooCommerce data;
+    // caching would hide recently changed excerpts. The SQL uses fixed core tables
+    // and accepts no user-provided SQL parameters.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared
     $rows = $wpdb->get_results($sql, ARRAY_A);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared
     return is_array($rows) ? $rows : array();
 }
 
@@ -402,10 +406,11 @@ function seo_core_system_test() {
 
 
 function seo_core_system_test_get_active_tab() {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin tab selector.
-    $tab = isset($_GET['seo_core_test_tab'])
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted admin tab selector; never changes state.
+    $tab = isset($_GET['seo_core_test_tab']) && is_string($_GET['seo_core_test_tab'])
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : 'summary';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     if (in_array($tab, array('summary', 'code_integrity', 'operation', 'seo_content', 'services', 'settings'), true)) {
         return $tab;
@@ -454,15 +459,17 @@ function seo_core_system_test_get_requested_section() {
         return 'data_layer';
     }
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only report section selector.
-    $section = isset($_GET['seo_core_test_section'])
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted report section selector.
+    $section = isset($_GET['seo_core_test_section']) && is_string($_GET['seo_core_test_section'])
         ? sanitize_key(wp_unslash($_GET['seo_core_test_section']))
         : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy tab selector.
-    $legacy_tab = isset($_GET['seo_core_test_tab'])
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted legacy tab selector.
+    $legacy_tab = isset($_GET['seo_core_test_tab']) && is_string($_GET['seo_core_test_tab'])
         ? sanitize_key(wp_unslash($_GET['seo_core_test_tab']))
         : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $allowed = array(
         'functional',
@@ -2597,15 +2604,15 @@ function seo_core_system_test_template_loading() {
 function seo_core_system_test_catalog() {
     global $wpdb;
 
-    $product_count = post_type_exists('product')
-        ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'")
-        : 0;
+    $product_counts = post_type_exists('product') ? wp_count_posts('product') : null;
+    $product_count = is_object($product_counts) ? (int) ($product_counts->publish ?? 0) : 0;
 
     $category_count = taxonomy_exists('product_cat')
         ? (int) wp_count_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false))
         : 0;
 
-    $page_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish'");
+    $page_counts = wp_count_posts('page');
+    $page_count = is_object($page_counts) ? (int) ($page_counts->publish ?? 0) : 0;
 
     $cluster_count = seo_core_system_test_count_seo_nodes_by_role('cluster');
     $hub_primary_count = seo_core_system_test_count_seo_nodes_by_role('hub_primary');
@@ -3326,7 +3333,12 @@ function seo_core_system_test_collect_database_link_references(&$link_map, $limi
 
     $limit = max(1, (int) $limit);
     $rows = $wpdb->get_results(
-        "SELECT ID, post_type, post_title, post_content FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE '%href=%' ORDER BY post_modified_gmt DESC LIMIT {$limit}",
+        $wpdb->prepare(
+            "SELECT ID, post_type, post_title, post_content FROM %i WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE %s ORDER BY post_modified_gmt DESC LIMIT %d",
+            $wpdb->posts,
+            '%' . $wpdb->esc_like('href=') . '%',
+            $limit
+        ),
         ARRAY_A
     );
     foreach ((array) $rows as $row) {
@@ -3800,7 +3812,7 @@ function seo_core_system_test_registered_redirect_audit($target_limit) {
     }
 
     $row_limit = max(500, $target_limit * 10);
-    $rows = $wpdb->get_results("SELECT origin_url, target_url, status_code FROM {$table} ORDER BY id DESC LIMIT {$row_limit}", ARRAY_A);
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $row_limit), ARRAY_A);
     $result['records'] = count((array) $rows);
     $map = array();
     $targets = array();
@@ -4656,7 +4668,7 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
         return array();
     }
 
-    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+    $columns = (array) $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $table), 0);
     $links = array_values(array_intersect(array('product_id', 'object_id'), $columns));
     if (!$links || !in_array('image_url', $columns, true)) {
         return array();
@@ -5092,7 +5104,7 @@ function seo_core_system_test_redirects_check($enabled) {
     }
 
     $limit = max(1, (int) apply_filters('seo_core_system_test_redirect_analysis_limit', 200));
-    $rows = $wpdb->get_results("SELECT origin_url, target_url, status_code FROM {$table} ORDER BY id DESC LIMIT {$limit}", ARRAY_A);
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $limit), ARRAY_A);
     if (empty($rows)) {
         return seo_core_system_test_check_info('No hay redirecciones registradas.');
     }
@@ -6690,7 +6702,8 @@ function seo_core_system_test_count_seo_nodes_by_role($role) {
 
     return (int) $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE seo_role = %s",
+            "SELECT COUNT(*) FROM %i WHERE seo_role = %s",
+            $table,
             $role
         )
     );

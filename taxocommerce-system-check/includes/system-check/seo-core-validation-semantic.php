@@ -36,7 +36,7 @@ function seo_core_system_test_semantic_table_has_column($table, $column) {
     }
 
     $found = $wpdb->get_var(
-        $wpdb->prepare("SHOW COLUMNS FROM `{$table}` LIKE %s", (string) $column)
+        $wpdb->prepare('SHOW COLUMNS FROM %i LIKE %s', $table, (string) $column)
     );
 
     return (string) $found === (string) $column;
@@ -116,21 +116,15 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
               . "MAX(CASE WHEN http_status IN (404,410) THEN 1 ELSE 0 END) AS has_missing"
             : "0 AS has_valid, 1 AS has_retry, 0 AS has_missing";
         $status_where = $has_status ? "AND status = 'active'" : '';
-        // $column procede de una lista blanca fija; tabla y fragmentos SELECT/WHERE son internos.
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Identificadores y fragmentos proceden de listas blancas/estado interno; consulta de solo lectura.
-        $rows = $wpdb->get_results(
-            "SELECT {$column} AS linked_product_id,\n"
-            . "       1 AS has_registered,\n"
-            . "       {$http_select}\n"
-            . "FROM {$table}\n"
-            . "WHERE {$column} IS NOT NULL\n"
-            . "  AND {$column} > 0\n"
-            . "  {$status_where}\n"
-            . "  AND image_url IS NOT NULL\n"
-            . "  AND TRIM(image_url) <> ''\n"
-            . "GROUP BY {$column}",
-            ARRAY_A
-        );
+        // Identifiers are allowlisted (product_id/object_id) and both optional SQL
+        // fragments come solely from constant, schema-checked internal templates.
+        $query = 'SELECT %i AS linked_product_id, 1 AS has_registered, '
+            . $http_select
+            . ' FROM %i WHERE %i IS NOT NULL AND %i > 0 '
+            . $status_where
+            . " AND image_url IS NOT NULL AND TRIM(image_url) <> '' GROUP BY %i";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal schema-dependent SQL fragments; all identifiers use %i.
+        $rows = $wpdb->get_results($wpdb->prepare($query, $column, $table, $column, $column, $column), ARRAY_A);
 
         foreach ((array) $rows as $row) {
             $product_id = absint($row['linked_product_id'] ?? 0);
@@ -435,16 +429,18 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     }
 
     $placeholders = implode(',', array_fill(0, count($roles), '%s'));
-    $params = array_merge(array(sanitize_key($object_type)), $roles);
+    $params = array_merge(array($table, sanitize_key($object_type)), $roles);
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- SEO-role list contains generated %s placeholders only; identifier %i and values are bound.
     $query = $wpdb->prepare(
         "SELECT id, object_id, seo_role, keywords, status, updated_at
-         FROM {$table}
+         FROM %i
          WHERE object_type = %s
-           AND seo_role IN ({$placeholders})
+           AND seo_role IN (" . $placeholders . ")
            AND status = 1
          ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC",
-        $params
+        ...$params
     );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
     $rows = $wpdb->get_results($query, ARRAY_A);
@@ -498,28 +494,33 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas y lista de placeholders %d generada localmente; IDs enlazados mediante $wpdb->prepare().
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use generated %d placeholders and are all bound with prepare(); tables use %i.
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
-             FROM {$object_table} ov
-             INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
+             FROM %i ov
+             INNER JOIN %i v ON v.id = ov.vocabulary_id
              WHERE ov.object_type = 'product_cat'
                AND ov.status = 1
                AND v.active = 1
                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-               AND ov.object_id IN ({$placeholders})
+               AND ov.object_id IN (" . $placeholders . ")
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
-            ...$category_ids
+            ...array_merge(array($object_table, $vocab_table), $category_ids)
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     } else {
-        $sql = "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
-                FROM {$object_table} ov
-                INNER JOIN {$vocab_table} v ON v.id = ov.vocabulary_id
-                WHERE ov.object_type = 'product_cat'
-                  AND ov.status = 1
-                  AND v.active = 1
-                  AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
-                ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC";
+        $sql = $wpdb->prepare(
+            "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
+             FROM %i ov
+             INNER JOIN %i v ON v.id = ov.vocabulary_id
+             WHERE ov.object_type = 'product_cat'
+               AND ov.status = 1
+               AND v.active = 1
+               AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
+             ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
+            $object_table,
+            $vocab_table
+        );
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare().
@@ -976,14 +977,19 @@ function seo_core_system_test_semantic_snapshot() {
     $category_ids = wp_list_pluck((array) $category_rows, 'term_id');
     $category_vocabulary = seo_core_system_test_semantic_category_vocabulary($category_ids);
     if ($category_ids) {
-        $ids_sql = implode(',', array_map('absint', $category_ids));
+        $ids_sql = implode(',', array_fill(0, count($category_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use a generated %d placeholder list with bound integer values and %i table identifier.
         $meta_rows = $wpdb->get_results(
-            "SELECT term_id, meta_key, meta_value
-             FROM {$wpdb->termmeta}
-             WHERE term_id IN ({$ids_sql})
-               AND meta_key = 'thumbnail_id'",
+            $wpdb->prepare(
+                "SELECT term_id, meta_key, meta_value
+                 FROM %i
+                 WHERE term_id IN (" . $ids_sql . ")
+                   AND meta_key = 'thumbnail_id'",
+                array_merge(array($wpdb->termmeta), array_map('absint', $category_ids))
+            ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         foreach ((array) $meta_rows as $row) {
             $category_meta[(int) $row['term_id']][(string) $row['meta_key']] = (string) $row['meta_value'];
         }
@@ -1182,14 +1188,19 @@ function seo_core_system_test_semantic_snapshot() {
         : array();
     $product_meta = array();
     if ($product_ids) {
-        $product_ids_sql = implode(',', array_map('absint', $product_ids));
+        $product_ids_sql = implode(',', array_fill(0, count($product_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Product IDs use a generated %d placeholder list with bound integer values and %i table identifier.
         $meta_rows = $wpdb->get_results(
-            "SELECT post_id, meta_key, meta_value
-             FROM {$wpdb->postmeta}
-             WHERE post_id IN ({$product_ids_sql})
-               AND meta_key IN ('_sku', '_thumbnail_id', '_stock', '_stock_status', '_price', '_regular_price', '_sale_price', '_seo_categoria_proveedor')",
+            $wpdb->prepare(
+                "SELECT post_id, meta_key, meta_value
+                 FROM %i
+                 WHERE post_id IN (" . $product_ids_sql . ")
+                   AND meta_key IN ('_sku', '_thumbnail_id', '_stock', '_stock_status', '_price', '_regular_price', '_sale_price', '_seo_categoria_proveedor')",
+                array_merge(array($wpdb->postmeta), array_map('absint', $product_ids))
+            ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         foreach ((array) $meta_rows as $meta_row) {
             $product_meta[(int) $meta_row['post_id']][(string) $meta_row['meta_key']] = (string) $meta_row['meta_value'];
         }
@@ -1769,14 +1780,27 @@ function seo_core_system_test_semantic_snapshot() {
     );
 
     if ($faq_available) {
-        $faq_scope_select = $faq_has_legacy_scope ? 'ambito' : "'' AS ambito";
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $faq_scope_select solo puede ser una columna fija o un literal vacío; tabla interna y consulta de solo lectura.
-        $faq_rows = $wpdb->get_results(
-            "SELECT id, object_type, object_id, {$faq_scope_select}, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
-             FROM {$faq_table}
-             ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
-            ARRAY_A
-        );
+        // Only the historic FAQ schema contains ambito; both queries use
+        // literal column lists and the table identifier is parameterized.
+        if ($faq_has_legacy_scope) {
+            $faq_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, object_type, object_id, ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
+                     FROM %i ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
+                    $faq_table
+                ),
+                ARRAY_A
+            );
+        } else {
+            $faq_rows = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, object_type, object_id, '' AS ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
+                     FROM %i ORDER BY object_type ASC, object_id ASC, sort_order ASC, id ASC",
+                    $faq_table
+                ),
+                ARRAY_A
+            );
+        }
 
         $faq_counts['total'] = count((array) $faq_rows);
         $active_by_object = array();
@@ -2001,16 +2025,15 @@ function seo_core_system_test_semantic_snapshot() {
 
     if (seo_core_system_test_semantic_table_exists($nodes_table) && seo_core_system_test_semantic_table_exists($relations_table)) {
         $structure['available'] = true;
-        $structure['clusters'] = (int) $wpdb->get_var("SELECT COUNT(DISTINCT object_id) FROM {$nodes_table} WHERE seo_role = 'cluster' AND status = 1");
-        $structure['hub_primary'] = (int) $wpdb->get_var("SELECT COUNT(DISTINCT object_id) FROM {$nodes_table} WHERE seo_role = 'hub_primary' AND status = 1");
-        $structure['hub_secondary'] = (int) $wpdb->get_var("SELECT COUNT(DISTINCT object_id) FROM {$nodes_table} WHERE seo_role = 'hub_secondary' AND status = 1");
-        $structure['relations'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$relations_table}");
+        $structure['clusters'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'cluster' AND status = 1", $nodes_table));
+        $structure['hub_primary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'hub_primary' AND status = 1", $nodes_table));
+        $structure['hub_secondary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'hub_secondary' AND status = 1", $nodes_table));
+        $structure['relations'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $relations_table));
 
-        $structure['clusters_without_primary'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM (
+        $structure['clusters_without_primary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
-                FROM {$nodes_table} n
-                LEFT JOIN {$relations_table} r
+                FROM %i n
+                LEFT JOIN %i r
                   ON r.source_type = 'cluster'
                  AND r.source_id = n.object_id
                  AND r.target_type = 'hub_primary'
@@ -2018,13 +2041,11 @@ function seo_core_system_test_semantic_snapshot() {
                 WHERE n.seo_role = 'cluster' AND n.status = 1
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
-             ) q"
-        );
-        $structure['primary_without_secondary'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM (
+             ) q", $nodes_table, $relations_table));
+        $structure['primary_without_secondary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
-                FROM {$nodes_table} n
-                LEFT JOIN {$relations_table} r
+                FROM %i n
+                LEFT JOIN %i r
                   ON r.source_type = 'hub_primary'
                  AND r.source_id = n.object_id
                  AND r.target_type = 'hub_secondary'
@@ -2032,13 +2053,11 @@ function seo_core_system_test_semantic_snapshot() {
                 WHERE n.seo_role = 'hub_primary' AND n.status = 1
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
-             ) q"
-        );
-        $structure['secondary_without_categories'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM (
+             ) q", $nodes_table, $relations_table));
+        $structure['secondary_without_categories'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
-                FROM {$nodes_table} n
-                LEFT JOIN {$relations_table} r
+                FROM %i n
+                LEFT JOIN %i r
                   ON r.source_type = 'hub_secondary'
                  AND r.source_id = n.object_id
                  AND r.target_type = 'product_cat'
@@ -2046,36 +2065,29 @@ function seo_core_system_test_semantic_snapshot() {
                 WHERE n.seo_role = 'hub_secondary' AND n.status = 1
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
-             ) q"
-        );
-        $structure['categories_without_secondary_hub'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$wpdb->term_taxonomy} tt
-             LEFT JOIN {$relations_table} r
+             ) q", $nodes_table, $relations_table));
+        $structure['categories_without_secondary_hub'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*)
+             FROM %i tt
+             LEFT JOIN %i r
                ON r.target_type = 'product_cat'
               AND r.target_id = tt.term_id
               AND r.source_type = 'hub_secondary'
               AND r.relation_type = 'hub_secondary_to_category'
              WHERE tt.taxonomy = 'product_cat'
-               AND r.target_id IS NULL"
-        );
-        $structure['invalid_post_nodes'] = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT n.id)
-             FROM {$nodes_table} n
-             LEFT JOIN {$wpdb->posts} p ON p.ID = n.object_id
+               AND r.target_id IS NULL", $wpdb->term_taxonomy, $relations_table));
+        $structure['invalid_post_nodes'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT n.id)
+             FROM %i n
+             LEFT JOIN %i p ON p.ID = n.object_id
              WHERE n.seo_role IN ('cluster','hub_primary','hub_secondary')
                AND n.status = 1
-               AND (p.ID IS NULL OR p.post_status <> 'publish')"
-        );
-        $structure['invalid_category_relations'] = (int) $wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$relations_table} r
-             LEFT JOIN {$wpdb->term_taxonomy} tt
+               AND (p.ID IS NULL OR p.post_status <> 'publish')", $nodes_table, $wpdb->posts));
+        $structure['invalid_category_relations'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*)
+             FROM %i r
+             LEFT JOIN %i tt
                ON tt.term_id = r.target_id
               AND tt.taxonomy = 'product_cat'
              WHERE r.target_type = 'product_cat'
-               AND tt.term_id IS NULL"
-        );
+               AND tt.term_id IS NULL", $relations_table, $wpdb->term_taxonomy));
     }
     $snapshot['structure'] = $structure;
 

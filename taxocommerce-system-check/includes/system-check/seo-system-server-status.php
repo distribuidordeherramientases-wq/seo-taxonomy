@@ -108,7 +108,8 @@ function seo_server_status() {
  */
 function seo_server_status_get_active_tab() {
     $allowed_tabs = array('summary', 'php', 'mysql', 'wordpress', 'security', 'server', 'woocommerce', 'performance', 'logs');
-    $tab = isset($_GET['seo_status_tab']) ? sanitize_key(wp_unslash($_GET['seo_status_tab'])) : 'summary';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted admin tab.
+    $tab = isset($_GET['seo_status_tab']) && is_string($_GET['seo_status_tab']) ? sanitize_key(wp_unslash($_GET['seo_status_tab'])) : 'summary';
     return in_array($tab, $allowed_tabs, true) ? $tab : 'summary';
 }
 
@@ -777,7 +778,8 @@ function seo_server_status_external_monitor_receive($request) {
 }
 
 function seo_server_status_monitor_range() {
-    $range = isset($_GET['seo_monitor_range']) ? sanitize_key(wp_unslash($_GET['seo_monitor_range'])) : 'day';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted time-range filter.
+    $range = isset($_GET['seo_monitor_range']) && is_string($_GET['seo_monitor_range']) ? sanitize_key(wp_unslash($_GET['seo_monitor_range'])) : 'day';
     return in_array($range, array('day', 'week', 'month'), true) ? $range : 'day';
 }
 
@@ -3054,7 +3056,7 @@ function seo_server_status_count_products_without_any_image_source() {
         return seo_server_status_count_products_without_image();
     }
 
-    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$supplier_table}", 0);
+    $columns = (array) $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $supplier_table), 0);
     $link_columns = array_values(array_intersect(array('product_id', 'object_id'), $columns));
     if (!$link_columns || !in_array('image_url', $columns, true)) {
         return seo_server_status_count_products_without_image();
@@ -3107,7 +3109,7 @@ function seo_server_status_get_action_scheduler_count($status) {
         return 0;
     }
 
-    return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$actions_table} WHERE status = %s", $status));
+    return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE status = %s", $actions_table, $status));
 }
 
 /**
@@ -3146,12 +3148,15 @@ function seo_server_status_render_action_scheduler_detail_section() {
     }
 
     $rows = $wpdb->get_results(
-        "SELECT hook, status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS oldest_date
-         FROM {$actions_table}
-         WHERE status IN ('pending', 'failed')
-         GROUP BY hook, status
-         ORDER BY total DESC
-         LIMIT 25"
+        $wpdb->prepare(
+            "SELECT hook, status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS oldest_date
+             FROM %i
+             WHERE status IN ('pending', 'failed')
+             GROUP BY hook, status
+             ORDER BY total DESC
+             LIMIT 25",
+            $actions_table
+        )
     );
 
     echo '<div class="seo-status-card">';
@@ -3194,7 +3199,8 @@ function seo_server_status_render_logs_tab() {
     echo '<p>Cuando el hosting lo permite, TaxoCommerce SEO puede mostrar el <code>error_log</code> de PHP. El archivo no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
 
     $php_log = seo_server_status_get_php_error_log_info();
-    $show_php_log = isset($_GET['seo_show_php_log']) && sanitize_key(wp_unslash($_GET['seo_show_php_log'])) === '1';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only opt-in to display server log, never writes.
+    $show_php_log = isset($_GET['seo_show_php_log']) && is_string($_GET['seo_show_php_log']) && sanitize_key(wp_unslash($_GET['seo_show_php_log'])) === '1';
 
     echo '<div class="seo-status-card">';
     echo '<h2>Log PHP / sistema</h2>';

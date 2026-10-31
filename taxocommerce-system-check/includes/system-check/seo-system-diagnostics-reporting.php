@@ -806,10 +806,11 @@ function seo_system_diagnostics_current_reporting_url($args = array()) {
     $base = admin_url($pagenow ? $pagenow : 'admin.php');
     $preserve = array();
     foreach (array('page', 'tab', 'section', 'view', 'seo_core_test_tab') as $key) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting navigation state preserved in generated URLs.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only route/query selectors are preserved; no mutation.
         if (isset($_GET[$key]) && is_scalar($_GET[$key])) {
             $preserve[$key] = sanitize_text_field(wp_unslash($_GET[$key]));
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
     }
 
     return add_query_arg(
@@ -1736,8 +1737,8 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
 
     echo '<div class="notice notice-info seo-system-diagnostics-export-panel" style="padding:18px 20px;margin-top:18px;border-left-width:4px;">';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics result notice.
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics report notice.
-    $message = isset($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only admin status notice, no state changes.
+    $message = isset($_GET['seo_report_msg']) && is_string($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
     echo '<style>
         .seo-diag-export-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
         .seo-diag-export-actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -1947,7 +1948,9 @@ function seo_system_diagnostics_render_report_page() {
     $summary = (array) ($payload['summary'] ?? array());
     $semantic = (array) ($payload['semantic_health'] ?? array());
     $incidents = (array) ($payload['incidents'] ?? array());
-    $message = isset($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only status message after redirect; no state is modified.
+    $message = isset($_GET['seo_report_msg']) && is_string($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $refresh_url = wp_nonce_url(
         admin_url('admin-post.php?action=seo_system_diagnostics_refresh_report'),

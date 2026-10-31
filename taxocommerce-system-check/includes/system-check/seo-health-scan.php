@@ -330,12 +330,14 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Reutiliza URLs realmente observadas en páginas por el escáner anterior.
         if (seo_health_scan_table_exists($scan_items)) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table name is built from $wpdb->prefix; query has no external values.
             $observed = $wpdb->get_results(
-                "SELECT image_url, MAX(page_id) AS page_id
-                 FROM {$scan_items}
-                 WHERE active_on_page=1 AND image_url<>''
-                 GROUP BY image_url_hash, image_url",
+                $wpdb->prepare(
+                    "SELECT image_url, MAX(page_id) AS page_id
+                     FROM %i
+                     WHERE active_on_page=1 AND image_url<>''
+                     GROUP BY image_url_hash, image_url",
+                    $scan_items
+                ),
                 ARRAY_A
             );
             foreach ((array) $observed as $row) {
@@ -354,15 +356,20 @@ if (!function_exists('seo_health_scan_collect_images')) {
 
         // Añade media local actualmente referenciada por seo_media_usos sin abrir páginas HTML.
         if (seo_health_scan_table_exists($media_usages)) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Internal table name is built from $wpdb->prefix; query has no external values.
             $local = $wpdb->get_results(
-                "SELECT DISTINCT u.attachment_id, p.post_title, p.guid,
-                        MAX(CASE WHEN pm.meta_key='_wp_attached_file' THEN pm.meta_value ELSE '' END) AS attached_file
-                 FROM {$media_usages} u
-                 INNER JOIN {$wpdb->posts} p ON p.ID=u.attachment_id
-                 LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id=p.ID AND pm.meta_key='_wp_attached_file'
-                 WHERE p.post_type='attachment' AND p.post_mime_type LIKE 'image/%'
-                 GROUP BY u.attachment_id,p.post_title,p.guid",
+                $wpdb->prepare(
+                    "SELECT DISTINCT u.attachment_id, p.post_title, p.guid,
+                            MAX(CASE WHEN pm.meta_key='_wp_attached_file' THEN pm.meta_value ELSE '' END) AS attached_file
+                     FROM %i u
+                     INNER JOIN %i p ON p.ID=u.attachment_id
+                     LEFT JOIN %i pm ON pm.post_id=p.ID AND pm.meta_key='_wp_attached_file'
+                     WHERE p.post_type='attachment' AND p.post_mime_type LIKE %s
+                     GROUP BY u.attachment_id,p.post_title,p.guid",
+                    $media_usages,
+                    $wpdb->posts,
+                    $wpdb->postmeta,
+                    $wpdb->esc_like('image/') . '%'
+                ),
                 ARRAY_A
             );
             $upload = wp_upload_dir(null, false);
@@ -416,9 +423,10 @@ if (!function_exists('seo_health_scan_sync_inventory')) {
         $table = esc_sql( seo_health_scan_tables()['items'] );
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$table}
+                "UPDATE %i
                  SET active=0, queued_scan_id=0, queued_at=NULL
                  WHERE scope=%s AND active=1 AND sync_token<>%s",
+                    $table,
                 $scope,
                 $token
             )
@@ -440,7 +448,8 @@ if (!function_exists('seo_health_scan_summary')) {
                     SUM(active=1 AND status_bucket='ok') ok_count,
                     SUM(active=1 AND status_bucket='warning') warning_count,
                     SUM(active=1 AND status_bucket='error') error_count
-                 FROM {$table} WHERE scope=%s",
+                 FROM %i WHERE scope=%s",
+                    $table,
                 $scope
             ),
             ARRAY_A
@@ -463,7 +472,8 @@ if (!function_exists('seo_health_scan_expire_stale')) {
         $now = current_time('mysql', true);
         $stale_ids = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT id FROM {$tables['runs']} WHERE status IN ('queued','running') AND updated_at<%s",
+                "SELECT id FROM %i WHERE status IN ('queued','running') AND updated_at<%s",
+                    $tables['runs'],
                 $cutoff
             )
         );
@@ -473,23 +483,22 @@ if (!function_exists('seo_health_scan_expire_stale')) {
                 return;
             }
 
+            // The ID list contains only generated %d placeholders, never raw IDs.
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            // Only internal table names are interpolated. Dates and IDs are
-            // bound through prepare() rather than embedded into SQL strings.
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d ID placeholders are concatenated. Both table identifiers and all timestamp/ID values are passed to prepare().
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$tables['runs']} SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN ({$placeholders})",
-                    array_merge(array($now, $now), $ids)
+                    "UPDATE %i SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN (" . $placeholders . ")",
+                    ...array_merge(array($tables['runs'], $now, $now), $ids)
                 )
             );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal fixed table name and generated %d placeholders; all values are bound.
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN ({$placeholders})",
-                    $ids
+                    "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN (" . $placeholders . ")",
+                    ...array_merge(array($tables['items']), $ids)
                 )
             );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
     }
 }
@@ -501,7 +510,8 @@ if (!function_exists('seo_health_scan_active_run')) {
         $table = esc_sql( seo_health_scan_tables()['runs'] );
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE scope=%s AND status IN ('queued','running') ORDER BY id DESC LIMIT 1",
+                "SELECT * FROM %i WHERE scope=%s AND status IN ('queued','running') ORDER BY id DESC LIMIT 1",
+                    $table,
                 $scope
             ),
             ARRAY_A
@@ -514,7 +524,8 @@ if (!function_exists('seo_health_scan_latest_run')) {
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['runs'] );
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE scope=%s ORDER BY id DESC LIMIT 1", $scope),
+            $wpdb->prepare("SELECT * FROM %i WHERE scope=%s ORDER BY id DESC LIMIT 1",
+                    $table, $scope),
             ARRAY_A
         );
     }
@@ -539,9 +550,10 @@ if (!function_exists('seo_health_scan_select_batch')) {
         if ($mode === 'load_test') {
             return $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,object_id,url,label,source FROM {$table}
+                    "SELECT id,object_id,url,label,source FROM %i
                      WHERE scope=%s AND active=1 AND queued_scan_id=0
                      ORDER BY RAND() LIMIT %d",
+                    $table,
                     $scope,
                     $limit
                 ),
@@ -552,9 +564,10 @@ if (!function_exists('seo_health_scan_select_batch')) {
         if ('page' === sanitize_key((string) $scope)) {
             return $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,object_id,url,label,source FROM {$table}
+                    "SELECT id,object_id,url,label,source FROM %i
                      WHERE scope=%s AND active=1 AND queued_scan_id=0
                      ORDER BY id ASC",
+                    $table,
                     $scope
                 ),
                 ARRAY_A
@@ -564,9 +577,10 @@ if (!function_exists('seo_health_scan_select_batch')) {
         // Compatibilidad para posts, productos e imágenes: primero pendientes.
         $pending = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,object_id,url,label,source FROM {$table}
+                "SELECT id,object_id,url,label,source FROM %i
                  WHERE scope=%s AND active=1 AND queued_scan_id=0 AND last_checked_at IS NULL
                  ORDER BY id ASC LIMIT %d",
+                    $table,
                 $scope,
                 $limit
             ),
@@ -581,9 +595,10 @@ if (!function_exists('seo_health_scan_select_batch')) {
         $selected = array();
         $issues = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,object_id,url,label,source FROM {$table}
+                "SELECT id,object_id,url,label,source FROM %i
                  WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket IN ('error','warning')
                  ORDER BY CASE status_bucket WHEN 'error' THEN 0 ELSE 1 END,last_checked_at ASC,id ASC LIMIT %d",
+                    $table,
                 $scope,
                 $limit
             ),
@@ -597,9 +612,10 @@ if (!function_exists('seo_health_scan_select_batch')) {
         if ($remaining > 0) {
             $oldest = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id,object_id,url,label,source FROM {$table}
+                    "SELECT id,object_id,url,label,source FROM %i
                      WHERE scope=%s AND active=1 AND queued_scan_id=0 AND status_bucket='ok'
                      ORDER BY last_checked_at ASC,id ASC LIMIT %d",
+                    $table,
                     $scope,
                     $remaining
                 ),
@@ -733,7 +749,8 @@ if (!function_exists('seo_health_scan_launch')) {
                 array('%s','%s','%s','%s','%s'),
                 array('%d')
             );
-            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run_id)));
+            $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                    $tables['items'], absint($run_id)));
             return new WP_Error('seo_health_dispatch', $response->get_error_message());
         }
         return array('run_id'=>$run_id,'scan_uuid'=>$scan_uuid,'count'=>$total_items,'mode'=>$mode);
@@ -768,7 +785,8 @@ if (!function_exists('seo_health_scan_handle_action')) {
                     array('%s','%s','%s','%s','%s'),
                     array('%d')
                 );
-                $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($active['id'])));
+                $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                    $tables['items'], absint($active['id'])));
                 $msg = 'synced';
                 $detail = 'Escaneo parado y elementos pendientes liberados.';
             } else {
@@ -813,7 +831,8 @@ if (!function_exists('seo_health_scan_auth_run')) {
         $runs_table = $tables['runs'];
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; scan_uuid is bound through prepare().
         $run = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$runs_table} WHERE scan_uuid=%s LIMIT 1", $scan_uuid),
+            $wpdb->prepare("SELECT * FROM %i WHERE scan_uuid=%s LIMIT 1",
+                    $runs_table, $scan_uuid),
             ARRAY_A
         );
         if (!$run) {
@@ -845,7 +864,8 @@ if (!function_exists('seo_health_scan_rest_batch')) {
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal table name from $wpdb->prefix; queued_scan_id is bound through prepare().
         $items = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,object_id,url,label,source FROM {$items_table} WHERE queued_scan_id=%d ORDER BY id ASC",
+                "SELECT id,object_id,url,label,source FROM %i WHERE queued_scan_id=%d ORDER BY id ASC",
+                    $items_table,
                 absint($run['id'])
             ),
             ARRAY_A
@@ -923,7 +943,8 @@ if (!function_exists('seo_health_scan_store_results')) {
             if (!empty($row['item_id'])) {
                 $item = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT id,queued_scan_id,last_scan_id FROM {$table} WHERE id=%d AND scope=%s AND active=1 LIMIT 1",
+                        "SELECT id,queued_scan_id,last_scan_id FROM %i WHERE id=%d AND scope=%s AND active=1 LIMIT 1",
+                    $table,
                         absint($row['item_id']),
                         $run['scope']
                     ),
@@ -935,7 +956,8 @@ if (!function_exists('seo_health_scan_store_results')) {
             if (!$item) {
                 $item = $wpdb->get_row(
                     $wpdb->prepare(
-                        "SELECT id,queued_scan_id,last_scan_id FROM {$table} WHERE scope=%s AND url_hash=%s AND active=1 LIMIT 1",
+                        "SELECT id,queued_scan_id,last_scan_id FROM %i WHERE scope=%s AND url_hash=%s AND active=1 LIMIT 1",
+                    $table,
                         $run['scope'],
                         $row['url_hash']
                     ),
@@ -968,7 +990,7 @@ if (!function_exists('seo_health_scan_store_results')) {
 
             $updated = $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$table} SET
+                    "UPDATE %i SET
                         status_bucket=%s,http_status=%d,final_status=%d,final_url=%s,response_ms=%d,ttfb_ms=%d,
                         content_type=%s,content_length=%d,error_type=%s,error_message=%s,warnings=%s,last_checked_at=%s,
                         last_ok_at=IF(%s='ok',%s,last_ok_at),
@@ -977,6 +999,7 @@ if (!function_exists('seo_health_scan_store_results')) {
                         checks_total=checks_total+1,queued_scan_id=0,queued_at=NULL,last_scan_id=%d
                      WHERE id=%d
                        AND (queued_scan_id=%d OR (queued_scan_id=0 AND last_scan_id<%d))",
+                    $table,
                     $bucket,$row['http_status'],$row['final_status'],$row['final_url'],$row['response_ms'],$row['ttfb_ms'],
                     $row['content_type'],$row['content_length'],$row['error_type'],$row['error_message'],$warnings_json,$row['checked_at'],
                     $bucket,$row['checked_at'],$bucket,$row['checked_at'],$bucket,$run_id,absint($item['id']),$run_id,$run_id
@@ -1011,7 +1034,8 @@ if (!function_exists('seo_health_scan_refresh_run')) {
                     SUM(status_bucket='error') error_count,
                     SUM(final_status=429 OR http_status=429) status_429,
                     SUM((final_status BETWEEN 500 AND 599) OR (http_status BETWEEN 500 AND 599)) status_5xx
-                 FROM {$tables['items']} WHERE last_scan_id=%d",
+                 FROM %i WHERE last_scan_id=%d",
+                    $tables['items'],
                 absint($run_id)
             ),
             ARRAY_A
@@ -1074,7 +1098,8 @@ if (!function_exists('seo_health_scan_rest_results')) {
             seo_health_scan_refresh_run(absint($run['id']));
 
             $fresh_run = $wpdb->get_row(
-                $wpdb->prepare("SELECT total_items,processed_items FROM {$tables['runs']} WHERE id=%d LIMIT 1", absint($run['id'])),
+                $wpdb->prepare("SELECT total_items,processed_items FROM %i WHERE id=%d LIMIT 1",
+                    $tables['runs'], absint($run['id'])),
                 ARRAY_A
             );
             $expected = absint($fresh_run['total_items'] ?? $run['total_items'] ?? 0);
@@ -1102,13 +1127,15 @@ if (!function_exists('seo_health_scan_rest_results')) {
                 array('%s','%d','%d','%d','%d','%s','%s','%s','%s'),
                 array('%d')
             );
-            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run['id'])));
+            $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                    $tables['items'], absint($run['id'])));
             return rest_ensure_response(array('ok'=>$complete_ok,'processed'=>$processed,'expected'=>$expected));
         }
         if ($event === 'failed') {
             $message = substr(sanitize_text_field((string) ($payload['error_message'] ?? 'Fallo del worker.')), 0, 4000);
             $wpdb->update($tables['runs'], array('status'=>'failed','error_message'=>$message,'callback_token_hash'=>'','completed_at'=>$now,'updated_at'=>$now), array('id'=>absint($run['id'])), array('%s','%s','%s','%s','%s'), array('%d'));
-            $wpdb->query($wpdb->prepare("UPDATE {$tables['items']} SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d", absint($run['id'])));
+            $wpdb->query($wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
+                    $tables['items'], absint($run['id'])));
             return rest_ensure_response(array('ok'=>true));
         }
         return new WP_Error('seo_health_event', 'Evento no reconocido.', array('status'=>400));
@@ -1141,8 +1168,10 @@ add_action('rest_api_init', 'seo_health_scan_register_rest');
 
 if (!function_exists('seo_health_scan_notice')) {
     function seo_health_scan_notice() {
-        $msg = isset($_GET['health_msg']) ? sanitize_key(wp_unslash($_GET['health_msg'])) : '';
-        $detail_encoded = isset($_GET['health_detail']) ? sanitize_text_field(wp_unslash($_GET['health_detail'])) : '';
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only notices after a redirect; never mutate inventory or settings.
+        $msg = isset($_GET['health_msg']) && is_string($_GET['health_msg']) ? sanitize_key(wp_unslash($_GET['health_msg'])) : '';
+        $detail_encoded = isset($_GET['health_detail']) && is_string($_GET['health_detail']) ? sanitize_text_field(wp_unslash($_GET['health_detail'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $detail = '' !== $detail_encoded ? sanitize_text_field(rawurldecode($detail_encoded)) : '';
         if ($msg === '') {
             return;
