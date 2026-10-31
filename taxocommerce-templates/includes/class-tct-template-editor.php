@@ -532,7 +532,7 @@ final class TCT_Template_Editor {
         echo '</form></section>';
     }
 
-    public static function render() {
+    public static function render($embedded = false) {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
@@ -571,7 +571,9 @@ final class TCT_Template_Editor {
             delete_transient('tct_editor_pending_' . get_current_user_id());
         }
 
-        echo '<div class="wrap tct-template-editor"><h1>Editor y biblioteca de plantillas</h1>';
+        if (!$embedded) {
+            echo '<div class="wrap tct-template-editor"><h1>Editor y biblioteca de plantillas</h1>';
+        }
         echo '<p>El gestor antiguo de archivos queda centralizado aqui: puedes consultar todas las plantillas, subir archivos, duplicarlos, descargar una copia, crear variantes y editar el PHP propio.</p>';
         echo '<p>Los archivos integrados en el plugin son de <strong>solo lectura</strong>. Cualquier cambio se guarda como copia persistente fuera de la carpeta del plugin.</p>';
 
@@ -615,6 +617,9 @@ final class TCT_Template_Editor {
             disabled(!$can_edit,true,false) . '>' . esc_textarea($code) . '</textarea>';
         echo '<p><label><input type="checkbox" name="confirm_replace" value="1" ' . disabled(!$can_edit,true,false) . '> Confirmo que deseo sobrescribir el archivo propio si ya existe; se guardara una copia de seguridad.</label></p>';
         submit_button('Guardar PHP validado','primary','submit',false,$can_edit ? array() : array('disabled'=>'disabled'));
-        echo '</form></section></div>';
+        echo '</form></section>';
+        if (!$embedded) {
+            echo '</div>';
+        }
     }
 }

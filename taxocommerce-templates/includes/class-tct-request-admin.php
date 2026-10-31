@@ -80,7 +80,7 @@ final class TCT_Request_Admin {
             ($file === '' ? 'Ruta devuelta al tema / WordPress.' : 'Archivo asociado a esta peticion.'));
     }
 
-    public static function render() {
+    public static function render($embedded = false) {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
@@ -116,10 +116,12 @@ final class TCT_Request_Admin {
         $total = count($matching);
         $visible = array_slice($matching, ($page-1) * $page_size, $page_size, true);
 
-        echo '<div class="wrap"><h1>Tipos de peticion y plantillas</h1>';
+        if (!$embedded) {
+            echo '<div class="wrap"><h1>Tipos de peticion y plantillas</h1>';
+        }
         echo '<p>Elige el tipo de contenido o la plantilla interna que debe ejecutarse. ';
         echo '<strong>Sin asignacion:</strong> WordPress y el tema mantienen intacta su jerarquia habitual.</p>';
-        echo '<p>Las rutas por roles (Cluster, Hubs, landings, etc.) se configuran por separado en la pestaña <strong>Jerarquia y roles</strong>.</p>';
+        echo '<p>Las rutas por roles (clúster, hubs y landings) se gestionan en la sección <strong>Asociar rol y archivo</strong> de este gestor.</p>';
         echo '<p>Las acciones de WooCommerce, como agregar un producto al carrito, no son paginas por si mismas. Se ofrecen las plantillas de interfaz correspondientes (boton, ficha, minicarrito y avisos) cuando WooCommerce las registra como archivos PHP.</p>';
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0">';
         echo '<input type="hidden" name="page" value="taxocommerce-templates"><input type="hidden" name="tab" value="requests">';
@@ -180,6 +182,8 @@ final class TCT_Request_Admin {
             echo '</p>';
         }
         echo '<p class="description">Las plantillas WooCommerce por bloques (HTML) se editan con el Editor del sitio; este gestor asigna archivos PHP clasicos.</p>';
-        echo '</div>';
+        if (!$embedded) {
+            echo '</div>';
+        }
     }
 }

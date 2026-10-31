@@ -266,8 +266,31 @@ tct_assert(strpos($front_desktop, 'dht_template_render_header();') !== false
     && strpos($front_mobile, 'dht_template_render_header();') !== false,
     'Las plantillas FRONT existentes deben permanecer intactas.');
 $entrypoint = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
-tct_assert(strpos($entrypoint, "TCT_Front_Composer::render();") !== false
+tct_assert(strpos($entrypoint, "TCT_Unified_Manager::render(\$tab);") !== false
     && strpos($entrypoint, "admin_post_tct_front_composer_save") !== false,
-    'El compositor se conecta solo a la interfaz de administracion.');
+    'El compositor sigue conectado al gestor administrativo.');
+
+// UI consolidation must not remove the four original handlers or their links.
+require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
+$manager_sections = TCT_Unified_Manager::sections();
+tct_assert(count($manager_sections) === 4
+    && isset($manager_sections['composer'], $manager_sections['roles'], $manager_sections['editor'], $manager_sections['requests']),
+    'All original workflows remain accessible within the manager.');
+tct_assert(strpos($entrypoint, "'manager' => 'Gestor de plantillas'") !== false
+    && strpos($entrypoint, "'audit'   => 'Auditoría de asociaciones'") !== false,
+    'Only the manager and audit remain as top-level tabs.');
+$manager_view = file_get_contents(TCT_DIR . 'includes/class-tct-unified-manager.php');
+tct_assert(strpos($manager_view, 'TCT_Front_Composer::render( true )') !== false
+    && strpos($manager_view, 'TaxoCommerce_Templates::render_roles_screen( true )') !== false
+    && strpos($manager_view, 'TCT_Request_Admin::render( true )') !== false
+    && strpos($manager_view, 'TCT_Template_Editor::render( true )') !== false,
+    'The unified manager uses the original components without duplicating their handlers.');
+tct_assert(strpos($entrypoint, "TCT_Association_Audit::render();") !== false
+    && strpos($entrypoint, "add_action('admin_post_tct_assign_page'") !== false,
+    'Auditing and role association actions remain available.');
+$front_composer_class = file_get_contents(TCT_DIR . 'includes/class-tct-front-composer.php');
+tct_assert(strpos($front_composer_class, "'manager', 'composer', 'roles', 'editor', 'requests'") !== false,
+    'Front composer JS must load on the unified and legacy URLs.');
+
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";
