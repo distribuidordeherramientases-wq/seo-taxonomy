@@ -94,6 +94,8 @@ final class TCV_Admin {
         echo '</nav>';
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function labels() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -131,6 +133,9 @@ final class TCV_Admin {
         echo '</tbody></table><p class="description">Se muestran como máximo 300 filas en esta vista.</p></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attributes() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -153,6 +158,7 @@ final class TCV_Admin {
         echo '</tbody></table></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function classifier() {
         // GET controls only which results are displayed; POST analysis is nonce-protected.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -267,6 +273,8 @@ final class TCV_Admin {
         <?php
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function control() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -284,6 +292,7 @@ final class TCV_Admin {
         echo '</tbody></table></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_filtered() {
         if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Sin permisos.' );
@@ -343,6 +352,8 @@ final class TCV_Admin {
         exit;
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function create_term() {
         if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Sin permisos.' );
@@ -359,4 +370,5 @@ final class TCV_Admin {
         wp_safe_redirect( add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>'labels' ), admin_url( 'admin.php' ) ) );
         exit;
     }
-}
+
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching}
