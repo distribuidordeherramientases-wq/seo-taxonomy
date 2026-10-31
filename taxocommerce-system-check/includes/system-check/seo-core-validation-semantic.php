@@ -430,6 +430,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
 
     $placeholders = implode(',', array_fill(0, count($roles), '%s'));
     $params = array_merge(array($table, sanitize_key($object_type)), $roles);
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- SEO-role list contains generated %s placeholders only; identifier %i and values are bound.
     $query = $wpdb->prepare(
         "SELECT id, object_id, seo_role, keywords, status, updated_at
          FROM %i
@@ -439,6 +440,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
          ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC",
         $params
     );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
     $rows = $wpdb->get_results($query, ARRAY_A);
@@ -492,6 +494,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     $category_ids = array_values(array_unique(array_filter(array_map('absint', (array) $category_ids))));
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use generated %d placeholders and are all bound with prepare(); tables use %i.
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
              FROM %i ov
@@ -504,6 +507,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
             array_merge(array($object_table, $vocab_table), $category_ids)
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     } else {
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
@@ -974,6 +978,7 @@ function seo_core_system_test_semantic_snapshot() {
     $category_vocabulary = seo_core_system_test_semantic_category_vocabulary($category_ids);
     if ($category_ids) {
         $ids_sql = implode(',', array_fill(0, count($category_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use a generated %d placeholder list with bound integer values and %i table identifier.
         $meta_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT term_id, meta_key, meta_value
@@ -984,6 +989,7 @@ function seo_core_system_test_semantic_snapshot() {
             ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         foreach ((array) $meta_rows as $row) {
             $category_meta[(int) $row['term_id']][(string) $row['meta_key']] = (string) $row['meta_value'];
         }
@@ -1183,6 +1189,7 @@ function seo_core_system_test_semantic_snapshot() {
     $product_meta = array();
     if ($product_ids) {
         $product_ids_sql = implode(',', array_fill(0, count($product_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Product IDs use a generated %d placeholder list with bound integer values and %i table identifier.
         $meta_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT post_id, meta_key, meta_value
@@ -1193,6 +1200,7 @@ function seo_core_system_test_semantic_snapshot() {
             ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         foreach ((array) $meta_rows as $meta_row) {
             $product_meta[(int) $meta_row['post_id']][(string) $meta_row['meta_key']] = (string) $meta_row['meta_value'];
         }
