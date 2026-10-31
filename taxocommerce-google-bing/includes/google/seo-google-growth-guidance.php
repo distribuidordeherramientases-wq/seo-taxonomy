@@ -1,5 +1,6 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
 if (!defined('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION')) define('SEO_GOOGLE_GROWTH_GUIDANCE_VERSION','1.0.0');
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.

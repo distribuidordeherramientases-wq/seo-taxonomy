@@ -10,10 +10,12 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'SEO_GOOGLE_ECOMMERCE_VERSION' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
     define( 'SEO_GOOGLE_ECOMMERCE_VERSION', '1.0.0' );
 }
 
 if ( ! defined( 'SEO_GOOGLE_ECOMMERCE_QUEUE_KEY' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
     define( 'SEO_GOOGLE_ECOMMERCE_QUEUE_KEY', 'seo_google_ga4_ecommerce_queue_v1' );
 }
 

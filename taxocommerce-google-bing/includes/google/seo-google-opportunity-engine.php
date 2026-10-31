@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
  * - qué activos existentes muestran tracción.
  */
 if (!defined('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Legacy SEO_GOOGLE_* constant is part of the existing public integration contract; renaming could break stored settings or third-party/monolith interoperability.
     define('SEO_GOOGLE_OPPORTUNITY_ENGINE_VERSION', '2.1.0');
 }
 
