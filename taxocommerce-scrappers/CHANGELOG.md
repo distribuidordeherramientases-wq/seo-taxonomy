@@ -4,7 +4,14 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+Sin novedades adicionales pendientes.
+
+## [0.1.3]
+
+- Revisión de Plugin Check a partir de los resultados del plugin instalado en PRO (5 errores heredados de textdomain y avisos SQL/nonce). Confirmado que los 5 usos heredados del dominio ya estaban corregidos en STAGING desde 0.1.2; se conserva `taxocommerce-scrappers`.
+- Sustituidas interpolaciones de identificadores SQL por `%i` en consultas de Ingeniero y Ojeador; parámetros de paginación preparados y exportación JSON con fragmentos ORDER BY/WHERE limitados a una lista fija de confianza.
+- Documentados los filtros GET puramente informativos. Se mantienen las validaciones nonce para cambios de estado, y las operaciones de investigación, compras de API y tareas existentes.
+- Ampliadas pruebas smoke para impedir regresiones de texto y consultas; no se han alterado las tablas ni el monolítico. Issue #2010.
 
 ## [0.1.2]
 
