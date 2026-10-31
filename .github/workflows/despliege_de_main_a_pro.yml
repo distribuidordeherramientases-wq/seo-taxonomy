@@ -1,38 +1,77 @@
-name: Despliegue de Staging a PRO 01/11/1026
+name: STAGING a PRODUCCION - plugins instalados
+
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: taxocommerce-production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    name: Actualizar ${{ matrix.plugin }} en PRO
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        # Plugins confirmados como instalados en PRO en el workflow #153.
+        # Para incorporar otros plugins, actualizar esta lista expresamente.
+        plugin:
+          - taxocommerce-auditor
+          - taxocommerce-campaigns
+          - taxocommerce-core
+          - taxocommerce-database
+          - taxocommerce-dependiente
+          - taxocommerce-distribution
+          - taxocommerce-facturacion
+          - taxocommerce-faqs
+          - taxocommerce-google-bing
+          - taxocommerce-images
+          - taxocommerce-import-export
+          - taxocommerce-logistica
+          - taxocommerce-redirects
+          - taxocommerce-scrappers
+          - taxocommerce-social
+          - taxocommerce-suppliers
+          - taxocommerce-system-check
+          - taxocommerce-vocabulary
     steps:
-      - name: Descargar versión de producción desde MAIN
-        uses: actions/checkout@v6
+      - name: Descargar STAGING
+        uses: actions/checkout@v4
         with:
-          ref: main
+          ref: staging
 
-      - name: Subir SEO Taxonomy a producción por FTPS
+      - name: Sincronizar plugin por FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-
           protocol: ftps
           port: 21
-
-          local-dir: ./
-          server-dir: ./
-
-          dry-run: false
+          # El FTP de PRO parte de wp-content/plugins/seo-taxonomy/.
+          # Los plugins independientes estan en directorios hermanos.
+          local-dir: ./${{ matrix.plugin }}/
+          server-dir: ../${{ matrix.plugin }}/
+          state-name: ../.${{ matrix.plugin }}-ftp-sync-state.json
           security: strict
-
+          dry-run: false
           exclude: |
             **/.git*
             **/.git*/**
             **/.github/**
             **/node_modules/**
+            tests/**
+            **/tests/**
             **/*.bak
             **/*.md
             **/*.pot
+            **/*.log
+            **/*.zip
+            **/.ftp-deploy-sync-state.json
+            **/.taxocommerce-*-ftp-state.json
+            **/.taxocommerce-*-ftp-sync-state.json
