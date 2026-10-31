@@ -127,8 +127,7 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
             . ' FROM %i WHERE %i IS NOT NULL AND %i > 0 '
             . $status_where
             . " AND image_url IS NOT NULL AND TRIM(image_url) <> '' GROUP BY %i";
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $query uses only allowlisted product_id/object_id and fixed schema-checked SQL expressions; all identifiers are %i bound.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $query uses only allowlisted product_id/object_id and fixed schema-checked SQL expressions; all identifiers are %i bound. / This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = $wpdb->get_results($wpdb->prepare($query, $column, $table, $column, $column, $column), ARRAY_A);
 
         foreach ((array) $rows as $row) {
@@ -449,8 +448,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
     // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna. / This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($query, ARRAY_A);
     $result = array();
 
@@ -533,8 +531,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
         );
     }
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($sql, ARRAY_A);
 
     foreach ((array) $rows as $row) {
