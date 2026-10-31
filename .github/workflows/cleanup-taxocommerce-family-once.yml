@@ -52,7 +52,33 @@ jobs:
               assert expected in block, module.group(1) + ' stores FTP state inside its plugin'
               assert 'tests/**' in block or '**/tests/**' in block, module.group(1) + ' deploys test files'
           assert "if:" in s and "[family-cleanup-20261031]" in s
-          print('Only standalone TaxoCommerce FTP states are external; monolith protected during this run.')
+          for workflow in (
+              'taxocommerce-social.yml',
+              'taxocommerce-auditor.yml',
+              'taxocommerce-scrappers.yml',
+              'taxocommerce-templates.yml',
+              'taxocommerce-system-check.yml',
+              'taxocommerce-google-bing.yml',
+              'taxocommerce-logistica-staging.yml',
+              'deploy-taxocommerce-redirects-staging.yml',
+              'deploy-taxocommerce-core-staging.yml',
+              'taxocommerce-faqs.yml',
+          ):
+              other = Path('.github/workflows') / workflow
+              data = other.read_text()
+              for block in re.split(r'(?=      - name: )', data):
+                  match = re.search(r'local-dir: ./((?:taxocommerce-)[a-z-]+)/', block)
+                  if not match:
+                      continue
+                  module = match.group(1)
+                  states = re.findall(r'state-name:\s*(\S+)', block)
+                  assert len(states) == 1 and states[0].startswith('../.'), (
+                      workflow, module, 'FTPS state must be outside installed module', states
+                  )
+                  assert 'tests/**' in block or '**/tests/**' in block, (
+                      workflow, module, 'development tests must not be distributed'
+                  )
+          print('Standalone module deployments keep FTP state outside installed plugin; monolith protected.')
           PY
 
   clean-staging:
