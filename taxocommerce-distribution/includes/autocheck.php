@@ -184,9 +184,8 @@ function taxocommerce_distribution_autocheck_run() {
             $checks,
             'Archivos',
             'Carpeta de feeds',
-            $feed_dir_exists ? ( is_writable( $feed_dir ) ? 'ok' : 'warning' ) : 'warning',
-            ! $feed_dir_exists ? 'Directorio aún no creado; Autocheck no lo crea.' :
-                ( is_writable( $feed_dir ) ? 'Directorio existente y escribible.' : 'Directorio existente sin permiso de escritura para el proceso PHP.' )
+            $feed_dir_exists ? 'ok' : 'warning',
+            $feed_dir_exists ? 'Directorio encontrado; no se comprueban ni modifican permisos de escritura.' : 'Directorio aún no creado; Autocheck no lo crea.'
         );
         $published = array(
             'google-merchant.xml',
@@ -212,9 +211,8 @@ function taxocommerce_distribution_autocheck_run() {
             $checks,
             'Archivos',
             'Carpeta de sitemaps',
-            $sitemap_dir_exists ? ( is_writable( $sitemap_dir ) ? 'ok' : 'warning' ) : 'warning',
-            ! $sitemap_dir_exists ? 'Directorio aún no creado; Autocheck no lo crea.' :
-                ( is_writable( $sitemap_dir ) ? 'Directorio existente y escribible.' : 'Directorio existente sin permiso de escritura para el proceso PHP.' )
+            $sitemap_dir_exists ? 'ok' : 'warning',
+            $sitemap_dir_exists ? 'Directorio encontrado; no se comprueban ni modifican permisos de escritura.' : 'Directorio aún no creado; Autocheck no lo crea.'
         );
         taxocommerce_distribution_autocheck_add(
             $checks,
