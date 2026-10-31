@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.3 =
+* Bind SQL table identifiers using WordPress %i placeholders in Ingeniero and Ojeador, including supplier migration, analysis, and JSON export paths.
+* Restrict JSON export table sorting/filtering to internal values and bind pagination limits.
+* Clarify read-only GET status handling to avoid misleading nonce warnings; retain nonce checks for operations that write.
+* Preserve the plugin text domain taxocommerce-scrappers already corrected in 0.1.2.
 
 = 0.1.2 =
 * Added an integrated Manual tab with user and technical sections covering Connections, Ojeador, Ingeniero, storage, jobs, security and troubleshooting.
