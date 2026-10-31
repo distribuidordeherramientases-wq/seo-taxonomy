@@ -467,14 +467,14 @@ function seo_system_mysql_audit_custom_tables() {
 function seo_system_mysql_audit_explain_definitions() {
     global $wpdb;
     return array(
-        array('label'=>'Relaciones SEO por origen','table'=>$wpdb->prefix.'seo_relations','required'=>array('source_type','source_id','relation_type','target_id'),'sql'=>"SELECT target_id FROM {$wpdb->prefix}seo_relations WHERE source_type='hub_secondary' AND source_id=1 AND relation_type='hub_to_category' LIMIT 20"),
-        array('label'=>'Vocabulary por objeto','table'=>$wpdb->prefix.'seo_object_vocabulary','required'=>array('object_type','object_id','status','vocabulary_id'),'sql'=>"SELECT vocabulary_id FROM {$wpdb->prefix}seo_object_vocabulary WHERE object_type='product' AND object_id=1 AND status=1"),
-        array('label'=>'Proveedor por producto','table'=>$wpdb->prefix.'seo_proveedores_productos','required'=>array('object_id','id'),'sql'=>"SELECT id FROM {$wpdb->prefix}seo_proveedores_productos WHERE object_id=1 ORDER BY id DESC LIMIT 1"),
-        array('label'=>'Imágenes externas por producto','table'=>$wpdb->prefix.'seo_supplier_images','required'=>array('product_id','id'),'sql'=>"SELECT id FROM {$wpdb->prefix}seo_supplier_images WHERE product_id=1 ORDER BY id DESC LIMIT 20"),
-        array('label'=>'Índice Dependiente por producto','table'=>$wpdb->prefix.'seo_dependiente_index','required'=>array('product_id'),'sql'=>"SELECT product_id FROM {$wpdb->prefix}seo_dependiente_index WHERE product_id=1 LIMIT 1"),
-        array('label'=>'Ingeniero · fuentes por categoría','table'=>$wpdb->prefix.'seo_ingeniero_sources','required'=>array('term_id','lesson','status','trust_level','id'),'sql'=>"SELECT id FROM {$wpdb->prefix}seo_ingeniero_sources WHERE term_id=1 AND lesson='l1_technical' AND status<>'superseded' ORDER BY trust_level,id DESC LIMIT 20"),
-        array('label'=>'Ingeniero · conocimiento por categoría','table'=>$wpdb->prefix.'seo_ingeniero_knowledge','required'=>array('term_id','lesson','status','knowledge_type'),'sql'=>"SELECT knowledge_type FROM {$wpdb->prefix}seo_ingeniero_knowledge WHERE term_id=1 AND lesson='l1_technical' AND status='active' ORDER BY knowledge_type LIMIT 20"),
-        array('label'=>'FAQs por propietario','table'=>$wpdb->prefix.'seo_faq','required'=>array('object_type','object_id','active'),'sql'=>"SELECT id FROM {$wpdb->prefix}seo_faq WHERE object_type='product' AND object_id=1 AND active=1 LIMIT 20"),
+        array('label'=>'Relaciones SEO por origen','table'=>$wpdb->prefix.'seo_relations','required'=>array('source_type','source_id','relation_type','target_id'),'sql'=>"SELECT target_id FROM %i WHERE source_type='hub_secondary' AND source_id=1 AND relation_type='hub_to_category' LIMIT 20"),
+        array('label'=>'Vocabulary por objeto','table'=>$wpdb->prefix.'seo_object_vocabulary','required'=>array('object_type','object_id','status','vocabulary_id'),'sql'=>"SELECT vocabulary_id FROM %i WHERE object_type='product' AND object_id=1 AND status=1"),
+        array('label'=>'Proveedor por producto','table'=>$wpdb->prefix.'seo_proveedores_productos','required'=>array('object_id','id'),'sql'=>"SELECT id FROM %i WHERE object_id=1 ORDER BY id DESC LIMIT 1"),
+        array('label'=>'Imágenes externas por producto','table'=>$wpdb->prefix.'seo_supplier_images','required'=>array('product_id','id'),'sql'=>"SELECT id FROM %i WHERE product_id=1 ORDER BY id DESC LIMIT 20"),
+        array('label'=>'Índice Dependiente por producto','table'=>$wpdb->prefix.'seo_dependiente_index','required'=>array('product_id'),'sql'=>"SELECT product_id FROM %i WHERE product_id=1 LIMIT 1"),
+        array('label'=>'Ingeniero · fuentes por categoría','table'=>$wpdb->prefix.'seo_ingeniero_sources','required'=>array('term_id','lesson','status','trust_level','id'),'sql'=>"SELECT id FROM %i WHERE term_id=1 AND lesson='l1_technical' AND status<>'superseded' ORDER BY trust_level,id DESC LIMIT 20"),
+        array('label'=>'Ingeniero · conocimiento por categoría','table'=>$wpdb->prefix.'seo_ingeniero_knowledge','required'=>array('term_id','lesson','status','knowledge_type'),'sql'=>"SELECT knowledge_type FROM %i WHERE term_id=1 AND lesson='l1_technical' AND status='active' ORDER BY knowledge_type LIMIT 20"),
+        array('label'=>'FAQs por propietario','table'=>$wpdb->prefix.'seo_faq','required'=>array('object_type','object_id','active'),'sql'=>"SELECT id FROM %i WHERE object_type='product' AND object_id=1 AND active=1 LIMIT 20"),
     );
 }
 
@@ -492,7 +492,12 @@ function seo_system_mysql_audit_explain_plans() {
         if (empty($columns[$table]) || array_diff((array)$def['required'], array_keys($columns[$table]))) continue;
 
         $wpdb->last_error = '';
-        $rows = (array)$wpdb->get_results('EXPLAIN ' . $def['sql'], ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // Each statement is an internal constant SELECT template containing exactly one %i;
+        // the identifier is the validated canonical table from the same definition.
+        // No user-controlled SQL or raw table names are concatenated into EXPLAIN.
+        $explain_query = $wpdb->prepare( 'EXPLAIN ' . $def['sql'], $table );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $explain_query is prepared above using the canonical %i table.
+        $rows = (array) $wpdb->get_results( $explain_query, ARRAY_A );
         if ($wpdb->last_error !== '' || !$rows) continue;
 
         $state = 'ok';
