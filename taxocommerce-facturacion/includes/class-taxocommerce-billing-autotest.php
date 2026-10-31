@@ -95,6 +95,7 @@ final class TaxoCommerce_Billing_Autotest {
             self::row( $rows, 'Persistencia', 'Registro de documentos', 'error', 'No está disponible el nombre de tabla o la conexión de WordPress.' );
         } else {
             // The only database query in Autotest: read-only schema inspection.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit admin-only check of the live schema; caching can mask a missing table.
             $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
             self::row( $rows, 'Persistencia', 'Registro de documentos',
                 $exists === $table ? 'ok' : 'error',
