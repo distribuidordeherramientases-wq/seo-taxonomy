@@ -10,7 +10,7 @@ $quotes = file_get_contents( $root . '/includes/class-seo-facturas-quotes.php' )
 
 $checks = array(
     strpos( $main, "class_exists( 'SEO_Facturas_Admin', false )" ) !== false,
-    strpos( $main, "'seo-facturas'" ) !== false,
+    strpos( $main, "'taxocommerce-facturacion'" ) !== false,
     strpos( $install, 'seo_factura_documents' ) !== false,
     strpos( $settings, 'seo_facturas_company_settings' ) !== false,
     strpos( $settings, 'seo_facturas_tax_settings' ) !== false,
