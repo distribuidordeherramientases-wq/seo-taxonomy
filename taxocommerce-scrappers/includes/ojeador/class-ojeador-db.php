@@ -316,6 +316,7 @@ final class SEO_Ojeador_DB {
         $schema = self::google_schema_table();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Ojeador/Google Schema table names are internal; query has no external values.
         return (array) $wpdb->get_results(
+            $wpdb->prepare(
             "SELECT tt.term_id,
                     t.name AS category_name,
                     tt.count AS product_count,
@@ -327,17 +328,17 @@ final class SEO_Ojeador_DB {
                     c.last_scan_at,
                     c.next_scan_at,
                     c.last_error
-             FROM {$wpdb->term_taxonomy} tt
-             JOIN {$wpdb->terms} t ON t.term_id=tt.term_id
-             JOIN {$schema} gm
+             FROM %i tt
+             JOIN %i t ON t.term_id=tt.term_id
+             JOIN %i gm
                ON gm.object_type='product_cat'
               AND gm.object_id=tt.term_id
-             LEFT JOIN {$market} c ON c.term_id=tt.term_id
+             LEFT JOIN %i c ON c.term_id=tt.term_id
              WHERE tt.taxonomy='product_cat'
                AND tt.count>0
                AND gm.status='approved'
                AND gm.shopping_query IS NOT NULL
-               AND TRIM(gm.shopping_query)<>''",
+               AND TRIM(gm.shopping_query)<>''", $wpdb->term_taxonomy, $wpdb->terms, $schema, $market),
             ARRAY_A
         );
     }
