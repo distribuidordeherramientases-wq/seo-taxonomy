@@ -4,8 +4,15 @@
 
 ## [Unreleased]
 
+Sin novedades pendientes documentadas.
+
+## [0.1.2]
+
+- Incorporada una pestaña Manual con guía de usuario y referencia técnica de Connections, Ojeador e Ingeniero, incluidos permisos, tablas, hooks, configuración, prevención de costes y diagnóstico.
+- Añadido Autotest manual y no destructivo por grupos: componentes, tablas, configuración local de proveedores y registro de controladores. No consulta APIs externas ni inicia procesos, no modifica la base de datos y nunca expone claves.
+- Pruebas de regresión sin conexión, incluyendo protección de credenciales y comportamiento de estado. Los scripts de desarrollo permanecen excluidos del ZIP distribuible.
 - Corregidos cinco usos del dominio de traducción heredado `taxocommerce-seo` en Ojeador e Ingeniero, sustituidos por `taxocommerce-scrappers` para superar el control de internacionalización del plugin independiente.
-- Parametrizados los identificadores SQL de las tablas de vocabulario mediante `%i` en la consulta de asignación de categorías, conservando los filtros y resultados. Seguimiento de Plugin Check: #1926.
+- Parametrizados los identificadores SQL de las tablas de vocabulario mediante `%i` en la consulta de asignación de categorías, conservando los filtros y resultados. Seguimiento de Plugin Check: #1926. Manual y Autotest: #1964.
 
 
 ## [0.1.1]

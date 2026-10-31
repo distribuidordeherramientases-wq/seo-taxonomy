@@ -40,6 +40,9 @@ jobs:
       - name: Scrappers smoke
         run: php taxocommerce-scrappers/tests/smoke.php
 
+      - name: Scrappers Manual / Autotest regression (no network)
+        run: php taxocommerce-scrappers/tests/manual-autotest-smoke.php
+
       - name: Verify standalone package
         run: |
           set -euo pipefail

@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,11 +14,13 @@ External research for TaxoCommerce using the proven Ojeador and Ingeniero engine
 
 TaxoCommerce Scrappers separates external market and technical research from the historical monolithic plugin.
 
-The plugin provides three administration areas:
+The plugin provides five administration areas:
 
 * Connections: shared SerpApi and ScraperAPI credentials, usage and connection test.
 * Ojeador: category-first Google Shopping market intelligence, price position, discovered products, Merchant comparison and operational logs.
 * Ingeniero: technical documentation, practical experience, current-sector research, traceable evidence and editorial dossiers.
+* Autotest: on-demand, read-only checks of component availability, registered process hooks, database tables, and local provider configuration (no HTTP, no job execution or API charges).
+* Manual: integrated user instructions and technical reference for the existing services.
 
 SerpApi is the primary external search provider. ScraperAPI is the fallback provider when supported and when SerpApi is unavailable or its configured quota is exhausted.
 
@@ -33,6 +35,7 @@ No automatic catalogue or content changes are made solely from external research
 3. Configure SerpApi and/or ScraperAPI.
 4. Test the provider chain.
 5. Open Ojeador or Ingeniero and review the migrated functionality.
+6. Open Manual for user/technical guidance and Autotest to validate service availability without using external providers.
 
 TaxoCommerce Core is optional. When Core is active, Scrappers registers as a family extension.
 
@@ -46,6 +49,11 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.2 =
+* Added an integrated Manual tab with user and technical sections covering Connections, Ojeador, Ingeniero, storage, jobs, security and troubleshooting.
+* Added a grouped, on-demand, read-only Autotest tab for component and database availability, provider configuration (without exposing keys), and registered hooks. Does not call providers or launch jobs.
+* Added isolated automated regression tests without shipping developer tests in the plugin ZIP.
 
 = 0.1.1 =
 * Fix fatal activation when Ingeniero runs without the historical monolithic plugin: provide a guarded process interface.

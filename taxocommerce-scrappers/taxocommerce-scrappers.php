@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Scrappers
  * Description: External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,10 +13,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.1' );
+define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.2' );
 define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SCRAPPERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SCRAPPERS_URL', plugin_dir_url( __FILE__ ) );
+
+require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/class-taxocommerce-scrappers-auto-test.php';
+require_once TAXOCOMMERCE_SCRAPPERS_PATH . 'includes/class-taxocommerce-scrappers-manual.php';
 
 // During the migration the historical monolith may still be active. Reuse its
 // already-loaded classes instead of declaring the same legacy class names twice.
@@ -115,7 +118,7 @@ final class TaxoCommerce_Scrappers {
             }
         }
 
-        return in_array( $tab, array( 'connections', 'ojeador', 'ingeniero' ), true ) ? $tab : 'connections';
+        return in_array( $tab, array( 'connections', 'ojeador', 'ingeniero', 'autotest', 'manual' ), true ) ? $tab : 'connections';
     }
 
     public static function screen() {
@@ -133,6 +136,8 @@ final class TaxoCommerce_Scrappers {
             'connections' => 'Connections',
             'ojeador'     => 'Ojeador',
             'ingeniero'   => 'Ingeniero',
+            'autotest'   => 'Autotest',
+            'manual'     => 'Manual',
         ) as $key => $label ) {
             $url = add_query_arg(
                 array(
@@ -155,6 +160,16 @@ final class TaxoCommerce_Scrappers {
 
         if ( 'ojeador' === $tab ) {
             SEO_Ojeador_Admin::render();
+            return;
+        }
+
+        if ( 'autotest' === $tab ) {
+            TaxoCommerce_Scrappers_Auto_Test::render();
+            return;
+        }
+
+        if ( 'manual' === $tab ) {
+            TaxoCommerce_Scrappers_Manual::render();
             return;
         }
 
