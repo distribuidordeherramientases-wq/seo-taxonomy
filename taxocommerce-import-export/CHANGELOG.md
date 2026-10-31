@@ -4,6 +4,12 @@
 
 ## Versiones independientes
 
+### Pendiente (sin publicar)
+
+* El gestor de archivos muestra un resumen de errores junto a cada CSV en Fallidos y permite consultar los detalles guardados y descargar su JSON mediante un enlace autenticado.
+* Los fallos generales del trabajador generan un registro JSON privado del archivo afectado; los registros antiguos ausentes se identifican sin inventar un motivo.
+* Se limita la descarga al archivo CSV fallido exacto, con comprobaciones de permisos, nonce, ruta y tamaño del registro.
+
 ### 0.4.10
 
 * Add a read-only Manual tab with user and technical documentation matching TaxoCommerce family conventions.
