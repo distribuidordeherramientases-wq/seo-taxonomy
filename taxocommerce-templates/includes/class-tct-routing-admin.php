@@ -158,6 +158,7 @@ final class TCT_Routing_Admin {
         $installed = TaxoCommerce_Templates::installed();
         $enabled = (bool) get_option( TaxoCommerce_Templates::ENABLE_OPTION, 0 );
         $items = self::items();
+        $request_defs = TCT_Request_Registry::definitions();
         $mapping = array();
         if ( $installed ) {
             foreach ( TCT_Router::rows() as $row ) {
@@ -244,7 +245,6 @@ final class TCT_Routing_Admin {
             $selected = $row ? (string) $row->template_file : '';
             $valid = '' !== $selected && (bool) TCT_Router::path( $selected );
             $active = $row && (int) $row->is_active;
-            $request_defs = TCT_Request_Registry::definitions();
             $editor_url = TCT_Request_Admin::admin_url( 'designer', array(
                 'tct_source' => $valid ? $selected : '',
                 // The code editor auto-associates only registered request
