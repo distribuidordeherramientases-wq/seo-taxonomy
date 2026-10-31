@@ -245,11 +245,10 @@ final class SEO_Ojeador_Stars {
     private static function market_results_by_term() {
         global $wpdb;
         $table = SEO_Ojeador_DB::table('category_results');
-        $rows = (array) $wpdb->get_results(
-            "SELECT id,term_id,google_product_id,gtin,mpn,brand,model,title,merchant,merchant_key,price,old_price,currency,rating,reviews,result_position,product_url,image_url,observed_at
-             FROM {$table}
+        $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT id,term_id,google_product_id,gtin,mpn,brand,model,title,merchant,merchant_key,price,old_price,currency,rating,reviews,result_position,product_url,image_url,observed_at
+             FROM %i
              WHERE active=1
-             ORDER BY term_id ASC,result_position ASC,id ASC",
+             ORDER BY term_id ASC,result_position ASC,id ASC", $table ),
             ARRAY_A
         );
         $out = array();
