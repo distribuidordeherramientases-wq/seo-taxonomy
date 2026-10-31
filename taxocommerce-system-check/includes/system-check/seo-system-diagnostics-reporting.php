@@ -1948,7 +1948,9 @@ function seo_system_diagnostics_render_report_page() {
     $summary = (array) ($payload['summary'] ?? array());
     $semantic = (array) ($payload['semantic_health'] ?? array());
     $incidents = (array) ($payload['incidents'] ?? array());
-    $message = isset($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only status message after redirect; no state is modified.
+    $message = isset($_GET['seo_report_msg']) && is_string($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     $refresh_url = wp_nonce_url(
         admin_url('admin-post.php?action=seo_system_diagnostics_refresh_report'),
