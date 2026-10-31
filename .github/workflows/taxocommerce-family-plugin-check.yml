@@ -146,15 +146,29 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Place check result and ZIP in one stable artifact directory
+        if: always()
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.slug }}
+        run: |
+          mkdir -p build/quality-result
+          if test -f "$RUNNER_TEMP/plugin-check-results.txt"; then
+            cp "$RUNNER_TEMP/plugin-check-results.txt" build/quality-result/plugin-check-results.txt
+          fi
+          if test -f "$RUNNER_TEMP/quality-state.json"; then
+            cp "$RUNNER_TEMP/quality-state.json" build/quality-result/quality-state.json
+          fi
+          if test -f "$PLUGIN.zip"; then
+            cp "$PLUGIN.zip" "build/quality-result/$PLUGIN.zip"
+          fi
+
       - name: Upload per-plugin report and test ZIP
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wordpress-readiness-${{ matrix.slug }}
-          path: |
-            ${{ runner.temp }}/plugin-check-results.txt
-            ${{ runner.temp }}/quality-state.json
-            ./${{ matrix.slug }}.zip
+          path: build/quality-result/
           retention-days: 14
           if-no-files-found: warn
 
