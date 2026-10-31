@@ -218,6 +218,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         if ( false === $inserted ) {
             return new WP_Error( 'tcs_insert_failed', 'No se pudo registrar el chequeo: ' . $wpdb->last_error );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic explicitly reads current database state, so caching would invalidate the result.
         $run_id = (int) $wpdb->insert_id;
 
         // Reserve all active URLs once. Small, bounded jobs will process them
