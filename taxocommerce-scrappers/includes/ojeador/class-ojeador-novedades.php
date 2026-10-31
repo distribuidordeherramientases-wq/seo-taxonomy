@@ -69,7 +69,7 @@ final class SEO_Ojeador_Novedades {
     }
 
     private static function guard($action){
-        if(!current_user_can('manage_options'))wp_die(esc_html__('No autorizado.','taxocommerce-seo'));
+        if(!current_user_can('manage_options'))wp_die(esc_html__('No autorizado.','taxocommerce-scrappers'));
         check_admin_referer($action);
     }
     private static function redirect($args=array()){
