@@ -76,6 +76,8 @@ def inventory(ftp, root, modules, capture):
                        if name in modules and facts.get("type", "").lower() == "dir")
     if not installed:
         raise RuntimeError("No recognised modular TaxoCommerce directories; abort")
+    if os.environ.get("TC_STAGING_THREE_MODULE_CLEANUP") and set(installed) != modules:
+        raise RuntimeError("Expected Core, Database and Images on STAGING; abort before deletion")
 
     for module in installed:
         base = root + "/" + module
@@ -157,6 +159,16 @@ def read_exact(ftp, root, entry):
 
 def perform(mode):
     modules = allowed_modules()
+    # Optional one-time, explicitly scoped STAGING cleanup; unchanged defaults
+    # keep the existing family script compatible with its original workflow.
+    staged_scope = os.environ.get("TC_STAGING_THREE_MODULE_CLEANUP", "")
+    if staged_scope:
+        if staged_scope != "taxocommerce-core,taxocommerce-database,taxocommerce-images":
+            raise RuntimeError("Unexpected STAGING cleanup scope")
+        expected = {"taxocommerce-core", "taxocommerce-database", "taxocommerce-images"}
+        if not expected.issubset(modules):
+            raise RuntimeError("One or more expected STAGING plugin sources are missing")
+        modules = expected
     if not modules or "seo-taxonomy" in modules:
         raise RuntimeError("No valid modular source allowlist")
     ftp, root = connect()
