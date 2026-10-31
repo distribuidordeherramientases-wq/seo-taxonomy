@@ -102,6 +102,8 @@ final class SEO_Facturas_Admin {
             'proformas' => 'Proformas',
             'quotes'    => 'Presupuestos',
             'documents' => 'Documentos',
+            'manual'    => 'Manual',
+            'autotest'  => 'Autotest', 
         );
 
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'company';
@@ -123,6 +125,12 @@ final class SEO_Facturas_Admin {
 
             <?php
             switch ($tab) {
+                case 'manual':
+                    TaxoCommerce_Billing_Manual::render();
+                    break;
+                case 'autotest':
+                    TaxoCommerce_Billing_Autotest::render();
+                    break;
                 case 'tax':
                     self::render_tax_tab();
                     break;
