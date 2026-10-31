@@ -13,20 +13,12 @@ final class TCT_Unified_Manager {
     public static function sections() {
         return array(
             'composer' => array(
-                'label' => '1. Diseñar plantilla',
-                'help'  => 'Compositor FRONT: nombre, mercado y módulos para ordenador y móvil.',
-            ),
-            'roles' => array(
-                'label' => '2. Asociar rol y archivo',
-                'help'  => 'Plantillas registradas, archivo principal, variantes y páginas asociadas.',
+                'label' => 'Diseñar plantilla por módulos',
+                'help'  => 'Compositor FRONT: nombre, mercado, móvil y ordenador; las composiciones se guardan como borradores.',
             ),
             'editor' => array(
-                'label' => '3. Biblioteca y archivos PHP',
-                'help'  => 'Consultar, crear, duplicar, descargar y editar archivos con los permisos habituales.',
-            ),
-            'requests' => array(
-                'label' => 'Opciones avanzadas: rutas WordPress y WooCommerce',
-                'help'  => 'Asociaciones técnicas por tipo de petición. No son roles SEO y se conservan sin cambios.',
+                'label' => 'Biblioteca y archivos PHP',
+                'help'  => 'Crear, duplicar, descargar o editar archivos clásicos de plantilla.',
             ),
         );
     }
@@ -37,7 +29,8 @@ final class TCT_Unified_Manager {
         }
         $sections = self::sections();
         if ( ! isset( $sections[ $focus ] ) ) {
-            $focus = 'composer';
+            // A routing row can open the designer with the selected PHP file.
+            $focus = ( isset( $_GET['tct_source'] ) || isset( $_GET['tct_assign'] ) ) ? 'editor' : 'composer';
         }
         $front_file = '';
         if ( TaxoCommerce_Templates::installed() ) {
@@ -49,7 +42,7 @@ final class TCT_Unified_Manager {
             }
         }
         echo '<div class="wrap tct-unified-manager">';
-        echo '<p class="description">Crea la composición visual y consulta aquí mismo sus roles, asignaciones y archivos. Los cambios guardados en el compositor FRONT siguen siendo borradores y no modifican la portada pública.</p>';
+        echo '<p class="description">Diseña una composición FRONT o trabaja con sus archivos PHP. Para decidir qué rol o petición utiliza cada plantilla, utiliza <a href="' . esc_url( TCT_Request_Admin::admin_url( 'routing' ) ) . '">Enrutamiento</a>.</p>';
 
         if ( '' !== $front_file ) {
             echo '<div class="tct-manager-current">';
@@ -77,14 +70,8 @@ final class TCT_Unified_Manager {
                 case 'composer':
                     TCT_Front_Composer::render( true );
                     break;
-                case 'roles':
-                    TaxoCommerce_Templates::render_roles_screen( true );
-                    break;
                 case 'editor':
                     TCT_Template_Editor::render( true );
-                    break;
-                case 'requests':
-                    TCT_Request_Admin::render( true );
                     break;
             }
             echo '</div></details>';
