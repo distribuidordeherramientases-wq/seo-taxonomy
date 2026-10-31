@@ -345,7 +345,7 @@ final class TCV_Admin {
         $label = sanitize_text_field( wp_unslash( $_POST['label'] ?? '' ) );
         if ( in_array( $g, TCV_Classifier::GROUPS, true ) && $label ) {
             $slug = sanitize_title( $label );
-            $wpdb->query( $wpdb->prepare( "INSERT INTO {$t['vocabulary']} (semantic_group,slug,label,source,active) VALUES (%s,%s,%s,'manual',1) ON DUPLICATE KEY UPDATE label=VALUES(label),active=1,source='manual'", $g, $slug, $label ) );
+            $wpdb->query( $wpdb->prepare( "INSERT INTO %i (semantic_group,slug,label,source,active) VALUES (%s,%s,%s,'manual',1) ON DUPLICATE KEY UPDATE label=VALUES(label),active=1,source='manual'", $t['vocabulary'], $g, $slug, $label ) );
         }
         wp_safe_redirect( add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>'labels' ), admin_url( 'admin.php' ) ) );
         exit;
