@@ -201,8 +201,7 @@ final class SEO_Ingeniero_DB {
         }
 
         $url_hash = hash('sha256', strtolower($url));
-        $existing = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE term_id=%d AND lesson=%s AND url_hash=%s LIMIT 1",
+        $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE term_id=%d AND lesson=%s AND url_hash=%s LIMIT 1", $table,
             $term_id,
             $lesson,
             $url_hash
@@ -246,8 +245,7 @@ final class SEO_Ingeniero_DB {
             return new WP_Error('ingeniero_knowledge_invalid', 'El conocimiento no tiene categoría o tipo válido.');
         }
 
-        $existing = absint($wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE term_id=%d AND lesson=%s AND knowledge_type=%s LIMIT 1",
+        $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE term_id=%d AND lesson=%s AND knowledge_type=%s LIMIT 1", $table,
             $term_id,
             $lesson,
             $type
@@ -280,8 +278,7 @@ final class SEO_Ingeniero_DB {
     public static function sources_for_category($term_id, $lesson = 'l1_technical') {
         global $wpdb;
         $table = esc_sql( self::table('sources') );
-        return (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY trust_level ASC,id DESC",
+        return (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY trust_level ASC,id DESC", $table,
             absint($term_id),
             sanitize_key($lesson)
         ), ARRAY_A);
@@ -294,8 +291,7 @@ final class SEO_Ingeniero_DB {
         $lesson = sanitize_key($lesson);
         if ($only_active) {
             $rows = (array) $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT * FROM `{$table}` WHERE term_id=%d AND lesson=%s AND status='active' ORDER BY knowledge_type ASC",
+                $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status='active' ORDER BY knowledge_type ASC", $table,
                     $term_id,
                     $lesson
                 ),
@@ -303,8 +299,7 @@ final class SEO_Ingeniero_DB {
             );
         } else {
             $rows = (array) $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT * FROM `{$table}` WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY knowledge_type ASC",
+                $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY knowledge_type ASC", $table,
                     $term_id,
                     $lesson
                 ),
@@ -345,10 +340,9 @@ final class SEO_Ingeniero_DB {
         }
 
         $table = esc_sql( self::table('knowledge') );
-        $updated = $wpdb->query($wpdb->prepare(
-            "UPDATE {$table}
+        $updated = $wpdb->query($wpdb->prepare("UPDATE %i
              SET status='active', updated_at=%s
-             WHERE term_id=%d AND lesson=%s AND status='review'",
+             WHERE term_id=%d AND lesson=%s AND status='review'", $table,
             gmdate('Y-m-d H:i:s'),
             $term_id,
             $lesson
@@ -364,11 +358,10 @@ final class SEO_Ingeniero_DB {
         $lesson = sanitize_key((string) $lesson);
         $table = esc_sql( self::table('knowledge') );
 
-        $term_ids = array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT term_id
-             FROM {$table}
+        $term_ids = array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare("SELECT DISTINCT term_id
+             FROM %i
              WHERE lesson=%s AND status='review'
-             ORDER BY term_id ASC",
+             ORDER BY term_id ASC", $table,
             $lesson
         )))));
 
@@ -380,10 +373,9 @@ final class SEO_Ingeniero_DB {
             );
         }
 
-        $updated = $wpdb->query($wpdb->prepare(
-            "UPDATE {$table}
+        $updated = $wpdb->query($wpdb->prepare("UPDATE %i
              SET status='active', updated_at=%s
-             WHERE lesson=%s AND status='review'",
+             WHERE lesson=%s AND status='review'", $table,
             gmdate('Y-m-d H:i:s'),
             $lesson
         ));
@@ -412,19 +404,17 @@ final class SEO_Ingeniero_DB {
         $knowledge = esc_sql( self::table('knowledge') );
         $out = array();
 
-        $source_rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT term_id,COUNT(*) total FROM {$sources} WHERE lesson=%s AND status<>'superseded' GROUP BY term_id",
+        $source_rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,COUNT(*) total FROM %i WHERE lesson=%s AND status<>'superseded' GROUP BY term_id", $sources,
             $lesson
         ), ARRAY_A);
         foreach ($source_rows as $row) {
             $out[absint($row['term_id'])]['sources'] = absint($row['total']);
         }
 
-        $knowledge_rows = (array) $wpdb->get_results($wpdb->prepare(
-            "SELECT term_id,COUNT(*) total,AVG(confidence) avg_confidence,SUM(status='active') active_total,SUM(status='review') review_total
-             FROM {$knowledge}
+        $knowledge_rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,COUNT(*) total,AVG(confidence) avg_confidence,SUM(status='active') active_total,SUM(status='review') review_total
+             FROM %i
              WHERE lesson=%s AND status<>'superseded'
-             GROUP BY term_id",
+             GROUP BY term_id", $knowledge,
             $lesson
         ), ARRAY_A);
         foreach ($knowledge_rows as $row) {
@@ -443,11 +433,11 @@ final class SEO_Ingeniero_DB {
         $sources = esc_sql( self::table('sources') );
         $knowledge = esc_sql( self::table('knowledge') );
         return array(
-            'sources' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$sources} WHERE lesson=%s AND status<>'superseded'", $lesson))),
-            'knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$knowledge} WHERE lesson=%s AND status<>'superseded'", $lesson))),
-            'active_knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$knowledge} WHERE lesson=%s AND status='active'", $lesson))),
-            'review_knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$knowledge} WHERE lesson=%s AND status='review'", $lesson))),
-            'avg_confidence' => round((float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(AVG(confidence),0) FROM {$knowledge} WHERE lesson=%s AND status<>'superseded'", $lesson)), 4),
+            'sources' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status<>'superseded'", $sources, $lesson))),
+            'knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status<>'superseded'", $knowledge, $lesson))),
+            'active_knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status='active'", $knowledge, $lesson))),
+            'review_knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status='review'", $knowledge, $lesson))),
+            'avg_confidence' => round((float) $wpdb->get_var($wpdb->prepare("SELECT COALESCE(AVG(confidence),0) FROM %i WHERE lesson=%s AND status<>'superseded'", $knowledge, $lesson)), 4),
         );
     }
 
@@ -459,13 +449,11 @@ final class SEO_Ingeniero_DB {
         $editorial_table = esc_sql( self::table('editorial') );
 
         if ($term_id) {
-            $src = (array)$wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$sources} WHERE term_id=%d AND status<>'superseded' ORDER BY id ASC",
+            $src = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND status<>'superseded' ORDER BY id ASC", $sources,
                 $term_id
             ),ARRAY_A);
             $kn = self::knowledge_for_category($term_id,false);
-            $ed = (array)$wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$editorial_table} WHERE term_id=%d ORDER BY id ASC",
+            $ed = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d ORDER BY id ASC", $editorial_table,
                 $term_id
             ),ARRAY_A);
         } else {
@@ -575,8 +563,7 @@ final class SEO_Ingeniero_DB {
         }
 
         $existing = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT id,source_hash,status,post_id FROM {$table} WHERE term_id=%d AND topic_key=%s LIMIT 1",
+            $wpdb->prepare("SELECT id,source_hash,status,post_id FROM %i WHERE term_id=%d AND topic_key=%s LIMIT 1", $table,
                 $term_id,
                 $topic_key
             ),
@@ -639,7 +626,7 @@ final class SEO_Ingeniero_DB {
     public static function editorial_get($id) {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id=%d LIMIT 1", absint($id)), ARRAY_A);
+        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE id=%d LIMIT 1", $table, absint($id)), ARRAY_A);
         return $row ? self::hydrate_editorial($row) : array();
     }
 
@@ -647,8 +634,7 @@ final class SEO_Ingeniero_DB {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
         $row = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE term_id=%d AND topic_key=%s LIMIT 1",
+            $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND topic_key=%s LIMIT 1", $table,
                 absint($term_id),
                 sanitize_key((string) $topic_key)
             ),
@@ -696,11 +682,10 @@ final class SEO_Ingeniero_DB {
         $term_filter = absint($args['term_id'] ?? 0);
 
         $total = absint($wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM `{$table}`
+            $wpdb->prepare("SELECT COUNT(*) FROM %i
                  WHERE (%s='' OR status=%s)
                    AND (%s='' OR recommended_action=%s)
-                   AND (%d=0 OR term_id=%d)",
+                   AND (%d=0 OR term_id=%d)", $table,
                 $status_filter,
                 $status_filter,
                 $action_filter,
@@ -711,13 +696,12 @@ final class SEO_Ingeniero_DB {
         ));
 
         $rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM `{$table}`
+            $wpdb->prepare("SELECT * FROM %i
                  WHERE (%s='' OR status=%s)
                    AND (%s='' OR recommended_action=%s)
                    AND (%d=0 OR term_id=%d)
                  ORDER BY updated_at DESC,id DESC
-                 LIMIT %d OFFSET %d",
+                 LIMIT %d OFFSET %d", $table,
                 $status_filter,
                 $status_filter,
                 $action_filter,
