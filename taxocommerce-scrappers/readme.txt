@@ -55,6 +55,7 @@ The administrator supplies and controls all API credentials. Provider usage can 
 * Restrict JSON export table sorting/filtering to internal values and bind pagination limits.
 * Clarify read-only GET status handling to avoid misleading nonce warnings; retain nonce checks for operations that write.
 * Preserve the plugin text domain taxocommerce-scrappers already corrected in 0.1.2.
+* Escape all generated Manual navigation links and resolve blocking SQL preparation findings in Ojeador analysis.
 
 = 0.1.2 =
 * Added an integrated Manual tab with user and technical sections covering Connections, Ojeador, Ingeniero, storage, jobs, security and troubleshooting.
