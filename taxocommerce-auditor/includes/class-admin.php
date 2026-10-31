@@ -183,11 +183,11 @@ final class Admin {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only scope selection.
         $selected = isset( $_GET['auditor_scope'] ) ? sanitize_key( wp_unslash( $_GET['auditor_scope'] ) ) : 'products';
-        if ( ! Runner::valid_scope( $selected ) ) {
+        if ( ! Runner::valid_scope( $selected ) && ! in_array( $selected, array( 'auto-test', 'manual' ), true ) ) {
             $selected = 'products';
         }
 
-        echo '<div class="wrap"><h1>TaxoCommerce Auditor de contenidos</h1>';
+        echo '<div class="wrap"><h1>TaxoCommerce Auditor de contenidos <small>v' . esc_html( Plugin::VERSION ) . '</small></h1>';
         echo '<p>Especialista de solo lectura en calidad e integridad del contenido. Detecta errores, incoherencias y trabajo pendiente; no publica, borra, mueve ni redirige contenidos.</p>';
         echo '<p><strong>Fuentes:</strong> WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local persistido de otros módulos cuando existe. No ejecuta APIs externas durante la auditoría.</p>';
 
@@ -195,7 +195,21 @@ final class Admin {
         foreach ( $scopes as $scope => $label ) {
             echo '<a href="' . esc_url( self::scope_tab_url( $scope ) ) . '" class="nav-tab' . ( $selected === $scope ? ' nav-tab-active' : '' ) . '"' . ( $selected === $scope ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
         }
+        foreach ( array( 'auto-test' => 'Auto Test', 'manual' => 'Manual' ) as $key => $label ) {
+            echo '<a href="' . esc_url( self::scope_tab_url( $key ) ) . '" class="nav-tab' . ( $selected === $key ? ' nav-tab-active' : '' ) . '"' . ( $selected === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
+        }
         echo '</nav>';
+
+        if ( 'auto-test' === $selected ) {
+            Auto_Test::render();
+            echo '</div>';
+            return;
+        }
+        if ( 'manual' === $selected ) {
+            Manual::render();
+            echo '</div>';
+            return;
+        }
 
         self::render_scope_controls( $selected );
 
