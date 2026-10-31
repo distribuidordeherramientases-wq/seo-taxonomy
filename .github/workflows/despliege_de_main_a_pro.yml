@@ -38,6 +38,10 @@ jobs:
         run: |
           echo "PRO source: staging @ $(git rev-parse HEAD)"
           test "$(git branch --show-current)" = "staging"
+          test "$GITHUB_REF_NAME" = "staging" || {
+            echo "::error::Run this production deployment from the staging branch only (verified baseline requirement)."
+            exit 1
+          }
 
       - name: Validate PRO reconciliation and protection rules
         run: |
