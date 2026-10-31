@@ -71,6 +71,8 @@ final class TCV_Portable {
     }
 
     private static function requested_scopes() {
+        // Verify the export form within the input-reading method as well as its caller.
+        check_admin_referer( 'tcv_export_portable_json' );
         $raw = isset( $_POST['scope'] ) && is_array( $_POST['scope'] )
             ? array_map( 'sanitize_key', wp_unslash( $_POST['scope'] ) )
             : self::allowed_scopes();
@@ -403,14 +405,22 @@ final class TCV_Portable {
     }
 
     private static function read_uploaded_document() {
-        if ( empty( $_FILES['portable_json']['tmp_name'] ) || ! is_uploaded_file( $_FILES['portable_json']['tmp_name'] ) ) {
+        // The only caller is nonce-protected; check here too so the upload
+        // cannot be read through a future unprotected caller.
+        check_admin_referer( 'tcv_import_portable_json' );
+        // An uploaded temporary path must remain unchanged, so validate its
+        // PHP origin and upload error rather than rewriting the path.
+        $upload = isset( $_FILES['portable_json'] ) && is_array( $_FILES['portable_json'] ) ? $_FILES['portable_json'] : array();
+        $tmp_path = isset( $upload['tmp_name'] ) && is_string( $upload['tmp_name'] ) ? $upload['tmp_name'] : '';
+        $upload_error = isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE;
+        if ( UPLOAD_ERR_OK !== $upload_error || '' === $tmp_path || ! is_uploaded_file( $tmp_path ) ) {
             return new WP_Error( 'tcv_portable_missing', 'No se ha recibido ningún JSON.' );
         }
-        $size = absint( $_FILES['portable_json']['size'] ?? 0 );
+        $size = absint( $upload['size'] ?? 0 );
         if ( $size < 2 || $size > 268435456 ) {
             return new WP_Error( 'tcv_portable_size', 'El archivo está vacío o supera 256 MiB.' );
         }
-        $raw = file_get_contents( $_FILES['portable_json']['tmp_name'] );
+        $raw = file_get_contents( $tmp_path );
         if ( ! is_string( $raw ) || '' === $raw ) {
             return new WP_Error( 'tcv_portable_read', 'No se pudo leer el archivo.' );
         }
