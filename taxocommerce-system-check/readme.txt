@@ -38,7 +38,7 @@ System diagnostics can include server configuration, URLs and error details. Tre
 
 = 0.2.11 =
 * Prepare the canonical table identifiers in all eight MySQL EXPLAIN diagnostics with the WordPress 6.2+ %i placeholder.
-* Extend offline SQL safety regression tests to PHP 7.4 and PHP 8.4; do not change diagnostic queries or legacy public APIs.
+* Extend offline SQL and malformed-input safety tests to PHP 7.4 and PHP 8.4; ignore array-valued HTTP audit filters and actions without changing valid requests or legacy public APIs.
 * This patch does not claim to resolve all remaining WordPress Plugin Check warnings; the compatibility and direct-database warnings continue to be tracked in GitHub issue #1958.
 
 
