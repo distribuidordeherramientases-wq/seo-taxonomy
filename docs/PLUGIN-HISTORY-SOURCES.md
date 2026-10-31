@@ -52,3 +52,11 @@ Additional relevant evidence: the Scrappers creation and original Ojeador/Ingeni
 ## Future maintenance
 
 On each *validated release*, update only the affected module's canonical `readme.txt`. Keep the PHP header and `Stable tag` aligned and preserve older entries. When a claim is derived from a proposal, document it as pending in its GitHub issue rather than as a release; update this evidence index only when the reconstruction needs new historical sources. Do not modify the legacy monolith changelog as part of independent-module releases.
+
+## Final canonical files (2026-10-30)
+
+- Each `taxocommerce-*/changelog.txt` contains **source-backed historical facts from the original TaxoCommerce SEO**, using original monolith release numbers (including 1.x where the original record supports them). The **2.0.0** heading in the historical source is explicitly marked *future/planned*, so it is **not reported as a confirmed release**.
+- Each `taxocommerce-*/CHANGELOG.md` contains its own independent, numbered releases, transcribed from the verified `readme.txt` and corrected using merged PR evidence when available. Only this Markdown is edited when recording new standalone changes; unresolved work stays in GitHub Issues/PRs, not released entries.
+- Each `taxocommerce-*/readme.txt` retains its WordPress.org-required changelog and links to the two files for deeper history. Changes in Markdown do **not** automatically update WordPress.org: before publishing a new version, an editor or a separately validated release process must sync the recent version summary into `readme.txt`.
+- The old monolith `CHANGELOG.md` remains frozen at 2.4.1. No monolith version number is presented as a release of a standalone module.
+- This is a reconstruction from surviving recorded changes, not a claim of an exhaustive snapshot of every ChatGPT conversation or historical deployment.

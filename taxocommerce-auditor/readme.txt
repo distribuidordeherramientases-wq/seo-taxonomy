@@ -66,6 +66,8 @@ No. It reads already-saved local evidence; no third-party requests are started.
 * Initial independent five-domain Auditor with bounded scans, native catalogue data and Vocabulary compatibility.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-auditor) (changelog.txt / CHANGELOG.md).
+
 * The monolithic TaxoCommerce SEO 2.3.x contained the first Auditor quality reports; these historical releases are not standalone Auditor versions.
 * The historic review covered products, categories, posts, landing pages and FAQs, with separate quality findings and evidence.
 * Standalone Auditor 0.1.0 established five groups of checks based on native WordPress and WooCommerce data.

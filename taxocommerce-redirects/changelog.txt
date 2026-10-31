@@ -1,53 +1,20 @@
-HISTORIAL DE ORIGEN — Redirects
+HISTORIAL LEGADO — TAXOCOMMERCE REDIRECTS
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
-Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-No se atribuyen fechas que no consten en las fuentes.
+Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.
+Changelog original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se incorpora 2.0.0 como publicación: el documento la señala como «Próxima versión».
 
-EVOLUCIÓN Y EXTRACCIÓN
+ORIGEN Y SEPARACIÓN
 * Legacy origin: SEO redirection records and redirect administration existed within TaxoCommerce SEO before extraction; the monolith version numbers are not standalone Redirects versions.
 * The monolith 2.3.6 documented redirect handling as part of its SEO maintenance cycle.
 * Standalone 0.1.0 extracted redirect management, preserving existing redirect data and the original role in WordPress navigation.
 * The independent module introduced an assisted deletion workflow with distinct selection and confirmation phases (4+4) instead of unguarded mass removal.
 * Subsequent fixes removed duplicate staging deployments, kept SEO taxonomy query filters active, addressed Plugin Check and added a dedicated user/technical guide.
 
-CAMBIOS RECOGIDOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Versión del monolito (no de Redirects).
-[Cierre de la arquitectura monolítica] - Última versión planificada de **TaxoCommerce SEO** como plugin monolítico.
-
-## [2.4.0] - 2026-10-13
-Versión del monolito (no de Redirects).
-[Resumen ejecutivo del ciclo 2.4.0] - **Contenidos y SEO:** evolución de Auditor por cinco ámbitos independientes (productos, categorías, posts, páginas/landings y FAQs), prioridades editoriales, evidencia y exportación JSON; mejoras de Analista, Solucionador, Ingeniero y Comparador.
-[Identidad pública y WordPress.org] - El nombre público pasa a ser **TaxoCommerce SEO - Catalog, Trends, Content & Feeds**.
-[Identidad pública y WordPress.org] - Se prepara el permalink público solicitado a WordPress.org: **taxocommerce-seo**.
-[Identidad pública y WordPress.org] - El dominio de traducción público pasa a **taxocommerce-seo**.
-
-## [2.3.9] - 2026-09-30
-Versión del monolito (no de Redirects).
-[Auditor, Analista y control de calidad] - Las oportunidades SEO bloqueadas por stock/precio/proveedor/margen se mantienen como **HACER DESPUÉS** con condición explícita de desbloqueo y bucket potencial, sin alterar artificialmente el score; GA4 queda como señal de medición separada y no bloquea por sí sola.
-[Auditor, Analista y control de calidad] - Añadida una **puntuación interna de calidad SEO** por entidad, con desglose de relevancia, rigor, diferenciación, arquitectura semántica y preparación técnica.
-[Auditor, Analista y control de calidad] - Mejorada la precisión de **Analista** y de los informes SEO para diferenciar mejor métricas de Google Search Console, GA4 y Bing.
-[Comparador, carrito y documentos comerciales] - El comparador utiliza clasificación canónica y atributos técnicos de TaxoCommerce SEO, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
-
-## [2.3.7] - 2026-09-25
-Versión del monolito (no de Redirects).
-[Informes y rendimiento] - Optimizada la carga de **SEO Reports**, evitando generar automáticamente informes pesados al entrar en la pantalla.
-[Issues principales] - #282 — Optimizar carga de informes de `seo-reports`.
+HITOS DOCUMENTADOS EN LAS VERSIONES ORIGINALES
 
 ## [2.3.6] - 2026-09-23
-Versión del monolito (no de Redirects).
-[SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
-[SEO, auditoría y validación] - Incorporadas comprobaciones derivadas de incidencias y recomendaciones detectadas durante las revisiones con Google.
-[SEO, auditoría y validación] - Corregida la generación de `canonical` en plantillas de categorías.
-[SEO, auditoría y validación] - Mejorado el tratamiento de errores HTTP internos:
-[SEO, auditoría y validación] - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
-[SEO, auditoría y validación] - los resultados no concluyentes se diferencian de errores reales.
-[SEO, auditoría y validación] - Mejorada la priorización del plan de acción SEO.
-[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
-[SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
-[SEO, auditoría y validación] - Alineada parte de la terminología y clasificación del catálogo con los esquemas utilizados por Google.
+Notas del monolito (no releases de este plugin):
 [Redirecciones] - Mejorado el gestor de redirects.
 [Redirecciones] - Añadidas funciones de **exportación e importación**.
 [Redirecciones] - Añadido JSON de análisis para poder estudiar:
@@ -57,61 +24,13 @@ Versión del monolito (no de Redirects).
 [Redirecciones] - ciclos;
 [Redirecciones] - incidencias estructurales;
 [Redirecciones] - posibles redirecciones sospechosas.
-[Mantenimiento] - Eliminados datos antiguos de componentes SEO ya obsoletos.
-[Resumen de la release] - **Auditoría y validación** reducen falsos positivos y amplían los controles técnicos y SEO.
 [Resumen de la release] - **Inventario, redirects, FAQs y redes sociales** incorporan nuevas herramientas de análisis y exportación.
 
-## [2.3.3] - 2026-09-08
-Versión del monolito (no de Redirects).
-[Añadido] - Añadida asociación de las etiquetas de páginas con el vocabulario SEO. (#152)
-[Añadido] - Añadida asociación de las etiquetas de FAQs con el vocabulario SEO. (#165)
-[Datos, SEO y compatibilidad] - Se ha reforzado la integración entre Vocabulary, etiquetas, FAQs, categorías y páginas.
-[Datos, SEO y compatibilidad] - Se han mejorado las comprobaciones de integridad del contenido y del catálogo.
-[Datos, SEO y compatibilidad] - Se han revisado diferencias de codificación y estructura de base de datos entre entornos; el issue #167 quedó cerrado como duplicado.
-[Datos, SEO y compatibilidad] - Se mantienen las comprobaciones de compatibilidad con WordPress, WooCommerce y los subsistemas propios de importación, proveedores y plantillas.
+# \[1.2.0\]
+Notas del monolito (no releases de este plugin):
+[Automatización] -   Sistema de redirecciones.
 
-## 2.3.2 - Consolidación operativa, Dependiente y catálogo
-Versión del monolito (no de Redirects).
-- Amplía los informes y herramientas SEO, con nuevos filtros, exportaciones JSON, inventarios de contenidos, comparativas y controles para reducir canibalización y detectar contenido sin clasificar.
-- Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
-
-## 2.2.8 - Cierre de etiquetas legacy de producto
-Versión del monolito (no de Redirects).
-- Elimina el fallback público a `wp_seo_nodes` para etiquetas de producto: la ficha solo muestra APLICACIÓN, PLATAFORMA y SUBTIPO canónicos.
-- Bloquea nuevas escrituras de `seo_nodes/product/product` desde el importador legacy y desde la pantalla antigua de clasificación de productos.
-
-## 2.2.6 - Hotfix filtro SUBTIPO en Etiquetas
-Versión del monolito (no de Redirects).
-- Corrige el error crítico al abrir TaxoCommerce SEO → Etiquetas después de cargar SUBTIPO.
-
-## 2.2.3 - Etiquetas / vocabulary control view
-Versión del monolito (no de Redirects).
-- Añade la pestaña visible **TaxoCommerce SEO > Etiquetas**.
-- Vista de producto en solo lectura con Ámbito/ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y etiquetas SEO legacy en la misma fila.
-
-## 2.2.2 - Canonical product role reads
-Versión del monolito (no de Redirects).
-- Product semantic validation now reads the canonical ROL derived from active TIPO -> `wp_seo_type_role_map`; `seo_nodes/product/ambito` remains fallback only.
-- Product CSV export no longer reads `seo_nodes/product/ambito` directly; public column `ambito` is still emitted from canonical ROL.
-
-## 2.2.1 - Vocabulary bridge
-Versión del monolito (no de Redirects).
-- ROL canónico de producto leído desde TIPO -> wp_seo_type_role_map, con fallback materializado/legacy.
-- Los atributos SEO JSON admiten explícitamente el scope especial `global`.
-
-## 2.2.0 - Supplier Import / Sync V2
-Versión del monolito (no de Redirects).
--   Nueva arquitectura SEO Persistence Layer.
--   Auditoría estructural del sistema SEO.
--   Exportación de tablas SEO.
--   Gestión independiente de nodos SEO.
--   Sistema de clasificación SEO mediante relaciones.
--   Gestión de taxonomía SEO independiente.
--   Gestión de atributos SEO.
--   Sistema de redirecciones.
--   Diccionario SEO.
--   Base de tablas internas del sistema SEO.
-
-TRANSICIÓN A PLUGINS INDEPENDIENTES
-TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
-Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
+CONTINUIDAD
+El monolito TaxoCommerce SEO cerró en 2.4.1 (25/10/2026).
+La evolución del plugin independiente se registra exclusivamente en CHANGELOG.md.
+Referencias de reconstrucción: docs/PLUGIN-HISTORY-SOURCES.md.
