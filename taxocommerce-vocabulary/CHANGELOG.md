@@ -6,7 +6,7 @@
 
 ## [0.3.5]
 
-* Se preparan los identificadores de tablas de las consultas SQL de administrador, Clasificador e importación/exportación CSV usando `%i`, manteniendo el esquema canónico y la semántica de las consultas.
+* Se preparan los identificadores de tablas de las consultas SQL de administrador, Clasificador, importación/exportación CSV y JSON portable usando `%i`, manteniendo el esquema canónico y la semántica de las consultas.
 * Se sanean los filtros de navegación y análisis y se validan los metadatos del CSV (estado de subida, ruta temporal creada por PHP, tamaño máximo y tipo).
 * Se preservan las pestañas Manual y Auto Test, el importador JSON portable y las acciones comerciales actuales.
 * Las correcciones que ya estaban presentes en STAGING (licencia, versiones y lectura de CSV mediante `WP_Filesystem`) no se duplican; el archivo oculto FTP existente en PRO requiere limpieza independiente autorizada.
