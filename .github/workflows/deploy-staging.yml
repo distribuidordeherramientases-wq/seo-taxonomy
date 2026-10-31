@@ -45,6 +45,8 @@ jobs:
           php taxocommerce-auditor/tests/smoke.php
 
       - name: Deploy TaxoCommerce SEO to STAGING
+        # Never touch the legacy monolith during the authorised modular-family cleanup.
+        if: ${{ !contains(github.event.head_commit.message, '[family-cleanup-20261031]') }}
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
@@ -266,8 +268,9 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-import-export/
           server-dir: ./wp-content/plugins/taxocommerce-import-export/
-          # FTP synchronization state must never become an installed plugin file.
+          # Keep FTP state OUTSIDE the installed standalone module.
           state-name: ../.taxocommerce-import-export-ftp-state.json
+          # FTP synchronization state must never become an installed plugin file.
           dry-run: false
           log-level: verbose
           exclude: |
@@ -337,6 +340,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-suppliers/
           server-dir: ./wp-content/plugins/taxocommerce-suppliers/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-suppliers-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -364,6 +369,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-connections/
           server-dir: ./wp-content/plugins/taxocommerce-connections/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-connections-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -414,9 +421,13 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-social/
           server-dir: ./wp-content/plugins/taxocommerce-social/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-social-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
+            tests/**
+            **/tests/**
             **/.git*
             **/.git*/**
             **/node_modules/**
@@ -468,9 +479,13 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-campaigns/
           server-dir: ./wp-content/plugins/taxocommerce-campaigns/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-campaigns-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
+            tests/**
+            **/tests/**
             **/.git*
             **/.git*/**
             **/node_modules/**
@@ -494,6 +509,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-distribution/
           server-dir: ./wp-content/plugins/taxocommerce-distribution/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-distribution-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -521,6 +538,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-logistica/
           server-dir: ./wp-content/plugins/taxocommerce-logistica/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-logistica-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -552,6 +571,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-facturacion/
           server-dir: ./wp-content/plugins/taxocommerce-facturacion/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-facturacion-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -577,10 +598,11 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-faqs/
           server-dir: ./wp-content/plugins/taxocommerce-faqs/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-faqs-ftp-state.json
           dry-run: false
           log-level: verbose
           # Store sync state outside the installed FAQ plugin.
-          state-name: ../.taxocommerce-faqs-ftp-state.json
           exclude: |
             **/.git*
             **/.git*/**
@@ -603,9 +625,13 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-system-check/
           server-dir: ./wp-content/plugins/taxocommerce-system-check/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-system-check-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
+            tests/**
+            **/tests/**
             **/.git*
             **/.git*/**
             **/node_modules/**
@@ -742,9 +768,13 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-vocabulary/
           server-dir: ./wp-content/plugins/taxocommerce-vocabulary/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-vocabulary-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
+            tests/**
+            **/tests/**
             **/.git*
             **/.git*/**
             **/node_modules/**
@@ -762,6 +792,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-auditor/
           server-dir: ./wp-content/plugins/taxocommerce-auditor/
+          # Keep FTP state OUTSIDE the installed standalone module.
+          state-name: ../.taxocommerce-auditor-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |

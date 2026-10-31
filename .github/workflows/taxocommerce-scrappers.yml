@@ -87,6 +87,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-scrappers/
           server-dir: ./wp-content/plugins/taxocommerce-scrappers/
+          # Keep FTP synchronization state outside the installed standalone plugin.
+          state-name: ../.taxocommerce-scrappers-ftp-state.json
           dry-run: false
           log-level: standard
           exclude: |
