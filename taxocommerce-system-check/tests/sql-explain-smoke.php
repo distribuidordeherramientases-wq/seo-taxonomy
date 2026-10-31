@@ -49,4 +49,18 @@ foreach ( $definitions as $definition ) {
         exit( 1 );
     }
 }
+// Read-only navigation filters and action selectors must not pass arrays
+// into WordPress scalar sanitizers (a malformed GET/POST must be ignored).
+$http_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-url-audit.php' );
+foreach ( array(
+    "is_string( \$_POST['tcs_task'] )",
+    "is_string( \$_GET['tcs_filter'] )",
+    "is_string( \$_GET['tcs_search'] )",
+    "is_scalar( \$_GET['tcs_paged'] )",
+) as $guard ) {
+    if ( false === strpos( $http_source, $guard ) ) {
+        fwrite( STDERR, "Unprotected HTTP audit input: " . $guard . "\\n" );
+        exit( 1 );
+    }
+}
 echo "Eight canonical System Check EXPLAIN templates prepared safely.\n";
