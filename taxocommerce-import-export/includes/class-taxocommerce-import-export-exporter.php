@@ -576,7 +576,6 @@ final class TaxoCommerce_Import_Export_Exporter {
 				return array();
 			}
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Required product_cat restriction by sanitized term IDs; uses WordPress taxonomy relationships.
-			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Category-scoped export count must apply the same sanitized product_cat filter as the export query.
 			$args['tax_query'] = array(
 				array(
 					'taxonomy'         => 'product_cat',
@@ -628,6 +627,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			if ( ! $ids ) {
 				return 0;
 			}
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Category-scoped export count must apply the same sanitized product_cat filter as the export query.
 			$args['tax_query'] = array(
 				array(
 					'taxonomy'         => 'product_cat',
