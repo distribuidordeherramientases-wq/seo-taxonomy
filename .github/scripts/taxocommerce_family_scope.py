@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Choose only changed standalone TaxoCommerce plugins in normal CI.
+"""Select 20 standalone modules on staging pushes and on manual requests.
 
-workflow_dispatch intentionally validates every plugin. The old monolithic
-TaxoCommerce SEO plugin is never discovered or selected here.
+PRs check only changed modules unless the shared quality workflow is modified.
+The old monolithic TaxoCommerce SEO plugin is never selected.
 """
 from __future__ import annotations
 
@@ -39,10 +39,10 @@ def changed_files(base: str, head: str) -> list[str]:
 def main() -> int:
     available = modules()
     event = os.environ.get("EVENT_NAME", "")
-    if event == "workflow_dispatch":
+    if event in {"workflow_dispatch", "push"}:
         chosen = available
-    elif event in {"pull_request", "push"}:
-        base = os.environ.get("PR_BASE_SHA" if event == "pull_request" else "PUSH_BEFORE_SHA", "")
+    elif event == "pull_request":
+        base = os.environ.get("PR_BASE_SHA", "")
         head = os.environ.get("HEAD_SHA", "")
         try:
             changed = changed_files(base, head)
@@ -54,6 +54,8 @@ def main() -> int:
                 ".github/workflows/taxocommerce-family-plugin-check.yml",
                 ".github/scripts/taxocommerce_family_readme_check.py",
                 ".github/scripts/taxocommerce_family_scope.py",
+                ".github/scripts/taxocommerce_family_report.py",
+                ".github/scripts/tests/test_taxocommerce_family_report.py",
             }
             if global_checks.intersection(changed):
                 chosen = available
