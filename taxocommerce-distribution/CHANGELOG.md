@@ -6,6 +6,13 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.1.2]
+
+- Reorganizada la pestaña Manual en **dos documentos completos y diferenciados**: Manual de usuario y Manual técnico para futuros desarrolladores, con índice accesible, secciones independientes y diseño adaptable.
+- Ampliado el manual de usuario con secuencia operativa segura; ampliado el técnico con mapa de archivos y funciones, ciclos de trabajo, almacenamiento, opciones, hooks, coexistencia con el monolito, seguridad, pruebas y procedimiento de mantenimiento.
+- Documentación contrastada con el código de Distribution. No se modifica el motor de feeds, sitemaps, Autocheck ni ningún archivo del monolito. Seguimiento: #1978.
+
+
 ## [0.1.1]
 
 - Añadida pestaña **Manual**, con guía de usuario y documentación técnica de los feeds comerciales, sitemaps, automatización, rutas públicas, coexistencia y resolución de incidencias.
