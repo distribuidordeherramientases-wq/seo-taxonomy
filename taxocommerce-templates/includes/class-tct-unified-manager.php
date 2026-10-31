@@ -59,8 +59,18 @@ final class TCT_Unified_Manager {
         }
 
         foreach ( $sections as $key => $section ) {
-            $open = ( $focus === $key );
-            echo '<details id="tct-manager-' . esc_attr( $key ) . '" class="tct-manager-section"' . ( $open ? ' open' : '' ) . '>';
+            if ( $focus !== $key ) {
+                // Deliberately lazy: do not execute the potentially expensive
+                // SQL/page inventories or load PHP code-editor content when the
+                // administrator is working in another section.
+                echo '<a class="tct-manager-section tct-manager-section-link" id="tct-manager-' .
+                    esc_attr( $key ) . '" href="' . esc_url( TCT_Request_Admin::admin_url( $key ) ) . '">';
+                echo '<span class="tct-manager-section-title">' . esc_html( $section['label'] ) . '</span>';
+                echo '<span class="tct-manager-section-help">' . esc_html( $section['help'] ) . '</span>';
+                echo '</a>';
+                continue;
+            }
+            echo '<details id="tct-manager-' . esc_attr( $key ) . '" class="tct-manager-section" open>';
             echo '<summary><span class="tct-manager-section-title">' . esc_html( $section['label'] ) . '</span><span class="tct-manager-section-help">' . esc_html( $section['help'] ) . '</span></summary>';
             echo '<div class="tct-manager-section-content">';
             switch ( $key ) {
