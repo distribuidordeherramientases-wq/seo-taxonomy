@@ -107,6 +107,7 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_upload_template',array('TCT_Template_Editor','upload'));
         add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
         add_action('admin_post_tct_save_route_mapping',array('TCT_Routing_Admin','save'));
+        add_action('admin_enqueue_scripts',array('TCT_Routing_Admin','enqueue'));
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
         add_action('admin_post_tct_front_composer_save',array('TCT_Front_Composer','save'));
         add_action('admin_enqueue_scripts',array('TCT_Front_Composer','enqueue'));
