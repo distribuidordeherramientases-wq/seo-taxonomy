@@ -18,6 +18,7 @@ function has_action( $hook ) { return ! empty( $GLOBALS['tca_hooks'][ $hook ] );
 function register_deactivation_hook( $file, $callback ) {}
 function current_user_can( $permission ) { return 'manage_options' === $permission; }
 function post_type_exists( $type ) { return 'product' === $type; }
+function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function get_option( $name, $default = false ) { return $GLOBALS['tca_options'][ $name ] ?? $default; }
 function update_option( $name, $value ) {
     ++$GLOBALS['tca_written'];
