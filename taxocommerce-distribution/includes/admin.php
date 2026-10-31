@@ -79,7 +79,7 @@ function taxocommerce_distribution_handle_sitemap_regenerate() {
 function taxocommerce_distribution_render_page() {
     taxocommerce_distribution_guard();
     $tab = isset( $_GET['tcdist_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_tab'] ) ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    if ( ! in_array( $tab, array( 'overview', 'feeds', 'sitemaps', 'automation' ), true ) ) {
+    if ( ! in_array( $tab, array( 'overview', 'feeds', 'sitemaps', 'automation', 'manual', 'autocheck' ), true ) ) {
         $tab = 'overview';
     }
     ?>
@@ -95,6 +95,8 @@ function taxocommerce_distribution_render_page() {
                     'feeds'      => __( 'Commercial Feeds', 'taxocommerce-distribution' ),
                     'sitemaps'   => __( 'Sitemaps', 'taxocommerce-distribution' ),
                     'automation' => __( 'Automation', 'taxocommerce-distribution' ),
+                    'manual'     => __( 'Manual', 'taxocommerce-distribution' ),
+                    'autocheck'  => __( 'Autocheck', 'taxocommerce-distribution' ),
                 ) as $key => $label
             ) :
                 ?>
@@ -112,6 +114,10 @@ function taxocommerce_distribution_render_page() {
                 taxocommerce_distribution_render_sitemaps();
             } elseif ( 'automation' === $tab ) {
                 taxocommerce_distribution_render_automation();
+            } elseif ( 'manual' === $tab ) {
+                taxocommerce_distribution_render_manual();
+            } elseif ( 'autocheck' === $tab ) {
+                taxocommerce_distribution_render_autocheck();
             } else {
                 taxocommerce_distribution_render_overview();
             }
