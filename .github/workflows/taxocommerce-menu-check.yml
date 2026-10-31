@@ -4,13 +4,13 @@ on:
     paths:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
       - 'taxocommerce-core/assets/menu-editor.*'
-      - 'taxocommerce-core/tests/menu-editor-smoke.php'
-      - 'taxocommerce-core/tests/country-scope-smoke.php'
-      - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
+      - '.github/tests/taxocommerce-core/menu-editor-smoke.php'
+      - '.github/tests/taxocommerce-core/country-scope-smoke.php'
+      - '.github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
-      - 'taxocommerce-core/tests/auto-test-smoke.php'
-      - 'taxocommerce-core/tests/auto-test-navigation-smoke.php'
+      - '.github/tests/taxocommerce-core/auto-test-smoke.php'
+      - '.github/tests/taxocommerce-core/auto-test-navigation-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-dashboard.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-user-guide.php'
@@ -21,13 +21,13 @@ on:
     paths:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
       - 'taxocommerce-core/assets/menu-editor.*'
-      - 'taxocommerce-core/tests/menu-editor-smoke.php'
-      - 'taxocommerce-core/tests/country-scope-smoke.php'
-      - 'taxocommerce-core/tests/hierarchy-country-schema-smoke.php'
+      - '.github/tests/taxocommerce-core/menu-editor-smoke.php'
+      - '.github/tests/taxocommerce-core/country-scope-smoke.php'
+      - '.github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-auto-test.php'
-      - 'taxocommerce-core/tests/auto-test-smoke.php'
-      - 'taxocommerce-core/tests/auto-test-navigation-smoke.php'
+      - '.github/tests/taxocommerce-core/auto-test-smoke.php'
+      - '.github/tests/taxocommerce-core/auto-test-navigation-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-dashboard.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-user-guide.php'
@@ -51,14 +51,14 @@ jobs:
       - name: PHP syntax
         run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Menu behavior and callback regression
-        run: php taxocommerce-core/tests/menu-editor-smoke.php
+        run: php .github/tests/taxocommerce-core/menu-editor-smoke.php
       - name: Auto Test functional checks (pass, failure, skipped, permissions)
-        run: php taxocommerce-core/tests/auto-test-smoke.php
+        run: php .github/tests/taxocommerce-core/auto-test-smoke.php
       - name: Auto Test belongs in Core internal tabs, never WordPress sidebar
-        run: php taxocommerce-core/tests/auto-test-navigation-smoke.php
+        run: php .github/tests/taxocommerce-core/auto-test-navigation-smoke.php
       - name: Country scoping and legacy compatibility
-        run: php taxocommerce-core/tests/country-scope-smoke.php
+        run: php .github/tests/taxocommerce-core/country-scope-smoke.php
       - name: Canonical hierarchy country-schema upgrade
-        run: php taxocommerce-core/tests/hierarchy-country-schema-smoke.php
+        run: php .github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php
       - name: JavaScript syntax
         run: node --check taxocommerce-core/assets/menu-editor.js

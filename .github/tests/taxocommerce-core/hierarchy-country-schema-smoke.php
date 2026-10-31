@@ -58,7 +58,7 @@ function verify( $v, $label ) {
     if ( ! $v ) { fwrite( STDERR, 'FAIL: ' . $label . "\n" ); exit( 1 ); }
 }
 $GLOBALS['wpdb'] = new CountrySchemaFakeDb();
-require dirname( __DIR__ ) . '/includes/class-taxocommerce-core-hierarchy-classic.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-hierarchy-classic.php';
 TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 verify( count( $wpdb->alterations ) === 2, 'migrate both pre-existing tables' );
 verify( in_array( 'country_code', $wpdb->columns['wp_seo_nodes'], true ), 'nodes column present' );

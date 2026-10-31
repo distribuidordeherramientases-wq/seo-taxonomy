@@ -28,8 +28,8 @@ function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$i
 function wp_delete_post($id,$force){$GLOBALS['writes']++;$old=$GLOBALS['items'][$id]??false;unset($GLOBALS['items'][$id]);return $old;}
 function add_filter($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
 function check_admin_referer($action,$field){if(($_POST[$field]??'')!=='nonce-'.$action)throw new RuntimeException('nonce');} function check_ajax_referer($action,$field){check_admin_referer($action,$field);}
-require dirname(__DIR__).'/includes/class-taxocommerce-core-country.php';
-require dirname(__DIR__).'/includes/class-taxocommerce-core-menu.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ).'/includes/class-taxocommerce-core-country.php';
+require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ).'/includes/class-taxocommerce-core-menu.php';
 function verify($condition,$message){if(!$condition){fwrite(STDERR,'FAIL: '.$message."\n");exit(1);} $GLOBALS['checks']=($GLOBALS['checks']??0)+1;}
 $core=new TaxoCommerce_Core_Menu(new TaxoCommerce_Core_Logger()); $core->register_hooks();
 foreach($GLOBALS['hooks'] as $callbacks){foreach($callbacks as $cb){verify(is_callable($cb),'public hook callback');}}
