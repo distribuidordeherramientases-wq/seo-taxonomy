@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ Each scope has volume and quality indicators, severity counts, a prioritised rev
 Complete audit results are streamed as JSON Lines files in WordPress uploads. Only a bounded sample is kept in WordPress options. Large exports stream the full results instead of loading the catalogue into memory.
 
 The plugin reads canonical WordPress posts, taxonomies and metadata, supported WooCommerce product APIs, optional Core hierarchy data and locally saved data from other TaxoCommerce modules. It does not initiate external requests or automatically change, delete or redirect content.
+
+* In-plugin Auto Test: 16 grouped checks of plugin availability, route registration, five scopes, read-only report and history access, quality rules and export contracts. No audit jobs, downloads, or content modifications occur during tests.
+* Only two reports per administrator are held for 30 days to compare results between updates; absent old audit reports are not a failure.
+* Integrated user and technical manuals explain all five content areas, filtered and full audits, priorities, JSONL reports, WP-Cron, security and limits.
 
 == Installation ==
 
@@ -49,6 +53,13 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.2 =
+* Add internal Auto Test tab with 16 functional checks, no audit execution, and previous-result comparison.
+* Add integrated user and technical manual covering five scopes, safe operation, background process and JSONL report delivery.
+* Keep existing read-only audit rules, scope navigation and export endpoints unchanged.
+* Extend PHP 7.4/8.4 offline smoke tests and keep tests out of installable ZIP packages.
+
 
 = 0.3.1 =
 * Refresh WordPress.org readiness against the current standalone Auditor code.
