@@ -155,12 +155,16 @@ jobs:
           trap cleanup EXIT
 
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
-          set cmd:fail-exit yes
+          # A pre-existing FTPS directory may return 550 even for mkdir -p.
+          # Verify the directory with cd before enabling strict transfer checks.
+          set cmd:fail-exit no
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
           mkdir -p ".taxocommerce-deploy"
           mkdir -p "$handoff"
+          set cmd:fail-exit yes
+          cd "$handoff"
           bye
           EOF
 
