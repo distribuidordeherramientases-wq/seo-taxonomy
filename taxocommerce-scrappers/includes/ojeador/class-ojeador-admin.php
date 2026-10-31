@@ -348,7 +348,19 @@ if (did_action('admin_print_styles')) {
         $first = true;
         echo '[';
         do {
-            $rows = $wpdb->get_results("SELECT * FROM {$table} WHERE {$where} ORDER BY {$order_by} LIMIT {$chunk} OFFSET {$offset}", ARRAY_A);
+            // Only the exporter's fixed query shapes are accepted; do not allow caller-provided SQL.
+            $sort_map = array('id ASC' => 'id ASC', 'term_id ASC' => 'term_id ASC', 'object_id ASC' => 'object_id ASC');
+            $where_map = array('1=1' => '1=1', "object_type='product_cat'" => "object_type='product_cat'");
+            if (!isset($sort_map[$order_by], $where_map[$where])) {
+                break;
+            }
+            $safe_order = $sort_map[$order_by];
+            $safe_where = $where_map[$where];
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ORDER BY/WHERE are selected from the closed internal whitelist above; table and pagination are bound.
+            $rows = $wpdb->get_results(
+                $wpdb->prepare("SELECT * FROM %i WHERE {$safe_where} ORDER BY {$safe_order} LIMIT %d OFFSET %d", $table, $chunk, $offset),
+                ARRAY_A
+            );
             foreach ((array) $rows as $row) {
                 if (!$first) {
                     echo ',';
@@ -427,17 +439,18 @@ if (did_action('admin_print_styles')) {
         echo '[';
         do {
             $rows = $wpdb->get_results(
+                $wpdb->prepare(
                 "SELECT r.id,r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,
                         c.query_text,r.google_product_id,r.gtin,r.mpn,r.brand,r.model,r.title,
                         r.merchant,r.price,r.old_price,r.currency,
                         CASE WHEN r.old_price>r.price AND r.old_price>0 THEN ROUND(((r.old_price-r.price)/r.old_price)*100,2) ELSE NULL END AS discount_pct,
                         r.delivery,r.rating,r.reviews,r.result_position,r.product_url,r.image_url,r.observed_at
-                 FROM {$table} r
-                 LEFT JOIN {$categories} c ON c.term_id=r.term_id
-                 LEFT JOIN {$wpdb->terms} t ON t.term_id=r.term_id
+                 FROM %i r
+                 LEFT JOIN %i c ON c.term_id=r.term_id
+                 LEFT JOIN %i t ON t.term_id=r.term_id
                  WHERE r.active=1 AND c.status='ok'
                  ORDER BY r.term_id ASC,r.result_position ASC,r.id ASC
-                 LIMIT {$chunk} OFFSET {$offset}",
+                 LIMIT %d OFFSET %d", $table, $categories, $wpdb->terms, $chunk, $offset),
                 ARRAY_A
             );
             foreach ((array) $rows as $row) {
