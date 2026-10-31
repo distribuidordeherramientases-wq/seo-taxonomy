@@ -691,12 +691,14 @@ function seo_core_system_test_data_layer_run_active_tests() {
         if ($ids !== '') {
             $safe_ids = array_values(array_filter(array_map('absint', array_unique($operation_ids))));
             $id_placeholders = implode(',', array_fill(0, count($safe_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- List of %d placeholders generated from absint operation IDs; all values and the %i identifier are bound.
             $cleanup_operations = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM %i WHERE id IN (" . $id_placeholders . ")",
                     array_merge(array($operations_table), $safe_ids)
                 )
             );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
     }
     $cleanup_ok = $cleanup_relations === 0 && $cleanup_operations === 0;
