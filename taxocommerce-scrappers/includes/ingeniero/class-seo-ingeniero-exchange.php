@@ -56,7 +56,7 @@ final class SEO_Ingeniero_Exchange {
 
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No tienes permisos para importar o exportar conocimiento de Ingeniero.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No tienes permisos para importar o exportar conocimiento de Ingeniero.', 'taxocommerce-scrappers'));
         }
         check_admin_referer($action);
     }

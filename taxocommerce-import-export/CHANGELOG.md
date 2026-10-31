@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+- Corregidos dos avisos de internacionalización de mensajes de errores CSV y saneada la entrada de descarga de registros, conservando nonce y validaciones de ruta.
+- Justificadas las consultas existentes a taxonomías y metadatos para filtros de exportación: no se alteran consultas, cursores, rendimiento real ni datos.
+- Auditoría global de Plugin Check y seguimiento en el issue #1925.
+
 ### Pendiente (sin publicar)
 
 * El gestor de archivos muestra un resumen de errores junto a cada CSV en Fallidos y permite consultar los detalles guardados y descargar su JSON mediante un enlace autenticado.

@@ -11,6 +11,8 @@ on:
       - '.github/workflows/taxocommerce-family-plugin-check.yml'
       - '.github/scripts/taxocommerce_family_readme_check.py'
       - '.github/scripts/taxocommerce_family_scope.py'
+      - '.github/scripts/taxocommerce_family_report.py'
+      - '.github/scripts/tests/test_taxocommerce_family_report.py'
   push:
     branches: [staging]
     paths:
@@ -18,6 +20,8 @@ on:
       - '.github/workflows/taxocommerce-family-plugin-check.yml'
       - '.github/scripts/taxocommerce_family_readme_check.py'
       - '.github/scripts/taxocommerce_family_scope.py'
+      - '.github/scripts/taxocommerce_family_report.py'
+      - '.github/scripts/tests/test_taxocommerce_family_report.py'
 
 permissions:
   contents: read
@@ -32,6 +36,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Verify consolidated quality report parser and gate
+        run: |
+          python3 -m py_compile .github/scripts/taxocommerce_family_report.py
+          python3 -m unittest discover -s .github/scripts/tests -p 'test_taxocommerce_family_report.py' -v
+
       - name: Select standalone modules
         id: scope
         env:
@@ -97,6 +106,7 @@ jobs:
           echo "ZIP size: $bytes bytes"
 
       - name: WordPress Plugin Check - strict, warnings visible
+        id: plugin_check
         uses: wordpress/plugin-check-action@v1
         with:
           build-dir: ./build/${{ matrix.slug }}
@@ -106,6 +116,17 @@ jobs:
           ignore-errors: false
           # Treat FAQ warnings as blocking without changing the policy for other modules.
           strict: ${{ matrix.slug == 'taxocommerce-faqs' }}
+
+      - name: Record plugin quality result for consolidated report
+        if: always()
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.slug }}
+          CHECK_OUTCOME: ${{ steps.plugin_check.outcome }}
+        run: |
+          python3 .github/scripts/taxocommerce_family_report.py scan \
+            "$PLUGIN" "$RUNNER_TEMP/plugin-check-results.txt" \
+            "$CHECK_OUTCOME" "$RUNNER_TEMP/quality-state.json"
 
       - name: Save findings in job summary
         if: always()
@@ -125,13 +146,64 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Place check result and ZIP in one stable artifact directory
+        if: always()
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.slug }}
+        run: |
+          mkdir -p build/quality-result
+          if test -f "$RUNNER_TEMP/plugin-check-results.txt"; then
+            cp "$RUNNER_TEMP/plugin-check-results.txt" build/quality-result/plugin-check-results.txt
+          fi
+          if test -f "$RUNNER_TEMP/quality-state.json"; then
+            cp "$RUNNER_TEMP/quality-state.json" build/quality-result/quality-state.json
+          fi
+          if test -f "$PLUGIN.zip"; then
+            cp "$PLUGIN.zip" "build/quality-result/$PLUGIN.zip"
+          fi
+
       - name: Upload per-plugin report and test ZIP
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wordpress-readiness-${{ matrix.slug }}
-          path: |
-            ${{ runner.temp }}/plugin-check-results.txt
-            ./${{ matrix.slug }}.zip
+          path: build/quality-result/
+          retention-days: 14
+          if-no-files-found: warn
+
+  summarize-family:
+    name: Resumen único de calidad de la familia
+    needs: [discover-plugin-scope, standalone-plugin-check]
+    if: always() && needs.discover-plugin-scope.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download independent plugin reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wordpress-readiness-*
+          path: build/family-reports
+          merge-multiple: false
+      - name: Produce one consolidated summary and block unresolved warnings
+        shell: bash
+        env:
+          EXPECTED_SLUGS: ${{ needs.discover-plugin-scope.outputs.slugs }}
+        run: |
+          set +e
+          python3 .github/scripts/taxocommerce_family_report.py summary \
+            build/family-reports "$EXPECTED_SLUGS" \
+            build/family-reports/taxocommerce-family-summary.md
+          result=$?
+          if test -f build/family-reports/taxocommerce-family-summary.md; then
+            cat build/family-reports/taxocommerce-family-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$result"
+      - name: Save consolidated family report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-family-plugin-check-summary
+          path: build/family-reports/taxocommerce-family-summary.md
           retention-days: 14
           if-no-files-found: warn

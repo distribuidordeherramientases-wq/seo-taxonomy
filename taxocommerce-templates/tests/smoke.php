@@ -50,7 +50,9 @@ function is_cart() { return $GLOBALS['scenario'] === 'cart'; }
 function is_shop() { return $GLOBALS['scenario'] === 'shop'; }
 function is_account_page() { return $GLOBALS['scenario'] === 'account'; }
 function is_paged() { return false; }
-function get_option($key, $default = false) { return false; }
+function get_option($key, $default = false) { return isset($GLOBALS['test_options'][$key]) ? $GLOBALS['test_options'][$key] : false; }
+function get_post_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
+function get_term_meta($id, $key, $single) { return isset($GLOBALS['test_market']) ? $GLOBALS['test_market'] : 'ES'; }
 function absint($number) { return abs((int)$number); }
 function get_queried_object_id() { return 5; }
 function get_queried_object() { return (object)array('term_id'=>1); }
@@ -266,8 +268,160 @@ tct_assert(strpos($front_desktop, 'dht_template_render_header();') !== false
     && strpos($front_mobile, 'dht_template_render_header();') !== false,
     'Las plantillas FRONT existentes deben permanecer intactas.');
 $entrypoint = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
-tct_assert(strpos($entrypoint, "TCT_Front_Composer::render();") !== false
+tct_assert(strpos($entrypoint, "TCT_Unified_Manager::render(\$tab);") !== false
     && strpos($entrypoint, "admin_post_tct_front_composer_save") !== false,
-    'El compositor se conecta solo a la interfaz de administracion.');
+    'El compositor sigue conectado al gestor administrativo.');
+
+// Routing controls must use the existing SEO template table, never rewrite PHP.
+require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
+require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
+$manager_sections = TCT_Unified_Manager::sections();
+tct_assert(count($manager_sections) === 2
+    && isset($manager_sections['composer'], $manager_sections['editor']),
+    'Designer must contain only the compositor and PHP library.');
+tct_assert(strpos($entrypoint, "'routing'  => 'Enrutamiento'") !== false
+    && strpos($entrypoint, "'designer' => 'Diseñador de plantillas'") !== false,
+    'The Templates navigation must expose Enrutamiento and Diseñador only.');
+$routing = TCT_Routing_Admin::items();
+tct_assert(isset($routing['front_page'], $routing['page'], $routing['single_post'],
+    $routing['taxonomy_product_cat'], $routing['single_product'], $routing['cluster'],
+    $routing['hub_primary'], $routing['hub_secondary'], $routing['error_404']),
+    'The routing inventory must include WordPress, WooCommerce and editorial roles.');
+tct_assert($routing['cluster']['role'] === 'cluster' && $routing['front_page']['role'] === '',
+    'SEO roles and automatic WordPress requests remain distinct.');
+// One-click workload filters keep installed routes accessible without showing
+// hundreds of native WooCommerce fragments in the everyday admin view.
+$empty_map = array();
+$sample = array(
+    'front_page' => array('label'=>'Portada', 'group'=>'WordPress', 'native'=>'front-page.php', 'role'=>''),
+    'cluster' => array('label'=>'Clúster', 'group'=>'TaxoCommerce - roles y rutas', 'native'=>'', 'role'=>'cluster'),
+    'wc_partial' => array('label'=>'Mini-cart', 'group'=>'WooCommerce - fragmentos', 'native'=>'cart/mini-cart.php', 'role'=>''),
+);
+tct_assert(count(TCT_Routing_Admin::visible($sample, $empty_map, 'managed')) === 0,
+    'An empty new installation must show zero managed routes.');
+$unconfigured = TCT_Routing_Admin::visible($sample, $empty_map, 'pending');
+tct_assert(count($unconfigured) === 2 && !isset($unconfigured['wc_partial']),
+    'Unconfigured view excludes internal WooCommerce partial files.');
+$sample_map = array(
+    'front_page' => (object)array('template_file'=>'template-front.php', 'is_active'=>1),
+    'cluster' => (object)array('template_file'=>'template-cluster.php', 'is_active'=>0),
+);
+$managed = TCT_Routing_Admin::visible($sample, $sample_map, 'managed');
+tct_assert(count($managed) === 1 && isset($managed['front_page']),
+    'Managed view requires an active, nonempty file association.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'all')) === 3,
+    'The full inventory must remain available.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'pending')) === 1,
+    'A disabled saved mapping is available to configure again.');
+tct_assert(count(TCT_Routing_Admin::visible($sample, $sample_map, 'managed', 'WordPress', 'front')) === 1,
+    'The view preserves family/search filtering.');
+$seed_source = file_get_contents(TCT_DIR . 'includes/class-tct-router.php');
+tct_assert(strpos($seed_source, "'template_file'           => ''") !== false
+    && strpos($seed_source, "'is_active'              => 0") !== false
+    && strpos($seed_source, 'if (isset($existing[$key]))') !== false,
+    'New installations must seed inactive routes and leave existing assignments untouched.');
+$short_inventory = TCT_Routing_Admin::items(false);
+tct_assert(isset($short_inventory['front_page'], $short_inventory['cluster'], $short_inventory['single_product']),
+    'Working inventory includes the main native requests and all TaxoCommerce roles.');
+$router_view = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
+tct_assert(strpos($router_view, "check_admin_referer( 'tct_save_route_mapping' )") !== false
+    && strpos($router_view, "current_user_can( 'manage_options' )") !== false
+    && strpos($router_view, 'TCT_Router::path( $file )') !== false,
+    'Route writes must use nonce, capability and existing safe library files.');
+tct_assert(strpos($router_view, "'template_file' => " . '$file') !== false
+    && strpos($router_view, "'is_active' => '' !== " . '$file' . " ? 1 : 0") !== false,
+    'Route changes must persist in seo_templates and support WordPress fallback.');
+tct_assert(strpos($router_view, 'VEVOR US/DE/NL/FR: ruta especializada con prioridad.') !== false
+    && strpos($router_view, 'Enrutador TaxoCommerce desactivado.') !== false,
+    'Router must disclose its activation status and country-specific priority.');
+tct_assert(strpos($entrypoint, "add_action('admin_post_tct_save_route_mapping'") !== false
+    && strpos($entrypoint, "TCT_Association_Audit::render();") !== false
+    && strpos($entrypoint, "add_action('admin_post_tct_assign_page'") !== false,
+    'New routing must keep the existing audit and page-to-role forms.');
+$manager_view = file_get_contents(TCT_DIR . 'includes/class-tct-unified-manager.php');
+tct_assert(strpos($manager_view, 'TCT_Front_Composer::render( true )') !== false
+    && strpos($manager_view, 'TCT_Template_Editor::render( true )') !== false
+    && strpos($manager_view, "TCT_Request_Admin::admin_url( 'routing' )") !== false,
+    'Designer must link back to routing and reuse the existing editor.');
+$front_composer_class = file_get_contents(TCT_DIR . 'includes/class-tct-front-composer.php');
+tct_assert(strpos($front_composer_class, "'designer', 'manager', 'composer', 'editor'") !== false,
+    'Composer scripts must load in the Designer tab.');
+
+
+// Individually stored country-aware designs: identity, conflict resolution,
+// per-market/module settings and no automatic frontend takeover.
+require_once TCT_DIR . 'includes/class-tct-designs.php';
+tct_assert(TCT_Designs::countries(array('ES','FR','ES','XX')) === array('ES','FR'),
+    'Country selection must be validated and deduplicated.');
+tct_assert(TCT_Designs::name_for('Clúster', array('ES'), 3) !== '',
+    'A newly created template receives a recognizable name.');
+$design = array(
+    'id'=>'one', 'route'=>'cluster', 'name'=>'Clúster ES',
+    'countries'=>array('ES','FR'), 'file'=>'template-cluster.php',
+    'active'=>false, 'layouts'=>array('FR'=>array(
+        'desktop'=>array(array('id'=>'header','enabled'=>true,'title'=>'FR header')),
+        'mobile'=>array(array('id'=>'menu','enabled'=>true,'title'=>'FR menu')),
+    )),
+);
+$es_design = TCT_Designs::config($design, 'ES');
+$fr_design = TCT_Designs::config($design, 'FR');
+tct_assert($es_design['desktop'][0]['id'] === 'header'
+    && count($es_design['desktop']) > 1
+    && count($fr_design['desktop']) === 1
+    && $fr_design['desktop'][0]['title'] === 'FR header',
+    'Market layouts must be independent inside one template instance.');
+$others = array('other'=>array(
+    'route'=>'cluster','active'=>true,'countries'=>array('FR'),
+    'file'=>'template-cluster.php',
+));
+tct_assert(TCT_Designs::can_activate($others, 'one', 'cluster', array('ES','FR'), 'template-cluster.php') !== '',
+    'Overlapping active templates for the same route must be rejected.');
+tct_assert(TCT_Designs::can_activate($others, 'one', 'cluster', array('ES'), 'template-cluster.php') === '',
+    'Disjoint countries for one role must remain valid.');
+tct_assert(TCT_Designs::can_activate(array(), 'one', 'cluster', array('ES'), '') !== '',
+    'A visual-only composition cannot be activated without PHP renderer.');
+tct_assert(TCT_Designs::can_activate(array(), 'one', 'woo_file_abc', array('ES'), 'template-cluster.php') !== '',
+    'WooCommerce partials must not claim support from the main template resolver.');
+$GLOBALS['test_options'] = array(TCT_Designs::OPTION => array(
+    'one'=>array('id'=>'one', 'route'=>'cluster', 'name'=>'Cluster ES',
+        'countries'=>array('ES'), 'file'=>'template-cluster.php', 'active'=>true),
+    'two'=>array('id'=>'two', 'route'=>'cluster', 'name'=>'Cluster FR',
+        'countries'=>array('FR'), 'file'=>'template-cluster.php', 'active'=>true),
+));
+$GLOBALS['scenario'] = 'front';
+$GLOBALS['test_market'] = 'ES';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'one',
+    'A route must resolve to the individually configured design for the current country.');
+$GLOBALS['test_market'] = 'FR';
+tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
+    && $GLOBALS['tct_template_design_id'] === 'two',
+    'The same SEO role must resolve a different design in France.');
+$GLOBALS['test_market'] = 'DE';
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Unconfigured countries must fall back to legacy WordPress routing.');
+unset($GLOBALS['test_options'], $GLOBALS['test_market'], $GLOBALS['tct_template_design_id']);
+$design_class = file_get_contents(TCT_DIR . 'includes/class-tct-designs.php');
+tct_assert(strpos($design_class, "const OPTION = 'tct_template_designs_v1'") !== false
+    && strpos($design_class, "check_admin_referer( 'tct_design_save' )") !== false
+    && strpos($design_class, "check_admin_referer( 'tct_design_create' )") !== false
+    && strpos($design_class, 'TCT_Front_Composer::normalize_layout') !== false,
+    'Designs must have independent durable storage and secured module validation.');
+tct_assert(strpos($entrypoint, "admin_post_tct_design_create") !== false
+    && strpos($entrypoint, "admin_post_tct_design_save") !== false,
+    'New template actions must be registered in the WordPress plugin.');
+$registry_code = file_get_contents(TCT_DIR . 'includes/class-tct-request-registry.php');
+tct_assert(strpos($registry_code, 'TCT_Designs::resolve($candidates)') !== false
+    && strpos($registry_code, '$pilot = TCT_Pilot_Router::resolve();') <
+        strpos($registry_code, 'TCT_Designs::resolve($candidates)'),
+    'Country-aware designs only execute after the existing protected pilot routing.');
+$ui_code = file_get_contents(TCT_DIR . 'includes/class-tct-routing-admin.php');
+$manager_code = file_get_contents(TCT_DIR . 'includes/class-tct-unified-manager.php');
+$js_code = file_get_contents(TCT_DIR . 'assets/front-composer.js');
+tct_assert(strpos($ui_code, 'TCT_Designs::render_routes(') !== false
+    && strpos($ui_code, 'TCT_Designs::create_form(') !== false
+    && strpos($manager_code, 'TCT_Designs::render( $design_id )') !== false
+    && strpos($js_code, "typeof TCTDesignComposer !== 'undefined'") !== false,
+    'Edit must load the selected instance and its own market/device module configuration.');
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";

@@ -2,8 +2,10 @@
 (function ($) {
     'use strict';
     $(function () {
-        if (typeof TCTFrontComposer === 'undefined') { return; }
-        var source = TCTFrontComposer;
+        if (typeof TCTDesignComposer === 'undefined' && typeof TCTFrontComposer === 'undefined') { return; }
+        // A concrete template ID has its own saved market/device layouts.
+        // The original FRONT pilot remains isolated for legacy bookmarks.
+        var source = typeof TCTDesignComposer !== 'undefined' ? TCTDesignComposer : TCTFrontComposer;
         var catalog = source.catalog || {};
         var keys = Object.keys(catalog);
         var configs = source.configs || {};

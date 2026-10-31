@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.2
+ * Version: 0.4.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.2');
+define('TCT_VERSION','0.4.6');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -20,6 +20,9 @@ require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
 require_once TCT_DIR . 'includes/class-tct-front-composer.php';
+require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
+require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
+require_once TCT_DIR . 'includes/class-tct-designs.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
@@ -104,9 +107,14 @@ final class TaxoCommerce_Templates {
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
         add_action('admin_post_tct_upload_template',array('TCT_Template_Editor','upload'));
         add_action('admin_post_tct_save_request',array('TCT_Request_Admin','save_request'));
+        add_action('admin_post_tct_save_route_mapping',array('TCT_Routing_Admin','save'));
+        add_action('admin_enqueue_scripts',array('TCT_Routing_Admin','enqueue'));
         add_action('admin_post_tct_save_code',array('TCT_Template_Editor','save'));
         add_action('admin_post_tct_front_composer_save',array('TCT_Front_Composer','save'));
         add_action('admin_enqueue_scripts',array('TCT_Front_Composer','enqueue'));
+        add_action('admin_enqueue_scripts',array('TCT_Designs','enqueue'));
+        add_action('admin_post_tct_design_create',array('TCT_Designs','create'));
+        add_action('admin_post_tct_design_save',array('TCT_Designs','save'));
         add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
         add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
         add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
@@ -329,47 +337,49 @@ final class TaxoCommerce_Templates {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'requests';
-        if (!in_array($tab, array('requests','roles','editor','audit','composer'), true)) {
-            $tab = 'requests';
+        // The legacy URLs still resolve, preserving form redirects and old bookmarks.
+        $tab = isset($_GET['tab']) && is_string($_GET['tab'])
+            ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
+        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer'), true)) {
+            $tab = 'routing';
         }
+        $main_tab = in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer';
         echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
-        $tabs = array(
-            'requests' => 'Tipos de peticion WordPress / WooCommerce',
-            'roles'    => 'Jerarquia y roles propios',
-            'editor'   => 'Editor y biblioteca',
-            'composer' => 'Compositor FRONT (piloto)',
-            'audit'    => 'Auditoria de asociaciones'
-        );
-        foreach ($tabs as $key=>$label) {
-            $url = TCT_Request_Admin::admin_url($key);
-            echo '<a class="nav-tab ' . ($key === $tab ? 'nav-tab-active' : '') . '" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+        foreach (array(
+            'routing'  => 'Enrutamiento',
+            'designer' => 'Diseñador de plantillas',
+        ) as $key => $label) {
+            echo '<a class="nav-tab ' . ($key === $main_tab ? 'nav-tab-active' : '') . '" href="' .
+                esc_url(TCT_Request_Admin::admin_url($key)) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
-        if (isset($_GET['tct_notice'])) {
+        if (isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
         echo '</div>';
 
-        if ($tab === 'requests') {
-            TCT_Request_Admin::render();
-        } elseif ($tab === 'editor') {
-            TCT_Template_Editor::render();
-        } elseif ($tab === 'audit') {
-            TCT_Association_Audit::render();
-        } elseif ($tab === 'composer') {
-            TCT_Front_Composer::render();
+        if ('routing' === $main_tab) {
+            if ('audit' === $tab) {
+                TCT_Association_Audit::render();
+            } elseif ('roles' === $tab) {
+                // Advanced legacy page-to-role mappings remain accessible.
+                self::render_roles_screen();
+            } elseif ('requests' === $tab) {
+                TCT_Request_Admin::render();
+            } else {
+                TCT_Routing_Admin::render();
+            }
         } else {
-            self::render_roles_screen();
+            TCT_Unified_Manager::render($tab);
         }
     }
 
-    public static function render_roles_screen() {
+    public static function render_roles_screen($embedded = false) {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
         if (!self::installed()) {
-            echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><p>Faltan tablas; reactiva el modulo.</p></div>';
+            echo '<p>Faltan tablas; reactiva el módulo.</p>';
             return;
         }
         global $wpdb;
@@ -384,9 +394,11 @@ final class TaxoCommerce_Templates {
             $occupied[(int)$entry->object_id] = $entry->seo_role;
         }
         $pages = get_posts(array('post_type'=>'page','post_status'=>'publish','posts_per_page'=>-1,'orderby'=>'title','order'=>'ASC','fields'=>'ids'));
-        echo '<div class="wrap"><h1>Gestor de Plantillas</h1>';
+        if (!$embedded) {
+            echo '<div class="wrap"><h1>Gestor de Plantillas</h1>';
+        }
         echo '<p>Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.</p>';
-        if (isset($_GET['tct_notice'])) {
+        if (!$embedded && isset($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
         $enabled = (bool)get_option(self::ENABLE_OPTION,0);
@@ -476,7 +488,10 @@ final class TaxoCommerce_Templates {
         wp_nonce_field('tct_save_role');
         echo '<input type="hidden" name="action" value="tct_save_role"><input name="role" placeholder="clave_rol" required> <input name="name" placeholder="Nombre del rol" required> ';
         submit_button('Crear rol','secondary','submit',false);
-        echo '</form></div>';
+        echo '</form>';
+        if (!$embedded) {
+            echo '</div>';
+        }
     }
 
 }

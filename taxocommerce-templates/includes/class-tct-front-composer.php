@@ -154,7 +154,7 @@ final class TCT_Front_Composer {
         }
         // This tab is the only caller of the pilot's scripts and styles.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
-        if ( 'composer' !== $tab ) {
+        if ( ! in_array( $tab, array( 'designer', 'manager', 'composer', 'editor' ), true ) ) {
             return;
         }
         wp_enqueue_style( 'tct-front-composer', TCT_URL . 'assets/front-composer.css', array(), TCT_VERSION );
@@ -179,7 +179,7 @@ final class TCT_Front_Composer {
         ) );
     }
 
-    public static function render() {
+    public static function render($embedded = false) {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Acceso denegado.', 'taxocommerce-templates' ) );
         }
@@ -188,7 +188,11 @@ final class TCT_Front_Composer {
             ? self::market( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : 'ES';
         $current = self::config( $market );
         ?>
+        <?php if ( $embedded ) : ?>
+        <section class="tct-front-composer">
+        <?php else : ?>
         <div class="wrap tct-front-composer">
+        <?php endif; ?>
             <h2><?php esc_html_e( 'Compositor de plantillas — FRONT', 'taxocommerce-templates' ); ?></h2>
             <p><?php esc_html_e( 'Prueba funcional del editor. Guarda un borrador por mercado y dispositivo; no sustituye la portada, su PHP ni las asignaciones existentes.', 'taxocommerce-templates' ); ?></p>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="tct-front-composer-form">
@@ -235,7 +239,11 @@ final class TCT_Front_Composer {
                 <p class="tct-front-notice"><?php esc_html_e( 'Borrador: los cambios de composición no se aplican al frontend hasta completar y validar el renderizador modular.', 'taxocommerce-templates' ); ?></p>
                 <?php submit_button( __( 'Guardar borrador FRONT', 'taxocommerce-templates' ) ); ?>
             </form>
+        <?php if ( $embedded ) : ?>
+        </section>
+        <?php else : ?>
         </div>
+        <?php endif; ?>
         <?php
     }
 }
