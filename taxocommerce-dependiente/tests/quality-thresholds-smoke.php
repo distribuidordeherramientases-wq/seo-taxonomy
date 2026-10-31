@@ -121,6 +121,7 @@ $academy = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcd-academy.
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcd-admin.php' );
 expect_quality( strpos( $academy, "elseif('accept_quality'===\$action)" ) !== false, 'accept action wired to training state' );
 expect_quality( strpos( $academy, 'TCD_Intelligence::set_quality_thresholds' ) !== false, 'threshold save action exists' );
+expect_quality( strpos( $academy, "map_deep(wp_unslash(\$_POST['thresholds']),'sanitize_text_field')" ) !== false, 'threshold inputs sanitized before validation' );
 expect_quality( strpos( $admin, 'name="thresholds[' ) !== false, 'lesson-specific settings fields visible' );
 expect_quality( strpos( $admin, 'tcd_action" value="accept_quality' ) !== false, 'manual acceptance button available' );
 echo "Dependiente quality threshold regression passed.\n";
