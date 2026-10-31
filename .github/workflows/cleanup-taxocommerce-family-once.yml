@@ -98,6 +98,7 @@ jobs:
         with:
           name: taxocommerce-family-staging-obsolete-files-backup
           path: .family-module-cleanup/
+          include-hidden-files: true
           retention-days: 14
           if-no-files-found: error
       - name: Remove only verified STAGING test and FTP-state files
@@ -126,6 +127,7 @@ jobs:
         with:
           name: taxocommerce-family-pro-obsolete-files-backup
           path: .family-module-cleanup/
+          include-hidden-files: true
           retention-days: 14
           if-no-files-found: error
       - name: Remove only verified PRO test and FTP-state files
