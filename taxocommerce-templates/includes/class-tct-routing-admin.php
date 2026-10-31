@@ -244,9 +244,12 @@ final class TCT_Routing_Admin {
             $selected = $row ? (string) $row->template_file : '';
             $valid = '' !== $selected && (bool) TCT_Router::path( $selected );
             $active = $row && (int) $row->is_active;
+            $request_defs = TCT_Request_Registry::definitions();
             $editor_url = TCT_Request_Admin::admin_url( 'designer', array(
                 'tct_source' => $valid ? $selected : '',
-                'tct_assign' => $key,
+                // The code editor auto-associates only registered request
+                // keys. SEO page roles are assigned in this routing table.
+                'tct_assign' => isset( $request_defs[ $key ] ) ? $key : '',
             ) );
             echo '<tr><td><strong>' . esc_html( $item['label'] ) . '</strong>';
             echo '<br><code>' . esc_html( $key ) . '</code><br><small>' . esc_html( $item['group'] ) . '</small>';
