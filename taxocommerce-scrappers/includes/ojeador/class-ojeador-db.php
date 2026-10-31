@@ -632,8 +632,7 @@ final class SEO_Ojeador_DB {
 
         $categories_table = self::table('categories');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID is bound through prepare().
-        $exists = $wpdb->get_var($wpdb->prepare(
-            "SELECT term_id FROM {$categories_table} WHERE term_id=%d",
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT term_id FROM %i WHERE term_id=%d", $categories_table,
             $term_id
         ));
         $ok = $exists
@@ -724,8 +723,7 @@ final class SEO_Ojeador_DB {
 
         $category_results_table = self::table('category_results');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and result hash are bound through prepare().
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,first_seen_at FROM {$category_results_table} WHERE term_id=%d AND result_hash=%s LIMIT 1",
+        $existing = $wpdb->get_row($wpdb->prepare("SELECT id,first_seen_at FROM %i WHERE term_id=%d AND result_hash=%s LIMIT 1", $category_results_table,
             absint($term_id),
             $result_hash
         ), ARRAY_A);
@@ -878,16 +876,15 @@ final class SEO_Ojeador_DB {
         $cutoff = gmdate('Y-m-d H:i:s', time() - ($max_age_hours * HOUR_IN_SECONDS));
         $categories_table = self::table('categories');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query, excluded term and cutoff are bound through prepare().
-        $source = $wpdb->get_row($wpdb->prepare(
-            "SELECT term_id,status,result_count,last_scan_at
-             FROM {$categories_table}
+        $source = $wpdb->get_row($wpdb->prepare("SELECT term_id,status,result_count,last_scan_at
+             FROM %i
              WHERE query_text=%s
                AND term_id<>%d
                AND status IN ('ok','no_results')
                AND last_scan_at IS NOT NULL
                AND last_scan_at>=%s
              ORDER BY last_scan_at DESC
-             LIMIT 1",
+             LIMIT 1", $categories_table,
             $query,
             $exclude_term_id,
             $cutoff
@@ -955,8 +952,7 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(5000, absint($limit)));
         $category_results_table = self::table('category_results');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and LIMIT are bound through prepare().
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$category_results_table} WHERE term_id=%d AND active=1 ORDER BY result_position ASC,id ASC LIMIT %d",
+        return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND active=1 ORDER BY result_position ASC,id ASC LIMIT %d", $category_results_table,
             absint($term_id),
             $limit
         ), ARRAY_A);
@@ -989,12 +985,11 @@ final class SEO_Ojeador_DB {
         $products = esc_sql( self::table('products') );
         $now = self::utc_now();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time is bound through prepare().
-        return absint($wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(p.ID)
+        return absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(p.ID)
              FROM {$wpdb->posts} p
-             LEFT JOIN {$products} m ON m.object_id=p.ID
+             LEFT JOIN %i m ON m.object_id=p.ID
              WHERE p.post_type='product' AND p.post_status='publish'
-               AND (m.object_id IS NULL OR m.next_scan_at IS NULL OR m.next_scan_at <= %s)",
+               AND (m.object_id IS NULL OR m.next_scan_at IS NULL OR m.next_scan_at <= %s)", $products,
             $now
         )));
     }
@@ -1005,16 +1000,15 @@ final class SEO_Ojeador_DB {
         $products = esc_sql( self::table('products') );
         $now = self::utc_now();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time and LIMIT are bound through prepare().
-        return array_map('absint', (array) $wpdb->get_col($wpdb->prepare(
-            "SELECT p.ID
+        return array_map('absint', (array) $wpdb->get_col($wpdb->prepare("SELECT p.ID
              FROM {$wpdb->posts} p
-             LEFT JOIN {$products} m ON m.object_id=p.ID
+             LEFT JOIN %i m ON m.object_id=p.ID
              WHERE p.post_type='product' AND p.post_status='publish'
                AND (m.object_id IS NULL OR m.next_scan_at IS NULL OR m.next_scan_at <= %s)
              ORDER BY CASE WHEN m.object_id IS NULL THEN 0 ELSE 1 END ASC,
                       m.last_scan_at ASC,
                       p.ID ASC
-             LIMIT %d",
+             LIMIT %d", $products,
             $now,
             $limit
         )));
@@ -1092,7 +1086,7 @@ final class SEO_Ojeador_DB {
 
         $products_table = self::table('products');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
-        $exists = $wpdb->get_var($wpdb->prepare("SELECT object_id FROM {$products_table} WHERE object_id=%d", $object_id));
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT object_id FROM %i WHERE object_id=%d", $products_table, $object_id));
         $ok = $exists
             ? $wpdb->update($products_table, $row, array('object_id'=>$object_id))
             : $wpdb->insert($products_table, $row);
@@ -1154,8 +1148,7 @@ final class SEO_Ojeador_DB {
         );
         $offers_table = self::table('offers');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and offer hash are bound through prepare().
-        $existing = $wpdb->get_row($wpdb->prepare(
-            "SELECT id,first_seen_at FROM {$offers_table} WHERE object_id=%d AND offer_hash=%s LIMIT 1",
+        $existing = $wpdb->get_row($wpdb->prepare("SELECT id,first_seen_at FROM %i WHERE object_id=%d AND offer_hash=%s LIMIT 1", $offers_table,
             absint($object_id),
             $offer_hash
         ), ARRAY_A);
@@ -1201,8 +1194,7 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(1000, absint($limit)));
         $offers_table = self::table('offers');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and LIMIT are bound through prepare().
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$offers_table} WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d",
+        return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d", $offers_table,
             absint($object_id),
             $limit
         ), ARRAY_A);
@@ -1213,7 +1205,7 @@ final class SEO_Ojeador_DB {
         $object_id = absint($object_id);
         $products_table = self::table('products');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
-        $market = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$products_table} WHERE object_id=%d LIMIT 1", $object_id), ARRAY_A);
+        $market = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE object_id=%d LIMIT 1", $products_table, $object_id), ARRAY_A);
         $our = self::live_price($object_id);
         $offers = self::offers_for_object($object_id, 1000);
         $median = isset($market['market_median']) && $market['market_median'] !== null ? (float) $market['market_median'] : null;
@@ -1380,8 +1372,7 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(5000, absint($limit)));
         $query_log_table = self::table('query_log');
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; LIMIT is bound through prepare().
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$query_log_table} ORDER BY id DESC LIMIT %d",
+        return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT %d", $query_log_table,
             $limit
         ), ARRAY_A);
     }
