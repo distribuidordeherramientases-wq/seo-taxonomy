@@ -273,12 +273,11 @@ final class SEO_Ojeador_Analysis {
     private static function top_merchant_shares() {
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
-        $rows = (array) $wpdb->get_results(
-            "SELECT term_id,merchant_key,COUNT(*) AS n
-             FROM {$table}
+        $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,merchant_key,COUNT(*) AS n
+             FROM %i
              WHERE active=1 AND merchant_key<>''
              GROUP BY term_id,merchant_key
-             ORDER BY term_id ASC,n DESC",
+             ORDER BY term_id ASC,n DESC", $table ),
             ARRAY_A
         );
         $totals = array();
@@ -640,7 +639,7 @@ final class SEO_Ojeador_Analysis {
 
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
-        $out['unique_merchants'] = absint($wpdb->get_var("SELECT COUNT(DISTINCT merchant_key) FROM {$table} WHERE active=1 AND merchant_key<>''"));
+        $out['unique_merchants'] = absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT merchant_key) FROM %i WHERE active=1 AND merchant_key<>''", $table )));
 
         $usage = SEO_Ojeador_Shopping::usage_month();
         $out['provider_used'] = absint($usage['used'] ?? 0);
