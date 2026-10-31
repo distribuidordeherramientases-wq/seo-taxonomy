@@ -111,7 +111,7 @@ jobs:
           assert 'taxocommerce-pro-incremental-plan' in str(steps)
           code = '\n'.join(step.get('run', '') for step in steps)
           assert 'readme.txt' in code and 'Stable tag:' in code
-          assert "grep -Fx 'readme.txt'" in code and '-x \'readme.txt\'' not in code
+          assert 'grep -Fx "$module/readme.txt"' in code and '-x \'readme.txt\'' not in code
           assert "zip -qr" in code and "unzip -t" in code
           assert 'fetch_pro_installed_modules.py' in code and 'hash' in code
           assert 'if ! cmp -s' in code
