@@ -56,7 +56,7 @@ function seo_taxocommerce_installed_deploy_modules() {
  * @return string
  */
 function seo_taxocommerce_deploy_handoff_root() {
-	return WP_CONTENT_DIR . '/.taxocommerce-deploy';
+	return dirname( __DIR__ ) . '/.taxocommerce-deploy';
 }
 
 /**
@@ -405,7 +405,28 @@ function seo_taxocommerce_deploy_sync_rest( $request ) {
 	$installed = seo_taxocommerce_installed_deploy_modules();
 	$targets   = array();
 
-	foreach ( $installed as $slug ) {
+	// New deployments submit only the changed, already installed modules.
+	// Older signed callers without this field remain backwards compatible.
+	$selected = $request->get_param( 'modules' );
+	if ( null === $selected ) {
+		$selected = $installed;
+	} else {
+		$selected = is_string( $selected ) ? json_decode( $selected, true ) : null;
+		if ( ! is_array( $selected ) || ! $selected || count( $selected ) > 50 ||
+			array_keys( $selected ) !== range( 0, count( $selected ) - 1 ) ||
+			count( $selected ) !== count( array_unique( $selected ) ) ) {
+			seo_taxocommerce_deploy_remove_tree( $handoff );
+			return new WP_Error( 'taxocommerce_deploy_modules', 'Selección de módulos no válida.', array( 'status' => 400 ) );
+		}
+		foreach ( $selected as $slug ) {
+			if ( ! is_string( $slug ) || ! in_array( $slug, $installed, true ) ) {
+				seo_taxocommerce_deploy_remove_tree( $handoff );
+				return new WP_Error( 'taxocommerce_deploy_modules', 'El módulo solicitado no está instalado.', array( 'status' => 400 ) );
+			}
+		}
+	}
+
+	foreach ( $selected as $slug ) {
 		if ( ! isset( $known[ $slug ] ) ) {
 			continue;
 		}
