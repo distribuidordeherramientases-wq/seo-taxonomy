@@ -102,7 +102,7 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./taxocommerce-google-bing/
-          state-name: ftp-deploy-sync-state.json
+          state-name: ../.taxocommerce-google-bing-ftp-state.json
           server-dir: ./wp-content/plugins/taxocommerce-google-bing/
           dry-run: false
           log-level: standard
