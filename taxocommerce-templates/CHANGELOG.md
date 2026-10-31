@@ -1,5 +1,14 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.4 — 2026-10-31
+- La administración pasa a **Enrutamiento** y **Diseñador de plantillas**. Auditoría queda accesible como diagnóstico técnico, sin pestaña principal.
+- Nueva tabla editable y filtrable que combina peticiones WordPress/WooCommerce, roles SEO registrados, asignación de archivo y estado del motor. Incluye los tipos públicos de contenido y taxonomías que registra WordPress.
+- Cada relación se modifica desde el administrador y se guarda en `seo_templates`, mediante nonce, permisos y validación de archivos; se permite devolver una ruta al respaldo nativo de WordPress.
+- Los enlaces de cada fila llevan al Diseñador para consultar o crear su archivo. Se mantienen los accesos anteriores y los formularios de asignación de páginas a roles, así como la biblioteca y el compositor FRONT.
+- Se aclara que las rutas internacionales VEVOR tienen una prioridad especializada y que el enrutamiento configurado no equivale a haber comprobado la plantilla finalmente ejecutada. No se activa automáticamente el motor.
+- Sin modificaciones de plantillas públicas, contenidos, catálogos, imágenes externas VEVOR ni reglas de campaña. Pruebas smoke ampliadas.
+
+
 ## 0.4.3 — 2026-10-31
 - Unificada la administración de plantillas en solo dos pestañas: **Gestor de plantillas** y **Auditoría**.
 - El gestor organiza el compositor FRONT, asociaciones de rol/archivo, biblioteca PHP y rutas WordPress/WooCommerce en secciones de una sola pantalla, que se abren con un clic. La sección no seleccionada no ejecuta consultas costosas.
