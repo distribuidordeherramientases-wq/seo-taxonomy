@@ -29,6 +29,14 @@ Features:
 The plugin reuses the existing seo_facturas_* options and seo_factura_documents table.
 It does not create a parallel document database and does not include a destructive uninstall routine.
 
+== Installation ==
+
+1. Install and activate WooCommerce and TaxoCommerce Billing.
+2. Open TaxoCommerce > Billing when TaxoCommerce Core is active (otherwise use the Billing menu).
+3. Review Datos empresa and fiscal settings, then enable the document system only after verifying company details and document series.
+4. Configure invoices, proformas and cart quotations as required. Review the integrated Manual and run Autotest before using real customer orders.
+5. Confirm PDF generation and permitted customer downloads in a staging environment before live billing.
+
 == Changelog ==
 
 = 0.1.1 =
