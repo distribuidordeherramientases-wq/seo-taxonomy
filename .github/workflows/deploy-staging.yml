@@ -10,7 +10,7 @@ jobs:
   deploy-staging:
     name: Deploy plugin to STAGING
     # A cleanup-only merge must not redeploy the monolith or other modules.
-    if: ${{ !contains(github.event.head_commit.message, '[staging-clean-three-20261031]') }}
+    if: ${{ !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup')) }}
     runs-on: ubuntu-latest
 
     steps:
