@@ -130,8 +130,12 @@ function seo_core_system_test_missing_product_excerpt_rows() {
         ORDER BY p.ID ASC
     ";
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta fija sobre tablas core, sin entrada de usuario.
+    // This is an explicit, one-off admin diagnostic export of live WooCommerce data;
+    // caching would hide recently changed excerpts. The SQL uses fixed core tables
+    // and accepts no user-provided SQL parameters.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared
     $rows = $wpdb->get_results($sql, ARRAY_A);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared
     return is_array($rows) ? $rows : array();
 }
 
@@ -2600,15 +2604,15 @@ function seo_core_system_test_template_loading() {
 function seo_core_system_test_catalog() {
     global $wpdb;
 
-    $product_count = post_type_exists('product')
-        ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'")
-        : 0;
+    $product_counts = post_type_exists('product') ? wp_count_posts('product') : null;
+    $product_count = is_object($product_counts) ? (int) ($product_counts->publish ?? 0) : 0;
 
     $category_count = taxonomy_exists('product_cat')
         ? (int) wp_count_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false))
         : 0;
 
-    $page_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish'");
+    $page_counts = wp_count_posts('page');
+    $page_count = is_object($page_counts) ? (int) ($page_counts->publish ?? 0) : 0;
 
     $cluster_count = seo_core_system_test_count_seo_nodes_by_role('cluster');
     $hub_primary_count = seo_core_system_test_count_seo_nodes_by_role('hub_primary');
