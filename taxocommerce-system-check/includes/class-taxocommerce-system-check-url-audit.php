@@ -926,6 +926,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             . ' FROM %i WHERE ' . $condition
             . " ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,"
             . ' last_checked_at ASC,id ASC LIMIT %d OFFSET %d';
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
         $rows = $wpdb->get_results(
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are fixed, values and pagination use prepare().
             $wpdb->prepare(
@@ -934,6 +935,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             ),
             ARRAY_A
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
         echo '<h2>Detalle por URL</h2><div class="tcs-filter">';
         foreach ( array( 'error' => 'Errores', 'warning' => 'Avisos', 'pending' => 'Pendientes', 'ok' => 'Correctas', 'all' => 'Todas' ) as $code => $label ) {
