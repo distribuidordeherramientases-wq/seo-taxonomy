@@ -172,6 +172,7 @@ final class SEO_Ojeador_Analysis {
         $where_sql = implode(' AND ', $where);
         // WHERE is composed only from fixed conditions; all filtering values are placeholders.
         $count_sql = "SELECT COUNT(*) FROM %i r LEFT JOIN %i c ON c.term_id=r.term_id WHERE {$where_sql}";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL contains only fixed internal WHERE clauses; all dynamic values and identifiers use %i/%d/%s bindings.
         $count_sql = $wpdb->prepare($count_sql, array_merge(array($table, $categories), $params));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado.
         $total = absint($wpdb->get_var($count_sql));
@@ -243,7 +244,7 @@ final class SEO_Ojeador_Analysis {
     private static function market_aggregates() {
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
-        $sql = "SELECT term_id,
+        $sql = $wpdb->prepare("SELECT term_id,
                        COUNT(*) AS result_count,
                        COUNT(DISTINCT NULLIF(merchant_key,'')) AS merchant_count,
                        SUM(CASE WHEN merchant_key<>'' THEN 1 ELSE 0 END) AS merchant_rows,
@@ -258,8 +259,7 @@ final class SEO_Ojeador_Analysis {
                        SUM(reviews) AS total_reviews
                 FROM %i
                 WHERE active=1
-                GROUP BY term_id";
-        $sql = $wpdb->prepare($sql, $table);
+                GROUP BY term_id", $table);
         $out = array();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
         foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
