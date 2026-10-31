@@ -190,8 +190,13 @@ jobs:
           EOF
           cmp /tmp/taxocommerce-deploy-marker /tmp/taxocommerce-deploy-marker-verified
 
-          selected="$(printf '%s\n' "${modules[@]}" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read().splitlines(),separators=(",",":'))) "
-          selected="${selected% }"
+          selected="$(python3 - "$dir/manifest.json" <<'PY'
+          import json
+          import sys
+          with open(sys.argv[1], encoding='utf-8') as f:
+              print(json.dumps([record['slug'] for record in json.load(f)['installed']], separators=(',', ':')))
+          PY
+          )"
           status="$(curl --silent --show-error -o /tmp/taxocommerce-pro-result.json -w '%{http_code}' \
             --request POST \
             --data-urlencode "run_id=$GITHUB_RUN_ID" \
