@@ -916,9 +916,11 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // The WHERE clause contains only fixed filter templates; all submitted values are bound.
         $count_sql = 'SELECT COUNT(*) FROM %i WHERE ' . $condition;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Constant WHERE templates and bound values; identifier is parameterized.
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
         $count = (int) $wpdb->get_var(
             $wpdb->prepare( $count_sql, array_merge( array( $items ), $params ) )
         );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         $per_page = 40;
         $page_sql = 'SELECT id,label,url,status_bucket,http_status,final_status,response_ms,error_type,error_message,last_checked_at,warnings'
             . ' FROM %i WHERE ' . $condition
