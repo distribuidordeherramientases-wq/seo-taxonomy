@@ -6,7 +6,7 @@
 
 ### En desarrollo — STAGING (posterior a 1.1.14)
 
-* Limpieza de Insights exclusivamente en STAGING (issue #1943): comprobar el directorio remoto `tests/`, retirar solo las 12 pruebas de desarrollo conocidas si aún existen y fallar ante archivos ajenos o si la carpeta sigue presente. Comprobar también y retirar, con copia ZIP y verificación SHA-256 previa, cuatro clases PHP descartadas en el historial del 27/10/2026 (`executive`, `analyst`, `board`, `market`), si aún permanecen instaladas. Las pruebas siguen en GitHub y CI, pero no en el paquete instalado. El despliegue general de otros plugins se omite en esta integración; sin cambios en PRO ni en el monolítico.
+* Limpieza de Insights exclusivamente en STAGING (issue #1943): comprobar el directorio remoto `tests/`, retirar solo las 12 pruebas de desarrollo conocidas si aún existen y fallar ante archivos ajenos o si la carpeta sigue presente. Comprobar también y retirar, con copia ZIP y verificación SHA-256 previa, cinco clases PHP descartadas en el historial del 27/10/2026 (`executive`, `analyst`, `board`, `market` y `prepared`), si aún permanecen instaladas. Las pruebas siguen en GitHub y CI, pero no en el paquete instalado. El despliegue general de otros plugins se omite en esta integración; sin cambios en PRO ni en el monolítico.
 
 * Unify the former **Qué hacer** and **Plan de acción** reports into one executive Analysis view while preserving the original specialized reports.
 * Build one prioritised strategic shortlist from GA4 funnel investigations and up to five evidence-backed SEO/GEO signals drawn from Analista, Auditor, Merchant and Product JSON-LD; the complete validated roadmap remains available below.
