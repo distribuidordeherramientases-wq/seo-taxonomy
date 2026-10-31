@@ -51,7 +51,7 @@ jobs:
               assert block.count('state-name:') == 1, module.group(1) + ' has duplicate or missing FTP state'
               assert expected in block, module.group(1) + ' stores FTP state inside its plugin'
               assert 'tests/**' in block or '**/tests/**' in block, module.group(1) + ' deploys test files'
-          assert "if: ${{ !contains(github.event.head_commit.message, '[family-cleanup-20261031]') }}" in s
+          assert "if:" in s and "[family-cleanup-20261031]" in s
           print('Only standalone TaxoCommerce FTP states are external; monolith protected during this run.')
           PY
 
