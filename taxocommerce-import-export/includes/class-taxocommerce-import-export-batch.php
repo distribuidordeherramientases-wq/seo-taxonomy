@@ -265,7 +265,9 @@ final class TaxoCommerce_Import_Export_Batch {
 										<?php if ( is_array( $failure_log ) ) : ?>
 											<details style="max-width:100%;min-width:240px;">
 												<summary style="cursor:pointer;color:#b32d2e;">
-													<?php echo esc_html( $failure_text ? sprintf( __( 'Ver error: %s', 'taxocommerce-import-export' ), wp_trim_words( $failure_text, 14, '…' ) ) : __( 'Ver diagnóstico de importación', 'taxocommerce-import-export' ) ); ?>
+													<?php echo esc_html( $failure_text ? sprintf(
+															/* translators: %s: human-readable diagnostic for a failed CSV import. */
+															__( 'Ver error: %s', 'taxocommerce-import-export' ), wp_trim_words( $failure_text, 14, '…' ) ) : __( 'Ver diagnóstico de importación', 'taxocommerce-import-export' ) ); ?>
 												</summary>
 												<div style="padding:9px 12px;margin:7px 0;border-left:3px solid #b32d2e;background:#fff8f8;overflow-wrap:anywhere;">
 													<p style="margin:0 0 6px;"><?php
@@ -282,7 +284,9 @@ final class TaxoCommerce_Import_Export_Batch {
 													<?php if ( $failure_rows ) : ?>
 														<ul style="margin:0 0 8px 20px;list-style:disc;">
 															<?php foreach ( array_slice( $failure_rows, 0, 5 ) as $failure_row ) : ?>
-																<li><?php echo esc_html( sprintf( __( 'Fila %1$d: %2$s', 'taxocommerce-import-export' ), absint( $failure_row['row'] ?? 0 ), (string) ( $failure_row['message'] ?? '' ) ) ); ?></li>
+																<li><?php echo esc_html( sprintf(
+																/* translators: 1: CSV row number, 2: failure message. */
+																__( 'Fila %1$d: %2$s', 'taxocommerce-import-export' ), absint( $failure_row['row'] ?? 0 ), (string) ( $failure_row['message'] ?? '' ) ) ); ?></li>
 															<?php endforeach; ?>
 														</ul>
 														<?php if ( count( $failure_rows ) > 5 ) : ?>
@@ -1274,7 +1278,7 @@ Deny from all
 	public function handle_download_failed_log() {
 		$this->guard();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The exact-file nonce is checked immediately below.
-		$requested = isset( $_GET['failed_file'] ) && is_string( $_GET['failed_file'] ) ? wp_unslash( $_GET['failed_file'] ) : '';
+		$requested = isset( $_GET['failed_file'] ) && is_string( $_GET['failed_file'] ) ? sanitize_text_field( wp_unslash( $_GET['failed_file'] ) ) : '';
 		$name = sanitize_file_name( $requested );
 		if ( ! $name || $name !== $requested || basename( $name ) !== $name || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) ) {
 			wp_die( esc_html__( 'Nombre de CSV no válido.', 'taxocommerce-import-export' ), '', array( 'response' => 400 ) );
