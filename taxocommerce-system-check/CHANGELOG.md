@@ -2,6 +2,18 @@
 
 > Historial de las versiones independientes del plugin. El origen de los motores de diagnóstico está en el monolito TaxoCommerce SEO; no se asignan versiones retrospectivas a esa etapa.
 
+## [Unreleased]
+
+* Corregir la introspección del esquema de facturación con `%i` sin concatenar identificadores SQL; pasar explícitamente listas de parámetros a `wpdb::prepare()` en las consultas semánticas y en la recuperación de Health Scan.
+* Restringir los selectores de navegación a entradas escalares, conservar únicamente las excepciones documentadas de lectura y actualizar las etiquetas del `readme.txt` a términos admitidos por WordPress.org.
+* El escaneo ampliado del paquete de GitHub detecta numerosas advertencias pendientes de prefijos heredados (`seo_*`) y consultas diagnósticas: esta versión no se considera validada para WordPress.org hasta resolverlas con comprobación de compatibilidad.
+
+* WordPress Plugin Check: endurecer preparación SQL de tablas WordPress y TaxoCommerce mediante placeholders `%i`, preparar límites `%d`, IDs de conjuntos `%d` y parámetros de filtro, preservando consultas semánticas, Data Layer, Health Scan y auditorías HTTP.
+* Sanear y validar el tipo de parámetros GET/POST del diagnóstico; mantener los nonces exigidos para acciones y documentar las lecturas de navegación que no modifican datos.
+* Usar la API `wp_count_posts()` para recuentos de productos y páginas publicados.
+* Generar el ZIP instalable exclusivamente con archivos operativos, sin `tests/`, ficheros ocultos ni respaldos. Las pruebas CLI continúan en el repositorio y en GitHub Actions.
+* Mantener los procesos, informes, tablas históricas y compatibilidad con WordPress 6.2+ / PHP 7.4. Issue #1958; sin despliegue a PRO.
+
 ## Versiones independientes
 
 ### 0.2.10

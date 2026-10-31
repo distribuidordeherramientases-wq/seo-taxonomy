@@ -51,12 +51,12 @@ function seo_taxocommerce_installed_deploy_modules() {
 }
 
 /**
- * Root used only as a temporary hand-off area inside the legacy plugin.
+ * Temporary hand-off is outside all installed plugins and not part of any ZIP.
  *
  * @return string
  */
 function seo_taxocommerce_deploy_handoff_root() {
-	return dirname( __DIR__ ) . '/.taxocommerce-deploy';
+	return WP_CONTENT_DIR . '/.taxocommerce-deploy';
 }
 
 /**

@@ -150,9 +150,10 @@ if (!function_exists('seo_core_system_test_billing_table_check')) {
             );
         }
 
-        $identifier = '`' . str_replace('`', '``', $table) . '`';
-        $columns_raw = $wpdb->get_results('SHOW COLUMNS FROM ' . $identifier, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        $indexes_raw = $wpdb->get_results('SHOW INDEX FROM ' . $identifier, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // WordPress 6.2+ supports %i for SQL identifiers; do not interpolate
+        // backtick-escaped names into the live billing diagnostics query.
+        $columns_raw = $wpdb->get_results($wpdb->prepare('SHOW COLUMNS FROM %i', $table), ARRAY_A);
+        $indexes_raw = $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $table), ARRAY_A);
 
         $columns = array();
         foreach ((array) $columns_raw as $column) {
@@ -794,8 +795,9 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
                 SUM(CASE WHEN status = 'issued' AND (pdf_path = '' OR pdf_path IS NULL) THEN 1 ELSE 0 END) AS issued_without_path,
                 SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS error_documents,
                 SUM(CASE WHEN status = 'rendering' AND updated_at < %s THEN 1 ELSE 0 END) AS stale_rendering
-             FROM {$identifier}",
-            $cutoff
+             FROM %i",
+            $cutoff,
+            $identifier
         );
         $stats = $wpdb->get_row($sql, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         if (!empty($wpdb->last_error)) {
@@ -834,11 +836,14 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
         }
 
         $sample = $wpdb->get_results(
-            "SELECT id, document_number, pdf_path, file_hash
-             FROM {$identifier}
-             WHERE status = 'issued'
-             ORDER BY id DESC
-             LIMIT 25",
+            $wpdb->prepare(
+                "SELECT id, document_number, pdf_path, file_hash
+                 FROM %i
+                 WHERE status = 'issued'
+                 ORDER BY id DESC
+                 LIMIT 25",
+                $identifier
+            ),
             ARRAY_A
         ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 

@@ -40,7 +40,7 @@ function seo_core_system_test_action_scheduler_checks() {
     }
 
     $stats = $wpdb->get_row(
-        "SELECT
+        $wpdb->prepare("SELECT
             SUM(status = 'pending') AS pending_total,
             SUM(status = 'pending' AND scheduled_date_gmt > UTC_TIMESTAMP()) AS pending_future,
             SUM(status = 'pending' AND scheduled_date_gmt <= UTC_TIMESTAMP()) AS pending_due,
@@ -50,7 +50,7 @@ function seo_core_system_test_action_scheduler_checks() {
             SUM(status = 'failed' AND last_attempt_gmt >= UTC_TIMESTAMP() - INTERVAL 7 DAY) AS failed_7d,
             SUM(status = 'failed' AND last_attempt_gmt >= UTC_TIMESTAMP() - INTERVAL 30 DAY) AS failed_30d,
             MIN(CASE WHEN status = 'pending' AND scheduled_date_gmt <= UTC_TIMESTAMP() THEN scheduled_date_gmt ELSE NULL END) AS oldest_due
-        FROM `{$table}`",
+        FROM %i", $table),
         ARRAY_A
     );
 
@@ -256,7 +256,7 @@ function seo_core_system_test_data_layer_passive_checks() {
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- El nombre de tabla procede de SEO_Data_Layer::operations_table(); no contiene entrada de usuario.
     $totals = $wpdb->get_row(
-        "SELECT
+        $wpdb->prepare("SELECT
             COUNT(*) AS operations_total,
             SUM(status = 'completed') AS completed_total,
             SUM(status = 'failed') AS failed_total,
@@ -265,7 +265,7 @@ function seo_core_system_test_data_layer_passive_checks() {
             SUM(status IN ('pending','validated','previewed') AND created_at < UTC_TIMESTAMP() - INTERVAL 1 DAY) AS preparatory_stale,
             SUM(rollbackable = 0 AND rollback_status = 'available') AS invalid_rollback_flags,
             SUM(status = 'rolled_back' AND rollback_status <> 'completed') AS invalid_rolled_back_state
-         FROM `{$operations}`",
+         FROM %i", $operations),
         ARRAY_A
     );
 
@@ -300,10 +300,10 @@ function seo_core_system_test_data_layer_passive_checks() {
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
     $orphan_changes = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM `{$changes}` c
-         LEFT JOIN `{$operations}` o ON o.id = c.operation_id
-         WHERE o.id IS NULL"
+        $wpdb->prepare("SELECT COUNT(*)
+         FROM %i c
+         LEFT JOIN %i o ON o.id = c.operation_id
+         WHERE o.id IS NULL", $changes, $operations)
     );
 
     $results[] = seo_core_system_test_result(
@@ -316,16 +316,16 @@ function seo_core_system_test_data_layer_passive_checks() {
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
     $completed_without_changes = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
+        $wpdb->prepare("SELECT COUNT(*)
          FROM (
              SELECT o.id
-             FROM `{$operations}` o
-             LEFT JOIN `{$changes}` c ON c.operation_id = o.id
+             FROM %i o
+             LEFT JOIN %i c ON c.operation_id = o.id
              WHERE o.status = 'completed'
                AND o.affected_rows > 0
              GROUP BY o.id
              HAVING COUNT(c.id) = 0
-         ) missing_snapshots"
+         ) missing_snapshots", $operations, $changes)
     );
 
     $results[] = seo_core_system_test_result(
@@ -337,14 +337,14 @@ function seo_core_system_test_data_layer_passive_checks() {
     );
 
     $missing_hashes = (int) $wpdb->get_var(
-        "SELECT COUNT(*)
-         FROM `{$changes}`
+        $wpdb->prepare("SELECT COUNT(*)
+         FROM %i
          WHERE record_identity IS NULL OR record_identity = ''
             OR (action_type = 'insert' AND (after_hash IS NULL OR after_hash = ''))
             OR (action_type = 'delete' AND (before_hash IS NULL OR before_hash = ''))
             OR (action_type = 'update' AND (
                 before_hash IS NULL OR before_hash = '' OR after_hash IS NULL OR after_hash = ''
-            ))"
+            ))", $changes)
     );
 
     $results[] = seo_core_system_test_result(
@@ -477,8 +477,9 @@ function seo_core_system_test_data_layer_run_active_tests() {
         }
 
         $row_a_exists = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$relations_table}`
+            "SELECT COUNT(*) FROM %i
              WHERE source_type = %s AND source_id = %d AND target_type = %s AND target_id = %d AND relation_type = %s",
+             $relations_table,
             $marker,
             $source_a,
             $marker,
@@ -486,11 +487,13 @@ function seo_core_system_test_data_layer_run_active_tests() {
             'data_layer_test_failure'
         ));
         $status_a = (string) $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM `{$operations_table}` WHERE id = %d",
+            "SELECT status FROM %i WHERE id = %d",
+             $operations_table,
             $operation_a->id()
         ));
         $changes_a = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$changes_table}` WHERE operation_id = %d",
+            "SELECT COUNT(*) FROM %i WHERE operation_id = %d",
+             $changes_table,
             $operation_a->id()
         ));
         $rollback_auto_ok = $expected_exception && $row_a_exists === 0 && $status_a === 'failed' && $changes_a === 0;
@@ -533,11 +536,13 @@ function seo_core_system_test_data_layer_run_active_tests() {
         $relation_ids[] = isset($inserted_b['id']) ? (int) $inserted_b['id'] : 0;
 
         $operation_b_row = $wpdb->get_row($wpdb->prepare(
-            "SELECT status, rollback_status, affected_rows FROM `{$operations_table}` WHERE id = %d",
+            "SELECT status, rollback_status, affected_rows FROM %i WHERE id = %d",
+             $operations_table,
             $operation_b->id()
         ), ARRAY_A);
         $change_b = $wpdb->get_row($wpdb->prepare(
-            "SELECT action_type, before_hash, after_hash, record_identity FROM `{$changes_table}` WHERE operation_id = %d LIMIT 1",
+            "SELECT action_type, before_hash, after_hash, record_identity FROM %i WHERE operation_id = %d LIMIT 1",
+             $changes_table,
             $operation_b->id()
         ), ARRAY_A);
 
@@ -565,12 +570,14 @@ function seo_core_system_test_data_layer_run_active_tests() {
         $rollback_b = SEO_Data_Rollback::execute($operation_b->id());
         $row_b_exists = isset($inserted_b['id'])
             ? (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM `{$relations_table}` WHERE id = %d",
+                "SELECT COUNT(*) FROM %i WHERE id = %d",
+             $relations_table,
                 (int) $inserted_b['id']
             ))
             : 1;
         $status_b = (string) $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM `{$operations_table}` WHERE id = %d",
+            "SELECT status FROM %i WHERE id = %d",
+             $operations_table,
             $operation_b->id()
         ));
         $manual_rollback_ok = !empty($preview_b['allowed'])
@@ -655,9 +662,10 @@ function seo_core_system_test_data_layer_run_active_tests() {
         }
 
         $wpdb->query($wpdb->prepare(
-            "DELETE FROM `{$relations_table}`
+            "DELETE FROM %i
              WHERE source_type = %s AND target_type = %s
                AND relation_type LIKE %s",
+             $relations_table,
             $marker,
             $marker,
             'data_layer_test_%'
@@ -670,8 +678,9 @@ function seo_core_system_test_data_layer_run_active_tests() {
     }
 
     $cleanup_relations = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM `{$relations_table}`
+        "SELECT COUNT(*) FROM %i
          WHERE source_type = %s AND target_type = %s AND relation_type LIKE %s",
+             $relations_table,
         $marker,
         $marker,
         'data_layer_test_%'
@@ -680,9 +689,16 @@ function seo_core_system_test_data_layer_run_active_tests() {
     if (!empty($operation_ids)) {
         $ids = implode(',', array_map('intval', array_filter(array_unique($operation_ids))));
         if ($ids !== '') {
+            $safe_ids = array_values(array_filter(array_map('absint', array_unique($operation_ids))));
+            $id_placeholders = implode(',', array_fill(0, count($safe_ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- List of %d placeholders generated from absint operation IDs; all values and the %i identifier are bound.
             $cleanup_operations = (int) $wpdb->get_var(
-                "SELECT COUNT(*) FROM `{$operations_table}` WHERE id IN ({$ids})"
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM %i WHERE id IN (" . $id_placeholders . ")",
+                    array_merge(array($operations_table), $safe_ids)
+                )
             );
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
     }
     $cleanup_ok = $cleanup_relations === 0 && $cleanup_operations === 0;

@@ -34,6 +34,8 @@ jobs:
           coverage: none
       - name: Check plugin PHP syntax
         run: find taxocommerce-vocabulary -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Verify read-only Auto Test and integrated Manual
+        run: php taxocommerce-vocabulary/tests/auto-test-manual-smoke.php
       - name: Check canonical storage contract
         run: |
           grep -q "seo_vocabulary" taxocommerce-vocabulary/includes/class-tcv-schema.php
@@ -42,6 +44,12 @@ jobs:
           ! grep -R "register_taxonomy.*tc_semantic_tag" taxocommerce-vocabulary
       - name: Build and inspect plugin ZIP
         run: |
-          zip -qr taxocommerce-vocabulary.zip taxocommerce-vocabulary
+          zip -qr taxocommerce-vocabulary.zip taxocommerce-vocabulary \
+            -x 'taxocommerce-vocabulary/tests/*' \
+               'taxocommerce-vocabulary/*.md' \
+               'taxocommerce-vocabulary/node_modules/*' \
+               'taxocommerce-vocabulary/.ftp-deploy-sync-state.json'
           unzip -t taxocommerce-vocabulary.zip
           unzip -Z1 taxocommerce-vocabulary.zip | grep -Fx 'taxocommerce-vocabulary/taxocommerce-vocabulary.php'
+          unzip -Z1 taxocommerce-vocabulary.zip | grep -Fx 'taxocommerce-vocabulary/readme.txt'
+          ! unzip -Z1 taxocommerce-vocabulary.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'

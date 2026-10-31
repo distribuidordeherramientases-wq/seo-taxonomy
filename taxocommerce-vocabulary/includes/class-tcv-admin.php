@@ -46,7 +46,7 @@ final class TCV_Admin {
 
     private static function tab() {
         $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'labels';
-        return in_array( $tab, array( 'labels','attributes','classifier','io','control' ), true ) ? $tab : 'labels';
+        return in_array( $tab, array( 'labels','attributes','classifier','io','control','auto-test','manual' ), true ) ? $tab : 'labels';
     }
 
     public static function render() {
@@ -54,7 +54,7 @@ final class TCV_Admin {
             return;
         }
         $tab = self::tab();
-        echo '<div class="wrap tcv-wrap"><h1>TaxoCommerce Vocabulary</h1><p class="description">Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico.</p>';
+        echo '<div class="wrap tcv-wrap"><h1>TaxoCommerce Vocabulary <small>v' . esc_html( TAXOCOMMERCE_VOCABULARY_VERSION ) . '</small></h1><p class="description">Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico.</p>';
         if ( ! empty( $_GET['tcv_message'] ) ) {
             $class = ( isset( $_GET['tcv_status'] ) && 'success' === $_GET['tcv_status'] ) ? 'notice-success' : 'notice-error';
             echo '<div class="notice ' . esc_attr( $class ) . '"><p>' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['tcv_message'] ) ) ) ) . '</p></div>';
@@ -68,14 +68,18 @@ final class TCV_Admin {
             self::classifier();
         } elseif ( 'io' === $tab ) {
             self::io();
-        } else {
+        } elseif ( 'control' === $tab ) {
             self::control();
+        } elseif ( 'auto-test' === $tab ) {
+            TCV_Auto_Test::render();
+        } else {
+            TCV_Manual::render();
         }
         echo '</div>';
     }
 
     private static function nav( $active ) {
-        $tabs = array( 'labels'=>'Etiquetas','attributes'=>'Atributos','classifier'=>'Clasificador','io'=>'Importar / Exportar','control'=>'Control' );
+        $tabs = array( 'labels'=>'Etiquetas','attributes'=>'Atributos','classifier'=>'Clasificador','io'=>'Importar / Exportar','control'=>'Control','auto-test'=>'Auto Test','manual'=>'Manual' );
         echo '<nav class="nav-tab-wrapper">';
         foreach ( $tabs as $key => $label ) {
             $url = add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>$key ), admin_url( 'admin.php' ) );

@@ -566,7 +566,8 @@ function seo_core_system_test_visual_results() {
 function seo_core_visual_render_controls() {
     $settings = seo_core_visual_github_settings();
     $state = seo_core_visual_get_state();
-    $message = isset($_GET['seo_visual_msg']) ? sanitize_key(wp_unslash($_GET['seo_visual_msg'])) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only allowlisted admin notice after redirect.
+    $message = isset($_GET['seo_visual_msg']) && is_string($_GET['seo_visual_msg']) ? sanitize_key(wp_unslash($_GET['seo_visual_msg'])) : '';
 
     if ($message === 'started') {
         echo '<div class="notice notice-success inline"><p>Chequeo visual enviado a GitHub Actions. El resultado llegara automaticamente a esta seccion.</p></div>';
