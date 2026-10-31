@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Suppliers
  * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.0' );
+define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.1' );
 define( 'TAXOCOMMERCE_SUPPLIERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SUPPLIERS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );
@@ -24,6 +24,8 @@ require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-csv.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-products.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-purchasing.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-admin.php';
+require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-manual.php';
+require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-autotest.php';
 
 function taxocommerce_suppliers_activate() {
 	TCSUP_Schema::install();
