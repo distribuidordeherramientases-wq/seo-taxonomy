@@ -1,5 +1,11 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.2 — 2026-10-31
+- Clústeres de US/DE/NL/FR: presentación internacional adaptable con idioma, menú por país y contenido relacionado filtrado por mercado; sin elementos comerciales españoles ni descarga de imágenes de proveedor.
+- Los clústeres españoles mantienen las plantillas originales de móvil y ordenador.
+- Pruebas de aislamiento por país, navegación, marcado estructurado y coexistencia con el compositor FRONT.
+
+
 ## 0.4.1 — 2026-10-30
 - Se añade el **compositor FRONT** como piloto administrativo dentro de TaxoCommerce Templates.
 - Inventario cerrado de módulos con altas/bajas, ordenación mediante arrastre y controles de teclado, visibilidad y etiqueta opcional.

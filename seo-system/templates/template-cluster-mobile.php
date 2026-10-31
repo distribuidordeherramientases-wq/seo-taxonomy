@@ -6,6 +6,13 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
 
+require_once __DIR__ . '/template-cluster-market.php';
+$dht_cluster_country = dht_cluster_country_for_page( absint( get_queried_object_id() ) );
+if ( in_array( $dht_cluster_country, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
+    require __DIR__ . '/template-cluster-international.php';
+    return;
+}
+
 global $wpdb;
 
 $current_id    = absint(get_queried_object_id());
