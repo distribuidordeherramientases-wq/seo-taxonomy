@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * Plugin Validation - Action Scheduler y Data Layer.
  *
@@ -25,6 +26,7 @@ function seo_core_system_test_action_scheduler_checks() {
     $groups_table = esc_sql( $wpdb->prefix . 'actionscheduler_groups' );
     $exists = function_exists('seo_core_system_test_table_exists')
         ? seo_core_system_test_table_exists($table)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         : $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
 
     $results[] = seo_core_system_test_result(
@@ -39,6 +41,7 @@ function seo_core_system_test_action_scheduler_checks() {
         return $results;
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $stats = $wpdb->get_row(
         $wpdb->prepare("SELECT
             SUM(status = 'pending') AS pending_total,
@@ -135,6 +138,7 @@ function seo_core_system_test_action_scheduler_checks() {
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas proceden exclusivamente de Action Scheduler y la consulta es de solo lectura.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $top_pending = $wpdb->get_row($top_pending_sql, ARRAY_A);
 
     $top_detail = 'No hay acciones pendientes.';
@@ -255,6 +259,7 @@ function seo_core_system_test_data_layer_passive_checks() {
     );
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- El nombre de tabla procede de SEO_Data_Layer::operations_table(); no contiene entrada de usuario.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $totals = $wpdb->get_row(
         $wpdb->prepare("SELECT
             COUNT(*) AS operations_total,
@@ -299,6 +304,7 @@ function seo_core_system_test_data_layer_passive_checks() {
     );
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $orphan_changes = (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i c
@@ -315,6 +321,7 @@ function seo_core_system_test_data_layer_passive_checks() {
     );
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Los nombres de tabla proceden del Data Layer interno y la consulta es de solo lectura.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $completed_without_changes = (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM (
@@ -336,6 +343,7 @@ function seo_core_system_test_data_layer_passive_checks() {
         $completed_without_changes === 0 ? 'ok' : 'ko'
     );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $missing_hashes = (int) $wpdb->get_var(
         $wpdb->prepare("SELECT COUNT(*)
          FROM %i
@@ -476,6 +484,7 @@ function seo_core_system_test_data_layer_run_active_tests() {
             $expected_exception = strpos($exception->getMessage(), '__seo_expected_rollback__') !== false;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $row_a_exists = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM %i
              WHERE source_type = %s AND source_id = %d AND target_type = %s AND target_id = %d AND relation_type = %s",
@@ -486,11 +495,13 @@ function seo_core_system_test_data_layer_run_active_tests() {
             $target_a,
             'data_layer_test_failure'
         ));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $status_a = (string) $wpdb->get_var($wpdb->prepare(
             "SELECT status FROM %i WHERE id = %d",
              $operations_table,
             $operation_a->id()
         ));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $changes_a = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM %i WHERE operation_id = %d",
              $changes_table,
@@ -535,11 +546,13 @@ function seo_core_system_test_data_layer_run_active_tests() {
         });
         $relation_ids[] = isset($inserted_b['id']) ? (int) $inserted_b['id'] : 0;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $operation_b_row = $wpdb->get_row($wpdb->prepare(
             "SELECT status, rollback_status, affected_rows FROM %i WHERE id = %d",
              $operations_table,
             $operation_b->id()
         ), ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $change_b = $wpdb->get_row($wpdb->prepare(
             "SELECT action_type, before_hash, after_hash, record_identity FROM %i WHERE operation_id = %d LIMIT 1",
              $changes_table,
@@ -569,12 +582,14 @@ function seo_core_system_test_data_layer_run_active_tests() {
         $preview_b = SEO_Data_Rollback::preview($operation_b->id());
         $rollback_b = SEO_Data_Rollback::execute($operation_b->id());
         $row_b_exists = isset($inserted_b['id'])
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             ? (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE id = %d",
              $relations_table,
                 (int) $inserted_b['id']
             ))
             : 1;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $status_b = (string) $wpdb->get_var($wpdb->prepare(
             "SELECT status FROM %i WHERE id = %d",
              $operations_table,
@@ -626,6 +641,7 @@ function seo_core_system_test_data_layer_run_active_tests() {
         }
 
         $external_update = $relation_c_id > 0
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             ? $wpdb->update(
                 $relations_table,
                 array('relation_type' => 'data_layer_test_modified'),
@@ -658,9 +674,11 @@ function seo_core_system_test_data_layer_run_active_tests() {
         );
     } finally {
         foreach (array_filter(array_unique(array_map('intval', $relation_ids))) as $relation_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->delete($relations_table, array('id' => $relation_id), array('%d'));
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query($wpdb->prepare(
             "DELETE FROM %i
              WHERE source_type = %s AND target_type = %s
@@ -672,11 +690,14 @@ function seo_core_system_test_data_layer_run_active_tests() {
         ));
 
         foreach (array_filter(array_unique(array_map('intval', $operation_ids))) as $operation_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->delete($changes_table, array('operation_id' => $operation_id), array('%d'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->delete($operations_table, array('id' => $operation_id), array('%d'));
         }
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $cleanup_relations = (int) $wpdb->get_var($wpdb->prepare(
         "SELECT COUNT(*) FROM %i
          WHERE source_type = %s AND target_type = %s AND relation_type LIKE %s",
@@ -692,6 +713,7 @@ function seo_core_system_test_data_layer_run_active_tests() {
             $safe_ids = array_values(array_filter(array_map('absint', array_unique($operation_ids))));
             $id_placeholders = implode(',', array_fill(0, count($safe_ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- List of %d placeholders generated from absint operation IDs; all values and the %i identifier are bound.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $cleanup_operations = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(*) FROM %i WHERE id IN (" . $id_placeholders . ")",
