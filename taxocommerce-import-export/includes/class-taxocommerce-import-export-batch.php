@@ -38,6 +38,7 @@ final class TaxoCommerce_Import_Export_Batch {
 		add_action( 'admin_post_taxocommerce_ie_batch_upload', array( $this, 'handle_upload' ) );
 		add_action( 'admin_post_taxocommerce_ie_batch_control', array( $this, 'handle_control' ) );
 		add_action( 'admin_post_taxocommerce_ie_batch_delete_pending', array( $this, 'handle_delete_pending' ) );
+		add_action( 'admin_post_taxocommerce_ie_batch_download_failed_log', array( $this, 'handle_download_failed_log' ) );
 		add_action( self::WORKER_HOOK, array( $this, 'worker' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_batch_step', array( $this, 'ajax_step' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_batch_continue', array( $this, 'internal_continue' ) );
@@ -252,6 +253,59 @@ final class TaxoCommerce_Import_Export_Batch {
 							<?php foreach ( array_slice( $files[ $bucket ], 0, 100 ) as $path ) : ?>
 								<li style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0;">
 									<code><?php echo esc_html( basename( $path ) ); ?></code>
+									<?php if ( 'failed' === $bucket ) : ?>
+										<?php
+										$failure_log = $this->read_failed_log( $path );
+										$failure_rows = is_array( $failure_log ) && isset( $failure_log['errors'] ) && is_array( $failure_log['errors'] ) ? $failure_log['errors'] : array();
+										$failure_text = is_array( $failure_log ) ? sanitize_text_field( (string) ( $failure_log['file_error'] ?? '' ) ) : '';
+										if ( '' === $failure_text && ! empty( $failure_rows[0]['message'] ) ) {
+											$failure_text = sanitize_text_field( (string) $failure_rows[0]['message'] );
+										}
+										?>
+										<?php if ( is_array( $failure_log ) ) : ?>
+											<details style="max-width:100%;min-width:240px;">
+												<summary style="cursor:pointer;color:#b32d2e;">
+													<?php echo esc_html( $failure_text ? sprintf( __( 'Ver error: %s', 'taxocommerce-import-export' ), wp_trim_words( $failure_text, 14, '…' ) ) : __( 'Ver diagnóstico de importación', 'taxocommerce-import-export' ) ); ?>
+												</summary>
+												<div style="padding:9px 12px;margin:7px 0;border-left:3px solid #b32d2e;background:#fff8f8;overflow-wrap:anywhere;">
+													<p style="margin:0 0 6px;"><?php
+														echo esc_html( sprintf(
+															/* translators: 1: processed row count, 2: error row count. */
+															__( 'Filas procesadas: %1$d. Filas con error: %2$d.', 'taxocommerce-import-export' ),
+															absint( $failure_log['processed_rows'] ?? 0 ),
+															absint( $failure_log['error_rows'] ?? 0 )
+														) );
+													?></p>
+													<?php if ( ! empty( $failure_log['file_error'] ) ) : ?>
+														<p style="margin:0 0 6px;"><strong><?php esc_html_e( 'Error del archivo:', 'taxocommerce-import-export' ); ?></strong> <?php echo esc_html( (string) $failure_log['file_error'] ); ?></p>
+													<?php endif; ?>
+													<?php if ( $failure_rows ) : ?>
+														<ul style="margin:0 0 8px 20px;list-style:disc;">
+															<?php foreach ( array_slice( $failure_rows, 0, 5 ) as $failure_row ) : ?>
+																<li><?php echo esc_html( sprintf( __( 'Fila %1$d: %2$s', 'taxocommerce-import-export' ), absint( $failure_row['row'] ?? 0 ), (string) ( $failure_row['message'] ?? '' ) ) ); ?></li>
+															<?php endforeach; ?>
+														</ul>
+														<?php if ( count( $failure_rows ) > 5 ) : ?>
+															<p><?php esc_html_e( 'Hay más errores en el JSON descargable.', 'taxocommerce-import-export' ); ?></p>
+														<?php endif; ?>
+													<?php endif; ?>
+													<?php
+													$log_url = wp_nonce_url(
+														add_query_arg( array(
+															'action' => 'taxocommerce_ie_batch_download_failed_log',
+															'failed_file' => basename( $path ),
+														), admin_url( 'admin-post.php' ) ),
+														'taxocommerce_ie_batch_log_' . basename( $path ),
+														'tc_ie_batch_nonce'
+													);
+													?>
+													<a class="button button-small" href="<?php echo esc_url( $log_url ); ?>"><?php esc_html_e( 'Descargar log JSON', 'taxocommerce-import-export' ); ?></a>
+												</div>
+											</details>
+										<?php else : ?>
+											<span class="description"><?php esc_html_e( 'Sin log disponible para este archivo.', 'taxocommerce-import-export' ); ?></span>
+										<?php endif; ?>
+									<?php endif; ?>
 									<?php if ( 'pending' === $bucket ) : ?>
 										<?php
 										$delete_label = sprintf(
@@ -979,10 +1033,27 @@ final class TaxoCommerce_Import_Export_Batch {
 	private function fail_current_file( $state, $message ) {
 		$paths = $this->paths();
 		$name  = sanitize_file_name( (string) ( $state['current_file'] ?? '' ) );
+		$failed_name = $name;
 		if ( $name ) {
 			$source = trailingslashit( $paths['processing'] ) . $name;
 			if ( is_file( $source ) ) {
-				$this->move_file( $source, $this->unique_path( $paths['failed'], $name ) );
+				$target = $this->unique_path( $paths['failed'], $name );
+				if ( $this->move_file( $source, $target ) ) {
+					$failed_name = basename( $target );
+					$log = array(
+						'file' => $failed_name,
+						'type' => sanitize_key( (string) ( $state['entity'] ?? '' ) ),
+						'processed_rows' => absint( $state['processed_rows'] ?? 0 ),
+						'error_rows' => absint( $state['error_rows'] ?? 0 ),
+						'errors' => array_values( (array) ( $state['errors'] ?? array() ) ),
+						'file_error' => sanitize_text_field( (string) $message ),
+						'finished_at' => current_time( 'mysql' ),
+					);
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Sidecar in the existing private failed queue, matching other import failures.
+					file_put_contents( $target . '.log.json', wp_json_encode( $log, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+				} else {
+					$message .= ' ' . __( 'No se pudo mover el CSV a Fallidos; permanece en processing.', 'taxocommerce-import-export' );
+				}
 			}
 		}
 		$individual = get_option( self::INDIVIDUAL_STATE, array() );
@@ -998,7 +1069,7 @@ final class TaxoCommerce_Import_Export_Batch {
 				'enabled'      => false,
 				'status'       => 'failed',
 				'current_file' => '',
-				'last_file'    => $name,
+				'last_file'    => $failed_name,
 				'entity'       => sanitize_key( (string) ( $state['entity'] ?? '' ) ),
 				'message'      => sanitize_text_field( $message ),
 			)
@@ -1173,6 +1244,63 @@ Deny from all
 " ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			}
 		}
+	}
+
+	/**
+	 * Parse an existing sidecar for a failed CSV. Never trust client paths or log HTML.
+	 *
+	 * @param string $csv_path CSV inside the failed bucket.
+	 * @return array|null
+	 */
+	private function read_failed_log( $csv_path ) {
+		$log_path = $csv_path . '.log.json';
+		if ( ! is_file( $csv_path ) || is_link( $csv_path ) || ! is_file( $log_path ) || is_link( $log_path ) || ! is_readable( $log_path ) ) {
+			return null;
+		}
+		$size = filesize( $log_path );
+		if ( false === $size || $size < 1 || $size > MB_IN_BYTES ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local, bounded, administrator-only private queue diagnostic.
+		$raw = file_get_contents( $log_path );
+		$data = is_string( $raw ) ? json_decode( $raw, true ) : null;
+		return is_array( $data ) && (string) ( $data['file'] ?? '' ) === basename( $csv_path ) ? $data : null;
+	}
+
+	/**
+	 * Authenticated download of exactly one existing failed CSV diagnostic.
+	 * Never expose an uploads URL directly.
+	 */
+	public function handle_download_failed_log() {
+		$this->guard();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The exact-file nonce is checked immediately below.
+		$requested = isset( $_GET['failed_file'] ) && is_string( $_GET['failed_file'] ) ? wp_unslash( $_GET['failed_file'] ) : '';
+		$name = sanitize_file_name( $requested );
+		if ( ! $name || $name !== $requested || basename( $name ) !== $name || 'csv' !== strtolower( pathinfo( $name, PATHINFO_EXTENSION ) ) ) {
+			wp_die( esc_html__( 'Nombre de CSV no válido.', 'taxocommerce-import-export' ), '', array( 'response' => 400 ) );
+		}
+		check_admin_referer( 'taxocommerce_ie_batch_log_' . $name, 'tc_ie_batch_nonce' );
+		$directory = realpath( $this->paths()['failed'] );
+		$path = trailingslashit( $this->paths()['failed'] ) . $name;
+		$real_path = realpath( $path );
+		if ( ! $directory || ! $real_path || dirname( $real_path ) !== $directory || is_link( $path ) ) {
+			wp_die( esc_html__( 'El CSV fallido no está disponible.', 'taxocommerce-import-export' ), '', array( 'response' => 404 ) );
+		}
+		$log = $this->read_failed_log( $path );
+		if ( null === $log ) {
+			wp_die( esc_html__( 'No existe un diagnóstico JSON válido para este CSV.', 'taxocommerce-import-export' ), '', array( 'response' => 404 ) );
+		}
+		$json = wp_json_encode( $log, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+		if ( false === $json ) {
+			wp_die( esc_html__( 'No se pudo codificar el diagnóstico.', 'taxocommerce-import-export' ), '', array( 'response' => 500 ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $name . '.log.json"' );
+		header( 'X-Content-Type-Options: nosniff' );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is a JSON attachment, not HTML.
+		echo $json;
+		exit;
 	}
 
 	/**
