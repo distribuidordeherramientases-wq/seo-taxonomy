@@ -271,7 +271,6 @@ jobs:
           # Keep FTP state OUTSIDE the installed standalone module.
           state-name: ../.taxocommerce-import-export-ftp-state.json
           # FTP synchronization state must never become an installed plugin file.
-          state-name: ../.taxocommerce-import-export-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
@@ -604,7 +603,6 @@ jobs:
           dry-run: false
           log-level: verbose
           # Store sync state outside the installed FAQ plugin.
-          state-name: ../.taxocommerce-faqs-ftp-state.json
           exclude: |
             **/.git*
             **/.git*/**
