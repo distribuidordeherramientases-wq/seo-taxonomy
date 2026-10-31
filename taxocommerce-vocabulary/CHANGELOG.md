@@ -12,7 +12,7 @@ Sin novedades pendientes documentadas.
 * Auto Test de 16 comprobaciones agrupadas: arranque, rutas, WooCommerce, MySQL, esquema canónico, columnas, lecturas acotadas, clasificador, intercambio portable y documentación; las escrituras y descargas reales se omiten explícitamente.
 * Comparación de las dos últimas ejecuciones por usuario mediante transitorios de 30 días, indicando versión y regresiones.
 * Manual integrado con guía de usuario y guía técnica: pantallas, grupos, datos canónicos, importación CSV, JSON MERGE/MIRROR, nonces, roles, límites y compatibilidad.
-* Pruebas automatizadas y exclusión de los scripts de pruebas del ZIP distribuible.
+* Pruebas automatizadas y exclusión de los scripts de pruebas del ZIP distribuible y del paquete de STAGING; artefacto de despliegue con nombre estable en vez del identificador obsoleto 0.3.1.
 
 
 ## [0.3.3]
