@@ -98,6 +98,14 @@ jobs:
           # WordPress database placeholders, nonce checks and capabilities
           # are validated through code review and the PHP lint step.
 
+      - name: Publish clean Core ZIP for WordPress Playground
+        uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-core-playground-installable
+          path: ${{ runner.temp }}/taxocommerce-core-installable.zip
+          if-no-files-found: error
+          retention-days: 14
+
   deploy:
     name: Deploy Core plugin to STAGING
     needs: validate
