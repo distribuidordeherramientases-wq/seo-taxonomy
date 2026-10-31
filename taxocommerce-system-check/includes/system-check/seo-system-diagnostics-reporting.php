@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * TaxoCommerce System Check - Diagnostic Reporting
  *
@@ -1019,11 +1020,13 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
     global $wpdb;
     $actions = $wpdb->prefix . 'actionscheduler_actions';
     $logs = $wpdb->prefix . 'actionscheduler_logs';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($actions)));
     if ((string) $exists !== $actions) {
         return array('available' => false);
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $status_rows = (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS first_date, MAX(scheduled_date_gmt) AS last_date
@@ -1043,6 +1046,7 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
         );
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $overdue = (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*) FROM %i
@@ -1050,6 +1054,7 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
             $actions
         )
     );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $hooks = (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT hook, status, COUNT(*) AS total,
@@ -1075,7 +1080,9 @@ function seo_system_diagnostics_collect_scheduler_snapshot() {
         );
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $log_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($logs)));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $log_count = (string) $log_exists === $logs ? (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $logs)) : null;
 
     return array(
