@@ -5,7 +5,7 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+- Incorporadas pestañas Manual (usuario y técnico) y Autotest interno de solo lectura; comprueba carga, tablas, versión de esquema y dependencias sin modificar campañas, precios ni programación.
 
 
 ## [0.1.0]
