@@ -290,6 +290,11 @@ final class TCT_Designs {
         echo '<button class="button" type="button" data-tct-device="mobile" aria-pressed="false">Móvil</button></div>';
         echo '<div class="tct-front-columns"><section class="tct-front-panel"><h3>Módulos disponibles</h3><ul id="tct-front-available-list" class="tct-front-list"></ul></section>';
         echo '<section class="tct-front-panel"><h3>Composición de la plantilla</h3><ul id="tct-front-selected-list" class="tct-front-list"></ul></section></div>';
+        if ( $design['file'] && TCT_Router::path( $design['file'] ) ) {
+            echo '<p><a href="' . esc_url( TCT_Request_Admin::admin_url( 'editor', array(
+                'tct_source' => $design['file'],
+            ) ) ) . '">Consultar o editar código del archivo PHP</a></p>';
+        }
         echo '<p><label><input type="checkbox" name="is_active" value="1" ' .
             checked( ! empty( $design['active'] ), true, false ) . '> Activar esta ruta para los países seleccionados</label></p>';
         echo '<p class="description">Solo se puede activar con archivo PHP existente y sin países solapados con otra plantilla activa del mismo rol. Requiere además el enrutador general habilitado. Los módulos visuales no modifican todavía el PHP.</p>';
@@ -306,7 +311,7 @@ final class TCT_Designs {
         echo '</form>';
     }
 
-    public static function render_routes( $view, $items, $search = '' ) {
+    public static function render_routes( $view, $items, $search = '', $group = 'all' ) {
         $all = self::all();
         if ( 'pending' === $view || ! $all ) { return; }
         $rows = array();
@@ -314,6 +319,7 @@ final class TCT_Designs {
             $route = (string) $design['route'];
             $item = isset( $items[ $route ] ) ? $items[ $route ] : null;
             if ( ! $item ) { continue; }
+            if ( 'all' !== $group && $item['group'] !== $group ) { continue; }
             if ( '' !== $search && false === stripos(
                 $design['name'] . ' ' . $route . ' ' . implode( ' ', $design['countries'] ), $search
             ) ) { continue; }
