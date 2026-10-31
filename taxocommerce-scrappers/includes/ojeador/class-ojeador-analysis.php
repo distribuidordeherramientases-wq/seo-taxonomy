@@ -170,11 +170,9 @@ final class SEO_Ojeador_Analysis {
         $order_by = isset($order_map[$sort]) ? $order_map[$sort] : $order_map['position'];
 
         $where_sql = implode(' AND ', $where);
-        $count_sql = "SELECT COUNT(*) FROM {$table} r LEFT JOIN {$categories} c ON c.term_id=r.term_id WHERE {$where_sql}";
-        if ($params) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE se compone con fragmentos internos y placeholders; valores enlazados mediante $wpdb->prepare().
-            $count_sql = $wpdb->prepare($count_sql, $params);
-        }
+        // WHERE is composed only from fixed conditions; all filtering values are placeholders.
+        $count_sql = "SELECT COUNT(*) FROM %i r LEFT JOIN %i c ON c.term_id=r.term_id WHERE {$where_sql}";
+        $count_sql = $wpdb->prepare($count_sql, array_merge(array($table, $categories), $params));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado.
         $total = absint($wpdb->get_var($count_sql));
 
@@ -191,13 +189,13 @@ final class SEO_Ojeador_Analysis {
                               r.merchant,r.merchant_key,r.price,r.old_price,r.currency,r.delivery,
                               r.rating,r.reviews,r.image_url,r.merchant_url,r.product_url,
                               r.result_position,r.first_seen_at,r.last_seen_at,r.observed_at
-                       FROM {$table} r
-                       LEFT JOIN {$categories} c ON c.term_id=r.term_id
-                       LEFT JOIN {$wpdb->terms} t ON t.term_id=r.term_id
+                       FROM %i r
+                       LEFT JOIN %i c ON c.term_id=r.term_id
+                       LEFT JOIN %i t ON t.term_id=r.term_id
                        WHERE {$where_sql}
                        ORDER BY {$order_by}
                        LIMIT %d OFFSET %d";
-        $select_params = $params;
+        $select_params = array_merge(array($table, $categories, $wpdb->terms), $params);
         $select_params[] = $per_page;
         $select_params[] = $offset;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y ORDER BY proceden de allowlists internas; valores/paginación enlazados mediante placeholders.
@@ -230,13 +228,13 @@ final class SEO_Ojeador_Analysis {
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         $categories = esc_sql( SEO_Ojeador_DB::table('categories') );
         return (array) $wpdb->get_results(
-            "SELECT r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,COUNT(*) AS products_found
-             FROM {$table} r
-             LEFT JOIN {$categories} c ON c.term_id=r.term_id
-             LEFT JOIN {$wpdb->terms} t ON t.term_id=r.term_id
+            $wpdb->prepare("SELECT r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,COUNT(*) AS products_found
+             FROM %i r
+             LEFT JOIN %i c ON c.term_id=r.term_id
+             LEFT JOIN %i t ON t.term_id=r.term_id
              WHERE r.active=1 AND c.status='ok'
              GROUP BY r.term_id,category_name
-             ORDER BY category_name ASC",
+             ORDER BY category_name ASC", $table, $categories, $wpdb->terms),
             ARRAY_A
         );
     }
@@ -258,9 +256,10 @@ final class SEO_Ojeador_Analysis {
                        AVG(CASE WHEN rating IS NOT NULL AND rating>0 THEN rating ELSE NULL END) AS avg_rating,
                        SUM(CASE WHEN rating IS NOT NULL AND rating>0 THEN 1 ELSE 0 END) AS rated_count,
                        SUM(reviews) AS total_reviews
-                FROM {$table}
+                FROM %i
                 WHERE active=1
                 GROUP BY term_id";
+        $sql = $wpdb->prepare($sql, $table);
         $out = array();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
         foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
@@ -302,14 +301,14 @@ final class SEO_Ojeador_Analysis {
         $limit = max(1, min(100, absint($limit)));
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         return (array) $wpdb->get_results(
-            "SELECT merchant,merchant_key,COUNT(*) AS appearances,COUNT(DISTINCT term_id) AS categories,
+            $wpdb->prepare("SELECT merchant,merchant_key,COUNT(*) AS appearances,COUNT(DISTINCT term_id) AS categories,
                     SUM(CASE WHEN price IS NOT NULL AND price>0 THEN 1 ELSE 0 END) AS rows_with_price,
                     SUM(CASE WHEN old_price>price AND price>0 THEN 1 ELSE 0 END) AS discounted_rows
-             FROM {$table}
+             FROM %i
              WHERE active=1 AND merchant_key<>''
              GROUP BY merchant_key,merchant
              ORDER BY appearances DESC,categories DESC
-             LIMIT {$limit}",
+             LIMIT %d", $table, $limit),
             ARRAY_A
         );
     }
