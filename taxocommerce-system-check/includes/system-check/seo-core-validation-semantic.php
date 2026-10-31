@@ -438,7 +438,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
            AND seo_role IN (" . $placeholders . ")
            AND status = 1
          ORDER BY object_id ASC, seo_role ASC, updated_at DESC, id DESC",
-        $params
+        ...$params
     );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
@@ -505,7 +505,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
                AND v.semantic_group IN ('rol','tipo','aplicacion','plataforma','subtipo')
                AND ov.object_id IN (" . $placeholders . ")
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
-            array_merge(array($object_table, $vocab_table), $category_ids)
+            ...array_merge(array($object_table, $vocab_table), $category_ids)
         );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     } else {
