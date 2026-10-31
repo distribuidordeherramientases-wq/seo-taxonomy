@@ -23,14 +23,18 @@ jobs:
     name: PHP lint and independent package
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: PHP 7.4
+      - name: PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: ${{ matrix.php }}
           coverage: none
 
       - name: PHP lint and no developer email
@@ -43,6 +47,7 @@ jobs:
           find taxocommerce-system-check -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
           php taxocommerce-system-check/tests/php-check-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
+          php taxocommerce-system-check/tests/sql-explain-smoke.php
           if grep -R --fixed-strings 'davidperezmartorell@gmail.com' taxocommerce-system-check; then
             echo 'Do not package a developer email address.'
             exit 1
