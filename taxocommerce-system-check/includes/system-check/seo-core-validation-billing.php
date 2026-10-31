@@ -794,8 +794,9 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
                 SUM(CASE WHEN status = 'issued' AND (pdf_path = '' OR pdf_path IS NULL) THEN 1 ELSE 0 END) AS issued_without_path,
                 SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS error_documents,
                 SUM(CASE WHEN status = 'rendering' AND updated_at < %s THEN 1 ELSE 0 END) AS stale_rendering
-             FROM {$identifier}",
-            $cutoff
+             FROM %i",
+            $cutoff,
+            $identifier
         );
         $stats = $wpdb->get_row($sql, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         if (!empty($wpdb->last_error)) {
@@ -834,11 +835,14 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
         }
 
         $sample = $wpdb->get_results(
-            "SELECT id, document_number, pdf_path, file_hash
-             FROM {$identifier}
-             WHERE status = 'issued'
-             ORDER BY id DESC
-             LIMIT 25",
+            $wpdb->prepare(
+                "SELECT id, document_number, pdf_path, file_hash
+                 FROM %i
+                 WHERE status = 'issued'
+                 ORDER BY id DESC
+                 LIMIT 25",
+                $identifier
+            ),
             ARRAY_A
         ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
