@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,7 +29,7 @@ Distribution retains the proven production behavior of the previous TaxoCommerce
 * Atomic sitemap publication and stable root-domain URLs.
 * Automatic sitemap regeneration after catalog/content changes when Distribution owns the endpoint.
 * Safe coexistence mode with the legacy monolithic plugin during migration.
-* Integrated Manual (user and technical sections) covering commercial feeds, sitemaps, automation, migration, storage and troubleshooting.
+* Two full, independently structured guides within the Manual tab: a step-by-step User Manual and a Developer Technical Manual with code map, lifecycle, hooks, options, security, migration, tests, and safe extension procedure.
 * On-demand, read-only Autocheck of components, registrations, configuration and local publication files, without regeneration, background jobs or network calls.
 
 == Compatibility ==
@@ -59,6 +59,11 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.2 =
+* Expanded the integrated Manual into two clearly separate, indexed and responsive documents: User Manual and Developer Technical Manual.
+* Added a developer file/function responsibility matrix, generation lifecycle, WordPress options and hook references, coexistence, security and maintenance checklist.
+* Clarified safe user workflows for existing feeds and sitemaps without changing operational logic.
 
 = 0.1.1 =
 * Added internal Manual with user and technical instructions for existing Distribution functions.

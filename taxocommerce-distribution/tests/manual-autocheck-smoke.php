@@ -98,7 +98,14 @@ distribution_autocheck_assert(
     strpos( $admin, 'taxocommerce_distribution_render_manual();' ) !== false &&
     strpos( $main, "'includes/autocheck.php'" ) !== false &&
     strpos( $manual, 'Manual de usuario' ) !== false &&
-    strpos( $manual, 'Manual técnico' ) !== false,
+    strpos( $manual, 'Manual técnico para futuros desarrolladores' ) !== false &&
+    strpos( $manual, 'tcdist-manual-usuario' ) !== false &&
+    strpos( $manual, 'tcdist-manual-tecnico' ) !== false &&
+    strpos( $manual, 'Mapa de código y responsabilidades' ) !== false &&
+    strpos( $manual, 'Contrato de datos y eventos' ) !== false &&
+    strpos( $manual, 'Procedimiento para futuros desarrolladores' ) !== false &&
+    strpos( $manual, 'tcdist_distribution_feed_worker_tick()' ) !== false &&
+    strpos( $manual, 'tcdist_sitemap_create_sitemaps()' ) !== false,
     'both tabs are served by the independent Distribution admin'
 );
 
