@@ -489,13 +489,13 @@ if (!function_exists('seo_health_scan_expire_stale')) {
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET status='failed',error_message='Ejecución caducada sin callback final.',callback_token_hash='',completed_at=%s,updated_at=%s WHERE id IN (" . $placeholders . ")",
-                    array_merge(array($tables['runs'], $now, $now), $ids)
+                    ...array_merge(array($tables['runs'], $now, $now), $ids)
                 )
             );
             $wpdb->query(
                 $wpdb->prepare(
                     "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id IN (" . $placeholders . ")",
-                    array_merge(array($tables['items']), $ids)
+                    ...array_merge(array($tables['items']), $ids)
                 )
             );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
