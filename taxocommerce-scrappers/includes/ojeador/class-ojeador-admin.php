@@ -72,7 +72,7 @@ final class SEO_Ojeador_Admin {
 
     private static function guard($action) {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('No autorizado.', 'taxocommerce-seo'));
+            wp_die(esc_html__('No autorizado.', 'taxocommerce-scrappers'));
         }
         check_admin_referer($action);
     }
