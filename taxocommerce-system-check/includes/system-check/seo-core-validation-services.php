@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: migrated legacy seo_* function, variable and hook names are stable shared APIs; renaming would break monolith integrations. Scope: this historical compatibility source file only.
 /**
  * Plugin Validation - salud de servicios y conexiones externas.
  *
@@ -20,6 +21,7 @@ function seo_core_service_health_table_probe($suffix) {
     $table = $wpdb->prefix . $suffix;
     $exists = function_exists('seo_core_system_test_table_exists')
         ? seo_core_system_test_table_exists($table)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic explicitly reads current database state, so caching would invalidate the result.
         : ((string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table);
 
     if (!$exists) {
@@ -31,6 +33,7 @@ function seo_core_service_health_table_probe($suffix) {
     $table_sql = '`' . esc_sql($table) . '`';
     $sql = "SELECT COUNT(*) FROM {$table_sql}";
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- El identificador es interno, previamente restringido y no contiene valores de usuario.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic explicitly reads current database state, so caching would invalidate the result.
     $count = $wpdb->get_var($sql);
     $error = sanitize_text_field((string) $wpdb->last_error);
 
