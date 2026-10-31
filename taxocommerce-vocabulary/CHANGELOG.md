@@ -6,6 +6,14 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.3.4]
+
+* Añadidas las pestañas Auto Test y Manual dentro de Vocabulary, sin alterar Etiquetas, Atributos, Clasificador, Importar / Exportar ni Control.
+* Auto Test de 16 comprobaciones agrupadas: arranque, rutas, WooCommerce, MySQL, esquema canónico, columnas, lecturas acotadas, clasificador, intercambio portable y documentación; las escrituras y descargas reales se omiten explícitamente.
+* Comparación de las dos últimas ejecuciones por usuario mediante transitorios de 30 días, indicando versión y regresiones.
+* Manual integrado con guía de usuario y guía técnica: pantallas, grupos, datos canónicos, importación CSV, JSON MERGE/MIRROR, nonces, roles, límites y compatibilidad.
+* Pruebas automatizadas y exclusión de los scripts de pruebas del ZIP distribuible.
+
 
 ## [0.3.3]
 
