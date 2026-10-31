@@ -4701,8 +4701,7 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
               LIMIT %d";
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas/order proceden de allowlists internas; valores y límite enlazados mediante $wpdb->prepare().
     $prepared_sql = $wpdb->prepare($query, $params);
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared_sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
     return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
 }
 
