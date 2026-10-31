@@ -53,11 +53,16 @@ class ReportTests(unittest.TestCase):
             root = Path(t)
             report = root / "plugin-check-results.txt"
             report.write_text("Success: Checks complete. No errors found.\n")
-            output = root / "quality-state.json"
-            record = MODULE.scan("taxocommerce-images", report, "success", output)
+            reports = root / "reports"
+            module = reports / "wordpress-readiness-taxocommerce-images"
+            module.mkdir(parents=True)
+            record = MODULE.scan("taxocommerce-images", report, "success", module / "quality-state.json")
             self.assertTrue(record["complete"])
             self.assertEqual((record["errors"], record["warnings"]), (0, 0))
-            self.assertEqual(MODULE.summarize(root / "reports", '[]', root / "summary.md"), [0, 0])
+            self.assertEqual(
+                MODULE.summarize(reports, '["taxocommerce-images"]', root / "summary.md"),
+                [0, 0],
+            )
 
     def test_full_summary_and_incomplete_artifact_protection(self):
         with tempfile.TemporaryDirectory() as t:
