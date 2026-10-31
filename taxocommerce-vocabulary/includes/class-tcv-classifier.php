@@ -31,6 +31,8 @@ final class TCV_Classifier {
         );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function current_groups( $product_id ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -51,6 +53,7 @@ final class TCV_Classifier {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function score_term( $term, $ctx ) {
         $needle = self::normalize( $term );
         if ( '' === $needle ) {
@@ -79,6 +82,8 @@ final class TCV_Classifier {
         return round( min( 1, $best ), 4 );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function vocabulary_candidates( $group, $ctx, $limit = 4 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -101,6 +106,9 @@ final class TCV_Classifier {
         return array_slice( $scored, 0, $limit );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function derive_role( $type_id ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -113,6 +121,9 @@ final class TCV_Classifier {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_candidates( $ctx ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -157,6 +168,7 @@ final class TCV_Classifier {
         return array_slice( $out, 0, 20 );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_product( $product_id ) {
         $product_id = absint( $product_id );
         $ctx = self::product_context( $product_id );
@@ -206,6 +218,8 @@ final class TCV_Classifier {
         return $result;
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function persist_proposal( $product_id, $group, $proposal ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -226,6 +240,7 @@ final class TCV_Classifier {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function category_context( $term_id ) {
         $term = get_term( $term_id, 'product_cat' );
         if ( ! $term || is_wp_error( $term ) ) {
@@ -253,6 +268,8 @@ final class TCV_Classifier {
         );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_category( $term_id ) {
         global $wpdb;
         $term_id = absint( $term_id );
@@ -293,6 +310,9 @@ final class TCV_Classifier {
         return $result;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function persist_category_proposal( $term_id, $group, $proposal ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -310,6 +330,7 @@ final class TCV_Classifier {
         ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function sanitize_filters( $filters ) {
         $coverage_allowed = array( 'missing_any','without_any','without_type','without_role','without_application','without_platform','without_subtype' );
         $priority_allowed = array( 'all','p1','p2','p3','p4','p5' );
@@ -423,6 +444,8 @@ final class TCV_Classifier {
         return (array) get_option( 'taxocommerce_vocabulary_classifier_last_report', array() );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function recent_category_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -430,10 +453,14 @@ final class TCV_Classifier {
         return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $t['cat_proposals'], $limit ), ARRAY_A );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function recent_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $limit = max( 1, min( 500, absint( $limit ) ) );
         return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $t['proposals'], $limit ), ARRAY_A );
     }
-}
+
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching}
