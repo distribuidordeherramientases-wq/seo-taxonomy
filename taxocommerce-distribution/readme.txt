@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Publish WooCommerce commercial feeds and professional XML sitemaps with bounded 
 
 TaxoCommerce Distribution separates technical catalog publication from marketing, templates and supplier imports.
 
-Version 0.1.0 migrates the proven production behavior of the previous TaxoCommerce SEO modules:
+Distribution retains the proven production behavior of the previous TaxoCommerce SEO modules:
 
 * Google Merchant Center XML feed.
 * Microsoft Merchant Center / Bing Shopping feed.
@@ -29,6 +29,8 @@ Version 0.1.0 migrates the proven production behavior of the previous TaxoCommer
 * Atomic sitemap publication and stable root-domain URLs.
 * Automatic sitemap regeneration after catalog/content changes when Distribution owns the endpoint.
 * Safe coexistence mode with the legacy monolithic plugin during migration.
+* Integrated Manual (user and technical sections) covering commercial feeds, sitemaps, automation, migration, storage and troubleshooting.
+* On-demand, read-only Autocheck of components, registrations, configuration and local publication files, without regeneration, background jobs or network calls.
 
 == Compatibility ==
 
@@ -47,7 +49,21 @@ When the legacy plugin is active, it retains scheduled ownership to avoid duplic
 
 English is the base source and UI language. Future localization should use standard WordPress gettext translations without changing public feed filenames or compatibility keys.
 
+== Installation ==
+
+1. Install WooCommerce and activate TaxoCommerce Distribution.
+2. Open TaxoCommerce Core > Distribution, or Distribution in the WordPress menu without Core.
+3. Review Overview and configure channels in Commercial Feeds before generating any inventory.
+4. Review Sitemaps and Automation; during coexistence with the legacy plugin, avoid duplicate scheduled writers.
+5. Open Manual for user and technical instructions. Run Autocheck to validate availability without generating files or using external services.
+6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
+
 == Changelog ==
+
+= 0.1.1 =
+* Added internal Manual with user and technical instructions for existing Distribution functions.
+* Added grouped Autocheck, manually executed with permissions and nonce; checks read-only availability of feeds, sitemaps, worker hooks, settings and published files.
+* Added isolated no-write regression test. Development tests remain outside the distributable ZIP.
 
 = 0.1.0 =
 * Initial modular migration of commercial feeds and sitemap generation.

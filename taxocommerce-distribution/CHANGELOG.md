@@ -6,6 +6,13 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.1.1]
+
+- Añadida pestaña **Manual**, con guía de usuario y documentación técnica de los feeds comerciales, sitemaps, automatización, rutas públicas, coexistencia y resolución de incidencias.
+- Añadida pestaña **Autocheck** con ejecución manual, protección de permisos/nonce y controles agrupados de motor, canales, eventos registrados, opciones de solo lectura y metadatos de los archivos publicados.
+- El Autocheck no llama a inicializadores de almacenamiento que podrían crear ficheros, no genera feeds ni XML, no programa workers y no realiza peticiones externas ni escrituras.
+- Incorporada prueba aislada sin WordPress real para detectar efectos secundarios y verificar ambas pestañas; sincronizada la documentación WordPress.org. Issue #1978.
+
 
 ## [0.1.0]
 
