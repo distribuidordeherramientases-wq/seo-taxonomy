@@ -637,7 +637,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $scope = self::scope( isset( $_POST['tcs_scope'] ) && is_string( $_POST['tcs_scope'] )
             ? sanitize_key( wp_unslash( $_POST['tcs_scope'] ) ) : 'page' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately above.
-        $task = isset( $_POST['tcs_task'] ) ? sanitize_key( wp_unslash( $_POST['tcs_task'] ) ) : '';
+        $task = isset( $_POST['tcs_task'] ) && is_string( $_POST['tcs_task'] )
+            ? sanitize_key( wp_unslash( $_POST['tcs_task'] ) ) : '';
 
         if ( ! self::supported() ) {
             self::redirect_notice( $scope, 'El inventario de chequeos no está disponible.', true );
@@ -892,14 +893,17 @@ final class TaxoCommerce_System_Check_URL_Audit {
         global $wpdb;
         $items = self::table( 'items' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filters.
-        $filter = isset( $_GET['tcs_filter'] ) ? sanitize_key( wp_unslash( $_GET['tcs_filter'] ) ) : 'error';
+        $filter = isset( $_GET['tcs_filter'] ) && is_string( $_GET['tcs_filter'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_filter'] ) ) : 'error';
         if ( ! in_array( $filter, array( 'error', 'warning', 'pending', 'ok', 'all' ), true ) ) {
             $filter = 'error';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search.
-        $search = isset( $_GET['tcs_search'] ) ? sanitize_text_field( wp_unslash( $_GET['tcs_search'] ) ) : '';
+        $search = isset( $_GET['tcs_search'] ) && is_string( $_GET['tcs_search'] )
+            ? sanitize_text_field( wp_unslash( $_GET['tcs_search'] ) ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
-        $page = isset( $_GET['tcs_paged'] ) ? max( 1, absint( wp_unslash( $_GET['tcs_paged'] ) ) ) : 1;
+        $page = isset( $_GET['tcs_paged'] ) && is_scalar( $_GET['tcs_paged'] )
+            ? max( 1, absint( wp_unslash( $_GET['tcs_paged'] ) ) ) : 1;
         $where = array( 'scope=%s', 'active=1' );
         $params = array( $scope );
         if ( 'pending' === $filter ) {
