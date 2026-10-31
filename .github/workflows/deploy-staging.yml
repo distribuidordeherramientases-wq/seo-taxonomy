@@ -21,7 +21,7 @@ jobs:
       - name: Validate Core architecture report before any STAGING FTP upload
         run: |
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
-          php taxocommerce-core/tests/architecture-report-smoke.php
+          php .github/tests/taxocommerce-core/architecture-report-smoke.php
 
       - name: Validate independent Database before any STAGING FTP upload
         run: |

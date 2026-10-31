@@ -168,7 +168,7 @@ PHP;
 					<h2><?php esc_html_e( '9. Validación, versiones y despliegue', 'taxocommerce-core' ); ?></h2>
 					<ol>
 						<li><?php esc_html_e( 'Trabaja sobre una rama de Git y modifica solo los archivos del plugin afectados. Ajusta la versión declarada en la cabecera y en TAXOCOMMERCE_CORE_VERSION.', 'taxocommerce-core' ); ?></li>
-						<li><?php esc_html_e( 'Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en taxocommerce-core/tests/.', 'taxocommerce-core' ); ?></li>
+						<li><?php esc_html_e( 'Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en .github/tests/taxocommerce-core/.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'Crea una pull request hacia staging y revisa sus comprobaciones antes de fusionar.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'El workflow .github/workflows/deploy-taxocommerce-core-staging.yml valida Core y realiza el despliegue FTPS a staging cuando se cumplen sus condiciones y están disponibles sus credenciales.', 'taxocommerce-core' ); ?></li>
 						<li><?php esc_html_e( 'Comprueba el resultado en WordPress staging antes de planificar una subida independiente a producción. Fusionar una rama no confirma por sí solo el despliegue.', 'taxocommerce-core' ); ?></li>
