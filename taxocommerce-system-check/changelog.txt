@@ -1,0 +1,47 @@
+HISTORIAL LEGADO — TAXOCOMMERCE SYSTEM CHECK
+
+Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.
+Documento original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+El hito 2.0.0 queda excluido por estar marcado «Próxima versión».
+
+ORIGEN Y EXTRACCIÓN
+* Legacy origin: server diagnostics, plugin validation and HTTP/URL checks existed under TaxoCommerce SEO administration; the monolith's release numbers are not standalone System Check versions.
+* The old validation panel mixed site status, plugin-specific checks and URL/HTTP observations; its historical outputs were not automatically proof that newer modules had passed.
+* During modularisation System Check was isolated from SEO_SYSTEM_* globals and constants to prevent collisions with the still-installed monolith.
+* Standalone diagnostics distinguished the active plugin modules from installed but inactive extensions and retained administrator-controlled bounded scans and reports.
+* Later WordPress.org work corrected text-domain usage and prepared SQL identifiers; the historical original checker remained distinct from each plugin's own Auto Test.
+
+ETAPAS Y FUNCIONALIDADES DOCUMENTADAS
+
+## [2.3.9] - 2026-09-30
+Cambios realizados en el plugin monolítico:
+[Auditor, Analista y control de calidad] - Incorporada en **Estado del servidor → MySQL** una auditoría SQL de solo lectura con inventario, índices, EXPLAIN, métricas, histórico, gráficos y exportación JSON.
+
+## [2.3.7] - 2026-09-25
+Cambios realizados en el plugin monolítico:
+[Estabilidad y mantenimiento] - Realizadas correcciones adicionales en servicios de importación, análisis y generación de informes.
+[Estabilidad y mantenimiento] - Mejorada la separación entre procesos pesados y carga de las pantallas administrativas.
+[Estabilidad y mantenimiento] - Reforzada la generación de JSON como formato de intercambio y revisión externa.
+
+## [2.3.6] - 2026-09-23
+Cambios realizados en el plugin monolítico:
+[SEO, auditoría y validación] - Ampliados los chequeos del plugin con nuevos controles SEO y técnicos.
+[SEO, auditoría y validación] - Revisado y mejorado el sistema de análisis de tiempos de carga de páginas.
+[SEO, auditoría y validación] - Corregidos problemas en el escaneo externo de páginas que podían producir respuestas HTTP 503.
+
+## [2.3.5]- 2026-09-17
+Cambios realizados en el plugin monolítico:
+[Compatibilidad] - WordPress 7.1
+
+## [2.3.3] - 2026-09-08
+Cambios realizados en el plugin monolítico:
+[Mejorado] - Reorganizado el sistema de chequeos en una estructura de carpetas específica y más mantenible. (#172)
+
+## 2.3.2 - Consolidación operativa, Dependiente y catálogo
+Cambios realizados en el plugin monolítico:
+- Prepara y valida el plugin para el entorno actualizado de WordPress 7.1.
+
+CORTE Y EVOLUCIÓN POSTERIOR
+TaxoCommerce SEO cerró la línea monolítica ordinaria en 2.4.1 (25/10/2026).
+Para versiones del módulo autónomo consultar CHANGELOG.md.
+Para PR y evidencias: docs/PLUGIN-HISTORY-SOURCES.md.

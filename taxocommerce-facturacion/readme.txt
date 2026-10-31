@@ -33,6 +33,8 @@ It does not create a parallel document database and does not include a destructi
 * Migrated the existing document module into an independent TaxoCommerce plugin.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-facturacion) (changelog.txt / CHANGELOG.md).
+
 * Historical source: document generation, invoices and quotations were maintained in the TaxoCommerce SEO monolith before the standalone Billing module; this section is not a Billing release.
 * The legacy implementation used seo_facturas_* options and the seo_factura_documents table; the standalone extraction retained those stores instead of resetting customer documents.
 * Earlier checkout and tax corrections avoided adding VAT twice to retail prices already expressed with tax included.

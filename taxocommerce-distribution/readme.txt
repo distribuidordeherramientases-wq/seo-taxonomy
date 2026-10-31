@@ -56,6 +56,8 @@ English is the base source and UI language. Future localization should use stand
 * Added Distribution admin tabs for overview, feeds, sitemaps and automation.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-distribution) (changelog.txt / CHANGELOG.md).
+
 * Legacy origin: sitemap output and commercial product feeds were developed in TaxoCommerce SEO before the Distribution 0.1.0 extraction; previous SEO releases are not Distribution versions.
 * The monolith 2.3.7 cycle documented commercial feeds alongside catalogue, market observations and Google Shopping integrations.
 * Distribution 0.1.0 separated feed generation and sitemap responsibilities into an independent module while keeping established content/catalogue relationships.

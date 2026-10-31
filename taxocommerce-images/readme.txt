@@ -155,6 +155,8 @@ Current functionality includes:
 * Initial modular pilot.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-images) (changelog.txt / CHANGELOG.md).
+
 * TaxoCommerce SEO 2.3.x linked supplier image imports, catalogue records and Media metadata; the 2.4.1 monolith version is not an Images release.
 * Images 0.2.0 extracted WebP, optimisation, image references, HTTP checks and thumbnails. Media ZIP import/export moved to Import-Export.
 * Later standalone versions added category-based image assignment, external-provider distinctions, inventory audits, adaptive background batches and Auto Test.

@@ -39,6 +39,8 @@ Social publishing sends authorized content and associated account data to the se
 * Preserved existing settings and history without deleting them on deactivation.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-social) (changelog.txt / CHANGELOG.md).
+
 * Legacy origin: social-network publishing, scheduling and commercial reporting were features of TaxoCommerce SEO before the independent Social plugin; those monolith versions are not Social standalone releases.
 * The monolith 2.3.6 and 2.3.9 cycles documented social channels and marketing/reporting connections alongside commercial campaigns.
 * Standalone 0.1.0 moved network integrations and scheduled publication into an independent module with its own bootstrap, navigation and Core registration.

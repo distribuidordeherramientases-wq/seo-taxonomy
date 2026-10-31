@@ -94,6 +94,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-social/
           server-dir: ./wp-content/plugins/taxocommerce-social/
+          # Keep FTP synchronization state outside the installed standalone plugin.
+          state-name: ../.taxocommerce-social-ftp-state.json
           dry-run: false
           log-level: standard
           exclude: |

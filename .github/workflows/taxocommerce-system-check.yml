@@ -7,6 +7,12 @@ on:
     paths:
       - 'taxocommerce-system-check/**'
       - '.github/workflows/taxocommerce-system-check.yml'
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-system-check/**'
+      - '.github/workflows/taxocommerce-system-check.yml'
   workflow_dispatch:
 
 permissions:
@@ -36,6 +42,7 @@ jobs:
           test -f taxocommerce-system-check/includes/class-taxocommerce-system-check-url-audit.php
           find taxocommerce-system-check -type f -name '*.php' -print0 | sort -z | xargs -0 -n1 php -l
           php taxocommerce-system-check/tests/php-check-smoke.php
+          php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           if grep -R --fixed-strings 'davidperezmartorell@gmail.com' taxocommerce-system-check; then
             echo 'Do not package a developer email address.'
             exit 1
@@ -69,9 +76,13 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-system-check/
           server-dir: ./wp-content/plugins/taxocommerce-system-check/
+          # Keep FTP synchronization state outside the installed standalone plugin.
+          state-name: ../.taxocommerce-system-check-ftp-state.json
           dry-run: false
           log-level: verbose
           exclude: |
+            tests/**
+            **/tests/**
             **/.git*
             **/.git*/**
             **/node_modules/**

@@ -1,97 +1,44 @@
-HISTORIAL DE ORIGEN — Logistics
+HISTORIAL LEGADO — TAXOCOMMERCE LOGISTICS
 
-Etapa: TaxoCommerce SEO monolítico (hasta 2.4.1). Estas NO son versiones del plugin independiente.
-Fuente: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
-No se atribuyen fechas que no consten en las fuentes.
+Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.
+Changelog original: https://github.com/distribuidordeherramientases-wq/seo-taxonomy/blob/staging/CHANGELOG.md
+No se incorpora 2.0.0 como publicación: el documento la señala como «Próxima versión».
 
-EVOLUCIÓN Y EXTRACCIÓN
+ORIGEN Y SEPARACIÓN
 * Legacy origin: shipping, transport-rate settings and WooCommerce checkout integration were originally functions of the TaxoCommerce SEO monolith; former monolith versions are not Logistics releases.
 * The original implementation stored transport configuration in seo_transporte_costes_settings; extracting Logistics preserved existing shipping rules.
 * The independent plugin was created by a one-to-one migration together with Billing, with original shipping logic retained rather than replaced.
 * Supplier purchasing operations were moved from Logistics into Suppliers so shipping rules and procurement have separate owners.
 * Later standalone releases added grouped Auto Test checks, before/after comparison, user/technical manuals, and integration into the Core family menu without claiming independent checkout behavior.
 
-CAMBIOS RECOGIDOS EN EL MONOLITO
-
-## [2.4.1] - 2026-10-25
-Versión del monolito (no de Logistics).
+HITOS DOCUMENTADOS EN LAS VERSIONES ORIGINALES
 
 ## [2.3.9] - 2026-09-30
-Versión del monolito (no de Logistics).
-[Marketing, campañas y redes sociales] - Añadida prioridad editorial para Noticias y soporte del campo `prioridad` en Programador/CSV.
+Notas del monolito (no releases de este plugin):
 [Frontend, contenidos y navegación] - Ajustados cabecera, ficha de producto y carrito para mejorar la jerarquía comercial y aprovechar mejor el primer pliegue.
-[Comparador, carrito y documentos comerciales] - Ampliado el **Comparador de Dependiente** de 4 a 6 productos.
-[Comparador, carrito y documentos comerciales] - Añadida exportación de comparativas a **PDF A4 apaisado** reutilizando Dompdf.
-[Comparador, carrito y documentos comerciales] - El comparador utiliza clasificación canónica y atributos técnicos de TaxoCommerce SEO, mostrando diferencias relevantes y manteniendo fallback de WooCommerce cuando aporta datos adicionales.
 [Comparador, carrito y documentos comerciales] - Corregidas las imágenes del carrito para admitir imágenes externas activas de proveedores y variaciones.
 [Comparador, carrito y documentos comerciales] - Recuperados **Presupuesto** y **Proforma borrador** en la plantilla de carrito DHT.
-[Comparador, carrito y documentos comerciales] - Restablecido el **Sistema documental** como interruptor maestro para Presupuesto/Proforma/Factura después de validar el flujo correcto.
 [Comparador, carrito y documentos comerciales] - Permitida la descarga de Presupuesto/Proforma cuando el transporte todavía no está calculado, marcando el total como provisional.
-[Comparador, carrito y documentos comerciales] - Mejorados Presupuesto y Proforma con resumen comercial, características relevantes, acompañamiento de compra y presentación más legible.
-[Comparador, carrito y documentos comerciales] - Los documentos de cliente muestran la **referencia interna/object_id** en lugar del SKU real del proveedor, manteniendo el SKU para la operativa interna.
-[Comparador, carrito y documentos comerciales] - Los PDF pueden utilizar imagen externa del proveedor cuando el producto no dispone de imagen en Media.
 [Comparador, carrito y documentos comerciales] - Corregida la interpretación fiscal para catálogos cuyo **PVP ya incluye IVA**: ficha, carrito y checkout mantienen el precio final visible y desglosan el impuesto sin volver a sumarlo.
-[Comparador, carrito y documentos comerciales] - La sincronización del modo de precios con IVA queda separada de la gestión automática de tasas para evitar duplicar IVA aunque el gestor fiscal esté desactivado.
-[Proveedores e importación] - Añadida receta CSV para **Decathlon** dentro del flujo de catálogo intermedio de proveedores.
 [Documentación y proceso de publicación] - Documentado el sistema completo de **Facturas, Proformas y Presupuestos**, incluyendo fiscalidad, numeración, snapshots, transporte pendiente e imágenes externas.
 
-## [2.3.7] - 2026-09-25
-Versión del monolito (no de Logistics).
-[Marketing y campañas comerciales] - Creado el nuevo **servicio de campañas comerciales**.
-[Marketing y campañas comerciales] - Integrado **Analista** para proponer campañas de marketing a partir de señales de catálogo, demanda y rendimiento.
-[Marketing y campañas comerciales] - Añadidas **plantillas para campañas publicitarias** y espacios promocionales en la tienda.
-[Marketing y campañas comerciales] - Incorporada la generación de **imágenes para campañas**.
-[Marketing y campañas comerciales] - Añadida exportación e importación de campañas y programación mediante **JSON**.
-[Marketing y campañas comerciales] - Integradas las campañas comerciales en el **programador de redes sociales**.
-[Marketing y campañas comerciales] - Añadidos **precios de oferta y periodo de vigencia** a los feeds comerciales.
-[Inventarios y proveedores] - Creado un sistema de **inventarios comerciales por proveedor**.
-[Inventarios y proveedores] - Incorporada la posibilidad de seleccionar y enviar determinados productos a proveedores.
-[Inventarios y proveedores] - Añadidos procesos automáticos de actualización y sincronización de inventarios con proveedores.
-[Inventarios y proveedores] - Preparada la infraestructura para utilizar disponibilidad, precio y catálogo de proveedores como parte del análisis comercial.
-[Feeds comerciales] - Añadido soporte para:
-[Feeds comerciales] - precio normal;
-[Feeds comerciales] - precio de oferta;
-[Feeds comerciales] - fecha de inicio de oferta;
-[Feeds comerciales] - fecha de finalización de oferta.
-[Feeds comerciales] - Preparados estos datos para su utilización en feeds comerciales y plataformas externas.
-[Issues principales] - #288 — Sistema de envío de productos a proveedores e inventarios comerciales.
-
 ## [2.3.6] - 2026-09-23
-Versión del monolito (no de Logistics).
+Notas del monolito (no releases de este plugin):
 [SEO, auditoría y validación] - los timeouts de transporte ya no se interpretan automáticamente como errores SEO;
-[Importación, proveedores e imágenes] - Corregida la rotación y limpieza de archivos generados por Importar/Exportar.
-[Importación, proveedores e imágenes] - Mejorada la eliminación automática de archivos antiguos ya procesados.
-[Importación, proveedores e imágenes] - Corregida la gestión de imágenes para evitar almacenar innecesariamente en Media imágenes que deben permanecer asociadas al proveedor.
-[Importación, proveedores e imágenes] - Mejorado el Clonador PRO para ampliar la cobertura de los elementos transferidos entre Producción y Staging.
-
-## [2.3.5]- 2026-09-17
-Versión del monolito (no de Logistics).
-[Academia, Lingüista y aprendizaje] - Incorporación y evolución del módulo **Lingüista** como soporte semántico del Intérprete.
-[Arquitectura comercial y contenido] - Nuevas recomendaciones de arquitectura para **Clusters, Hubs primarios y Hubs secundarios**.
-[Arquitectura comercial y contenido] - Mejoras de las plantillas para incorporar señales y recomendaciones de marketing.
-[Arquitectura comercial y contenido] - Ajustes de frontend y helpers de plantillas para mantener coherencia entre STAGING y producción.
-[Arquitectura comercial y contenido] - Actualización de informes cuya validación de relaciones entre posts y categorías había quedado obsoleta.
-[Proveedores e importación] - Incorporado soporte para un **importador externo**.
-[Proveedores e importación] - Actualización de la integración con **Rubix** para procesos de scraping.
-[Proveedores e importación] - Añadido lanzador específico para Rubix.
-[Proveedores e importación] - Eliminada una receta antigua de importación de Emuca que ya no formaba parte del flujo vigente.
-[Proveedores e importación] - Mejoras en la gestión e inventario reducido utilizado durante procesos de importación.
-[Proveedores e importación] - Mejorado el exportador reducido de productos.
 
 ## [2.3.3] - 2026-09-08
-Versión del monolito (no de Logistics).
-[Añadido] - Añadido soporte para importar desde PRO a STAGING páginas, categorías, entradas y productos. (#146)
-[Añadido] - Añadido control propio de costes de envío para complementar o sustituir la lógica estándar de WooCommerce. (#150)
+Notas del monolito (no releases de este plugin):
 [Añadido] - Añadido nombre descriptivo de los portes según la regla logística aplicada. (#157)
 [Añadido] - Ampliado el sistema de facturas, presupuestos y proformas para contemplar portes e impuestos. (#151)
 [Añadido] - Mejorado el tratamiento de impuestos y costes asociados a envíos a Canarias, Ceuta y Melilla. (#131)
 [Corregido] - Corregidos problemas del sistema de logística y transporte. (#156)
 
 ## 2.3.2 - Consolidación operativa, Dependiente y catálogo
-Versión del monolito (no de Logistics).
+Notas del monolito (no releases de este plugin):
 - Incorpora mejoras comerciales en carrito, checkout, portes, presupuestos y facturación, incluyendo cálculo de envío basado en las características del producto y generación de documentación para clientes.
 - Corrige múltiples incidencias de interfaz y funcionamiento en Dependiente, comparadores, checkout, carrito, búsqueda SEO, estadísticas y conexiones con proveedores.
 
-TRANSICIÓN A PLUGINS INDEPENDIENTES
-TaxoCommerce SEO cerró su desarrollo monolítico ordinario en 2.4.1. Las versiones autónomas y nuevas funcionalidades se documentan en CHANGELOG.md.
-Referencias documentales: docs/PLUGIN-HISTORY-SOURCES.md.
+CONTINUIDAD
+El monolito TaxoCommerce SEO cerró en 2.4.1 (25/10/2026).
+La evolución del plugin independiente se registra exclusivamente en CHANGELOG.md.
+Referencias de reconstrucción: docs/PLUGIN-HISTORY-SOURCES.md.

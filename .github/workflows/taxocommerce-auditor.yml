@@ -75,6 +75,8 @@ jobs:
           port: 21
           local-dir: ./taxocommerce-auditor/
           server-dir: ./wp-content/plugins/taxocommerce-auditor/
+          # Keep FTP synchronization state outside the installed standalone plugin.
+          state-name: ../.taxocommerce-auditor-ftp-state.json
           dry-run: false
           log-level: standard
           exclude: |

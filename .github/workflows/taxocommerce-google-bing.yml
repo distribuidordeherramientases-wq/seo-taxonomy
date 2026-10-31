@@ -30,6 +30,8 @@ jobs:
         run: find taxocommerce-google-bing -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Insights-owned GEO AJAX regression
         run: php taxocommerce-google-bing/tests/geo-bridge-smoke.php
+      - name: Merged Analysis functional regression
+        run: php taxocommerce-google-bing/tests/analysis-unified-smoke.php
       - name: SEO/GEO saved-evidence recommendations regression
         run: php taxocommerce-google-bing/tests/geo-smoke.php
       - name: Insights Auto Test pre/post regression
@@ -100,7 +102,7 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./taxocommerce-google-bing/
-          state-name: ftp-deploy-sync-state.json
+          state-name: ../.taxocommerce-google-bing-ftp-state.json
           server-dir: ./wp-content/plugins/taxocommerce-google-bing/
           dry-run: false
           log-level: standard

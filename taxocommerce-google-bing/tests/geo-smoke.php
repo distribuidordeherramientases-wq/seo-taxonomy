@@ -18,6 +18,8 @@ class Fake_Product {
     public function get_name() { return 'Taladro de prueba'; }
 }
 function wc_get_product( $id ) { return $id === 42 ? new Fake_Product() : false; }
+function wc_get_cart_url() { return 'https://example.test/cart'; }
+function wc_get_checkout_url() { return 'https://example.test/checkout'; }
 require dirname( __DIR__ ) . '/includes/analysis/analista-geo.php';
 function check( $value, $message ) {
     if ( ! $value ) { fwrite( STDERR, $message . "\n" ); exit( 1 ); }
@@ -58,4 +60,24 @@ $plan = array( $entry( 'https://example.test/a', 'HACER_AHORA', true ),
 $out = taxocommerce_google_bing_geo_recommendations( $plan );
 check( count( $out ) === 2 && $out[0]['url'] === 'https://example.test/a', 'Actions must be validated and deduplicated' );
 check( count( taxocommerce_google_bing_geo_recommendations( array(), 5 ) ) === 0, 'No fabricated recommendations' );
+$ga4 = array(
+    'available' => true,
+    'sessions' => 359,
+    'purchases' => 1,
+    'funnel' => array( 'begin_checkout' => 5, 'add_to_cart' => 11 ),
+    'traffic_quality' => array( 'ai_sessions' => 2 ),
+);
+ob_start();
+taxocommerce_google_bing_geo_render_summary( 28, $ga4, $plan );
+$summary = ob_get_clean();
+check( false !== strpos( $summary, 'Plan estratégico integrado' ), 'Single strategic plan section' );
+check( false !== strpos( $summary, 'Corregir ficha' ), 'Validated SEO action is part of strategy' );
+check( false !== strpos( $summary, 'revisar checkout' ), 'Commercial funnel recommendation included' );
+check( false !== strpos( $summary, 'INVESTIGAR' ), 'Commercial recommendation is not executable' );
+check( false !== strpos( $summary, 'no menciones de marca' ), 'AI referred traffic is not mentions' );
+check( 4 === substr_count( $summary, '<li>' ), 'One combined shortlist, without duplicated actions' );
+ob_start();
+taxocommerce_google_bing_geo_render_summary( 28, array( 'available' => false ), array() );
+$empty = ob_get_clean();
+check( false !== strpos( $empty, 'No hay recomendaciones con evidencia suficiente' ), 'No invented suggestions when sources are missing' );
 echo "Geo smoke: OK\n";

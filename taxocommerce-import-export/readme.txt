@@ -136,5 +136,7 @@ The package transports original image files plus title, ALT, caption, descriptio
 * Initial CSV import/export pilot.
 
 == Historical origins (monolith; not standalone releases) ==
+* [Complete legacy and release history](https://github.com/distribuidordeherramientases-wq/seo-taxonomy/tree/main/taxocommerce-import-export) (changelog.txt / CHANGELOG.md).
+
 * Monolith: Supplier Import / Sync V2 (2.2.0); supplier CSV/XLSX catalogues (2.3.x); VEVOR CSV and trash-aware content (2.4.0).
 * Standalone: CSV pilot (0.1.x), Media ZIP (0.2.0), multi-file queue (0.3.0), then 0.4.x resumable exports, country codes, adaptive batches and Auto Test.

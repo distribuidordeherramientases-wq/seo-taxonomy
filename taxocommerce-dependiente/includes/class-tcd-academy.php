@@ -227,7 +227,7 @@ final class TCD_Academy {
 
         if('thresholds'===$action){
             $values=isset($_POST['thresholds']) && is_array($_POST['thresholds'])
-                ? wp_unslash($_POST['thresholds'])
+                ? map_deep(wp_unslash($_POST['thresholds']),'sanitize_text_field')
                 : array();
             $saved=TCD_Intelligence::set_quality_thresholds($values);
             if(is_wp_error($saved)){
