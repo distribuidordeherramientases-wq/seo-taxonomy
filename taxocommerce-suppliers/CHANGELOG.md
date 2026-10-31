@@ -4,7 +4,13 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+- Documentación integrada de usuario y técnica en la pestaña Manual del módulo independiente.
+- Autotest manual de solo lectura para componentes, hooks, integración WooCommerce, plantillas, ajustes y esquema, con permisos y nonce.
+- Conservadas las seis pestañas anteriores y añadidas Manual y Autotest; ampliada la verificación smoke.
+
+## [0.2.1]
+
+- Incorporadas las pestañas Manual y Autotest dentro de TaxoCommerce Suppliers.
 
 
 ## [0.2.0]
