@@ -4,7 +4,7 @@ Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.3
+Stable tag: 0.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,8 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 * Supports CSV management of semantic and attribute masters and portable JSON import/export of assignments.
 * Mandatory import simulation and MERGE/MIRROR modes make bulk updates reviewable.
 * Numeric source IDs are audit-only: portable references are resolved against the target site's real objects.
+* Integrated Auto Test: 16 read-only and explicitly skipped checks, two results per user for 30 days, and comparison between runs.
+* In-plugin Manual: separate user and technical guides for screens, data model, security, and migration risks.
 
 == Installation ==
 
@@ -28,6 +30,13 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 4. Simulate JSON imports, review unresolved objects and then approve intentional changes.
 
 == Changelog ==
+
+= 0.3.4 =
+* Add Auto Test tab: runtime, hooks, WooCommerce, MySQL, all nine canonical tables, bounded reads, classifier, portable interface and manual; destructive operations explicitly skipped.
+* Keep two per-user self-test reports for 30 days with version, results and regression comparison.
+* Add in-plugin user and technical manuals, preserving the five existing tabs and CSV/JSON behaviour.
+* Add PHP 7.4/8.4 regression test and ensure development tests are excluded from release ZIP.
+
 
 = 0.3.3 =
 * Replace direct PHP filesystem access in CSV import/export with WordPress-compatible handling.
