@@ -69,9 +69,12 @@ function tccampaigns_render_banners(){
 
 function tccampaigns_admin_render(){
     if(!current_user_can('manage_options')) return;
-    tccampaigns_maybe_install_tables();
-    tccampaigns_register_public_template();
     $tab=tccampaigns_admin_tab();
+    // Documentation and diagnostics must not trigger schema or template writes.
+    if(!in_array($tab,array('manual','autotest'),true)){
+        tccampaigns_maybe_install_tables();
+        tccampaigns_register_public_template();
+    }
     tccampaigns_calendar_styles();
     echo '<div class="wrap"><h1>TaxoCommerce Campaigns</h1><p class="description">Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.</p>';
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
