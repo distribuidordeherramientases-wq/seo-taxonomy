@@ -99,16 +99,15 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;
         $rel=$wpdb->prefix.'seo_relations';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- internal tables only.
-        $rows=(array)$wpdb->get_results(
-            "SELECT DISTINCT cl.ID cluster_id,cl.post_title cluster_name,hp.ID hub_primary_id,hp.post_title hub_primary_name
-             FROM {$rel} r
-             INNER JOIN {$wpdb->posts} cl ON cl.ID=r.source_id
-             INNER JOIN {$wpdb->posts} hp ON hp.ID=r.target_id
+        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT DISTINCT cl.ID cluster_id,cl.post_title cluster_name,hp.ID hub_primary_id,hp.post_title hub_primary_name
+             FROM %i r
+             INNER JOIN %i cl ON cl.ID=r.source_id
+             INNER JOIN %i hp ON hp.ID=r.target_id
              WHERE r.source_type='cluster' AND r.target_type='hub_primary'
                AND r.relation_type IN ('cluster_to_primary','cluster_to_hub_primary')
                AND cl.post_status NOT IN ('trash','auto-draft')
                AND hp.post_status NOT IN ('trash','auto-draft')
-             ORDER BY cl.post_title,hp.post_title",ARRAY_A);
+             ORDER BY cl.post_title,hp.post_title", $rel, $wpdb->posts, $wpdb->posts), ARRAY_A);
         $out=array();
         foreach($rows as $r){
             if(empty($r['hub_primary_id'])||empty($r['hub_primary_name']))continue;
