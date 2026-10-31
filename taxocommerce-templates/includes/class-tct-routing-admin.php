@@ -10,6 +10,19 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCT_Routing_Admin {
+    public static function enqueue() {
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+            return;
+        }
+        $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
+            ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'routing';
+        if ( ! in_array( $tab, array( 'routing', 'roles', 'requests', 'audit' ), true ) ) {
+            return;
+        }
+        wp_enqueue_style( 'tct-routing-admin', TCT_URL . 'assets/routing-admin.css', array(), TCT_VERSION );
+    }
+
     public static function items() {
         $defs = TCT_Request_Registry::definitions();
         $items = array();
