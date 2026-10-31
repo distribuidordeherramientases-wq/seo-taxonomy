@@ -494,6 +494,7 @@ if (!function_exists('seo_health_scan_expire_stale')) {
 
             // The ID list contains only generated %d placeholders, never raw IDs.
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated %d placeholders are matched to each validated record ID from this query.
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d ID placeholders are concatenated. Both table identifiers and all timestamp/ID values are passed to prepare().
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
             $wpdb->query(
@@ -510,6 +511,7 @@ if (!function_exists('seo_health_scan_expire_stale')) {
                 )
             );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         }
     }
 }
