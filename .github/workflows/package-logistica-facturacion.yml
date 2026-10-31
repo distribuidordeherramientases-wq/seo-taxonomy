@@ -37,6 +37,8 @@ jobs:
         run: |
           find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
           php taxocommerce-facturacion/tests/smoke.php
+          php taxocommerce-facturacion/tests/manual-autotest-smoke.php
+          php taxocommerce-facturacion/tests/standalone-admin-routing-smoke.php
           test -f includes/facturas/dompdf/autoload.inc.php
 
       - name: Build installable ZIPs
@@ -58,11 +60,11 @@ jobs:
           (
             cd build
             zip -qr ../taxocommerce-logistica-0.2.4.zip taxocommerce-logistica
-            zip -qr ../taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion
+            zip -qr ../taxocommerce-facturacion-0.1.2.zip taxocommerce-facturacion
           )
 
           cp taxocommerce-logistica-0.2.4.zip taxocommerce-logistica.zip
-          cp taxocommerce-facturacion-0.1.0.zip taxocommerce-facturacion.zip
+          cp taxocommerce-facturacion-0.1.2.zip taxocommerce-facturacion.zip
 
           unzip -t taxocommerce-logistica.zip
           unzip -t taxocommerce-facturacion.zip
@@ -99,9 +101,9 @@ jobs:
       - name: Upload Facturación ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-facturacion-0.1.0
+          name: taxocommerce-facturacion-0.1.2
           path: |
-            taxocommerce-facturacion-0.1.0.zip
+            taxocommerce-facturacion-0.1.2.zip
             taxocommerce-facturacion.zip
           retention-days: 30
           if-no-files-found: error

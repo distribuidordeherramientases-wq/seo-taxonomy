@@ -13,6 +13,8 @@ $csv  = file_get_contents( $root . '/includes/class-tcsup-csv.php' );
 $admin = file_get_contents( $root . '/includes/class-tcsup-admin.php' );
 $products = file_get_contents( $root . '/includes/class-tcsup-products.php' );
 $purchasing = file_get_contents( $root . '/includes/class-tcsup-purchasing.php' );
+$manual = file_get_contents( $root . '/includes/class-tcsup-manual.php' );
+$autotest = file_get_contents( $root . '/includes/class-tcsup-autotest.php' );
 
 tcsup_assert( false !== strpos( $main, "Plugin Name: TaxoCommerce Suppliers" ), 'plugin header' );
 tcsup_assert( false !== strpos( $main, "taxocommerce_suppliers_get_sources" ), 'supplier source service' );
@@ -28,4 +30,11 @@ tcsup_assert( false !== strpos( $purchasing, "wc_get_orders" ), 'WooCommerce sal
 tcsup_assert( false !== strpos( $purchasing, "sources_for_product" ), 'supplier source resolution' );
 tcsup_assert( false !== strpos( $purchasing, "Purchase" ), 'supplier purchasing action' );
 
+tcsup_assert( false !== strpos( $main, 'class-tcsup-manual.php' ), 'manual loaded' );
+tcsup_assert( false !== strpos( $main, 'class-tcsup-autotest.php' ), 'autotest loaded' );
+tcsup_assert( false !== strpos( $admin, "'manual' => 'Manual'" ), 'manual tab' );
+tcsup_assert( false !== strpos( $admin, "'autotest' => 'Autotest'" ), 'autotest tab' );
+tcsup_assert( false !== strpos( $manual, 'Manual de usuario' ) && false !== strpos( $manual, 'Manual técnico' ), 'two manual sections' );
+tcsup_assert( false !== strpos( $autotest, "check_admin_referer( 'tcsup_autotest' )" ), 'autotest nonce' );
+tcsup_assert( false !== strpos( $autotest, 'SHOW TABLES LIKE' ), 'read-only schema check' );
 echo "OK\n";

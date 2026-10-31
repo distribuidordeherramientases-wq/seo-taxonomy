@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,9 @@ Manage authorized social connections, publication templates and a content calend
 
 TaxoCommerce Social supports optional Facebook, Instagram, LinkedIn, Pinterest and X connections, manual publication planning, CSV-based scheduling and queue/history views.
 
-* Administration areas: Connections, Templates and Calendar.
+* Administration areas: Connections, Templates, Calendar, Auto Test and Manual.
+* Auto Test: 16 local checks of providers, routes, tables, scheduler and security, without remote requests, publishing or file operations. Two recent results per administrator are stored for 30 days.
+* Integrated user and technical manuals cover authorization, templates, scheduling, CSV, WP-Cron, privacy and troubleshooting.
 * Existing social settings and publication/schedule tables are reused on migrating sites.
 * Dedicated local calendar; offer/campaign planning belongs to TaxoCommerce Campaigns.
 * No social account is connected or published to by default. Administrators must authorize a provider and perform the action.
@@ -33,6 +35,12 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.1 =
+* Add in-plugin Auto Test with 16 safe local checks, two reports per administrator and version-to-version comparison.
+* Integrate user and technical manuals without changing existing provider connections, publication or scheduling behavior.
+* Add PHP 7.4/8.4 regression test and exclude development tests and FTP state from installable ZIP.
+
 
 = 0.1.0 =
 * Extracted social connections, templates and calendar into a standalone plugin.

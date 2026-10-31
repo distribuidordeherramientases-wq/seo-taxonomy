@@ -40,7 +40,7 @@ final class SEO_Facturas_Admin {
     public static function add_tools_card($tools) {
         $tools = is_array($tools) ? $tools : array();
         foreach ($tools as $tool) {
-            if (!empty($tool['page']) && 'seo-facturas' === $tool['page']) {
+            if (!empty($tool['page']) && 'taxocommerce-facturacion' === $tool['page']) {
                 return $tools;
             }
         }
@@ -48,7 +48,7 @@ final class SEO_Facturas_Admin {
         $tools[] = array(
             'title' => 'Facturas y presupuestos',
             'icon'  => 'dashicons-media-spreadsheet',
-            'page'  => 'seo-facturas',
+            'page'  => 'taxocommerce-facturacion',
             'desc'  => 'Facturas, proformas y presupuestos PDF conectados a WooCommerce.',
         );
 
@@ -102,6 +102,8 @@ final class SEO_Facturas_Admin {
             'proformas' => 'Proformas',
             'quotes'    => 'Presupuestos',
             'documents' => 'Documentos',
+            'manual'    => 'Manual',
+            'autotest'  => 'Autotest', 
         );
 
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'company';
@@ -123,6 +125,12 @@ final class SEO_Facturas_Admin {
 
             <?php
             switch ($tab) {
+                case 'manual':
+                    TaxoCommerce_Billing_Manual::render();
+                    break;
+                case 'autotest':
+                    TaxoCommerce_Billing_Autotest::render();
+                    break;
                 case 'tax':
                     self::render_tax_tab();
                     break;
@@ -598,7 +606,7 @@ final class SEO_Facturas_Admin {
         if ($order_id) {
             $url = SEO_Facturas_Documents::order_admin_url($order_id);
         } else {
-            $url = admin_url('admin.php?page=seo-facturas&tab=documents');
+            $url = admin_url('admin.php?page=taxocommerce-facturacion&tab=documents');
         }
         wp_safe_redirect(add_query_arg($args, $url));
         exit;

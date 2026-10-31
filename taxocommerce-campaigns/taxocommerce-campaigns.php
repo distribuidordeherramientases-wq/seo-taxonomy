@@ -23,6 +23,8 @@ require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/social-publication.php';
 require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/calendar.php';
 require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/shortcodes.php';
 require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/admin.php';
+require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/autotest.php';
+require_once TAXOCOMMERCE_CAMPAIGNS_PATH.'includes/manual.php';
 
 register_activation_hook(__FILE__, static function(){
     tccampaigns_maybe_install_tables();

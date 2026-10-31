@@ -749,14 +749,21 @@ jobs:
 
       - name: Build TaxoCommerce Vocabulary ZIP
         run: |
-          rm -f taxocommerce-vocabulary-0.3.1.zip
-          zip -qr taxocommerce-vocabulary-0.3.1.zip taxocommerce-vocabulary
+          rm -f taxocommerce-vocabulary.zip
+          zip -qr taxocommerce-vocabulary.zip taxocommerce-vocabulary \
+            -x 'taxocommerce-vocabulary/tests/*' \
+               'taxocommerce-vocabulary/*.md' \
+               'taxocommerce-vocabulary/node_modules/*' \
+               'taxocommerce-vocabulary/.ftp-deploy-sync-state.json'
+          unzip -t taxocommerce-vocabulary.zip
+          unzip -Z1 taxocommerce-vocabulary.zip | grep -Fx 'taxocommerce-vocabulary/readme.txt'
+          ! unzip -Z1 taxocommerce-vocabulary.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'
 
       - name: Upload TaxoCommerce Vocabulary package
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-vocabulary-0.3.1
-          path: taxocommerce-vocabulary-0.3.1.zip
+          name: taxocommerce-vocabulary-staging
+          path: taxocommerce-vocabulary.zip
           retention-days: 30
           if-no-files-found: error
 

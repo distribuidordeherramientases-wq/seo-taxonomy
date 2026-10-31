@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.2
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -23,11 +23,31 @@ Features:
 * PDF generation using the same Dompdf 3.1.6 engine as the historical module.
 * Email attachments and resending.
 * WooCommerce order metabox and customer documents.
+* Integrated user and technical Manual on the Billing settings screen.
+* On-demand, read-only Autotest to check module availability, saved settings, document table, PDF loader and WooCommerce hooks without issuing documents or sending emails.
 
 The plugin reuses the existing seo_facturas_* options and seo_factura_documents table.
 It does not create a parallel document database and does not include a destructive uninstall routine.
 
+== Installation ==
+
+1. Install and activate WooCommerce and TaxoCommerce Billing.
+2. Open TaxoCommerce > Billing when TaxoCommerce Core is active (otherwise use the Billing menu).
+3. Review Datos empresa and fiscal settings, then enable the document system only after verifying company details and document series.
+4. Configure invoices, proformas and cart quotations as required. Review the integrated Manual and run Autotest before using real customer orders.
+5. Confirm PDF generation and permitted customer downloads in a staging environment before live billing.
+
 == Changelog ==
+
+= 0.1.2 =
+* Billing administration now has a unique route, separate from the monolithic plugin, with eight visible tabs including Manual and Autotest.
+* Preserved existing invoice, proforma and quotation functionality while removing duplicate legacy navigation from the independent screen.
+* Added an isolated routing regression test covering coexistence with the legacy controller.
+
+= 0.1.1 =
+* Added in-plugin user and technical manuals for Billing administration and WooCommerce integrations.
+* Added a read-only Autotest, restricted to administrators, without document generation, database modification or outgoing requests.
+* Added isolated regression coverage; developer tests remain excluded from release ZIPs.
 
 = 0.1.0 =
 * Migrated the existing document module into an independent TaxoCommerce plugin.
