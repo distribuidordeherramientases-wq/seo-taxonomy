@@ -40,3 +40,7 @@
 .tct-manager-section-content .tct-template-editor{max-width:none}
 .tct-manager-section-content h1{font-size:1.45em}
 @media(max-width:782px){.tct-manager-section-content{padding:0 10px 15px}}
+
+.tct-manager-section-link{display:flex;flex-direction:column;gap:5px;padding:18px 21px;text-decoration:none;color:inherit}
+.tct-manager-section-link:hover,.tct-manager-section-link:focus-visible{background:#f6f7f7;border-color:#2271b1}
+.tct-manager-section-link .tct-manager-section-title{color:#1d2327}
