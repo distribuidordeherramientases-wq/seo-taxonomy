@@ -59,7 +59,7 @@ jobs:
           assert 'set cmd:fail-exit no' in ftp_script
           assert 'mkdir -p ".taxocommerce-deploy"' in ftp_script
           assert 'mkdir -p "$handoff"' in ftp_script
-          assert 'set cmd:fail-exit yes\\n          cd "$handoff"' in ftp_script
+          assert ftp_script.index('set cmd:fail-exit yes', ftp_script.index('mkdir -p "$handoff"')) < ftp_script.index('cd "$handoff"')
           assert ftp_script.index('mkdir -p "$handoff"') < ftp_script.index('cd "$handoff"')
           assert 'Subir TaxoCommerce SEO antiguo' not in code
           assert not re.search(r'\bmirror\b.*--delete|\brm\s+-rf\s+\$\{?FTP', code)
