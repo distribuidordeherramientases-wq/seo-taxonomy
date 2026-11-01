@@ -41,6 +41,7 @@ register_activation_hook(
     }
 );
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Punto de extension publico prefijado con taxocommerce_social_; su nombre conserva compatibilidad con Core.
 function taxocommerce_social_register_with_core( $core ) {
     if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
         return;
