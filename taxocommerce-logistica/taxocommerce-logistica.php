@@ -14,10 +14,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Register this plugin's own WordPress language files at the supported init hook.
-add_action( 'init', static function () {
-    load_plugin_textdomain( 'taxocommerce-logistica', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-}, 1 );
 
 define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.4' );
 define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
