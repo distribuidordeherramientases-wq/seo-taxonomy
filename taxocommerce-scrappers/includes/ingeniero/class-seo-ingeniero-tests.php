@@ -133,6 +133,7 @@ final class SEO_Ingeniero_Tests {
 
         global $wpdb;
         $table=SEO_Ingeniero_DB::table('editorial');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         $indexes=(array)$wpdb->get_results($wpdb->prepare("SHOW INDEX FROM %i", $table ),ARRAY_A);
         $unique_columns=array();
         foreach ($indexes as $row) {

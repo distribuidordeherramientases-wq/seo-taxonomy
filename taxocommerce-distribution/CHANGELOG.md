@@ -4,7 +4,8 @@
 
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+- Revisados los 24 avisos de Plugin Check: mensajes de estado sin mutaciones, sanitización de avisos de sitemap y justificación localizada de consultas SQL de inventario y metadatos para evitar caché obsoleta.
+- Seguimiento: #1545. Validación de Plugin Check y STAGING pendiente.
 
 ## [0.1.2]
 

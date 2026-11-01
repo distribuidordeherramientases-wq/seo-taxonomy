@@ -88,6 +88,7 @@ final class SEO_Facturas_Documents {
         }
 
         $now = current_time('mysql');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insercion en tabla documental propia; requiere escritura inmediata para mantener unicidad por pedido.
         $inserted = $wpdb->insert(
             self::table_name(),
             array(
@@ -155,6 +156,7 @@ final class SEO_Facturas_Documents {
         );
 
         if (is_wp_error($pdf)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Estado PDF persistido en tabla documental propia; escritura inmediata, no cacheable.
             $wpdb->update(
                 self::table_name(),
                 array(
@@ -169,6 +171,7 @@ final class SEO_Facturas_Documents {
             return $pdf;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Estado PDF persistido en tabla documental propia; escritura inmediata, no cacheable.
         $wpdb->update(
             self::table_name(),
             array(
@@ -194,8 +197,8 @@ final class SEO_Facturas_Documents {
             return null;
         }
         $table = self::table_name();
-                $sql = $wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', $table, $document_id);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        $sql = $wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', $table, $document_id);
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL preparado con %i/%d/%s sobre tabla propia; lectura actual sin cache para evitar documentos fiscales obsoletos.
         return $wpdb->get_row($sql);
     }
 
@@ -208,7 +211,7 @@ final class SEO_Facturas_Documents {
         }
         $table = self::table_name();
         $sql = $wpdb->prepare('SELECT * FROM %i WHERE order_id = %d AND document_type = %s LIMIT 1', $table, $order_id, $type);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL preparado con %i/%d/%s sobre tabla propia; lectura actual sin cache para evitar documentos fiscales obsoletos.
         return $wpdb->get_row($sql);
     }
 
@@ -217,7 +220,7 @@ final class SEO_Facturas_Documents {
         $limit = max(1, min(500, absint($limit)));
         $table = self::table_name();
         $sql = $wpdb->prepare('SELECT * FROM %i ORDER BY issued_at DESC, id DESC LIMIT %d', $table, $limit);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL preparado con %i/%d/%s sobre tabla propia; lectura actual sin cache para evitar documentos fiscales obsoletos.
         return $wpdb->get_results($sql);
     }
 
@@ -227,6 +230,7 @@ final class SEO_Facturas_Documents {
         if (!$document_id) {
             return false;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Persistencia de fecha de correo enviado, operacion de escritura no cacheable.
         return false !== $wpdb->update(
             self::table_name(),
             array(
@@ -315,12 +319,13 @@ final class SEO_Facturas_Documents {
             "UPDATE {$wpdb->options} SET option_value = LAST_INSERT_ID(CAST(option_value AS UNSIGNED) + 1) WHERE option_name = %s",
             $option_name
         );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Incremento atomico de secuencia fiscal en tabla options; no debe cachearse ni perder la operacion SQL LAST_INSERT_ID().
         $updated = $wpdb->query($sql);
         if (false === $updated || 0 === $updated) {
             return new WP_Error('seo_facturas_sequence_failed', 'No se pudo incrementar la numeracion del documento.');
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- LAST_INSERT_ID() es especifico de esta conexion y se lee justo despues del UPDATE atomico, nunca desde cache.
         $next = absint($wpdb->get_var('SELECT LAST_INSERT_ID()'));
         if (!$next) {
             return new WP_Error('seo_facturas_sequence_invalid', 'La numeracion devolvio un valor no valido.');

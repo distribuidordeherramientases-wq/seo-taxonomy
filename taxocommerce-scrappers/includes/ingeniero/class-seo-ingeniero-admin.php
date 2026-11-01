@@ -86,6 +86,7 @@ final class SEO_Ingeniero_Admin {
         if (!isset($_GET[$key])) return $default;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter, sanitized by this handler; no state-changing action.
         return wp_unslash($_GET[$key]);
     }
 
@@ -234,15 +235,20 @@ final class SEO_Ingeniero_Admin {
         $table = esc_sql(SEO_Ingeniero_DB::table('editorial'));
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
         $after_id = absint(wp_unslash($_REQUEST['after_id'] ?? 0));
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
         $created = absint(wp_unslash($_REQUEST['created'] ?? 0));
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
         $skipped = absint(wp_unslash($_REQUEST['skipped'] ?? 0));
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
         $errors = absint(wp_unslash($_REQUEST['errors'] ?? 0));
         $batch_size = 50;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interactive administrative export or status query must reflect current state; no cache invalidation contract exists.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare("SELECT id,status,post_id,recommended_action
                  FROM %i

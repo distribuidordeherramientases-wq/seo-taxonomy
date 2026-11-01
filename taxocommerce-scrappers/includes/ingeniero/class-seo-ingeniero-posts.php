@@ -479,6 +479,7 @@ final class SEO_Ingeniero_Posts {
         global $wpdb;
         $vocabulary = $wpdb->prefix . 'seo_vocabulary';
         $objects = $wpdb->prefix . 'seo_object_vocabulary';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current relations from the existing semantic vocabulary table; caching would require global invalidation after taxonomy edits.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT v.id,v.semantic_group

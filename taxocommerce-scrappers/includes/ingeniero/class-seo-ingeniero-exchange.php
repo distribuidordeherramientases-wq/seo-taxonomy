@@ -785,6 +785,7 @@ final class SEO_Ingeniero_Exchange {
     private static function knowledge_exists($term_id, $lesson, $type) {
         global $wpdb;
         $table = SEO_Ingeniero_DB::table('knowledge');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read current Ingeniero source/knowledge rows from custom tables after migration or editor actions; no WordPress object API exists.
         return (bool) $wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE term_id=%d AND lesson=%s AND knowledge_type=%s AND status<>'superseded' LIMIT 1", $table,
             absint($term_id),
             sanitize_key($lesson),

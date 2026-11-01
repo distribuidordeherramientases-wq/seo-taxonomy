@@ -2,61 +2,61 @@
 /** @var array $snapshot */
 defined('ABSPATH') || exit;
 
-$document = $snapshot['document'] ?? array();
-$seller = $snapshot['seller'] ?? array();
-$order = $snapshot['order'] ?? array();
-$billing = $snapshot['billing'] ?? array();
-$shipping = $snapshot['shipping'] ?? array();
-$items = $snapshot['items'] ?? array();
-$tax_lines = $snapshot['tax_lines'] ?? array();
-$fiscal = $snapshot['fiscal'] ?? array();
-$totals = $snapshot['totals'] ?? array();
-$currency = (string) ($order['currency'] ?? 'EUR');
-$type = sanitize_key((string) ($document['type'] ?? ''));
-$is_invoice = SEO_Facturas_Documents::TYPE_INVOICE === $type;
-$title = trim((string) ($document['title'] ?? ($is_invoice ? 'FACTURA' : 'FACTURA PROFORMA')));
-$show_order_reference = !array_key_exists('show_order_reference', $document) || !empty($document['show_order_reference']);
-$show_payment_method = !array_key_exists('show_payment_method', $document) || !empty($document['show_payment_method']);
-$show_sku = !array_key_exists('show_sku', $document) || !empty($document['show_sku']);
+$taxocommerce_billing_document = $snapshot['document'] ?? array();
+$taxocommerce_billing_seller = $snapshot['seller'] ?? array();
+$taxocommerce_billing_order = $snapshot['order'] ?? array();
+$taxocommerce_billing_billing = $snapshot['billing'] ?? array();
+$taxocommerce_billing_shipping = $snapshot['shipping'] ?? array();
+$taxocommerce_billing_items = $snapshot['items'] ?? array();
+$taxocommerce_billing_tax_lines = $snapshot['tax_lines'] ?? array();
+$taxocommerce_billing_fiscal = $snapshot['fiscal'] ?? array();
+$taxocommerce_billing_totals = $snapshot['totals'] ?? array();
+$taxocommerce_billing_currency = (string) ($taxocommerce_billing_order['currency'] ?? 'EUR');
+$taxocommerce_billing_type = sanitize_key((string) ($taxocommerce_billing_document['type'] ?? ''));
+$taxocommerce_billing_is_invoice = SEO_Facturas_Documents::TYPE_INVOICE === $taxocommerce_billing_type;
+$taxocommerce_billing_title = trim((string) ($taxocommerce_billing_document['title'] ?? ($taxocommerce_billing_is_invoice ? 'FACTURA' : 'FACTURA PROFORMA')));
+$taxocommerce_billing_show_order_reference = !array_key_exists('show_order_reference', $taxocommerce_billing_document) || !empty($taxocommerce_billing_document['show_order_reference']);
+$taxocommerce_billing_show_payment_method = !array_key_exists('show_payment_method', $taxocommerce_billing_document) || !empty($taxocommerce_billing_document['show_payment_method']);
+$taxocommerce_billing_show_sku = !array_key_exists('show_sku', $taxocommerce_billing_document) || !empty($taxocommerce_billing_document['show_sku']);
 
-$money = static function ($amount) use ($currency) {
-    $amount = (float) $amount;
+$taxocommerce_billing_money = static function ($taxocommerce_billing_amount) use ($taxocommerce_billing_currency) {
+    $taxocommerce_billing_amount = (float) $taxocommerce_billing_amount;
     if (function_exists('wc_price')) {
-        $formatted = wc_price($amount, array('currency' => $currency));
-        return html_entity_decode(wp_strip_all_tags($formatted), ENT_QUOTES, 'UTF-8');
+        $taxocommerce_billing_formatted = wc_price($taxocommerce_billing_amount, array('currency' => $taxocommerce_billing_currency));
+        return html_entity_decode(wp_strip_all_tags($taxocommerce_billing_formatted), ENT_QUOTES, 'UTF-8');
     }
-    return number_format($amount, 2, ',', '.') . ' ' . $currency;
+    return number_format($taxocommerce_billing_amount, 2, ',', '.') . ' ' . $taxocommerce_billing_currency;
 };
 
-$person_name = static function ($address) {
-    $company = trim((string) ($address['company'] ?? ''));
-    if ('' !== $company) {
-        return $company;
+$taxocommerce_billing_person_name = static function ($taxocommerce_billing_address) {
+    $taxocommerce_billing_company = trim((string) ($taxocommerce_billing_address['company'] ?? ''));
+    if ('' !== $taxocommerce_billing_company) {
+        return $taxocommerce_billing_company;
     }
-    return trim((string) ($address['first_name'] ?? '') . ' ' . (string) ($address['last_name'] ?? ''));
+    return trim((string) ($taxocommerce_billing_address['first_name'] ?? '') . ' ' . (string) ($taxocommerce_billing_address['last_name'] ?? ''));
 };
 
-$address_lines = static function ($address) {
-    $lines = array();
+$taxocommerce_billing_address_lines = static function ($taxocommerce_billing_address) {
+    $taxocommerce_billing_lines = array();
     foreach (array(
-        trim((string) ($address['address_1'] ?? '')),
-        trim((string) ($address['address_2'] ?? '')),
-        trim((string) ($address['postcode'] ?? '') . ' ' . (string) ($address['city'] ?? '')),
-        trim((string) ($address['state_name'] ?? $address['state'] ?? '')),
-        trim((string) ($address['country_name'] ?? $address['country'] ?? '')),
-    ) as $line) {
-        if ('' !== $line) {
-            $lines[] = $line;
+        trim((string) ($taxocommerce_billing_address['address_1'] ?? '')),
+        trim((string) ($taxocommerce_billing_address['address_2'] ?? '')),
+        trim((string) ($taxocommerce_billing_address['postcode'] ?? '') . ' ' . (string) ($taxocommerce_billing_address['city'] ?? '')),
+        trim((string) ($taxocommerce_billing_address['state_name'] ?? $taxocommerce_billing_address['state'] ?? '')),
+        trim((string) ($taxocommerce_billing_address['country_name'] ?? $taxocommerce_billing_address['country'] ?? '')),
+    ) as $taxocommerce_billing_line) {
+        if ('' !== $taxocommerce_billing_line) {
+            $taxocommerce_billing_lines[] = $taxocommerce_billing_line;
         }
     }
-    return $lines;
+    return $taxocommerce_billing_lines;
 };
 
-$issued_ts = strtotime((string) ($document['issued_at'] ?? ''));
-$issued_date = $issued_ts ? wp_date(get_option('date_format', 'd/m/Y'), $issued_ts) : (string) ($document['issued_at'] ?? '');
-$created_ts = strtotime((string) ($order['created_at'] ?? ''));
-$order_date = $created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $created_ts) : (string) ($order['created_at'] ?? '');
-$document_footer = trim((string) ($document['footer_text'] ?? ''));
+$taxocommerce_billing_issued_ts = strtotime((string) ($taxocommerce_billing_document['issued_at'] ?? ''));
+$taxocommerce_billing_issued_date = $taxocommerce_billing_issued_ts ? wp_date(get_option('date_format', 'd/m/Y'), $taxocommerce_billing_issued_ts) : (string) ($taxocommerce_billing_document['issued_at'] ?? '');
+$taxocommerce_billing_created_ts = strtotime((string) ($taxocommerce_billing_order['created_at'] ?? ''));
+$taxocommerce_billing_order_date = $taxocommerce_billing_created_ts ? wp_date(get_option('date_format', 'd/m/Y'), $taxocommerce_billing_created_ts) : (string) ($taxocommerce_billing_order['created_at'] ?? '');
+$taxocommerce_billing_document_footer = trim((string) ($taxocommerce_billing_document['footer_text'] ?? ''));
 ?>
 <!doctype html>
 <html lang="es">
@@ -110,21 +110,21 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
 <table class="header">
     <tr>
         <td style="width:25%;">
-            <?php if (!empty($seller['logo_data_uri'])) : ?>
-                <img class="logo" src="<?php echo esc_attr($seller['logo_data_uri']); ?>" alt="">
+            <?php if (!empty($taxocommerce_billing_seller['logo_data_uri'])) : ?>
+                <img class="logo" src="<?php echo esc_attr($taxocommerce_billing_seller['logo_data_uri']); ?>" alt="">
             <?php endif; ?>
         </td>
         <td class="brand" style="width:50%;">
-            <?php echo esc_html($seller['trade_name'] ?: ($seller['website'] ?? '')); ?>
-            <small><?php echo esc_html($seller['email'] ?? ''); ?></small>
+            <?php echo esc_html($taxocommerce_billing_seller['trade_name'] ?: ($taxocommerce_billing_seller['website'] ?? '')); ?>
+            <small><?php echo esc_html($taxocommerce_billing_seller['email'] ?? ''); ?></small>
         </td>
-        <td class="contact" style="width:25%;"><?php echo esc_html($seller['phone'] ?? ''); ?></td>
+        <td class="contact" style="width:25%;"><?php echo esc_html($taxocommerce_billing_seller['phone'] ?? ''); ?></td>
     </tr>
 </table>
 
-<h1><?php echo esc_html($title); ?></h1>
+<h1><?php echo esc_html($taxocommerce_billing_title); ?></h1>
 
-<?php if (!$is_invoice) : ?>
+<?php if (!$taxocommerce_billing_is_invoice) : ?>
     <div class="warning">DOCUMENTO PROFORMA - SIN VALIDEZ FISCAL</div>
 <?php endif; ?>
 
@@ -132,47 +132,47 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
     <tr>
         <td>
             <div class="head">Vendido por:</div>
-            <strong><?php echo esc_html($seller['name'] ?? ''); ?></strong><br>
-            <?php if (!empty($seller['tax_id'])) : ?><?php echo esc_html($seller['tax_id']); ?><br><?php endif; ?>
-            <?php if (!empty($seller['address'])) : ?><?php echo esc_html($seller['address']); ?><br><?php endif; ?>
-            <?php if (trim((string) ($seller['postcode'] ?? '') . ' ' . (string) ($seller['city'] ?? ''))) : ?><?php echo esc_html(trim((string) ($seller['postcode'] ?? '') . ' ' . (string) ($seller['city'] ?? ''))); ?><br><?php endif; ?>
-            <?php if (!empty($seller['region'])) : ?><?php echo esc_html($seller['region']); ?><br><?php endif; ?>
-            <?php if (!empty($seller['country_name'] ?? $seller['country'])) : ?><?php echo esc_html($seller['country_name'] ?? $seller['country']); ?><br><?php endif; ?>
-            <?php if (!empty($seller['phone'])) : ?>Tel.: <?php echo esc_html($seller['phone']); ?><br><?php endif; ?>
-            <?php if (!empty($seller['email'])) : ?><?php echo esc_html($seller['email']); ?><?php endif; ?>
+            <strong><?php echo esc_html($taxocommerce_billing_seller['name'] ?? ''); ?></strong><br>
+            <?php if (!empty($taxocommerce_billing_seller['tax_id'])) : ?><?php echo esc_html($taxocommerce_billing_seller['tax_id']); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_seller['address'])) : ?><?php echo esc_html($taxocommerce_billing_seller['address']); ?><br><?php endif; ?>
+            <?php if (trim((string) ($taxocommerce_billing_seller['postcode'] ?? '') . ' ' . (string) ($taxocommerce_billing_seller['city'] ?? ''))) : ?><?php echo esc_html(trim((string) ($taxocommerce_billing_seller['postcode'] ?? '') . ' ' . (string) ($taxocommerce_billing_seller['city'] ?? ''))); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_seller['region'])) : ?><?php echo esc_html($taxocommerce_billing_seller['region']); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_seller['country_name'] ?? $taxocommerce_billing_seller['country'])) : ?><?php echo esc_html($taxocommerce_billing_seller['country_name'] ?? $taxocommerce_billing_seller['country']); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_seller['phone'])) : ?>Tel.: <?php echo esc_html($taxocommerce_billing_seller['phone']); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_seller['email'])) : ?><?php echo esc_html($taxocommerce_billing_seller['email']); ?><?php endif; ?>
         </td>
         <td>
             <div class="head">Vendido a:</div>
-            <strong><?php echo esc_html($person_name($billing)); ?></strong><br>
-            <?php if (!empty($billing['tax_id'])) : ?><?php echo esc_html($billing['tax_id']); ?><br><?php endif; ?>
-            <?php foreach ($address_lines($billing) as $line) : ?><?php echo esc_html($line); ?><br><?php endforeach; ?>
-            <?php if (!empty($billing['email'])) : ?><?php echo esc_html($billing['email']); ?><br><?php endif; ?>
-            <?php if (!empty($billing['phone'])) : ?><?php echo esc_html($billing['phone']); ?><?php endif; ?>
+            <strong><?php echo esc_html($taxocommerce_billing_person_name($taxocommerce_billing_billing)); ?></strong><br>
+            <?php if (!empty($taxocommerce_billing_billing['tax_id'])) : ?><?php echo esc_html($taxocommerce_billing_billing['tax_id']); ?><br><?php endif; ?>
+            <?php foreach ($taxocommerce_billing_address_lines($taxocommerce_billing_billing) as $taxocommerce_billing_line) : ?><?php echo esc_html($taxocommerce_billing_line); ?><br><?php endforeach; ?>
+            <?php if (!empty($taxocommerce_billing_billing['email'])) : ?><?php echo esc_html($taxocommerce_billing_billing['email']); ?><br><?php endif; ?>
+            <?php if (!empty($taxocommerce_billing_billing['phone'])) : ?><?php echo esc_html($taxocommerce_billing_billing['phone']); ?><?php endif; ?>
         </td>
     </tr>
 </table>
 
 <h2>Detalle del documento</h2>
 <table class="details">
-    <tr><td>Fecha de expedicion:</td><td><?php echo esc_html($issued_date); ?></td></tr>
-    <tr><td>Numero:</td><td><strong><?php echo esc_html($document['number'] ?? ''); ?></strong></td></tr>
-    <?php if ($show_order_reference) : ?>
-        <tr><td>Pedido WooCommerce:</td><td>#<?php echo esc_html($order['number'] ?? $order['id'] ?? ''); ?></td></tr>
-        <tr><td>Fecha del pedido:</td><td><?php echo esc_html($order_date); ?></td></tr>
+    <tr><td>Fecha de expedicion:</td><td><?php echo esc_html($taxocommerce_billing_issued_date); ?></td></tr>
+    <tr><td>Numero:</td><td><strong><?php echo esc_html($taxocommerce_billing_document['number'] ?? ''); ?></strong></td></tr>
+    <?php if ($taxocommerce_billing_show_order_reference) : ?>
+        <tr><td>Pedido WooCommerce:</td><td>#<?php echo esc_html($taxocommerce_billing_order['number'] ?? $taxocommerce_billing_order['id'] ?? ''); ?></td></tr>
+        <tr><td>Fecha del pedido:</td><td><?php echo esc_html($taxocommerce_billing_order_date); ?></td></tr>
     <?php endif; ?>
-    <?php if ($show_payment_method) : ?>
-        <tr><td>Forma de pago:</td><td><?php echo esc_html($order['payment_method_title'] ?? $order['payment_method'] ?? ''); ?></td></tr>
+    <?php if ($taxocommerce_billing_show_payment_method) : ?>
+        <tr><td>Forma de pago:</td><td><?php echo esc_html($taxocommerce_billing_order['payment_method_title'] ?? $taxocommerce_billing_order['payment_method'] ?? ''); ?></td></tr>
     <?php endif; ?>
-    <tr><td>Base imponible total:</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
-    <tr><td>Impuestos:</td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
-    <tr><td>Total:</td><td><strong><?php echo esc_html($money($totals['total'] ?? 0)); ?></strong></td></tr>
+    <tr><td>Base imponible total:</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['base_total'] ?? 0)); ?></td></tr>
+    <tr><td>Impuestos:</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['total_tax'] ?? 0)); ?></td></tr>
+    <tr><td>Total:</td><td><strong><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['total'] ?? 0)); ?></strong></td></tr>
 </table>
 
-<?php if (!empty(array_filter($shipping))) : ?>
+<?php if (!empty(array_filter($taxocommerce_billing_shipping))) : ?>
 <h2>Direccion de envio</h2>
 <div>
-    <strong><?php echo esc_html($person_name($shipping)); ?></strong><br>
-    <?php foreach ($address_lines($shipping) as $line) : ?><?php echo esc_html($line); ?><br><?php endforeach; ?>
+    <strong><?php echo esc_html($taxocommerce_billing_person_name($taxocommerce_billing_shipping)); ?></strong><br>
+    <?php foreach ($taxocommerce_billing_address_lines($taxocommerce_billing_shipping) as $taxocommerce_billing_line) : ?><?php echo esc_html($taxocommerce_billing_line); ?><br><?php endforeach; ?>
 </div>
 <?php endif; ?>
 
@@ -180,7 +180,7 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
 <table class="products">
     <thead>
         <tr>
-            <?php if ($show_sku) : ?><th class="ref">REFERENCIA</th><?php endif; ?>
+            <?php if ($taxocommerce_billing_show_sku) : ?><th class="ref">REFERENCIA</th><?php endif; ?>
             <th>CONCEPTO</th>
             <th class="qty">CANTIDAD</th>
             <th>PRECIO UNIDAD<br><span class="muted">sin impuestos</span></th>
@@ -188,85 +188,85 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($items as $item) : ?>
+        <?php foreach ($taxocommerce_billing_items as $taxocommerce_billing_item) : ?>
         <tr>
-            <?php if ($show_sku) : ?><td class="ref"><?php echo esc_html((string) ($item['object_id'] ?? $item['product_id'] ?? '')); ?></td><?php endif; ?>
-            <td><?php echo esc_html($item['name'] ?? ''); ?></td>
-            <td class="qty"><?php echo esc_html($item['quantity'] ?? 0); ?></td>
-            <td class="num"><?php echo esc_html($money($item['unit_net'] ?? 0)); ?></td>
-            <td class="num"><?php echo esc_html($money($item['total'] ?? 0)); ?></td>
+            <?php if ($taxocommerce_billing_show_sku) : ?><td class="ref"><?php echo esc_html((string) ($taxocommerce_billing_item['object_id'] ?? $taxocommerce_billing_item['product_id'] ?? '')); ?></td><?php endif; ?>
+            <td><?php echo esc_html($taxocommerce_billing_item['name'] ?? ''); ?></td>
+            <td class="qty"><?php echo esc_html($taxocommerce_billing_item['quantity'] ?? 0); ?></td>
+            <td class="num"><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_item['unit_net'] ?? 0)); ?></td>
+            <td class="num"><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_item['total'] ?? 0)); ?></td>
         </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
 
 <table class="totals">
-    <tr><td>Subtotal productos</td><td><?php echo esc_html($money($totals['subtotal_items'] ?? 0)); ?></td></tr>
-    <?php if (!empty($totals['discount_total'])) : ?><tr><td>Descuentos</td><td>-<?php echo esc_html($money($totals['discount_total'])); ?></td></tr><?php endif; ?>
-    <tr><td>Transporte</td><td><?php echo esc_html($money($totals['shipping_total'] ?? 0)); ?></td></tr>
-    <?php if (!empty($totals['fee_total'])) : ?><tr><td>Otros cargos</td><td><?php echo esc_html($money($totals['fee_total'])); ?></td></tr><?php endif; ?>
-    <tr><td>BASE IMPONIBLE</td><td><?php echo esc_html($money($totals['base_total'] ?? 0)); ?></td></tr>
-    <?php if ($tax_lines) : ?>
-        <?php foreach ($tax_lines as $tax) : ?>
-            <?php $tax_amount = (float) ($tax['tax_total'] ?? 0) + (float) ($tax['shipping_tax_total'] ?? 0); ?>
+    <tr><td>Subtotal productos</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['subtotal_items'] ?? 0)); ?></td></tr>
+    <?php if (!empty($taxocommerce_billing_totals['discount_total'])) : ?><tr><td>Descuentos</td><td>-<?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['discount_total'])); ?></td></tr><?php endif; ?>
+    <tr><td>Transporte</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['shipping_total'] ?? 0)); ?></td></tr>
+    <?php if (!empty($taxocommerce_billing_totals['fee_total'])) : ?><tr><td>Otros cargos</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['fee_total'])); ?></td></tr><?php endif; ?>
+    <tr><td>BASE IMPONIBLE</td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['base_total'] ?? 0)); ?></td></tr>
+    <?php if ($taxocommerce_billing_tax_lines) : ?>
+        <?php foreach ($taxocommerce_billing_tax_lines as $taxocommerce_billing_tax) : ?>
+            <?php $taxocommerce_billing_tax_amount = (float) ($taxocommerce_billing_tax['tax_total'] ?? 0) + (float) ($taxocommerce_billing_tax['shipping_tax_total'] ?? 0); ?>
             <?php
-            $tax_label = (string) ($tax['label'] ?? 'IVA');
-            $rate_percent = $tax['rate_percent'] ?? null;
-            if (null !== $rate_percent && false === strpos($tax_label, '%')) {
-                $tax_label .= ' ' . rtrim(rtrim(number_format((float) $rate_percent, 3, '.', ''), '0'), '.') . '%';
+            $taxocommerce_billing_tax_label = (string) ($taxocommerce_billing_tax['label'] ?? 'IVA');
+            $taxocommerce_billing_rate_percent = $taxocommerce_billing_tax['rate_percent'] ?? null;
+            if (null !== $taxocommerce_billing_rate_percent && false === strpos($taxocommerce_billing_tax_label, '%')) {
+                $taxocommerce_billing_tax_label .= ' ' . rtrim(rtrim(number_format((float) $taxocommerce_billing_rate_percent, 3, '.', ''), '0'), '.') . '%';
             }
             ?>
             <tr>
-                <td><?php echo esc_html($tax_label); ?></td>
-                <td><?php echo esc_html($money($tax_amount)); ?></td>
+                <td><?php echo esc_html($taxocommerce_billing_tax_label); ?></td>
+                <td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_tax_amount)); ?></td>
             </tr>
         <?php endforeach; ?>
     <?php else : ?>
-        <?php $fallback_tax_label = !empty($fiscal['enabled']) && !empty($fiscal['label']) ? (string) $fiscal['label'] : 'IMPUESTOS'; ?>
-        <tr><td><?php echo esc_html($fallback_tax_label); ?></td><td><?php echo esc_html($money($totals['total_tax'] ?? 0)); ?></td></tr>
+        <?php $taxocommerce_billing_fallback_tax_label = !empty($taxocommerce_billing_fiscal['enabled']) && !empty($taxocommerce_billing_fiscal['label']) ? (string) $taxocommerce_billing_fiscal['label'] : 'IMPUESTOS'; ?>
+        <tr><td><?php echo esc_html($taxocommerce_billing_fallback_tax_label); ?></td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['total_tax'] ?? 0)); ?></td></tr>
     <?php endif; ?>
-    <tr class="grand"><td><?php echo esc_html($is_invoice ? 'TOTAL FACTURA' : 'TOTAL PROFORMA'); ?></td><td><?php echo esc_html($money($totals['total'] ?? 0)); ?></td></tr>
+    <tr class="grand"><td><?php echo esc_html($taxocommerce_billing_is_invoice ? 'TOTAL FACTURA' : 'TOTAL PROFORMA'); ?></td><td><?php echo esc_html($taxocommerce_billing_money($taxocommerce_billing_totals['total'] ?? 0)); ?></td></tr>
 </table>
 
-<?php if (!$is_invoice) : ?>
+<?php if (!$taxocommerce_billing_is_invoice) : ?>
     <?php
-    $commercial_items = array_values(array_filter($items, static function ($item) {
-        return !empty($item['commercial']) && is_array($item['commercial']);
+    $taxocommerce_billing_commercial_items = array_values(array_filter($taxocommerce_billing_items, static function ($taxocommerce_billing_item) {
+        return !empty($taxocommerce_billing_item['commercial']) && is_array($taxocommerce_billing_item['commercial']);
     }));
     ?>
-    <?php if ($commercial_items) : ?>
+    <?php if ($taxocommerce_billing_commercial_items) : ?>
         <h2>Información de los productos</h2>
         <p class="muted">Ficha comercial conservada con la proforma para facilitar la revisión de la selección.</p>
-        <?php foreach ($commercial_items as $item) : ?>
-            <?php $commercial = $item['commercial']; ?>
+        <?php foreach ($taxocommerce_billing_commercial_items as $taxocommerce_billing_item) : ?>
+            <?php $taxocommerce_billing_commercial = $taxocommerce_billing_item['commercial']; ?>
             <table class="commercial-sheet">
                 <tr>
                     <td class="media">
-                        <?php if (!empty($commercial['image_data_uri'])) : ?>
-                            <img src="<?php echo esc_attr($commercial['image_data_uri']); ?>" alt="">
+                        <?php if (!empty($taxocommerce_billing_commercial['image_data_uri'])) : ?>
+                            <img src="<?php echo esc_attr($taxocommerce_billing_commercial['image_data_uri']); ?>" alt="">
                         <?php else : ?>
                             <span class="muted">Sin imagen disponible</span>
                         <?php endif; ?>
                     </td>
                     <td>
-                        <h3><?php echo esc_html($item['name'] ?? ($commercial['name'] ?? 'Producto')); ?></h3>
-                        <?php if (!empty($item['object_id']) || !empty($item['product_id'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html((string) ($item['object_id'] ?? $item['product_id'])); ?></p><?php endif; ?>
-                        <?php if (!empty($commercial['summary'])) : ?><p><strong>Resumen:</strong> <?php echo esc_html($commercial['summary']); ?></p><?php endif; ?>
-                        <?php if (!empty($commercial['description']) && $commercial['description'] !== ($commercial['summary'] ?? '')) : ?>
-                            <p><?php echo esc_html($commercial['description']); ?></p>
+                        <h3><?php echo esc_html($taxocommerce_billing_item['name'] ?? ($taxocommerce_billing_commercial['name'] ?? 'Producto')); ?></h3>
+                        <?php if (!empty($taxocommerce_billing_item['object_id']) || !empty($taxocommerce_billing_item['product_id'])) : ?><p><strong>Referencia:</strong> <?php echo esc_html((string) ($taxocommerce_billing_item['object_id'] ?? $taxocommerce_billing_item['product_id'])); ?></p><?php endif; ?>
+                        <?php if (!empty($taxocommerce_billing_commercial['summary'])) : ?><p><strong>Resumen:</strong> <?php echo esc_html($taxocommerce_billing_commercial['summary']); ?></p><?php endif; ?>
+                        <?php if (!empty($taxocommerce_billing_commercial['description']) && $taxocommerce_billing_commercial['description'] !== ($taxocommerce_billing_commercial['summary'] ?? '')) : ?>
+                            <p><?php echo esc_html($taxocommerce_billing_commercial['description']); ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($commercial['categories'])) : ?>
-                            <p class="commercial-meta"><strong>Categorías:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['categories'])); ?></p>
+                        <?php if (!empty($taxocommerce_billing_commercial['categories'])) : ?>
+                            <p class="commercial-meta"><strong>Categorías:</strong> <?php echo esc_html(implode(' · ', (array) $taxocommerce_billing_commercial['categories'])); ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($commercial['tags'])) : ?>
-                            <p class="commercial-meta"><strong>Etiquetas:</strong> <?php echo esc_html(implode(' · ', (array) $commercial['tags'])); ?></p>
+                        <?php if (!empty($taxocommerce_billing_commercial['tags'])) : ?>
+                            <p class="commercial-meta"><strong>Etiquetas:</strong> <?php echo esc_html(implode(' · ', (array) $taxocommerce_billing_commercial['tags'])); ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($commercial['attributes']) && is_array($commercial['attributes'])) : ?>
+                        <?php if (!empty($taxocommerce_billing_commercial['attributes']) && is_array($taxocommerce_billing_commercial['attributes'])) : ?>
                             <table class="commercial-attrs">
-                                <?php foreach ($commercial['attributes'] as $label => $value) : ?>
+                                <?php foreach ($taxocommerce_billing_commercial['attributes'] as $taxocommerce_billing_label => $taxocommerce_billing_value) : ?>
                                     <tr>
-                                        <td><?php echo esc_html($label); ?></td>
-                                        <td><?php echo esc_html($value); ?></td>
+                                        <td><?php echo esc_html($taxocommerce_billing_label); ?></td>
+                                        <td><?php echo esc_html($taxocommerce_billing_value); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </table>
@@ -278,25 +278,25 @@ $document_footer = trim((string) ($document['footer_text'] ?? ''));
     <?php endif; ?>
 <?php endif; ?>
 
-<?php if (!empty($fiscal['enabled']) && !empty($fiscal['note'])) : ?>
-    <div class="fiscal-note"><strong>Condiciones fiscales del destino:</strong><br><?php echo nl2br(esc_html($fiscal['note'])); ?></div>
+<?php if (!empty($taxocommerce_billing_fiscal['enabled']) && !empty($taxocommerce_billing_fiscal['note'])) : ?>
+    <div class="fiscal-note"><strong>Condiciones fiscales del destino:</strong><br><?php echo nl2br(esc_html($taxocommerce_billing_fiscal['note'])); ?></div>
 <?php endif; ?>
 
-<?php if (!$is_invoice && !empty($document['show_payment_info'])) : ?>
+<?php if (!$taxocommerce_billing_is_invoice && !empty($taxocommerce_billing_document['show_payment_info'])) : ?>
     <div class="payment-box">
         <strong>Informacion de pago</strong><br>
-        <?php if (!empty($document['beneficiary'])) : ?>Beneficiario: <?php echo esc_html($document['beneficiary']); ?><br><?php endif; ?>
-        <?php if (!empty($document['iban'])) : ?>IBAN: <?php echo esc_html($document['iban']); ?><br><?php endif; ?>
-        <?php if (!empty($document['bizum'])) : ?>Bizum: <?php echo esc_html($document['bizum']); ?><br><?php endif; ?>
-        <?php if (!empty($document['payment_instructions'])) : ?><br><?php echo nl2br(esc_html($document['payment_instructions'])); ?><?php endif; ?>
+        <?php if (!empty($taxocommerce_billing_document['beneficiary'])) : ?>Beneficiario: <?php echo esc_html($taxocommerce_billing_document['beneficiary']); ?><br><?php endif; ?>
+        <?php if (!empty($taxocommerce_billing_document['iban'])) : ?>IBAN: <?php echo esc_html($taxocommerce_billing_document['iban']); ?><br><?php endif; ?>
+        <?php if (!empty($taxocommerce_billing_document['bizum'])) : ?>Bizum: <?php echo esc_html($taxocommerce_billing_document['bizum']); ?><br><?php endif; ?>
+        <?php if (!empty($taxocommerce_billing_document['payment_instructions'])) : ?><br><?php echo nl2br(esc_html($taxocommerce_billing_document['payment_instructions'])); ?><?php endif; ?>
     </div>
 <?php endif; ?>
 
 <div class="footer">
-    <?php if ('' !== $document_footer) : ?><?php echo nl2br(esc_html($document_footer)); ?><br><?php endif; ?>
-    <?php if (!empty($seller['footer_text'])) : ?><?php echo nl2br(esc_html($seller['footer_text'])); ?><br><?php endif; ?>
-    <?php echo esc_html($seller['website'] ?? ''); ?>
-    <?php if (!empty($seller['phone'])) : ?> &nbsp;|&nbsp; <?php echo esc_html($seller['phone']); ?><?php endif; ?>
+    <?php if ('' !== $taxocommerce_billing_document_footer) : ?><?php echo nl2br(esc_html($taxocommerce_billing_document_footer)); ?><br><?php endif; ?>
+    <?php if (!empty($taxocommerce_billing_seller['footer_text'])) : ?><?php echo nl2br(esc_html($taxocommerce_billing_seller['footer_text'])); ?><br><?php endif; ?>
+    <?php echo esc_html($taxocommerce_billing_seller['website'] ?? ''); ?>
+    <?php if (!empty($taxocommerce_billing_seller['phone'])) : ?> &nbsp;|&nbsp; <?php echo esc_html($taxocommerce_billing_seller['phone']); ?><?php endif; ?>
 </div>
 
 </body>

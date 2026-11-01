@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Scrappers
  * Description: External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.5' );
+define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.6' );
 define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SCRAPPERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SCRAPPERS_URL', plugin_dir_url( __FILE__ ) );
@@ -112,6 +112,7 @@ final class TaxoCommerce_Scrappers {
         // Legacy Ingeniero links only carry tab=research/editorial/data/tests.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
         if ( '' === $tab && isset( $_GET['tab'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter, sanitized by this handler; no state-changing action.
             $legacy = sanitize_key( wp_unslash( $_GET['tab'] ) );
             if ( in_array( $legacy, array( 'research', 'editorial', 'data', 'tests' ), true ) ) {
                 $tab = 'ingeniero';

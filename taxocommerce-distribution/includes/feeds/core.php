@@ -615,6 +615,7 @@ function tcdist_feed_run_queued_refresh( $origin = 'supplier_sync' ) {
 function tcdist_feed_candidate_count() {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live published catalog count for feed generation.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM {$wpdb->posts} p
@@ -1022,6 +1023,7 @@ function tcdist_feed_next_ids( $cursor, $limit ) {
 
     return array_map(
         'absint',
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live cursor batch must not be cached.
         (array) $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT p.ID

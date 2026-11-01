@@ -797,8 +797,8 @@ function tcdist_sitemap_get_node_page_ids_by_roles($roles)
                 'no_found_rows'          => true,
                 'update_post_meta_cache' => false,
                 'update_post_term_cache' => false,
-                'meta_key'               => '_taxocommerce_core_seo_role',
-                'meta_value'             => $role,
+                'meta_key'               => '_taxocommerce_core_seo_role', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Core canonical SEO role metadata.
+                'meta_value'             => $role, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Exact role lookup for published pages.
             )
         );
         $ids = array_merge($ids, array_map('absint', (array) $role_ids));
@@ -814,6 +814,7 @@ function tcdist_sitemap_get_node_page_ids_by_roles($roles)
      * required once Core metadata is present.
      */
     $nodes_table = $wpdb->prefix . 'seo_nodes';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only check for optional legacy table.
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $nodes_table)
     );
@@ -823,6 +824,7 @@ function tcdist_sitemap_get_node_page_ids_by_roles($roles)
     }
 
     foreach ($roles as $role) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Legacy coexistence requires fresh role data.
         $legacy_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT object_id
@@ -857,6 +859,7 @@ function tcdist_sitemap_get_published_post_ids($post_type)
 
     return array_map(
         'absint',
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Current published sitemap inventory.
         (array) $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID
@@ -989,6 +992,7 @@ function tcdist_sitemap_get_product_category_lastmods()
 {
     global $wpdb;
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh category modification timestamps for XML sitemap.
     $rows = $wpdb->get_results(
         "SELECT tt.term_id, MAX(p.post_modified_gmt) AS lastmod
          FROM {$wpdb->term_taxonomy} tt
