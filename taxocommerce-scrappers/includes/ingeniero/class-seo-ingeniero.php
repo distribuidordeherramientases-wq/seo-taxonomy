@@ -124,6 +124,7 @@ final class SEO_Ingeniero {
 
     public static function provider() {
         if (self::$provider instanceof SEO_Ingeniero_Search_Provider) return self::$provider;
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
         $provider = apply_filters('seo_ingeniero_search_provider', new SEO_Ingeniero_SerpApi_Provider());
         if (!($provider instanceof SEO_Ingeniero_Search_Provider)) {
             return new WP_Error('ingeniero_provider_invalid', 'El provider de búsqueda de Ingeniero no implementa la interfaz requerida.');
@@ -1253,6 +1254,7 @@ final class SEO_Ingeniero {
             'orderby'=>'modified',
             'order'=>'DESC',
             'no_found_rows'=>true,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native bounded WooCommerce product_cat relationship query: taxonomy filtering is necessary for category-specific results.
             'tax_query'=>array(array(
                 'taxonomy'=>'product_cat',
                 'field'=>'term_id',
@@ -1553,6 +1555,7 @@ final class SEO_Ingeniero {
             'posts_per_page'=>120,
             'fields'=>'ids',
             'no_found_rows'=>true,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native bounded WooCommerce product_cat relationship query: taxonomy filtering is necessary for category-specific results.
             'tax_query'=>array(array(
                 'taxonomy'=>'product_cat',
                 'field'=>'term_id',
