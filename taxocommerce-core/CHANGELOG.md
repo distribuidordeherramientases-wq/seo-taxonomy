@@ -5,16 +5,6 @@
 
 ## [Unreleased]
 
-## [0.4.40]
-
-- Internacionalización nativa del administrador: menús, pestañas, botones, descripciones de módulos, editor, parte de la jerarquía y mensajes. Se utiliza el locale de WordPress y el dominio `taxocommerce-core`; no hay selector propio.
-- Catálogo POT y ficheros PO/MO de `es_ES`, `en_US`, `fr_FR`, `de_DE` y `nl_NL`. Español priorizado para STAGING; traducciones de textos largos a otros idiomas todavía parciales (issue #2025).
-- Conservados identificadores, contratos técnicos, relaciones SEO, contenidos, acciones, y estructura de datos. No afecta al monolítico ni a los plugins independientes de la familia.
-- Añadida validación automática de carga de traducciones compiladas antes de desplegar.
-
-
-- Iniciada la internacionalización nativa de Core (issue #2025): declaración de dominio `/languages`, textos de AJAX/editor traducibles y catálogo gettext, conservando identificadores y lógica existentes. Los idiomas pendientes de traducción y el resto de literales visibles se documentan en el issue; no se declara cobertura completa.
-
 - Eliminados los dos scripts de pruebas no ejecutados por CI (`anomalies-smoke.php` y `family-menu-smoke.php`); las otras 11 pruebas permanecen fuera del ZIP y se ejecutan con los workflows. Las comprobaciones automáticas y los archivos ocultos quedan excluidos del paquete instalable (PR #1935).
 
 - Limpieza controlada de STAGING (issue #1937): eliminar exclusivamente restos de pruebas de desarrollo bajo `tests/` y el antiguo `.ftp-deploy-sync-state.json` del plugin instalado. Inventario, copia de seguridad SHA-256 y verificación remota obligatorios. Se conservan las clases operativas de `includes/`, los datos y las pruebas del repositorio; sin intervención en PRODUCCIÓN.
@@ -24,6 +14,13 @@
 - Endurecido el despliegue de la familia modular: las pruebas de desarrollo y el estado FTP se mantienen fuera de las instalaciones WordPress.
 - Preparada una limpieza FTPS excepcional, con inventario, copia de seguridad y verificación de hashes, limitada a `taxocommerce-*/tests/` y al archivo oculto de sincronización. El monolítico `seo-taxonomy` queda expresamente excluido.
 - Seguimiento de la intervención y sus comprobaciones en el issue #1918. No se modifica el código operativo ni se incrementa la versión de Core por un ajuste de infraestructura.
+
+## [0.4.40]
+
+- Internacionalización nativa del administrador: menús, pestañas, botones, descripciones de módulos, editor, parte de la jerarquía y mensajes. Se utiliza el locale de WordPress y el dominio `taxocommerce-core`; no hay selector propio.
+- Catálogo POT y ficheros PO/MO de `es_ES`, `en_US`, `fr_FR`, `de_DE` y `nl_NL`. Español priorizado para STAGING; traducciones de textos largos a otros idiomas todavía parciales (issue #2025).
+- Conservados identificadores, contratos técnicos, relaciones SEO, contenidos, acciones, y estructura de datos. No afecta al monolítico ni a los plugins independientes de la familia.
+- Añadida validación automática de carga de traducciones compiladas antes de desplegar.
 
 ## [0.4.39]
 
