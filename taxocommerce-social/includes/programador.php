@@ -501,7 +501,7 @@ function tcsocial_programador_render_notice()
     $text = '';
     if ('created' === $message) {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Contador únicamente visible en aviso, no modifica programación.
-        $created = isset($_GET['created'] ? absint($_GET['created']) : 0;
+        $created = isset($_GET['created']) ? absint($_GET['created']) : 0;
         $text = 'Publicacion programada correctamente' . ($created > 1 ? ' en ' . $created . ' redes.' : '.');
         $extra = get_transient('tcsocial_programador_error_' . get_current_user_id());
         if ($extra) {
