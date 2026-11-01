@@ -37,24 +37,28 @@ SEO_Ojeador_Admin::init();
 
 // Exact-product helpers remain available for a future product matching layer.
 if (!function_exists('seo_ojeador_get_comparison')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_get_comparison($product_id) {
         return SEO_Ojeador_DB::comparison_for_object(absint($product_id));
     }
 }
 
 if (!function_exists('seo_ojeador_get_offers')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_get_offers($product_id, $limit = 8) {
         return SEO_Ojeador_DB::offers_for_object(absint($product_id), absint($limit));
     }
 }
 
 if (!function_exists('seo_ojeador_get_category_market')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_get_category_market($term_id, $limit = 1000) {
         return SEO_Ojeador_DB::results_for_category(absint($term_id), absint($limit));
     }
 }
 
 if (!function_exists('seo_ojeador_get_analysis')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_get_analysis($action_limit = 30) {
         return SEO_Ojeador_Analysis::dashboard(absint($action_limit));
     }
@@ -62,12 +66,14 @@ if (!function_exists('seo_ojeador_get_analysis')) {
 
 
 if (!function_exists('seo_ojeador_get_star_products')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_get_star_products($args = array()) {
         return SEO_Ojeador_Stars::dashboard(is_array($args) ? $args : array());
     }
 }
 
 if (!function_exists('seo_ojeador_sync_google')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
     function seo_ojeador_sync_google() {
         return SEO_Ojeador_Worker::start_run('api');
     }

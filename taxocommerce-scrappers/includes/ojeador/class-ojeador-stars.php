@@ -99,6 +99,7 @@ final class SEO_Ojeador_Stars {
         global $wpdb;
 
         $supplier_table = $wpdb->prefix . 'seo_proveedores_productos';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))) !== $supplier_table) {
             return self::empty_payload('No existe la tabla de catálogo de proveedores.');
         }
@@ -225,6 +226,7 @@ final class SEO_Ojeador_Stars {
                 ORDER BY p.ID ASC,tt.term_id ASC";
 
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas core e internas validadas; consulta fija sin entrada de usuario.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($sql, ARRAY_A);
         foreach ($rows as &$row) {
             $cost = self::first_positive(array($row['precio_con_iva'] ?? null, $row['provider_cost_meta'] ?? null, $row['precio_sin_iva'] ?? null));
@@ -245,6 +247,7 @@ final class SEO_Ojeador_Stars {
     private static function market_results_by_term() {
         global $wpdb;
         $table = SEO_Ojeador_DB::table('category_results');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT id,term_id,google_product_id,gtin,mpn,brand,model,title,merchant,merchant_key,price,old_price,currency,rating,reviews,result_position,product_url,image_url,observed_at
              FROM %i
              WHERE active=1

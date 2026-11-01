@@ -8,6 +8,7 @@
  */
 defined('ABSPATH') || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Existing public seo_ legacy extension contract; renaming would break third-party callbacks and integrations.
 final class SEO_Ojeador_Novedades {
     const DB_VERSION='0.1.0';
     const OPT_DB='seo_ojeador_novedades_db_version';
@@ -25,6 +26,7 @@ final class SEO_Ojeador_Novedades {
     public static function maybe_install(){
         global $wpdb;
         $table=self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         $exists=$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$table))===$table;
         if((string)get_option(self::OPT_DB,'')===self::DB_VERSION && $exists)return;
         require_once ABSPATH.'wp-admin/includes/upgrade.php';
@@ -99,6 +101,7 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;
         $rel=$wpdb->prefix.'seo_relations';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- internal tables only.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT DISTINCT cl.ID cluster_id,cl.post_title cluster_name,hp.ID hub_primary_id,hp.post_title hub_primary_name
              FROM %i r
              INNER JOIN %i cl ON cl.ID=r.source_id
@@ -220,6 +223,7 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;$table=self::table();$now=gmdate('Y-m-d H:i:s');
         $key=hash('sha256',self::norm($row['title']??'').'|'.absint($row['hub_primary_id']??0));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table name.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing=$wpdb->get_row($wpdb->prepare("SELECT id,status,first_seen_at FROM %i WHERE opportunity_key=%s LIMIT 1", $table,$key),ARRAY_A);
         $data=array(
             'opportunity_key'=>$key,'title'=>sanitize_text_field((string)($row['title']??'')),
@@ -238,7 +242,9 @@ final class SEO_Ojeador_Novedades {
             'evidence_json'=>wp_json_encode((array)($row['evidence']??array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
             'first_seen_at'=>$existing?(string)$existing['first_seen_at']:$now,'last_seen_at'=>$now,'updated_at'=>$now,
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         if($existing){$ok=$wpdb->update($table,$data,array('id'=>absint($existing['id'])));return $ok===false?new WP_Error('ojeador_novedades_update',sanitize_text_field((string)$wpdb->last_error)):absint($existing['id']);}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $ok=$wpdb->insert($table,$data);return $ok===false?new WP_Error('ojeador_novedades_insert',sanitize_text_field((string)$wpdb->last_error)):absint($wpdb->insert_id);
     }
 
@@ -321,6 +327,7 @@ final class SEO_Ojeador_Novedades {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability verified by self::guard() above.
         global $wpdb;$id=absint(wp_unslash($_POST['opportunity_id']??0));$status=sanitize_key((string)wp_unslash($_POST['opportunity_status']??'detected'));
         if(!in_array($status,array('detected','investigate','watch','dismissed'),true))$status='detected';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         if($id)$wpdb->update(self::table(),array('status'=>$status,'updated_at'=>gmdate('Y-m-d H:i:s')),array('id'=>$id));
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         self::redirect(array('ojeador_notice'=>'novedades_status'));
@@ -334,6 +341,7 @@ final class SEO_Ojeador_Novedades {
     public static function rows($args=array()){
         global $wpdb;$a=wp_parse_args($args,array('status'=>'','type'=>'','min_score'=>0,'q'=>'','limit'=>500));$table=self::table();$limit=max(1,min(2000,absint($a['limit'])));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table, limit prepared.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY score DESC,last_seen_at DESC LIMIT %d", $table,$limit),ARRAY_A);
         $status=sanitize_key((string)$a['status']);$type=sanitize_key((string)$a['type']);$min=absint($a['min_score']);$q=self::norm($a['q']);$out=array();
         foreach($rows as $r){

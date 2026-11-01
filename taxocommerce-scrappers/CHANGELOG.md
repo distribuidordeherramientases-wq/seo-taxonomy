@@ -6,6 +6,14 @@
 
 Sin novedades adicionales pendientes.
 
+## [0.1.6]
+
+- Auditoría individual de los 208 avisos restantes de WordPress Plugin Check sobre Scrappers 0.1.5, sin desactivar reglas de análisis globales.
+- Justificados en cada llamada los accesos SQL directos a tablas específicas de investigación/Ojeador/Ingeniero (con lecturas en tiempo real y escrituras), comprobaciones de esquema y uso administrativo de resultados actuales. No se añade caché sin una política fiable de invalidación.
+- Documentadas en cada punto las lecturas GET de navegación y los datos de formularios leídos después de `guard()` (capacidad y nonce), los nombres de extensión heredados y las búsquedas acotadas por `product_cat`.
+- Sin cambio de funciones, nombres públicos, consultas de negocio, datos, credenciales, configuraciones, procesos ni monolítico. Vinculado al Issue #2010.
+- Las excepciones de Plugin Check son específicas y revisables; el número de advertencias no implica por sí solo que existiesen 208 fallos funcionales.
+
 ## [0.1.5]
 
 - Preparada correctamente la tabla de ejecución en la migración de Ojeador mediante `%i` y `$wpdb->prepare`, sin modificar las condiciones ni las transiciones de estado.

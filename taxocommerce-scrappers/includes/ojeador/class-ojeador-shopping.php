@@ -807,6 +807,7 @@ final class SEO_Ojeador_Shopping {
         $unique = array();
         $seen = array();
         foreach ($candidates as $candidate) {
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
             $candidate = trim((string) apply_filters('seo_ojeador_category_query_candidate', $candidate, $category));
             if ($candidate === '') {
                 continue;
@@ -840,6 +841,7 @@ final class SEO_Ojeador_Shopping {
         }
         $candidates = self::build_category_query_candidates($category);
         $query = $candidates ? (string) reset($candidates) : '';
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- seo_ is an established exported integration hook/function namespace; changing it would break existing callers.
         return trim((string) apply_filters('seo_ojeador_category_query', $query, $category, $candidates));
     }
 
