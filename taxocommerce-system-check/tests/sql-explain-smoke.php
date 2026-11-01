@@ -63,4 +63,20 @@ foreach ( array(
         exit( 1 );
     }
 }
-echo "Eight canonical System Check EXPLAIN templates prepared safely.\n";
+// The Health Scan queue UPDATE must bind the table identifier just like
+// the EXPLAIN checks; values and IDs are ordered after the %i argument.
+$health_source = file_get_contents( dirname( __DIR__ ) . '/includes/system-check/seo-health-scan.php' );
+foreach ( array(
+    'UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN',
+    'array_merge(array($tables[\'items\'], $run_id, $now), $ids)',
+) as $contract ) {
+    if ( false === strpos( $health_source, $contract ) ) {
+        fwrite( STDERR, "Missing safe Health Scan queue SQL contract: " . $contract . "\\n" );
+        exit( 1 );
+    }
+}
+if ( false !== strpos( $health_source, 'UPDATE {$tables' ) ) {
+    fwrite( STDERR, "Health Scan UPDATE must not interpolate table identifiers.\\n" );
+    exit( 1 );
+}
+echo "Eight EXPLAIN templates and Health Scan UPDATE identifiers checked.\\n";
