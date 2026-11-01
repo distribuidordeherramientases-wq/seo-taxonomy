@@ -71,6 +71,8 @@ final class TCV_Portable {
     }
 
     private static function requested_scopes() {
+        // Verify the export form within the input-reading method as well as its caller.
+        check_admin_referer( 'tcv_export_portable_json' );
         $raw = isset( $_POST['scope'] ) && is_array( $_POST['scope'] )
             ? array_map( 'sanitize_key', wp_unslash( $_POST['scope'] ) )
             : self::allowed_scopes();
@@ -146,41 +148,43 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_masters() {
         global $wpdb;
         $t = TCV_Schema::tables();
 
         $vocabulary = $wpdb->get_results(
-            "SELECT id,semantic_group,slug,label,parent_id,source,active
-             FROM {$t['vocabulary']}
-             ORDER BY semantic_group,slug",
+            $wpdb->prepare( "SELECT id,semantic_group,slug,label,parent_id,source,active
+             FROM %i
+             ORDER BY semantic_group,slug", $t['vocabulary'] ),
             ARRAY_A
         );
         $type_roles = $wpdb->get_results(
-            "SELECT tv.slug AS type_slug,rv.slug AS role_slug,m.confidence,m.source,m.active
-             FROM {$t['type_role']} m
-             INNER JOIN {$t['vocabulary']} tv ON tv.id=m.type_vocabulary_id
-             INNER JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id
-             ORDER BY tv.slug",
+            $wpdb->prepare( "SELECT tv.slug AS type_slug,rv.slug AS role_slug,m.confidence,m.source,m.active
+             FROM %i m
+             INNER JOIN %i tv ON tv.id=m.type_vocabulary_id
+             INNER JOIN %i rv ON rv.id=m.role_vocabulary_id
+             ORDER BY tv.slug", $t['type_role'], $t['vocabulary'], $t['vocabulary'] ),
             ARRAY_A
         );
         $attributes = $wpdb->get_results(
-            "SELECT id,slug,nombre,grupo,tipo,unidad_tipo,unidad_base,multiple,filtrable,visible,seo,orden,activo
-             FROM {$t['attributes']} ORDER BY orden,slug",
+            $wpdb->prepare( "SELECT id,slug,nombre,grupo,tipo,unidad_tipo,unidad_base,multiple,filtrable,visible,seo,orden,activo
+             FROM %i ORDER BY orden,slug", $t['attributes'] ),
             ARRAY_A
         );
         $terms = $wpdb->get_results(
-            "SELECT a.slug AS attribute_slug,t.id,t.slug,t.nombre,t.orden,t.activo
-             FROM {$t['terms']} t INNER JOIN {$t['attributes']} a ON a.id=t.atributo_id
-             ORDER BY a.slug,t.orden,t.slug",
+            $wpdb->prepare( "SELECT a.slug AS attribute_slug,t.id,t.slug,t.nombre,t.orden,t.activo
+             FROM %i t INNER JOIN %i a ON a.id=t.atributo_id
+             ORDER BY a.slug,t.orden,t.slug", $t['terms'], $t['attributes'] ),
             ARRAY_A
         );
         $aliases = $wpdb->get_results(
-            "SELECT a.slug AS attribute_slug,t.slug AS term_slug,x.alias
-             FROM {$t['aliases']} x
-             INNER JOIN {$t['attributes']} a ON a.id=x.atributo_id
-             LEFT JOIN {$t['terms']} t ON t.id=x.termino_id
-             ORDER BY a.slug,t.slug,x.alias",
+            $wpdb->prepare( "SELECT a.slug AS attribute_slug,t.slug AS term_slug,x.alias
+             FROM %i x
+             INNER JOIN %i a ON a.id=x.atributo_id
+             LEFT JOIN %i t ON t.id=x.termino_id
+             ORDER BY a.slug,t.slug,x.alias", $t['aliases'], $t['attributes'], $t['terms'] ),
             ARRAY_A
         );
 
@@ -215,6 +219,7 @@ final class TCV_Portable {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function product_identity( $product_id ) {
         $post = get_post( $product_id );
         return array(
@@ -226,6 +231,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_products( $scopes ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -233,12 +240,12 @@ final class TCV_Portable {
 
         if ( in_array( 'product_semantic', $scopes, true ) ) {
             $ids = array_merge( $ids, (array) $wpdb->get_col(
-                "SELECT DISTINCT object_id FROM {$t['objects']} WHERE object_type='product'"
+                $wpdb->prepare( "SELECT DISTINCT object_id FROM %i WHERE object_type='product'", $t['objects'] )
             ) );
         }
         if ( in_array( 'product_attributes', $scopes, true ) ) {
             $ids = array_merge( $ids, (array) $wpdb->get_col(
-                "SELECT DISTINCT product_id FROM {$t['product_att']}"
+                $wpdb->prepare( "SELECT DISTINCT product_id FROM %i", $t['product_att'] )
             ) );
         }
         if ( in_array( 'product_tags', $scopes, true ) ) {
@@ -265,10 +272,10 @@ final class TCV_Portable {
                 $row['semantic'] = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT v.semantic_group,v.slug,v.label,ov.source,ov.confidence,ov.status
-                         FROM {$t['objects']} ov
-                         INNER JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id
+                         FROM %i ov
+                         INNER JOIN %i v ON v.id=ov.vocabulary_id
                          WHERE ov.object_type='product' AND ov.object_id=%d
-                         ORDER BY v.semantic_group,v.slug",
+                         ORDER BY v.semantic_group,v.slug", $t['objects'], $t['vocabulary'],
                         $product_id
                     ),
                     ARRAY_A
@@ -279,11 +286,11 @@ final class TCV_Portable {
                 $row['attributes'] = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT a.slug AS attribute_slug,t.slug AS term_slug,pa.valor_texto,pa.valor_numero,pa.valor_numero_max,pa.unidad,pa.valor_original,pa.orden
-                         FROM {$t['product_att']} pa
-                         INNER JOIN {$t['attributes']} a ON a.id=pa.atributo_id
-                         LEFT JOIN {$t['terms']} t ON t.id=pa.termino_id
+                         FROM %i pa
+                         INNER JOIN %i a ON a.id=pa.atributo_id
+                         LEFT JOIN %i t ON t.id=pa.termino_id
                          WHERE pa.product_id=%d
-                         ORDER BY pa.orden,pa.id",
+                         ORDER BY pa.orden,pa.id", $t['product_att'], $t['attributes'], $t['terms'],
                         $product_id
                     ),
                     ARRAY_A
@@ -304,6 +311,7 @@ final class TCV_Portable {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function category_identity( $term ) {
         $path = array();
         $parent = absint( $term->parent );
@@ -324,11 +332,13 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function export_categories() {
         global $wpdb;
         $t = TCV_Schema::tables();
         $ids = (array) $wpdb->get_col(
-            "SELECT DISTINCT object_id FROM {$t['objects']} WHERE object_type='product_cat' ORDER BY object_id"
+            $wpdb->prepare( "SELECT DISTINCT object_id FROM %i WHERE object_type='product_cat' ORDER BY object_id", $t['objects'] )
         );
         $out = array();
         foreach ( $ids as $term_id ) {
@@ -339,10 +349,10 @@ final class TCV_Portable {
             $semantic = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT v.semantic_group,v.slug,v.label,ov.source,ov.confidence,ov.status
-                     FROM {$t['objects']} ov
-                     INNER JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id
+                     FROM %i ov
+                     INNER JOIN %i v ON v.id=ov.vocabulary_id
                      WHERE ov.object_type='product_cat' AND ov.object_id=%d
-                     ORDER BY v.semantic_group,v.slug",
+                     ORDER BY v.semantic_group,v.slug", $t['objects'], $t['vocabulary'],
                     $term->term_id
                 ),
                 ARRAY_A
@@ -355,6 +365,7 @@ final class TCV_Portable {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function counts( $sections ) {
         return array(
             'vocabulary'  => count( (array) ( $sections['masters']['vocabulary'] ?? array() ) ),
@@ -367,24 +378,26 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function integrity_summary() {
         global $wpdb;
         $t = TCV_Schema::tables();
         $groups = $wpdb->get_results(
-            "SELECT semantic_group,COUNT(*) n FROM {$t['vocabulary']} WHERE active=1 GROUP BY semantic_group",
+            $wpdb->prepare( "SELECT semantic_group,COUNT(*) n FROM %i WHERE active=1 GROUP BY semantic_group", $t['vocabulary'] ),
             OBJECT_K
         );
         $orphans = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$t['objects']} ov LEFT JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id WHERE v.id IS NULL"
+            $wpdb->prepare( "SELECT COUNT(*) FROM %i ov LEFT JOIN %i v ON v.id=ov.vocabulary_id WHERE v.id IS NULL", $t['objects'], $t['vocabulary'] )
         );
         $inactive_relations = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$t['objects']} ov INNER JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id WHERE ov.status=1 AND v.active=0"
+            $wpdb->prepare( "SELECT COUNT(*) FROM %i ov INNER JOIN %i v ON v.id=ov.vocabulary_id WHERE ov.status=1 AND v.active=0", $t['objects'], $t['vocabulary'] )
         );
         $types_without_role = (int) $wpdb->get_var(
-            "SELECT COUNT(*)
-             FROM {$t['vocabulary']} v
-             LEFT JOIN {$t['type_role']} m ON m.type_vocabulary_id=v.id AND m.active=1
-             WHERE v.semantic_group='tipo' AND v.active=1 AND m.id IS NULL"
+            $wpdb->prepare( "SELECT COUNT(*)
+             FROM %i v
+             LEFT JOIN %i m ON m.type_vocabulary_id=v.id AND m.active=1
+             WHERE v.semantic_group='tipo' AND v.active=1 AND m.id IS NULL", $t['vocabulary'], $t['type_role'] )
         );
         return array(
             'groups' => array(
@@ -394,23 +407,33 @@ final class TCV_Portable {
                 'plataforma' => (int) ( $groups['plataforma']->n ?? 0 ),
                 'subtipo'    => (int) ( $groups['subtipo']->n ?? 0 ),
             ),
-            'object_relations'        => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t['objects']} WHERE status=1" ),
-            'product_attribute_rows'  => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t['product_att']}" ),
+            'object_relations'        => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status=1", $t['objects'] ) ),
+            'product_attribute_rows'  => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $t['product_att'] ) ),
             'orphan_relations'        => $orphans,
             'inactive_term_relations' => $inactive_relations,
             'active_types_without_role'=> $types_without_role,
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function read_uploaded_document() {
-        if ( empty( $_FILES['portable_json']['tmp_name'] ) || ! is_uploaded_file( $_FILES['portable_json']['tmp_name'] ) ) {
+        // The only caller is nonce-protected; check here too so the upload
+        // cannot be read through a future unprotected caller.
+        check_admin_referer( 'tcv_import_portable_json' );
+        // An uploaded temporary path must remain unchanged, so validate its
+        // PHP origin and upload error rather than rewriting the path.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP's uploaded-file metadata must remain unmodified; validated with UPLOAD_ERR_OK, is_uploaded_file() and size.
+        $upload = isset( $_FILES['portable_json'] ) && is_array( $_FILES['portable_json'] ) ? $_FILES['portable_json'] : array();
+        $tmp_path = isset( $upload['tmp_name'] ) && is_string( $upload['tmp_name'] ) ? $upload['tmp_name'] : '';
+        $upload_error = isset( $upload['error'] ) ? absint( $upload['error'] ) : UPLOAD_ERR_NO_FILE;
+        if ( UPLOAD_ERR_OK !== $upload_error || '' === $tmp_path || ! is_uploaded_file( $tmp_path ) ) {
             return new WP_Error( 'tcv_portable_missing', 'No se ha recibido ningún JSON.' );
         }
-        $size = absint( $_FILES['portable_json']['size'] ?? 0 );
+        $size = absint( $upload['size'] ?? 0 );
         if ( $size < 2 || $size > 268435456 ) {
             return new WP_Error( 'tcv_portable_size', 'El archivo está vacío o supera 256 MiB.' );
         }
-        $raw = file_get_contents( $_FILES['portable_json']['tmp_name'] );
+        $raw = file_get_contents( $tmp_path );
         if ( ! is_string( $raw ) || '' === $raw ) {
             return new WP_Error( 'tcv_portable_read', 'No se pudo leer el archivo.' );
         }
@@ -541,6 +564,8 @@ final class TCV_Portable {
         );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function resolve_product( $identity ) {
         global $wpdb;
         $provider = sanitize_text_field( (string) ( $identity['provider'] ?? '' ) );
@@ -592,6 +617,7 @@ final class TCV_Portable {
         return new WP_Error( 'tcv_product_unresolved', 'no se pudo resolver ' . ( $sku ?: $external ?: $slug ?: 'sin identidad portable' ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function resolve_category( $identity ) {
         $slug = sanitize_title( (string) ( $identity['slug'] ?? '' ) );
         if ( '' === $slug ) {
@@ -612,13 +638,15 @@ final class TCV_Portable {
         return absint( $term->term_id );
     }
 
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function vocabulary_id( $group, $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         return absint(
             $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM {$t['vocabulary']} WHERE semantic_group=%s AND slug=%s LIMIT 1",
+                    "SELECT id FROM %i WHERE semantic_group=%s AND slug=%s LIMIT 1", $t['vocabulary'],
                     sanitize_key( $group ),
                     sanitize_title( $slug )
                 )
@@ -626,21 +654,30 @@ final class TCV_Portable {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_id( $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
-        return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['attributes']} WHERE slug=%s LIMIT 1", sanitize_title( $slug ) ) ) );
+        return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE slug=%s LIMIT 1", $t['attributes'], sanitize_title( $slug ) ) ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_term_id( $attribute_id, $slug ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         if ( ! $attribute_id || ! $slug ) {
             return 0;
         }
-        return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t['terms']} WHERE atributo_id=%d AND slug=%s LIMIT 1", $attribute_id, sanitize_title( $slug ) ) ) );
+        return absint( $wpdb->get_var( $wpdb->prepare( "SELECT id FROM %i WHERE atributo_id=%d AND slug=%s LIMIT 1", $t['terms'], $attribute_id, sanitize_title( $slug ) ) ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function apply_document( $document, $mode ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -660,9 +697,9 @@ final class TCV_Portable {
                     }
                     $wpdb->query(
                         $wpdb->prepare(
-                            "INSERT INTO {$t['vocabulary']} (semantic_group,slug,label,source,active)
+                            "INSERT INTO %i (semantic_group,slug,label,source,active)
                              VALUES (%s,%s,%s,%s,%d)
-                             ON DUPLICATE KEY UPDATE label=VALUES(label),source=VALUES(source),active=VALUES(active),updated_at=CURRENT_TIMESTAMP",
+                             ON DUPLICATE KEY UPDATE label=VALUES(label),source=VALUES(source),active=VALUES(active),updated_at=CURRENT_TIMESTAMP", $t['vocabulary'],
                             $group,
                             $slug,
                             $label,
@@ -692,9 +729,9 @@ final class TCV_Portable {
                     if ( $type && $role ) {
                         $wpdb->query(
                             $wpdb->prepare(
-                                "INSERT INTO {$t['type_role']} (type_vocabulary_id,role_vocabulary_id,confidence,source,active)
+                                "INSERT INTO %i (type_vocabulary_id,role_vocabulary_id,confidence,source,active)
                                  VALUES (%d,%d,%f,%s,%d)
-                                 ON DUPLICATE KEY UPDATE role_vocabulary_id=VALUES(role_vocabulary_id),confidence=VALUES(confidence),source=VALUES(source),active=VALUES(active)",
+                                 ON DUPLICATE KEY UPDATE role_vocabulary_id=VALUES(role_vocabulary_id),confidence=VALUES(confidence),source=VALUES(source),active=VALUES(active)", $t['type_role'],
                                 $type,
                                 $role,
                                 max( 0, min( 1, (float) ( $row['confidence'] ?? 1 ) ) ),
@@ -715,9 +752,9 @@ final class TCV_Portable {
                     $type = in_array( $row['tipo'] ?? '', array( 'texto','numero','boolean','termino','rango' ), true ) ? $row['tipo'] : 'texto';
                     $wpdb->query(
                         $wpdb->prepare(
-                            "INSERT INTO {$t['attributes']} (slug,nombre,grupo,tipo,unidad_tipo,unidad_base,multiple,filtrable,visible,seo,orden,activo)
+                            "INSERT INTO %i (slug,nombre,grupo,tipo,unidad_tipo,unidad_base,multiple,filtrable,visible,seo,orden,activo)
                              VALUES (%s,%s,%s,%s,%s,%s,%d,%d,%d,%d,%d,%d)
-                             ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),grupo=VALUES(grupo),tipo=VALUES(tipo),unidad_tipo=VALUES(unidad_tipo),unidad_base=VALUES(unidad_base),multiple=VALUES(multiple),filtrable=VALUES(filtrable),visible=VALUES(visible),seo=VALUES(seo),orden=VALUES(orden),activo=VALUES(activo)",
+                             ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),grupo=VALUES(grupo),tipo=VALUES(tipo),unidad_tipo=VALUES(unidad_tipo),unidad_base=VALUES(unidad_base),multiple=VALUES(multiple),filtrable=VALUES(filtrable),visible=VALUES(visible),seo=VALUES(seo),orden=VALUES(orden),activo=VALUES(activo)", $t['attributes'],
                             $slug, $name, sanitize_text_field( $row['grupo'] ?? '' ), $type,
                             sanitize_text_field( $row['unidad_tipo'] ?? '' ), sanitize_text_field( $row['unidad_base'] ?? '' ),
                             empty( $row['multiple'] ) ? 0 : 1, empty( $row['filtrable'] ) ? 0 : 1,
@@ -737,9 +774,9 @@ final class TCV_Portable {
                     }
                     $wpdb->query(
                         $wpdb->prepare(
-                            "INSERT INTO {$t['terms']} (atributo_id,slug,nombre,orden,activo)
+                            "INSERT INTO %i (atributo_id,slug,nombre,orden,activo)
                              VALUES (%d,%s,%s,%d,%d)
-                             ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),orden=VALUES(orden),activo=VALUES(activo)",
+                             ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),orden=VALUES(orden),activo=VALUES(activo)", $t['terms'],
                             $aid, $slug, $name, intval( $row['orden'] ?? 0 ), empty( $row['activo'] ) ? 0 : 1
                         )
                     );
@@ -755,7 +792,7 @@ final class TCV_Portable {
                     }
                     $exists = $wpdb->get_var(
                         $wpdb->prepare(
-                            "SELECT id FROM {$t['aliases']} WHERE atributo_id=%d AND COALESCE(termino_id,0)=%d AND alias=%s LIMIT 1",
+                            "SELECT id FROM %i WHERE atributo_id=%d AND COALESCE(termino_id,0)=%d AND alias=%s LIMIT 1", $t['aliases'],
                             $aid, $term, $alias
                         )
                     );
@@ -783,9 +820,9 @@ final class TCV_Portable {
                         }
                         $wpdb->query(
                             $wpdb->prepare(
-                                "INSERT INTO {$t['objects']} (object_type,object_id,vocabulary_id,source,confidence,status)
+                                "INSERT INTO %i (object_type,object_id,vocabulary_id,source,confidence,status)
                                  VALUES ('product',%d,%d,%s,%f,%d)
-                                 ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP",
+                                 ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP", $t['objects'],
                                 $product_id, $vid, sanitize_key( $semantic['source'] ?? 'portable' ),
                                 max( 0, min( 1, (float) ( $semantic['confidence'] ?? 1 ) ) ),
                                 empty( $semantic['status'] ) ? 0 : 1
@@ -854,9 +891,9 @@ final class TCV_Portable {
                     }
                     $wpdb->query(
                         $wpdb->prepare(
-                            "INSERT INTO {$t['objects']} (object_type,object_id,vocabulary_id,source,confidence,status)
+                            "INSERT INTO %i (object_type,object_id,vocabulary_id,source,confidence,status)
                              VALUES ('product_cat',%d,%d,%s,%f,%d)
-                             ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP",
+                             ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP", $t['objects'],
                             $term_id, $vid, sanitize_key( $semantic['source'] ?? 'portable' ),
                             max( 0, min( 1, (float) ( $semantic['confidence'] ?? 1 ) ) ),
                             empty( $semantic['status'] ) ? 0 : 1
@@ -875,6 +912,7 @@ final class TCV_Portable {
         return array( 'masters'=>$masters_count, 'objects'=>$objects_count );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function redirect( $status, $message ) {
         wp_safe_redirect(
             add_query_arg(

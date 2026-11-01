@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * TaxoCommerce SEO - Semantic and Editorial Health Tests
  *
@@ -17,6 +18,7 @@ if (!defined('SEO_CORE_SEMANTIC_TEST_VERSION')) {
 function seo_core_system_test_semantic_table_exists($table) {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
 
     return $found === $table;
@@ -35,6 +37,7 @@ function seo_core_system_test_semantic_table_has_column($table, $column) {
         return false;
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $found = $wpdb->get_var(
         $wpdb->prepare('SHOW COLUMNS FROM %i LIKE %s', $table, (string) $column)
     );
@@ -69,6 +72,7 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
     }
 
     // Attachment local realmente existente.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $local_ids = (array) $wpdb->get_col(
         "SELECT DISTINCT pm.post_id
          FROM {$wpdb->postmeta} pm
@@ -123,7 +127,7 @@ function seo_core_system_test_semantic_product_image_inventory($product_ids) {
             . ' FROM %i WHERE %i IS NOT NULL AND %i > 0 '
             . $status_where
             . " AND image_url IS NOT NULL AND TRIM(image_url) <> '' GROUP BY %i";
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal schema-dependent SQL fragments; all identifiers use %i.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $query uses only allowlisted product_id/object_id and fixed schema-checked SQL expressions; all identifiers are %i bound. / This diagnostic queries current site/database state; cached values would hide live server changes.
         $rows = $wpdb->get_results($wpdb->prepare($query, $column, $table, $column, $column, $column), ARRAY_A);
 
         foreach ((array) $rows as $row) {
@@ -431,6 +435,7 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     $placeholders = implode(',', array_fill(0, count($roles), '%s'));
     $params = array_merge(array($table, sanitize_key($object_type)), $roles);
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- SEO-role list contains generated %s placeholders only; identifier %i and values are bound.
+    // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated %s placeholders; each sanitized role is present in the spread $params array.
     $query = $wpdb->prepare(
         "SELECT id, object_id, seo_role, keywords, status, updated_at
          FROM %i
@@ -442,7 +447,8 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
     );
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna.
+    // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna. / This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($query, ARRAY_A);
     $result = array();
 
@@ -495,6 +501,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     if ($category_ids) {
         $placeholders = implode(',', array_fill(0, count($category_ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use generated %d placeholders and are all bound with prepare(); tables use %i.
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated %d placeholders are paired with all normalized category IDs via spread array.
         $sql = $wpdb->prepare(
             "SELECT ov.object_id, ov.vocabulary_id, v.semantic_group, v.slug, v.label
              FROM %i ov
@@ -507,6 +514,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
              ORDER BY ov.object_id ASC, FIELD(v.semantic_group,'rol','tipo','aplicacion','plataforma','subtipo'), v.label ASC, v.id ASC",
             ...array_merge(array($object_table, $vocab_table), $category_ids)
         );
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     } else {
         $sql = $wpdb->prepare(
@@ -523,7 +531,7 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
         );
     }
 
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare().
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($sql, ARRAY_A);
 
     foreach ((array) $rows as $row) {
@@ -964,6 +972,7 @@ function seo_core_system_test_semantic_snapshot() {
         array('excerpt', 'description')
     );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $category_rows = $wpdb->get_results(
         "SELECT t.term_id, t.name, t.slug, tt.parent, tt.count, tt.description
          FROM {$wpdb->terms} t
@@ -979,6 +988,7 @@ function seo_core_system_test_semantic_snapshot() {
     if ($category_ids) {
         $ids_sql = implode(',', array_fill(0, count($category_ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Category IDs use a generated %d placeholder list with bound integer values and %i table identifier.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $meta_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT term_id, meta_key, meta_value
@@ -1012,6 +1022,7 @@ function seo_core_system_test_semantic_snapshot() {
     $category_ids_existing = array();
     $category_product_titles = array();
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $category_product_rows = $wpdb->get_results(
         "SELECT tt.term_id, p.ID AS product_id, p.post_title
          FROM {$wpdb->term_relationships} tr
@@ -1173,6 +1184,7 @@ function seo_core_system_test_semantic_snapshot() {
      * ------------------------------------------------------------------ */
     $product_nodes = seo_core_system_test_semantic_latest_nodes('product', array('product', 'ambito'));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $product_rows = $wpdb->get_results(
         "SELECT ID, post_title, post_excerpt, post_content, post_status, post_date, post_modified
          FROM {$wpdb->posts}
@@ -1190,6 +1202,7 @@ function seo_core_system_test_semantic_snapshot() {
     if ($product_ids) {
         $product_ids_sql = implode(',', array_fill(0, count($product_ids), '%d'));
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Product IDs use a generated %d placeholder list with bound integer values and %i table identifier.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $meta_rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT post_id, meta_key, meta_value
@@ -1217,6 +1230,7 @@ function seo_core_system_test_semantic_snapshot() {
         }
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $product_tag_rows = $wpdb->get_results(
         "SELECT tr.object_id AS product_id, t.name
          FROM {$wpdb->term_relationships} tr
@@ -1714,6 +1728,7 @@ function seo_core_system_test_semantic_snapshot() {
     /* ---------------------------------------------------------------------
      * ETIQUETAS WOO
      * ------------------------------------------------------------------ */
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $tag_rows = $wpdb->get_row(
         "SELECT
             COUNT(*) AS total,
@@ -1724,6 +1739,7 @@ function seo_core_system_test_semantic_snapshot() {
         ARRAY_A
     );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $category_tag_overlap = (int) $wpdb->get_var(
         "SELECT COUNT(DISTINCT tag.term_id)
          FROM {$wpdb->terms} tag
@@ -1783,6 +1799,7 @@ function seo_core_system_test_semantic_snapshot() {
         // Only the historic FAQ schema contains ambito; both queries use
         // literal column lists and the table identifier is parameterized.
         if ($faq_has_legacy_scope) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $faq_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id, object_type, object_id, ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
@@ -1792,6 +1809,7 @@ function seo_core_system_test_semantic_snapshot() {
                 ARRAY_A
             );
         } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $faq_rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id, object_type, object_id, '' AS ambito, question, answer, sort_order, active, load_count, open_count, created_at, updated_at
@@ -2025,11 +2043,16 @@ function seo_core_system_test_semantic_snapshot() {
 
     if (seo_core_system_test_semantic_table_exists($nodes_table) && seo_core_system_test_semantic_table_exists($relations_table)) {
         $structure['available'] = true;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['clusters'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'cluster' AND status = 1", $nodes_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['hub_primary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'hub_primary' AND status = 1", $nodes_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['hub_secondary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT object_id) FROM %i WHERE seo_role = 'hub_secondary' AND status = 1", $nodes_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['relations'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $relations_table));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['clusters_without_primary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
                 FROM %i n
@@ -2042,6 +2065,7 @@ function seo_core_system_test_semantic_snapshot() {
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
              ) q", $nodes_table, $relations_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['primary_without_secondary'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
                 FROM %i n
@@ -2054,6 +2078,7 @@ function seo_core_system_test_semantic_snapshot() {
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
              ) q", $nodes_table, $relations_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['secondary_without_categories'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM (
                 SELECT DISTINCT n.object_id
                 FROM %i n
@@ -2066,6 +2091,7 @@ function seo_core_system_test_semantic_snapshot() {
                 GROUP BY n.object_id
                 HAVING COUNT(r.target_id) = 0
              ) q", $nodes_table, $relations_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['categories_without_secondary_hub'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*)
              FROM %i tt
              LEFT JOIN %i r
@@ -2075,12 +2101,14 @@ function seo_core_system_test_semantic_snapshot() {
               AND r.relation_type = 'hub_secondary_to_category'
              WHERE tt.taxonomy = 'product_cat'
                AND r.target_id IS NULL", $wpdb->term_taxonomy, $relations_table));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['invalid_post_nodes'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT n.id)
              FROM %i n
              LEFT JOIN %i p ON p.ID = n.object_id
              WHERE n.seo_role IN ('cluster','hub_primary','hub_secondary')
                AND n.status = 1
                AND (p.ID IS NULL OR p.post_status <> 'publish')", $nodes_table, $wpdb->posts));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $structure['invalid_category_relations'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*)
              FROM %i r
              LEFT JOIN %i tt

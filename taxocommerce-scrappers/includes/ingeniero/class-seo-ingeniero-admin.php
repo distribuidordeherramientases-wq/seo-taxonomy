@@ -244,13 +244,12 @@ final class SEO_Ingeniero_Admin {
         $batch_size = 50;
 
         $rows = (array) $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id,status,post_id,recommended_action
-                 FROM `{$table}`
+            $wpdb->prepare("SELECT id,status,post_id,recommended_action
+                 FROM %i
                  WHERE id>%d
                    AND status IN ('candidate','review','approved','needs_update')
                  ORDER BY id ASC
-                 LIMIT %d",
+                 LIMIT %d", $table,
                 $after_id,
                 $batch_size
             ),

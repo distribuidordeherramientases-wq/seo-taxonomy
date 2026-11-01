@@ -133,7 +133,7 @@ final class SEO_Ingeniero_Tests {
 
         global $wpdb;
         $table=SEO_Ingeniero_DB::table('editorial');
-        $indexes=(array)$wpdb->get_results("SHOW INDEX FROM `{$table}`",ARRAY_A);
+        $indexes=(array)$wpdb->get_results($wpdb->prepare("SHOW INDEX FROM %i", $table ),ARRAY_A);
         $unique_columns=array();
         foreach ($indexes as $row) {
             if ((string)($row['Key_name'] ?? '')!=='term_topic' || absint($row['Non_unique'] ?? 1)!==0) continue;

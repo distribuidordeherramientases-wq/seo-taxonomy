@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 /**
  * TaxoCommerce SEO - Server Status
  *
@@ -358,6 +359,7 @@ function seo_server_status_yes_no($value) {
  */
 function seo_server_status_table_exists($table_name) {
     global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
     return $found === $table_name;
 }
@@ -459,6 +461,7 @@ function seo_server_status_find_large_files($paths, $min_bytes = 10485760, $max_
  */
 function seo_server_status_get_mysql_version() {
     global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return $wpdb->get_var('SELECT VERSION()');
 }
 
@@ -496,9 +499,13 @@ function seo_server_status_get_cron_stats() {
 function seo_server_status_get_options_stats() {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $autoload_size = (float) $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $autoload_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $largest = $wpdb->get_row("SELECT option_name, LENGTH(option_value) AS option_size FROM {$wpdb->options} ORDER BY option_size DESC LIMIT 1");
 
     return array(
@@ -516,6 +523,7 @@ function seo_server_status_get_options_stats() {
 function seo_server_status_get_top_autoload_options($limit = 20) {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return $wpdb->get_results(
         $wpdb->prepare(
             "SELECT option_name, LENGTH(option_value) AS option_size
@@ -534,6 +542,7 @@ function seo_server_status_get_top_autoload_options($limit = 20) {
 function seo_server_status_get_largest_tables($limit = 15) {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return $wpdb->get_results(
         $wpdb->prepare(
             "SELECT TABLE_NAME AS table_name, TABLE_ROWS AS table_rows, DATA_LENGTH AS data_length, INDEX_LENGTH AS index_length, ENGINE AS engine
@@ -2023,6 +2032,7 @@ function seo_server_status_collect_snapshot($deep = false) {
 
     // Charset y collation válidos son información de configuración, no incidencias.
     // Solo se eleva a error cuando MySQL/MariaDB devuelve un error real al consultar la variable.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $charset = $wpdb->get_var("SELECT @@character_set_database");
     $charset_error = (string) $wpdb->last_error;
     $charset_status = $charset_error !== '' ? 'error' : ($charset === 'utf8mb4' ? 'ok' : 'info');
@@ -2031,6 +2041,7 @@ function seo_server_status_collect_snapshot($deep = false) {
         : 'Variable informativa. No se genera alerta por usar un juego de caracteres válido distinto de utf8mb4.';
     $checks[] = seo_server_status_make_check('SRV-DB-CHARSET', 'Base de datos', 'Juego de caracteres', $charset !== null && $charset !== '' ? (string) $charset : 'No disponible', $charset_status, $charset_detail);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $collation = $wpdb->get_var("SELECT @@collation_database");
     $collation_error = (string) $wpdb->last_error;
     $collation_status = $collation_error !== '' ? 'error' : (strpos((string) $collation, 'utf8mb4') !== false ? 'ok' : 'info');
@@ -2079,6 +2090,7 @@ function seo_server_status_collect_snapshot($deep = false) {
     }
 
     if ($deep) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $db_size = $wpdb->get_var($wpdb->prepare('SELECT SUM(DATA_LENGTH + INDEX_LENGTH) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s', DB_NAME));
         $checks[] = seo_server_status_make_check('SRV-DB-SIZE', 'Base de datos', 'Tamaño base de datos', seo_server_status_format_bytes((float) $db_size), 'info', 'Dato agregado; no contiene filas ni contenido de tablas.');
         $tables = seo_server_status_get_largest_tables(5);
@@ -2442,7 +2454,7 @@ function seo_server_status_mysql_query_benchmark() {
     foreach ($tests as $test) {
         $wpdb->last_error = '';
         $started = microtime(true);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- SQL definido exclusivamente en la lista interna de pruebas de solo lectura.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- SQL definido exclusivamente en la lista interna de pruebas de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
         $wpdb->get_var($test['sql']);
         $elapsed_ms = max(0.0, (microtime(true) - $started) * 1000.0);
         $samples[] = array(
@@ -2644,6 +2656,7 @@ function seo_server_status_render_mysql_tab() {
 
     $variables = array('version_comment', 'character_set_database', 'collation_database', 'max_allowed_packet', 'innodb_buffer_pool_size', 'wait_timeout', 'interactive_timeout', 'sql_mode');
     foreach ($variables as $var) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $value = $wpdb->get_var($wpdb->prepare('SHOW VARIABLES LIKE %s', $var), 1);
         $mysql_error = (string) $wpdb->last_error;
         $status = $mysql_error !== '' ? 'error' : 'info';
@@ -2666,6 +2679,7 @@ function seo_server_status_render_mysql_tab() {
     seo_server_status_close_table();
     echo '</div>';
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $aggregate = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT COUNT(*) AS table_count,
@@ -2685,6 +2699,7 @@ function seo_server_status_render_mysql_tab() {
     $index_size = is_array($aggregate) ? (float) ($aggregate['index_size'] ?? 0) : 0;
     $db_size = $data_size + $index_size;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $options_size = $wpdb->get_var(
         $wpdb->prepare(
             'SELECT DATA_LENGTH + INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
@@ -2692,8 +2707,11 @@ function seo_server_status_render_mysql_tab() {
             $wpdb->options
         )
     );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $autoload_size = $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $innodb_tables = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND ENGINE = 'InnoDB'", $db_name));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $myisam_tables = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND ENGINE = 'MyISAM'", $db_name));
 
     echo '<div class="seo-status-card">';
@@ -2775,8 +2793,11 @@ function seo_server_status_render_wordpress_tab() {
     seo_server_status_row('Eventos WP-Cron', esc_html(number_format_i18n($cron_stats['total'])), 'info', 'Eventos registrados en la cola interna de WordPress.');
     seo_server_status_row('Eventos WP-Cron atrasados', esc_html(number_format_i18n($cron_stats['overdue'])), $cron_stats['overdue'] > 0 ? 'warning' : 'ok', 'Eventos con más de 15 minutos de retraso.');
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $revision_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $auto_drafts = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'auto-draft'");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $trash_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'trash'");
     $attachments = wp_count_posts('attachment');
 
@@ -2993,7 +3014,9 @@ function seo_server_status_render_woocommerce_tab() {
     $without_any_image = seo_server_status_count_products_without_any_image_source();
     seo_server_status_row('Productos sin ninguna fuente de imagen', esc_html(number_format_i18n($without_any_image)), $without_any_image > 0 ? 'warning' : 'ok', 'Solo cuenta productos publicados sin attachment local válido y sin imagen externa activa registrada.');
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $empty_long = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND TRIM(post_content) = ''");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $empty_short = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' AND TRIM(post_excerpt) = ''");
     seo_server_status_row('Productos sin descripción larga', esc_html(number_format_i18n($empty_long)), $empty_long > 0 ? 'warning' : 'ok', 'Relevante para SEO y venta.');
     seo_server_status_row('Productos sin descripción corta', esc_html(number_format_i18n($empty_short)), $empty_short > 0 ? 'warning' : 'ok', 'Relevante para ficha de producto y snippets internos.');
@@ -3010,6 +3033,7 @@ function seo_server_status_render_woocommerce_tab() {
 function seo_server_status_count_products_without_category() {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM {$wpdb->posts} p
@@ -3032,6 +3056,7 @@ function seo_server_status_count_products_without_category() {
 function seo_server_status_count_products_without_image() {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*)
          FROM {$wpdb->posts} p
@@ -3056,6 +3081,7 @@ function seo_server_status_count_products_without_any_image_source() {
         return seo_server_status_count_products_without_image();
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $columns = (array) $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $supplier_table), 0);
     $link_columns = array_values(array_intersect(array('product_id', 'object_id'), $columns));
     if (!$link_columns || !in_array('image_url', $columns, true)) {
@@ -3070,13 +3096,13 @@ function seo_server_status_count_products_without_any_image_source() {
     $external_link_sql = implode(' OR ', $external_links);
 
     $sql = "SELECT COUNT(*)
-            FROM {$wpdb->posts} p
+            FROM %i p
             WHERE p.post_type = 'product'
               AND p.post_status = 'publish'
               AND NOT EXISTS (
                    SELECT 1
-                   FROM {$wpdb->postmeta} pm
-                   INNER JOIN {$wpdb->posts} a
+                   FROM %i pm
+                   INNER JOIN %i a
                       ON a.ID = CAST(pm.meta_value AS UNSIGNED)
                      AND a.post_type = 'attachment'
                    WHERE pm.post_id = p.ID
@@ -3087,14 +3113,14 @@ function seo_server_status_count_products_without_any_image_source() {
               )
               AND NOT EXISTS (
                    SELECT 1
-                   FROM {$supplier_table} si
+                   FROM %i si
                    WHERE ({$external_link_sql})
                      {$status_where}
                      AND si.image_url IS NOT NULL
                      AND TRIM(si.image_url) <> ''
               )";
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura.
-    return (int) $wpdb->get_var($sql);
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
+    return (int) $wpdb->get_var($wpdb->prepare($sql, $wpdb->posts, $wpdb->postmeta, $wpdb->posts, $supplier_table));
 }
 
 /**
@@ -3109,6 +3135,7 @@ function seo_server_status_get_action_scheduler_count($status) {
         return 0;
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE status = %s", $actions_table, $status));
 }
 
@@ -3147,6 +3174,7 @@ function seo_server_status_render_action_scheduler_detail_section() {
         return;
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT hook, status, COUNT(*) AS total, MIN(scheduled_date_gmt) AS oldest_date

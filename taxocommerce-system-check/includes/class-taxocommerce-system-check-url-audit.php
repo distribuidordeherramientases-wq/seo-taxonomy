@@ -51,6 +51,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         global $wpdb;
         $table = self::table( 'runs' );
         $stale = gmdate( 'Y-m-d H:i:s', time() - 90 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT id FROM %i WHERE mode='local' AND status IN ('queued','running')
@@ -72,6 +73,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         global $wpdb;
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $run_ids = $wpdb->get_col(
             $wpdb->prepare("SELECT id FROM %i WHERE mode='local' AND status IN ('queued','running')", $runs)
         );
@@ -83,6 +85,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
         }
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE %i SET status='cancelled',error_message='Plugin desactivado.',
@@ -92,6 +95,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 $now
             )
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query(
             $wpdb->prepare("UPDATE %i SET queued_scan_id=0,queued_at=NULL
              WHERE queued_scan_id IN (SELECT id FROM %i WHERE mode='local' AND status='cancelled')", $items, $runs)
@@ -169,6 +173,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         global $wpdb;
         $table = self::table( 'runs' );
         // Older GitHub scans also count: do not run two resource-heavy scans together.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         return (int) $wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM %i WHERE status IN ('queued','running','paused')", $table)
         ) > 0;
@@ -195,6 +200,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $inserted = $wpdb->insert(
             $runs,
             array(
@@ -212,10 +218,12 @@ final class TaxoCommerce_System_Check_URL_Audit {
         if ( false === $inserted ) {
             return new WP_Error( 'tcs_insert_failed', 'No se pudo registrar el chequeo: ' . $wpdb->last_error );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic explicitly reads current database state, so caching would invalidate the result.
         $run_id = (int) $wpdb->insert_id;
 
         // Reserve all active URLs once. Small, bounded jobs will process them
         // progressively; there is no giant GitHub payload or PHP request.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $reserved = $wpdb->query(
             $wpdb->prepare(
                 "UPDATE %i SET queued_scan_id=%d,queued_at=%s
@@ -230,6 +238,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             self::fail( $run_id, $wpdb->last_error ?: 'No hay URLs disponibles para escanear.' );
             return new WP_Error( 'tcs_empty', 'No se pudieron reservar las URLs.' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->update(
             $runs,
             array( 'total_items' => (int) $reserved ),
@@ -266,6 +275,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
         }
         // Native Media Library works without WooCommerce or TaxoCommerce SEO.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $attachment_ids = $wpdb->get_col(
             "SELECT ID FROM {$wpdb->posts}
              WHERE post_type='attachment' AND post_mime_type LIKE 'image/%'
@@ -294,6 +304,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             return $written;
         }
         $items = self::table( 'items' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE %i SET active=0,queued_scan_id=0,queued_at=NULL
@@ -311,6 +322,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->update(
             $runs,
             array(
@@ -321,6 +333,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             array( '%s', '%s', '%s', '%s', '%s' ),
             array( '%d' )
         );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
@@ -363,6 +376,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         try {
             $runs  = self::table( 'runs' );
             $items = self::table( 'items' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $run = $wpdb->get_row(
                 $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
                  $runs, $run_id ),
@@ -375,6 +389,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             $started = microtime( true );
             if ( 'queued' === $run['status'] ) {
                 $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
                 $wpdb->update(
                     $runs,
                     array( 'status' => 'running', 'started_at' => $now, 'updated_at' => $now ),
@@ -384,6 +399,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 );
             }
             $size = max( 1, min( 8, (int) apply_filters( 'taxocommerce_system_check_url_batch_size', 5 ) ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,url FROM %i WHERE queued_scan_id=%d ORDER BY id ASC LIMIT %d",
@@ -406,6 +422,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 $results[] = self::probe( (string) $row['url'], (string) $run['scope'], (int) $row['id'] );
             }
             // The administrator may cancel while a remote request is in flight.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $current_state = (string) $wpdb->get_var(
                 $wpdb->prepare( "SELECT status FROM %i WHERE id=%d LIMIT 1",
                  $runs, $run_id )
@@ -420,6 +437,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
             seo_health_scan_refresh_run( $run_id );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $remaining = (int) $wpdb->get_var(
                 $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE queued_scan_id=%d",
                  $items, $run_id )
@@ -439,6 +457,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $runs = self::table( 'runs' );
         $items = self::table( 'items' );
         seo_health_scan_refresh_run( $run_id );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $run = $wpdb->get_row(
             $wpdb->prepare( "SELECT * FROM %i WHERE id=%d LIMIT 1",
                  $runs, absint( $run_id ) ),
@@ -454,11 +473,13 @@ final class TaxoCommerce_System_Check_URL_Audit {
             return;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $average = $wpdb->get_var(
             $wpdb->prepare( "SELECT AVG(response_ms) FROM %i WHERE last_scan_id=%d",
                  $items, $run_id )
         );
         $offset = max( 0, (int) ceil( $processed * 0.95 ) - 1 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $p95 = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT response_ms FROM %i WHERE last_scan_id=%d ORDER BY response_ms ASC LIMIT 1 OFFSET %d",
@@ -469,6 +490,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         );
         $start_time = strtotime( (string) ( $run['started_at'] ?: $run['created_at'] ) . ' UTC' );
         $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
         $wpdb->update(
             $runs,
             array(
@@ -637,7 +659,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $scope = self::scope( isset( $_POST['tcs_scope'] ) && is_string( $_POST['tcs_scope'] )
             ? sanitize_key( wp_unslash( $_POST['tcs_scope'] ) ) : 'page' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately above.
-        $task = isset( $_POST['tcs_task'] ) ? sanitize_key( wp_unslash( $_POST['tcs_task'] ) ) : '';
+        $task = isset( $_POST['tcs_task'] ) && is_string( $_POST['tcs_task'] )
+            ? sanitize_key( wp_unslash( $_POST['tcs_task'] ) ) : '';
 
         if ( ! self::supported() ) {
             self::redirect_notice( $scope, 'El inventario de chequeos no está disponible.', true );
@@ -671,6 +694,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                 global $wpdb;
                 $run_id = absint( $active['id'] );
                 $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
                 $wpdb->update(
                     self::table( 'runs' ),
                     array( 'status' => 'cancelled', 'completed_at' => $now, 'updated_at' => $now, 'error_message' => 'Cancelado por el administrador.', 'callback_token_hash' => '' ),
@@ -679,6 +703,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
                     array( '%d' )
                 );
                 $items = self::table( 'items' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
                 $wpdb->query(
                     $wpdb->prepare( "UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d",
                  $items, $run_id )
@@ -742,6 +767,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $read_error = '';
         do {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Internal WP-prefixed table; all user values bound below.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_id,label,url,source,status_bucket,http_status,final_status,
@@ -821,6 +847,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         echo '</div>';
         global $wpdb;
         $table = self::table( 'items' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         $codes = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT SUM(last_checked_at IS NOT NULL AND final_status BETWEEN 200 AND 299) AS http_2xx,
@@ -891,15 +918,19 @@ final class TaxoCommerce_System_Check_URL_Audit {
     private static function render_rows( $scope ) {
         global $wpdb;
         $items = self::table( 'items' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filters.
-        $filter = isset( $_GET['tcs_filter'] ) ? sanitize_key( wp_unslash( $_GET['tcs_filter'] ) ) : 'error';
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- The following allowlisted GET values only filter read-only result lists; no data is mutated.
+        $filter = isset( $_GET['tcs_filter'] ) && is_string( $_GET['tcs_filter'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_filter'] ) ) : 'error';
         if ( ! in_array( $filter, array( 'error', 'warning', 'pending', 'ok', 'all' ), true ) ) {
             $filter = 'error';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only search.
-        $search = isset( $_GET['tcs_search'] ) ? sanitize_text_field( wp_unslash( $_GET['tcs_search'] ) ) : '';
+        $search = isset( $_GET['tcs_search'] ) && is_string( $_GET['tcs_search'] )
+            ? sanitize_text_field( wp_unslash( $_GET['tcs_search'] ) ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only pagination.
-        $page = isset( $_GET['tcs_paged'] ) ? max( 1, absint( wp_unslash( $_GET['tcs_paged'] ) ) ) : 1;
+        $page = isset( $_GET['tcs_paged'] ) && is_scalar( $_GET['tcs_paged'] )
+            ? max( 1, absint( wp_unslash( $_GET['tcs_paged'] ) ) ) : 1;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $where = array( 'scope=%s', 'active=1' );
         $params = array( $scope );
         if ( 'pending' === $filter ) {
@@ -918,6 +949,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
         $count_sql = 'SELECT COUNT(*) FROM %i WHERE ' . $condition;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Constant WHERE templates and bound values; identifier is parameterized.
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $count_sql is assembled only from fixed WHERE fragments; %i and submitted values bind via prepare().
         $count = (int) $wpdb->get_var(
             $wpdb->prepare( $count_sql, array_merge( array( $items ), $params ) )
         );
@@ -928,6 +961,8 @@ final class TaxoCommerce_System_Check_URL_Audit {
             . " ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,"
             . ' last_checked_at ASC,id ASC LIMIT %d OFFSET %d';
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $page_sql uses only allowlisted WHERE clauses with bound values, identifier, limit and offset.
         $rows = $wpdb->get_results(
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments are fixed, values and pagination use prepare().
             $wpdb->prepare(

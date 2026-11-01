@@ -31,12 +31,14 @@ final class TCV_Classifier {
         );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function current_groups( $product_id ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT v.semantic_group,v.id,v.label FROM {$t['objects']} ov INNER JOIN {$t['vocabulary']} v ON v.id=ov.vocabulary_id WHERE ov.object_type='product' AND ov.object_id=%d AND ov.status=1 AND v.active=1",
+                "SELECT v.semantic_group,v.id,v.label FROM %i ov INNER JOIN %i v ON v.id=ov.vocabulary_id WHERE ov.object_type='product' AND ov.object_id=%d AND ov.status=1 AND v.active=1", $t['objects'], $t['vocabulary'],
                 $product_id
             ),
             ARRAY_A
@@ -51,6 +53,7 @@ final class TCV_Classifier {
         return $out;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function score_term( $term, $ctx ) {
         $needle = self::normalize( $term );
         if ( '' === $needle ) {
@@ -79,12 +82,14 @@ final class TCV_Classifier {
         return round( min( 1, $best ), 4 );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function vocabulary_candidates( $group, $ctx, $limit = 4 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id,slug,label FROM {$t['vocabulary']} WHERE semantic_group=%s AND active=1 ORDER BY label ASC",
+                "SELECT id,slug,label FROM %i WHERE semantic_group=%s AND active=1 ORDER BY label ASC", $t['vocabulary'],
                 $group
             ),
             ARRAY_A
@@ -101,24 +106,30 @@ final class TCV_Classifier {
         return array_slice( $scored, 0, $limit );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function derive_role( $type_id ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT rv.id,rv.label FROM {$t['type_role']} m INNER JOIN {$t['vocabulary']} rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol' AND rv.active=1 WHERE m.type_vocabulary_id=%d AND m.active=1 LIMIT 1",
+                "SELECT rv.id,rv.label FROM %i m INNER JOIN %i rv ON rv.id=m.role_vocabulary_id AND rv.semantic_group='rol' AND rv.active=1 WHERE m.type_vocabulary_id=%d AND m.active=1 LIMIT 1", $t['type_role'], $t['vocabulary'],
                 $type_id
             ),
             ARRAY_A
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_candidates( $ctx ) {
         global $wpdb;
         $t = TCV_Schema::tables();
-        $attrs = $wpdb->get_results( "SELECT id,slug,nombre,tipo,unidad_base FROM {$t['attributes']} WHERE activo=1 ORDER BY orden,nombre", ARRAY_A );
-        $terms = $wpdb->get_results( "SELECT id,atributo_id,slug,nombre FROM {$t['terms']} WHERE activo=1", ARRAY_A );
-        $aliases = $wpdb->get_results( "SELECT atributo_id,termino_id,alias FROM {$t['aliases']}", ARRAY_A );
+        $attrs = $wpdb->get_results( $wpdb->prepare( "SELECT id,slug,nombre,tipo,unidad_base FROM %i WHERE activo=1 ORDER BY orden,nombre", $t['attributes'] ), ARRAY_A );
+        $terms = $wpdb->get_results( $wpdb->prepare( "SELECT id,atributo_id,slug,nombre FROM %i WHERE activo=1", $t['terms'] ), ARRAY_A );
+        $aliases = $wpdb->get_results( $wpdb->prepare( "SELECT atributo_id,termino_id,alias FROM %i", $t['aliases'] ), ARRAY_A );
         $by_attr = array();
         foreach ( (array) $terms as $term ) {
             $by_attr[ absint( $term['atributo_id'] ) ][] = array( 'id' => absint( $term['id'] ), 'label' => $term['nombre'] );
@@ -157,6 +168,7 @@ final class TCV_Classifier {
         return array_slice( $out, 0, 20 );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_product( $product_id ) {
         $product_id = absint( $product_id );
         $ctx = self::product_context( $product_id );
@@ -206,13 +218,15 @@ final class TCV_Classifier {
         return $result;
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function persist_proposal( $product_id, $group, $proposal ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $payload = wp_json_encode( $proposal, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         $wpdb->query(
             $wpdb->prepare(
-                "INSERT INTO {$t['proposals']} (product_id,semantic_group,state,vocabulary_id,label,confidence,payload_json,context_hash,classifier_version,active,updated_at) VALUES (%d,%s,%s,%d,%s,%f,%s,'',%s,1,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),vocabulary_id=VALUES(vocabulary_id),label=VALUES(label),confidence=VALUES(confidence),payload_json=VALUES(payload_json),classifier_version=VALUES(classifier_version),active=1,updated_at=VALUES(updated_at)",
+                "INSERT INTO %i (product_id,semantic_group,state,vocabulary_id,label,confidence,payload_json,context_hash,classifier_version,active,updated_at) VALUES (%d,%s,%s,%d,%s,%f,%s,'',%s,1,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),vocabulary_id=VALUES(vocabulary_id),label=VALUES(label),confidence=VALUES(confidence),payload_json=VALUES(payload_json),classifier_version=VALUES(classifier_version),active=1,updated_at=VALUES(updated_at)", $t['proposals'],
                 $product_id,
                 $group,
                 sanitize_key( $proposal['state'] ),
@@ -226,6 +240,7 @@ final class TCV_Classifier {
         );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function category_context( $term_id ) {
         $term = get_term( $term_id, 'product_cat' );
         if ( ! $term || is_wp_error( $term ) ) {
@@ -234,6 +249,8 @@ final class TCV_Classifier {
         $ids = get_posts( array(
             'post_type' => 'product', 'post_status' => 'publish', 'fields' => 'ids',
             'posts_per_page' => 50, 'orderby' => 'ID', 'order' => 'DESC',
+            // Bounded to 50 IDs; the taxonomy relationship is required to analyse this category.
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
             'tax_query' => array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => array( absint( $term_id ) ) ) ),
         ) );
         $sample = array();
@@ -251,6 +268,8 @@ final class TCV_Classifier {
         );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_category( $term_id ) {
         global $wpdb;
         $term_id = absint( $term_id );
@@ -260,7 +279,7 @@ final class TCV_Classifier {
         }
         $t = TCV_Schema::tables();
         $current_rows = $wpdb->get_col( $wpdb->prepare(
-            "SELECT vocabulary_id FROM {$t['objects']} WHERE object_type='product_cat' AND object_id=%d AND status=1",
+            "SELECT vocabulary_id FROM %i WHERE object_type='product_cat' AND object_id=%d AND status=1", $t['objects'],
             $term_id
         ) );
         $current = array_map( 'absint', (array) $current_rows );
@@ -291,11 +310,14 @@ final class TCV_Classifier {
         return $result;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function persist_category_proposal( $term_id, $group, $proposal ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $wpdb->query( $wpdb->prepare(
-            "INSERT INTO {$t['cat_proposals']} (term_id,semantic_group,state,vocabulary_id,label,confidence,payload_json,classifier_version,active,updated_at) VALUES (%d,%s,%s,%d,%s,%f,%s,%s,1,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),vocabulary_id=VALUES(vocabulary_id),label=VALUES(label),confidence=VALUES(confidence),payload_json=VALUES(payload_json),classifier_version=VALUES(classifier_version),active=1,updated_at=VALUES(updated_at)",
+            "INSERT INTO %i (term_id,semantic_group,state,vocabulary_id,label,confidence,payload_json,classifier_version,active,updated_at) VALUES (%d,%s,%s,%d,%s,%f,%s,%s,1,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),vocabulary_id=VALUES(vocabulary_id),label=VALUES(label),confidence=VALUES(confidence),payload_json=VALUES(payload_json),classifier_version=VALUES(classifier_version),active=1,updated_at=VALUES(updated_at)", $t['cat_proposals'],
             $term_id,
             $group,
             sanitize_key( $proposal['state'] ),
@@ -308,6 +330,7 @@ final class TCV_Classifier {
         ) );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function sanitize_filters( $filters ) {
         $coverage_allowed = array( 'missing_any','without_any','without_type','without_role','without_application','without_platform','without_subtype' );
         $priority_allowed = array( 'all','p1','p2','p3','p4','p5' );
@@ -378,6 +401,8 @@ final class TCV_Classifier {
             $query_args['s'] = $filters['search'];
         }
         if ( $filters['category_id'] ) {
+            // Bounded to at most 500 IDs; indexed product_cat relationship is intentional.
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
             $query_args['tax_query'] = array(
                 array(
                     'taxonomy' => 'product_cat',
@@ -419,17 +444,24 @@ final class TCV_Classifier {
         return (array) get_option( 'taxocommerce_vocabulary_classifier_last_report', array() );
     }
 
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function recent_category_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $limit = max( 1, min( 500, absint( $limit ) ) );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['cat_proposals']} WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $limit ), ARRAY_A );
+        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $t['cat_proposals'], $limit ), ARRAY_A );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function recent_proposals( $limit = 100 ) {
         global $wpdb;
         $t = TCV_Schema::tables();
         $limit = max( 1, min( 500, absint( $limit ) ) );
-        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['proposals']} WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $limit ), ARRAY_A );
+        return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE active=1 ORDER BY updated_at DESC LIMIT %d", $t['proposals'], $limit ), ARRAY_A );
     }
+
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 }

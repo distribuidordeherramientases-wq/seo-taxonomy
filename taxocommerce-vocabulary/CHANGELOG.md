@@ -2,9 +2,20 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
+## [0.3.6]
+
 ## [Unreleased]
 
-Sin novedades pendientes documentadas.
+* Lectura CSV y JSON portable: comprobación local del nonce y validación del estado y la ruta temporal de la subida PHP; no se modifica el contenido del archivo ni los modos MERGE/MIRROR.
+* Documentados de manera localizada los filtros GET de solo lectura (no requieren nonce) y las consultas por categoría, ya limitadas a 50 y 500 registros.
+* Justificadas de forma localizada por método las excepciones WPCS de acceso SQL directo y falta de caché en tablas canónicas compartidas, cuyas escrituras externas no tienen invalidación coordinada. No se cambian las consultas ni su semántica; no se deshabilitan los chequeos globales.
+
+## [0.3.5]
+
+* Se preparan los identificadores de tablas de las consultas SQL de administrador, Clasificador, importación/exportación CSV y JSON portable usando `%i`, manteniendo el esquema canónico y la semántica de las consultas.
+* Se sanean los filtros de navegación y análisis y se validan los metadatos del CSV (estado de subida, ruta temporal creada por PHP, tamaño máximo y tipo).
+* Se preservan las pestañas Manual y Auto Test, el importador JSON portable y las acciones comerciales actuales.
+* Las correcciones que ya estaban presentes en STAGING (licencia, versiones y lectura de CSV mediante `WP_Filesystem`) no se duplican; el archivo oculto FTP existente en PRO requiere limpieza independiente autorizada.
 
 ## [0.3.4]
 
