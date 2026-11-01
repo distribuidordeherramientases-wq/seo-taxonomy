@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,13 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.3 =
+* Restore a clean standalone package for Plugin Check: existing output escaping, validated POST filters, enabled WordPress query filters and five readme tags.
+* Document two justified, bounded native category queries with exact PHPCS annotations; retain audit selection, cursor limits, results and read-only semantics.
+* Add source-level regression guards for the eight findings reported from an outdated Playground package.
+* Document each required, prepared read-only SQL query against optional canonical module tables without changing results, freshness or storage.
+
 
 = 0.3.2 =
 * Add internal Auto Test tab with 16 functional checks, no audit execution, and previous-result comparison.
