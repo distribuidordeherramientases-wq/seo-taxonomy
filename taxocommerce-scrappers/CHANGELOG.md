@@ -6,6 +6,12 @@
 
 Sin novedades adicionales pendientes.
 
+## [0.1.4]
+
+- Contrastado el informe de Plugin Check de PRO del 01/11/2026 (6 errores y 290 avisos) con la rama `staging`: los cinco errores de dominio de traducción y la consulta insegura de vocabulario ya estaban corregidos en `0.1.3` (CI Plugin Check: 0 errores, 217 avisos).
+- Ampliadas las pruebas de regresión para examinar todos los PHP de ejecución en `includes/` y asegurar que `assign_category_vocabulary()` usa `%i` para ambas tablas y `%d` para la categoría. Las pruebas no se empaquetan para WordPress.org.
+- Publicación exclusivamente en STAGING mediante el workflow habitual; la instalación instalada en PRO conserva el estado anterior hasta una autorización expresa para producción. Issue #2010.
+
 ## [0.1.3]
 
 - Revisión de Plugin Check a partir de los resultados del plugin instalado en PRO (5 errores heredados de textdomain y avisos SQL/nonce). Confirmado que los 5 usos heredados del dominio ya estaban corregidos en STAGING desde 0.1.2; se conserva `taxocommerce-scrappers`.
