@@ -199,6 +199,9 @@ final class TCT_Designs {
 
     /** The caller already checked the global router switch and pilot priority. */
     public static function resolve( $candidates ) {
+        if ( ! TaxoCommerce_Templates::policies_enabled() ) {
+            return '';
+        }
         $all = self::all();
         if ( ! $all ) { return ''; }
         $country = self::market_for_request();
@@ -344,7 +347,7 @@ final class TCT_Designs {
                 esc_html( $design['file'] ? $design['file'] : 'Borrador visual' ) . '</code></td><td>' .
                 esc_html( implode( ' · ', $design['countries'] ) ) . '</td><td>' .
                 ( $design['active']
-                    ? ( get_option( TaxoCommerce_Templates::ENABLE_OPTION, 0 )
+                    ? ( TaxoCommerce_Templates::policies_enabled()
                         ? 'Regla activada' : 'Activada; enrutador global desactivado' )
                     : 'Borrador / sin activar' ) .
                 '</td><td><a class="button button-secondary" href="' . esc_url( $link ) . '">Editar</a></td></tr>';

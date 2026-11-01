@@ -103,6 +103,24 @@ final class TaxoCommerce_Core_Menu {
         return absint( $menu_id );
     }
 
+    /**
+     * Select a native WordPress menu explicitly without adopting, renaming or
+     * overwriting it. With no selection, use the managed menu for the country.
+     * The selector itself never changes WordPress data or Core options.
+     */
+    public static function selected_menu_id( $write = false ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Read-only menu ID lookup; all modifying handlers verify their action nonce.
+        $params = $write ? $_POST : $_GET;
+        if ( isset( $params['tc_menu_id'] ) ) {
+            $id = is_scalar( $params['tc_menu_id'] ) ? absint( $params['tc_menu_id'] ) : 0;
+            if ( $id ) {
+                $menu = wp_get_nav_menu_object( $id );
+                return $menu && ! is_wp_error( $menu ) ? $id : 0;
+            }
+        }
+        $id = self::managed_menu_id( self::country( $write ), false );
+        return is_wp_error( $id ) ? 0 : absint( $id );
+    }
 
 
 	/**
@@ -161,7 +179,7 @@ final class TaxoCommerce_Core_Menu {
 
 		$country    = self::country();
 		$tree       = $this->build_tree( $country );
-		$menu_id    = $this->get_menu_id( $country );
+		$menu_id    = self::selected_menu_id();
 		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 		?>
@@ -182,10 +200,12 @@ final class TaxoCommerce_Core_Menu {
 			<?php endif; ?>
 
             <?php
-            $menu_name = self::menu_name( $country );
+            $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
+            $managed_id = $this->get_menu_id( $country );
+            $external = $native_menu && ! is_wp_error( $native_menu ) && absint( $menu_id ) !== absint( $managed_id );
+            $menu_name = $external ? (string) $native_menu->name : self::menu_name( $country );
             $countries = TaxoCommerce_Core_Country::countries();
             $country_label = isset( $countries[ $country ] ) ? $countries[ $country ] : $country;
-            $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
             ?>
             <form method="get" class="tc-menu-country-picker" data-tc-menu-country-form>
                 <input type="hidden" name="page" value="taxocommerce-core-menu">
@@ -193,16 +213,20 @@ final class TaxoCommerce_Core_Menu {
                 <select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select>
                 <button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
             </form>
+            <?php TaxoCommerce_Core_Menu_Editor::load_controls( $country, $menu_id ); ?>
             <section class="tc-menu-identity" aria-labelledby="tc-menu-identity-title">
                 <p class="tc-menu-identity__label"><?php esc_html_e( 'MENÚ QUE ESTÁS EDITANDO O CREANDO', 'taxocommerce-core' ); ?></p>
                 <h2 id="tc-menu-identity-title"><?php echo esc_html( $menu_name ); ?></h2>
                 <p><strong><?php esc_html_e( 'País:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( $country_label . ' (' . $country . ')' ); ?></p>
+                <?php if ( $external ) : ?>
+                    <p class="tc-menu-identity__notice"><?php esc_html_e( 'Menú de WordPress cargado. Puedes modificar sus elementos manuales aquí. No se ha sustituido el menú gestionado del país ni se ha cambiado su ubicación en el tema.', 'taxocommerce-core' ); ?></p>
+                <?php endif; ?>
                 <p><strong><?php esc_html_e( 'Identificador para llamar al menú desde una plantilla:', 'taxocommerce-core' ); ?></strong>
                     <code><?php echo esc_html( "'menu' => '" . $menu_name . "'" ); ?></code>
                 </p>
                 <?php if ( $menu_id ) : ?>
                     <p><strong><?php esc_html_e( 'ID del menú en WordPress:', 'taxocommerce-core' ); ?></strong> <code><?php echo esc_html( (string) absint( $menu_id ) ); ?></code>
-                    <?php if ( $native_menu && ! is_wp_error( $native_menu ) && (string) $native_menu->name !== $menu_name ) : ?>
+                    <?php if ( ! $external && $native_menu && ! is_wp_error( $native_menu ) && (string) $native_menu->name !== $menu_name ) : ?>
                         <span class="tc-menu-identity__notice"><?php echo esc_html( sprintf(
                             /* translators: %s: current legacy WordPress menu name. */
                             __( '(Nombre actual en WordPress: %s; se actualizará al sincronizar.)', 'taxocommerce-core' ),
@@ -264,11 +288,14 @@ final class TaxoCommerce_Core_Menu {
 		$this->guard();
 		check_admin_referer( 'taxocommerce_core_activate_menu', 'taxocommerce_core_nonce' );
 
-		$menu_id   = $this->get_menu_id( self::country( true ) );
-		$location  = isset( $_POST['menu_location'] ) ? sanitize_key( wp_unslash( $_POST['menu_location'] ) ) : '';
+		if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para asignar menús al tema.', 'taxocommerce-core' ) );
+        }
+        $menu_id   = TaxoCommerce_Core_Menu_Editor::target_menu_id();
+        $location  = isset( $_POST['menu_location'] ) ? sanitize_key( wp_unslash( $_POST['menu_location'] ) ) : '';
 		$locations = get_registered_nav_menus();
 
-		if ( ! $menu_id || ! isset( $locations[ $location ] ) ) {
+		if ( is_wp_error( $menu_id ) || ! $menu_id || ! isset( $locations[ $location ] ) ) {
 			$this->redirect( 'error', __( 'La ubicación de menú seleccionada no es válida.', 'taxocommerce-core' ) );
 		}
 
@@ -644,6 +671,7 @@ final class TaxoCommerce_Core_Menu {
 		$url = add_query_arg(
 			array(
                 'tc_country' => self::country( true ),
+                'tc_menu_id' => self::selected_menu_id( true ),
 				'page'       => 'taxocommerce-core-menu',
 				'tc_result'  => sanitize_key( $result ),
 				'tc_message' => sanitize_text_field( $message ),

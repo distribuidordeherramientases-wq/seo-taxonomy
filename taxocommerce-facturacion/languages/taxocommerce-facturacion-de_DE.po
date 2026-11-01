@@ -1,0 +1,27 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Billing\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Billing"
+msgstr "Rechnungsstellung"
+
+msgid "Facturas y presupuestos"
+msgstr "Rechnungen und Angebote"
+
+msgid "No tienes permisos para acceder a esta pagina."
+msgstr "Sie dürfen diese Seite nicht aufrufen."
+
+msgid "Sin permisos para acceder a Billing."
+msgstr "Keine Berechtigung für die Rechnungsstellung."
+
+msgid "Sin permisos para consultar el manual."
+msgstr "Keine Berechtigung zum Anzeigen des Handbuchs."
+
+msgid "Sin permisos para el Autotest."
+msgstr "Keine Berechtigung für den Selbsttest."
+

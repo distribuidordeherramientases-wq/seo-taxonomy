@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.6
+Stable tag: 0.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,12 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.7 =
+* Fix seven SQL preparation errors and a sanitized-input warning in the 0.1.6 post-merge Plugin Check by consolidating per-callsite PHPCS annotations.
+* Preserve the documented, intentionally uncached direct access to plugin-owned tables and stable legacy public API identifiers.
+* No catalog, data model, external service, Ojeador or Ingeniero behavior changes.
+
 
 = 0.1.6 =
 * Audit the remaining Plugin Check findings individually: direct access to plugin-owned live tables, immediate schema diagnostics, authenticated form reads, bounded taxonomy queries and stable legacy extension API names.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.6
+ * Version: 0.4.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.6');
+define('TCT_VERSION','0.4.8');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -30,6 +30,15 @@ require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
     const ENABLE_OPTION = 'taxocommerce_templates_render_enabled';
+    // New consent is OFF by default, including when an older installation
+    // left ENABLE_OPTION=1. Deployment can never turn public routes on.
+    const REVIEW_CONSENT_OPTION = 'taxocommerce_templates_review_consent_v1';
+
+    /** Explicit operator opt-in required after updating the plugin. */
+    public static function policies_enabled() {
+        return 1 === (int) get_option(self::ENABLE_OPTION, 0)
+            && 1 === (int) get_option(self::REVIEW_CONSENT_OPTION, 0);
+    }
 
     public static function nodes() { global $wpdb; return $wpdb->prefix.'seo_nodes'; }
     public static function templates() { global $wpdb; return $wpdb->prefix.'seo_templates'; }
@@ -96,10 +105,11 @@ final class TaxoCommerce_Templates {
     public static function boot() {
         // Mantener el filtrado de escaparate ES del anterior cargador. No
         // declarar funciones duplicadas si ambos plugins estan activos.
-        if (get_option(self::ENABLE_OPTION, 0) &&
+        if (self::policies_enabled() &&
             !function_exists('seo_front_es_international_category_ids')) {
             require_once TCT_DIR . 'includes/seo-front-es-catalog.php';
         }
+        add_action('admin_enqueue_scripts',array(__CLASS__,'enqueue_policy_control'));
         add_action('admin_menu',array(__CLASS__,'menu'),65);
         add_action('admin_post_tct_save_role',array(__CLASS__,'save_role'));
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
@@ -115,10 +125,15 @@ final class TaxoCommerce_Templates {
         add_action('admin_enqueue_scripts',array('TCT_Designs','enqueue'));
         add_action('admin_post_tct_design_create',array('TCT_Designs','create'));
         add_action('admin_post_tct_design_save',array('TCT_Designs','save'));
-        add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
-        add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
-        add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
-        add_filter('woocommerce_email_classes',array('TCT_Legacy_Email_Compat','apply'),999);
+        // No frontend hooks at all while policies are suspended. Admin/editor,
+        // saved routes and the master switch remain fully operational.
+        if (self::policies_enabled()) {
+            add_filter('wc_get_template',array('TCT_Request_Registry','resolve_woocommerce_partial'),40,5);
+            add_filter('wc_get_template_part',array('TCT_Request_Registry','resolve_woocommerce_part'),40,3);
+            add_filter('comments_template',array('TCT_Request_Registry','resolve_comments'),40,1);
+            add_filter('woocommerce_email_classes',array('TCT_Legacy_Email_Compat','apply'),999);
+            add_filter('template_include',array('TCT_Request_Registry','resolve'),PHP_INT_MAX);
+        }
         add_action('admin_post_tct_save_device_mode',array(__CLASS__,'save_device_mode'));
         add_action('admin_post_tct_assign_page',array(__CLASS__,'assign_page'));
         add_action('admin_post_tct_unassign_page',array(__CLASS__,'unassign_page'));
@@ -128,7 +143,6 @@ final class TaxoCommerce_Templates {
         add_action('admin_init',array('TCT_Router','seed_catalog'));
         add_action('add_meta_boxes_page',array(__CLASS__,'page_metabox'));
         add_action('save_post_page',array(__CLASS__,'save_metabox'),25,2);
-        add_filter('template_include',array('TCT_Request_Registry','resolve'),PHP_INT_MAX);
         add_action('taxocommerce_core_register_modules',array(__CLASS__,'register_core'));
         if(function_exists('taxocommerce_core')&&did_action('taxocommerce_core_loaded')) self::register_core(taxocommerce_core());
     }
@@ -240,9 +254,49 @@ final class TaxoCommerce_Templates {
         self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
     public static function settings() {
-        self::guard('tct_settings');
-        update_option(self::ENABLE_OPTION,!empty($_POST['enable'])?1:0,false);
-        self::redirect('Configuración guardada.');
+        // The emergency switch must work even if the template tables are
+        // damaged. Only capability and nonce are required to change it.
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Acceso denegado.', 'taxocommerce-templates'));
+        }
+        check_admin_referer('tct_settings');
+        $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
+            '1' === wp_unslash($_POST['enable']);
+        // Disable the effective gate FIRST. Re-enable it only after the
+        // existing legacy switch has been updated. Safe even after an upgrade.
+        update_option(self::REVIEW_CONSENT_OPTION, 0, false);
+        update_option(self::ENABLE_OPTION, $enabled ? 1 : 0, false);
+        if ($enabled) {
+            update_option(self::REVIEW_CONSENT_OPTION, 1, false);
+        }
+        self::redirect($enabled
+            ? 'Políticas de TaxoCommerce Templates activadas.'
+            : 'Políticas suspendidas. WordPress, el tema y otros plugins conservan el control.');
+    }
+
+    public static function enqueue_policy_control() {
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+            return;
+        }
+        wp_enqueue_style( 'tct-policy-control', TCT_URL . 'assets/policy-switch.css', array(), TCT_VERSION );
+    }
+
+    public static function render_policy_control() {
+        $enabled = self::policies_enabled();
+        echo '<section class="tct-policy-control" aria-label="Aplicación de políticas de plantillas">';
+        echo '<h2>Aplicación de políticas</h2>';
+        echo '<p><strong>Estado: ' . esc_html($enabled ? 'Aplicando las políticas de Templates' : 'Políticas suspendidas') . '</strong></p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('tct_settings');
+        echo '<input type="hidden" name="action" value="tct_settings">';
+        echo '<label><input type="checkbox" name="enable" value="1" ' . checked($enabled, true, false) . '> ';
+        echo '<strong>Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la web</strong></label>';
+        echo '<p class="description">Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no sustituye páginas, productos, categorías, comentarios, fragmentos WooCommerce ni correos. WordPress y los demás plugins recuperan el control.</p>';
+        echo '<p class="description"><strong>Protección al actualizar:</strong> tras instalar esta versión las políticas permanecen suspendidas, incluso si una versión anterior tenía el enrutador activo. Solo se habilitan cuando marcas esta casilla y guardas expresamente.</p>';
+        echo '<p class="description">Marcada: las rutas configuradas pueden aplicarse según sus prioridades, mercados y reglas. No activa automáticamente plantillas que sigan como borrador.</p>';
+        submit_button('Guardar estado de las políticas', 'secondary', 'submit', false);
+        echo '</form></section>';
     }
     public static function available_files() {
         return TCT_Router::available_files();
@@ -353,6 +407,7 @@ final class TaxoCommerce_Templates {
                 esc_url(TCT_Request_Admin::admin_url($key)) . '">' . esc_html($label) . '</a>';
         }
         echo '</nav>';
+        self::render_policy_control();
         if (isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
@@ -401,13 +456,8 @@ final class TaxoCommerce_Templates {
         if (!$embedded && isset($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
-        $enabled = (bool)get_option(self::ENABLE_OPTION,0);
-        echo '<h2>Disponibilidad y activacion</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-        wp_nonce_field('tct_settings');
-        echo '<input type="hidden" name="action" value="tct_settings"><label><input type="checkbox" name="enable" value="1" ' . checked($enabled,true,false) . '> Activar el enrutador del nuevo modulo</label>';
-        echo '<p class="description">Desactivado por defecto; activa solo cuando todos los archivos de las rutas utilizadas esten migrados y probados.</p>';
-        submit_button('Guardar activacion','secondary');
-        echo '</form><h2>Archivos de plantilla</h2>';
+        echo '<p class="description">El interruptor para aplicar o suspender las políticas está disponible al principio de la página, sin necesidad de desactivar el plugin.</p>';
+        echo '<h2>Archivos de plantilla</h2>';
         echo '<p>La subida, duplicado, descarga, edicion y variantes se gestionan ahora desde <a href="' . esc_url(TCT_Request_Admin::admin_url('editor')) . '"><strong>Editor y biblioteca</strong></a>.</p>';
         echo '<h2>Asignacion a paginas y rutas automaticas</h2>';
         echo '<p>Las rutas automaticas se resuelven por tipo de peticion. Las rutas asignables admiten paginas existentes; las variantes no son roles independientes.</p>';

@@ -39,3 +39,17 @@
 .tc-menu-identity p { margin:8px 0;line-height:1.6;overflow-wrap:anywhere; }
 .tc-menu-identity code { display:inline-block;max-width:100%;white-space:normal;overflow-wrap:anywhere;padding:3px 6px; }
 .tc-menu-identity__notice { color:#805800; }
+
+/* Native WordPress menu loading and editing, independent of Core country menus. */
+.tc-menu-load { background:#fff; border:1px solid #c3c4c7; border-radius:4px; padding:16px; margin:18px 0; }
+.tc-menu-load h2 { margin:0 0 12px; }
+.tc-menu-load-form,.tc-menu-create-form { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin:10px 0; }
+.tc-menu-load select { min-width:240px; max-width:100%; }
+.tc-menu-create-form input[name=menu_name] { width:240px; max-width:100%; }
+.tc-menu-item-edit { background:#f6f7f7; padding:10px; margin:8px 0; border-radius:3px; }
+.tc-menu-item-edit input[type=text],.tc-menu-item-edit select { width:100%; max-width:450px; }
+.tc-menu-item-edit input[type=number] { width:100px; }
+@media(max-width:782px) {
+    .tc-menu-load-form,.tc-menu-create-form { align-items:stretch; flex-direction:column; }
+    .tc-menu-load-form select,.tc-menu-create-form input[name=menu_name] { width:100%; }
+}

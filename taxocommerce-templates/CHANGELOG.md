@@ -1,5 +1,23 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.8 — 2026-11-01
+- Protección de **consentimiento explícito tras actualización**: la opción `taxocommerce_templates_review_consent_v1` permanece a cero al instalar una versión nueva, por lo que las políticas públicas no se activan aunque el interruptor heredado `taxocommerce_templates_render_enabled` estuviera activado.
+- La casilla visible **Aplicación de políticas** sigue siendo el único control de administración. Al guardar marcada establece el consentimiento y habilita las reglas; desmarcada retira primero el consentimiento de forma segura. No se pierden diseños, países, archivos, relaciones ni borradores.
+- Todos los resolutores de plantillas de WordPress/WooCommerce, el enrutamiento PHP heredado, las vistas por país, los correos y el estado mostrado en el administrador utilizan el mismo estado efectivo, evitando discrepancias.
+- Se mantiene la posibilidad de editar plantillas con el plugin instalado y políticas suspendidas. Las reglas VEVOR especiales del monolito no se modifican.
+- Pruebas de regresión: actualización con opción antigua activa, nueva autorización explícita, suspensión de emergencia y conservación de configuraciones. No hay activación automática del nuevo enrutador ni despliegue a PRODUCCIÓN en este cambio.
+
+
+## 0.4.7 — 2026-11-01
+- **Interruptor maestro de políticas** visible en las dos pestañas de Templates: permite mantener el plugin activo y gestionar plantillas sin aplicarlas al frontend.
+- Se reutiliza la opción histórica `taxocommerce_templates_render_enabled`; su valor se conserva durante la actualización. En instalaciones nuevas comienza desactivada.
+- Con la casilla desmarcada, el plugin no registra filtros públicos de sustitución de plantillas para WordPress (`template_include`), comentarios, archivos y fragmentos WooCommerce ni clases de correo; tampoco carga el helper ES de escaparate ni ejecuta rutas por país mediante sus resolutores.
+- La casilla es un control de emergencia que funciona incluso si las tablas `seo_templates`/`seo_nodes` no están disponibles. Tiene control de permisos administrativos y nonce.
+- Se retiran los interruptores duplicados y ocultos: solo existe un control superior, con estado explícito y botón de guardar. El editor, los roles, los diseños, la biblioteca y los archivos almacenados siguen disponibles mientras las políticas están suspendidas.
+- Al activar la casilla se recupera el comportamiento previo, respetando las rutas individuales, borradores y prioridad VEVOR. No se modifica ninguna plantilla pública, país ni asignación guardada.
+- Ampliadas pruebas de regresión para confirmar que el estado OFF devuelve el archivo original de WordPress/WooCommerce, preserva correos, comentarios, el piloto VEVOR y los diseños almacenados.
+
+
 ## 0.4.6 — 2026-10-31
 - Instancias de plantilla identificables con nombres autogenerados editables para una misma petición/rol, sin sobrescribir las rutas históricas de `seo_templates`.
 - Cada plantilla guarda su identificador, petición/rol, archivo PHP opcional, países ES/US/DE/NL/FR y composiciones separadas por **país y dispositivo** mediante la opción `tct_template_designs_v1` (`autoload=false`); no se añade ninguna tabla SQL.

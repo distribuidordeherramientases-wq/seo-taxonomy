@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Stable TCSUP_ public class names are an existing namespace/API contract; renaming would break extensions.
 final class TCSUP_Purchasing {
 
 	public static function active_order_statuses() {

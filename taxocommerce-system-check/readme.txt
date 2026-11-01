@@ -4,7 +4,7 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.12
+Stable tag: 0.2.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,11 @@ Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO pl
 System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
 == Changelog ==
+
+= 0.2.13 =
+* Bind both Action Scheduler table identifiers using %i when retrieving the highest-volume pending action group.
+* Add source-regression checks to prevent restoring interpolated SQL and synchronize the standalone Auto Test version.
+* Preserve live diagnostics and all existing historical callbacks; production publication requires separate approval.
 
 = 0.2.12 =
 * Fix remaining Plugin Check SQL preparation findings by binding canonical table identifiers and preserving bound user values in billing, semantic checks, health scans and external images.

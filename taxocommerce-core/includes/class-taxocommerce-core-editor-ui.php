@@ -43,6 +43,10 @@ final class TaxoCommerce_Core_Editor_UI {
                     'loading' => __( 'Buscando…', 'taxocommerce-core' ),
                     'error' => __( 'No se han podido cargar los términos.', 'taxocommerce-core' ),
                     'choose' => __( 'Selecciona primero un atributo global.', 'taxocommerce-core' ),
+                    'remove' => /* translators: %s: name of the attribute term being removed. */ __( 'Quitar %s', 'taxocommerce-core' ),
+                    'mediaTitle' => __( 'Elegir imagen', 'taxocommerce-core' ),
+                    'mediaButton' => __( 'Utilizar imagen', 'taxocommerce-core' ),
+                    'imageEmpty' => __( 'Sin imagen destacada', 'taxocommerce-core' ),
                 ),
             )
         );
@@ -56,7 +60,7 @@ final class TaxoCommerce_Core_Editor_UI {
     public static function ajax_terms() {
         check_ajax_referer( 'taxocommerce_core_editor_terms', 'nonce' );
         if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => 'Acceso no autorizado.' ), 403 );
+            wp_send_json_error( array( 'message' => __( 'Acceso no autorizado.', 'taxocommerce-core' ) ), 403 );
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
         $mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
@@ -68,7 +72,7 @@ final class TaxoCommerce_Core_Editor_UI {
             wp_send_json_success( TaxoCommerce_Core_Vocabulary::search( $group, $needle ) );
         }
         if ( 'taxonomy' !== $mode || ! self::allowed_taxonomy( $group ) ) {
-            wp_send_json_error( array( 'message' => 'Taxonomía no admitida.' ), 400 );
+            wp_send_json_error( array( 'message' => __( 'Taxonomía no admitida.', 'taxocommerce-core' ) ), 400 );
         }
         $terms = get_terms(
             array(
@@ -81,7 +85,7 @@ final class TaxoCommerce_Core_Editor_UI {
             )
         );
         if ( is_wp_error( $terms ) ) {
-            wp_send_json_error( array( 'message' => 'No se pudieron consultar las etiquetas.' ), 500 );
+            wp_send_json_error( array( 'message' => __( 'No se pudieron consultar las etiquetas.', 'taxocommerce-core' ) ), 500 );
         }
         $result = array();
         foreach ( (array) $terms as $term ) {
@@ -112,10 +116,10 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '<div class="tc-editor-shell">';
         echo '<div class="tc-editor-top"><a class="tc-back-link" href="' . esc_url( $back ) . '">← Volver a contenidos</a><div class="tc-editor-top-actions">';
         if ( $permalink ) {
-            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">Ver en la tienda ↗</a>';
+            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">' . esc_html__( 'Ver en la tienda ↗', 'taxocommerce-core' ) . '</a>';
         }
         if ( $native ) {
-            echo '<a class="button" href="' . esc_url( $native ) . '">Editor WordPress / WooCommerce ↗</a>';
+            echo '<a class="button" href="' . esc_url( $native ) . '">' . esc_html__( 'Editor WordPress / WooCommerce ↗', 'taxocommerce-core' ) . '</a>';
         }
         echo '</div></div>';
         $types = array( 'products' => 'PRODUCTO', 'categories' => 'CATEGORÍA', 'posts' => 'POST', 'pages' => 'PÁGINA' );
@@ -143,12 +147,12 @@ final class TaxoCommerce_Core_Editor_UI {
     }
 
     private static function close_form( $type ) {
-        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span>Los cambios se aplican al contenido original, sin crear copias.</span></div>';
-        echo '<button type="submit" class="button button-primary button-hero">Guardar cambios</button></footer></form></div>';
+        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span>' . esc_html__( 'Los cambios se aplican al contenido original, sin crear copias.', 'taxocommerce-core' ) . '</span></div>';
+        echo '<button type="submit" class="button button-primary button-hero">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></footer></form></div>';
     }
 
     private static function rich_editor( $value, $label, $rows = 14 ) {
-        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">EDITOR VISUAL</span><h2>' . esc_html( $label ) . '</h2>';
+        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'EDITOR VISUAL', 'taxocommerce-core' ) . '</span><h2>' . esc_html( $label ) . '</h2>';
         echo '<p>Utiliza negritas, listas, enlaces y medios para estructurar el contenido.</p></div></div>';
         wp_editor(
             $value,

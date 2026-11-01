@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+## [0.4.41]
+
+- Añadido selector de menús nativos de WordPress con indicación de ubicaciones del tema: permite **cargar y editar el menú actual**, sin sustituir el menú generado para cada país ni alterar el front-end al cargarlo.
+- Permite crear un menú WordPress nuevo y editar sus elementos manuales desde Core: título, URL de enlaces personalizados, estructura padre/hijo y posición. Se mantienen protegidos los elementos generados por la jerarquía SEO.
+- Las acciones de escritura usan permisos y nonce, y rechazan elementos externos al menú, padres de otro menú, bucles de jerarquía e identificadores de menú inválidos.
+- Se preservan las funciones existentes de sincronización SEO por país, enlace al editor nativo, activación del menú en una ubicación y restauración de ubicaciones; sin alterar el monolítico ni producción.
+- Añadidas pruebas aisladas del comportamiento de carga, edición, creación e independencia de menús. Issue #2047.
+
+
 - Eliminados los dos scripts de pruebas no ejecutados por CI (`anomalies-smoke.php` y `family-menu-smoke.php`); las otras 11 pruebas permanecen fuera del ZIP y se ejecutan con los workflows. Las comprobaciones automáticas y los archivos ocultos quedan excluidos del paquete instalable (PR #1935).
 
 - Limpieza controlada de STAGING (issue #1937): eliminar exclusivamente restos de pruebas de desarrollo bajo `tests/` y el antiguo `.ftp-deploy-sync-state.json` del plugin instalado. Inventario, copia de seguridad SHA-256 y verificación remota obligatorios. Se conservan las clases operativas de `includes/`, los datos y las pruebas del repositorio; sin intervención en PRODUCCIÓN.
@@ -14,6 +23,13 @@
 - Endurecido el despliegue de la familia modular: las pruebas de desarrollo y el estado FTP se mantienen fuera de las instalaciones WordPress.
 - Preparada una limpieza FTPS excepcional, con inventario, copia de seguridad y verificación de hashes, limitada a `taxocommerce-*/tests/` y al archivo oculto de sincronización. El monolítico `seo-taxonomy` queda expresamente excluido.
 - Seguimiento de la intervención y sus comprobaciones en el issue #1918. No se modifica el código operativo ni se incrementa la versión de Core por un ajuste de infraestructura.
+
+## [0.4.40]
+
+- Internacionalización nativa del administrador: menús, pestañas, botones, descripciones de módulos, editor, parte de la jerarquía y mensajes. Se utiliza el locale de WordPress y el dominio `taxocommerce-core`; no hay selector propio.
+- Catálogo POT y ficheros PO/MO de `es_ES`, `en_US`, `fr_FR`, `de_DE` y `nl_NL`. Español priorizado para STAGING; traducciones de textos largos a otros idiomas todavía parciales (issue #2025).
+- Conservados identificadores, contratos técnicos, relaciones SEO, contenidos, acciones, y estructura de datos. No afecta al monolítico ni a los plugins independientes de la familia.
+- Añadida validación automática de carga de traducciones compiladas antes de desplegar.
 
 ## [0.4.39]
 

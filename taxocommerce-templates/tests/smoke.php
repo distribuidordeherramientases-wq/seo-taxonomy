@@ -60,7 +60,12 @@ function get_query_var($name) { return ''; }
 
 class TaxoCommerce_Templates {
     const ENABLE_OPTION = 'tct_test_enabled';
+    const REVIEW_CONSENT_OPTION = 'tct_test_review_consent';
     public static function installed() { return false; }
+    public static function policies_enabled() {
+        return 1 === (int) get_option(self::ENABLE_OPTION, 0)
+            && 1 === (int) get_option(self::REVIEW_CONSENT_OPTION, 0);
+    }
 }
 
 define('TCT_DIR', dirname(__DIR__) . '/');
@@ -382,12 +387,16 @@ tct_assert(TCT_Designs::can_activate(array(), 'one', 'cluster', array('ES'), '')
     'A visual-only composition cannot be activated without PHP renderer.');
 tct_assert(TCT_Designs::can_activate(array(), 'one', 'woo_file_abc', array('ES'), 'template-cluster.php') !== '',
     'WooCommerce partials must not claim support from the main template resolver.');
-$GLOBALS['test_options'] = array(TCT_Designs::OPTION => array(
+$GLOBALS['test_options'] = array(
+    TaxoCommerce_Templates::ENABLE_OPTION => 1,
+    TaxoCommerce_Templates::REVIEW_CONSENT_OPTION => 1,
+    TCT_Designs::OPTION => array(
     'one'=>array('id'=>'one', 'route'=>'cluster', 'name'=>'Cluster ES',
         'countries'=>array('ES'), 'file'=>'template-cluster.php', 'active'=>true),
     'two'=>array('id'=>'two', 'route'=>'cluster', 'name'=>'Cluster FR',
         'countries'=>array('FR'), 'file'=>'template-cluster.php', 'active'=>true),
-));
+    ),
+);
 $GLOBALS['scenario'] = 'front';
 $GLOBALS['test_market'] = 'ES';
 tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template-cluster.php')
@@ -400,6 +409,59 @@ tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template
 $GLOBALS['test_market'] = 'DE';
 tct_assert(TCT_Designs::resolve(array('cluster')) === '',
     'Unconfigured countries must fall back to legacy WordPress routing.');
+// On upgrade the legacy ENABLE_OPTION may still be ON, but a new consent
+// must be explicitly given before this plugin can affect public pages.
+$GLOBALS['test_options'][TaxoCommerce_Templates::REVIEW_CONSENT_OPTION] = 0;
+tct_assert(!TaxoCommerce_Templates::policies_enabled(),
+    'Old enabled settings must never activate policies after an upgrade.');
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Previously enabled designs must not take effect before explicit new consent.');
+$GLOBALS['test_options'][TaxoCommerce_Templates::REVIEW_CONSENT_OPTION] = 1;
+tct_assert(TaxoCommerce_Templates::policies_enabled(),
+    'Explicit consent re-enables the existing policy switch.');
+// The emergency switch must bypass all presentation hooks, including direct
+// calls into country-specific rules; saved designs are not modified.
+$GLOBALS['test_options'][TaxoCommerce_Templates::ENABLE_OPTION] = 0;
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Disabled policies must not resolve a country-specific design.');
+tct_assert(TCT_Designs::get('one')['name'] === 'Cluster ES',
+    'Disabling must preserve every existing saved design.');
+tct_assert(TCT_Request_Registry::resolve('original-template.php') === 'original-template.php',
+    'Disabled policies must preserve the template selected by another plugin.');
+tct_assert(TCT_Request_Registry::resolve_comments('comments.php') === 'comments.php',
+    'Disabled policies must preserve third-party comment templates.');
+tct_assert(TCT_Request_Registry::resolve_woocommerce_partial('previous.php', 'cart/mini-cart.php') === 'previous.php',
+    'Disabled policies must preserve WooCommerce template overrides.');
+tct_assert(TCT_Request_Registry::resolve_woocommerce_part('previous-part.php', 'cart/mini-cart') === 'previous-part.php',
+    'Disabled policies must preserve WooCommerce template parts.');
+require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
+tct_assert(TCT_Pilot_Router::resolve() === '',
+    'Disabled policies must suppress direct calls to the country-specific VEVOR pilot.');
+require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
+$emails = array('dummy' => (object)array('id' => 'processing'));
+tct_assert(TCT_Legacy_Email_Compat::apply($emails) === $emails,
+    'Disabled policies must leave WooCommerce email templates unchanged.');
+$bootstrap = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
+tct_assert(strpos($bootstrap, "const REVIEW_CONSENT_OPTION = 'taxocommerce_templates_review_consent_v1'") !== false
+    && strpos($bootstrap, 'get_option(self::REVIEW_CONSENT_OPTION, 0)') !== false
+    && strpos($bootstrap, 'update_option(self::REVIEW_CONSENT_OPTION, 0, false)') !== false
+    && strpos($bootstrap, 'update_option(self::REVIEW_CONSENT_OPTION, 1, false)') !== false,
+    'A safe upgrade requires fresh opt-in and can always suspend policies.');
+tct_assert(strpos($bootstrap, "const ENABLE_OPTION = 'taxocommerce_templates_render_enabled'") !== false
+    && strpos($bootstrap, "if (self::policies_enabled()) {") !== false
+    && strpos($bootstrap, "add_filter('template_include'") !== false
+    && strpos($bootstrap, "add_filter('woocommerce_email_classes'") !== false
+    && strpos($bootstrap, "add_filter('wc_get_template'") !== false
+    && strpos($bootstrap, "add_filter('wc_get_template_part'") !== false
+    && strpos($bootstrap, "add_filter('comments_template'") !== false,
+    'All public template and email filters must be registered only while the master switch is enabled.');
+tct_assert(strpos($bootstrap, "check_admin_referer('tct_settings')") !== false
+    && strpos($bootstrap, "public static function render_policy_control()") !== false
+    && strpos($bootstrap, "self::render_policy_control();") !== false
+    && strpos($bootstrap, "public static function enqueue_policy_control()") !== false,
+    'The master switch must be secured and visible across both admin tabs.');
+tct_assert(strpos($bootstrap, "self::guard('tct_settings')") === false,
+    'An emergency disable must remain usable even when template tables are damaged.');
 unset($GLOBALS['test_options'], $GLOBALS['test_market'], $GLOBALS['tct_template_design_id']);
 $design_class = file_get_contents(TCT_DIR . 'includes/class-tct-designs.php');
 tct_assert(strpos($design_class, "const OPTION = 'tct_template_designs_v1'") !== false

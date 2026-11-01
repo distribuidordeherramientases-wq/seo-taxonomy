@@ -9,9 +9,11 @@
  * Author: David Pérez
  * License: MIT
  * Text Domain: taxocommerce-logistica
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
+
 
 define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.4' );
 define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
@@ -32,8 +34,8 @@ function taxocommerce_logistica_register_menu() {
     if ( function_exists( 'taxocommerce_core' ) ) {
         add_submenu_page(
             'taxocommerce-core',
-            'TaxoCommerce Logistics',
-            'Logistics',
+            __( 'TaxoCommerce Logistics', 'taxocommerce-logistica' ),
+            __( 'Logistics', 'taxocommerce-logistica' ),
             $capability,
             'taxocommerce-logistica',
             array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' )

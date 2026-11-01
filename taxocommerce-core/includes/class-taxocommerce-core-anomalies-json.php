@@ -349,12 +349,12 @@ if (!function_exists('taxocommerce_core_anomalies_content_json_render_panel')) {
         echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-left:4px solid #2271b1;padding:14px 16px;margin:16px 0 22px;">';
         echo '<div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">';
         echo '<div style="max-width:780px;">';
-        echo '<h3 style="margin:0 0 6px;">Exportación JSON de anomalías editoriales</h3>';
+        echo '<h3 style="margin:0 0 6px;">' . esc_html__( 'Exportación JSON de anomalías editoriales', 'taxocommerce-core' ) . '</h3>';
         echo '<p style="margin:0;color:#50575e;">Descarga para análisis externo los posts y landings con anomalías editoriales, incluyendo contenido, categorías WordPress, relaciones con <code>product_cat</code> y Vocabulary. Este JSON no incluye todos los tipos de anomalía estructural del informe y no se importa desde esta pantalla.</p>';
-        echo '<p style="margin:7px 0 0;"><strong>Objetos incluidos ahora:</strong> ' . esc_html(number_format_i18n($count)) . '</p>';
+        echo '<p style="margin:7px 0 0;"><strong>' . esc_html__( 'Objetos incluidos ahora:', 'taxocommerce-core' ) . '</strong> ' . esc_html(number_format_i18n($count)) . '</p>';
         echo '</div>';
         echo '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">';
-        echo '<a class="button button-secondary" href="' . esc_url($export_url) . '">Descargar JSON</a>';
+        echo '<a class="button button-secondary" href="' . esc_url($export_url) . '">' . esc_html__( 'Descargar JSON', 'taxocommerce-core' ) . '</a>';
 
         echo '</div>';
         echo '</div>';

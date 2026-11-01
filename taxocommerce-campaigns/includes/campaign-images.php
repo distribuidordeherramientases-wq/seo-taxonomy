@@ -365,11 +365,13 @@ function tccampaigns_social_product_image_candidates($product_item, $supplier_li
 
     if ($product_id) {
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
         $exists = $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
         ) === $supplier_table;
 
         if ($exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
             $urls = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
@@ -797,6 +799,7 @@ function tccampaigns_social_resolve_publication_image_url($campaign, $product_it
  * @return void
  */
 if (!function_exists('imagefilledroundedrectangle')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Historical GD polyfill reused by campaign image renderers; preserve compatibility.
     function imagefilledroundedrectangle($image, $x1, $y1, $x2, $y2, $color, $radius)
     {
         $radius = max(0, (int) $radius);

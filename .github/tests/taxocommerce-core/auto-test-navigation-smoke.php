@@ -33,7 +33,7 @@ tc_assert_navigation( false !== strpos( $test, "array( 'page' => 'taxocommerce-c
 tc_assert_navigation( false !== strpos( $test, "check_admin_referer( self::NONCE, 'tc_autotest_nonce' )" ), 'execution remains nonce-guarded' );
 preg_match( '/^\\s*\\*\\s*Version:\\s*(\\S+)/m', $main, $version_matches );
 tc_assert_navigation( ! empty( $version_matches[1] ) && false !== strpos( $main, "TAXOCOMMERCE_CORE_VERSION', '" . $version_matches[1] . "'" ), 'Core plugin version and constant agree' );
-tc_assert_navigation( false !== strpos( $core, "'taxocommerce-logistica'     => 'Logistics'" ), 'Family submenu labels Logistics consistently' );
+tc_assert_navigation( false !== strpos( $core, "'taxocommerce-logistica'     => __( 'Logistics', 'taxocommerce-core' )" ), 'Family submenu labels Logistics consistently' );
 tc_assert_navigation( false === strpos( $core, "'seo-logistica'              => 'Logistics'" ), 'Obsolete SEO Logistics route is not a family submenu' );
 tc_assert_navigation( false !== strpos( $core, "'admin_url'     => admin_url( 'admin.php?page=taxocommerce-logistica' )" ), 'Core catalog links to standalone Logistics page' );
 echo "PASS Core Auto Test internal navigation: no sidebar, tabs, legacy redirects and POST preserved." . PHP_EOL;

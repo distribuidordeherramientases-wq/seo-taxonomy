@@ -261,7 +261,7 @@ final class TCT_Request_Registry {
     }
 
     public static function resolve($original) {
-        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) || !TaxoCommerce_Templates::installed()) {
+        if (!TaxoCommerce_Templates::policies_enabled() || !TaxoCommerce_Templates::installed()) {
             return $original;
         }
         $legacy = basename((string)$original);
@@ -313,7 +313,7 @@ final class TCT_Request_Registry {
     }
 
     public static function resolve_comments($original) {
-        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) || !TaxoCommerce_Templates::installed()) {
+        if (!TaxoCommerce_Templates::policies_enabled() || !TaxoCommerce_Templates::installed()) {
             return $original;
         }
         global $wpdb;
@@ -327,6 +327,9 @@ final class TCT_Request_Registry {
     }
 
     public static function resolve_woocommerce_part($original, $slug, $name = '') {
+        if (!TaxoCommerce_Templates::policies_enabled()) {
+            return $original;
+        }
         $slug = trim((string)$slug);
         $name = trim((string)$name);
         if (!preg_match('#^[a-zA-Z0-9][a-zA-Z0-9/_-]*$#D', $slug) ||
@@ -339,7 +342,7 @@ final class TCT_Request_Registry {
     }
 
     public static function resolve_woocommerce_partial($path, $template_name, $args = array(), $template_path = '', $default_path = '') {
-        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) || !TaxoCommerce_Templates::installed()) {
+        if (!TaxoCommerce_Templates::policies_enabled() || !TaxoCommerce_Templates::installed()) {
             return $path;
         }
         $relative = str_replace('\\', '/', (string)$template_name);

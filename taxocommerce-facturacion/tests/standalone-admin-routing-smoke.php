@@ -11,6 +11,7 @@ function add_filter( $hook, $callback, $priority = 10 ) { return true; }
 function did_action( $hook ) { return 0; }
 function taxocommerce_core() { return null; }
 function current_user_can( $capability ) { return 'manage_options' === $capability; }
+function __( $message, $domain = '' ) { return $message; }
 function esc_html__( $message, $domain = '' ) { return $message; }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_url( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }

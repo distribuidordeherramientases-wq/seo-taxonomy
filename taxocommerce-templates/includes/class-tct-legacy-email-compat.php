@@ -51,7 +51,7 @@ final class TCT_Legacy_Email_Compat {
     }
 
     public static function apply($emails) {
-        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) ||
+        if (!TaxoCommerce_Templates::policies_enabled() ||
             !is_array($emails)) {
             return $emails;
         }

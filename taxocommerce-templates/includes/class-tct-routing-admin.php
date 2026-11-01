@@ -209,7 +209,7 @@ final class TCT_Routing_Admin {
             wp_die( esc_html__( 'Acceso denegado.', 'taxocommerce-templates' ) );
         }
         $installed = TaxoCommerce_Templates::installed();
-        $enabled = (bool) get_option( TaxoCommerce_Templates::ENABLE_OPTION, 0 );
+        $enabled = (bool) TaxoCommerce_Templates::policies_enabled();
         // Managed is the primary work view. The full WooCommerce template
         // inventory is only discovered when explicitly requested.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selection.
@@ -264,17 +264,8 @@ final class TCT_Routing_Admin {
             ? 'Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada.'
             : 'Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado.';
         echo '</p></div>';
-        if ( $installed ) {
-            echo '<details class="tct-routing-activation"><summary>Activación del enrutador (avanzado)</summary>';
-            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-            wp_nonce_field( 'tct_settings' );
-            echo '<input type="hidden" name="action" value="tct_settings">';
-            echo '<label><input type="checkbox" name="enable" value="1" ' . checked( $enabled, true, false ) . '> Activar el enrutador TaxoCommerce Templates</label>';
-            echo '<p class="description">Activar solo tras comprobar rutas y dependencias en STAGING. Esta opción ya existía; no se cambia automáticamente.</p>';
-            submit_button( 'Guardar activación', 'secondary', 'submit', false );
-            echo '</form></details>';
-        } else {
-            echo '<div class="notice notice-error inline"><p>Las tablas de plantillas no están disponibles; no se pueden guardar asociaciones.</p></div>';
+        if ( ! $installed ) {
+            echo '<div class="notice notice-error inline"><p>Las tablas de plantillas no están disponibles; no se pueden guardar asociaciones. El interruptor superior sigue funcionando.</p></div>';
         }
 
         $managed_count = count( self::visible( $items, $mapping, 'managed' ) );

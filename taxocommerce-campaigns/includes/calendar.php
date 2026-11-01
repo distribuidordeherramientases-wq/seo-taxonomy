@@ -22,6 +22,7 @@ function tccampaigns_calendar_rows($month) {
     $start = DateTimeImmutable::createFromFormat('!Y-m-d', $month . '-01', $tz);
     if (!$start) return array();
     $end = $start->modify('last day of this month')->setTime(23,59,59);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
     return (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT c.*, COUNT(cp.id) AS product_count

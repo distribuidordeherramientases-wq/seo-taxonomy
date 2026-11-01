@@ -13,6 +13,7 @@ function tccampaigns_autotest_results() {
     $tables = tccampaigns_tables();
     foreach (array('campaigns','products') as $key) {
         $table = $tables[$key];
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema existence check for independent custom tables; cache could hide migration state.
         $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
         $add('Base de datos', $key, $found === $table, 'Existencia de tabla; sin leer ni cambiar campañas.');
     }
