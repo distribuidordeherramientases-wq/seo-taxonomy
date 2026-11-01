@@ -11,13 +11,13 @@ msgid "¿Con esta ficha puedo saber qué compro, si sirve para mi necesidad, qu�
 msgstr ""
 
 msgid "¿Core cambia las fichas automáticamente?"
-msgstr ""
+msgstr "Does Core modify product listings automatically?"
 
 msgid "¿El lector obtiene una respuesta práctica, fiable y diferente de la que ya ofrecen otras páginas del sitio?"
 msgstr ""
 
 msgid "¿Eliminar este elemento manual del menú?"
-msgstr ""
+msgstr "Remove this manual menu item?"
 
 msgid "¿Entiendo las diferencias entre los productos de esta familia y sé cómo localizar los que me interesan?"
 msgstr ""
@@ -26,109 +26,109 @@ msgid "¿Esta página tiene un propósito único y conduce al visitante al sigui
 msgstr ""
 
 msgid "¿Necesito todos los plugins TaxoCommerce?"
-msgstr ""
+msgstr "Do I need all TaxoCommerce plugins?"
 
 msgid "¿Para qué sirve?"
-msgstr ""
+msgstr "What is it for?"
 
 msgid "¿Por qué no veo una función mencionada en otra extensión?"
-msgstr ""
+msgstr "Why can't I see a feature mentioned by another extension?"
 
 msgid "(Nombre actual en WordPress: %s; se actualizará al sincronizar.)"
-msgstr ""
+msgstr "(Current WordPress name: %s; it will be updated on synchronization.)"
 
 msgid "(se abre en una pestaña nueva)"
-msgstr ""
+msgstr "(opens in a new tab)"
 
 msgid "&laquo; Anterior"
 msgstr "&laquo; Previous"
 
 msgid "%1$d automáticos · %2$d manuales. Los manuales se conservan al sincronizar."
-msgstr ""
+msgstr "%1$d automatic · %2$d manual. Manual items are retained on synchronization."
 
 msgid "%d activas"
-msgstr ""
+msgstr "%d active"
 
 msgid "%d con entradas"
-msgstr ""
+msgstr "%d with posts"
 
 msgid "%d elementos añadidos. Se conservarán al sincronizar."
-msgstr ""
+msgstr "%d items added. They will be retained on synchronization."
 
 msgid "%d inactivas"
-msgstr ""
+msgstr "%d inactive"
 
 msgid "%d no instaladas"
-msgstr ""
+msgstr "%d not installed"
 
 msgid "%d publicados"
-msgstr ""
+msgstr "%d published"
 
 msgid "%d sin productos"
-msgstr ""
+msgstr "%d without products"
 
 msgid "1. ¿Para qué sirve TaxoCommerce Core?"
-msgstr ""
+msgstr "1. What is TaxoCommerce Core for?"
 
 msgid "1. Alcance y requisitos"
-msgstr ""
+msgstr "1. Scope and requirements"
 
 msgid "10. Mantenimiento y resolución de incidencias"
-msgstr ""
+msgstr "10. Maintenance and troubleshooting"
 
 msgid "2. Arquitectura y arranque"
-msgstr ""
+msgstr "2. Architecture and bootstrap"
 
 msgid "2. Primeros pasos"
-msgstr ""
+msgstr "2. Getting started"
 
 msgid "3. Content: gestionar contenidos"
-msgstr ""
+msgstr "3. Content: managing content"
 
 msgid "3. Persistencia y modelo de datos"
-msgstr ""
+msgstr "3. Persistence and data model"
 
 msgid "301/302 redirects and assisted content deletion."
 msgstr ""
 
 msgid "4. Gestión técnica de países"
-msgstr ""
+msgstr "4. Technical country management"
 
 msgid "4. SEO Hierarchy: organizar la arquitectura"
-msgstr ""
+msgstr "4. SEO Hierarchy: organizing the structure"
 
 msgid "5. Menu Manager: construir la navegación"
-msgstr ""
+msgstr "5. Menu Manager: building navigation"
 
 msgid "5. Rutas administrativas y operaciones"
-msgstr ""
+msgstr "5. Administration routes and operations"
 
 msgid "6. API y registro de extensiones"
-msgstr ""
+msgstr "6. Extension API and registry"
 
 msgid "6. Auto Test: comprobar el sistema"
-msgstr ""
+msgstr "6. Auto Test: checking the system"
 
 msgid "7. Extensions: ampliar TaxoCommerce"
-msgstr ""
+msgstr "7. Extensions: extending TaxoCommerce"
 
 msgid "7. Permisos y seguridad"
-msgstr ""
+msgstr "7. Permissions and security"
 
 msgid "8. Caché, logs y diagnóstico"
-msgstr ""
+msgstr "8. Cache, logs and diagnostics"
 
 msgid "8. Preguntas habituales"
-msgstr ""
+msgstr "8. Frequently asked questions"
 
 msgid "9. Validación, versiones y despliegue"
-msgstr ""
+msgstr "9. Validation, versions and deployment"
 
 msgid "A valid ZIP was not received."
 msgstr ""
 
 msgid "Abre %s para ver el estado general y los accesos a cada módulo."
-msgstr ""
+msgstr "Open %s to see the overall status and module shortcuts."
 
 msgid "Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado."
 msgstr ""
@@ -140,7 +140,7 @@ msgid "Abrir %s"
 msgstr "Open %s"
 
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Open Auto Test"
 
 msgid "Abrir Content"
 msgstr "Open Content"
@@ -149,10 +149,10 @@ msgid "Abrir esta pantalla no crea ni publica un menú. Los elementos generados 
 msgstr ""
 
 msgid "Abrir Menu Manager"
-msgstr ""
+msgstr "Open Menu Manager"
 
 msgid "Abrir SEO Hierarchy"
-msgstr ""
+msgstr "Open SEO Hierarchy"
 
 msgid "Accede a las funciones disponibles desde un panel organizado y coherente."
 msgstr "Access available features from a clear, organized dashboard."
@@ -167,7 +167,7 @@ msgid "Acceso no autorizado."
 msgstr "Unauthorized access."
 
 msgid "Acción"
-msgstr ""
+msgstr "Action"
 
 msgid "Acciones"
 msgstr "Actions"
@@ -176,16 +176,16 @@ msgid "Activa"
 msgstr "Active"
 
 msgid "Activar"
-msgstr ""
+msgstr "Activate"
 
 msgid "Activar en esta ubicación"
-msgstr ""
+msgstr "Activate in this location"
 
 msgid "Actualizado: %s · Caché de 15 minutos"
-msgstr ""
+msgstr "Updated: %s · 15-minute cache"
 
 msgid "Actualizar inventario"
-msgstr ""
+msgstr "Refresh inventory"
 
 msgid "Administra contenidos y catálogo en un único lugar, manteniendo WordPress y WooCommerce como fuente canónica."
 msgstr ""
@@ -203,13 +203,13 @@ msgid "Añade imágenes que representen realmente el contenido y un texto altern
 msgstr ""
 
 msgid "Añade los elementos manuales que necesites. Se conservan al sincronizar."
-msgstr ""
+msgstr "Add any required manual items. They will be retained on synchronization."
 
 msgid "Añadir al menú"
-msgstr ""
+msgstr "Add to menu"
 
 msgid "Añadir elementos al menú"
-msgstr ""
+msgstr "Add menu items"
 
 msgid "Anatomía interna"
 msgstr "Internal structure"
@@ -233,7 +233,7 @@ msgid "Aprende para qué sirve Core y cómo utilizar los contenidos, la jerarqu�
 msgstr "Learn what Core does and how to use content, SEO hierarchy, menus and extensions."
 
 msgid "Archivo ZIP"
-msgstr ""
+msgstr "ZIP file"
 
 msgid "Archivos multimedia"
 msgstr "Media files"
@@ -245,7 +245,7 @@ msgid "Arquitectura y arranque"
 msgstr "Architecture and startup"
 
 msgid "Asignación de roles"
-msgstr ""
+msgstr "Role assignment"
 
 msgid "Asignados"
 msgstr "Assigned"
@@ -263,7 +263,7 @@ msgid "Auto Test ejecuta comprobaciones bajo demanda de módulos, lectura de con
 msgstr ""
 
 msgid "Automático"
-msgstr ""
+msgstr "Automatic"
 
 msgid "Billing"
 msgstr ""
@@ -278,7 +278,7 @@ msgid "Buscar"
 msgstr "Search"
 
 msgid "Buscar categoría…"
-msgstr ""
+msgstr "Search category…"
 
 msgid "Buscar contenido"
 msgstr "Search content"
@@ -287,7 +287,7 @@ msgid "Buscar elementos disponibles"
 msgstr "Search available items"
 
 msgid "Buscar en WordPress.org"
-msgstr ""
+msgstr "Search WordPress.org"
 
 msgid "Buscar página"
 msgstr "Search page"
@@ -299,16 +299,16 @@ msgid "Buscar por nombre o ID…"
 msgstr "Search by name or ID…"
 
 msgid "Cabecera, constantes, carga de clases y activación."
-msgstr ""
+msgstr "Header, constants, class loading and activation."
 
 msgid "Caché y diagnósticos"
-msgstr ""
+msgstr "Cache and diagnostics"
 
 msgid "Cada página necesita una función propia: hub, landing de compra o información corporativa. No todas siguen la misma estructura."
 msgstr ""
 
 msgid "Capacidades"
-msgstr ""
+msgstr "Capabilities"
 
 msgid "Cargando..."
 msgstr "Loading..."
@@ -317,46 +317,46 @@ msgid "Catalog, content, and Media import/export."
 msgstr ""
 
 msgid "Categoría"
-msgstr ""
+msgstr "Category"
 
 msgid "Categoría no encontrada."
-msgstr ""
+msgstr "Category not found."
 
 msgid "Categorías"
 msgstr "Categories"
 
 msgid "Categorías de entradas"
-msgstr ""
+msgstr "Post categories"
 
 msgid "Categorías de producto"
-msgstr ""
+msgstr "Product categories"
 
 msgid "Categorías de producto (product_cat) y su país."
-msgstr ""
+msgstr "Product categories (product_cat) and their country."
 
 msgid "Categorías de productos"
 msgstr "Product categories"
 
 msgid "Categorías vinculadas"
-msgstr ""
+msgstr "Linked categories"
 
 msgid "Ciclo de inicialización"
-msgstr ""
+msgstr "Initialization lifecycle"
 
 msgid "Clasifica los contenidos y organiza las relaciones SEO de la tienda."
 msgstr "Classify content and manage your store's SEO relationships."
 
 msgid "Clasificación semántica compartida entre productos, categorías, posts y páginas."
-msgstr ""
+msgstr "Shared semantic classification across products, categories, posts and pages."
 
 msgid "Cluster"
 msgstr "Cluster"
 
 msgid "Cluster → Hub primario"
-msgstr ""
+msgstr "Cluster → Primary hub"
 
 msgid "Cluster → Hub primario → Hub secundario → Categoría → Producto"
-msgstr ""
+msgstr "Cluster → Primary hub → Secondary hub → Category → Product"
 
 msgid "Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado."
 msgstr ""
@@ -365,13 +365,13 @@ msgid "Cluster → Hub primario → Hub secundario → Categoría. Cada nivel mu
 msgstr ""
 
 msgid "Cluster, Hub primario, Hub secundario, Categoría, Producto"
-msgstr ""
+msgstr "Cluster, Primary hub, Secondary hub, Category, Product"
 
 msgid "Clusters"
 msgstr "Clusters"
 
 msgid "Clusters ordenados por número de productos, con recuentos únicos en cada nivel."
-msgstr ""
+msgstr "Clusters ordered by product count, with unique counts at each level."
 
 msgid "Cobertura de productos únicos dentro de cada cluster; un producto en varios clusters puede figurar en más de una barra."
 msgstr "Unique product coverage by cluster; a product linked to multiple clusters may appear in multiple bars."
@@ -380,28 +380,28 @@ msgid "Commercial feeds and XML sitemaps with bounded block-based publishing."
 msgstr ""
 
 msgid "Cómo editar este contenido"
-msgstr ""
+msgstr "How to edit this content"
 
 msgid "Cómo editar un contenido"
-msgstr ""
+msgstr "How to edit content"
 
 msgid "Cómo se reparte la arquitectura"
 msgstr "Architecture breakdown"
 
 msgid "Cómo utilizarla"
-msgstr ""
+msgstr "How to use it"
 
 msgid "Compatibilidad declarada"
 msgstr "Declared compatibility"
 
 msgid "Componentes principales"
-msgstr ""
+msgstr "Main components"
 
 msgid "Comprobación antes de guardar:"
-msgstr ""
+msgstr "Before saving, check:"
 
 msgid "Comprobaciones funcionales no destructivas."
-msgstr ""
+msgstr "Non-destructive functional checks."
 
 msgid "Comprueba el resultado en WordPress staging antes de planificar una subida independiente a producción. Fusionar una rama no confirma por sí solo el despliegue."
 msgstr ""
@@ -410,7 +410,7 @@ msgid "Comprueba la fecha del inventario y actualízalo desde la propia pantalla
 msgstr ""
 
 msgid "Comprueba las funciones principales de esta instalación después de actualizar Core."
-msgstr ""
+msgstr "Check the main features of this installation after updating Core."
 
 msgid "Comprueba precio, moneda, disponibilidad, envío y condiciones de venta; en productos externos deja claro dónde se realiza la compra y revisa el enlace afiliado."
 msgstr ""
@@ -419,7 +419,7 @@ msgid "Comprueba que la imagen muestre el producto o variante exactos. No añada
 msgstr ""
 
 msgid "Con productos"
-msgstr ""
+msgstr "With products"
 
 msgid "Conecta mediante enlaces navegables con subcategorías y productos realmente relacionados. Mantén una estructura comprensible y sin páginas huérfanas."
 msgstr ""
@@ -443,7 +443,7 @@ msgid "Content"
 msgstr ""
 
 msgid "Coordinador, permisos, rutas administrativas y catálogo de extensiones."
-msgstr ""
+msgstr "Coordinator, permissions, admin routes and extension catalog."
 
 msgid "Core ofrece taxocommerce_core() como acceso al coordinador. Los plugins activos pueden registrarse en el hook taxocommerce_core_register_modules; al completar el arranque se emite taxocommerce_core_loaded."
 msgstr ""
@@ -455,19 +455,19 @@ msgid "Correctas"
 msgstr "Passed"
 
 msgid "Crea una pull request hacia staging y revisa sus comprobaciones antes de fusionar."
-msgstr ""
+msgstr "Create a pull request to staging and review its checks before merging."
 
 msgid "Crear menú desde la jerarquía"
-msgstr ""
+msgstr "Create menu from hierarchy"
 
 msgid "Crear y publicar un menú"
-msgstr ""
+msgstr "Create and publish a menu"
 
 msgid "Criterios comunes"
 msgstr "Common criteria"
 
 msgid "Criterios para mantener contenidos útiles, veraces y homogéneos"
-msgstr ""
+msgstr "Guidelines for useful, accurate and consistent content"
 
 msgid "Cross-catalog tag and attribute inventory with automatic classification and local execution."
 msgstr ""
@@ -491,7 +491,7 @@ msgid "Define una pregunta o problema concreto y responde desde el comienzo; no 
 msgstr ""
 
 msgid "Desactivar"
-msgstr ""
+msgstr "Deactivate"
 
 msgid "Descargar JSON"
 msgstr "Download JSON"
@@ -509,7 +509,7 @@ msgid "Desde Content puedes consultar y editar productos, categorías de product
 msgstr ""
 
 msgid "Desinstalación y conservación de datos"
-msgstr ""
+msgstr "Uninstallation and data retention"
 
 msgid "Desvincular"
 msgstr "Unlink"
@@ -521,7 +521,7 @@ msgid "Detectado"
 msgstr "Detected"
 
 msgid "Detectado · convivencia"
-msgstr ""
+msgstr "Detected · coexisting"
 
 msgid "Diferencia las variantes aunque compartan referencia de proveedor: identifica el modelo correcto antes de añadir datos o imágenes."
 msgstr ""
@@ -533,7 +533,7 @@ msgid "Disponibles"
 msgstr "Available"
 
 msgid "Distribución de contenidos y arquitectura SEO."
-msgstr ""
+msgstr "Content distribution and SEO architecture."
 
 msgid "Distribución de la arquitectura SEO"
 msgstr "SEO architecture distribution"
@@ -545,13 +545,13 @@ msgid "Distribution"
 msgstr ""
 
 msgid "Documentación de Core: manual de usuario y manual técnico, en una misma sección."
-msgstr ""
+msgstr "Core documentation: user and technical guides in one section."
 
 msgid "Edita productos, categorías de WooCommerce, entradas y páginas desde un entorno unificado."
 msgstr "Edit WooCommerce products and categories, posts and pages from one interface."
 
 msgid "Editar aquí"
-msgstr ""
+msgstr "Edit here"
 
 msgid "Editar manualmente en WordPress"
 msgstr "Edit manually in WordPress"
@@ -572,7 +572,7 @@ msgid "Editorial roles, automatic assignment, and template management."
 msgstr ""
 
 msgid "Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos."
-msgstr ""
+msgstr "Run Auto Test to check basic operation without changing content."
 
 msgid "Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en .github/tests/taxocommerce-core/."
 msgstr ""
@@ -581,7 +581,7 @@ msgid "Ejecutar Auto Test"
 msgstr "Run Auto Test"
 
 msgid "Ejemplo de integración"
-msgstr ""
+msgstr "Integration example"
 
 msgid "Ejemplo para el archivo principal de una extensión independiente que se carga antes del arranque de Core:"
 msgstr ""
@@ -590,13 +590,13 @@ msgid "El catálogo interno permite identificar extensiones instaladas, activas 
 msgstr ""
 
 msgid "El contenido no existe o no se puede editar."
-msgstr ""
+msgstr "This content does not exist or cannot be edited."
 
 msgid "El inventario de contenidos usa el transient taxocommerce_core_content_inventory_v1 y el informe de arquitectura, taxocommerce_core_architecture_report_v1. Ambos tienen una duración de 15 minutos y un botón de actualización protegido."
 msgstr ""
 
 msgid "El menú de un país no aparece"
-msgstr ""
+msgstr "A country's menu does not appear"
 
 msgid "El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce."
 msgstr "The modular foundation for managing architecture, content and operations in your WooCommerce store."
@@ -605,7 +605,7 @@ msgid "El prefijo SQL es el configurado por WordPress mediante $wpdb->prefix; no
 msgstr ""
 
 msgid "El rol SEO indicado no es válido."
-msgstr ""
+msgstr "The specified SEO role is invalid."
 
 msgid "El selector de país distingue ES, US, FR, DE y NL. Elegir un país identifica el mercado del contenido, pero no traduce textos ni cambia automáticamente su URL o sus relaciones SEO. Comprueba el país antes de guardar contenidos internacionales."
 msgstr ""
@@ -617,7 +617,7 @@ msgid "Elegir imagen"
 msgstr "Choose image"
 
 msgid "Elemento manual eliminado del menú."
-msgstr ""
+msgstr "Manual item removed from menu."
 
 msgid "Elemento no disponible"
 msgstr "Item unavailable"
@@ -638,10 +638,10 @@ msgid "Elementos publicados"
 msgstr "Published items"
 
 msgid "Eliminar del menú"
-msgstr ""
+msgstr "Remove from menu"
 
 msgid "En esta guía"
-msgstr ""
+msgstr "In this guide"
 
 msgid "En la parte inferior de la portada aparecen las extensiones independientes con su estado, versión y controles disponibles según tus permisos. Por ejemplo, Images, Suppliers, Database, Vocabulary o System Check se instalan y gestionan como plugins separados."
 msgstr ""
@@ -659,7 +659,7 @@ msgid "En una landing comercial identifica la necesidad del comprador, criterios
 msgstr ""
 
 msgid "Enlace personalizado añadido."
-msgstr ""
+msgstr "Custom link added."
 
 msgid "Enlaces entre nodos: source_type/id, target_type/id, relation_type, country_code y fecha."
 msgstr ""
@@ -674,7 +674,7 @@ msgid "Enlaza a páginas y categorías útiles y relacionadas. Comprueba antes s
 msgstr ""
 
 msgid "Entra en Content y revisa los contenidos y sus países antes de hacer cambios."
-msgstr ""
+msgstr "Open Content and review contents and their countries before making changes."
 
 msgid "Entradas"
 msgstr "Posts"
@@ -695,7 +695,7 @@ msgid "Escribe un título específico, descriptivo y distinto del de las otras p
 msgstr ""
 
 msgid "Escrituras y consultas"
-msgstr ""
+msgstr "Writes and queries"
 
 msgid "España"
 msgstr "Spain"
@@ -704,7 +704,7 @@ msgid "Esta página ya participa en la jerarquía. Desvincúlala antes de cambia
 msgstr ""
 
 msgid "Esta vista no modifica nada. Muestra lo que se generará al sincronizar."
-msgstr ""
+msgstr "This view does not change anything. It shows what will be generated upon synchronization."
 
 msgid "Estado"
 msgstr "Status"
@@ -725,7 +725,7 @@ msgid "Este manual describe el código de Core; las operaciones internas de cada
 msgstr ""
 
 msgid "Este menú todavía no existe. Se creará con este nombre al sincronizar la propuesta."
-msgstr ""
+msgstr "This menu does not yet exist. It will be created with this name upon synchronization."
 
 msgid "Estilos y scripts administrativos; las pruebas de regresión se ejecutan en GitHub Actions, fuera del plugin instalable."
 msgstr ""
@@ -737,13 +737,13 @@ msgid "Estructura de comercio electrónico"
 msgstr "E-commerce structure"
 
 msgid "Estructura del menú"
-msgstr ""
+msgstr "Menu structure"
 
 msgid "Estructura SEO automática + elementos de WordPress"
-msgstr ""
+msgstr "Automatic SEO structure + WordPress items"
 
 msgid "Etiquetas transversales"
-msgstr ""
+msgstr "Cross-content tags"
 
 msgid "Evita canibalizar categorías o páginas existentes. Una nueva URL debe justificar una necesidad distinta y contenido propio."
 msgstr ""
@@ -794,7 +794,7 @@ msgid "FAQs, manual editing, CSV, indicators, and Vocabulary integration."
 msgstr ""
 
 msgid "Filtrar"
-msgstr ""
+msgstr "Filter"
 
 msgid "Francia"
 msgstr "France"
@@ -803,10 +803,10 @@ msgid "Fuente:"
 msgstr "Source:"
 
 msgid "Gestión de paquetes"
-msgstr ""
+msgstr "Package management"
 
 msgid "Gestiona cada plugin independiente desde su tarjeta."
-msgstr ""
+msgstr "Manage each standalone plugin using its card."
 
 msgid "Gestiona la arquitectura Cluster → Hub primario → Hub secundario → Categoría → Producto."
 msgstr "Manage the Cluster → Primary hub → Secondary hub → Category → Product architecture."
@@ -833,13 +833,13 @@ msgid "Hub primario"
 msgstr "Primary hub"
 
 msgid "Hub primario → Hub secundario"
-msgstr ""
+msgstr "Primary hub → Secondary hub"
 
 msgid "Hub secundario"
 msgstr "Secondary hub"
 
 msgid "Hub secundario → Categoría"
-msgstr ""
+msgstr "Secondary hub → Category"
 
 msgid "Hubs primarios"
 msgstr "Primary hubs"
@@ -854,10 +854,10 @@ msgid "Hubs secundarios sin hub primario"
 msgstr "Secondary hubs without a primary hub"
 
 msgid "ID del menú en WordPress:"
-msgstr ""
+msgstr "WordPress menu ID:"
 
 msgid "Identificador para llamar al menú desde una plantilla:"
-msgstr ""
+msgstr "Identifier for loading the menu from a template:"
 
 msgid "Image management, auditing, thumbnails, metadata, and optimization."
 msgstr ""
@@ -884,19 +884,19 @@ msgid "Independent ten-lesson academy and catalog assistant, without automatic r
 msgstr ""
 
 msgid "Índice del manual"
-msgstr ""
+msgstr "Guide contents"
 
 msgid "Índice del manual técnico"
-msgstr ""
+msgstr "Technical guide contents"
 
 msgid "Informes"
-msgstr ""
+msgstr "Reports"
 
 msgid "Informes con caché"
-msgstr ""
+msgstr "Cached reports"
 
 msgid "Inicio"
-msgstr ""
+msgstr "Home"
 
 msgid "Insights"
 msgstr ""
@@ -905,13 +905,13 @@ msgid "Instalada · inactiva"
 msgstr "Installed · inactive"
 
 msgid "Instalar otro ZIP"
-msgstr ""
+msgstr "Install another ZIP"
 
 msgid "Instalar ZIP"
-msgstr ""
+msgstr "Install ZIP"
 
 msgid "Instalar ZIP local"
-msgstr ""
+msgstr "Install local ZIP"
 
 msgid "Inventario de contenidos"
 msgstr "Content inventory"
@@ -920,7 +920,7 @@ msgid "Invoices, proformas, and PDF quotations connected to WooCommerce."
 msgstr ""
 
 msgid "Jerarquía actualizada."
-msgstr ""
+msgstr "Hierarchy updated."
 
 msgid "Jerarquía SEO"
 msgstr "SEO hierarchy"
@@ -938,13 +938,13 @@ msgid "La categoría ayuda a explorar una familia de productos, entender sus dif
 msgstr ""
 
 msgid "La categoría superior no existe."
-msgstr ""
+msgstr "The parent category does not exist."
 
 msgid "La edición de categorías de producto no está disponible."
-msgstr ""
+msgstr "Editing product categories is unavailable."
 
 msgid "La edición de productos no está disponible."
-msgstr ""
+msgstr "Editing products is unavailable."
 
 msgid "La estructura editorial depende de la intención: respuesta inicial, criterios, alternativas, límites y acción solo cuando aportan valor."
 msgstr ""
@@ -959,10 +959,10 @@ msgid "La jerarquía relaciona las páginas que presentan grandes áreas temáti
 msgstr ""
 
 msgid "La página indicada no existe."
-msgstr ""
+msgstr "The specified page does not exist."
 
 msgid "La ubicación de menú seleccionada no es válida."
-msgstr ""
+msgstr "The selected menu location is invalid."
 
 msgid "Landing"
 msgstr ""
@@ -989,13 +989,13 @@ msgid "Lectura de páginas, categorías y productos a través de los clusters. I
 msgstr ""
 
 msgid "Lectura y compatibilidad"
-msgstr ""
+msgstr "Reading and compatibility"
 
 msgid "Limpiar"
 msgstr "Clear"
 
 msgid "Localiza el elemento y abre su editor."
-msgstr ""
+msgstr "Find the item and open its editor."
 
 msgid "Logistics"
 msgstr ""
@@ -1004,13 +1004,13 @@ msgid "Los cambios se aplican al contenido original, sin crear copias."
 msgstr "Changes apply to the original content without creating copies."
 
 msgid "Los datos de la categoría no son válidos."
-msgstr ""
+msgstr "The category data is invalid."
 
 msgid "Los datos del contenido no son válidos."
-msgstr ""
+msgstr "The content data is invalid."
 
 msgid "Los datos del producto no son válidos."
-msgstr ""
+msgstr "The product data is invalid."
 
 msgid "Los datos editoriales siguen en las estructuras nativas de WordPress y WooCommerce; Core añade metadatos y relaciones SEO."
 msgstr ""
@@ -1019,7 +1019,7 @@ msgid "Los países reconocidos por Core son ES, US, FR, DE y NL. El dato canóni
 msgstr ""
 
 msgid "Los recuentos parecen antiguos"
-msgstr ""
+msgstr "Counts appear outdated"
 
 msgid "Los tipos de relación incluyen cluster_to_primary, hub_primary_to_hub_secondary, hub_secondary_to_category y los enlaces desde hubs secundarios hacia landings y entradas. La pertenencia de productos a categorías sigue siendo una relación propia de WooCommerce."
 msgstr ""
@@ -1034,7 +1034,7 @@ msgid "Mantenimiento"
 msgstr "Maintenance"
 
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 msgid "Manual de usuario"
 msgstr "User guide"
@@ -1043,10 +1043,10 @@ msgid "Manual técnico"
 msgstr "Technical guide"
 
 msgid "Más reciente"
-msgstr ""
+msgstr "Most recent"
 
 msgid "Más utilizadas"
-msgstr ""
+msgstr "Most used"
 
 msgid "Menu Manager"
 msgstr ""
@@ -1055,16 +1055,16 @@ msgid "Menu Manager permite crear un menú de WordPress a partir de la jerarquí
 msgstr ""
 
 msgid "MENÚ QUE ESTÁS EDITANDO O CREANDO"
-msgstr ""
+msgstr "MENU YOU ARE EDITING OR CREATING"
 
 msgid "Menú sincronizado. Los elementos manuales se han conservado."
-msgstr ""
+msgstr "Menu synchronized. Manual items have been preserved."
 
 msgid "Menú TaxoCommerce activado en la ubicación seleccionada."
-msgstr ""
+msgstr "TaxoCommerce menu activated in the selected location."
 
 msgid "Menús de WordPress y sincronización por país."
-msgstr ""
+msgstr "WordPress menus and country-specific synchronization."
 
 msgid "Metadescripciones y fragmentos"
 msgstr "Meta descriptions and snippets"
@@ -1076,7 +1076,7 @@ msgid "Modelo nativo del Core"
 msgstr "Native Core model"
 
 msgid "Modifica este elemento en la Jerarquía SEO y sincroniza la propuesta."
-msgstr ""
+msgstr "Modify this item in the SEO hierarchy and synchronize the proposal."
 
 msgid "Modificado"
 msgstr "Modified"
@@ -1088,7 +1088,7 @@ msgid "MySQL diagnostics, tables, backups, and controlled maintenance in an inde
 msgstr ""
 
 msgid "Navegación de TaxoCommerce Core"
-msgstr ""
+msgstr "TaxoCommerce Core navigation"
 
 msgid "No"
 msgstr "No"
@@ -1112,10 +1112,10 @@ msgid "No ejecutadas"
 msgstr "Not run"
 
 msgid "No existe una copia válida de las ubicaciones anteriores."
-msgstr ""
+msgstr "No valid backup of previous menu locations exists."
 
 msgid "No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core."
-msgstr ""
+msgstr "No results yet. Run the check to see Core's status."
 
 msgid "No hay clusters clasificados. Ve a <strong>Asignación de roles</strong> para crear el primero."
 msgstr "No clusters classified yet. Go to <strong>Role assignment</strong> to create the first one."
@@ -1127,7 +1127,7 @@ msgid "No hay términos coincidentes."
 msgstr "No matching terms."
 
 msgid "No hay una jerarquía suficiente para proponer el menú."
-msgstr ""
+msgstr "The hierarchy is insufficient to propose a menu."
 
 msgid "No hay una longitud obligatoria de Google ni un número fijo de apartados, preguntas o repeticiones de palabras clave: escribe lo necesario y elimina el relleno."
 msgstr ""
@@ -1139,16 +1139,16 @@ msgid "No se ha encontrado contenido."
 msgstr "No content found."
 
 msgid "No se ha podido mover el contenido a la papelera."
-msgstr ""
+msgstr "Could not move the content to trash."
 
 msgid "No se ha podido mover el producto a la papelera."
-msgstr ""
+msgstr "Could not move the product to trash."
 
 msgid "No se han encontrado categorías."
 msgstr "No categories found."
 
 msgid "No se han encontrado páginas."
-msgstr ""
+msgstr "No pages found."
 
 msgid "No se han podido cargar los términos."
 msgstr "Could not load terms."
@@ -1169,46 +1169,46 @@ msgid "No se puede actualizar el país de este contenido."
 msgstr "Cannot update the country of this content."
 
 msgid "No tienes permisos para activar plugins."
-msgstr ""
+msgstr "You do not have permission to activate plugins."
 
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "You do not have permission to update this report."
 
 msgid "No tienes permisos para consultar el inventario."
 msgstr "You do not have permission to view the inventory."
 
 msgid "No tienes permisos para consultar este manual."
-msgstr ""
+msgstr "You do not have permission to view this guide."
 
 msgid "No tienes permisos para desactivar plugins."
-msgstr ""
+msgstr "You do not have permission to deactivate plugins."
 
 msgid "No tienes permisos para editar categorías de producto."
-msgstr ""
+msgstr "You do not have permission to edit product categories."
 
 msgid "No tienes permisos para editar este contenido."
-msgstr ""
+msgstr "You do not have permission to edit this content."
 
 msgid "No tienes permisos para editar este producto."
-msgstr ""
+msgstr "You do not have permission to edit this product."
 
 msgid "No tienes permisos para exportar contenidos de anomalías."
-msgstr ""
+msgstr "You do not have permission to export anomalous content."
 
 msgid "No tienes permisos para gestionar este menú."
-msgstr ""
+msgstr "You do not have permission to manage this menu."
 
 msgid "No tienes permisos para gestionar extensiones."
-msgstr ""
+msgstr "You do not have permission to manage extensions."
 
 msgid "No tienes permisos para gestionar TaxoCommerce Core."
 msgstr "You do not have permission to manage TaxoCommerce Core."
 
 msgid "No tienes permisos para instalar plugins."
-msgstr ""
+msgstr "You do not have permission to install plugins."
 
 msgid "No tienes permisos para ver Anomalías."
-msgstr ""
+msgstr "You do not have permission to view anomalies."
 
 msgid "No. Core funciona por separado y cada extensión aporta funciones adicionales cuando está instalada y activa."
 msgstr ""
@@ -1223,7 +1223,7 @@ msgid "Nombre: tipo de producto, marca y modelo verificables, más la variante q
 msgstr ""
 
 msgid "Normalización y lectura del país de cada contenido."
-msgstr ""
+msgstr "Normalize and read each content item's country."
 
 msgid "Normas editoriales de TaxoCommerce Core"
 msgstr "TaxoCommerce Core editorial guidelines"
@@ -1241,7 +1241,7 @@ msgid "Ofrece información original y concreta: explica qué cambia en la decisi
 msgstr ""
 
 msgid "Opciones de contenidos"
-msgstr ""
+msgstr "Content options"
 
 msgid "Open Core"
 msgstr ""
@@ -1250,49 +1250,49 @@ msgid "Organiza la navegación del sitio a partir de la jerarquía SEO y de los 
 msgstr "Organize site navigation using the SEO hierarchy and WordPress menus."
 
 msgid "Organización de la jerarquía"
-msgstr ""
+msgstr "Hierarchy organization"
 
 msgid "Overview"
 msgstr ""
 
 msgid "Página"
-msgstr ""
+msgstr "Page"
 
 msgid "Página corporativa"
-msgstr ""
+msgstr "Corporate page"
 
 msgid "Páginas"
 msgstr "Pages"
 
 msgid "Páginas, entradas y productos WooCommerce; metadatos editoriales y de país."
-msgstr ""
+msgstr "WooCommerce pages, posts and products; editorial and country metadata."
 
 msgid "País"
 msgstr "Country"
 
 msgid "País del menú"
-msgstr ""
+msgstr "Menu country"
 
 msgid "País no válido."
 msgstr "Invalid country."
 
 msgid "País:"
-msgstr ""
+msgstr "Country:"
 
 msgid "Países"
-msgstr ""
+msgstr "Countries"
 
 msgid "Países Bajos"
 msgstr "Netherlands"
 
 msgid "Países e internacionalización"
-msgstr ""
+msgstr "Countries and internationalization"
 
 msgid "Pantalla"
-msgstr ""
+msgstr "Screen"
 
 msgid "Pantalla y guardado de contenidos canónicos."
-msgstr ""
+msgstr "Canonical content screen and saving."
 
 msgid "Pantallas y operaciones"
 msgstr "Screens and operations"
@@ -1325,7 +1325,7 @@ msgid "Plantilla"
 msgstr "Template"
 
 msgid "Políticas de spam y contenido masivo"
-msgstr ""
+msgstr "Spam and scaled content policies"
 
 msgid "Posts"
 msgstr ""
@@ -1337,13 +1337,13 @@ msgid "predeterminada"
 msgstr "default"
 
 msgid "Preguntas habituales"
-msgstr ""
+msgstr "Frequently asked questions"
 
 msgid "Primero clasifica cada página como Cluster, Hub primario, Hub secundario, Landing o Corporativa. Después podrás vincularla desde la pestaña Jerarquía SEO."
 msgstr ""
 
 msgid "Primeros pasos"
-msgstr ""
+msgstr "Getting started"
 
 msgid "Privado"
 msgstr "Private"
@@ -1364,16 +1364,16 @@ msgid "Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú
 msgstr ""
 
 msgid "Propuesta automática"
-msgstr ""
+msgstr "Automatic proposal"
 
 msgid "Protección de operaciones"
-msgstr ""
+msgstr "Operation protection"
 
 msgid "Pruebas y despliegue"
 msgstr "Testing and deployment"
 
 msgid "Publicación del menú"
-msgstr ""
+msgstr "Menu publication"
 
 msgid "Publicado"
 msgstr "Published"
@@ -1400,7 +1400,7 @@ msgid "register_module() acepta un identificador y metadatos como name, version,
 msgstr ""
 
 msgid "Registro técnico"
-msgstr ""
+msgstr "Technical log"
 
 msgid "relaciones"
 msgstr "relationships"
@@ -1412,7 +1412,7 @@ msgid "Responsabilidad"
 msgstr "Responsibility"
 
 msgid "Restaurar menú anterior del tema"
-msgstr ""
+msgstr "Restore previous theme menu"
 
 msgid "Resumen"
 msgstr "Overview"
@@ -1430,7 +1430,7 @@ msgid "Revisa la propuesta y pulsa Crear menú desde la jerarquía o Sincronizar
 msgstr ""
 
 msgid "Revisar anomalías"
-msgstr ""
+msgstr "Review anomalies"
 
 msgid "Rol SEO"
 msgstr "SEO role"
@@ -1439,7 +1439,7 @@ msgid "Rol SEO de cada objeto: object_type, object_id, seo_role, status y countr
 msgstr ""
 
 msgid "Roles SEO, edición de relaciones y esquema SQL."
-msgstr ""
+msgstr "SEO roles, relationship editing and SQL schema."
 
 msgid "Ruta"
 msgstr "Path"
@@ -1454,7 +1454,7 @@ msgid "Se ejecuta bajo demanda y comprueba lecturas, países, roles, relaciones,
 msgstr ""
 
 msgid "Se han restaurado las ubicaciones de menú anteriores."
-msgstr ""
+msgstr "Previous menu locations have been restored."
 
 msgid "Se muestran 40 categorías iniciales. Escribe para buscar cualquier categoría del catálogo sin cargar miles de opciones."
 msgstr "The first 40 categories are shown. Type to search the catalog without loading thousands of options."
@@ -1463,13 +1463,13 @@ msgid "Search, Analytics, Bing, Trends, market, opportunity, and executive repor
 msgstr ""
 
 msgid "Secciones de jerarquía SEO"
-msgstr ""
+msgstr "SEO hierarchy sections"
 
 msgid "Seguridad"
 msgstr "Security"
 
 msgid "Selecciona el país del menú."
-msgstr ""
+msgstr "Select the menu's country."
 
 msgid "Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente."
 msgstr ""
@@ -1478,7 +1478,7 @@ msgid "Selecciona primero un atributo global."
 msgstr "Select a global attribute first."
 
 msgid "Selecciona Productos, Categorías de producto, Posts o Páginas."
-msgstr ""
+msgstr "Select Products, Product categories, Posts or Pages."
 
 msgid "Selecciona una ubicación del tema y pulsa Activar en esta ubicación si deseas mostrarlo en la web."
 msgstr ""
@@ -1490,7 +1490,7 @@ msgid "Seleccionar destino"
 msgstr "Select destination"
 
 msgid "Seleccionar menú"
-msgstr ""
+msgstr "Select menu"
 
 msgid "Seleccionar origen"
 msgstr "Select source"
@@ -1532,10 +1532,10 @@ msgid "Sin asignar"
 msgstr "Unassigned"
 
 msgid "Sin cambios en el catálogo, la jerarquía ni los menús."
-msgstr ""
+msgstr "No changes to the catalog, hierarchy or menus."
 
 msgid "Sin categorías asociadas."
-msgstr ""
+msgstr "No linked categories."
 
 msgid "Sin clusters clasificados todavía."
 msgstr "No clusters classified yet."
@@ -1571,7 +1571,7 @@ msgid "Social network connections, publishing templates, queue, history, and sta
 msgstr ""
 
 msgid "Solicitud de contenido no válida."
-msgstr ""
+msgstr "Invalid content request."
 
 msgid "Stock"
 msgstr "Stock"
@@ -1580,7 +1580,7 @@ msgid "Subhubs"
 msgstr "Subhubs"
 
 msgid "Superior"
-msgstr ""
+msgstr "Parent"
 
 msgid "Supplier catalogue, purchasing, prices, and external images."
 msgstr ""
@@ -1601,10 +1601,10 @@ msgid "TaxoCommerce Core organiza los contenidos, la estructura SEO y los menús
 msgstr ""
 
 msgid "TaxoCommerce SEO actual"
-msgstr ""
+msgstr "Current TaxoCommerce SEO"
 
 msgid "TaxoCommerce Vocabulary"
-msgstr ""
+msgstr "TaxoCommerce Vocabulary"
 
 msgid "TaxoCommerce_Core_Logger guarda entradas de nivel info, warning y error en la opción taxocommerce_core_log_entries. El límite configurable se restringe entre 20 y 500 entradas para evitar un crecimiento indefinido."
 msgstr ""
@@ -1646,22 +1646,22 @@ msgid "The ZIP was processed, but the extension was not installed at the expecte
 msgstr ""
 
 msgid "Tipo de manual"
-msgstr ""
+msgstr "Guide type"
 
 msgid "Título"
 msgstr "Title"
 
 msgid "Título o descripción…"
-msgstr ""
+msgstr "Title or description…"
 
 msgid "Títulos de resultados"
-msgstr ""
+msgstr "Search result titles"
 
 msgid "Todavía no hay elementos guardados. Añade elementos a la izquierda o crea el menú desde la jerarquía."
 msgstr ""
 
 msgid "Todavía no hay páginas con rol Cluster."
-msgstr ""
+msgstr "No pages with the Cluster role yet."
 
 msgid "Todos los estados"
 msgstr "All statuses"
@@ -1676,7 +1676,7 @@ msgid "Trabaja sobre una rama de Git y modifica solo los archivos del plugin afe
 msgstr ""
 
 msgid "Ubicación en el tema"
-msgstr ""
+msgstr "Theme location"
 
 msgid "Una entrada debe resolver una duda, enseñar a usar algo, comparar con criterio o informar de una novedad comprobada."
 msgstr ""
