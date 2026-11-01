@@ -201,6 +201,22 @@ final class TaxoCommerce_Core_Menu_Editor {
             if ( $automatic ) {
                 echo '<p>' . esc_html__( 'Modifica este elemento en la Jerarquía SEO y sincroniza la propuesta.', 'taxocommerce-core' ) . '</p>';
             } else {
+                echo '<form method="post" class="tc-menu-item-edit" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                self::manual_fields( 'edit' );
+                echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '">';
+                echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input type="text" name="item_title" value="' . esc_attr( $item->title ) . '" maxlength="200" required></label></p>';
+                if ( 'custom' === (string) ( $item->type ?? '' ) ) {
+                    echo '<p><label>URL <input type="text" name="item_url" value="' . esc_attr( $item->url ) . '" required></label></p>';
+                }
+                echo '<p><label>' . esc_html__( 'Elemento superior', 'taxocommerce-core' ) . ' <select name="item_parent">';
+                echo '<option value="0">' . esc_html__( 'Nivel principal', 'taxocommerce-core' ) . '</option>';
+                foreach ( $items as $possible ) {
+                    if ( (int) $possible->ID === (int) $item->ID ) { continue; }
+                    echo '<option value="' . absint( $possible->ID ) . '"' . selected( absint( $item->menu_item_parent ), absint( $possible->ID ), false ) . '>' . esc_html( $possible->title ) . '</option>';
+                }
+                echo '</select></label></p>';
+                echo '<p><label>' . esc_html__( 'Posición', 'taxocommerce-core' ) . ' <input type="number" name="item_position" min="1" max="100000" value="' . absint( $item->menu_order ?? 1 ) . '"></label></p>';
+                echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></form>';
                 echo '<form method="post" data-tc-menu-remove action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
                 self::manual_fields( 'remove' );
                 echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '"><button type="submit" class="button-link-delete">' . esc_html__( 'Eliminar del menú', 'taxocommerce-core' ) . '</button></form>';
@@ -298,6 +314,60 @@ final class TaxoCommerce_Core_Menu_Editor {
         return wp_delete_post( $id, true ) ? true : new WP_Error( 'menu_delete', 'No se pudo eliminar el elemento.' );
     }
 
+
+    /**
+     * Update a manual menu item without changing its WordPress type or object.
+     * Reject cross-menu parents, circular nesting and writes to SEO-generated items.
+     */
+    public static function edit_item( $id, $title, $url, $parent_id, $position ) {
+        $menu_id = self::target_menu_id();
+        if ( is_wp_error( $menu_id ) ) { return $menu_id; }
+        $items = $menu_id ? (array) wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'publish,draft' ) ) : array();
+        $map = array();
+        foreach ( $items as $item ) { $map[ absint( $item->ID ) ] = $item; }
+        $id = absint( $id );
+        if ( ! isset( $map[ $id ] ) || self::generated( $id ) ) {
+            return new WP_Error( 'menu_item', __( 'Solo puedes editar elementos manuales del menú cargado.', 'taxocommerce-core' ) );
+        }
+        $item = $map[ $id ];
+        $title = sanitize_text_field( $title );
+        $parent_id = absint( $parent_id );
+        $position = absint( $position );
+        if ( '' === trim( $title ) || ! $position || $position > 100000 ) {
+            return new WP_Error( 'menu_edit', __( 'Revisa el título y la posición del elemento.', 'taxocommerce-core' ) );
+        }
+        $cursor = $parent_id;
+        $visited = array( $id => true );
+        while ( $cursor ) {
+            if ( ! isset( $map[ $cursor ] ) || isset( $visited[ $cursor ] ) ) {
+                return new WP_Error( 'menu_parent', __( 'El superior debe pertenecer al mismo menú y no puede crear un ciclo.', 'taxocommerce-core' ) );
+            }
+            $visited[ $cursor ] = true;
+            $cursor = absint( $map[ $cursor ]->menu_item_parent );
+        }
+        $type = (string) ( $item->type ?? 'custom' );
+        $args = array(
+            'menu-item-title'       => wp_slash( $title ),
+            'menu-item-type'        => $type,
+            'menu-item-object'      => (string) ( $item->object ?? 'custom' ),
+            'menu-item-object-id'   => absint( $item->object_id ?? 0 ),
+            'menu-item-parent-id'   => $parent_id,
+            'menu-item-position'    => $position,
+            'menu-item-status'      => 'publish',
+            'menu-item-attr-title'  => wp_slash( (string) ( $item->attr_title ?? '' ) ),
+            'menu-item-description' => wp_slash( (string) ( $item->description ?? '' ) ),
+            'menu-item-target'      => (string) ( $item->target ?? '' ),
+            'menu-item-classes'     => implode( ' ', (array) ( $item->classes ?? array() ) ),
+            'menu-item-xfn'         => (string) ( $item->xfn ?? '' ),
+        );
+        if ( 'custom' === $type ) {
+            $url = esc_url_raw( $url, array( 'http', 'https', 'mailto', 'tel' ) );
+            if ( '' === $url ) { return new WP_Error( 'menu_link', __( 'Introduce una URL válida.', 'taxocommerce-core' ) ); }
+            $args['menu-item-url'] = $url;
+        }
+        return wp_update_nav_menu_item( $menu_id, $id, $args );
+    }
+
     public static function handle_action() {
         self::guard();
         check_admin_referer( self::ACTION, 'taxocommerce_core_nonce' );
@@ -319,10 +389,24 @@ final class TaxoCommerce_Core_Menu_Editor {
         } elseif ( 'remove' === $task ) {
             $result = self::remove_item( isset( $_POST['menu_item_id'] ) ? absint( $_POST['menu_item_id'] ) : 0 );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Elemento manual eliminado del menú.', 'taxocommerce-core' );
+        } elseif ( 'create' === $task ) {
+            $name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] ) ? sanitize_text_field( wp_unslash( $_POST['menu_name'] ) ) : '';
+            $result = self::create_menu( $name );
+            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú nuevo creado. Puedes editarlo sin modificar los existentes.', 'taxocommerce-core' );
+        } elseif ( 'edit' === $task ) {
+            $id = isset( $_POST['menu_item_id'] ) ? absint( $_POST['menu_item_id'] ) : 0;
+            $title = isset( $_POST['item_title'] ) && is_string( $_POST['item_title'] ) ? sanitize_text_field( wp_unslash( $_POST['item_title'] ) ) : '';
+            $url = isset( $_POST['item_url'] ) && is_string( $_POST['item_url'] ) ? esc_url_raw( wp_unslash( $_POST['item_url'] ), array( 'http', 'https', 'mailto', 'tel' ) ) : '';
+            $parent = isset( $_POST['item_parent'] ) ? absint( $_POST['item_parent'] ) : 0;
+            $position = isset( $_POST['item_position'] ) ? absint( $_POST['item_position'] ) : 1;
+            $result = self::edit_item( $id, $title, $url, $parent, $position );
+            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Elemento del menú actualizado.', 'taxocommerce-core' );
         } else {
             $result = new WP_Error( 'menu_action', 'Acción no válida.' ); $message = $result->get_error_message();
         }
-        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core-menu', 'tc_country' => TaxoCommerce_Core_Menu::country( true ), 'tc_result' => is_wp_error( $result ) ? 'error' : 'ok', 'tc_message' => $message ), admin_url( 'admin.php' ) ) );
+        $selected_id = 'create' === $task && ! is_wp_error( $result )
+            ? absint( $result ) : TaxoCommerce_Core_Menu::selected_menu_id( true );
+        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core-menu', 'tc_country' => TaxoCommerce_Core_Menu::country( true ), 'tc_menu_id' => $selected_id, 'tc_result' => is_wp_error( $result ) ? 'error' : 'ok', 'tc_message' => $message ), admin_url( 'admin.php' ) ) );
         exit;
     }
 }
