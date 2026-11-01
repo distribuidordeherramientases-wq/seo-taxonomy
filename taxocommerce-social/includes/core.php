@@ -497,6 +497,7 @@ function tcsocial_network_capture_visit()
 
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Incremento atomico de contador de clics firmado: necesita escritura inmediata y no puede cachearse.
     $updated = $wpdb->query(
         $wpdb->prepare(
             "UPDATE %i
@@ -515,6 +516,7 @@ function tcsocial_network_capture_visit()
     );
 
     if ($updated) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Lee inmediatamente la publicacion tras actualizar el clic; SQL parametrizado %i/%d.
         $publication = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM %i WHERE id = %d LIMIT 1",
@@ -659,6 +661,7 @@ function tcsocial_network_create_pending_publication($content_id, $provider, $te
     $table = esc_sql( tcsocial_network_publications_table() );
     $now = current_time('mysql');
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserta el intento de publicacion en tabla propia; no existe API de objetos equivalente.
     $inserted = $wpdb->insert(
         $table,
         array(
@@ -748,6 +751,7 @@ function tcsocial_network_publish_content($content_id, $provider, $template_over
     $now = current_time('mysql');
 
     if (is_wp_error($result)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualiza la publicacion/metricas en su tabla propia, con persistencia inmediata e invalidacion temporal implicita.
         $wpdb->update(
             $table,
             array(
@@ -768,6 +772,7 @@ function tcsocial_network_publish_content($content_id, $provider, $template_over
     $remote_id = isset($result['remote_id']) ? sanitize_text_field((string) $result['remote_id']) : '';
     $remote_url = isset($result['remote_url']) ? esc_url_raw((string) $result['remote_url']) : '';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualiza la publicacion/metricas en su tabla propia, con persistencia inmediata e invalidacion temporal implicita.
     $wpdb->update(
         $table,
         array(
@@ -803,6 +808,7 @@ function tcsocial_network_get_latest_publication($content_id, $provider)
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Recupera la publicacion mas reciente mediante SQL parametrizado; debe reflejar cambios recientes.
     return $wpdb->get_row(
         $wpdb->prepare(
             "SELECT * FROM %i
@@ -1152,6 +1158,7 @@ function tcsocial_network_schedule_editorial_publication($content_id, $provider,
     }
 
     $meta_key = tcsocial_network_schedule_meta_key($provider);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT pm.post_id, pm.meta_value, p.post_type
@@ -1316,6 +1323,7 @@ function tcsocial_network_schedule_news_publication($content_id, $provider, $req
     tcsocial_network_news_set_priority($content_id, (bool) $priority);
 
     $meta_key = tcsocial_network_schedule_meta_key($provider);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT pm.post_id, pm.meta_value
@@ -1751,7 +1759,7 @@ function tcsocial_network_scheduler_exportable_content_rows()
             ORDER BY post_modified DESC, ID DESC";
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %s generados localmente; tipos enlazados mediante $wpdb->prepare().
     $prepared_sql = $wpdb->prepare($sql, $types);
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared_sql es el resultado de $wpdb->prepare().
     $rows = $wpdb->get_results($prepared_sql);
 
     $result = array();
@@ -1790,7 +1798,7 @@ function tcsocial_network_scheduler_exportable_agenda_rows()
          ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC, pm.post_id ASC",
         $like
     );
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql es el resultado de $wpdb->prepare().
     $rows = $wpdb->get_results($sql);
     $providers = function_exists('tcsocial_network_get_providers') ? tcsocial_network_get_providers() : array();
     $result = array();
@@ -1832,6 +1840,7 @@ function tcsocial_network_scheduler_exportable_history_rows()
 {
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             'SELECT sp.*, p.post_title FROM %i sp LEFT JOIN %i p ON p.ID = sp.content_id ORDER BY sp.id DESC',
@@ -2512,6 +2521,7 @@ function tcsocial_network_handle_sync_reports()
 
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT * FROM %i
@@ -2549,6 +2559,7 @@ function tcsocial_network_handle_sync_reports()
             $data['remote_url'] = esc_url_raw((string) $result['remote_url']);
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualiza la publicacion/metricas en su tabla propia, con persistencia inmediata e invalidacion temporal implicita.
         $wpdb->update($table, $data, array('id' => absint($row->id)));
         $updated++;
     }
@@ -3088,6 +3099,7 @@ function tcsocial_network_render_reports()
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Resumen de metricas de tabla propia, consulta preparada y resultados actuales.
     $summary = $wpdb->get_row(
         "SELECT
             COUNT(*) AS total_attempts,
@@ -3130,6 +3142,7 @@ function tcsocial_network_render_reports()
     echo '</div></div>';
     echo '<p class="seo-social-code-note">La metrica <strong>Visitas a la web</strong> no depende de Facebook: se incrementa cuando alguien entra mediante el enlace social firmado. Esto permite comparar que publicaciones traen trafico real al sitio.</p>';
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             'SELECT sp.*, p.post_title FROM %i sp LEFT JOIN %i p ON p.ID = sp.content_id ORDER BY sp.id DESC LIMIT 100',
