@@ -45,7 +45,10 @@ final class TCV_Admin {
     }
 
     private static function tab() {
+        // GET only selects the view; mutations use separate POST actions with nonces.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
         $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'labels';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         return in_array( $tab, array( 'labels','attributes','classifier','io','control','auto-test','manual' ), true ) ? $tab : 'labels';
     }
 
@@ -55,10 +58,13 @@ final class TCV_Admin {
         }
         $tab = self::tab();
         echo '<div class="wrap tcv-wrap"><h1>TaxoCommerce Vocabulary <small>v' . esc_html( TAXOCOMMERCE_VOCABULARY_VERSION ) . '</small></h1><p class="description">Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico.</p>';
+        // These GET parameters display an escaped notice; no state changes.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
         if ( ! empty( $_GET['tcv_message'] ) ) {
             $class = ( isset( $_GET['tcv_status'] ) && 'success' === $_GET['tcv_status'] ) ? 'notice-success' : 'notice-error';
             echo '<div class="notice ' . esc_attr( $class ) . '"><p>' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['tcv_message'] ) ) ) ) . '</p></div>';
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         self::nav( $tab );
         if ( 'labels' === $tab ) {
             self::labels();
@@ -88,6 +94,8 @@ final class TCV_Admin {
         echo '</nav>';
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function labels() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -125,6 +133,9 @@ final class TCV_Admin {
         echo '</tbody></table><p class="description">Se muestran como máximo 300 filas en esta vista.</p></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attributes() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -147,8 +158,10 @@ final class TCV_Admin {
         echo '</tbody></table></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function classifier() {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET filters; changes require separate nonce-protected POST actions.
+        // GET controls only which results are displayed; POST analysis is nonce-protected.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
         $filters = TCV_Classifier::sanitize_filters(
             array(
                 'search'      => isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '',
@@ -158,6 +171,7 @@ final class TCV_Admin {
                 'rows'        => isset( $_GET['rows'] ) ? absint( wp_unslash( $_GET['rows'] ) ) : 25,
             )
         );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $categories = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'number'=>250, 'orderby'=>'name', 'order'=>'ASC' ) );
         if ( is_wp_error( $categories ) ) {
             $categories = array();
@@ -259,6 +273,8 @@ final class TCV_Admin {
         <?php
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function control() {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -276,6 +292,7 @@ final class TCV_Admin {
         echo '</tbody></table></div>';
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_filtered() {
         if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Sin permisos.' );
@@ -335,6 +352,8 @@ final class TCV_Admin {
         exit;
     }
 
+    // Administrator displays and integrity checks read shared canonical tables live; other modules can change them independently.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function create_term() {
         if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Sin permisos.' );
@@ -351,4 +370,6 @@ final class TCV_Admin {
         wp_safe_redirect( add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>'labels' ), admin_url( 'admin.php' ) ) );
         exit;
     }
+
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 }

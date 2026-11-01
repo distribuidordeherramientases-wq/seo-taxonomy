@@ -2,7 +2,13 @@
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
+## [0.3.6]
+
 ## [Unreleased]
+
+* Lectura CSV y JSON portable: comprobación local del nonce y validación del estado y la ruta temporal de la subida PHP; no se modifica el contenido del archivo ni los modos MERGE/MIRROR.
+* Documentados de manera localizada los filtros GET de solo lectura (no requieren nonce) y las consultas por categoría, ya limitadas a 50 y 500 registros.
+* Justificadas de forma localizada por método las excepciones WPCS de acceso SQL directo y falta de caché en tablas canónicas compartidas, cuyas escrituras externas no tienen invalidación coordinada. No se cambian las consultas ni su semántica; no se deshabilitan los chequeos globales.
 
 ## [0.3.5]
 

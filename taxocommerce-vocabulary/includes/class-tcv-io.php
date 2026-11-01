@@ -41,6 +41,8 @@ final class TCV_IO {
         echo self::csv_line( $values );
     }
 
+    // CSV export/import operates on shared canonical tables and must observe writes by other modules; a local cache would be stale.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function export_labels() {
         self::guard();
         check_admin_referer( 'tcv_export_labels' );
@@ -59,6 +61,9 @@ final class TCV_IO {
         exit;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // CSV export/import operates on shared canonical tables and must observe writes by other modules; a local cache would be stale.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function export_attributes() {
         self::guard();
         check_admin_referer( 'tcv_export_attributes' );
@@ -81,6 +86,7 @@ final class TCV_IO {
         exit;
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function read_csv( $tmp ) {
         if ( ! function_exists( 'WP_Filesystem' ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -157,6 +163,8 @@ final class TCV_IO {
         self::redirect( 'success', sprintf( 'Importación completada: %d creados, %d actualizados.', $result['created'], $result['updated'] ) );
     }
 
+    // CSV export/import operates on shared canonical tables and must observe writes by other modules; a local cache would be stale.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function import_labels( $rows ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -229,6 +237,9 @@ final class TCV_IO {
         return array( 'created' => $created, 'updated' => $updated );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // CSV export/import operates on shared canonical tables and must observe writes by other modules; a local cache would be stale.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function import_attributes( $rows ) {
         global $wpdb;
         $t = TCV_Schema::tables();
@@ -307,6 +318,7 @@ final class TCV_IO {
         return array( 'created' => $created, 'updated' => $updated );
     }
 
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function redirect( $status, $message ) {
         wp_safe_redirect( add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>'io','tcv_status'=>$status,'tcv_message'=>rawurlencode( $message ) ), admin_url( 'admin.php' ) ) );
         exit;
