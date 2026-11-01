@@ -174,8 +174,7 @@ final class SEO_Ojeador_Analysis {
         $count_sql = "SELECT COUNT(*) FROM %i r LEFT JOIN %i c ON c.term_id=r.term_id WHERE {$where_sql}";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL contains only fixed internal WHERE clauses; all dynamic values and identifiers use %i/%d/%s bindings.
         $count_sql = $wpdb->prepare($count_sql, array_merge(array($table, $categories), $params));
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $total = absint($wpdb->get_var($count_sql));
 
         $per_page = max(20, min(200, absint($args['per_page'])));
@@ -202,8 +201,7 @@ final class SEO_Ojeador_Analysis {
         $select_params[] = $offset;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y ORDER BY proceden de allowlists internas; valores/paginación enlazados mediante placeholders.
         $select_sql = $wpdb->prepare($select_sql, $select_params);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $select_sql es el resultado de $wpdb->prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $select_sql es el resultado de $wpdb->prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($select_sql, ARRAY_A);
 
         foreach ($rows as &$row) {
@@ -264,8 +262,7 @@ final class SEO_Ojeador_Analysis {
                 WHERE active=1
                 GROUP BY term_id", $table);
         $out = array();
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Consulta agregada fija sobre tabla interna, sin entrada de usuario. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
             $out[absint($row['term_id'] ?? 0)] = $row;
         }

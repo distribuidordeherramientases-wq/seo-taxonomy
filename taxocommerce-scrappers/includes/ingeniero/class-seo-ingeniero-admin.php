@@ -84,9 +84,7 @@ final class SEO_Ingeniero_Admin {
         if ('' === $key) return $default;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
         if (!isset($_GET[$key])) return $default;
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter, sanitized by this handler; no state-changing action.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Filtros y avisos GET de solo lectura. Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type. Read-only navigation/filter parameter, sanitized by this handler; no state-changing action.
         return wp_unslash($_GET[$key]);
     }
 
@@ -234,17 +232,13 @@ final class SEO_Ingeniero_Admin {
         SEO_Ingeniero_DB::maybe_install();
         $table = esc_sql(SEO_Ingeniero_DB::table('editorial'));
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Nonce verified by self::guard() before this read. Values read after the authenticated capability and nonce guard in this handler.
         $after_id = absint(wp_unslash($_REQUEST['after_id'] ?? 0));
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Nonce verified by self::guard() before this read. Values read after the authenticated capability and nonce guard in this handler.
         $created = absint(wp_unslash($_REQUEST['created'] ?? 0));
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Nonce verified by self::guard() before this read. Values read after the authenticated capability and nonce guard in this handler.
         $skipped = absint(wp_unslash($_REQUEST['skipped'] ?? 0));
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by self::guard() before this read.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Values read after the authenticated capability and nonce guard in this handler.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Nonce verified by self::guard() before this read. Values read after the authenticated capability and nonce guard in this handler.
         $errors = absint(wp_unslash($_REQUEST['errors'] ?? 0));
         $batch_size = 50;
 

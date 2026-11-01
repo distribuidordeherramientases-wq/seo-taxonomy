@@ -6,6 +6,12 @@
 
 Sin novedades adicionales pendientes.
 
+## [0.1.7]
+
+- Corregida la posición de anotaciones PHP_CodeSniffer que en 0.1.6 dejaban sin cobertura siete comprobaciones de SQL preparado y una validación de entrada. Consolidación de los identificadores de controles exclusivamente junto a la operación afectada.
+- No se modifica el SQL ejecutado, la política de datos actuales ni el contrato de Ojeador/Ingeniero. Corregido después de un merge de 0.1.6 realizado antes de concluir Plugin Check.
+- Repetir lint PHP, smoke, Autotest y Plugin Check del ZIP completo antes de fusionar.
+
 ## [0.1.6]
 
 - Auditoría individual de los 208 avisos restantes de WordPress Plugin Check sobre Scrappers 0.1.5, sin desactivar reglas de análisis globales.

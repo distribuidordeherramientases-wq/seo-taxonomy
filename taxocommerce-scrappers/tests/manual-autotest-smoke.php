@@ -4,7 +4,7 @@
  * A local fake DB and provider objects; never contacts WordPress or the network.
  */
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.6' );
+define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.7' );
 
 function wp_remote_get() { throw new RuntimeException( 'Autotest must not call remote services' ); }
 function wp_remote_post() { throw new RuntimeException( 'Autotest must not call remote services' ); }

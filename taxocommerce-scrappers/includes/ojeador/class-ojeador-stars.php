@@ -225,8 +225,7 @@ final class SEO_Ojeador_Stars {
                   )
                 ORDER BY p.ID ASC,tt.term_id ASC";
 
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Tablas core e internas validadas; consulta fija sin entrada de usuario.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Tablas core e internas validadas; consulta fija sin entrada de usuario. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($sql, ARRAY_A);
         foreach ($rows as &$row) {
             $cost = self::first_positive(array($row['precio_con_iva'] ?? null, $row['provider_cost_meta'] ?? null, $row['precio_sin_iva'] ?? null));

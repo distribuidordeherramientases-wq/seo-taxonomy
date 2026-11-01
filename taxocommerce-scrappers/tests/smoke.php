@@ -45,7 +45,7 @@ $checks = array(
     strpos( $ojeador, "'tcs_tab'=>'ojeador'" ) !== false,
     strpos( $engineer, "'tcs_tab' => 'ingeniero'" ) !== false,
     strpos( $db, 'SELECT id FROM %i WHERE term_id=%d' ) !== false,
-    strpos( $main, "Version: 0.1.6" ) !== false,
+    strpos( $main, "Version: 0.1.7" ) !== false,
     strpos( $db, 'WordPress.DB.DirectDatabaseQuery.DirectQuery' ) !== false,
     strpos( $ojeador_db, 'UPDATE %i SET status=' ) !== false,
     strpos( $ojeador_db, 'UPDATE {$runs} SET status=' ) === false,
