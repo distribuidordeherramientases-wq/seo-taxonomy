@@ -28,10 +28,16 @@ function tccampaigns_handle_settings(){
     if(!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/',$time)) $time='18:00';
     update_option('tccampaigns_social_publication_time',$time,false);
     $templates=array();
-    if(isset($_POST['social_templates'])&&is_array($_POST['social_templates'])){
-        foreach(wp_unslash($_POST['social_templates']) as $provider=>$template){
-            $provider=sanitize_key($provider);
-            if($provider) $templates[$provider]=sanitize_textarea_field($template);
+    if (isset($_POST['social_templates']) && is_array($_POST['social_templates'])) {
+        $submitted_templates = map_deep(wp_unslash($_POST['social_templates']), 'sanitize_textarea_field');
+        foreach ($submitted_templates as $provider => $template) {
+            if (!is_string($template)) {
+                continue;
+            }
+            $provider = sanitize_key((string) $provider);
+            if ($provider) {
+                $templates[$provider] = $template;
+            }
         }
     }
     update_option('tccampaigns_social_templates_v1',$templates,false);
@@ -41,6 +47,7 @@ function tccampaigns_handle_settings(){
 add_action('admin_post_tccampaigns_settings','tccampaigns_handle_settings');
 
 function tccampaigns_render_banners(){
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Informational redirect notice; settings POST requires a valid nonce.
     if(isset($_GET['saved'])) echo '<div class="notice notice-success inline"><p>Configuración guardada.</p></div>';
     $providers=function_exists('tcsocial_network_get_providers')?tcsocial_network_get_providers():array(
         'facebook'=>array('label'=>'Facebook'),'instagram'=>array('label'=>'Instagram'),'linkedin'=>array('label'=>'LinkedIn'),'pinterest'=>array('label'=>'Pinterest'),'x'=>array('label'=>'X')

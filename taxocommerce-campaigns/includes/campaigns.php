@@ -235,17 +235,19 @@ function tccampaigns_unique_key($base, $exclude_id = 0)
 
     while (true) {
         if ($exclude_id > 0) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
             $found = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM {$tables['campaigns']} WHERE campaign_key = %s AND id <> %d LIMIT 1",
+                    "SELECT id FROM %i WHERE campaign_key = %s AND id <> %d LIMIT 1", $tables['campaigns'],
                     $candidate,
                     $exclude_id
                 )
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
             $found = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1",
+                    "SELECT id FROM %i WHERE campaign_key = %s LIMIT 1", $tables['campaigns'],
                     $candidate
                 )
             );
@@ -271,23 +273,27 @@ function tccampaigns_backfill_identity_columns()
     $tables['campaigns'] = esc_sql( $tables['campaigns'] );
     $tables['products']  = esc_sql( $tables['products'] );
 
-    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$tables['campaigns']}", 0);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
+    $columns = (array) $wpdb->get_col($wpdb->prepare("SHOW COLUMNS FROM %i", $tables['campaigns']), 0);
     if (!in_array('campaign_key', $columns, true) || !in_array('campaign_type', $columns, true)) {
         return;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $wpdb->query(
-        "UPDATE {$tables['campaigns']} SET campaign_type = 'calendar' WHERE campaign_type = '' OR campaign_type IS NULL"
+        $wpdb->prepare("UPDATE %i SET campaign_type = 'calendar' WHERE campaign_type = '' OR campaign_type IS NULL", $tables['campaigns'])
     );
 
     if (in_array('social_creative_template', $columns, true)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->query(
-            "UPDATE {$tables['campaigns']} SET social_creative_template = 'design_1' WHERE social_creative_template = '' OR social_creative_template IS NULL"
+            $wpdb->prepare("UPDATE %i SET social_creative_template = 'design_1' WHERE social_creative_template = '' OR social_creative_template IS NULL", $tables['campaigns'])
         );
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
-        "SELECT id, campaign_key, series_key, name, edition_label, start_at FROM {$tables['campaigns']} ORDER BY id ASC"
+        $wpdb->prepare("SELECT id, campaign_key, series_key, name, edition_label, start_at FROM %i ORDER BY id ASC", $tables['campaigns'])
     );
 
     foreach ($rows as $row) {
@@ -318,6 +324,7 @@ function tccampaigns_backfill_identity_columns()
         }
 
         if ($data) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
             $wpdb->update(
                 $tables['campaigns'],
                 $data,
@@ -372,6 +379,7 @@ function tccampaigns_register_public_template()
     global $wpdb;
     $table = esc_sql( $wpdb->prefix . 'seo_templates' );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
     );
@@ -379,14 +387,16 @@ function tccampaigns_register_public_template()
         return;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $exists = (string) $wpdb->get_var(
-        $wpdb->prepare("SELECT template_key FROM {$table} WHERE template_key = %s LIMIT 1", 'campaign_strip')
+        $wpdb->prepare("SELECT template_key FROM %i WHERE template_key = %s LIMIT 1", $table, 'campaign_strip')
     );
 
     if ($exists === '') {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->query(
             $wpdb->prepare(
-                "INSERT INTO {$table} (template_key, template_name, template_file, is_active) VALUES (%s, %s, %s, 1)",
+                "INSERT INTO %i (template_key, template_name, template_file, is_active) VALUES (%s, %s, %s, 1)", $table,
                 'campaign_strip',
                 'Campañas promocionales',
                 'template-campaign.php'
@@ -394,7 +404,8 @@ function tccampaigns_register_public_template()
         );
     }
 
-    $columns = (array) $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
+    $columns = (array) $wpdb->get_col($wpdb->prepare("SHOW COLUMNS FROM %i", $table), 0);
     $data = array();
     $formats = array();
 
@@ -414,6 +425,7 @@ function tccampaigns_register_public_template()
     }
 
     if ($data) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->update(
             $table,
             $data,
@@ -442,6 +454,7 @@ function tccampaigns_public_template_is_enabled()
     global $wpdb;
 
     $table = esc_sql( $wpdb->prefix . 'seo_templates' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $table_exists = $wpdb->get_var(
         $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
     );
@@ -450,9 +463,10 @@ function tccampaigns_public_template_is_enabled()
         return true;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $row = $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT is_active FROM {$table} WHERE template_key = %s LIMIT 1",
+            "SELECT is_active FROM %i WHERE template_key = %s LIMIT 1", $table,
             'campaign_strip'
         )
     );
@@ -490,6 +504,7 @@ function tccampaigns_get_public_active()
 
     foreach (array('campaigns', 'products') as $required_table) {
         $table_name = $tables[$required_table];
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $table_exists = $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
         );
@@ -500,6 +515,7 @@ function tccampaigns_get_public_active()
 
     $now = tccampaigns_now_mysql();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT
@@ -515,12 +531,12 @@ function tccampaigns_get_public_active()
                 cp.campaign_price,
                 cp.position,
                 cp.id AS campaign_product_id
-             FROM {$tables['campaigns']} c
-             INNER JOIN {$tables['products']} cp ON cp.campaign_id = c.id
+             FROM %i c
+             INNER JOIN %i cp ON cp.campaign_id = c.id
              WHERE c.is_enabled = 1
                AND c.start_at <= %s
                AND c.end_at >= %s
-             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC",
+             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC", $tables['campaigns'], $tables['products'],
             $now,
             $now
         )
@@ -625,6 +641,7 @@ function tccampaigns_get_social_catalog()
     $tables['products']  = esc_sql( $tables['products'] );
     foreach (array('campaigns', 'products') as $required_table) {
         $table_name = $tables[$required_table];
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $table_exists = $wpdb->get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table_name))
         );
@@ -634,6 +651,7 @@ function tccampaigns_get_social_catalog()
     }
 
     $now = tccampaigns_now_mysql();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT
@@ -650,11 +668,11 @@ function tccampaigns_get_social_catalog()
                 cp.campaign_price,
                 cp.position,
                 cp.id AS campaign_product_id
-             FROM {$tables['campaigns']} c
-             INNER JOIN {$tables['products']} cp ON cp.campaign_id = c.id
+             FROM %i c
+             INNER JOIN %i cp ON cp.campaign_id = c.id
              WHERE c.is_enabled = 1
                AND c.end_at >= %s
-             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC",
+             ORDER BY c.start_at ASC, c.id ASC, cp.position ASC, cp.id ASC", $tables['campaigns'], $tables['products'],
             $now
         )
     );
@@ -952,8 +970,9 @@ function tccampaigns_get($campaign_id)
         return null;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     return $wpdb->get_row(
-        $wpdb->prepare("SELECT * FROM {$tables['campaigns']} WHERE id = %d LIMIT 1", $campaign_id)
+        $wpdb->prepare("SELECT * FROM %i WHERE id = %d LIMIT 1", $tables['campaigns'], $campaign_id)
     );
 }
 
@@ -974,18 +993,19 @@ function tccampaigns_find_product_overlap($product_id, $campaign_id, $start_at, 
     $tables['campaigns'] = esc_sql( $tables['campaigns'] );
     $tables['products']  = esc_sql( $tables['products'] );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     return $wpdb->get_row(
         $wpdb->prepare(
             "SELECT c.id, c.name, c.edition_label, c.start_at, c.end_at
-             FROM {$tables['products']} cp
-             INNER JOIN {$tables['campaigns']} c ON c.id = cp.campaign_id
+             FROM %i cp
+             INNER JOIN %i c ON c.id = cp.campaign_id
              WHERE cp.product_id = %d
                AND c.id <> %d
                AND c.is_enabled = 1
                AND c.start_at <= %s
                AND c.end_at >= %s
              ORDER BY c.start_at ASC
-             LIMIT 1",
+             LIMIT 1", $tables['products'], $tables['campaigns'],
             absint($product_id),
             absint($campaign_id),
             $end_at,
@@ -1106,9 +1126,10 @@ function tccampaigns_apply($campaign_id)
         return;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT * FROM {$tables['products']} WHERE campaign_id = %d ORDER BY position ASC, id ASC",
+            "SELECT * FROM %i WHERE campaign_id = %d ORDER BY position ASC, id ASC", $tables['products'],
             absint($campaign_id)
         )
     );
@@ -1120,6 +1141,7 @@ function tccampaigns_apply($campaign_id)
         }
 
         if (empty($row->snapshot_taken)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
             $wpdb->update(
                 $tables['products'],
                 array(
@@ -1144,6 +1166,7 @@ function tccampaigns_apply($campaign_id)
             wc_delete_product_transients($product->get_id());
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->update(
             $tables['products'],
             array(
@@ -1201,6 +1224,7 @@ function tccampaigns_restore_product_row($row, $campaign)
         }
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $wpdb->update(
         $tables['products'],
         array(
@@ -1232,10 +1256,11 @@ function tccampaigns_restore($campaign_id)
         return;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT * FROM {$tables['products']}
-             WHERE campaign_id = %d AND snapshot_taken = 1 AND applied = 1",
+            "SELECT * FROM %i
+             WHERE campaign_id = %d AND snapshot_taken = 1 AND applied = 1", $tables['products'],
             absint($campaign_id)
         )
     );
@@ -1313,8 +1338,9 @@ function tccampaigns_handle_save()
 
     // Si se cambian fechas, impide solapar cualquiera de sus productos con otra campaña.
     if ($campaign_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $product_ids = $wpdb->get_col(
-            $wpdb->prepare("SELECT product_id FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+            $wpdb->prepare("SELECT product_id FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
         );
         foreach ((array) $product_ids as $product_id) {
             $overlap = tccampaigns_find_product_overlap($product_id, $campaign_id, $start_at, $end_at);
@@ -1364,6 +1390,7 @@ function tccampaigns_handle_save()
     );
 
     if ($campaign_id) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->update(
             $tables['campaigns'],
             $data,
@@ -1374,6 +1401,7 @@ function tccampaigns_handle_save()
     } else {
         $data['created_by'] = get_current_user_id();
         $data['created_at'] = $now;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $wpdb->insert(
             $tables['campaigns'],
             $data,
@@ -1417,8 +1445,9 @@ function tccampaigns_handle_add_products()
 
     $added = 0;
     $errors = array();
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $position = (int) $wpdb->get_var(
-        $wpdb->prepare("SELECT COALESCE(MAX(position),0) FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("SELECT COALESCE(MAX(position),0) FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
 
     foreach ($selected as $product_id) {
@@ -1447,12 +1476,13 @@ function tccampaigns_handle_add_products()
 
         $position++;
         $now = tccampaigns_now_mysql();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $inserted = $wpdb->query(
             $wpdb->prepare(
-                "INSERT INTO {$tables['products']}
+                "INSERT INTO %i
                     (campaign_id,product_id,campaign_price,position,created_at,updated_at)
                  VALUES (%d,%d,%s,%d,%s,%s)
-                 ON DUPLICATE KEY UPDATE campaign_price=VALUES(campaign_price), updated_at=VALUES(updated_at)",
+                 ON DUPLICATE KEY UPDATE campaign_price=VALUES(campaign_price), updated_at=VALUES(updated_at)", $tables['products'],
                 $campaign_id,
                 $product_id,
                 $campaign_price,
@@ -1500,8 +1530,9 @@ function tccampaigns_handle_update_products()
     $prices = isset($_POST['campaign_price']) ? map_deep((array) wp_unslash($_POST['campaign_price']), 'sanitize_text_field') : array();
     $remove = isset($_POST['remove_product']) ? array_map('absint', (array) wp_unslash($_POST['remove_product'])) : array();
     $remove_map = array_fill_keys($remove, true);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("SELECT * FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
 
     $updated = 0;
@@ -1512,6 +1543,7 @@ function tccampaigns_handle_update_products()
             if (!empty($row->applied)) {
                 tccampaigns_restore_product_row($row, $campaign);
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
             $wpdb->delete($tables['products'], array('id' => absint($row->id)), array('%d'));
             $removed++;
             continue;
@@ -1520,6 +1552,7 @@ function tccampaigns_handle_update_products()
         if (isset($prices[$product_id])) {
             $price = function_exists('wc_format_decimal') ? wc_format_decimal($prices[$product_id]) : (float) $prices[$product_id];
             if ((float) $price > 0) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
                 $wpdb->update(
                     $tables['products'],
                     array(
@@ -1566,8 +1599,9 @@ function tccampaigns_handle_clear_products()
         tccampaigns_redirect_notice('La campana no existe.', 'error');
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("SELECT * FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
 
     foreach ($rows as $row) {
@@ -1576,8 +1610,9 @@ function tccampaigns_handle_clear_products()
         }
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $removed = (int) $wpdb->query(
-        $wpdb->prepare("DELETE FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("DELETE FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
 
     tccampaigns_reschedule($campaign_id);
@@ -1613,8 +1648,9 @@ function tccampaigns_handle_delete()
 
     tccampaigns_unschedule($campaign_id);
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("SELECT * FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
     foreach ($rows as $row) {
         if (!empty($row->applied)) {
@@ -1622,7 +1658,9 @@ function tccampaigns_handle_delete()
         }
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $wpdb->delete($tables['products'], array('campaign_id' => $campaign_id), array('%d'));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $deleted = $wpdb->delete($tables['campaigns'], array('id' => $campaign_id), array('%d'));
 
     if ($deleted === false) {
@@ -1664,6 +1702,7 @@ function tccampaigns_handle_duplicate()
     $new_end = $end->modify('+1 year');
     $now = tccampaigns_now_mysql();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
     $wpdb->insert(
         $tables['campaigns'],
         array(
@@ -1719,10 +1758,11 @@ function tccampaigns_export_rows()
     $tables['campaigns'] = esc_sql( $tables['campaigns'] );
     $tables['products']  = esc_sql( $tables['products'] );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = (array) $wpdb->get_results(
-        "SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
-         FROM {$tables['campaigns']}
-         ORDER BY start_at ASC, id ASC"
+        $wpdb->prepare("SELECT campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
+         FROM %i
+         ORDER BY start_at ASC, id ASC", $tables['campaigns'])
     );
 
     $out = array();
@@ -1758,10 +1798,11 @@ function tccampaigns_export_records()
     $tables['products']  = esc_sql( $tables['products'] );
     $records = array();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $campaigns = (array) $wpdb->get_results(
-        "SELECT id, campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
-         FROM {$tables['campaigns']}
-         ORDER BY start_at ASC, id ASC"
+        $wpdb->prepare("SELECT id, campaign_key, series_key, name, edition_label, campaign_type, recurrence, social_creative_template, start_at, end_at, is_enabled
+         FROM %i
+         ORDER BY start_at ASC, id ASC", $tables['campaigns'])
     );
 
     foreach ($campaigns as $campaign) {
@@ -1783,14 +1824,15 @@ function tccampaigns_export_records()
             'position'                  => '',
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $products = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT cp.product_id, cp.campaign_price, cp.position, sku.meta_value AS sku
-                 FROM {$tables['products']} cp
+                 FROM %i cp
                  LEFT JOIN {$wpdb->postmeta} sku
                    ON sku.post_id = cp.product_id AND sku.meta_key = '_sku'
                  WHERE cp.campaign_id = %d
-                 ORDER BY cp.position ASC, cp.id ASC",
+                 ORDER BY cp.position ASC, cp.id ASC", $tables['products'],
                 absint($campaign->id)
             )
         );
@@ -2017,8 +2059,9 @@ function tccampaigns_import_validate_existing_products($campaign_id, $start_at, 
         return true;
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $product_ids = (array) $wpdb->get_col(
-        $wpdb->prepare("SELECT product_id FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+        $wpdb->prepare("SELECT product_id FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
     );
 
     foreach ($product_ids as $product_id) {
@@ -2156,6 +2199,7 @@ function tccampaigns_handle_import()
 
     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw upload metadata is validated before reading the file.
     $file = isset($_FILES['campaign_import_file']) && is_array($_FILES['campaign_import_file'])
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Uploaded temporary-path metadata must remain intact; checked against upload error, size and extension before import.
         ? $_FILES['campaign_import_file']
         : array();
     if (empty($file['tmp_name']) || !isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
@@ -2241,8 +2285,9 @@ function tccampaigns_handle_import()
         }
         $seen_keys[$key] = true;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $existing = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1", $key)
+            $wpdb->prepare("SELECT * FROM %i WHERE campaign_key = %s LIMIT 1", $tables['campaigns'], $key)
         );
 
         if ($existing) {
@@ -2261,6 +2306,7 @@ function tccampaigns_handle_import()
             $data['updated_by'] = get_current_user_id();
             $data['updated_at'] = $now;
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
             $result = $wpdb->update(
                 $tables['campaigns'],
                 $data,
@@ -2284,6 +2330,7 @@ function tccampaigns_handle_import()
         $row['created_at'] = $now;
         $row['updated_at'] = $now;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $result = $wpdb->insert(
             $tables['campaigns'],
             $row,
@@ -2311,8 +2358,9 @@ function tccampaigns_handle_import()
             continue;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
         $campaign = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$tables['campaigns']} WHERE campaign_key = %s LIMIT 1", $row['campaign_key'])
+            $wpdb->prepare("SELECT * FROM %i WHERE campaign_key = %s LIMIT 1", $tables['campaigns'], $row['campaign_key'])
         );
         if (!$campaign) {
             $skipped++;
@@ -2334,20 +2382,22 @@ function tccampaigns_handle_import()
 
         $position = $row['position'];
         if ($position <= 0) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
             $position = (int) $wpdb->get_var(
-                $wpdb->prepare("SELECT COALESCE(MAX(position),0)+1 FROM {$tables['products']} WHERE campaign_id = %d", absint($campaign->id))
+                $wpdb->prepare("SELECT COALESCE(MAX(position),0)+1 FROM %i WHERE campaign_id = %d", $tables['products'], absint($campaign->id))
             );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
         $result = $wpdb->query(
             $wpdb->prepare(
-                "INSERT INTO {$tables['products']}
+                "INSERT INTO %i
                     (campaign_id,product_id,campaign_price,position,created_at,updated_at)
                  VALUES (%d,%d,%s,%d,%s,%s)
                  ON DUPLICATE KEY UPDATE
                     campaign_price=VALUES(campaign_price),
                     position=VALUES(position),
-                    updated_at=VALUES(updated_at)",
+                    updated_at=VALUES(updated_at)", $tables['products'],
                 absint($campaign->id),
                 $row['product_id'],
                 $row['campaign_price'],
@@ -2372,8 +2422,9 @@ function tccampaigns_handle_import()
     $replace_products = !empty($_POST['replace_products']);
     if ($replace_products) {
         foreach ($touched_campaigns as $campaign_id => $campaign) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
             $existing_rows = (array) $wpdb->get_results(
-                $wpdb->prepare("SELECT * FROM {$tables['products']} WHERE campaign_id = %d", $campaign_id)
+                $wpdb->prepare("SELECT * FROM %i WHERE campaign_id = %d", $tables['products'], $campaign_id)
             );
             foreach ($existing_rows as $existing_row) {
                 $product_id = absint($existing_row->product_id);
@@ -2383,6 +2434,7 @@ function tccampaigns_handle_import()
                 if (!empty($existing_row->applied)) {
                     tccampaigns_restore_product_row($existing_row, $campaign);
                 }
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign-table write or schema migration; WordPress has no equivalent data API.
                 $wpdb->delete($tables['products'], array('id' => absint($existing_row->id)), array('%d'));
                 $products_removed++;
             }
@@ -2513,6 +2565,7 @@ function tccampaigns_search_products($search)
     }
 
     $like = '%' . $wpdb->esc_like($search) . '%';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     return (array) $wpdb->get_results(
         $wpdb->prepare(
             "SELECT DISTINCT p.ID, p.post_title, sku.meta_value AS sku
@@ -2579,12 +2632,13 @@ function tccampaigns_render_dashboard()
     $tables['campaigns'] = esc_sql( $tables['campaigns'] );
     $tables['products']  = esc_sql( $tables['products'] );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = $wpdb->get_results(
-        "SELECT c.*, COUNT(cp.id) AS product_count
-         FROM {$tables['campaigns']} c
-         LEFT JOIN {$tables['products']} cp ON cp.campaign_id = c.id
+        $wpdb->prepare("SELECT c.*, COUNT(cp.id) AS product_count
+         FROM %i c
+         LEFT JOIN %i cp ON cp.campaign_id = c.id
          GROUP BY c.id
-         ORDER BY c.start_at DESC, c.id DESC"
+         ORDER BY c.start_at DESC, c.id DESC", $tables['campaigns'], $tables['products'])
     );
 
     $buckets = array('current' => array(), 'future' => array(), 'past' => array(), 'disabled' => array());
@@ -2628,14 +2682,15 @@ function tccampaigns_render_existing_products($campaign)
     $tables['campaigns'] = esc_sql( $tables['campaigns'] );
     $tables['products']  = esc_sql( $tables['products'] );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live campaign inventory or compatibility query; persistent caching could return outdated prices, schedules or availability.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT cp.*, p.post_title, sku.meta_value AS sku
-             FROM {$tables['products']} cp
+             FROM %i cp
              INNER JOIN {$wpdb->posts} p ON p.ID = cp.product_id
              LEFT JOIN {$wpdb->postmeta} sku ON sku.post_id = p.ID AND sku.meta_key = '_sku'
              WHERE cp.campaign_id = %d
-             ORDER BY cp.position ASC, cp.id ASC",
+             ORDER BY cp.position ASC, cp.id ASC", $tables['products'],
             absint($campaign->id)
         )
     );
@@ -2851,6 +2906,7 @@ function tccampaigns_render_tab()
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only campaign selector.
     $campaign_id = isset($_GET['campaign_id']) ? absint(wp_unslash($_GET['campaign_id'])) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation selector.
     $campaign_action = isset($_GET['campaign_action']) ? sanitize_key(wp_unslash($_GET['campaign_action'])) : '';
 
     if ($campaign_id || $campaign_action === 'new') {
