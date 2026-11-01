@@ -719,16 +719,16 @@ msgid "Estados Unidos"
 msgstr "United States"
 
 msgid "Estas son recomendaciones editoriales basadas en documentación pública de Google. No son una certificación, una garantía de posicionamiento ni requisitos de extensión mínimos de texto."
-msgstr ""
+msgstr "These editorial recommendations are based on public Google documentation. They are not a certification, ranking guarantee or minimum-content-length requirement."
 
 msgid "Este manual describe el código de Core; las operaciones internas de cada plugin adicional se documentan en su propio módulo."
-msgstr ""
+msgstr "This guide describes Core code; the internal operations of each additional plugin are documented in its own module."
 
 msgid "Este menú todavía no existe. Se creará con este nombre al sincronizar la propuesta."
 msgstr "This menu does not yet exist. It will be created with this name upon synchronization."
 
 msgid "Estilos y scripts administrativos; las pruebas de regresión se ejecutan en GitHub Actions, fuera del plugin instalable."
-msgstr ""
+msgstr "Administrative styles and scripts; regression tests run in GitHub Actions outside the installable plugin."
 
 msgid "Estructura"
 msgstr "Structure"
@@ -746,10 +746,10 @@ msgid "Etiquetas transversales"
 msgstr "Cross-content tags"
 
 msgid "Evita canibalizar categorías o páginas existentes. Una nueva URL debe justificar una necesidad distinta y contenido propio."
-msgstr ""
+msgstr "Avoid competing with existing categories or pages. Every new URL should serve a distinct need with original content."
 
 msgid "Explica solo las diferencias que existen en el catálogo: tipos, usos, medidas, alimentación, accesorios o compatibilidades, según la familia."
-msgstr ""
+msgstr "Explain only differences that exist in the catalog: types, uses, dimensions, power, accessories or compatibility, depending on the product family."
 
 msgid "Exportación JSON de anomalías editoriales"
 msgstr "Editorial anomalies JSON export"
@@ -776,7 +776,7 @@ msgid "Extensions"
 msgstr ""
 
 msgid "Extracto: explica en pocas frases qué es, para qué sirve y qué detalle concreto importa al comprarlo; no repitas el título ni uses eslóganes."
-msgstr ""
+msgstr "Excerpt: briefly explain what the product is, what it is for and which specific detail matters when buying; do not repeat the title or use slogans."
 
 msgid "Falla un test o falta una extensión"
 msgstr ""
@@ -875,7 +875,7 @@ msgid "Importante:"
 msgstr "Important:"
 
 msgid "Incluye preguntas frecuentes solo cuando existan dudas reales no resueltas en la descripción; no hay una cuota de FAQs."
-msgstr ""
+msgstr "Include FAQs only when genuine questions remain unanswered by the description; there is no FAQ quota."
 
 msgid "Independent editorial and content quality auditing."
 msgstr ""
@@ -929,13 +929,13 @@ msgid "KPI"
 msgstr ""
 
 msgid "La actualización de una relación valida el rol, la existencia de los extremos y la pertenencia al mismo mercado. Las escrituras de relaciones estructurales se agrupan mediante transacciones SQL; no deben modificarse directamente sin conocer estas reglas."
-msgstr ""
+msgstr "Updating a relationship validates the role, both endpoints and their belonging to the same market. Structural relationships are written in SQL transactions; do not modify them directly without understanding these rules."
 
 msgid "La antigua guía sugería 35–50 palabras de extracto y 400–700 de descripción. Eran referencias editoriales, NO exigencias de Google: prioriza utilidad y concisión."
-msgstr ""
+msgstr "An older guide suggested 35–50 words for excerpts and 400–700 for descriptions. These were editorial references, NOT Google requirements: prioritize usefulness and brevity."
 
 msgid "La categoría ayuda a explorar una familia de productos, entender sus diferencias y encontrar la opción adecuada."
-msgstr ""
+msgstr "Categories help shoppers explore a product family, understand differences and find the right choice."
 
 msgid "La categoría superior no existe."
 msgstr "The parent category does not exist."
@@ -947,16 +947,16 @@ msgid "La edición de productos no está disponible."
 msgstr "Editing products is unavailable."
 
 msgid "La estructura editorial depende de la intención: respuesta inicial, criterios, alternativas, límites y acción solo cuando aportan valor."
-msgstr ""
+msgstr "Editorial structure depends on intent: an opening answer, criteria, options, limitations and an action only when it adds value."
 
 msgid "La ficha debe ayudar a decidir si ESTE producto es adecuado: no debe ser una descripción genérica de toda la categoría."
-msgstr ""
+msgstr "A listing should help shoppers decide whether THIS product is suitable; it should not be a generic description of the entire category."
 
 msgid "La función taxocommerce_core_boot() se ejecuta en plugins_loaded, prioridad 20. Inicializa el singleton TaxoCommerce_Core, registra servicios y hooks y notifica a las extensiones. Las páginas administrativas se registran en admin_menu."
-msgstr ""
+msgstr "taxocommerce_core_boot() runs on plugins_loaded at priority 20. It initializes the TaxoCommerce_Core singleton, registers services and hooks and notifies extensions. Admin pages are registered on admin_menu."
 
 msgid "La jerarquía relaciona las páginas que presentan grandes áreas temáticas con las categorías y los productos de la tienda."
-msgstr ""
+msgstr "The hierarchy connects pages covering broad topics to store categories and products."
 
 msgid "La página indicada no existe."
 msgstr "The specified page does not exist."
@@ -971,22 +971,22 @@ msgid "Landings"
 msgstr "Landing pages"
 
 msgid "Las acciones de modificación validan permisos y nonces de WordPress. Las entradas se normalizan y validan; las salidas se escapan y las redirecciones administrativas usan wp_safe_redirect. El manual es de solo lectura y no incluye formularios de mantenimiento."
-msgstr ""
+msgstr "Write actions validate WordPress permissions and nonces. Inputs are normalized and validated; output is escaped and admin redirects use wp_safe_redirect. The guide is read-only and contains no maintenance forms."
 
 msgid "Las FAQs, los análisis y los informes internos son materiales de trabajo: redacta un artículo propio, no pegues preguntas, respuestas ni plantillas de forma mecánica."
-msgstr ""
+msgstr "FAQs, analyses and internal reports are working materials: write an original article rather than mechanically pasting questions, answers or templates."
 
 msgid "Las operaciones que modifican contenido, relaciones, menús o extensiones usan acciones autenticadas admin_post_*. Los buscadores internos pueden emplear wp_ajax_*. La documentación, los inventarios y los informes se consultan desde pantallas de administración."
-msgstr ""
+msgstr "Operations that change content, relationships, menus or extensions use authenticated admin_post_* actions. Internal search may use wp_ajax_*. Documentation, inventories and reports are accessed from admin screens."
 
 msgid "Las pantallas de Core requieren por defecto manage_options, configurable mediante el filtro taxocommerce_core_manage_capability. Las operaciones de instalación exigen adicionalmente install_plugins y las de activación o desactivación, activate_plugins."
-msgstr ""
+msgstr "By default, Core screens require manage_options, configurable through taxocommerce_core_manage_capability. Installation also requires install_plugins, and activation or deactivation requires activate_plugins."
 
 msgid "Las pruebas automáticas son de lectura: no sustituyen una prueba real de edición, publicación o sincronización en un entorno de pruebas."
-msgstr ""
+msgstr "Automated checks are read-only; they do not replace real tests of editing, publication or synchronization in a test environment."
 
 msgid "Lectura de páginas, categorías y productos a través de los clusters. Informe de solo lectura."
-msgstr ""
+msgstr "Read pages, categories and products through clusters. Read-only report."
 
 msgid "Lectura y compatibilidad"
 msgstr "Reading and compatibility"
@@ -1013,22 +1013,22 @@ msgid "Los datos del producto no son válidos."
 msgstr "The product data is invalid."
 
 msgid "Los datos editoriales siguen en las estructuras nativas de WordPress y WooCommerce; Core añade metadatos y relaciones SEO."
-msgstr ""
+msgstr "Editorial data remains in native WordPress and WooCommerce structures; Core adds metadata and SEO relationships."
 
 msgid "Los países reconocidos por Core son ES, US, FR, DE y NL. El dato canónico escrito en postmeta o termmeta utiliza la clave _seo_pais_origen; las relaciones y los nodos SEO pueden guardar además country_code."
-msgstr ""
+msgstr "Core supports ES, US, FR, DE and NL. The canonical country value in postmeta or termmeta uses _seo_pais_origen; SEO relationships and nodes may also store country_code."
 
 msgid "Los recuentos parecen antiguos"
 msgstr "Counts appear outdated"
 
 msgid "Los tipos de relación incluyen cluster_to_primary, hub_primary_to_hub_secondary, hub_secondary_to_category y los enlaces desde hubs secundarios hacia landings y entradas. La pertenencia de productos a categorías sigue siendo una relación propia de WooCommerce."
-msgstr ""
+msgstr "Relationship types include cluster_to_primary, hub_primary_to_hub_secondary, hub_secondary_to_category and links from secondary hubs to landing pages and posts. Assigning products to categories remains a WooCommerce relationship."
 
 msgid "Los totales incluyen contenidos en papelera y excluyen los borradores automáticos de WordPress."
-msgstr ""
+msgstr "Totals include trashed content and exclude WordPress auto-drafts."
 
 msgid "Mantén una jerarquía legible y enlaces coherentes. Cuando se cambia una URL publicada, revisa los enlaces internos y la redirección necesaria."
-msgstr ""
+msgstr "Maintain a clear hierarchy and coherent links. When a published URL changes, review internal links and any necessary redirect."
 
 msgid "Mantenimiento"
 msgstr "Maintenance"
@@ -1052,7 +1052,7 @@ msgid "Menu Manager"
 msgstr ""
 
 msgid "Menu Manager permite crear un menú de WordPress a partir de la jerarquía SEO y añadir páginas, entradas, categorías y enlaces personalizados manualmente."
-msgstr ""
+msgstr "Menu Manager can generate a WordPress menu from the SEO hierarchy and manually add pages, posts, categories and custom links."
 
 msgid "MENÚ QUE ESTÁS EDITANDO O CREANDO"
 msgstr "MENU YOU ARE EDITING OR CREATING"
@@ -1094,19 +1094,19 @@ msgid "No"
 msgstr "No"
 
 msgid "No copies las descripciones de los productos ni fabriques cientos de categorías con textos casi iguales."
-msgstr ""
+msgstr "Do not copy product descriptions or create hundreds of categories with nearly identical text."
 
 msgid "No crees landings casi idénticas orientadas solo a pequeñas variaciones de una búsqueda, lugar o palabra clave."
-msgstr ""
+msgstr "Do not create nearly identical landing pages targeting small variations of a search, location or keyword."
 
 msgid "No deben crearse relaciones jerárquicas entre países diferentes. Cambiar el país de un contenido no lo traduce ni transforma sus URLs de forma automática."
-msgstr ""
+msgstr "Do not create hierarchical relationships across countries. Changing the country of content does not automatically translate it or transform its URLs."
 
 msgid "No detectado"
 msgstr "Not detected"
 
 msgid "No disponible sin el servicio original de redirecciones/Data Layer. No se ha borrado ninguna categoría."
-msgstr ""
+msgstr "Unavailable without the original Redirects/Data Layer service. No category has been deleted."
 
 msgid "No ejecutadas"
 msgstr "Not run"
@@ -1130,7 +1130,7 @@ msgid "No hay una jerarquía suficiente para proponer el menú."
 msgstr "The hierarchy is insufficient to propose a menu."
 
 msgid "No hay una longitud obligatoria de Google ni un número fijo de apartados, preguntas o repeticiones de palabras clave: escribe lo necesario y elimina el relleno."
-msgstr ""
+msgstr "Google does not require a fixed length or number of sections, questions or keyword repetitions: write as much as necessary and remove filler."
 
 msgid "No instalada"
 msgstr "Not installed"
@@ -1211,16 +1211,16 @@ msgid "No tienes permisos para ver Anomalías."
 msgstr "You do not have permission to view anomalies."
 
 msgid "No. Core funciona por separado y cada extensión aporta funciones adicionales cuando está instalada y activa."
-msgstr ""
+msgstr "No. Core works independently; each extension adds features when installed and active."
 
 msgid "No. El manual y las recomendaciones editoriales no modifican fichas. El editor guarda únicamente cuando realizas la acción correspondiente."
-msgstr ""
+msgstr "No. The guide and editorial recommendations do not change listings. The editor saves only when you explicitly take the relevant action."
 
 msgid "Nombre preciso y coherente con el inventario; no mezcles productos ajenos para rellenar una categoría."
-msgstr ""
+msgstr "Use precise naming consistent with the catalog; do not mix unrelated products into a category just to fill it."
 
 msgid "Nombre: tipo de producto, marca y modelo verificables, más la variante que de verdad lo distingue (potencia, medida, capacidad, etc.)."
-msgstr ""
+msgstr "Name: verified product type, brand and model, plus the variant that actually distinguishes it (power, dimensions, capacity, etc.)."
 
 msgid "Normalización y lectura del país de cada contenido."
 msgstr "Normalize and read each content item's country."
@@ -1229,7 +1229,7 @@ msgid "Normas editoriales de TaxoCommerce Core"
 msgstr "TaxoCommerce Core editorial guidelines"
 
 msgid "Nunca insertes contraseñas, tokens, claves de servicio ni secretos de despliegue en este manual o en los mensajes del registro técnico."
-msgstr ""
+msgstr "Never include passwords, tokens, service keys or deployment secrets in this guide or technical log messages."
 
 msgid "Objetos incluidos ahora:"
 msgstr "Currently included objects:"
@@ -1238,7 +1238,7 @@ msgid "Offer campaigns, promotional prices, banners, social offer publication, a
 msgstr ""
 
 msgid "Ofrece información original y concreta: explica qué cambia en la decisión del comprador. No copies fichas del fabricante ni repitas párrafos entre URLs."
-msgstr ""
+msgstr "Provide specific, original information: explain how it changes a buyer's decision. Do not copy manufacturer listings or repeat paragraphs across URLs."
 
 msgid "Opciones de contenidos"
 msgstr "Content options"
@@ -1301,16 +1301,16 @@ msgid "Papelera"
 msgstr "Trash"
 
 msgid "Para calidad, gravedad de errores, recomendaciones y exportaciones completas utiliza TaxoCommerce Auditor."
-msgstr ""
+msgstr "For quality, error severity, recommendations and complete exports, use TaxoCommerce Auditor."
 
 msgid "Para comparativas, establece criterios y limitaciones, distingue datos verificables de opinión y no inventes pruebas de uso propio."
-msgstr ""
+msgstr "For comparisons, define criteria and limitations, separate verifiable facts from opinion and do not invent personal product tests."
 
 msgid "Para guías duraderas, explica elecciones, usos, diferencias, compatibilidades, errores o seguridad con ejemplos específicos y contrastados."
-msgstr ""
+msgstr "For evergreen guides, explain choices, uses, differences, compatibility, mistakes or safety with specific, verified examples."
 
 msgid "Para noticias, identifica el hecho, la fuente y la fecha real. No conviertas una guía atemporal en noticia ni simules una actualización inexistente."
-msgstr ""
+msgstr "For news, identify the event, its source and the actual date. Do not turn an evergreen guide into news or pretend an update happened."
 
 msgid "Pendiente"
 msgstr "Pending"
@@ -1340,7 +1340,7 @@ msgid "Preguntas habituales"
 msgstr "Frequently asked questions"
 
 msgid "Primero clasifica cada página como Cluster, Hub primario, Hub secundario, Landing o Corporativa. Después podrás vincularla desde la pestaña Jerarquía SEO."
-msgstr ""
+msgstr "First classify each page as Cluster, Primary hub, Secondary hub, Landing or Corporate. You can then link it from the SEO Hierarchy tab."
 
 msgid "Primeros pasos"
 msgstr "Getting started"
@@ -1361,7 +1361,7 @@ msgid "Productos publicados por cluster"
 msgstr "Published products by cluster"
 
 msgid "Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar."
-msgstr ""
+msgstr "It proposes a menu from the SEO Hierarchy and converts it into a native WordPress menu. Manual items are preserved during synchronization."
 
 msgid "Propuesta automática"
 msgstr "Automatic proposal"
@@ -1379,16 +1379,16 @@ msgid "Publicado"
 msgstr "Published"
 
 msgid "Puede pertenecer a otro plugin, estar desactivada o requerir permisos específicos. Revisa el estado de la extensión en la portada de Core."
-msgstr ""
+msgstr "The feature may belong to another plugin, be disabled or require specific permissions. Check the extension status on the Core homepage."
 
 msgid "que el lector devuelva ES no demuestra que el metadato de país esté guardado explícitamente. Para auditar asignaciones reales hay que comprobar los metadatos almacenados, no solo el valor calculado por Core."
-msgstr ""
+msgstr "A reader returning ES does not prove that country metadata was explicitly saved. To audit actual assignments, inspect the stored metadata rather than only Core's computed value."
 
 msgid "Quitar %s"
 msgstr "Remove %s"
 
 msgid "Recuento de los datos reales de WordPress y WooCommerce. No ejecuta una auditoría completa ni modifica contenidos."
-msgstr ""
+msgstr "Count actual WordPress and WooCommerce data. This does not run a full audit or modify content."
 
 msgid "Redirects"
 msgstr ""
@@ -1397,7 +1397,7 @@ msgid "Referencias oficiales de Google Search Central:"
 msgstr ""
 
 msgid "register_module() acepta un identificador y metadatos como name, version, status, description y admin_url. El registro no instala la extensión ni registra automáticamente su pantalla: cada plugin sigue siendo responsable de sus propios hooks y permisos."
-msgstr ""
+msgstr "register_module() accepts an identifier and metadata such as name, version, status, description and admin_url. Registration neither installs an extension nor automatically creates an admin screen: each plugin remains responsible for its own hooks and permissions."
 
 msgid "Registro técnico"
 msgstr "Technical log"
@@ -1421,13 +1421,13 @@ msgid "Resumen general de contenidos"
 msgstr "Content overview"
 
 msgid "Revisa el país elegido, los nodos y relaciones SEO, el menú nativo correspondiente y su asignación a una ubicación del tema. Crear una propuesta no equivale a activarla."
-msgstr ""
+msgstr "Review the selected country, SEO nodes and relationships, the corresponding native menu and its assigned theme location. Creating a proposal does not activate it."
 
 msgid "Revisa el texto, el estado y el país del contenido; guarda únicamente los cambios deseados."
-msgstr ""
+msgstr "Review the text, status and country of the content; save only the changes you intend."
 
 msgid "Revisa la propuesta y pulsa Crear menú desde la jerarquía o Sincronizar propuesta cuando proceda."
-msgstr ""
+msgstr "Review the proposal and click Create menu from hierarchy or Synchronize proposal as appropriate."
 
 msgid "Revisar anomalías"
 msgstr "Review anomalies"
@@ -1436,7 +1436,7 @@ msgid "Rol SEO"
 msgstr "SEO role"
 
 msgid "Rol SEO de cada objeto: object_type, object_id, seo_role, status y country_code; incluye fechas y campos editoriales opcionales."
-msgstr ""
+msgstr "SEO role for each object: object_type, object_id, seo_role, status and country_code, with timestamps and optional editorial fields."
 
 msgid "Roles SEO, edición de relaciones y esquema SQL."
 msgstr "SEO roles, relationship editing and SQL schema."
@@ -1451,7 +1451,7 @@ msgid "Scrappers"
 msgstr ""
 
 msgid "Se ejecuta bajo demanda y comprueba lecturas, países, roles, relaciones, menús y módulos. Guarda el último resultado por usuario durante un día en un transient; no publica ni modifica contenidos reales. Una prueba omitida no equivale a una prueba correcta."
-msgstr ""
+msgstr "It runs on demand and checks reading, countries, roles, relationships, menus and modules. It stores each user's latest result in a transient for one day; it does not publish or modify actual content. A skipped check is not a passed check."
 
 msgid "Se han restaurado las ubicaciones de menú anteriores."
 msgstr "Previous menu locations have been restored."
