@@ -9,8 +9,14 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-database
+ * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
+
+// Register this plugin's own WordPress language files at the supported init hook.
+add_action( 'init', static function () {
+    load_plugin_textdomain( 'taxocommerce-database', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}, 1 );
 
 define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.5' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
@@ -91,12 +97,12 @@ final class TaxoCommerce_Database {
     public static function menu() {
         if ( function_exists( 'taxocommerce_core' ) ) {
             add_submenu_page(
-                'taxocommerce-core', 'TaxoCommerce Database', 'Database',
+                'taxocommerce-core', __( 'TaxoCommerce Database', 'taxocommerce-database' ), __( 'Database', 'taxocommerce-database' ),
                 'manage_options', 'taxocommerce-database', array( __CLASS__, 'render' )
             );
         } else {
             add_menu_page(
-                'TaxoCommerce Database', 'TaxoCommerce DB', 'manage_options',
+                __( 'TaxoCommerce Database', 'taxocommerce-database' ), __( 'TaxoCommerce DB', 'taxocommerce-database' ), 'manage_options',
                 'taxocommerce-database', array( __CLASS__, 'render' ),
                 'dashicons-database', 63
             );
