@@ -1,0 +1,33 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Billing\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: taxocommerce-facturacion.php:122
+msgid "Billing"
+msgstr ""
+
+#: taxocommerce-facturacion.php:121 taxocommerce-facturacion.php:131
+msgid "Facturas y presupuestos"
+msgstr ""
+
+#: includes/class-seo-facturas-admin.php:96
+msgid "No tienes permisos para acceder a esta pagina."
+msgstr ""
+
+#: taxocommerce-facturacion.php:53
+msgid "Sin permisos para acceder a Billing."
+msgstr ""
+
+#: includes/class-taxocommerce-billing-manual.php:10
+msgid "Sin permisos para consultar el manual."
+msgstr ""
+
+#: includes/class-taxocommerce-billing-autotest.php:142
+msgid "Sin permisos para el Autotest."
+msgstr ""
+

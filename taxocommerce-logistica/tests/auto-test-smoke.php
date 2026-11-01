@@ -8,6 +8,7 @@ define( 'ABSPATH', __DIR__ );
 
 $GLOBALS['hooks'] = array();
 $GLOBALS['writes'] = 0;
+function __( $text, $domain = '' ) { return $text; }
 function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/taxocommerce-logistica/'; }
 function add_action( $hook, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks']['action'][ $hook ][] = $callback; }
