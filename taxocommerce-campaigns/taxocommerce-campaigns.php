@@ -66,7 +66,8 @@ function tccampaigns_claim_schedule_when_legacy_is_off(){
 
     global $wpdb;
     $tables=tccampaigns_tables();
-    $ids=(array)$wpdb->get_col("SELECT id FROM {$tables['campaigns']} WHERE is_enabled=1");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
+    $ids=(array)$wpdb->get_col($wpdb->prepare("SELECT id FROM %i WHERE is_enabled=1", $tables['campaigns']));
 
     foreach($ids as $id){
         $id=absint($id);
@@ -85,6 +86,7 @@ function tccampaigns_claim_schedule_when_legacy_is_off(){
     // survives the plugin split. Rebind only when the old publisher is gone.
     if(!function_exists('seo_social_campaign_run_scheduled')){
         $like=$wpdb->esc_like('_seo_social_campaign_schedule_').'%';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
         $rows=(array)$wpdb->get_results(
             $wpdb->prepare(
                 "SELECT post_id,meta_key,meta_value FROM {$wpdb->postmeta}
