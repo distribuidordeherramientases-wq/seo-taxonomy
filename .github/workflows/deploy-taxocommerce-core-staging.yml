@@ -39,6 +39,9 @@ jobs:
       - name: PHP lint
         run: find taxocommerce-core .github/tests/taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: Validate native Core language catalogs
+        run: php .github/tests/taxocommerce-core/i18n-smoke.php
+
       - name: Validate Core FTPS cleanup Python syntax
         run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
 

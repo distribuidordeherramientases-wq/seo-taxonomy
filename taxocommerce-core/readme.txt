@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.39
+Stable tag: 0.4.40
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
+
+== Languages ==
+
+TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with translation coverage under active expansion; technical names and catalog content remain unchanged. WordPress.org language packs will be supported once translations are approved.
 
 == Installation ==
 

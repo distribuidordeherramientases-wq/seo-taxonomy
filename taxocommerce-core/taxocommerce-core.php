@@ -2,20 +2,21 @@
 /**
  * Plugin Name: TaxoCommerce Core - Catalog & Content Management for WooCommerce
  * Description: Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.
- * Version: 0.4.39
+ * Version: 0.4.40
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-core
+ * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.39' );
+define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.40' );
 define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
@@ -57,6 +58,12 @@ function taxocommerce_core_boot() {
 	taxocommerce_core()->boot();
 }
 add_action( 'plugins_loaded', 'taxocommerce_core_boot', 20 );
+
+/** Register Core translations after WordPress has initialized. */
+function taxocommerce_core_load_textdomain() {
+	load_plugin_textdomain( 'taxocommerce-core', false, dirname( TAXOCOMMERCE_CORE_BASENAME ) . '/languages' );
+}
+add_action( 'init', 'taxocommerce_core_load_textdomain', 1 );
 
 /**
  * Activation tasks.

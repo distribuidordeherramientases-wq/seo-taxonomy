@@ -35,7 +35,7 @@
         remove.type = 'button';
         remove.className = 'tc-chip-remove';
         remove.dataset.tcRemove = '';
-        remove.setAttribute('aria-label', 'Quitar ' + toText(label));
+        remove.setAttribute('aria-label', ((config.strings && config.strings.remove) || 'Quitar %s').replace('%s', toText(label)));
         remove.textContent = '×';
         chip.appendChild(remove);
 
@@ -229,8 +229,8 @@
                 return;
             }
             const frame = window.wp.media({
-                title: 'Elegir imagen',
-                button: { text: 'Utilizar imagen' },
+                title: (config.strings && config.strings.mediaTitle) || 'Elegir imagen',
+                button: { text: (config.strings && config.strings.mediaButton) || 'Utilizar imagen' },
                 library: { type: 'image' },
                 multiple: false
             });
@@ -260,7 +260,7 @@
             input.value = '0';
             const empty = document.createElement('div');
             empty.className = 'tc-image-empty';
-            empty.textContent = 'Sin imagen destacada';
+            empty.textContent = (config.strings && config.strings.imageEmpty) || 'Sin imagen destacada';
             preview.replaceChildren(empty);
         });
     });
