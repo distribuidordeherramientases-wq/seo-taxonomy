@@ -1,5 +1,15 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.7 — 2026-11-01
+- **Interruptor maestro de políticas** visible en las dos pestañas de Templates: permite mantener el plugin activo y gestionar plantillas sin aplicarlas al frontend.
+- Se reutiliza la opción histórica `taxocommerce_templates_render_enabled`; su valor se conserva durante la actualización. En instalaciones nuevas comienza desactivada.
+- Con la casilla desmarcada, el plugin no registra filtros públicos de sustitución de plantillas para WordPress (`template_include`), comentarios, archivos y fragmentos WooCommerce ni clases de correo; tampoco carga el helper ES de escaparate ni ejecuta rutas por país mediante sus resolutores.
+- La casilla es un control de emergencia que funciona incluso si las tablas `seo_templates`/`seo_nodes` no están disponibles. Tiene control de permisos administrativos y nonce.
+- Se retiran los interruptores duplicados y ocultos: solo existe un control superior, con estado explícito y botón de guardar. El editor, los roles, los diseños, la biblioteca y los archivos almacenados siguen disponibles mientras las políticas están suspendidas.
+- Al activar la casilla se recupera el comportamiento previo, respetando las rutas individuales, borradores y prioridad VEVOR. No se modifica ninguna plantilla pública, país ni asignación guardada.
+- Ampliadas pruebas de regresión para confirmar que el estado OFF devuelve el archivo original de WordPress/WooCommerce, preserva correos, comentarios, el piloto VEVOR y los diseños almacenados.
+
+
 ## 0.4.6 — 2026-10-31
 - Instancias de plantilla identificables con nombres autogenerados editables para una misma petición/rol, sin sobrescribir las rutas históricas de `seo_templates`.
 - Cada plantilla guarda su identificador, petición/rol, archivo PHP opcional, países ES/US/DE/NL/FR y composiciones separadas por **país y dispositivo** mediante la opción `tct_template_designs_v1` (`autoload=false`); no se añade ninguna tabla SQL.
