@@ -4691,8 +4691,9 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
     if (in_array('id', $columns, true)) $order[] = 'id ASC';
     $order_sql = $order ? 'ORDER BY ' . implode(', ', $order) : '';
     $params[] = $limit;
+    array_unshift($params, $table);
 
-    $query = "SELECT * FROM {$table}
+    $query = "SELECT * FROM %i
               WHERE (" . implode(' OR ', $where) . ")
                 {$status_where}
                 AND image_url IS NOT NULL

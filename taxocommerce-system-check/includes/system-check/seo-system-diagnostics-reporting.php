@@ -829,13 +829,14 @@ function seo_system_diagnostics_report_admin_url($args = array()) {
     return add_query_arg(is_array($args) ? $args : array(), $url);
 }
 
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and validated return URL selectors; export/write handlers verify own nonces.
 function seo_system_diagnostics_is_reporting_screen() {
     if (!is_admin() || !current_user_can('manage_options')) {
         return false;
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics screen selector.
-    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $page = isset($_GET['page']) && is_string($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     $known = (array) apply_filters(
         'seo_system_diagnostics_reporting_screen_slugs',
         array(
@@ -868,7 +869,7 @@ function seo_system_diagnostics_is_reporting_screen() {
 
 function seo_system_diagnostics_is_core_validation_screen() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only validation screen selector.
-    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $page = isset($_GET['page']) && is_string($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence only selects the read-only validation view.
     if (isset($_GET['seo_core_test_tab'])) {
         return true;
@@ -880,7 +881,7 @@ function seo_system_diagnostics_is_core_validation_screen() {
 
 function seo_system_diagnostics_core_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only validation tab selector.
-    $tab = isset($_GET['seo_core_test_tab']) ? sanitize_key(wp_unslash($_GET['seo_core_test_tab'])) : 'summary';
+    $tab = isset($_GET['seo_core_test_tab']) && is_string($_GET['seo_core_test_tab']) ? sanitize_key(wp_unslash($_GET['seo_core_test_tab'])) : 'summary';
     return $tab !== '' ? $tab : 'summary';
 }
 
@@ -892,7 +893,7 @@ function seo_system_diagnostics_maybe_render_export_panel() {
     // Informes SEO ya tiene sus propias vistas y controles. El resumen global
     // pertenece a los chequeos de sistema y no debe duplicarse sobre este informe.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only reporting screen selector.
-    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $page = isset($_GET['page']) && is_string($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if ($page === 'seo-reports') {
         return;
     }
@@ -1653,7 +1654,7 @@ function seo_system_diagnostics_export_scope_for_context($context = 'auto') {
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics scope selector.
-    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $page = isset($_GET['page']) && is_string($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
     if (in_array($page, array('seo_server_status', 'seo-system-status'), true)) {
         return 'server';
     }
@@ -1663,6 +1664,7 @@ function seo_system_diagnostics_export_scope_for_context($context = 'auto') {
     return 'complete';
 }
 
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
 function seo_system_diagnostics_render_scoped_export_panel($scope) {
     $scope = $scope === 'server' ? 'server' : 'validation';
     if ($scope === 'server') {
@@ -1743,8 +1745,9 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
     ), admin_url('admin-post.php')), 'seo_system_diagnostics_download_validation_json');
 
     echo '<div class="notice notice-info seo-system-diagnostics-export-panel" style="padding:18px 20px;margin-top:18px;border-left-width:4px;">';
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only diagnostics result notice. / Display-only admin status notice, no state changes.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only, sanitized notice code, does not trigger actions.
     $message = isset($_GET['seo_report_msg']) && is_string($_GET['seo_report_msg']) ? sanitize_key(wp_unslash($_GET['seo_report_msg'])) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
     echo '<style>
         .seo-diag-export-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
         .seo-diag-export-actions{display:flex;flex-wrap:wrap;gap:8px}
