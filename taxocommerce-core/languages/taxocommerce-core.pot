@@ -1,0 +1,957 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Core 0.4.40\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-01 18:00+0100\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: includes/class-taxocommerce-core-editorial-guide.php:59
+msgid "¿Con esta ficha puedo saber qué compro, si sirve para mi necesidad, qué incluye y cuáles son sus limitaciones?"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:89
+msgid "¿El lector obtiene una respuesta práctica, fiable y diferente de la que ya ofrecen otras páginas del sitio?"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:74
+msgid "¿Entiendo las diferencias entre los productos de esta familia y sé cómo localizar los que me interesan?"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:104
+msgid "¿Esta página tiene un propósito único y conduce al visitante al siguiente paso adecuado sin repetir otra URL?"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:179
+msgid "(se abre en una pestaña nueva)"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:990
+msgid "&laquo; Anterior"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:193
+msgid "%d activas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:185
+msgid "%d con entradas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:171
+msgid "%d publicados"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:178
+msgid "%d sin productos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:150
+msgid "Abrir"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:149
+msgid "Abrir %s"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:136
+msgid "Accede a las funciones disponibles desde un panel organizado y coherente."
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:413
+msgid "Acceso denegado a Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:63
+msgid "Acceso no autorizado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:404 includes/class-taxocommerce-core-content-manager.php:477
+msgid "Acciones"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:152
+msgid "Actualizado: %s · Caché de 15 minutos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:158
+msgid "Actualizar inventario"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:82
+msgid "Administra contenidos y catálogo en un único lugar, manteniendo WordPress y WooCommerce como fuente canónica."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:22
+msgid "Alemania"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:34
+msgid "Añade imágenes que representen realmente el contenido y un texto alternativo descriptivo cuando transmita información."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:434
+msgid "Anatomía interna"
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies.php:42 includes/class-taxocommerce-core-content-manager.php:211
+msgid "Anomalías"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:95
+msgid "Antes de crear una página, concreta qué busca resolver y revisa si una categoría, entrada o página existente ya responde mejor."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:335
+msgid "Aplicar filtros"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:63
+msgid "Aprende para qué sirve Core y cómo utilizar los contenidos, la jerarquía SEO, los menús y las extensiones."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:189
+msgid "Archivos multimedia"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:217
+msgid "Arquitectura SEO"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:420 includes/class-taxocommerce-core-auto-test.php:426 includes/class-taxocommerce-core-dashboard.php:113
+msgid "Auto Test"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:251 includes/class-taxocommerce-core-content-manager.php:916
+msgid "Borrador"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:43
+msgid "Buscando…"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:327
+msgid "Buscar categoría…"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:294
+msgid "Buscar contenido"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:93
+msgid "Cada página necesita una función propia: hub, landing de compra o información corporativa. No todas siguen la misma estructura."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:312 includes/class-taxocommerce-core-content-manager.php:477
+msgid "Categoría"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:551
+msgid "Categoría no encontrada."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:423 includes/class-taxocommerce-core-architecture-report.php:460 includes/class-taxocommerce-core-content-manager.php:244 includes/class-taxocommerce-core-content-manager.php:396 includes/class-taxocommerce-core-editorial-guide.php:62
+msgid "Categorías"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:183
+msgid "Categorías de entradas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:176 includes/class-taxocommerce-core-content-manager.php:207
+msgid "Categorías de producto"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:396
+msgid "Cluster → Hub primario → Hub secundario → Categoría. Cada nivel muestra elementos únicos; no representa un embudo de conversión."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:421
+msgid "Clusters ordenados por número de productos, con recuentos únicos en cada nivel."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:411
+msgid "Cobertura de productos únicos dentro de cada cluster; un producto en varios clusters puede figurar en más de una barra."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:163
+msgid "Cómo editar este contenido"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:420
+msgid "Cómo se reparte la arquitectura"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:172
+msgid "Comprobación antes de guardar:"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:421
+msgid "Comprueba las funciones principales de esta instalación después de actualizar Core."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:54
+msgid "Comprueba precio, moneda, disponibilidad, envío y condiciones de venta; en productos externos deja claro dónde se realiza la compra y revisa el enlace afiliado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:56
+msgid "Comprueba que la imagen muestre el producto o variante exactos. No añadas valoraciones o reseñas que no existan."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:245
+msgid "Con productos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:69
+msgid "Conecta mediante enlaces navegables con subcategorías y productos realmente relacionados. Mantén una estructura comprensible y sin páginas huérfanas."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:149
+msgid "Consultar instrucciones"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:96
+msgid "Contenido actualizado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:116
+msgid "Contenido útil y fiable"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:69
+msgid "Contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:451
+msgid "Correctas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:155
+msgid "Criterios comunes"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:147
+msgid "Criterios para mantener contenidos útiles, veraces y homogéneos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:68
+msgid "Cuando sea relevante, indica cómo elegir, qué comprobar antes de comprar y qué errores habituales conviene evitar."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:120
+msgid "Datos de producto y comercio"
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:123
+msgid "Define el mercado de este contenido. No cambia la URL, el idioma ni sus relaciones SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:80
+msgid "Define una pregunta o problema concreto y responde desde el comienzo; no escribas otra categoría comercial con un título distinto."
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies-json.php:357
+msgid "Descargar JSON"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:477
+msgid "Descripción"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:52
+msgid "Descripción: concreta usos reales, prestaciones comprobadas, medidas, compatibilidades, límites y contenido de la caja SOLO si la fuente los confirma."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:66
+msgid "Descripción: define la familia y explica las decisiones de compra relevantes. Si el tema o la plantilla muestran además un resumen de categoría, escribe ahí una síntesis breve sin repetir el contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:434
+msgid "Detalle por cluster"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:42
+msgid "Detectado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:48
+msgid "Detectado · convivencia"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:53
+msgid "Diferencia las variantes aunque compartan referencia de proveedor: identifica el modelo correcto antes de añadir datos o imágenes."
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:104
+msgid "Diseñado para convivir con TaxoCommerce SEO mientras migras cada función de forma controlada."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:353
+msgid "Distribución de la arquitectura SEO"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:395
+msgid "Distribución de la jerarquía SEO"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:71
+msgid "Edita productos, categorías de WooCommerce, entradas y páginas desde un entorno unificado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:432 includes/class-taxocommerce-core-content-manager.php:494
+msgid "Editar aquí"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:433 includes/class-taxocommerce-core-content-manager.php:494
+msgid "Editor nativo"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:155
+msgid "EDITOR VISUAL"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:122
+msgid "Editor WordPress / WooCommerce ↗"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:443
+msgid "Ejecutar Auto Test"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:566
+msgid "El contenido no existe o no se puede editar."
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:103
+msgid "El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:47
+msgid "Elegir imagen"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:189
+msgid "Elementos en la biblioteca"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:99
+msgid "En páginas corporativas facilita datos reales y verificables sobre empresa, contacto, políticas y confianza; no inventes certificaciones."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:96
+msgid "En un cluster o hub explica el ámbito y ayuda a navegar hacia hubs secundarios, categorías y soluciones reales mediante enlaces claros."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:97
+msgid "En una landing comercial identifica la necesidad del comprador, criterios de elección, alternativas, medidas o compatibilidades y un siguiente paso útil."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:86
+msgid "Enlaza a categorías o productos relevantes para continuar la lectura, sin convertir cada párrafo en publicidad."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:33
+msgid "Enlaza a páginas y categorías útiles y relacionadas. Comprueba antes si ya existe una URL que resuelve la misma intención para evitar duplicados."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:163 includes/class-taxocommerce-core-editorial-guide.php:77
+msgid "Entradas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:452
+msgid "Errores"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:27
+msgid "Escribe para ayudar a una persona a elegir, entender o resolver una necesidad real; no para rellenar palabras clave."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:31
+msgid "Escribe un título específico, descriptivo y distinto del de las otras páginas; evita títulos genéricos y acumulaciones de palabras clave."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:19
+msgid "España"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:300 includes/class-taxocommerce-core-content-manager.php:395
+msgid "Estado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:116
+msgid "Estado del sistema"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:199
+msgid "Estados editoriales"
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:20
+msgid "Estados Unidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:182
+msgid "Estas son recomendaciones editoriales basadas en documentación pública de Google. No son una certificación, una garantía de posicionamiento ni requisitos de extensión mínimos de texto."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:117
+msgid "Estructura de comercio electrónico"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:102
+msgid "Evita canibalizar categorías o páginas existentes. Una nueva URL debe justificar una necesidad distinta y contenido propio."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:67
+msgid "Explica solo las diferencias que existen en el catálogo: tipos, usos, medidas, alimentación, accesorios o compatibilidades, según la familia."
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies-json.php:352
+msgid "Exportación JSON de anomalías editoriales"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:53
+msgid "Extensiones registradas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:51
+msgid "Extracto: explica en pocas frases qué es, para qué sirve y qué detalle concreto importa al comprarlo; no repitas el título ni uses eslóganes."
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies-json.php:327
+msgid "Falta una tabla SEO del esquema original. No se puede exportar."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:191 includes/class-taxocommerce-core-content-manager.php:210
+msgid "FAQs"
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:21
+msgid "Francia"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:79
+msgid "Gestiona la arquitectura Cluster → Hub primario → Hub secundario → Categoría → Producto."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:81
+msgid "Gestor de contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:85
+msgid "Gestor de menús"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:151
+msgid "Guardar cambios"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:146
+msgid "Guía editorial y SEO"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:460
+msgid "Hub primario"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:423
+msgid "Hubs primarios"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:423
+msgid "Hubs secundarios"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:400 includes/class-taxocommerce-core-content-manager.php:477
+msgid "Imagen"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:71
+msgid "Incluye preguntas frecuentes solo cuando existan dudas reales no resueltas en la descripción; no hay una cuota de FAQs."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:147
+msgid "Inventario de contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:77
+msgid "Jerarquía SEO"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:402 includes/class-taxocommerce-core-content-manager.php:477
+msgid "KPI"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:72
+msgid "La antigua guía sugería 35–50 palabras de extracto y 400–700 de descripción. Eran referencias editoriales, NO exigencias de Google: prioriza utilidad y concisión."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:63
+msgid "La categoría ayuda a explorar una familia de productos, entender sus diferencias y encontrar la opción adecuada."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:720
+msgid "La categoría superior no existe."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:547
+msgid "La edición de categorías de producto no está disponible."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:529
+msgid "La edición de productos no está disponible."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:101
+msgid "La estructura editorial depende de la intención: respuesta inicial, criterios, alternativas, límites y acción solo cuando aportan valor."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:48
+msgid "La ficha debe ayudar a decidir si ESTE producto es adecuado: no debe ser una descripción genérica de toda la categoría."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:84
+msgid "Las FAQs, los análisis y los informes internos son materiales de trabajo: redacta un artículo propio, no pegues preguntas, respuestas ni plantillas de forma mecánica."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:354
+msgid "Lectura de páginas, categorías y productos a través de los clusters. Informe de solo lectura."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:336
+msgid "Limpiar"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:150
+msgid "Los cambios se aplican al contenido original, sin crear copias."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:715
+msgid "Los datos de la categoría no son válidos."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:767
+msgid "Los datos del contenido no son válidos."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:616
+msgid "Los datos del producto no son válidos."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:215
+msgid "Los totales incluyen contenidos en papelera y excluyen los borradores automáticos de WordPress."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:100
+msgid "Mantén una jerarquía legible y enlaces coherentes. Cuando se cambia una URL publicada, revisa los enlaces internos y la redirección necesaria."
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:64
+msgid "Manual de usuario"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:119
+msgid "Metadescripciones y fragmentos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:88
+msgid "Migrado al Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:80
+msgid "Modelo nativo del Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:403
+msgid "Modificado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:135
+msgid "Módulos del Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:423 includes/class-taxocommerce-core-dashboard.php:110
+msgid "Navegación de TaxoCommerce Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:427 includes/class-taxocommerce-core-content-manager.php:491 includes/class-taxocommerce-core-content-manager.php:492
+msgid "No"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:70
+msgid "No copies las descripciones de los productos ni fabriques cientos de categorías con textos casi iguales."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:98
+msgid "No crees landings casi idénticas orientadas solo a pequeñas variaciones de una búsqueda, lugar o palabra clave."
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:42 includes/class-taxocommerce-core-dashboard.php:48
+msgid "No detectado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies.php:678
+msgid "No disponible sin el servicio original de redirecciones/Data Layer. No se ha borrado ninguna categoría."
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:453
+msgid "No ejecutadas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:447
+msgid "No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:42
+msgid "No hay términos coincidentes."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:35
+msgid "No hay una longitud obligatoria de Google ni un número fijo de apartados, preguntas o repeticiones de palabras clave: escribe lo necesario y elimina el relleno."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:409
+msgid "No se ha encontrado contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:770
+msgid "No se ha podido mover el contenido a la papelera."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:619
+msgid "No se ha podido mover el producto a la papelera."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:480
+msgid "No se han encontrado categorías."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:44
+msgid "No se han podido cargar los términos."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:88
+msgid "No se pudieron consultar las etiquetas."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:150 includes/class-taxocommerce-core-country.php:168
+msgid "No se pudo guardar el país."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:164
+msgid "No se puede actualizar el país de esta categoría."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:146
+msgid "No se puede actualizar el país de este contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:46
+msgid "No tienes permisos para actualizar este informe."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:116
+msgid "No tienes permisos para consultar el inventario."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:700
+msgid "No tienes permisos para editar categorías de producto."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:752
+msgid "No tienes permisos para editar este contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:592
+msgid "No tienes permisos para editar este producto."
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies-json.php:321
+msgid "No tienes permisos para exportar contenidos de anomalías."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:183
+msgid "No tienes permisos para gestionar TaxoCommerce Core."
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies.php:40
+msgid "No tienes permisos para ver Anomalías."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:65
+msgid "Nombre preciso y coherente con el inventario; no mezcles productos ajenos para rellenar una categoría."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:50
+msgid "Nombre: tipo de producto, marca y modelo verificables, más la variante que de verdad lo distingue (potencia, medida, capacidad, etc.)."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:141
+msgid "Normas editoriales de TaxoCommerce Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-anomalies-json.php:354
+msgid "Objetos incluidos ahora:"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:28
+msgid "Ofrece información original y concreta: explica qué cambia en la decisión del comprador. No copies fichas del fabricante ni repitas párrafos entre URLs."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:214
+msgid "Opciones de contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:87
+msgid "Organiza la navegación del sitio a partir de la jerarquía SEO y de los menús de WordPress."
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:424 includes/class-taxocommerce-core-dashboard.php:111
+msgid "Overview"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:164 includes/class-taxocommerce-core-content-manager.php:209 includes/class-taxocommerce-core-editorial-guide.php:92
+msgid "Páginas"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:395 includes/class-taxocommerce-core-content-manager.php:477 includes/class-taxocommerce-core-country.php:119 includes/class-taxocommerce-core-country.php:183 includes/class-taxocommerce-core-country.php:200 includes/class-taxocommerce-core-country.php:208
+msgid "País"
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:140
+msgid "País no válido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:23
+msgid "Países Bajos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:253 includes/class-taxocommerce-core-content-manager.php:919
+msgid "Papelera"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:219
+msgid "Para calidad, gravedad de errores, recomendaciones y exportaciones completas utiliza TaxoCommerce Auditor."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:83
+msgid "Para comparativas, establece criterios y limitaciones, distingue datos verificables de opinión y no inventes pruebas de uso propio."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:81
+msgid "Para guías duraderas, explica elecciones, usos, diferencias, compatibilidades, errores o seguridad con ejemplos específicos y contrastados."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:82
+msgid "Para noticias, identifica el hecho, la fuente y la fecha real. No conviertas una guía atemporal en noticia ni simules una actualización inexistente."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:252
+msgid "Pendiente"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:917
+msgid "Pendiente de revisión"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:72
+msgid "Piloto funcional"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:121
+msgid "Políticas de spam y contenido masivo"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:208
+msgid "Posts"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:398
+msgid "Precio"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:918
+msgid "Privado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:423 includes/class-taxocommerce-core-architecture-report.php:449
+msgid "Prod./categoría"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:533 includes/class-taxocommerce-core-content-manager.php:596
+msgid "Producto no encontrado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:423 includes/class-taxocommerce-core-architecture-report.php:460 includes/class-taxocommerce-core-content-inventory.php:162 includes/class-taxocommerce-core-content-manager.php:206 includes/class-taxocommerce-core-content-manager.php:477 includes/class-taxocommerce-core-editorial-guide.php:47
+msgid "Productos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:411
+msgid "Productos publicados por cluster"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:250 includes/class-taxocommerce-core-content-manager.php:915
+msgid "Publicado"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:46
+msgid "Quitar %s"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:149
+msgid "Recuento de los datos reales de WordPress y WooCommerce. No ejecuta una auditoría completa ni modifica contenidos."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:176
+msgid "Referencias oficiales de Google Search Central:"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:205
+msgid "Resumen"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:148
+msgid "Resumen general de contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:218
+msgid "Revisar anomalías"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:45
+msgid "Selecciona primero un atributo global."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:55
+msgid "Selecciona únicamente categorías que correspondan de verdad al producto; registra atributos técnicos precisos sin inventar valores."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:427 includes/class-taxocommerce-core-content-manager.php:491 includes/class-taxocommerce-core-content-manager.php:492
+msgid "Sí"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:87
+msgid "Si el artículo apenas repite otra URL, amplía el contenido original o fusiónalo en lugar de publicar un duplicado."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:57
+msgid "Si la web publica datos estructurados Product/Offer o Merchant Center, deben concordar con los datos visibles y las condiciones reales de compra."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:991
+msgid "Siguiente &raquo;"
+msgstr ""
+
+#: includes/class-taxocommerce-core-country.php:130
+msgid "Sin asignar"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:444
+msgid "Sin cambios en el catálogo, la jerarquía ni los menús."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:49
+msgid "Sin imagen destacada"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:26
+msgid "Sin permisos para ejecutar Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:121
+msgid "Solicitud de contenido no válida."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:399
+msgid "Stock"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:460
+msgid "Subhubs"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:477
+msgid "Superior"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:80 includes/class-taxocommerce-core-dashboard.php:101 includes/class-taxocommerce-core-dashboard.php:102
+msgid "TaxoCommerce Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:47
+msgid "TaxoCommerce SEO actual"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:75
+msgid "Taxonomía no admitida."
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:394
+msgid "Título"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:295
+msgid "Título o descripción…"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:118
+msgid "Títulos de resultados"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-manager.php:302
+msgid "Todos los estados"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:78
+msgid "Una entrada debe resolver una duda, enseñar a usar algo, comparar con criterio o informar de una novedad comprobada."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:30
+msgid "Usa español claro, frases y párrafos breves, términos que emplearía un comprador no experto y encabezados que expliquen el contenido."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:85
+msgid "Usa los apartados que realmente hacen falta, con encabezados descriptivos; atribuye las afirmaciones importantes a fuentes comprobables cuando corresponda."
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:425 includes/class-taxocommerce-core-dashboard.php:61 includes/class-taxocommerce-core-dashboard.php:112
+msgid "User Guide"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:32
+msgid "Utiliza extracto y metadescripción para resumir de forma fiel el contenido. No son el mismo campo: la metadescripción se configura donde el sitio gestione sus metadatos SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:48
+msgid "Utilizar imagen"
+msgstr ""
+
+#: includes/class-taxocommerce-core-content-inventory.php:136
+msgid "Ver contenidos"
+msgstr ""
+
+#: includes/class-taxocommerce-core-editor-ui.php:119
+msgid "Ver en la tienda ↗"
+msgstr ""
+
+#: includes/class-taxocommerce-core-auto-test.php:463
+msgid "Verde significa que pasó la comprobación indicada. Gris significa no aplicable o no ejecutado. Los resultados basados en muestras no sustituyen una auditoría completa ni las UAT de escritura en staging."
+msgstr ""
+
+#: includes/class-taxocommerce-core-editorial-guide.php:29
+msgid "Verifica cada especificación, compatibilidad, norma, prestación, precio y promesa comercial. Si no hay evidencia, no lo afirmes."
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:35
+msgid "Versión del Core"
+msgstr ""
+
+#: includes/class-taxocommerce-core-architecture-report.php:420
+msgid "Visión global"
+msgstr ""
+
+#: includes/class-taxocommerce-core-dashboard.php:41
+msgid "WooCommerce"
+msgstr ""
+
