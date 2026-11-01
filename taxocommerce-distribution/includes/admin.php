@@ -191,11 +191,13 @@ function taxocommerce_distribution_sitemap_audit_stats() {
 
     global $wpdb;
     $table = $wpdb->prefix . 'seo_sitemap_inventory';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Check optional legacy reporting table.
     $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
     if ( $exists !== $table ) {
         return array();
     }
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh diagnostic report; cached data would misreport progress.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT sitemap_url,
