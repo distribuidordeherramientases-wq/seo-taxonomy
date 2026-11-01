@@ -9,9 +9,15 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-scrappers
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Register this plugin's own WordPress language files at the supported init hook.
+add_action( 'init', static function () {
+    load_plugin_textdomain( 'taxocommerce-scrappers', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}, 1 );
 
 define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.7' );
 define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
@@ -63,7 +69,7 @@ final class TaxoCommerce_Scrappers {
             add_submenu_page(
                 'taxocommerce-core',
                 'TaxoCommerce Scrappers',
-                'Scrappers',
+                __( 'Scrappers', 'taxocommerce-scrappers' ),
                 'manage_options',
                 'taxocommerce-scrappers',
                 array( __CLASS__, 'screen' )
@@ -73,7 +79,7 @@ final class TaxoCommerce_Scrappers {
 
         add_menu_page(
             'TaxoCommerce Scrappers',
-            'Scrappers',
+            __( 'Scrappers', 'taxocommerce-scrappers' ),
             'manage_options',
             'taxocommerce-scrappers',
             array( __CLASS__, 'screen' ),
