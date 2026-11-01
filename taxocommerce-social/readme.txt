@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,10 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.3 =
+* Security and quality: prepared SQL identifiers in Social and Scheduler, verified read-only parameters, documented real-time DB operations and preserved provider connections.
+
 
 = 0.1.2 =
 * Expand the in-plugin Manual into two separately headed, indexed user and future-developer guides with practical procedures and source-grounded technical contracts.

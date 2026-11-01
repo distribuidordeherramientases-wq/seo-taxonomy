@@ -152,8 +152,9 @@ function tcsocial_programador_get_job($schedule_id)
     global $wpdb;
     $table = tcsocial_programador_table();
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta por ID en tabla de programacion propia; SQL parametrizado, resultado debe reflejar el estado actual.
     return $wpdb->get_row(
-        $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", absint($schedule_id))
+        $wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', $table, absint($schedule_id))
     );
 }
 
@@ -203,6 +204,7 @@ function tcsocial_programador_create_job($content_id, $provider, $timestamp, $te
     $table = tcsocial_programador_table();
     $now = current_time('mysql');
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insercion de tarea en tabla propia, persistencia inmediata para WP-Cron.
     $inserted = $wpdb->insert(
         $table,
         array(
@@ -252,6 +254,7 @@ function tcsocial_programador_run_job($schedule_id)
     $table = tcsocial_programador_table();
     $now = current_time('mysql');
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualizacion inmediata del estado de tarea en tabla propia; no se cachean las escrituras.
     $wpdb->update(
         $table,
         array(
@@ -275,6 +278,7 @@ function tcsocial_programador_run_job($schedule_id)
 
     $now = current_time('mysql');
     if (is_wp_error($result)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualizacion inmediata del estado de tarea en tabla propia; no se cachean las escrituras.
         $wpdb->update(
             $table,
             array(
@@ -292,6 +296,7 @@ function tcsocial_programador_run_job($schedule_id)
     }
 
     $publication_id = isset($result['publication_id']) ? absint($result['publication_id']) : 0;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualizacion inmediata del estado de tarea en tabla propia; no se cachean las escrituras.
     $wpdb->update(
         $table,
         array(
@@ -389,6 +394,7 @@ function tcsocial_programador_handle_cancel()
         }
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualizacion inmediata del estado de tarea en tabla propia; no se cachean las escrituras.
         $wpdb->update(
             tcsocial_programador_table(),
             array(
@@ -422,6 +428,7 @@ function tcsocial_programador_handle_retry()
     if ($job && in_array($job->status, array('failed', 'cancelled'), true)) {
         global $wpdb;
         $run_at = time() + 10;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Actualizacion inmediata del estado de tarea en tabla propia; no se cachean las escrituras.
         $wpdb->update(
             tcsocial_programador_table(),
             array(
@@ -473,7 +480,10 @@ function tcsocial_programador_jobs($limit = 100)
     $table = tcsocial_programador_table();
     $limit = min(250, max(1, absint($limit)));
 
-    return $wpdb->get_results("SELECT * FROM {$table} ORDER BY FIELD(status, 'processing', 'scheduled', 'failed', 'published', 'cancelled'), scheduled_at ASC, id DESC LIMIT {$limit}"); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Listado de tareas en tabla propia sin API alternativa; SQL %i/%d y estado actualizado sin cache.
+    return $wpdb->get_results(
+        $wpdb->prepare("SELECT * FROM %i ORDER BY FIELD(status, 'processing', 'scheduled', 'failed', 'published', 'cancelled'), scheduled_at ASC, id DESC LIMIT %d", $table, $limit)
+    );
 }
 
 /**
@@ -481,6 +491,7 @@ function tcsocial_programador_jobs($limit = 100)
  */
 function tcsocial_programador_render_notice()
 {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Mensaje informativo de redirección; no modifica datos.
     $message = isset($_GET['programador_msg']) ? sanitize_key(wp_unslash($_GET['programador_msg'])) : '';
     if ($message === '') {
         return;
@@ -489,6 +500,7 @@ function tcsocial_programador_render_notice()
     $type = 'success';
     $text = '';
     if ('created' === $message) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Contador únicamente visible en aviso, no modifica programación.
         $created = isset($_GET['created']) ? absint($_GET['created']) : 0;
         $text = 'Publicacion programada correctamente' . ($created > 1 ? ' en ' . $created . ' redes.' : '.');
         $extra = get_transient('tcsocial_programador_error_' . get_current_user_id());
@@ -631,7 +643,7 @@ function tcsocial_programador_render_admin()
             global $wpdb;
             $pub_table = function_exists('tcsocial_network_publications_table') ? tcsocial_network_publications_table() : '';
             if ($pub_table !== '') {
-                $remote_url = $wpdb->get_var($wpdb->prepare("SELECT remote_url FROM {$pub_table} WHERE id = %d", absint($job->publication_id))); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $remote_url = $wpdb->get_var($wpdb->prepare('SELECT remote_url FROM %i WHERE id = %d', $pub_table, absint($job->publication_id))); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta de URL actual en tabla propia, con identificador y valor preparados; no procede cache.
                 if ($remote_url) {
                     echo '<br><a href="' . esc_url($remote_url) . '" target="_blank" rel="noopener noreferrer">Ver publicacion</a>';
                 }

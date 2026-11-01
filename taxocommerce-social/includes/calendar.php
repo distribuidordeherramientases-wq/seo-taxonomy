@@ -191,10 +191,8 @@ function tcsocial_calendar_render_admin()
     $today = new DateTimeImmutable('today', wp_timezone());
     $today_key = $today->format('Y-m-d');
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only social provider filter.
-    $provider_filter = isset($_GET['social_calendar_provider'])
-        ? sanitize_key(wp_unslash($_GET['social_calendar_provider']))
-        : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtro visual de calendario, solo lectura y sin operaciones de escritura.
+    $provider_filter = isset($_GET['social_calendar_provider']) ? sanitize_key(wp_unslash($_GET['social_calendar_provider'])) : '';
 
     $providers = function_exists('tcsocial_network_get_providers')
         ? tcsocial_network_get_providers()
