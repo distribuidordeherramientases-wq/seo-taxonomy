@@ -843,6 +843,7 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Recent issued document sample for integrity checking; always current.
         $sample = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id, document_number, pdf_path, file_hash
@@ -854,6 +855,7 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
         $unreadable = array();
         $hash_mismatch = array();
