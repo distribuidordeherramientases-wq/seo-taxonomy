@@ -95,10 +95,10 @@ final class TaxoCommerce_Core_Vocabulary {
 
     public static function render( $content_type, $object_id ) {
         echo '<section class="tc-editor-card tc-vocabulary-card">';
-        echo '<div class="tc-card-heading"><div><span class="tc-eyebrow">TaxoCommerce Vocabulary</span><h2>Etiquetas transversales</h2>';
-        echo '<p>Clasificación semántica compartida entre productos, categorías, posts y páginas.</p></div></div>';
+        echo '<div class="tc-card-heading"><div><span class="tc-eyebrow"><?php esc_html_e( 'TaxoCommerce Vocabulary', 'taxocommerce-core' ); ?></span><h2><?php esc_html_e( 'Etiquetas transversales', 'taxocommerce-core' ); ?></h2>';
+        echo '<p><?php esc_html_e( 'Clasificación semántica compartida entre productos, categorías, posts y páginas.', 'taxocommerce-core' ); ?></p></div></div>';
         if ( ! self::available() ) {
-            echo '<div class="tc-editor-note tc-editor-note--info"><strong>Vocabulary todavía no está disponible.</strong> Instala o activa la extensión Vocabulary desde TaxoCommerce Core. Este formulario no cambiará las asignaciones existentes.</div></section>';
+            echo '<div class="tc-editor-note tc-editor-note--info"><strong><?php esc_html_e( 'Vocabulary todavía no está disponible.', 'taxocommerce-core' ); ?></strong> Instala o activa la extensión Vocabulary desde TaxoCommerce Core. Este formulario no cambiará las asignaciones existentes.</div></section>';
             return;
         }
         $selected = self::assignments( $content_type, $object_id );
