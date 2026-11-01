@@ -948,19 +948,19 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // The WHERE clause contains only fixed filter templates; all submitted values are bound.
         $count_sql = 'SELECT COUNT(*) FROM %i WHERE ' . $condition;
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Constant WHERE templates and bound values; identifier is parameterized.
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- WHERE filters are assembled only from fixed clauses, all user values use bound placeholders and the table uses %i.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $count_sql is assembled only from fixed WHERE fragments; %i and submitted values bind via prepare().
         $count = (int) $wpdb->get_var(
             $wpdb->prepare( $count_sql, array_merge( array( $items ), $params ) )
         );
-// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         $per_page = 40;
         $page_sql = 'SELECT id,label,url,status_bucket,http_status,final_status,response_ms,error_type,error_message,last_checked_at,warnings'
             . ' FROM %i WHERE ' . $condition
             . " ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,"
             . ' last_checked_at ASC,id ASC LIMIT %d OFFSET %d';
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- WHERE fragments come only from fixed filters, all values and the %i identifier are bound with prepare().
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $page_sql uses only allowlisted WHERE clauses with bound values, identifier, limit and offset.
         $rows = $wpdb->get_results(
@@ -971,7 +971,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             ),
             ARRAY_A
         );
-// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         echo '<h2>Detalle por URL</h2><div class="tcs-filter">';
         foreach ( array( 'error' => 'Errores', 'warning' => 'Avisos', 'pending' => 'Pendientes', 'ok' => 'Correctas', 'all' => 'Todas' ) as $code => $label ) {
