@@ -6,6 +6,14 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.1.3]
+
+- Corregida la parametrización SQL de consultas a publicaciones y tareas programadas, incluidos identificadores `%i` y límites `%d` (WordPress 6.7+).
+- Confirmadas las lecturas GET de navegación y calendario sin operaciones de escritura; las credenciales POST siguen pasando por la validación específica de cada proveedor y el nonce administrativo.
+- Documentadas de manera local las consultas SQL directas necesarias para contadores de clics, publicaciones, estados de WP-Cron, informes y exportaciones en tiempo real, sin añadir caché que altere el funcionamiento.
+- Conservada la compatibilidad de la API pública de Core y actualizados los metadatos/readme para distinguir la versión corregida. Issue #1551.
+
+
 ## [0.1.2]
 
 * Reorganizado el Manual en dos guías claramente independientes con H1, índice navegable y H2/H3: manual de usuario y manual técnico para futuros desarrolladores, siguiendo el patrón utilizado por TaxoCommerce Database.
