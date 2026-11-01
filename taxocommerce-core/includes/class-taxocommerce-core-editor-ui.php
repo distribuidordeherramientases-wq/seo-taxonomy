@@ -116,10 +116,10 @@ final class TaxoCommerce_Core_Editor_UI {
         echo '<div class="tc-editor-shell">';
         echo '<div class="tc-editor-top"><a class="tc-back-link" href="' . esc_url( $back ) . '">← Volver a contenidos</a><div class="tc-editor-top-actions">';
         if ( $permalink ) {
-            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '">Ver en la tienda ↗</a>';
+            echo '<a class="button" target="_blank" rel="noopener noreferrer" href="' . esc_url( $permalink ) . '"><?php esc_html_e( 'Ver en la tienda ↗', 'taxocommerce-core' ); ?></a>';
         }
         if ( $native ) {
-            echo '<a class="button" href="' . esc_url( $native ) . '">Editor WordPress / WooCommerce ↗</a>';
+            echo '<a class="button" href="' . esc_url( $native ) . '"><?php esc_html_e( 'Editor WordPress / WooCommerce ↗', 'taxocommerce-core' ); ?></a>';
         }
         echo '</div></div>';
         $types = array( 'products' => 'PRODUCTO', 'categories' => 'CATEGORÍA', 'posts' => 'POST', 'pages' => 'PÁGINA' );
@@ -147,12 +147,12 @@ final class TaxoCommerce_Core_Editor_UI {
     }
 
     private static function close_form( $type ) {
-        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span>Los cambios se aplican al contenido original, sin crear copias.</span></div>';
-        echo '<button type="submit" class="button button-primary button-hero">Guardar cambios</button></footer></form></div>';
+        echo '</aside></div><footer class="tc-editor-savebar"><div><strong>¿Todo correcto?</strong><span><?php esc_html_e( 'Los cambios se aplican al contenido original, sin crear copias.', 'taxocommerce-core' ); ?></span></div>';
+        echo '<button type="submit" class="button button-primary button-hero"><?php esc_html_e( 'Guardar cambios', 'taxocommerce-core' ); ?></button></footer></form></div>';
     }
 
     private static function rich_editor( $value, $label, $rows = 14 ) {
-        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow">EDITOR VISUAL</span><h2>' . esc_html( $label ) . '</h2>';
+        echo '<section class="tc-editor-card"><div class="tc-card-heading"><div><span class="tc-eyebrow"><?php esc_html_e( 'EDITOR VISUAL', 'taxocommerce-core' ); ?></span><h2>' . esc_html( $label ) . '</h2>';
         echo '<p>Utiliza negritas, listas, enlaces y medios para estructurar el contenido.</p></div></div>';
         wp_editor(
             $value,
