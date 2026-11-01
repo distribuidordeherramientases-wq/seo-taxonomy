@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
     exit;
 }
 define( 'ABSPATH', '/' );
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.11' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.12' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['tcs_hooks'] = array();
 $GLOBALS['tcs_nonce_calls'] = 0;
@@ -40,7 +40,7 @@ function taxocommerce_system_check_home() {}
 function taxocommerce_system_check_active_tab() { return 'auto-test'; }
 function taxocommerce_system_check_register_menu() {}
 function taxocommerce_system_check_modules_json() {}
-function taxocommerce_system_check_module_results() { return array( 'system_check' => array( 'version' => '0.2.11' ) ); }
+function taxocommerce_system_check_module_results() { return array( 'system_check' => array( 'version' => '0.2.12' ) ); }
 function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
     return add_query_arg( array_merge( array( 'page' => 'taxocommerce-system-check', 'tcs_tab' => $tab ), $args ), admin_url( 'admin.php' ) );
 }

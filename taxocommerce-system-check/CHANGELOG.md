@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.2.12]
+
+* Acotadas al bloque SQL concreto las justificaciones de Plugin Check para diagnósticos de base de datos, URL, facturación, semántica y Health Scan; no se altera su comportamiento.
+* Preservados todos los callbacks, funciones y hooks históricos `seo_*`; el código monolítico permanece intacto.
+* Mantenidas las preparaciones SQL seguras `%i` y las comprobaciones de entradas GET/POST implementadas en 0.2.11.
+* Validación obligatoria del paquete final en PHP 7.4, PHP 8.4 y WordPress Plugin Check antes de fusionar en STAGING. Producción requiere autorización independiente.
+
+
 ## [0.2.11]
 
 * Corregidos identificadores `%i` de Facturación (sin doble entrecomillado), sondeo de servicios, consultas de imágenes y escritura del inventario Health Scan; filtros de diagnóstico protegidos contra parámetros no escalares.
