@@ -46,6 +46,7 @@ final class FAQ_Source {
     public static function available() {
         global $wpdb;
         $table = self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical FAQ storage is a custom table; live schema availability must reflect activation/migrations, and the prepared SHOW TABLES read has no equivalent WP post API.
         return (string) $wpdb->get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
         ) === $table;
@@ -58,6 +59,7 @@ final class FAQ_Source {
         global $wpdb;
         $table = self::table();
         return absint(
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live count of active canonical FAQ rows is needed for current audit coverage; a persistent cache could report stale totals after FAQ edits.
             $wpdb->get_var(
                 $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE active=1', $table )
             )
@@ -75,6 +77,7 @@ final class FAQ_Source {
         $search = trim( sanitize_text_field( (string) $search ) );
 
         if ( ctype_digit( $search ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact FAQ ID lookup uses the canonical table, prepared identifiers and a maximum of 200 rows; fresh results are required while auditing.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
@@ -91,6 +94,7 @@ final class FAQ_Source {
             );
         } elseif ( '' !== $search ) {
             $like = '%' . $wpdb->esc_like( $search ) . '%';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical FAQ text search has prepared LIKE and a strict 200-row limit; cached results could obscure edits during manual audits.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
@@ -106,6 +110,7 @@ final class FAQ_Source {
                 ARRAY_A
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical FAQ cursor batch uses prepared IDs and a strict 200-row limit; reusing cached rows would hide updates during an audit.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
@@ -134,6 +139,7 @@ final class FAQ_Source {
         }
         global $wpdb;
         $table = self::table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical FAQ record is read by unique ID with LIMIT 1; WordPress post APIs cannot read this table and results must reflect edits.
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT id,object_type,object_id,product_cat_id,question,answer,active,updated_at
