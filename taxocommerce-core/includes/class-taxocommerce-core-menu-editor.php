@@ -297,7 +297,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         $title = sanitize_text_field( $title );
         $url = esc_url_raw( $url, array( 'http', 'https', 'mailto', 'tel' ) );
         if ( '' === $title || '' === $url ) { return new WP_Error( 'menu_link', 'Indica un texto y una URL válidos.' ); }
-        $menu_id = self::managed_menu( true );
+        $menu_id = self::target_menu_id( true );
         if ( is_wp_error( $menu_id ) ) { return $menu_id; }
         return wp_update_nav_menu_item( $menu_id, 0, array( 'menu-item-title' => wp_slash( $title ), 'menu-item-url' => $url,
             'menu-item-type' => 'custom', 'menu-item-status' => 'publish', 'menu-item-parent-id' => 0, 'menu-item-position' => 0 ) );
