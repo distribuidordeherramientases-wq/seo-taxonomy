@@ -88,6 +88,8 @@ final class SEO_Facturas_Documents {
         }
 
         $now = current_time('mysql');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insercion en tabla documental propia; requiere escritura inmediata para mantener unicidad por pedido.
+
         $inserted = $wpdb->insert(
             self::table_name(),
             array(
@@ -155,6 +157,8 @@ final class SEO_Facturas_Documents {
         );
 
         if (is_wp_error($pdf)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Estado PDF persistido en tabla documental propia; escritura inmediata, no cacheable.
+
             $wpdb->update(
                 self::table_name(),
                 array(
@@ -168,6 +172,8 @@ final class SEO_Facturas_Documents {
             );
             return $pdf;
         }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Estado PDF persistido en tabla documental propia; escritura inmediata, no cacheable.
 
         $wpdb->update(
             self::table_name(),
@@ -196,6 +202,8 @@ final class SEO_Facturas_Documents {
         $table = self::table_name();
                 $sql = $wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', $table, $document_id);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lectura en tabla propia, sin API WP alternativa; datos de documento deben reflejar emision/reintento reciente.
+
         return $wpdb->get_row($sql);
     }
 
@@ -209,6 +217,8 @@ final class SEO_Facturas_Documents {
         $table = self::table_name();
         $sql = $wpdb->prepare('SELECT * FROM %i WHERE order_id = %d AND document_type = %s LIMIT 1', $table, $order_id, $type);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lectura en tabla propia, sin API WP alternativa; datos de documento deben reflejar emision/reintento reciente.
+
         return $wpdb->get_row($sql);
     }
 
@@ -218,6 +228,8 @@ final class SEO_Facturas_Documents {
         $table = self::table_name();
         $sql = $wpdb->prepare('SELECT * FROM %i ORDER BY issued_at DESC, id DESC LIMIT %d', $table, $limit);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Listado administrativo de tabla propia; evitar cache obsoleta tras emitir documentos.
+
         return $wpdb->get_results($sql);
     }
 
@@ -227,6 +239,8 @@ final class SEO_Facturas_Documents {
         if (!$document_id) {
             return false;
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Persistencia de fecha de correo enviado, operacion de escritura no cacheable.
+
         return false !== $wpdb->update(
             self::table_name(),
             array(
