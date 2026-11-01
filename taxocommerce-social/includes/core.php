@@ -3101,16 +3101,18 @@ function tcsocial_network_render_reports()
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Resumen de metricas de tabla propia, consulta preparada y resultados actuales.
     $summary = $wpdb->get_row(
-        "SELECT
-            COUNT(*) AS total_attempts,
+        $wpdb->prepare(
+            "SELECT
+                COUNT(*) AS total_attempts,
             SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published_count,
             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
             COALESCE(SUM(clicks),0) AS clicks,
             COALESCE(SUM(reactions),0) AS reactions,
             COALESCE(SUM(comments),0) AS comments,
             COALESCE(SUM(shares),0) AS shares
-         FROM %i",
-        $table
+             FROM %i",
+            $table
+        )
     );
 
     echo '<div class="seo-social-metrics">';
