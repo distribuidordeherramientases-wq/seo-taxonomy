@@ -4,6 +4,21 @@ $main = file_get_contents( $root . '/taxocommerce-scrappers.php' );
 $ojeador = file_get_contents( $root . '/includes/ojeador/class-ojeador-admin.php' );
 $engineer = file_get_contents( $root . '/includes/ingeniero/class-seo-ingeniero-admin.php' );
 $shopping = file_get_contents( $root . '/includes/ojeador/class-ojeador-shopping.php' );
+$files = array(
+    'includes/ingeniero/class-seo-ingeniero-admin.php',
+    'includes/ingeniero/class-seo-ingeniero-exchange.php',
+    'includes/ojeador/class-ojeador-admin.php',
+    'includes/ojeador/class-ojeador-novedades.php',
+);
+foreach ( $files as $path ) {
+    if ( strpos( file_get_contents( $root . '/' . $path ), "'taxocommerce-seo'" ) !== false ) {
+        fwrite( STDERR, 'Legacy translation domain in ' . $path . PHP_EOL );
+        exit( 1 );
+    }
+}
+$db = file_get_contents( $root . '/includes/ingeniero/class-seo-ingeniero-db.php' );
+$manual = file_get_contents( $root . '/includes/class-taxocommerce-scrappers-manual.php' );
+$analysis = file_get_contents( $root . '/includes/ojeador/class-ojeador-analysis.php' );
 $checks = array(
     strpos( $main, "Plugin Name: TaxoCommerce Scrappers" ) !== false,
     strpos( $main, "'connections' => 'Connections'" ) !== false,
@@ -18,6 +33,10 @@ $checks = array(
     strpos( $ojeador, "const PAGE = 'taxocommerce-scrappers'" ) !== false,
     strpos( $ojeador, "'tcs_tab'=>'ojeador'" ) !== false,
     strpos( $engineer, "'tcs_tab' => 'ingeniero'" ) !== false,
+    strpos( $db, 'SELECT id FROM %i WHERE term_id=%d' ) !== false,
+    substr_count( $manual, 'wp_kses_post( self::link(' ) === 9,
+    strpos( $analysis, 'GROUP BY term_id"' ) === false || strpos( $analysis, 'GROUP BY term_id", $table)' ) !== false,
+    strpos( $ojeador, 'SELECT * FROM %i WHERE' ) !== false,
 );
 foreach ( $checks as $index => $ok ) {
     if ( ! $ok ) {

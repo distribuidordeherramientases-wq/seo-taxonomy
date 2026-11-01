@@ -393,6 +393,7 @@ final class SEO_Ingeniero_Posts {
         self::sync_pending_update($editorial_id);
         $pending = self::pending_knowledge_details($post_id);
         $count = count($pending);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Indicador GET informativo tras una accion autenticada.
         $state = isset($_GET['ingeniero_update']) ? sanitize_key(wp_unslash($_GET['ingeniero_update'])) : '';
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px">';

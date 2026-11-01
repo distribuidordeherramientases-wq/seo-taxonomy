@@ -99,16 +99,15 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;
         $rel=$wpdb->prefix.'seo_relations';
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- internal tables only.
-        $rows=(array)$wpdb->get_results(
-            "SELECT DISTINCT cl.ID cluster_id,cl.post_title cluster_name,hp.ID hub_primary_id,hp.post_title hub_primary_name
-             FROM {$rel} r
-             INNER JOIN {$wpdb->posts} cl ON cl.ID=r.source_id
-             INNER JOIN {$wpdb->posts} hp ON hp.ID=r.target_id
+        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT DISTINCT cl.ID cluster_id,cl.post_title cluster_name,hp.ID hub_primary_id,hp.post_title hub_primary_name
+             FROM %i r
+             INNER JOIN %i cl ON cl.ID=r.source_id
+             INNER JOIN %i hp ON hp.ID=r.target_id
              WHERE r.source_type='cluster' AND r.target_type='hub_primary'
                AND r.relation_type IN ('cluster_to_primary','cluster_to_hub_primary')
                AND cl.post_status NOT IN ('trash','auto-draft')
                AND hp.post_status NOT IN ('trash','auto-draft')
-             ORDER BY cl.post_title,hp.post_title",ARRAY_A);
+             ORDER BY cl.post_title,hp.post_title", $rel, $wpdb->posts, $wpdb->posts), ARRAY_A);
         $out=array();
         foreach($rows as $r){
             if(empty($r['hub_primary_id'])||empty($r['hub_primary_name']))continue;
@@ -221,7 +220,7 @@ final class SEO_Ojeador_Novedades {
         global $wpdb;$table=self::table();$now=gmdate('Y-m-d H:i:s');
         $key=hash('sha256',self::norm($row['title']??'').'|'.absint($row['hub_primary_id']??0));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table name.
-        $existing=$wpdb->get_row($wpdb->prepare("SELECT id,status,first_seen_at FROM {$table} WHERE opportunity_key=%s LIMIT 1",$key),ARRAY_A);
+        $existing=$wpdb->get_row($wpdb->prepare("SELECT id,status,first_seen_at FROM %i WHERE opportunity_key=%s LIMIT 1", $table,$key),ARRAY_A);
         $data=array(
             'opportunity_key'=>$key,'title'=>sanitize_text_field((string)($row['title']??'')),
             'opportunity_type'=>sanitize_key((string)($row['opportunity_type']??'new_category')),
@@ -335,7 +334,7 @@ final class SEO_Ojeador_Novedades {
     public static function rows($args=array()){
         global $wpdb;$a=wp_parse_args($args,array('status'=>'','type'=>'','min_score'=>0,'q'=>'','limit'=>500));$table=self::table();$limit=max(1,min(2000,absint($a['limit'])));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- internal table, limit prepared.
-        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM {$table} ORDER BY score DESC,last_seen_at DESC LIMIT %d",$limit),ARRAY_A);
+        $rows=(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY score DESC,last_seen_at DESC LIMIT %d", $table,$limit),ARRAY_A);
         $status=sanitize_key((string)$a['status']);$type=sanitize_key((string)$a['type']);$min=absint($a['min_score']);$q=self::norm($a['q']);$out=array();
         foreach($rows as $r){
             if($status!==''&&$r['status']!==$status)continue;if($type!==''&&$r['opportunity_type']!==$type)continue;if(absint($r['score'])<$min)continue;
@@ -351,6 +350,7 @@ final class SEO_Ojeador_Novedades {
 
     public static function render($d){
         $rows=(array)($d['rows']??array());$stats=(array)($d['stats']??array());$seeds=(array)($d['seeds']??array());$last=(array)($d['last_run']??array());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros GET de consulta: no alteran estado ni inician procesos.
         $fs=sanitize_key((string)wp_unslash($_GET['nstatus']??''));$ft=sanitize_key((string)wp_unslash($_GET['ntype']??''));$fm=absint(wp_unslash($_GET['nscore']??0));$fq=sanitize_text_field(wp_unslash($_GET['nq']??''));
         ?>
         <section style="margin-top:18px">
