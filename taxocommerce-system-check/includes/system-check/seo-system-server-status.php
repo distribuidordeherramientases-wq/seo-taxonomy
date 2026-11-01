@@ -3096,13 +3096,13 @@ function seo_server_status_count_products_without_any_image_source() {
     $external_link_sql = implode(' OR ', $external_links);
 
     $sql = "SELECT COUNT(*)
-            FROM {$wpdb->posts} p
+            FROM %i p
             WHERE p.post_type = 'product'
               AND p.post_status = 'publish'
               AND NOT EXISTS (
                    SELECT 1
-                   FROM {$wpdb->postmeta} pm
-                   INNER JOIN {$wpdb->posts} a
+                   FROM %i pm
+                   INNER JOIN %i a
                       ON a.ID = CAST(pm.meta_value AS UNSIGNED)
                      AND a.post_type = 'attachment'
                    WHERE pm.post_id = p.ID
@@ -3113,14 +3113,14 @@ function seo_server_status_count_products_without_any_image_source() {
               )
               AND NOT EXISTS (
                    SELECT 1
-                   FROM {$supplier_table} si
+                   FROM %i si
                    WHERE ({$external_link_sql})
                      {$status_where}
                      AND si.image_url IS NOT NULL
                      AND TRIM(si.image_url) <> ''
               )";
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tabla/columnas proceden de allowlists e inventario interno; consulta fija de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
-    return (int) $wpdb->get_var($sql);
+    return (int) $wpdb->get_var($wpdb->prepare($sql, $wpdb->posts, $wpdb->postmeta, $wpdb->posts, $supplier_table));
 }
 
 /**

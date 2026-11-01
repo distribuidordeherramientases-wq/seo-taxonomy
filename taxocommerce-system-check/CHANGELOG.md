@@ -6,6 +6,8 @@
 
 ## [0.2.11]
 
+* Corregidos identificadores `%i` de Facturación (sin doble entrecomillado), sondeo de servicios, consultas de imágenes y escritura del inventario Health Scan; filtros de diagnóstico protegidos contra parámetros no escalares.
+
 * Compatible con WordPress.org sin renombrar APIs públicas heredadas: las excepciones de prefijos se acotan exclusivamente a archivos del motor histórico `seo_*`, que sigue compartiendo interfaces con el monolítico. Ninguna supresión global en el repositorio.
 * Anotadas individualmente las consultas directas necesarias para verificar estados actuales del servidor y las operaciones sincronizadas del programador; no se introduce caché que altere los diagnósticos.
 * Documentadas las consultas preparadas con fragmentos SQL de lista generados a partir de estructuras internas y datos vinculados por `$wpdb->prepare()`, sin omitir el chequeo de seguridad para SQL no validado.
