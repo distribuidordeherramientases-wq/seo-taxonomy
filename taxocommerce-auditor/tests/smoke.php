@@ -271,7 +271,7 @@ $readme_source = file_get_contents( dirname( __DIR__ ) . '/readme.txt' );
 $entry_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-auditor.php' );
 
 verify( false !== strpos( $runner_source, 'esc_html( $terms->get_error_message() )' ), 'Taxonomy exceptions are escaped' );
-verify( false === preg_match( '/[\'"]suppress_filters[\'"]\\s*=>\\s*true/', $editorial_source ), 'Editorial query never suppresses WordPress filters' );
+verify( 0 === preg_match( '/[\'"]suppress_filters[\'"]\\s*=>\\s*true/', $editorial_source ), 'Editorial query never suppresses WordPress filters' );
 verify( false !== strpos( $editorial_source, "'suppress_filters' => false" ), 'Editorial query keeps WordPress filters enabled' );
 verify( false !== strpos( $admin_source, 'sanitize_text_field( wp_unslash( $_POST[\'search\'] ) )' ), 'POST search sanitized at ingress' );
 verify( false !== strpos( $admin_source, 'absint( wp_unslash( (string) $_POST[\'category_id\'] ) )' ), 'POST category ID sanitized at ingress' );
