@@ -96,7 +96,7 @@ final class TaxoCommerce_Core {
 				'name'        => 'TaxoCommerce Core',
 				'version'     => TAXOCOMMERCE_CORE_VERSION,
 				'status'      => 'active',
-				'description' => __( 'Shared content, hierarchy, and extension services.', 'taxocommerce-core' ),
+				'description' => 'Shared content, hierarchy, and extension services.',
 			)
 		);
 
