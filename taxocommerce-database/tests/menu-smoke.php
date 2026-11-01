@@ -8,6 +8,7 @@ if ( PHP_SAPI !== 'cli' ) {
     exit( 1 );
 }
 define( 'ABSPATH', __DIR__ );
+function __( $message, $domain = '' ) { return $message; }
 function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
 function plugin_dir_url( $path ) { return 'https://example.test/wp-content/plugins/taxocommerce-database/'; }
 function add_action( $event, $callback, $priority = 10 ) { return true; }
