@@ -272,7 +272,7 @@ if (!function_exists('seo_health_scan_upsert_rows')) {
             if (empty($values)) {
                 continue;
             }
-            $sql = "INSERT INTO {$table}
+            $sql = "INSERT INTO %i
                 (scope,object_id,url_hash,url,label,source,active,sync_token,first_seen_at,last_seen_at)
                 VALUES " . implode(',', $values) . "
                 ON DUPLICATE KEY UPDATE
@@ -284,7 +284,7 @@ if (!function_exists('seo_health_scan_upsert_rows')) {
                     sync_token=VALUES(sync_token),
                     last_seen_at=VALUES(last_seen_at)";
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table/query shape with generated placeholders; all data values are bound through prepare(). / Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
-            $result = $wpdb->query($wpdb->prepare($sql, $params));
+            $result = $wpdb->query($wpdb->prepare($sql, array_merge(array($table), $params)));
             if ($result === false) {
                 return new WP_Error('seo_health_inventory_write', $wpdb->last_error ?: 'No se pudo actualizar el inventario.');
             }
@@ -1328,16 +1328,17 @@ if (!function_exists('seo_health_render_scope_tab')) {
 
         global $wpdb;
         $table = esc_sql( seo_health_scan_tables()['items'] );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan status filter.
-        $filter = isset($_GET['health_filter']) ? sanitize_key(wp_unslash($_GET['health_filter'])) : 'error';
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Allowlisted GET filters operate only on a read-only diagnostic view.
+        $filter = isset($_GET['health_filter']) && is_string($_GET['health_filter']) ? sanitize_key(wp_unslash($_GET['health_filter'])) : 'error';
         if (!in_array($filter, array('error','warning','pending','ok','all'), true)) {
             $filter = 'error';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan search filter.
-        $search = isset($_GET['health_s']) ? sanitize_text_field(wp_unslash($_GET['health_s'])) : '';
+        $search = isset($_GET['health_s']) && is_string($_GET['health_s']) ? sanitize_text_field(wp_unslash($_GET['health_s'])) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only Health Scan pagination.
-        $paged = isset($_GET['health_paged']) ? max(1, absint(wp_unslash($_GET['health_paged']))) : 1;
+        $paged = isset($_GET['health_paged']) && is_scalar($_GET['health_paged']) ? max(1, absint(wp_unslash($_GET['health_paged']))) : 1;
         $per_page = 50;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $where = array('scope=%s','active=1');
         $params = array($scope);
         if ($filter === 'pending') {

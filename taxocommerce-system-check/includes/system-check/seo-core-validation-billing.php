@@ -784,7 +784,6 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
             );
         }
 
-        $identifier = '`' . str_replace('`', '``', $table) . '`';
         $cutoff = function_exists('current_datetime')
             ? current_datetime()->modify('-30 minutes')->format('Y-m-d H:i:s')
             : gmdate('Y-m-d H:i:s', time() - 1800);
@@ -801,10 +800,10 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
                 SUM(CASE WHEN status = 'rendering' AND updated_at < %s THEN 1 ELSE 0 END) AS stale_rendering
              FROM %i",
             $cutoff,
-            $identifier
+            $table
         );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
-        $stats = $wpdb->get_row($sql, ARRAY_A); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $stats = $wpdb->get_row($sql, ARRAY_A);
         if (!empty($wpdb->last_error)) {
             return seo_core_system_test_result(
                 'checkout',
@@ -848,10 +847,10 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
                  WHERE status = 'issued'
                  ORDER BY id DESC
                  LIMIT 25",
-                $identifier
+                $table
             ),
             ARRAY_A
-        ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        );
 
         $unreadable = array();
         $hash_mismatch = array();
