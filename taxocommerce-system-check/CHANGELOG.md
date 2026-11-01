@@ -7,6 +7,7 @@
 ## [0.2.12]
 
 * Acotadas al bloque SQL concreto las justificaciones de Plugin Check para diagnósticos de base de datos, URL, facturación, semántica y Health Scan; no se altera su comportamiento.
+* La reserva de elementos de Health Scan ahora prepara también el identificador de tabla en `UPDATE %i` y mantiene el orden de parámetros; nueva aserción de regresión CLI.
 * Preservados todos los callbacks, funciones y hooks históricos `seo_*`; el código monolítico permanece intacto.
 * Mantenidas las preparaciones SQL seguras `%i` y las comprobaciones de entradas GET/POST implementadas en 0.2.11.
 * Validación obligatoria del paquete final en PHP 7.4, PHP 8.4 y WordPress Plugin Check antes de fusionar en STAGING. Producción requiere autorización independiente.
