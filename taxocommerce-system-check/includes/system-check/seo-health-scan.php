@@ -710,9 +710,9 @@ if (!function_exists('seo_health_scan_launch')) {
         $queued = 0;
         if (!empty($ids)) {
             $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            $queue_sql = "UPDATE {$tables['items']} SET queued_scan_id=%d,queued_at=%s WHERE id IN ({$id_placeholders})";
-            $queue_params = array_merge(array($run_id, $now), $ids);
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table/placeholder list; all values are integers/text bound through prepare(). / Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
+            $queue_sql = "UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN ({$id_placeholders})";
+            $queue_params = array_merge(array($tables['items'], $run_id, $now), $ids);
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical table identifier uses %i; every ID and value is bound with prepare(). / Direct write coordinates scheduler state; caching is not applicable.
             // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Internally generated SQL clauses and fixed placeholders with prepared bound values
             $queued = $wpdb->query($wpdb->prepare($queue_sql, $queue_params));
             // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
