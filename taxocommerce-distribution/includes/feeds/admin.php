@@ -244,8 +244,10 @@ function tcdist_feed_render_admin() {
     if ( isset( $_GET['cf_stopped'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
         echo '<div class="notice notice-warning inline"><p>Generation stopped by the user. No partial file was published.</p></div>';
     }
-    if ( isset( $_GET['cf_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
-        echo '<div class="notice notice-error inline"><p>' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['cf_error'] ) ) ) ) . '</p></div>';
+    if ( isset( $_GET['cf_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect notice.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only message displayed after nonce-protected action.
+        $feed_error = sanitize_text_field( wp_unslash( $_GET['cf_error'] ) );
+        echo '<div class="notice notice-error inline"><p>' . esc_html( rawurldecode( $feed_error ) ) . '</p></div>';
     }
 
     if ( $is_staging ) {
