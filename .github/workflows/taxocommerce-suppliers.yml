@@ -62,7 +62,7 @@ jobs:
           build-dir: './build/taxocommerce-suppliers'
           slug: taxocommerce-suppliers
           wp-version: latest
-          ignore-warnings: true
+          ignore-warnings: false
           ignore-errors: false
 
       - name: Package ZIP
@@ -76,7 +76,7 @@ jobs:
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-suppliers-0.2.2
+          name: taxocommerce-suppliers-0.2.3
           path: taxocommerce-suppliers.zip
           retention-days: 30
           if-no-files-found: error

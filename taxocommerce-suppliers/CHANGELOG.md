@@ -4,7 +4,14 @@
 
 ## [Unreleased]
 
-Sin novedades adicionales pendientes.
+## [0.2.3]
+
+- Comprobación de nonce dentro de cada acción POST de importación CSV, plantillas, precios, imágenes y decisiones sobre proveedores, manteniendo permisos y contratos de formulario.
+- Saneamiento previo de importes y de la asignación de columnas CSV sin cambiar la semántica del valor «-1»; saneamiento de URLs de imágenes externas.
+- Preparado el identificador de la tabla de imágenes de proveedor mediante `%i`; consultas SQL directas del inventario propio justificadas solamente en las instrucciones afectadas y sin introducir cachés obsoletas.
+- Mantenidos los nombres públicos de clases `TCSUP_*` por compatibilidad, con justificación local del prefijo, y las búsquedas WooCommerce limitadas por metadatos.
+- Plugin Check y pruebas PHP/ZIP estrictas requeridas antes de fusionar. Sin cambios en monolítico ni publicación en producción.
+
 
 ## [0.2.2]
 

@@ -42,4 +42,10 @@ tcsup_assert( false !== strpos( $manual, 'class-tcsup-schema.php' ) && false !==
 tcsup_assert( false !== strpos( $manual, 'borrador' ) && false !== strpos( $manual, 'Apply Woo prices' ), 'user side effects documented' );
 tcsup_assert( false !== strpos( $autotest, "check_admin_referer( 'tcsup_autotest' )" ), 'autotest nonce' );
 tcsup_assert( false !== strpos( $autotest, 'SHOW TABLES LIKE' ), 'read-only schema check' );
+tcsup_assert( false !== strpos( $main, " FROM %i" ), 'supplier image identifiers must be prepared' );
+tcsup_assert( false === strpos( $main, 'FROM {$table}' ), 'no unprepared image table names' );
+tcsup_assert( false !== strpos( $csv, "check_admin_referer( 'tcsup_import_csv' )" ), 'CSV import must verify nonce in handler' );
+tcsup_assert( false !== strpos( $products, "check_admin_referer( 'tcsup_price_update' )" ), 'price edits must verify nonce in handler' );
+tcsup_assert( false !== strpos( $products, "sanitize_textarea_field( wp_unslash( $_POST['image_urls'] ) )" ), 'image URLs must be sanitized' );
+tcsup_assert( false !== strpos( $csv, "map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )" ), 'CSV mapping must be sanitized' );
 echo "OK\n";

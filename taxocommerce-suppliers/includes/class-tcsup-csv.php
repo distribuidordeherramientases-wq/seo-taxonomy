@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Stable TCSUP_ public class names are an existing namespace/API contract; renaming would break extensions.
 final class TCSUP_CSV {
 
 	const TEMPLATE_OPTION = 'taxocommerce_suppliers_csv_templates';
@@ -149,11 +150,10 @@ final class TCSUP_CSV {
 		return array_merge( self::builtin_templates(), $templates );
 	}
 
-	private static function guard( $nonce_action ) {
+	private static function guard() {
 		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage supplier imports.', 'taxocommerce-suppliers' ) );
 		}
-		check_admin_referer( $nonce_action );
 	}
 
 	public static function transient_key() {
@@ -209,7 +209,8 @@ final class TCSUP_CSV {
 	}
 
 	public static function handle_analyze() {
-		self::guard( 'tcsup_analyze_csv' );
+		self::guard();
+		check_admin_referer( 'tcsup_analyze_csv' );
 
 		$template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : 'canonical';
 		$templates   = self::templates();
@@ -358,11 +359,11 @@ final class TCSUP_CSV {
 		}
 	}
 
-	private static function mapping_from_request( $header ) {
-		$posted = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? wp_unslash( $_POST['mapping'] ) : array();
+	private static function mapping_from_request( $header, $posted ) {
+		$posted = is_array( $posted ) ? $posted : array();
 		$map    = array();
 		foreach ( self::fields() as $field => $definition ) {
-			$index = isset( $posted[ $field ] ) ? intval( $posted[ $field ] ) : -1;
+			$index = isset( $posted[ $field ] ) && is_scalar( $posted[ $field ] ) ? intval( $posted[ $field ] ) : -1;
 			if ( $index >= 0 && isset( $header[ $index ] ) ) {
 				$map[ $field ] = $index;
 			}
@@ -507,7 +508,8 @@ final class TCSUP_CSV {
 	}
 
 	public static function handle_import() {
-		self::guard( 'tcsup_import_csv' );
+		self::guard();
+		check_admin_referer( 'tcsup_import_csv' );
 
 		$state = self::state();
 		if ( empty( $state['path'] ) || ! is_readable( $state['path'] ) ) {
@@ -538,9 +540,12 @@ final class TCSUP_CSV {
 		$header = is_array( $header ) ? array_map( array( __CLASS__, 'clean_header' ), $header ) : array();
 
 		$mode = (string) ( $template['mode'] ?? 'mapping' );
+		$posted_mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] )
+			? map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )
+			: array();
 		$mapping = 'vevor' === $mode
 			? array()
-			: self::mapping_from_request( $header );
+			: self::mapping_from_request( $header, $posted_mapping );
 
 		if ( 'vevor' === $mode ) {
 			$required_headers = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
@@ -673,6 +678,7 @@ final class TCSUP_CSV {
 
 			if ( $is_vevor ) {
 				if ( 'price_update' === $mode && '' === $row_key ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 					$price_matches = $wpdb->get_results(
 						$wpdb->prepare(
 							"SELECT * FROM %i
@@ -692,6 +698,7 @@ final class TCSUP_CSV {
 						continue;
 					}
 				} else {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 					$existing = $wpdb->get_row(
 						$wpdb->prepare(
 							"SELECT * FROM %i WHERE proveedor=%s AND pais_origen=%s AND proveedor_id_externo=%s AND source_row_key=%s LIMIT 1",
@@ -707,6 +714,7 @@ final class TCSUP_CSV {
 					// Bind a single pre-source_row_key legacy row instead of creating
 					// a duplicate on the first import through the independent module.
 					if ( ! $existing ) {
+						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 						$legacy_rows = $wpdb->get_results(
 							$wpdb->prepare(
 								"SELECT * FROM %i
@@ -731,6 +739,7 @@ final class TCSUP_CSV {
 			} else {
 				$existing_by_external = null;
 				if ( $has_external_id ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 					$existing_by_external = $wpdb->get_row(
 						$wpdb->prepare(
 							"SELECT * FROM %i WHERE proveedor=%s AND proveedor_id_externo=%s ORDER BY id ASC LIMIT 1",
@@ -743,6 +752,7 @@ final class TCSUP_CSV {
 				}
 				$existing_by_sku = null;
 				if ( '' !== $sku ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 					$existing_by_sku = $wpdb->get_row(
 						$wpdb->prepare(
 							"SELECT * FROM %i WHERE proveedor=%s AND sku=%s ORDER BY id ASC LIMIT 1",
@@ -760,6 +770,7 @@ final class TCSUP_CSV {
 					&& absint( $existing_by_external['id'] ?? 0 ) !== absint( $existing_by_sku['id'] ?? 0 )
 				) {
 					foreach ( array( $existing_by_external, $existing_by_sku ) as $conflict_row ) {
+						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 						$wpdb->update(
 							$table,
 							array(
@@ -781,6 +792,7 @@ final class TCSUP_CSV {
 					&& '' !== trim( (string) ( $existing_by_external['sku'] ?? '' ) )
 					&& $sku !== trim( (string) $existing_by_external['sku'] )
 				) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 					$wpdb->update(
 						$table,
 						array(
@@ -807,6 +819,7 @@ final class TCSUP_CSV {
 				$changed = self::changed_fields( $existing, $data );
 				$data['estado_sincronizacion'] = $changed ? 'modificado' : (string) ( $existing['estado_sincronizacion'] ?? 'sin_cambios' );
 				$data['cambios_detectados']    = $changed ? implode( ',', $changed ) : '';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 				$result = $wpdb->update( $table, $data, array( 'id' => absint( $existing['id'] ) ) );
 				if ( false === $result ) {
 					$errors++;
@@ -827,6 +840,7 @@ final class TCSUP_CSV {
 				$data['modo_imagenes']         = 'external';
 				$data['primera_importacion']   = $now;
 				$data['creado']                = $now;
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 				$result = $wpdb->insert( $table, $data );
 				if ( false === $result ) {
 					$errors++;
@@ -857,7 +871,8 @@ final class TCSUP_CSV {
 	}
 
 	public static function handle_save_template() {
-		self::guard( 'tcsup_save_template' );
+		self::guard();
+		check_admin_referer( 'tcsup_save_template' );
 
 		$state = self::state();
 		$header = (array) ( $state['header'] ?? array() );
@@ -867,7 +882,10 @@ final class TCSUP_CSV {
 
 		$name     = isset( $_POST['template_name'] ) ? sanitize_text_field( wp_unslash( $_POST['template_name'] ) ) : '';
 		$provider = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
-		$mapping  = self::mapping_from_request( $header );
+		$posted_mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] )
+			? map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )
+			: array();
+		$mapping  = self::mapping_from_request( $header, $posted_mapping );
 		if ( ! self::save_mapping_template( $name, $provider, $mapping, $header ) ) {
 			self::redirect( array( 'tc_error' => 'template_name' ) );
 		}
@@ -876,7 +894,8 @@ final class TCSUP_CSV {
 	}
 
 	public static function handle_delete_template() {
-		self::guard( 'tcsup_delete_template' );
+		self::guard();
+		check_admin_referer( 'tcsup_delete_template' );
 		$id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : '';
 		if ( 0 === strpos( $id, 'custom_' ) ) {
 			$templates = get_option( self::TEMPLATE_OPTION, array() );

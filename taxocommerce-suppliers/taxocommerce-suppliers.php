@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Suppliers
  * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.2' );
+define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.3' );
 define( 'TAXOCOMMERCE_SUPPLIERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SUPPLIERS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );
@@ -87,12 +87,14 @@ function taxocommerce_suppliers_get_sources( $product_id ) {
 function taxocommerce_suppliers_get_external_images( $product_id ) {
 	global $wpdb;
 	$table = TCSUP_Schema::images_table();
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 	return $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT supplier,supplier_product_id,supplier_sku,product_id,catalog_row_id,image_url,position,is_primary
-			 FROM {$table}
+			 FROM %i
 			 WHERE product_id=%d AND status='active'
 			 ORDER BY is_primary DESC,position ASC,id ASC",
+			$table,
 			absint( $product_id )
 		),
 		ARRAY_A

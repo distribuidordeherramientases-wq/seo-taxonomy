@@ -7,6 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Stable TCSUP_ public class names are an existing namespace/API contract; renaming would break extensions.
 final class TCSUP_Admin {
 
 	const PAGE = 'taxocommerce-suppliers';
@@ -410,6 +411,7 @@ final class TCSUP_Admin {
 		$like   = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
 
 		$total = absint(
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 			$wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i
@@ -441,6 +443,7 @@ final class TCSUP_Admin {
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
@@ -741,8 +744,8 @@ final class TCSUP_Admin {
 	public static function handle_settings() {
 		self::guard();
 		check_admin_referer( 'tcsup_settings' );
-		$sale = isset( $_POST['sale_margin'] ) ? (float) wp_unslash( $_POST['sale_margin'] ) : 20;
-		$regular = isset( $_POST['regular_margin'] ) ? (float) wp_unslash( $_POST['regular_margin'] ) : 45;
+		$sale = isset( $_POST['sale_margin'] ) ? (float) sanitize_text_field( wp_unslash( $_POST['sale_margin'] ) ) : 20;
+		$regular = isset( $_POST['regular_margin'] ) ? (float) sanitize_text_field( wp_unslash( $_POST['regular_margin'] ) ) : 45;
 		$sale = max( -99, min( 1000, $sale ) );
 		$regular = max( $sale, min( 1000, $regular ) );
 		update_option( 'taxocommerce_suppliers_sale_margin', $sale, false );

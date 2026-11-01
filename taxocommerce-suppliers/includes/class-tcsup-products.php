@@ -7,17 +7,18 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Stable TCSUP_ public class names are an existing namespace/API contract; renaming would break extensions.
 final class TCSUP_Products {
 
-	private static function guard( $nonce_action ) {
+	private static function guard() {
 		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage supplier products.', 'taxocommerce-suppliers' ) );
 		}
-		check_admin_referer( $nonce_action );
 	}
 
 	public static function row( $id ) {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 		return $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE id=%d LIMIT 1',
@@ -69,8 +70,8 @@ final class TCSUP_Products {
 					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
 					'fields'         => 'ids',
 					'posts_per_page' => 1,
-					'meta_key'       => '_seo_proveedor_catalogo_id',
-					'meta_value'     => $catalog_id,
+					'meta_key'       => '_seo_proveedor_catalogo_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded exact supplier identity lookup; no unbounded meta scans.
+					'meta_value'     => $catalog_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Supplier identity lookup restricted to bounded product IDs.
 				)
 			);
 			if ( $posts ) {
@@ -87,8 +88,8 @@ final class TCSUP_Products {
 					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
 					'fields'         => 'ids',
 					'posts_per_page' => 20,
-					'meta_key'       => '_seo_proveedor_id_externo',
-					'meta_value'     => $external,
+					'meta_key'       => '_seo_proveedor_id_externo', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded exact supplier identity lookup; no unbounded meta scans.
+					'meta_value'     => $external, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Supplier identity lookup restricted to bounded product IDs.
 				)
 			);
 			foreach ( $posts as $candidate ) {
@@ -226,6 +227,7 @@ final class TCSUP_Products {
 	private static function acquire_acceptance_lock( $row ) {
 		global $wpdb;
 		$name = self::acceptance_lock_name( $row );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current MySQL supplier acceptance locks or inventory status must be read directly.
 		$locked = (int) $wpdb->get_var(
 			$wpdb->prepare( 'SELECT GET_LOCK(%s,%d)', $name, 10 )
 		);
@@ -239,6 +241,7 @@ final class TCSUP_Products {
 			return;
 		}
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current MySQL supplier acceptance locks or inventory status must be read directly.
 		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
 	}
 
@@ -385,6 +388,7 @@ final class TCSUP_Products {
 		}
 
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 		$wpdb->update(
 			TCSUP_Schema::catalog_table(),
 			array(
@@ -410,6 +414,7 @@ final class TCSUP_Products {
 			return false;
 		}
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 		return false !== $wpdb->update(
 			TCSUP_Schema::catalog_table(),
 			array(
@@ -443,12 +448,13 @@ final class TCSUP_Products {
 				$supplier,
 				$supplier_sku
 			);
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is fully prepared above.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query is fully prepared above.
 			$wpdb->query( $sql );
 			return;
 		}
 
 		if ( $catalog_row_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 			$wpdb->update(
 				$table,
 				array( 'status' => 'inactive', 'updated_at' => current_time( 'mysql' ) ),
@@ -476,6 +482,7 @@ final class TCSUP_Products {
 		foreach ( $urls as $position => $url ) {
 			$hash = hash( 'sha256', $url );
 			$existing_id = absint(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current MySQL supplier acceptance locks or inventory status must be read directly.
 				$wpdb->get_var(
 					$wpdb->prepare(
 						"SELECT id FROM %i WHERE supplier=%s AND supplier_sku=%s AND image_hash=%s LIMIT 1",
@@ -502,9 +509,11 @@ final class TCSUP_Products {
 				'updated_at'          => current_time( 'mysql' ),
 			);
 			if ( $existing_id ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 				$wpdb->update( $table, $data, array( 'id' => $existing_id ) );
 			} else {
 				$data['created_at'] = current_time( 'mysql' );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 				$wpdb->insert( $table, $data );
 			}
 			$count++;
@@ -514,7 +523,8 @@ final class TCSUP_Products {
 	}
 
 	public static function handle_row_action() {
-		self::guard( 'tcsup_row_action' );
+		self::guard();
+		check_admin_referer( 'tcsup_row_action' );
 		$id     = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
 		$action = isset( $_POST['supplier_action'] ) ? sanitize_key( wp_unslash( $_POST['supplier_action'] ) ) : '';
 		$result = true;
@@ -533,8 +543,9 @@ final class TCSUP_Products {
 	}
 
 	public static function handle_bulk_action() {
-		self::guard( 'tcsup_bulk_action' );
-		$ids = isset( $_POST['row_ids'] ) && is_array( $_POST['row_ids'] ) ? array_map( 'absint', $_POST['row_ids'] ) : array();
+		self::guard();
+		check_admin_referer( 'tcsup_bulk_action' );
+		$ids = isset( $_POST['row_ids'] ) && is_array( $_POST['row_ids'] ) ? array_map( 'absint', wp_unslash( $_POST['row_ids'] ) ) : array();
 		$action = isset( $_POST['bulk_supplier_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_supplier_action'] ) ) : '';
 
 		$row_action = isset( $_POST['row_action'] ) ? sanitize_text_field( wp_unslash( $_POST['row_action'] ) ) : '';
@@ -569,19 +580,21 @@ final class TCSUP_Products {
 	}
 
 	public static function handle_price_update() {
-		self::guard( 'tcsup_price_update' );
+		self::guard();
+		check_admin_referer( 'tcsup_price_update' );
 		$id = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
 		$row = self::row( $id );
 		if ( ! $row ) {
 			self::redirect( 'prices', array( 'tc_error' => 'missing' ) );
 		}
 
-		$without_tax = isset( $_POST['precio_sin_iva'] ) ? self::decimal( wp_unslash( $_POST['precio_sin_iva'] ) ) : null;
-		$with_tax    = isset( $_POST['precio_con_iva'] ) ? self::decimal( wp_unslash( $_POST['precio_con_iva'] ) ) : null;
-		$tax         = isset( $_POST['iva_porcentaje'] ) ? self::decimal( wp_unslash( $_POST['iva_porcentaje'] ) ) : null;
+		$without_tax = isset( $_POST['precio_sin_iva'] ) ? self::decimal( sanitize_text_field( wp_unslash( $_POST['precio_sin_iva'] ) ) ) : null;
+		$with_tax    = isset( $_POST['precio_con_iva'] ) ? self::decimal( sanitize_text_field( wp_unslash( $_POST['precio_con_iva'] ) ) ) : null;
+		$tax         = isset( $_POST['iva_porcentaje'] ) ? self::decimal( sanitize_text_field( wp_unslash( $_POST['iva_porcentaje'] ) ) ) : null;
 		$currency    = isset( $_POST['moneda'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['moneda'] ) ) ) : 'EUR';
 
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 		$wpdb->update(
 			TCSUP_Schema::catalog_table(),
 			array(
@@ -608,8 +621,8 @@ final class TCSUP_Products {
 
 		if ( $product_id && ! empty( $_POST['apply_woo'] ) && class_exists( 'WooCommerce' ) ) {
 			$product = wc_get_product( $product_id );
-			$regular = isset( $_POST['woo_regular'] ) ? self::decimal( wp_unslash( $_POST['woo_regular'] ) ) : null;
-			$sale    = isset( $_POST['woo_sale'] ) ? self::decimal( wp_unslash( $_POST['woo_sale'] ) ) : null;
+			$regular = isset( $_POST['woo_regular'] ) ? self::decimal( sanitize_text_field( wp_unslash( $_POST['woo_regular'] ) ) ) : null;
+			$sale    = isset( $_POST['woo_sale'] ) ? self::decimal( sanitize_text_field( wp_unslash( $_POST['woo_sale'] ) ) ) : null;
 			if ( $product ) {
 				if ( null !== $regular ) {
 					$product->set_regular_price( wc_format_decimal( $regular ) );
@@ -630,7 +643,8 @@ final class TCSUP_Products {
 	}
 
 	public static function handle_images_update() {
-		self::guard( 'tcsup_images_update' );
+		self::guard();
+		check_admin_referer( 'tcsup_images_update' );
 		$id = isset( $_POST['row_id'] ) ? absint( $_POST['row_id'] ) : 0;
 		$row = self::row( $id );
 		if ( ! $row ) {
@@ -641,10 +655,11 @@ final class TCSUP_Products {
 		if ( ! in_array( $mode, array( 'external', 'local', 'inherit' ), true ) ) {
 			$mode = 'external';
 		}
-		$urls = isset( $_POST['image_urls'] ) ? TCSUP_CSV::image_urls( wp_unslash( $_POST['image_urls'] ) ) : array();
+		$urls = isset( $_POST['image_urls'] ) ? TCSUP_CSV::image_urls( sanitize_textarea_field( wp_unslash( $_POST['image_urls'] ) ) ) : array();
 		$encoded = $urls ? wp_json_encode( $urls, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) : '';
 
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Synchronous write to Suppliers-owned inventory/lock state; caching writes is not applicable.
 		$wpdb->update(
 			TCSUP_Schema::catalog_table(),
 			array(
@@ -668,6 +683,7 @@ final class TCSUP_Products {
 
 	public static function sources_for_product( $product_id ) {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current supplier inventory/schema for this admin operation; stale cache would misreport changes.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE object_id=%d AND estado_seleccion IN (%s,%s,%s) ORDER BY actualizado DESC,id DESC',
