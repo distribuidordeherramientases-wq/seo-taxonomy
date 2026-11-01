@@ -643,8 +643,7 @@ function tcsocial_programador_render_admin()
             global $wpdb;
             $pub_table = function_exists('tcsocial_network_publications_table') ? tcsocial_network_publications_table() : '';
             if ($pub_table !== '') {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- URL de publicacion desde tabla propia, preparada con %i/%d; evitar datos de publicacion obsoletos.
-                $remote_url = $wpdb->get_var($wpdb->prepare('SELECT remote_url FROM %i WHERE id = %d', $pub_table, absint($job->publication_id))); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $remote_url = $wpdb->get_var($wpdb->prepare('SELECT remote_url FROM %i WHERE id = %d', $pub_table, absint($job->publication_id))); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta de URL actual en tabla propia, con identificador y valor preparados; no procede cache.
                 if ($remote_url) {
                     echo '<br><a href="' . esc_url($remote_url) . '" target="_blank" rel="noopener noreferrer">Ver publicacion</a>';
                 }
