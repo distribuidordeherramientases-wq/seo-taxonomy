@@ -12,6 +12,7 @@
 * Anotadas individualmente las consultas directas necesarias para verificar estados actuales del servidor y las operaciones sincronizadas del programador; no se introduce caché que altere los diagnósticos.
 * Documentadas las consultas preparadas con fragmentos SQL de lista generados a partir de estructuras internas y datos vinculados por `$wpdb->prepare()`, sin omitir el chequeo de seguridad para SQL no validado.
 
+* Seguridad SQL: las consultas de estadísticas de `wp_options` en Server Status preparan el identificador mediante `%i`, conservando los cálculos y filtros.
 * Seguridad SQL: preparados con `%i` los identificadores de las ocho consultas `EXPLAIN` de `seo_system_mysql_audit_explain_plans()`; se mantienen el nombre canónico de cada tabla, los filtros y los índices inspeccionados.
 * Endurecidas las entradas `tcs_task`, `tcs_filter`, `tcs_search` y `tcs_paged` contra parámetros GET/POST no escalares, sin cambiar las acciones válidas ni las rutas.
 * Nueva prueba CLI de contratos SQL y entradas y matriz de CI PHP 7.4/8.4; ZIP sin archivos `tests/` ni archivos ocultos como antes.
