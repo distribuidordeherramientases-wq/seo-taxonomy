@@ -10,6 +10,7 @@
 * Las consultas de diagnóstico de estado actual conservan resultados en tiempo real. Las excepciones a avisos de acceso directo/caché se acotan a las operaciones concretas y se justifican, sin ocultar alertas de seguridad generales.
 * Verificada la procedencia de listas de parámetros SQL variables: enlaces de imágenes y escaneos usan plantillas de cláusulas e identificadores restringidas, con cada dato enlazado mediante `$wpdb->prepare()`; no se introducen datos SQL arbitrarios.
 * Justificadas localmente las lecturas sin caché que comprueban el estado actual de datos; se conservan los mensajes de error y la respuesta de las comprobaciones.
+* Ajustada la ubicación de las excepciones PHPCS a instrucciones individuales, evitando modificar el comportamiento de los avisos del resto de consultas del archivo.
 * Actualizados los tests y el empaquetado; no se cambian las API históricas `seo_*`, las tablas ni el monolítico.
 * PR y chequeo WordPress.org requeridos antes de desplegar; PRODUCCIÓN no incluida.
 
