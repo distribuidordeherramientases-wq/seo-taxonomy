@@ -257,7 +257,8 @@ final class TaxoCommerce_Templates {
             wp_die(esc_html__('Acceso denegado.', 'taxocommerce-templates'));
         }
         check_admin_referer('tct_settings');
-        $enabled = isset($_POST['enable']) && '1' === (string) wp_unslash($_POST['enable']);
+        $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
+            '1' === wp_unslash($_POST['enable']);
         update_option(self::ENABLE_OPTION, $enabled ? 1 : 0, false);
         self::redirect($enabled
             ? 'Políticas de TaxoCommerce Templates activadas.'
