@@ -46,6 +46,6 @@ tcsup_assert( false !== strpos( $main, " FROM %i" ), 'supplier image identifiers
 tcsup_assert( false === strpos( $main, 'FROM {$table}' ), 'no unprepared image table names' );
 tcsup_assert( false !== strpos( $csv, "check_admin_referer( 'tcsup_import_csv' )" ), 'CSV import must verify nonce in handler' );
 tcsup_assert( false !== strpos( $products, "check_admin_referer( 'tcsup_price_update' )" ), 'price edits must verify nonce in handler' );
-tcsup_assert( false !== strpos( $products, "sanitize_textarea_field( wp_unslash( $_POST['image_urls'] ) )" ), 'image URLs must be sanitized' );
-tcsup_assert( false !== strpos( $csv, "map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )" ), 'CSV mapping must be sanitized' );
+tcsup_assert( false !== strpos( $products, "sanitize_textarea_field( wp_unslash( \$_POST['image_urls'] ) )" ), 'image URLs must be sanitized' );
+tcsup_assert( false !== strpos( $csv, "map_deep( wp_unslash( \$_POST['mapping'] ), 'sanitize_text_field' )" ), 'CSV mapping must be sanitized' );
 echo "OK\n";
