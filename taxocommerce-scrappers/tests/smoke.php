@@ -27,6 +27,7 @@ $posts = file_get_contents( $root . '/includes/ingeniero/class-seo-ingeniero-pos
 $method_pos = strpos( $posts, 'private static function assign_category_vocabulary(' );
 $vocabulary_sql = false !== $method_pos ? substr( $posts, $method_pos, 1800 ) : '';
 $db = file_get_contents( $root . '/includes/ingeniero/class-seo-ingeniero-db.php' );
+$ojeador_db = file_get_contents( $root . '/includes/ojeador/class-ojeador-db.php' );
 $manual = file_get_contents( $root . '/includes/class-taxocommerce-scrappers-manual.php' );
 $analysis = file_get_contents( $root . '/includes/ojeador/class-ojeador-analysis.php' );
 $checks = array(
@@ -44,6 +45,9 @@ $checks = array(
     strpos( $ojeador, "'tcs_tab'=>'ojeador'" ) !== false,
     strpos( $engineer, "'tcs_tab' => 'ingeniero'" ) !== false,
     strpos( $db, 'SELECT id FROM %i WHERE term_id=%d' ) !== false,
+    strpos( $ojeador_db, 'UPDATE %i SET status=' ) !== false,
+    strpos( $ojeador_db, 'UPDATE {$runs} SET status=' ) === false,
+    strpos( $db, 'array_merge(array($table), $ids)' ) !== false,
     // The sixth PRO error was an unescaped SQL table name in this exact method.
     strpos( $vocabulary_sql, '$wpdb->prepare(' ) !== false,
     strpos( $vocabulary_sql, 'FROM %i ov' ) !== false,
