@@ -235,16 +235,16 @@ function tcdist_feed_render_admin() {
     $supervisor_settings = function_exists( 'tcdist_process_settings' ) ? tcdist_process_settings() : [];
     $manager_enabled = ! empty( $supervisor_settings['enabled'] ) && ! empty( $supervisor_settings['commercial_feeds'] );
 
-    if ( isset( $_GET['cf_saved'] ) ) {
+    if ( isset( $_GET['cf_saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
         echo '<div class="notice notice-success inline"><p>Settings saved.</p></div>';
     }
-    if ( isset( $_GET['cf_started'] ) ) {
+    if ( isset( $_GET['cf_started'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
         echo '<div class="notice notice-info inline"><p>Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load.</p></div>';
     }
-    if ( isset( $_GET['cf_stopped'] ) ) {
+    if ( isset( $_GET['cf_stopped'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
         echo '<div class="notice notice-warning inline"><p>Generation stopped by the user. No partial file was published.</p></div>';
     }
-    if ( isset( $_GET['cf_error'] ) ) {
+    if ( isset( $_GET['cf_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
         echo '<div class="notice notice-error inline"><p>' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['cf_error'] ) ) ) ) . '</p></div>';
     }
 
