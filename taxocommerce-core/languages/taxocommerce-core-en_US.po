@@ -1472,7 +1472,7 @@ msgid "Selecciona el país del menú."
 msgstr "Select the menu's country."
 
 msgid "Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente."
-msgstr ""
+msgstr "Select the country, assign SEO roles to pages and review relationships between levels. Save changes in a controlled way. Content must not be linked to content from another country."
 
 msgid "Selecciona primero un atributo global."
 msgstr "Select a global attribute first."
@@ -1481,10 +1481,10 @@ msgid "Selecciona Productos, Categorías de producto, Posts o Páginas."
 msgstr "Select Products, Product categories, Posts or Pages."
 
 msgid "Selecciona una ubicación del tema y pulsa Activar en esta ubicación si deseas mostrarlo en la web."
-msgstr ""
+msgstr "Select a theme location and click Activate in this location if you want to display the menu on the website."
 
 msgid "Selecciona únicamente categorías que correspondan de verdad al producto; registra atributos técnicos precisos sin inventar valores."
-msgstr ""
+msgstr "Select only categories that genuinely fit the product; record precise technical attributes without inventing values."
 
 msgid "Seleccionar destino"
 msgstr "Select destination"
@@ -1514,13 +1514,13 @@ msgid "Sí"
 msgstr "Yes"
 
 msgid "Si el artículo apenas repite otra URL, amplía el contenido original o fusiónalo en lugar de publicar un duplicado."
-msgstr ""
+msgstr "If an article barely repeats another URL, expand its original content or merge it instead of publishing a duplicate."
 
 msgid "Si la web publica datos estructurados Product/Offer o Merchant Center, deben concordar con los datos visibles y las condiciones reales de compra."
-msgstr ""
+msgstr "If the website publishes Product/Offer structured data or Merchant Center information, it must match visible data and actual purchase terms."
 
 msgid "Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager."
-msgstr ""
+msgstr "If you plan to organize navigation by topic, configure SEO Hierarchy first and then Menu Manager."
 
 msgid "Siguiente"
 msgstr "Next"
@@ -1595,10 +1595,10 @@ msgid "TaxoCommerce Core"
 msgstr ""
 
 msgid "TaxoCommerce Core coordina la edición de contenidos, los roles y las relaciones SEO, los menús nativos y la gestión de extensiones. Los módulos independientes, como Database, Images o Suppliers, conservan su propia lógica y su ciclo de vida."
-msgstr ""
+msgstr "TaxoCommerce Core coordinates content editing, SEO roles and relationships, native menus and extension management. Standalone modules such as Database, Images and Suppliers retain their own logic and lifecycle."
 
 msgid "TaxoCommerce Core organiza los contenidos, la estructura SEO y los menús de una tienda WordPress con WooCommerce. También muestra los módulos de la familia TaxoCommerce que puedes gestionar por separado."
-msgstr ""
+msgstr "TaxoCommerce Core organizes the content, SEO structure and menus of a WordPress/WooCommerce store. It also displays separately managed modules in the TaxoCommerce family."
 
 msgid "TaxoCommerce SEO actual"
 msgstr "Current TaxoCommerce SEO"
@@ -1607,7 +1607,7 @@ msgid "TaxoCommerce Vocabulary"
 msgstr "TaxoCommerce Vocabulary"
 
 msgid "TaxoCommerce_Core_Logger guarda entradas de nivel info, warning y error en la opción taxocommerce_core_log_entries. El límite configurable se restringe entre 20 y 500 entradas para evitar un crecimiento indefinido."
-msgstr ""
+msgstr "TaxoCommerce_Core_Logger stores info, warning and error entries in the taxocommerce_core_log_entries option. The configurable limit is restricted to 20–500 entries to prevent unlimited growth."
 
 msgid "Taxonomía no admitida."
 msgstr "Unsupported taxonomy."
@@ -1658,7 +1658,7 @@ msgid "Títulos de resultados"
 msgstr "Search result titles"
 
 msgid "Todavía no hay elementos guardados. Añade elementos a la izquierda o crea el menú desde la jerarquía."
-msgstr ""
+msgstr "No items have been saved yet. Add items on the left or create the menu from the hierarchy."
 
 msgid "Todavía no hay páginas con rol Cluster."
 msgstr "No pages with the Cluster role yet."
@@ -1670,31 +1670,31 @@ msgid "Todos los roles"
 msgstr "All roles"
 
 msgid "Trabaja sobre los productos, páginas, entradas y categorías reales de WordPress y WooCommerce: no crea una segunda copia independiente de tu catálogo."
-msgstr ""
+msgstr "Core works with real WordPress and WooCommerce products, pages, posts and categories; it does not create a second independent copy of your catalog."
 
 msgid "Trabaja sobre una rama de Git y modifica solo los archivos del plugin afectados. Ajusta la versión declarada en la cabecera y en TAXOCOMMERCE_CORE_VERSION."
-msgstr ""
+msgstr "Work on a Git branch and change only the affected plugin files. Update the declared version in the header and TAXOCOMMERCE_CORE_VERSION."
 
 msgid "Ubicación en el tema"
 msgstr "Theme location"
 
 msgid "Una entrada debe resolver una duda, enseñar a usar algo, comparar con criterio o informar de una novedad comprobada."
-msgstr ""
+msgstr "A post should answer a question, teach something, provide an informed comparison or report a verified development."
 
 msgid "Una extensión no instalada no añade automáticamente sus funciones a Core. Antes de instalar o activar un ZIP, comprueba que corresponda al plugin indicado y que sea compatible con tu instalación."
-msgstr ""
+msgstr "An uninstalled extension does not automatically add features to Core. Before installing or activating a ZIP, check that it matches the specified plugin and is compatible with your installation."
 
 msgid "uninstall.php elimina únicamente algunas opciones propias de Core. No borra el contenido canónico de WordPress o WooCommerce ni elimina por defecto las tablas seo_nodes y seo_relations. Haz copias de seguridad verificadas antes de migraciones o mantenimientos estructurales."
-msgstr ""
+msgstr "uninstall.php removes only certain Core options. It does not delete canonical WordPress or WooCommerce content or remove seo_nodes and seo_relations tables by default. Make verified backups before migrations or structural maintenance."
 
 msgid "Unknown TaxoCommerce extension."
 msgstr ""
 
 msgid "Usa español claro, frases y párrafos breves, términos que emplearía un comprador no experto y encabezados que expliquen el contenido."
-msgstr ""
+msgstr "Use clear Spanish, short sentences and paragraphs, terms familiar to non-expert buyers and headings that explain the content."
 
 msgid "Usa los apartados que realmente hacen falta, con encabezados descriptivos; atribuye las afirmaciones importantes a fuentes comprobables cuando corresponda."
-msgstr ""
+msgstr "Use only the sections truly needed, with descriptive headings; attribute important claims to verifiable sources when appropriate."
 
 msgid "User Guide"
 msgstr ""
@@ -1706,7 +1706,7 @@ msgid "Uso"
 msgstr "Usage"
 
 msgid "Utiliza extracto y metadescripción para resumir de forma fiel el contenido. No son el mismo campo: la metadescripción se configura donde el sitio gestione sus metadatos SEO."
-msgstr ""
+msgstr "Use excerpts and meta descriptions to summarize the content accurately. They are separate fields: meta descriptions are configured wherever the site manages SEO metadata."
 
 msgid "Utilizar imagen"
 msgstr "Use image"
@@ -1727,10 +1727,10 @@ msgid "Ver todo"
 msgstr "View all"
 
 msgid "Verde significa que pasó la comprobación indicada. Gris significa no aplicable o no ejecutado. Los resultados basados en muestras no sustituyen una auditoría completa ni las UAT de escritura en staging."
-msgstr ""
+msgstr "Green means the specified check passed. Grey means not applicable or not run. Sample-based results do not replace a full audit or write acceptance tests in staging."
 
 msgid "Verifica cada especificación, compatibilidad, norma, prestación, precio y promesa comercial. Si no hay evidencia, no lo afirmes."
-msgstr ""
+msgstr "Verify every specification, compatibility claim, standard, feature, price and commercial promise. If there is no evidence, do not claim it."
 
 msgid "Versión"
 msgstr "Version"
@@ -1757,7 +1757,7 @@ msgid "WooCommerce"
 msgstr ""
 
 msgid "WooCommerce es necesario para las funciones relativas a productos y categorías de producto, pero no para arrancar el núcleo de Core."
-msgstr ""
+msgstr "WooCommerce is required for product and product-category features, but not for the Core foundation to start."
 
 msgid "WooCommerce order weights, dimensions, and shipping-cost rules."
 msgstr ""
