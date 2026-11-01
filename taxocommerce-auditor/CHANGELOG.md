@@ -13,6 +13,7 @@ Sin novedades pendientes documentadas.
 * Confirmado el escape de errores de términos, `suppress_filters=false`, validación y saneamiento de los tres filtros `POST`, y el máximo de cinco etiquetas del `readme.txt`.
 * Documentados con excepciones PHPCS específicas y justificadas los dos filtros `tax_query`: lotes de hasta 40 IDs por cursor y muestra exacta de hasta 201 IDs solo para categorías de como máximo 200 productos. Se mantienen filtros, límites, prioridades, contenido y solo lectura.
 * Añadidas pruebas de regresión del código distribuible para impedir reintroducir los ocho hallazgos, sin modificar el monolito ni desplegar PRO. Referencias: Issue #2011.
+* Revisadas las 11 consultas directas preparadas a las tablas canónicas de FAQs/Comparador/Dependiente/Suppliers; se justifican puntualmente los avisos DirectQuery/NoCaching donde la lectura debe ser fresca y no existe API de datos WordPress equivalente. Sin caches persistentes ni cambios en consultas. Issue #2021.
 
 
 ## [0.3.2]
