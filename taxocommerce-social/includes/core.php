@@ -27,8 +27,7 @@ function tcsocial_network_query_arg($key, $default = '')
         return $default;
     }
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegación, avisos y referencias firmadas de solo lectura.
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Solo lectura: el valor bruto es saneado por el llamador según su tipo y nunca modifica estado.
     return wp_unslash($_GET[$key]);
 }
 
@@ -500,13 +499,14 @@ function tcsocial_network_capture_visit()
     $table = esc_sql( tcsocial_network_publications_table() );
     $updated = $wpdb->query(
         $wpdb->prepare(
-            "UPDATE {$table}
+            "UPDATE %i
              SET clicks = clicks + 1,
                  last_click_at = %s,
                  updated_at = %s
              WHERE id = %d
                AND content_id = %d
                AND status = 'published'",
+            $table,
             current_time('mysql'),
             current_time('mysql'),
             $publication_id,
@@ -517,7 +517,8 @@ function tcsocial_network_capture_visit()
     if ($updated) {
         $publication = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE id = %d LIMIT 1",
+                "SELECT * FROM %i WHERE id = %d LIMIT 1",
+                $table,
                 $publication_id
             )
         );
@@ -804,9 +805,10 @@ function tcsocial_network_get_latest_publication($content_id, $provider)
 
     return $wpdb->get_row(
         $wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE content_id = %d AND provider = %s
              ORDER BY id DESC LIMIT 1",
+            $table,
             absint($content_id),
             sanitize_key($provider)
         )
@@ -1479,10 +1481,8 @@ function tcsocial_network_handle_save_connection()
     $current = isset($settings['providers'][$provider_key]) && is_array($settings['providers'][$provider_key])
         ? $settings['providers'][$provider_key]
         : array();
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; each provider applies its dedicated sanitize_connection_callback, including secrets/tokens.
-    $posted = isset($_POST['connection']) && is_array($_POST['connection'])
-        ? wp_unslash($_POST['connection'])
-        : array();
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verificado antes; cada proveedor sanea sus credenciales mediante sanitize_connection_callback sin alterar tokens opacos.
+    $posted = isset($_POST['connection']) && is_array($_POST['connection']) ? wp_unslash($_POST['connection']) : array();
 
     $sanitized = call_user_func($provider['sanitize_connection_callback'], $posted, $current);
     if (is_wp_error($sanitized)) {
@@ -1833,11 +1833,12 @@ function tcsocial_network_scheduler_exportable_history_rows()
     global $wpdb;
     $table = esc_sql( tcsocial_network_publications_table() );
     $rows = $wpdb->get_results(
-        "SELECT sp.*, p.post_title
-         FROM {$table} sp
-         LEFT JOIN {$wpdb->posts} p ON p.ID = sp.content_id
-         ORDER BY sp.id DESC"
-    ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $wpdb->prepare(
+            'SELECT sp.*, p.post_title FROM %i sp LEFT JOIN %i p ON p.ID = sp.content_id ORDER BY sp.id DESC',
+            $table,
+            $wpdb->posts
+        )
+    );
 
     $result = array();
     foreach ((array) $rows as $row) {
@@ -2513,9 +2514,10 @@ function tcsocial_network_handle_sync_reports()
     $table = esc_sql( tcsocial_network_publications_table() );
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE provider = %s AND status = 'published' AND remote_id <> ''
              ORDER BY id DESC LIMIT 25",
+            $table,
             $provider_key
         )
     );
@@ -3095,7 +3097,8 @@ function tcsocial_network_render_reports()
             COALESCE(SUM(reactions),0) AS reactions,
             COALESCE(SUM(comments),0) AS comments,
             COALESCE(SUM(shares),0) AS shares
-         FROM {$table}"
+         FROM %i",
+        $table
     );
 
     echo '<div class="seo-social-metrics">';
@@ -3128,11 +3131,11 @@ function tcsocial_network_render_reports()
     echo '<p class="seo-social-code-note">La metrica <strong>Visitas a la web</strong> no depende de Facebook: se incrementa cuando alguien entra mediante el enlace social firmado. Esto permite comparar que publicaciones traen trafico real al sitio.</p>';
 
     $rows = $wpdb->get_results(
-        "SELECT sp.*, p.post_title
-         FROM {$table} sp
-         LEFT JOIN {$wpdb->posts} p ON p.ID = sp.content_id
-         ORDER BY sp.id DESC
-         LIMIT 100"
+        $wpdb->prepare(
+            'SELECT sp.*, p.post_title FROM %i sp LEFT JOIN %i p ON p.ID = sp.content_id ORDER BY sp.id DESC LIMIT 100',
+            $table,
+            $wpdb->posts
+        )
     );
 
     echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Red</th><th>Estado</th><th>Fecha</th><th>Visitas web</th><th>Reacciones</th><th>Comentarios</th><th>Compartidos</th><th>Enlace</th></tr></thead><tbody>';
