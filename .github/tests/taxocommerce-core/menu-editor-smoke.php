@@ -117,9 +117,10 @@ verify(strpos($loaded,'name="tc_menu_id" value="'.$existing_id.'"')!==false,'men
 verify(strpos($loaded,'name="item_title"')!==false,'loaded native menu item editable');
 verify($GLOBALS['options']['taxocommerce_core_menu_id']===$es_id,'country managed mapping unchanged after loading foreign menu');
 $_POST=array('tc_country'=>'ES','tc_menu_id'=>(string)$existing_id);
+$managed_item_count=count(wp_get_nav_menu_items($es_id));
 verify(TaxoCommerce_Core_Menu_Editor::target_menu_id()===$existing_id,'native target selected by POST');
 verify(TaxoCommerce_Core_Menu_Editor::add_link('Nuevo enlace','https://example.test/nuevo')>0,'add to selected existing menu');
-verify(count(wp_get_nav_menu_items($es_id))===1,'native edit does not add to country managed menu');
+verify(count(wp_get_nav_menu_items($es_id))===$managed_item_count,'native edit does not add to country managed menu');
 verify(TaxoCommerce_Core_Menu_Editor::edit_item($external_child,'Contacto actualizado','https://example.test/contacto-nuevo',0,1)===$external_child,'edit existing WordPress menu title, URL, parent and position');
 verify($GLOBALS['items'][$external_child]->title==='Contacto actualizado','native title updated');
 verify($GLOBALS['items'][$external_child]->menu_item_parent===0,'native hierarchy updated');
