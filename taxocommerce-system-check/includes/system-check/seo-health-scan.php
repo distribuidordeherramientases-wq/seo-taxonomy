@@ -712,9 +712,13 @@ if (!function_exists('seo_health_scan_launch')) {
             $id_placeholders = implode(',', array_fill(0, count($ids), '%d'));
             $queue_params = array_merge(array($tables['items'], $run_id, $now), $ids);
             // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d placeholders and canonical table %i are inserted; all values are bound.
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated ID list is accompanied by the same number of integer arguments.
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write reserves pending scan items; caching is not applicable.
             $queued = $wpdb->query(
                 $wpdb->prepare('UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN (' . $id_placeholders . ')', $queue_params)
             );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
 
@@ -1356,6 +1360,9 @@ if (!function_exists('seo_health_render_scope_tab')) {
         }
         $where_sql = implode(' AND ', $where);
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only allowlisted WHERE fragments assembled above; identifiers/values are bound.
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic, fixed-filter clause lists have matching arguments from $params.
+        // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- WHERE templates contain only fixed local clauses; values are bound with prepare().
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live status/URL diagnostics must show current scan results.
         $total_rows = (int) $wpdb->get_var(
             $wpdb->prepare('SELECT COUNT(*) FROM %i WHERE ' . $where_sql, array_merge(array($table), $params))
         );
@@ -1367,6 +1374,9 @@ if (!function_exists('seo_health_render_scope_tab')) {
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
         echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Estado por elemento</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
