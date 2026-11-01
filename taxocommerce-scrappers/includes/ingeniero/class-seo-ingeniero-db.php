@@ -34,6 +34,7 @@ final class SEO_Ingeniero_DB {
         global $wpdb;
         foreach (array('sources','knowledge','editorial') as $name) {
             $table = self::table($name);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
             if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
                 return false;
             }
@@ -146,10 +147,13 @@ final class SEO_Ingeniero_DB {
         $sources = esc_sql( self::table('sources') );
         $knowledge = esc_sql( self::table('knowledge') );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         $legacy_sources_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_sources)) === $legacy_sources;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         $legacy_knowledge_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $legacy_knowledge)) === $legacy_knowledge;
 
         if ($legacy_sources_exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
             $wpdb->query($wpdb->prepare("INSERT IGNORE INTO %i
                 (id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at)
                 SELECT id,term_id,lesson,url,url_hash,domain,title,source_type,trust_level,published_at,retrieved_at,http_status,content_hash,status,metadata_json,created_at,updated_at
@@ -158,6 +162,7 @@ final class SEO_Ingeniero_DB {
         }
 
         if ($legacy_knowledge_exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
             $wpdb->query($wpdb->prepare("INSERT IGNORE INTO %i
                 (id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at)
                 SELECT id,term_id,lesson,knowledge_type,concept,summary,facts_json,tags_json,source_ids_json,confidence,status,created_at,updated_at
@@ -199,6 +204,7 @@ final class SEO_Ingeniero_DB {
         }
 
         $url_hash = hash('sha256', strtolower($url));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE term_id=%d AND lesson=%s AND url_hash=%s LIMIT 1", $table,
             $term_id,
             $lesson,
@@ -224,11 +230,13 @@ final class SEO_Ingeniero_DB {
         );
 
         if ($existing) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
             $ok = $wpdb->update($table, $row, array('id'=>$existing));
             return false === $ok ? new WP_Error('ingeniero_source_update', $wpdb->last_error ?: 'No se pudo actualizar la fuente.') : $existing;
         }
 
         $row['created_at'] = gmdate('Y-m-d H:i:s');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $ok = $wpdb->insert($table, $row);
         return false === $ok ? new WP_Error('ingeniero_source_insert', $wpdb->last_error ?: 'No se pudo guardar la fuente.') : absint($wpdb->insert_id);
     }
@@ -243,6 +251,7 @@ final class SEO_Ingeniero_DB {
             return new WP_Error('ingeniero_knowledge_invalid', 'El conocimiento no tiene categoría o tipo válido.');
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing = absint($wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE term_id=%d AND lesson=%s AND knowledge_type=%s LIMIT 1", $table,
             $term_id,
             $lesson,
@@ -264,11 +273,13 @@ final class SEO_Ingeniero_DB {
         );
 
         if ($existing) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
             $ok = $wpdb->update($table, $row, array('id'=>$existing));
             return false === $ok ? new WP_Error('ingeniero_knowledge_update', $wpdb->last_error ?: 'No se pudo actualizar el conocimiento.') : $existing;
         }
 
         $row['created_at'] = gmdate('Y-m-d H:i:s');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $ok = $wpdb->insert($table, $row);
         return false === $ok ? new WP_Error('ingeniero_knowledge_insert', $wpdb->last_error ?: 'No se pudo guardar el conocimiento.') : absint($wpdb->insert_id);
     }
@@ -276,6 +287,7 @@ final class SEO_Ingeniero_DB {
     public static function sources_for_category($term_id, $lesson = 'l1_technical') {
         global $wpdb;
         $table = esc_sql( self::table('sources') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return (array) $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY trust_level ASC,id DESC", $table,
             absint($term_id),
             sanitize_key($lesson)
@@ -288,6 +300,7 @@ final class SEO_Ingeniero_DB {
         $term_id = absint($term_id);
         $lesson = sanitize_key($lesson);
         if ($only_active) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status='active' ORDER BY knowledge_type ASC", $table,
                     $term_id,
@@ -296,6 +309,7 @@ final class SEO_Ingeniero_DB {
                 ARRAY_A
             );
         } else {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $rows = (array) $wpdb->get_results(
                 $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND lesson=%s AND status<>'superseded' ORDER BY knowledge_type ASC", $table,
                     $term_id,
@@ -321,6 +335,7 @@ final class SEO_Ingeniero_DB {
         if (!in_array($status, $allowed, true)) {
             return new WP_Error('ingeniero_review_status', 'Estado de revisión no válido.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $ok = $wpdb->update(
             self::table('knowledge'),
             array('status'=>$status,'updated_at'=>gmdate('Y-m-d H:i:s')),
@@ -338,6 +353,7 @@ final class SEO_Ingeniero_DB {
         }
 
         $table = esc_sql( self::table('knowledge') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $updated = $wpdb->query($wpdb->prepare("UPDATE %i
              SET status='active', updated_at=%s
              WHERE term_id=%d AND lesson=%s AND status='review'", $table,
@@ -356,6 +372,7 @@ final class SEO_Ingeniero_DB {
         $lesson = sanitize_key((string) $lesson);
         $table = esc_sql( self::table('knowledge') );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $term_ids = array_values(array_filter(array_map('absint', (array) $wpdb->get_col($wpdb->prepare("SELECT DISTINCT term_id
              FROM %i
              WHERE lesson=%s AND status='review'
@@ -371,6 +388,7 @@ final class SEO_Ingeniero_DB {
             );
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $updated = $wpdb->query($wpdb->prepare("UPDATE %i
              SET status='active', updated_at=%s
              WHERE lesson=%s AND status='review'", $table,
@@ -391,7 +409,9 @@ final class SEO_Ingeniero_DB {
     public static function supersede_category($term_id, $lesson = 'l1_technical') {
         global $wpdb;
         $where = array('term_id'=>absint($term_id),'lesson'=>sanitize_key($lesson));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $wpdb->update(self::table('sources'), array('status'=>'superseded','updated_at'=>gmdate('Y-m-d H:i:s')), $where);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $wpdb->update(self::table('knowledge'), array('status'=>'superseded','updated_at'=>gmdate('Y-m-d H:i:s')), $where);
     }
 
@@ -402,6 +422,7 @@ final class SEO_Ingeniero_DB {
         $knowledge = esc_sql( self::table('knowledge') );
         $out = array();
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $source_rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,COUNT(*) total FROM %i WHERE lesson=%s AND status<>'superseded' GROUP BY term_id", $sources,
             $lesson
         ), ARRAY_A);
@@ -409,6 +430,7 @@ final class SEO_Ingeniero_DB {
             $out[absint($row['term_id'])]['sources'] = absint($row['total']);
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $knowledge_rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,COUNT(*) total,AVG(confidence) avg_confidence,SUM(status='active') active_total,SUM(status='review') review_total
              FROM %i
              WHERE lesson=%s AND status<>'superseded'
@@ -431,6 +453,7 @@ final class SEO_Ingeniero_DB {
         $sources = esc_sql( self::table('sources') );
         $knowledge = esc_sql( self::table('knowledge') );
         return array(
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             'sources' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status<>'superseded'", $sources, $lesson))),
             'knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status<>'superseded'", $knowledge, $lesson))),
             'active_knowledge' => absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE lesson=%s AND status='active'", $knowledge, $lesson))),
@@ -447,19 +470,24 @@ final class SEO_Ingeniero_DB {
         $editorial_table = esc_sql( self::table('editorial') );
 
         if ($term_id) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $src = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND status<>'superseded' ORDER BY id ASC", $sources,
                 $term_id
             ),ARRAY_A);
             $kn = self::knowledge_for_category($term_id,false);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $ed = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d ORDER BY id ASC", $editorial_table,
                 $term_id
             ),ARRAY_A);
         } else {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $src = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,id ASC", $sources ),ARRAY_A);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $kn = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC", $knowledge ),ARRAY_A);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $ed = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY term_id,id ASC", $editorial_table ),ARRAY_A);
         }
 
@@ -560,6 +588,7 @@ final class SEO_Ingeniero_DB {
             return new WP_Error('ingeniero_editorial_invalid', 'El dossier editorial no tiene categoría o topic_key válido.');
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing = $wpdb->get_row(
             $wpdb->prepare("SELECT id,source_hash,status,post_id FROM %i WHERE term_id=%d AND topic_key=%s LIMIT 1", $table,
                 $term_id,
@@ -612,11 +641,13 @@ final class SEO_Ingeniero_DB {
         );
 
         if ($existing) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
             $ok = $wpdb->update($table, $row, array('id'=>absint($existing['id'])));
             return false === $ok ? new WP_Error('ingeniero_editorial_update', $wpdb->last_error ?: 'No se pudo actualizar el dossier editorial.') : absint($existing['id']);
         }
 
         $row['created_at'] = gmdate('Y-m-d H:i:s');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         $ok = $wpdb->insert($table, $row);
         return false === $ok ? new WP_Error('ingeniero_editorial_insert', $wpdb->last_error ?: 'No se pudo crear el dossier editorial.') : absint($wpdb->insert_id);
     }
@@ -624,6 +655,7 @@ final class SEO_Ingeniero_DB {
     public static function editorial_get($id) {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE id=%d LIMIT 1", $table, absint($id)), ARRAY_A);
         return $row ? self::hydrate_editorial($row) : array();
     }
@@ -631,6 +663,7 @@ final class SEO_Ingeniero_DB {
     public static function editorial_get_by_topic($term_id, $topic_key) {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $row = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND topic_key=%s LIMIT 1", $table,
                 absint($term_id),
@@ -679,6 +712,7 @@ final class SEO_Ingeniero_DB {
         $action_filter = strtoupper(sanitize_key((string) ($args['action'] ?? '')));
         $term_filter = absint($args['term_id'] ?? 0);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $total = absint($wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM %i
                  WHERE (%s='' OR status=%s)
@@ -693,6 +727,7 @@ final class SEO_Ingeniero_DB {
             )
         ));
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare("SELECT * FROM %i
                  WHERE (%s='' OR status=%s)
@@ -728,6 +763,7 @@ final class SEO_Ingeniero_DB {
     public static function editorial_counts() {
         global $wpdb;
         $table = esc_sql( self::table('editorial') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT recommended_action,status,COUNT(*) total FROM %i GROUP BY recommended_action,status", $table ),
             ARRAY_A
         );
@@ -776,6 +812,7 @@ final class SEO_Ingeniero_DB {
         if (!$row) return false;
         if (($row['status'] ?? '') === 'approved') $row['approved_at'] = gmdate('Y-m-d H:i:s');
         $row['updated_at'] = gmdate('Y-m-d H:i:s');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
         return false !== $wpdb->update($table, $row, array('id'=>absint($id)));
     }
 
@@ -789,6 +826,7 @@ final class SEO_Ingeniero_DB {
         $query = 'SELECT * FROM %i WHERE id IN (' . $placeholders . ') ORDER BY id ASC';
         $bindings = array_merge(array($table), $ids);
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- This SQL consists exclusively of literal %i/%d placeholders; IDs are absint() and all values are passed to prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare($query, $bindings), ARRAY_A);
         foreach ($rows as &$row) {
             $row['metadata'] = self::decode_json($row['metadata_json'] ?? '');
