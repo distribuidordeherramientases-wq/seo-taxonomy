@@ -83,7 +83,7 @@ msgid "2. Primeros pasos"
 msgstr ""
 
 msgid "3. Content: gestionar contenidos"
-msgstr ""
+msgstr "3. Contenidos: gestionar contenidos"
 
 msgid "3. Persistencia y modelo de datos"
 msgstr ""
@@ -95,10 +95,10 @@ msgid "4. Gestión técnica de países"
 msgstr ""
 
 msgid "4. SEO Hierarchy: organizar la arquitectura"
-msgstr ""
+msgstr "4. Jerarquía SEO: organizar la arquitectura"
 
 msgid "5. Menu Manager: construir la navegación"
-msgstr ""
+msgstr "5. Gestor de menús: construir la navegación"
 
 msgid "5. Rutas administrativas y operaciones"
 msgstr ""
@@ -107,10 +107,10 @@ msgid "6. API y registro de extensiones"
 msgstr ""
 
 msgid "6. Auto Test: comprobar el sistema"
-msgstr ""
+msgstr "6. Autotest: comprobar el sistema"
 
 msgid "7. Extensions: ampliar TaxoCommerce"
-msgstr ""
+msgstr "7. Extensiones: ampliar TaxoCommerce"
 
 msgid "7. Permisos y seguridad"
 msgstr ""
@@ -131,7 +131,7 @@ msgid "Abre %s para ver el estado general y los accesos a cada módulo."
 msgstr ""
 
 msgid "Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado."
-msgstr ""
+msgstr "Abre un clúster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado."
 
 msgid "Abrir"
 msgstr ""
@@ -140,19 +140,19 @@ msgid "Abrir %s"
 msgstr ""
 
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Abrir Autotest"
 
 msgid "Abrir Content"
-msgstr ""
+msgstr "Abrir Contenidos"
 
 msgid "Abrir esta pantalla no crea ni publica un menú. Los elementos generados automáticamente se organizan desde SEO Hierarchy. Puedes restaurar las ubicaciones anteriores si se ha guardado una copia válida."
 msgstr ""
 
 msgid "Abrir Menu Manager"
-msgstr ""
+msgstr "Abrir Gestor de menús"
 
 msgid "Abrir SEO Hierarchy"
-msgstr ""
+msgstr "Abrir Jerarquía SEO"
 
 msgid "Accede a las funciones disponibles desde un panel organizado y coherente."
 msgstr ""
@@ -260,7 +260,7 @@ msgid "Auto Test"
 msgstr "Autotest"
 
 msgid "Auto Test ejecuta comprobaciones bajo demanda de módulos, lectura de contenidos, países, jerarquía y menús. Presenta resultados correctos, fallidos o no ejecutados, con información para localizar incidencias."
-msgstr ""
+msgstr "El Autotest ejecuta comprobaciones bajo demanda de módulos, lectura de contenidos, países, jerarquía y menús. Presenta resultados correctos, fallidos o no ejecutados, con información para localizar incidencias."
 
 msgid "Automático"
 msgstr ""
@@ -506,7 +506,7 @@ msgid "Descripción: define la familia y explica las decisiones de compra releva
 msgstr ""
 
 msgid "Desde Content puedes consultar y editar productos, categorías de producto, entradas y páginas. La vista de resumen presenta el inventario; Anomalías muestra problemas detectados en los contenidos."
-msgstr ""
+msgstr "Desde Contenidos puedes consultar y editar productos, categorías de producto, entradas y páginas. La vista de resumen presenta el inventario; Anomalías muestra problemas detectados en los contenidos."
 
 msgid "Desinstalación y conservación de datos"
 msgstr ""
@@ -572,7 +572,7 @@ msgid "Editorial roles, automatic assignment, and template management."
 msgstr "Roles editoriales, asignación automática y gestión de plantillas."
 
 msgid "Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos."
-msgstr ""
+msgstr "Ejecuta el Autotest para comprobar el funcionamiento básico sin cambiar contenidos."
 
 msgid "Ejecuta las comprobaciones de sintaxis PHP y las pruebas de regresión situadas en .github/tests/taxocommerce-core/."
 msgstr ""
@@ -599,7 +599,7 @@ msgid "El menú de un país no aparece"
 msgstr ""
 
 msgid "El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce."
-msgstr ""
+msgstr "El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce."
 
 msgid "El prefijo SQL es el configurado por WordPress mediante $wpdb->prefix; no debe suponerse que es wp_."
 msgstr ""
@@ -674,7 +674,7 @@ msgid "Enlaza a páginas y categorías útiles y relacionadas. Comprueba antes s
 msgstr ""
 
 msgid "Entra en Content y revisa los contenidos y sus países antes de hacer cambios."
-msgstr ""
+msgstr "Entra en Contenidos y revisa los contenidos y sus países antes de hacer cambios."
 
 msgid "Entradas"
 msgstr ""
@@ -806,7 +806,7 @@ msgid "Gestión de paquetes"
 msgstr ""
 
 msgid "Gestiona cada plugin independiente desde su tarjeta."
-msgstr ""
+msgstr "Gestiona cada plugin independiente desde su tarjeta."
 
 msgid "Gestiona la arquitectura Cluster → Hub primario → Hub secundario → Categoría → Producto."
 msgstr ""
@@ -1052,7 +1052,7 @@ msgid "Menu Manager"
 msgstr "Gestor de menús"
 
 msgid "Menu Manager permite crear un menú de WordPress a partir de la jerarquía SEO y añadir páginas, entradas, categorías y enlaces personalizados manualmente."
-msgstr ""
+msgstr "El Gestor de menús permite crear un menú de WordPress a partir de la jerarquía SEO y añadir páginas, entradas, categorías y enlaces personalizados manualmente."
 
 msgid "MENÚ QUE ESTÁS EDITANDO O CREANDO"
 msgstr ""
@@ -1520,7 +1520,7 @@ msgid "Si la web publica datos estructurados Product/Offer o Merchant Center, de
 msgstr ""
 
 msgid "Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager."
-msgstr ""
+msgstr "Si vas a organizar la navegación por temas, configura primero Jerarquía SEO y después Gestor de menús."
 
 msgid "Siguiente"
 msgstr ""
@@ -1613,7 +1613,7 @@ msgid "Taxonomía no admitida."
 msgstr ""
 
 msgid "Technical Manual"
-msgstr ""
+msgstr "Manual técnico"
 
 msgid "Templates"
 msgstr "Plantillas"
@@ -1700,7 +1700,7 @@ msgid "User Guide"
 msgstr "Manual de usuario"
 
 msgid "User Manual"
-msgstr ""
+msgstr "Manual de usuario"
 
 msgid "Uso"
 msgstr ""
@@ -1721,7 +1721,7 @@ msgid "Ver en la tienda ↗"
 msgstr ""
 
 msgid "Ver Extensions"
-msgstr ""
+msgstr "Ver Extensiones"
 
 msgid "Ver todo"
 msgstr ""
