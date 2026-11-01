@@ -359,8 +359,8 @@ if (did_action('admin_print_styles')) {
             }
             $safe_order = $sort_map[$order_by];
             $safe_where = $where_map[$where];
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ORDER BY/WHERE are selected from the closed internal whitelist above; table and pagination are bound.
             $rows = $wpdb->get_results(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Both interpolated SQL fragments come from the two fixed allowlists above; table and pagination are parameterized.
                 $wpdb->prepare("SELECT * FROM %i WHERE {$safe_where} ORDER BY {$safe_order} LIMIT %d OFFSET %d", $table, $chunk, $offset),
                 ARRAY_A
             );
