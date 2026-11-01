@@ -209,7 +209,7 @@ final class TCT_Routing_Admin {
             wp_die( esc_html__( 'Acceso denegado.', 'taxocommerce-templates' ) );
         }
         $installed = TaxoCommerce_Templates::installed();
-        $enabled = (bool) get_option( TaxoCommerce_Templates::ENABLE_OPTION, 0 );
+        $enabled = (bool) TaxoCommerce_Templates::policies_enabled();
         // Managed is the primary work view. The full WooCommerce template
         // inventory is only discovered when explicitly requested.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selection.
