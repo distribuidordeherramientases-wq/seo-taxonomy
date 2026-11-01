@@ -32,6 +32,7 @@ register_activation_hook(__FILE__, static function(){
     delete_option('tccampaigns_schedule_owner_v1');
 });
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing TaxoCommerce Core registration callback; preserve public hook API.
 function taxocommerce_campaigns_register_core($core){
     if(!is_object($core)||!method_exists($core,'register_module')) return;
     $core->register_module('campaigns',array(
@@ -44,6 +45,7 @@ function taxocommerce_campaigns_register_core($core){
 }
 add_action('taxocommerce_core_register_modules','taxocommerce_campaigns_register_core');
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing family extension callback; preserve public hook API.
 function taxocommerce_campaigns_family_catalog($extensions){
     $extensions=is_array($extensions)?$extensions:array();
     $extensions['campaigns']=array(
@@ -116,21 +118,27 @@ add_action('init','tccampaigns_claim_schedule_when_legacy_is_off',30);
  */
 add_action('plugins_loaded', static function(){
     if(!function_exists('seo_marketing_campaigns_get_public_active')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_get_public_active(){ return tccampaigns_get_public_active(); }
     }
     if(!function_exists('seo_marketing_campaigns_public_template_is_enabled')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_public_template_is_enabled(){ return tccampaigns_public_template_is_enabled(); }
     }
     if(!function_exists('seo_marketing_campaigns_get_social_catalog')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_get_social_catalog(){ return tccampaigns_get_social_catalog(); }
     }
     if(!function_exists('seo_marketing_campaigns_get_social_campaign')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_get_social_campaign($id){ return tccampaigns_get_social_campaign($id); }
     }
     if(!function_exists('seo_marketing_campaigns_timestamp')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_timestamp($value){ return tccampaigns_timestamp($value); }
     }
     if(!function_exists('seo_marketing_campaigns_get')){
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Required legacy compatibility alias; renaming would break external integrations.
         function seo_marketing_campaigns_get($id){ return tccampaigns_get($id); }
     }
 },99);
