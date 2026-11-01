@@ -480,14 +480,11 @@ final class SEO_Ingeniero_DB {
                 $term_id
             ),ARRAY_A);
         } else {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- tablas internas fijas. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $src = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,id ASC", $sources ),ARRAY_A);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- tablas internas fijas. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $kn = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE status<>'superseded' ORDER BY term_id,knowledge_type ASC", $knowledge ),ARRAY_A);
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- tablas internas fijas.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- tablas internas fijas. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
             $ed = (array)$wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY term_id,id ASC", $editorial_table ),ARRAY_A);
         }
 
@@ -825,8 +822,7 @@ final class SEO_Ingeniero_DB {
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $query = 'SELECT * FROM %i WHERE id IN (' . $placeholders . ') ORDER BY id ASC';
         $bindings = array_merge(array($table), $ids);
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- This SQL consists exclusively of literal %i/%d placeholders; IDs are absint() and all values are passed to prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This SQL consists exclusively of literal %i/%d placeholders; IDs are absint() and all values are passed to prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare($query, $bindings), ARRAY_A);
         foreach ($rows as &$row) {
             $row['metadata'] = self::decode_json($row['metadata_json'] ?? '');
