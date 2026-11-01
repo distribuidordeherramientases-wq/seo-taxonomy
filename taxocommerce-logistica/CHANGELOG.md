@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- Inicio de internacionalización WordPress mediante gettext (`Domain Path: /languages`), catálogos por idioma y traducción de etiquetas del menú, sin cambios funcionales. Seguimiento: #2039 (plan global #2036). Cobertura restante de interfaz, Autotest y manuales pendiente de revisión por idioma.
+
+
 * WordPress Plugin Check: corregidas las 12 advertencias de `includes/seo-transporte.php` sin cambiar las reglas, costes ni rutas de checkout.
 * Mantener parámetros GET de enrutado y avisos como lecturas inofensivas y justificar sus excepciones de nonce solo en esos puntos.
 * Exigir los nonces nativos `update-order-review` o `woocommerce-process_checkout` para aceptar destino enviado por POST; datos de destino saneados por campo y respaldo con paquete/sesión cuando no hay petición válida.
