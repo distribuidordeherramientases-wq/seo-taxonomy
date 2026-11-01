@@ -4,7 +4,7 @@ Tags: woocommerce, marketing, campaigns, pricing, offers
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,11 @@ Two campaign engines must not edit or schedule the same campaign simultaneously;
 
 == Changelog ==
 
+= 0.1.1 =
+* Corrected Plugin Check SQL identifier placeholders and sanitized admin inputs.
+* Preserved campaign pricing, calendar operations and legacy API compatibility.
+* Included standalone User Manual and read-only Autotest documentation.
+
 = 0.1.0 =
 * Extracted campaigns, product offers and their commercial calendar into an independent module.
 * Retained canonical campaign records and compatibility with existing public template hooks.
@@ -41,4 +46,4 @@ Two campaign engines must not edit or schedule the same campaign simultaneously;
 * The monolith's 2.3.7–2.3.9 cycles documented commercial campaigns, marketing reports, scheduling and integrations with social channels.
 * Standalone 0.1.0 separated campaigns, calendar scheduling and banner administration from the SEO monolith without making Social responsible for campaign business rules.
 * The extraction kept explicit campaign configuration and staged publication; it did not imply that every external provider or campaign had been activated.
-* WordPress Plugin Check remediation subsequently addressed issues in the standalone package; this is maintenance within the 0.1.0 line, not an invented new release.
+* WordPress Plugin Check remediation and standalone documentation were incorporated in release 0.1.1.
