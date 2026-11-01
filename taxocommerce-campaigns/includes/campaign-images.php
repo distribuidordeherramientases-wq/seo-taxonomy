@@ -799,6 +799,7 @@ function tccampaigns_social_resolve_publication_image_url($campaign, $product_it
  * @return void
  */
 if (!function_exists('imagefilledroundedrectangle')) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Historical GD polyfill reused by campaign image renderers; preserve compatibility.
     function imagefilledroundedrectangle($image, $x1, $y1, $x2, $y2, $color, $radius)
     {
         $radius = max(0, (int) $radius);
