@@ -257,6 +257,8 @@ $context_sql_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-d
 verify( false === strpos( $faq_sql_source, 'FROM {$table}' ), 'FAQ queries use prepared identifiers' );
 verify( false !== strpos( $faq_sql_source, "'SELECT COUNT(*) FROM %i WHERE active=1'" ), 'FAQ count uses WordPress identifier placeholder' );
 verify( false !== strpos( $context_sql_source, 'FROM %i' ), 'context provider identifiers prepared' );
+verify( 6 === substr_count( $faq_sql_source, 'phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching' ), 'Six canonical FAQ reads have reviewed, targeted DB annotations' );
+verify( 5 === substr_count( $context_sql_source, 'phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching' ), 'Five canonical context reads have reviewed, targeted DB annotations' );
 
 $admin_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-admin.php' );
 verify( false !== strpos( $admin_source, "is_string( \$_POST['search'] )" ), 'POST search validates scalar before sanitizing' );
