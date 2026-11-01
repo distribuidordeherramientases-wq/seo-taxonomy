@@ -353,7 +353,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             'menu-item-object-id'   => absint( $item->object_id ?? 0 ),
             'menu-item-parent-id'   => $parent_id,
             'menu-item-position'    => $position,
-            'menu-item-status'      => 'publish',
+            'menu-item-status'      => 'draft' === (string) ( $item->post_status ?? 'publish' ) ? 'draft' : 'publish',
             'menu-item-attr-title'  => wp_slash( (string) ( $item->attr_title ?? '' ) ),
             'menu-item-description' => wp_slash( (string) ( $item->description ?? '' ) ),
             'menu-item-target'      => (string) ( $item->target ?? '' ),

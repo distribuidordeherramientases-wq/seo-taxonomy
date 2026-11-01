@@ -18,13 +18,14 @@ function taxonomy_exists($x){return in_array($x,array('category','product_cat'),
 function get_option($k,$d=false){return $GLOBALS['options'][$k]??$d;} function update_option($k,$v,$autoload=false){$GLOBALS['writes']++;$GLOBALS['options'][$k]=$v;return true;}
 function get_theme_mod($k,$d=array()){return array('primary'=>99);} function get_registered_nav_menus(){return array('primary'=>'Menu principal','footer'=>'Pie');}
 function wp_get_nav_menu_object($id){if(is_numeric($id))return $GLOBALS['menus'][(int)$id]??false;foreach($GLOBALS['menus'] as $m){if($m->name===$id)return $m;}return false;}
+function wp_get_nav_menus($args=array()){return array_values($GLOBALS['menus']);}
 function wp_create_nav_menu($name){$GLOBALS['writes']++;$id=max(array_keys($GLOBALS['menus']) ?: array(98))+1;$GLOBALS['menus'][$id]=(object)array('term_id'=>$id,'name'=>$name);return $id;}
 function wp_update_nav_menu_object($id,$data){$GLOBALS['writes']++;if(!isset($GLOBALS['menus'][$id]))return new WP_Error('bad_menu','Menu missing');$GLOBALS['menus'][$id]->name=$data['menu-name'];return $id;}
 function wp_get_nav_menu_items($id,$args=array()){return array_values(array_filter($GLOBALS['items'],static function($item)use($id){return $item->menu_id===$id;}));}
 function get_term_meta($id,$key,$single=true){return ''; } function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';} function update_post_meta($id,$key,$value){$GLOBALS['writes']++;$GLOBALS['meta'][$id][$key]=$value;if('_menu_item_menu_item_parent'===$key && isset($GLOBALS['items'][$id])){$GLOBALS['items'][$id]->menu_item_parent=$value;}return true;}
 function get_post($id){return $GLOBALS['posts'][$id]??null;} function get_the_title($post){return is_object($post)?$post->post_title:($GLOBALS['posts'][$post]->post_title??'');}
 function get_ancestors($id,$taxonomy,$type){return array();} function get_terms($args){return array((object)array('term_id'=>71,'name'=>'Tools'));} function get_term($id,$tax){return $id===71?(object)array('term_id'=>71,'name'=>'Tools'):null;}
-function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:1000+count($GLOBALS['items']);$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'title'=>stripslashes($data['menu-item-title']),'url'=>$data['menu-item-url']??'https://example.test/item','object'=>$data['menu-item-object']??'custom','data'=>$data);return $id;}
+function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:1000+count($GLOBALS['items']);$old=$GLOBALS['items'][$id]??null;$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'menu_order'=>$data['menu-item-position']??($old->menu_order??1),'title'=>stripslashes($data['menu-item-title']),'type'=>$data['menu-item-type']??($old->type??'custom'),'url'=>$data['menu-item-url']??($old->url??'https://example.test/item'),'object'=>$data['menu-item-object']??($old->object??'custom'),'object_id'=>$data['menu-item-object-id']??($old->object_id??0),'data'=>$data);return $id;}
 function wp_delete_post($id,$force){$GLOBALS['writes']++;$old=$GLOBALS['items'][$id]??false;unset($GLOBALS['items'][$id]);return $old;}
 function add_filter($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
 function check_admin_referer($action,$field){if(($_POST[$field]??'')!=='nonce-'.$action)throw new RuntimeException('nonce');} function check_ajax_referer($action,$field){check_admin_referer($action,$field);}
@@ -99,5 +100,43 @@ $GLOBALS['options']['taxocommerce_core_menu_id_fr']=99;
 verify(TaxoCommerce_Core_Menu::managed_menu_id('FR',false)!==99,'FR ignores incorrectly reused Spanish ID');
 verify(TaxoCommerce_Core_Menu::managed_menu_id('FR',true)!==99,'FR restores its own menu ID');
 verify(TaxoCommerce_Core_Menu::managed_menu_id('US',false)===$us_id,'US intact after other-country sync');
+
+
+// Native WordPress menus are selectable without replacing Core's country menus.
+$existing_id = wp_create_nav_menu( 'Menú cabecera existente' );
+$external_parent = wp_update_nav_menu_item($existing_id,0,array('menu-item-title'=>'Portada WP','menu-item-url'=>'https://example.test/portada','menu-item-type'=>'custom','menu-item-parent-id'=>0,'menu-item-position'=>1));
+$external_child = wp_update_nav_menu_item($existing_id,0,array('menu-item-title'=>'Contactar','menu-item-url'=>'https://example.test/contacto','menu-item-type'=>'custom','menu-item-parent-id'=>$external_parent,'menu-item-position'=>2));
+$_GET['tc_country']='ES'; $_GET['tc_menu_id']=(string)$existing_id;
+$before=$GLOBALS['writes']; ob_start(); $core->render(); $loaded=ob_get_clean();
+verify($GLOBALS['writes']===$before,'loading native WordPress menu never mutates menus or country mapping');
+verify(strpos($loaded,'Cargar un menú de WordPress')!==false,'native menu selector present');
+verify(strpos($loaded,'Menú cabecera existente')!==false,'native menu name shown');
+verify(strpos($loaded,'Portada WP')!==false,'existing native item appears in editor');
+verify(strpos($loaded,'value="taxocommerce_core_sync_menu"')===false,'country hierarchy cannot accidentally overwrite loaded native menu');
+verify(strpos($loaded,'name="tc_menu_id" value="'.$existing_id.'"')!==false,'menu editor persists selected native menu ID');
+verify(strpos($loaded,'name="item_title"')!==false,'loaded native menu item editable');
+verify($GLOBALS['options']['taxocommerce_core_menu_id']===$es_id,'country managed mapping unchanged after loading foreign menu');
+$_POST=array('tc_country'=>'ES','tc_menu_id'=>(string)$existing_id);
+verify(TaxoCommerce_Core_Menu_Editor::target_menu_id()===$existing_id,'native target selected by POST');
+verify(TaxoCommerce_Core_Menu_Editor::add_link('Nuevo enlace','https://example.test/nuevo')>0,'add to selected existing menu');
+verify(count(wp_get_nav_menu_items($es_id))===1,'native edit does not add to country managed menu');
+verify(TaxoCommerce_Core_Menu_Editor::edit_item($external_child,'Contacto actualizado','https://example.test/contacto-nuevo',0,1)===$external_child,'edit existing WordPress menu title, URL, parent and position');
+verify($GLOBALS['items'][$external_child]->title==='Contacto actualizado','native title updated');
+verify($GLOBALS['items'][$external_child]->menu_item_parent===0,'native hierarchy updated');
+verify($GLOBALS['items'][$external_child]->url==='https://example.test/contacto-nuevo','native URL updated');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::edit_item($external_parent,'Circular','https://example.test/', $external_child,1))===false,'moving parent under sibling after unlink is valid');
+// Force a cycle in an existing tree and require rejection without writes.
+$GLOBALS['items'][$external_child]->menu_item_parent=$external_parent;
+$before=$GLOBALS['writes'];verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::edit_item($external_parent,'Root','https://example.test/',$external_child,1)),'circular menu parents rejected');verify($before===$GLOBALS['writes'],'cycles must never write');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::edit_item($gen,'Automatic','https://example.test/',0,1)),'editing item from another menu rejected');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::edit_item($external_child,'Bad link','javascript:alert(1)',0,1)),'unsafe custom URL rejected');
+$_POST['tc_menu_id']='999999';
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::target_menu_id(true)),'missing native menu does not silently overwrite country menu');
+$_POST=array('tc_country'=>'ES','tc_menu_id'=>'0');
+$new_id=TaxoCommerce_Core_Menu_Editor::create_menu('Nuevo menú independiente');
+verify(!is_wp_error($new_id) && $new_id!==$existing_id && $new_id!==$es_id,'new native menu created independently');
+verify(TaxoCommerce_Core_Menu::managed_menu_id('ES',false)===$es_id,'new native menu does not replace country menu');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::create_menu('  ')),'invalid empty native menu name rejected');
+unset($_GET['tc_menu_id']);unset($_GET['tc_country']);unset($_POST['tc_menu_id']);
 
 echo 'PASS: '.$GLOBALS['checks']." menu checks. Isolated WP stubs; not a live WordPress test.\n";
