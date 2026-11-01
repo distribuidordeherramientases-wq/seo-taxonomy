@@ -47,7 +47,8 @@ use TaxoCommerce\Auditor\Auto_Test;
 use TaxoCommerce\Auditor\Manual;
 use TaxoCommerce\Auditor\Plugin;
 
-verify( Plugin::VERSION === '0.3.2', 'Current tested version is 0.3.2' );
+verify( preg_match( '/^\\d+\\.\\d+\\.\\d+$/', Plugin::VERSION ) === 1, 'Plugin reports a valid semantic version' );
+verify( false !== strpos( file_get_contents( dirname( __DIR__ ) . '/taxocommerce-auditor.php' ), 'Version: ' . Plugin::VERSION ), 'Version constant matches installed plugin header' );
 verify( has_action( 'admin_post_' . Auto_Test::ACTION ), 'Auto Test action registered' );
 verify( has_action( \TaxoCommerce\Auditor\Runner::HOOK ), 'Existing cron hook remains registered' );
 verify( count( Auto_Test::cases() ) === 16, '16 functional checks' );
