@@ -500,13 +500,13 @@ function seo_server_status_get_options_stats() {
     global $wpdb;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
-    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options}");
+    $total = (int) $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $wpdb->options));
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
-    $autoload_size = (float) $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+    $autoload_size = (float) $wpdb->get_var($wpdb->prepare("SELECT SUM(LENGTH(option_value)) FROM %i WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')", $wpdb->options));
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
-    $autoload_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+    $autoload_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')", $wpdb->options));
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
-    $largest = $wpdb->get_row("SELECT option_name, LENGTH(option_value) AS option_size FROM {$wpdb->options} ORDER BY option_size DESC LIMIT 1");
+    $largest = $wpdb->get_row($wpdb->prepare('SELECT option_name, LENGTH(option_value) AS option_size FROM %i ORDER BY option_size DESC LIMIT 1', $wpdb->options));
 
     return array(
         'total' => $total,
