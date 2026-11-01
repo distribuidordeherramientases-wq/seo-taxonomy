@@ -89,7 +89,7 @@ msgid "3. Persistencia y modelo de datos"
 msgstr ""
 
 msgid "301/302 redirects and assisted content deletion."
-msgstr ""
+msgstr "Redirections 301/302 et suppression assistée des contenus."
 
 msgid "4. Gestión técnica de países"
 msgstr ""
@@ -155,7 +155,7 @@ msgid "Abrir SEO Hierarchy"
 msgstr ""
 
 msgid "Accede a las funciones disponibles desde un panel organizado y coherente."
-msgstr ""
+msgstr "Accédez aux fonctions disponibles depuis un tableau de bord clair et structuré."
 
 msgid "Acceso denegado a Auto Test."
 msgstr ""
@@ -230,7 +230,7 @@ msgid "Aplicar filtros"
 msgstr ""
 
 msgid "Aprende para qué sirve Core y cómo utilizar los contenidos, la jerarquía SEO, los menús y las extensiones."
-msgstr ""
+msgstr "Découvrez le rôle de Core et comment utiliser les contenus, la hiérarchie SEO, les menus et les extensions."
 
 msgid "Archivo ZIP"
 msgstr ""
@@ -314,7 +314,7 @@ msgid "Cargando..."
 msgstr ""
 
 msgid "Catalog, content, and Media import/export."
-msgstr ""
+msgstr "Importation et exportation du catalogue, des contenus et des médias."
 
 msgid "Categoría"
 msgstr ""
@@ -377,7 +377,7 @@ msgid "Cobertura de productos únicos dentro de cada cluster; un producto en var
 msgstr ""
 
 msgid "Commercial feeds and XML sitemaps with bounded block-based publishing."
-msgstr ""
+msgstr "Flux commerciaux et sitemaps XML avec publication par lots limitée."
 
 msgid "Cómo editar este contenido"
 msgstr ""
@@ -431,7 +431,7 @@ msgid "Consultar instrucciones"
 msgstr ""
 
 msgid "Contenido actualizado."
-msgstr ""
+msgstr "Contenu mis à jour."
 
 msgid "Contenido útil y fiable"
 msgstr ""
@@ -470,7 +470,7 @@ msgid "Criterios para mantener contenidos útiles, veraces y homogéneos"
 msgstr ""
 
 msgid "Cross-catalog tag and attribute inventory with automatic classification and local execution."
-msgstr ""
+msgstr "Inventaire transversal des étiquettes et attributs, avec classification automatique et exécution locale."
 
 msgid "Cuando sea relevante, indica cómo elegir, qué comprobar antes de comprar y qué errores habituales conviene evitar."
 msgstr ""
@@ -527,7 +527,7 @@ msgid "Diferencia las variantes aunque compartan referencia de proveedor: identi
 msgstr ""
 
 msgid "Diseñado para convivir con TaxoCommerce SEO mientras migras cada función de forma controlada."
-msgstr ""
+msgstr "Conçu pour coexister avec TaxoCommerce SEO pendant la migration contrôlée de chaque fonction."
 
 msgid "Disponibles"
 msgstr "Disponibles"
@@ -548,7 +548,7 @@ msgid "Documentación de Core: manual de usuario y manual técnico, en una misma
 msgstr ""
 
 msgid "Edita productos, categorías de WooCommerce, entradas y páginas desde un entorno unificado."
-msgstr ""
+msgstr "Modifiez produits, catégories WooCommerce, articles et pages dans une interface unifiée."
 
 msgid "Editar aquí"
 msgstr ""
@@ -569,7 +569,7 @@ msgid "Editor WordPress / WooCommerce ↗"
 msgstr ""
 
 msgid "Editorial roles, automatic assignment, and template management."
-msgstr ""
+msgstr "Rôles éditoriaux, affectation automatique et gestion des modèles."
 
 msgid "Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos."
 msgstr ""
@@ -599,7 +599,7 @@ msgid "El menú de un país no aparece"
 msgstr ""
 
 msgid "El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce."
-msgstr ""
+msgstr "Le noyau modulaire pour gérer l’architecture, les contenus et les opérations de votre boutique WooCommerce."
 
 msgid "El prefijo SQL es el configurado por WordPress mediante $wpdb->prefix; no debe suponerse que es wp_."
 msgstr ""
@@ -791,7 +791,7 @@ msgid "FAQs"
 msgstr ""
 
 msgid "FAQs, manual editing, CSV, indicators, and Vocabulary integration."
-msgstr ""
+msgstr "FAQ, édition manuelle, CSV, indicateurs et intégration avec Vocabulary."
 
 msgid "Filtrar"
 msgstr ""
@@ -809,7 +809,7 @@ msgid "Gestiona cada plugin independiente desde su tarjeta."
 msgstr ""
 
 msgid "Gestiona la arquitectura Cluster → Hub primario → Hub secundario → Categoría → Producto."
-msgstr ""
+msgstr "Gérez l’architecture Cluster → Hub principal → Hub secondaire → Catégorie → Produit."
 
 msgid "Gestor de contenidos"
 msgstr "Gestionnaire de contenu"
@@ -860,7 +860,7 @@ msgid "Identificador para llamar al menú desde una plantilla:"
 msgstr ""
 
 msgid "Image management, auditing, thumbnails, metadata, and optimization."
-msgstr ""
+msgstr "Gestion des images, audits, miniatures, métadonnées et optimisation."
 
 msgid "Imagen"
 msgstr "Image"
@@ -878,10 +878,10 @@ msgid "Incluye preguntas frecuentes solo cuando existan dudas reales no resuelta
 msgstr ""
 
 msgid "Independent editorial and content quality auditing."
-msgstr ""
+msgstr "Audit indépendant de la qualité éditoriale et des contenus."
 
 msgid "Independent ten-lesson academy and catalog assistant, without automatic recycling."
-msgstr ""
+msgstr "Académie indépendante de dix leçons et assistant de catalogue, sans recyclage automatique."
 
 msgid "Índice del manual"
 msgstr ""
@@ -917,7 +917,7 @@ msgid "Inventario de contenidos"
 msgstr ""
 
 msgid "Invoices, proformas, and PDF quotations connected to WooCommerce."
-msgstr ""
+msgstr "Factures, proformas et devis PDF liés à WooCommerce."
 
 msgid "Jerarquía actualizada."
 msgstr ""
@@ -1085,10 +1085,10 @@ msgid "Módulos del Core"
 msgstr ""
 
 msgid "MySQL diagnostics, tables, backups, and controlled maintenance in an independent plugin."
-msgstr ""
+msgstr "Diagnostics MySQL, tables, sauvegardes et maintenance contrôlée dans une extension indépendante."
 
 msgid "Navegación de TaxoCommerce Core"
-msgstr ""
+msgstr "Navigation de TaxoCommerce Core"
 
 msgid "No"
 msgstr ""
@@ -1235,7 +1235,7 @@ msgid "Objetos incluidos ahora:"
 msgstr ""
 
 msgid "Offer campaigns, promotional prices, banners, social offer publication, and a standalone commercial calendar."
-msgstr ""
+msgstr "Campagnes d’offres, prix promotionnels, bannières, publication sociale et calendrier commercial indépendant."
 
 msgid "Ofrece información original y concreta: explica qué cambia en la decisión del comprador. No copies fichas del fabricante ni repitas párrafos entre URLs."
 msgstr ""
@@ -1247,7 +1247,7 @@ msgid "Open Core"
 msgstr ""
 
 msgid "Organiza la navegación del sitio a partir de la jerarquía SEO y de los menús de WordPress."
-msgstr ""
+msgstr "Organisez la navigation du site à partir de la hiérarchie SEO et des menus WordPress."
 
 msgid "Organización de la jerarquía"
 msgstr ""
@@ -1460,7 +1460,7 @@ msgid "Se muestran 40 categorías iniciales. Escribe para buscar cualquier categ
 msgstr ""
 
 msgid "Search, Analytics, Bing, Trends, market, opportunity, and executive reports."
-msgstr ""
+msgstr "Rapports Search, Analytics, Bing, Trends, marché, opportunités et direction."
 
 msgid "Secciones de jerarquía SEO"
 msgstr ""
@@ -1502,10 +1502,10 @@ msgid "SEO Hierarchy"
 msgstr "Hiérarchie SEO"
 
 msgid "SerpApi/ScraperAPI connections with Ojeador market intelligence and Ingeniero technical research."
-msgstr ""
+msgstr "Connexions SerpApi/ScraperAPI avec veille commerciale Ojeador et recherche technique Ingeniero."
 
 msgid "Server, WordPress, and plugin validation diagnostics with reports and optional email notifications."
-msgstr ""
+msgstr "Diagnostics du serveur, de WordPress et des extensions, avec rapports et notifications facultatives par e-mail."
 
 msgid "Shared content, hierarchy, and extension services."
 msgstr ""
@@ -1568,7 +1568,7 @@ msgid "Social"
 msgstr "Réseaux sociaux"
 
 msgid "Social network connections, publishing templates, queue, history, and standalone publication calendar."
-msgstr ""
+msgstr "Connexions aux réseaux sociaux, modèles de publication, file d’attente, historique et calendrier indépendant."
 
 msgid "Solicitud de contenido no válida."
 msgstr ""
@@ -1583,7 +1583,7 @@ msgid "Superior"
 msgstr ""
 
 msgid "Supplier catalogue, purchasing, prices, and external images."
-msgstr ""
+msgstr "Catalogue fournisseurs, achats, prix et images externes."
 
 msgid "Suppliers"
 msgstr "Fournisseurs"
@@ -1760,7 +1760,7 @@ msgid "WooCommerce es necesario para las funciones relativas a productos y categ
 msgstr ""
 
 msgid "WooCommerce order weights, dimensions, and shipping-cost rules."
-msgstr ""
+msgstr "Poids et dimensions des commandes WooCommerce et règles de frais de livraison."
 
 msgid "WordPress 6.5 o posterior; PHP 7.4 o posterior, según la cabecera del plugin."
 msgstr ""
