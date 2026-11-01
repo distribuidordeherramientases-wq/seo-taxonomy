@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: migrated legacy seo_* function, variable and hook names are stable shared APIs; renaming would break monolith integrations. Scope: this historical compatibility source file only.
 /**
  * Plugin Validation - salud de servicios y conexiones externas.
  *
@@ -20,18 +21,16 @@ function seo_core_service_health_table_probe($suffix) {
     $table = $wpdb->prefix . $suffix;
     $exists = function_exists('seo_core_system_test_table_exists')
         ? seo_core_system_test_table_exists($table)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Diagnostic explicitly reads current database state, so caching would invalidate the result.
         : ((string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table);
 
     if (!$exists) {
         return array('name' => $suffix, 'exists' => false, 'count' => null, 'error' => '');
     }
 
-    // El sufijo se limita a [a-z0-9_] y el prefijo procede de WordPress.
-    // En WordPress < 6.2 no existe el placeholder %i para identificadores.
-    $table_sql = '`' . esc_sql($table) . '`';
-    $sql = "SELECT COUNT(*) FROM {$table_sql}";
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- El identificador es interno, previamente restringido y no contiene valores de usuario.
-    $count = $wpdb->get_var($sql);
+    // WordPress 6.2+ quotes the validated canonical table identifier via %i.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live table count; no caching.
+    $count = $wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM %i', $table));
     $error = sanitize_text_field((string) $wpdb->last_error);
 
     return array(

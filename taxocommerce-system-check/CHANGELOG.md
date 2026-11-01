@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.2.11]
+
+* Corregidos identificadores `%i` de Facturación (sin doble entrecomillado), sondeo de servicios, consultas de imágenes y escritura del inventario Health Scan; filtros de diagnóstico protegidos contra parámetros no escalares.
+
+* Compatible con WordPress.org sin renombrar APIs públicas heredadas: las excepciones de prefijos se acotan exclusivamente a archivos del motor histórico `seo_*`, que sigue compartiendo interfaces con el monolítico. Ninguna supresión global en el repositorio.
+* Anotadas individualmente las consultas directas necesarias para verificar estados actuales del servidor y las operaciones sincronizadas del programador; no se introduce caché que altere los diagnósticos.
+* Documentadas las consultas preparadas con fragmentos SQL de lista generados a partir de estructuras internas y datos vinculados por `$wpdb->prepare()`, sin omitir el chequeo de seguridad para SQL no validado.
+
+* Seguridad SQL: preparados con `%i` los identificadores de las ocho consultas `EXPLAIN` de `seo_system_mysql_audit_explain_plans()`; se mantienen el nombre canónico de cada tabla, los filtros y los índices inspeccionados.
+* Endurecidas las entradas `tcs_task`, `tcs_filter`, `tcs_search` y `tcs_paged` contra parámetros GET/POST no escalares, sin cambiar las acciones válidas ni las rutas.
+* Nueva prueba CLI de contratos SQL y entradas y matriz de CI PHP 7.4/8.4; ZIP sin archivos `tests/` ni archivos ocultos como antes.
+* Continúan pendientes y documentadas las advertencias de funciones/consultas heredadas (issue #1958). Se exige una nueva revisión del paquete y comprobación funcional en STAGING antes de considerar WordPress.org.
+* Sin cambios en el plugin monolítico ni publicación en PRODUCCIÓN.
+
+
 * Corregir la introspección del esquema de facturación con `%i` sin concatenar identificadores SQL; pasar explícitamente listas de parámetros a `wpdb::prepare()` en las consultas semánticas y en la recuperación de Health Scan.
 * Restringir los selectores de navegación a entradas escalares, conservar únicamente las excepciones documentadas de lectura y actualizar las etiquetas del `readme.txt` a términos admitidos por WordPress.org.
 * El escaneo ampliado del paquete de GitHub detecta numerosas advertencias pendientes de prefijos heredados (`seo_*`) y consultas diagnósticas: esta versión no se considera validada para WordPress.org hasta resolverlas con comprobación de compatibilidad.

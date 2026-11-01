@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: this migrated engine shares stable seo_* public function, variable and hook contracts with the still-installed TaxoCommerce SEO monolith. Renaming here changes runtime hooks and causes API breakage; the exception is confined to this historical compatibility module.
 
 defined('ABSPATH') || exit;
 
@@ -3332,6 +3333,7 @@ function seo_core_system_test_collect_database_link_references(&$link_map, $limi
     global $wpdb;
 
     $limit = max(1, (int) $limit);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT ID, post_type, post_title, post_content FROM %i WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE %s ORDER BY post_modified_gmt DESC LIMIT %d",
@@ -3812,6 +3814,7 @@ function seo_core_system_test_registered_redirect_audit($target_limit) {
     }
 
     $row_limit = max(500, $target_limit * 10);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $row_limit), ARRAY_A);
     $result['records'] = count((array) $rows);
     $map = array();
@@ -4668,6 +4671,7 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
         return array();
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $columns = (array) $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $table), 0);
     $links = array_values(array_intersect(array('product_id', 'object_id'), $columns));
     if (!$links || !in_array('image_url', $columns, true)) {
@@ -4687,8 +4691,9 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
     if (in_array('id', $columns, true)) $order[] = 'id ASC';
     $order_sql = $order ? 'ORDER BY ' . implode(', ', $order) : '';
     $params[] = $limit;
+    array_unshift($params, $table);
 
-    $query = "SELECT * FROM {$table}
+    $query = "SELECT * FROM %i
               WHERE (" . implode(' OR ', $where) . ")
                 {$status_where}
                 AND image_url IS NOT NULL
@@ -4697,7 +4702,7 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
               LIMIT %d";
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas/order proceden de allowlists internas; valores y límite enlazados mediante $wpdb->prepare().
     $prepared_sql = $wpdb->prepare($query, $params);
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
+    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared_sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
     return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
 }
 
@@ -5104,6 +5109,7 @@ function seo_core_system_test_redirects_check($enabled) {
     }
 
     $limit = max(1, (int) apply_filters('seo_core_system_test_redirect_analysis_limit', 200));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $limit), ARRAY_A);
     if (empty($rows)) {
         return seo_core_system_test_check_info('No hay redirecciones registradas.');
@@ -6543,6 +6549,7 @@ function seo_core_system_test_technical() {
     $results = array();
     $upload_dir = wp_get_upload_dir();
     $cron_stats = seo_core_system_test_cron_stats();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $autoload_size = (float) $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
 
     $results[] = seo_core_system_test_result('technical', '7.1 WordPress cargado', function_exists('get_bloginfo') && function_exists('get_option'), get_bloginfo('version'));
@@ -6700,6 +6707,7 @@ function seo_core_system_test_count_seo_nodes_by_role($role) {
         return 0;
     }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     return (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*) FROM %i WHERE seo_role = %s",
@@ -7423,6 +7431,7 @@ function seo_core_system_test_result($group, $label, $passed, $detail = '', $sev
 function seo_core_system_test_table_exists($table_name) {
     global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
     $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
 
     return $found === $table_name;

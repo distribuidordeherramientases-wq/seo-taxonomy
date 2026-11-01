@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound,WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- COMPATIBILITY: migrated legacy seo_* function, variable and hook names are stable shared APIs; renaming would break monolith integrations. Scope: this historical compatibility source file only.
 
 defined('ABSPATH') || exit;
 
