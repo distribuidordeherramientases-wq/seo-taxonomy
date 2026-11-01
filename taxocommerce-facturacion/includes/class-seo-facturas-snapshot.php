@@ -342,6 +342,7 @@ final class SEO_Facturas_Snapshot {
                 && seo_catalog_table_exists($object_table);
 
             if ($semantic_available) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lectura de taxonomia semantica propia para snapshot fiscal inmutable; requiere datos actuales, no cache persistente.
                 $rows = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT v.semantic_group, v.label
@@ -483,8 +484,10 @@ final class SEO_Facturas_Snapshot {
 
         global $wpdb;
         $table = $wpdb->prefix . 'seo_supplier_images';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Comprobar presencia de tabla legado antes de consultar imagenes; sin alternativa WP.
         $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
         if ($exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta parametrizada con %i/%d, sobre tabla legado de imagenes; usar URLs vigentes al crear el snapshot.
             $rows = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url

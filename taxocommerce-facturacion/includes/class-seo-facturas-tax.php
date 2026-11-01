@@ -367,7 +367,8 @@ final class SEO_Facturas_Tax {
             return self::$rate_exists_cache[$rate_id];
         }
         $table = $wpdb->prefix . 'woocommerce_tax_rates';
-        $found = $wpdb->get_var($wpdb->prepare("SELECT tax_rate_id FROM {$table} WHERE tax_rate_id = %d LIMIT 1", $rate_id)); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- WC no ofrece consulta equivalente por ID; el resultado se memoiza en rate_exists_cache durante la solicitud.
+        $found = $wpdb->get_var($wpdb->prepare('SELECT tax_rate_id FROM %i WHERE tax_rate_id = %d LIMIT 1', $table, $rate_id));
         self::$rate_exists_cache[$rate_id] = (bool) $found;
         return self::$rate_exists_cache[$rate_id];
     }
@@ -379,6 +380,7 @@ final class SEO_Facturas_Tax {
 
         global $wpdb;
         $table = $wpdb->prefix . 'woocommerce_tax_rates';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Fallback para WooCommerce sin _insert_tax_rate; tabla gestionada por WC, escritura inmediata.
         $inserted = $wpdb->insert($table, $data, array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s'));
         return $inserted ? absint($wpdb->insert_id) : 0;
     }
@@ -391,6 +393,7 @@ final class SEO_Facturas_Tax {
 
         global $wpdb;
         $table = $wpdb->prefix . 'woocommerce_tax_rates';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fallback para WooCommerce sin _update_tax_rate; escritura inmediata e invalidacion fiscal posterior.
         $wpdb->update(
             $table,
             $data,

@@ -5,6 +5,10 @@
 
 ## [Unreleased]
 
+- Normalizadas con prefijo `taxocommerce_billing_` las variables locales de las plantillas PDF de presupuesto y factura, sin alterar claves de snapshots ni estructura de salida.
+- Parametrizada también la consulta de tasas de WooCommerce (`%i`) y justificados localmente los accesos directos a tablas propias/legadas, la lectura sin caché de snapshots y las escrituras que deben ser inmediatas. Issue #1546.
+- Se conserva la comprobación de firma y caducidad de enlaces de descarga, los nonces administrativos, las series fiscales y la generación de PDF. Validación de Plugin Check y regresión en CI pendiente.
+
 - Se parametrizan los identificadores de tablas SQL con `%i` en Documents y Snapshot (requiere WordPress 6.2 o superior); valores de consulta continúan enlazados con `prepare()`.
 - Documentadas con exclusiones PHPCS individualizadas las lecturas GET sin efectos secundarios en administración y los enlaces temporales HMAC de descarga del cliente; se mantienen las verificaciones de capacidad y nonce existentes en acciones administrativas.
 - Correcciones parciales de la auditoría Plugin Check #1546: pendientes la revisión de consultas directas y caché, y la validación funcional y del ZIP antes de fusionar.
