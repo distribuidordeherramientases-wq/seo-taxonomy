@@ -317,8 +317,7 @@ final class SEO_Ojeador_DB {
 
         $market = self::table('categories');
         $schema = self::google_schema_table();
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Ojeador/Google Schema table names are internal; query has no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Ojeador/Google Schema table names are internal; query has no external values. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return (array) $wpdb->get_results(
             $wpdb->prepare(
             "SELECT tt.term_id,
@@ -638,8 +637,7 @@ final class SEO_Ojeador_DB {
         );
 
         $categories_table = self::table('categories');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; term ID is bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $exists = $wpdb->get_var($wpdb->prepare("SELECT term_id FROM %i WHERE term_id=%d", $categories_table,
             $term_id
         ));
@@ -732,8 +730,7 @@ final class SEO_Ojeador_DB {
         );
 
         $category_results_table = self::table('category_results');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and result hash are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; term ID and result hash are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing = $wpdb->get_row($wpdb->prepare("SELECT id,first_seen_at FROM %i WHERE term_id=%d AND result_hash=%s LIMIT 1", $category_results_table,
             absint($term_id),
             $result_hash
@@ -839,8 +836,7 @@ final class SEO_Ojeador_DB {
         }
         $params[] = $limit;
         $params = array_merge($sql_params, $params);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador/Schema tables and fixed WHERE fragments; search values and LIMIT are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador/Schema tables and fixed WHERE fragments; search values and LIMIT are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
 
         foreach ($rows as &$row) {
@@ -892,8 +888,7 @@ final class SEO_Ojeador_DB {
 
         $cutoff = gmdate('Y-m-d H:i:s', time() - ($max_age_hours * HOUR_IN_SECONDS));
         $categories_table = self::table('categories');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query, excluded term and cutoff are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; query, excluded term and cutoff are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $source = $wpdb->get_row($wpdb->prepare("SELECT term_id,status,result_count,last_scan_at
              FROM %i
              WHERE query_text=%s
@@ -969,8 +964,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $limit = max(1, min(5000, absint($limit)));
         $category_results_table = self::table('category_results');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; term ID and LIMIT are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; term ID and LIMIT are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE term_id=%d AND active=1 ORDER BY result_position ASC,id ASC LIMIT %d", $category_results_table,
             absint($term_id),
             $limit
@@ -1003,8 +997,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $products = esc_sql( self::table('products') );
         $now = self::utc_now();
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; cutoff time is bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(p.ID)
              FROM {$wpdb->posts} p
              LEFT JOIN %i m ON m.object_id=p.ID
@@ -1019,8 +1012,7 @@ final class SEO_Ojeador_DB {
         $limit = max(1, min(50, absint($limit)));
         $products = esc_sql( self::table('products') );
         $now = self::utc_now();
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; cutoff time and LIMIT are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; cutoff time and LIMIT are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return array_map('absint', (array) $wpdb->get_col($wpdb->prepare("SELECT p.ID
              FROM {$wpdb->posts} p
              LEFT JOIN %i m ON m.object_id=p.ID
@@ -1107,8 +1099,7 @@ final class SEO_Ojeador_DB {
         );
 
         $products_table = self::table('products');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; object ID is bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $exists = $wpdb->get_var($wpdb->prepare("SELECT object_id FROM %i WHERE object_id=%d", $products_table, $object_id));
         $ok = $exists
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This operation writes/migrates the module's own tables; no core object API or result cache applies.
@@ -1171,8 +1162,7 @@ final class SEO_Ojeador_DB {
             'raw_json' => isset($offer['raw']) ? wp_json_encode($offer['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         );
         $offers_table = self::table('offers');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and offer hash are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; object ID and offer hash are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $existing = $wpdb->get_row($wpdb->prepare("SELECT id,first_seen_at FROM %i WHERE object_id=%d AND offer_hash=%s LIMIT 1", $offers_table,
             absint($object_id),
             $offer_hash
@@ -1220,8 +1210,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $limit = max(1, min(1000, absint($limit)));
         $offers_table = self::table('offers');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID and LIMIT are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; object ID and LIMIT are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i WHERE object_id=%d AND active=1 ORDER BY COALESCE(total_price,price) ASC, offer_position ASC LIMIT %d", $offers_table,
             absint($object_id),
             $limit
@@ -1232,8 +1221,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $object_id = absint($object_id);
         $products_table = self::table('products');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; object ID is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; object ID is bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $market = $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE object_id=%d LIMIT 1", $products_table, $object_id), ARRAY_A);
         $our = self::live_price($object_id);
         $offers = self::offers_for_object($object_id, 1000);
@@ -1276,8 +1264,7 @@ final class SEO_Ojeador_DB {
                 LIMIT %d";
         $params[] = $limit;
         $params = array_merge(array($products, $wpdb->posts), $params);
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table and fixed status WHERE; search values and LIMIT are bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table and fixed status WHERE; search values and LIMIT are bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
     }
 
@@ -1406,8 +1393,7 @@ final class SEO_Ojeador_DB {
         global $wpdb;
         $limit = max(1, min(5000, absint($limit)));
         $query_log_table = self::table('query_log');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; LIMIT is bound through prepare().
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; LIMIT is bound through prepare(). Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT %d", $query_log_table,
             $limit
         ), ARRAY_A);
@@ -1416,8 +1402,7 @@ final class SEO_Ojeador_DB {
     public static function latest_query_log() {
         global $wpdb;
         $query_log_table = self::table('query_log');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; query has no external values. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT 1", $query_log_table ), ARRAY_A);
     }
 
@@ -1441,16 +1426,14 @@ final class SEO_Ojeador_DB {
     public static function active_run() {
         global $wpdb;
         $runs_table = self::table('runs');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; query has no external values. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i WHERE status IN ('pending','running') ORDER BY id ASC LIMIT 1", $runs_table ), ARRAY_A);
     }
 
     public static function latest_run() {
         global $wpdb;
         $runs_table = self::table('runs');
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Internal Ojeador table; query has no external values.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal Ojeador table; query has no external values. Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM %i ORDER BY id DESC LIMIT 1", $runs_table ), ARRAY_A);
     }
 
