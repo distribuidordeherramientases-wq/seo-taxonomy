@@ -43,7 +43,7 @@ final class TaxoCommerce_Core_Editor_UI {
                     'loading' => __( 'Buscando…', 'taxocommerce-core' ),
                     'error' => __( 'No se han podido cargar los términos.', 'taxocommerce-core' ),
                     'choose' => __( 'Selecciona primero un atributo global.', 'taxocommerce-core' ),
-                    'remove' => __( 'Quitar %s', 'taxocommerce-core' ),
+                    'remove' => /* translators: %s: name of the attribute term being removed. */ __( 'Quitar %s', 'taxocommerce-core' ),
                     'mediaTitle' => __( 'Elegir imagen', 'taxocommerce-core' ),
                     'mediaButton' => __( 'Utilizar imagen', 'taxocommerce-core' ),
                     'imageEmpty' => __( 'Sin imagen destacada', 'taxocommerce-core' ),
