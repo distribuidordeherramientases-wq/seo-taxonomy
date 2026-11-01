@@ -1,5 +1,13 @@
 # CHANGELOG — TaxoCommerce Templates
 
+## 0.4.8 — 2026-11-01
+- Protección de **consentimiento explícito tras actualización**: la opción `taxocommerce_templates_review_consent_v1` permanece a cero al instalar una versión nueva, por lo que las políticas públicas no se activan aunque el interruptor heredado `taxocommerce_templates_render_enabled` estuviera activado.
+- La casilla visible **Aplicación de políticas** sigue siendo el único control de administración. Al guardar marcada establece el consentimiento y habilita las reglas; desmarcada retira primero el consentimiento de forma segura. No se pierden diseños, países, archivos, relaciones ni borradores.
+- Todos los resolutores de plantillas de WordPress/WooCommerce, el enrutamiento PHP heredado, las vistas por país, los correos y el estado mostrado en el administrador utilizan el mismo estado efectivo, evitando discrepancias.
+- Se mantiene la posibilidad de editar plantillas con el plugin instalado y políticas suspendidas. Las reglas VEVOR especiales del monolito no se modifican.
+- Pruebas de regresión: actualización con opción antigua activa, nueva autorización explícita, suspensión de emergencia y conservación de configuraciones. No hay activación automática del nuevo enrutador ni despliegue a PRODUCCIÓN en este cambio.
+
+
 ## 0.4.7 — 2026-11-01
 - **Interruptor maestro de políticas** visible en las dos pestañas de Templates: permite mantener el plugin activo y gestionar plantillas sin aplicarlas al frontend.
 - Se reutiliza la opción histórica `taxocommerce_templates_render_enabled`; su valor se conserva durante la actualización. En instalaciones nuevas comienza desactivada.

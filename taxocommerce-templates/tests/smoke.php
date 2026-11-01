@@ -60,9 +60,11 @@ function get_query_var($name) { return ''; }
 
 class TaxoCommerce_Templates {
     const ENABLE_OPTION = 'tct_test_enabled';
+    const REVIEW_CONSENT_OPTION = 'tct_test_review_consent';
     public static function installed() { return false; }
     public static function policies_enabled() {
-        return 1 === (int) get_option(self::ENABLE_OPTION, 0);
+        return 1 === (int) get_option(self::ENABLE_OPTION, 0)
+            && 1 === (int) get_option(self::REVIEW_CONSENT_OPTION, 0);
     }
 }
 
@@ -387,6 +389,7 @@ tct_assert(TCT_Designs::can_activate(array(), 'one', 'woo_file_abc', array('ES')
     'WooCommerce partials must not claim support from the main template resolver.');
 $GLOBALS['test_options'] = array(
     TaxoCommerce_Templates::ENABLE_OPTION => 1,
+    TaxoCommerce_Templates::REVIEW_CONSENT_OPTION => 1,
     TCT_Designs::OPTION => array(
     'one'=>array('id'=>'one', 'route'=>'cluster', 'name'=>'Cluster ES',
         'countries'=>array('ES'), 'file'=>'template-cluster.php', 'active'=>true),
@@ -406,6 +409,16 @@ tct_assert(TCT_Designs::resolve(array('cluster')) === TCT_Router::path('template
 $GLOBALS['test_market'] = 'DE';
 tct_assert(TCT_Designs::resolve(array('cluster')) === '',
     'Unconfigured countries must fall back to legacy WordPress routing.');
+// On upgrade the legacy ENABLE_OPTION may still be ON, but a new consent
+// must be explicitly given before this plugin can affect public pages.
+$GLOBALS['test_options'][TaxoCommerce_Templates::REVIEW_CONSENT_OPTION] = 0;
+tct_assert(!TaxoCommerce_Templates::policies_enabled(),
+    'Old enabled settings must never activate policies after an upgrade.');
+tct_assert(TCT_Designs::resolve(array('cluster')) === '',
+    'Previously enabled designs must not take effect before explicit new consent.');
+$GLOBALS['test_options'][TaxoCommerce_Templates::REVIEW_CONSENT_OPTION] = 1;
+tct_assert(TaxoCommerce_Templates::policies_enabled(),
+    'Explicit consent re-enables the existing policy switch.');
 // The emergency switch must bypass all presentation hooks, including direct
 // calls into country-specific rules; saved designs are not modified.
 $GLOBALS['test_options'][TaxoCommerce_Templates::ENABLE_OPTION] = 0;
@@ -429,6 +442,11 @@ $emails = array('dummy' => (object)array('id' => 'processing'));
 tct_assert(TCT_Legacy_Email_Compat::apply($emails) === $emails,
     'Disabled policies must leave WooCommerce email templates unchanged.');
 $bootstrap = file_get_contents(TCT_DIR . 'taxocommerce-templates.php');
+tct_assert(strpos($bootstrap, "const REVIEW_CONSENT_OPTION = 'taxocommerce_templates_review_consent_v1'") !== false
+    && strpos($bootstrap, 'get_option(self::REVIEW_CONSENT_OPTION, 0)') !== false
+    && strpos($bootstrap, 'update_option(self::REVIEW_CONSENT_OPTION, 0, false)') !== false
+    && strpos($bootstrap, 'update_option(self::REVIEW_CONSENT_OPTION, 1, false)') !== false,
+    'A safe upgrade requires fresh opt-in and can always suspend policies.');
 tct_assert(strpos($bootstrap, "const ENABLE_OPTION = 'taxocommerce_templates_render_enabled'") !== false
     && strpos($bootstrap, "if (self::policies_enabled()) {") !== false
     && strpos($bootstrap, "add_filter('template_include'") !== false

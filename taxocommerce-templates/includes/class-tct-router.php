@@ -266,7 +266,7 @@ final class TCT_Router {
     }
 
     public static function resolve($original) {
-        if (!get_option(TaxoCommerce_Templates::ENABLE_OPTION, 0) || !TaxoCommerce_Templates::installed()) {
+        if (!TaxoCommerce_Templates::policies_enabled() || !TaxoCommerce_Templates::installed()) {
             return $original;
         }
 

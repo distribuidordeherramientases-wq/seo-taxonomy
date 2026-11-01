@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.7
+ * Version: 0.4.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -11,7 +11,7 @@
  * Text Domain: taxocommerce-templates
  */
 defined('ABSPATH') || exit;
-define('TCT_VERSION','0.4.7');
+define('TCT_VERSION','0.4.8');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -30,12 +30,14 @@ require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 final class TaxoCommerce_Templates {
     const ROLE_OPTION = 'taxocommerce_templates_custom_roles';
     const ENABLE_OPTION = 'taxocommerce_templates_render_enabled';
-    /**
-     * Master kill switch for all frontend presentation hooks.
-     * Keep the option stable to preserve current site activation state.
-     */
+    // New consent is OFF by default, including when an older installation
+    // left ENABLE_OPTION=1. Deployment can never turn public routes on.
+    const REVIEW_CONSENT_OPTION = 'taxocommerce_templates_review_consent_v1';
+
+    /** Explicit operator opt-in required after updating the plugin. */
     public static function policies_enabled() {
-        return 1 === (int) get_option(self::ENABLE_OPTION, 0);
+        return 1 === (int) get_option(self::ENABLE_OPTION, 0)
+            && 1 === (int) get_option(self::REVIEW_CONSENT_OPTION, 0);
     }
 
     public static function nodes() { global $wpdb; return $wpdb->prefix.'seo_nodes'; }
@@ -260,7 +262,13 @@ final class TaxoCommerce_Templates {
         check_admin_referer('tct_settings');
         $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
             '1' === wp_unslash($_POST['enable']);
+        // Disable the effective gate FIRST. Re-enable it only after the
+        // existing legacy switch has been updated. Safe even after an upgrade.
+        update_option(self::REVIEW_CONSENT_OPTION, 0, false);
         update_option(self::ENABLE_OPTION, $enabled ? 1 : 0, false);
+        if ($enabled) {
+            update_option(self::REVIEW_CONSENT_OPTION, 1, false);
+        }
         self::redirect($enabled
             ? 'Políticas de TaxoCommerce Templates activadas.'
             : 'Políticas suspendidas. WordPress, el tema y otros plugins conservan el control.');
@@ -285,6 +293,7 @@ final class TaxoCommerce_Templates {
         echo '<label><input type="checkbox" name="enable" value="1" ' . checked($enabled, true, false) . '> ';
         echo '<strong>Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la web</strong></label>';
         echo '<p class="description">Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no sustituye páginas, productos, categorías, comentarios, fragmentos WooCommerce ni correos. WordPress y los demás plugins recuperan el control.</p>';
+        echo '<p class="description"><strong>Protección al actualizar:</strong> tras instalar esta versión las políticas permanecen suspendidas, incluso si una versión anterior tenía el enrutador activo. Solo se habilitan cuando marcas esta casilla y guardas expresamente.</p>';
         echo '<p class="description">Marcada: las rutas configuradas pueden aplicarse según sus prioridades, mercados y reglas. No activa automáticamente plantillas que sigan como borrador.</p>';
         submit_button('Guardar estado de las políticas', 'secondary', 'submit', false);
         echo '</form></section>';
