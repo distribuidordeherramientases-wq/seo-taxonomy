@@ -362,6 +362,7 @@ if (did_action('admin_print_styles')) {
             }
             $safe_order = $sort_map[$order_by];
             $safe_where = $where_map[$where];
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interactive administrative export or status query must reflect current state; no cache invalidation contract exists.
             $rows = $wpdb->get_results(
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Both interpolated SQL fragments come from the two fixed allowlists above; table and pagination are parameterized.
                 $wpdb->prepare("SELECT * FROM %i WHERE {$safe_where} ORDER BY {$safe_order} LIMIT %d OFFSET %d", $table, $chunk, $offset),
@@ -395,6 +396,7 @@ if (did_action('admin_print_styles')) {
         $inventory = SEO_Ojeador_DB::list_market_categories(array('limit'=>2000, 'search'=>''));
         $latest_run = SEO_Ojeador_DB::latest_run();
         $schema_table = $wpdb->prefix . 'seo_google_schema_map';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema probe on an internal table; schema checks must not use stale cached data.
         $schema_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $schema_table)) === $schema_table;
 
         self::json_headers('ojeador-inventario-completo-' . gmdate('Ymd-His') . '.json');
@@ -444,6 +446,7 @@ if (did_action('admin_print_styles')) {
         $first = true;
         echo '[';
         do {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Interactive administrative export or status query must reflect current state; no cache invalidation contract exists.
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                 "SELECT r.id,r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,
