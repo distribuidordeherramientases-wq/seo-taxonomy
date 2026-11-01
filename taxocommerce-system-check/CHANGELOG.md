@@ -6,6 +6,8 @@
 
 ## [0.2.12]
 
+* Integrados los cambios del PR #2016 sobre la corrección posterior del PR #2020: conservadas las consultas preparadas y las lecturas de diagnóstico actuales; añadida una prueba de regresión del orden de parámetros del UPDATE de Health Scan.
+
 * Resueltos los casos pendientes de preparación SQL en informes de facturación, vocabulario, Health Scan y consulta de imágenes externas, manteniendo los identificadores mediante `%i` y los parámetros vinculados.
 * Las consultas de diagnóstico de estado actual conservan resultados en tiempo real. Las excepciones a avisos de acceso directo/caché se acotan a las operaciones concretas y se justifican, sin ocultar alertas de seguridad generales.
 * Verificada la procedencia de listas de parámetros SQL variables: enlaces de imágenes y escaneos usan plantillas de cláusulas e identificadores restringidas, con cada dato enlazado mediante `$wpdb->prepare()`; no se introducen datos SQL arbitrarios.

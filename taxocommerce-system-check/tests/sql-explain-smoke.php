@@ -63,4 +63,16 @@ foreach ( array(
         exit( 1 );
     }
 }
+// Ensure that Health Scan binds its canonical table identifier before scan
+// values and generated integer IDs. This guards a regression of PR #2016.
+$health_source = file_get_contents( dirname( __DIR__ ) . '/includes/system-check/seo-health-scan.php' );
+if (
+    ! is_string( $health_source )
+    || false === strpos( $health_source, "'UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN ('" )
+    || false === strpos( $health_source, "array_merge(array(\$tables['items'], \$run_id, \$now), \$ids)" )
+    || false !== strpos( $health_source, 'UPDATE {$tables' )
+) {
+    fwrite( STDERR, "Health Scan queue must bind canonical table and ordered parameters.\n" );
+    exit( 1 );
+}
 echo "Eight canonical System Check EXPLAIN templates prepared safely.\n";
