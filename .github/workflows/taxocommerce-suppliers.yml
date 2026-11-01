@@ -65,6 +65,22 @@ jobs:
           ignore-warnings: false
           ignore-errors: false
 
+      - name: Enforce zero Plugin Check findings
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          report = Path(os.environ['RUNNER_TEMP']) / 'plugin-check-results.txt'
+          if not report.is_file():
+              raise SystemExit('Missing WordPress Plugin Check results')
+          result = report.read_text(encoding='utf-8')
+          findings = re.findall(r'"type"\s*:\s*"(?:ERROR|WARNING)"', result, re.I)
+          if findings:
+              print(result)
+              raise SystemExit('Plugin Check found %d blocking error/warning entries' % len(findings))
+          print('WordPress Plugin Check: 0 errors, 0 warnings')
+          PY
+
       - name: Package ZIP
         run: |
           (

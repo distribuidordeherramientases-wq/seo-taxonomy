@@ -525,6 +525,7 @@ final class TCSUP_Admin {
 
 	private static function providers() {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current distinct suppliers must reflect new CSV imports immediately; cache would become stale.
 		return $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT DISTINCT proveedor FROM %i WHERE proveedor<>%s ORDER BY proveedor ASC',
