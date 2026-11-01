@@ -656,6 +656,7 @@ final class SEO_Ojeador_DB {
             'save_errors' => $save_errors,
             'last_save_error' => $last_save_error,
         );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Public legacy contract used by the standalone engines and existing integrations; renaming would break compatibility.
         do_action('seo_ojeador_category_snapshot_saved', $term_id, $summary, $scan);
         return $summary;
     }
