@@ -24,7 +24,7 @@ $checks = array(
 	'Technical manual read only' => strpos( $technical, '<form' ) === false && strpos( $technical, 'update_option(' ) === false,
 	'Technical manual semantic headings' => strpos( $technical, '<h2>' ) !== false && strpos( $technical, '<h3>' ) !== false,
 	'Technical manual responsive tables' => strpos( $css, 'tcc-guide-table-scroll' ) !== false,
-	'Menu labels recognize Guide' => strpos( $core, "'taxocommerce-core-user-guide'=> 'User Guide'" ) !== false,
+	'Menu labels recognize Guide' => strpos( $core, "'taxocommerce-core-user-guide'=> __( 'User Guide', 'taxocommerce-core' )" ) !== false,
 );
 foreach ( $checks as $message => $ok ) {
 	if ( ! $ok ) {
