@@ -327,6 +327,9 @@ final class TCT_Request_Registry {
     }
 
     public static function resolve_woocommerce_part($original, $slug, $name = '') {
+        if (!TaxoCommerce_Templates::policies_enabled()) {
+            return $original;
+        }
         $slug = trim((string)$slug);
         $name = trim((string)$name);
         if (!preg_match('#^[a-zA-Z0-9][a-zA-Z0-9/_-]*$#D', $slug) ||

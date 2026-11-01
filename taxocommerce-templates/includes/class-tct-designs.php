@@ -199,6 +199,9 @@ final class TCT_Designs {
 
     /** The caller already checked the global router switch and pilot priority. */
     public static function resolve( $candidates ) {
+        if ( ! TaxoCommerce_Templates::policies_enabled() ) {
+            return '';
+        }
         $all = self::all();
         if ( ! $all ) { return ''; }
         $country = self::market_for_request();
