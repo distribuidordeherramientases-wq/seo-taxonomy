@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.2.12]
+
+* Resueltos los casos pendientes de preparación SQL en informes de facturación, vocabulario, Health Scan y consulta de imágenes externas, manteniendo los identificadores mediante `%i` y los parámetros vinculados.
+* Las consultas de diagnóstico de estado actual conservan resultados en tiempo real. Las excepciones a avisos de acceso directo/caché se acotan a las operaciones concretas y se justifican, sin ocultar alertas de seguridad generales.
+* Actualizados los tests y el empaquetado; no se cambian las API históricas `seo_*`, las tablas ni el monolítico.
+* PR y chequeo WordPress.org requeridos antes de desplegar; PRODUCCIÓN no incluida.
+
+
 ## [0.2.11]
 
 * Corregidos identificadores `%i` de Facturación (sin doble entrecomillado), sondeo de servicios, consultas de imágenes y escritura del inventario Health Scan; filtros de diagnóstico protegidos contra parámetros no escalares.
