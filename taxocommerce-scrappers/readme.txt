@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,11 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.5 =
+* Parameterize Ojeador's legacy migration UPDATE table name, preserving its one-time state transition.
+* Align whitelist verification with the SQL execution and document safe prepared IN-list binding in Ingeniero.
+* Expand smoke assertions for parameterized migration and export contracts.
 
 = 0.1.4 =
 * Confirmed correction of the six blocking Plugin Check findings from the production report: five legacy translation domains and one unescaped vocabulary table lookup were already fixed in staging 0.1.3.

@@ -251,7 +251,7 @@ final class SEO_Ojeador_DB {
         // A product-based run from v0.5 must never continue silently as a
         // category run after deployment. Stop it and let the next start be clean.
         if ($previous_version !== '' && version_compare($previous_version, '0.6.0', '<')) {
-            $wpdb->query("UPDATE {$runs} SET status='stopped', completed_at=UTC_TIMESTAMP(), heartbeat_at=UTC_TIMESTAMP() WHERE status IN ('pending','running')");
+            $wpdb->query($wpdb->prepare("UPDATE %i SET status='stopped', completed_at=UTC_TIMESTAMP(), heartbeat_at=UTC_TIMESTAMP() WHERE status IN ('pending','running')", $runs));
 
             // Product-era settings can mean something very different after the
             // switch to categories (for example batch_size=20 would become 20
@@ -656,6 +656,7 @@ final class SEO_Ojeador_DB {
             'save_errors' => $save_errors,
             'last_save_error' => $last_save_error,
         );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Public legacy contract used by the standalone engines and existing integrations; renaming would break compatibility.
         do_action('seo_ojeador_category_snapshot_saved', $term_id, $summary, $scan);
         return $summary;
     }
