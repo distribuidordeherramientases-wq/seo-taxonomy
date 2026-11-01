@@ -90,6 +90,9 @@ final class TCT_Pilot_Router {
     }
 
     public static function resolve() {
+        if ( ! TaxoCommerce_Templates::policies_enabled() ) {
+            return '';
+        }
         if (!is_tax('product_cat') && !is_singular('product') && !is_singular('page')) {
             return '';
         }
