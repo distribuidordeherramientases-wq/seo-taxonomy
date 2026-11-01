@@ -329,12 +329,13 @@ final class SEO_Facturas_Documents {
             "UPDATE {$wpdb->options} SET option_value = LAST_INSERT_ID(CAST(option_value AS UNSIGNED) + 1) WHERE option_name = %s",
             $option_name
         );
-        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado directo de $wpdb->prepare().
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Incremento atomico de secuencia fiscal en tabla options; no debe cachearse ni perder la operacion SQL LAST_INSERT_ID().
         $updated = $wpdb->query($sql);
         if (false === $updated || 0 === $updated) {
             return new WP_Error('seo_facturas_sequence_failed', 'No se pudo incrementar la numeracion del documento.');
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- LAST_INSERT_ID() es especifico de esta conexion y se lee justo despues del UPDATE atomico, nunca desde cache.
         $next = absint($wpdb->get_var('SELECT LAST_INSERT_ID()'));
         if (!$next) {
             return new WP_Error('seo_facturas_sequence_invalid', 'La numeracion devolvio un valor no valido.');
