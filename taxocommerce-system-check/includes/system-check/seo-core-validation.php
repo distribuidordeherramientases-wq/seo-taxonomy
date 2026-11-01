@@ -3334,6 +3334,7 @@ function seo_core_system_test_collect_database_link_references(&$link_map, $limi
 
     $limit = max(1, (int) $limit);
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT ID, post_type, post_title, post_content FROM %i WHERE post_status = 'publish' AND post_type IN ('page','post','product') AND post_content LIKE %s ORDER BY post_modified_gmt DESC LIMIT %d",
@@ -3343,6 +3344,7 @@ function seo_core_system_test_collect_database_link_references(&$link_map, $limi
         ),
         ARRAY_A
     );
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     foreach ((array) $rows as $row) {
         $post_id = isset($row['ID']) ? (int) $row['ID'] : 0;
         $base = $post_id > 0 ? get_permalink($post_id) : home_url('/');
@@ -3815,7 +3817,9 @@ function seo_core_system_test_registered_redirect_audit($target_limit) {
 
     $row_limit = max(500, $target_limit * 10);
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $row_limit), ARRAY_A);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     $result['records'] = count((array) $rows);
     $map = array();
     $targets = array();
@@ -4672,7 +4676,9 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
     }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $columns = (array) $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', $table), 0);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     $links = array_values(array_intersect(array('product_id', 'object_id'), $columns));
     if (!$links || !in_array('image_url', $columns, true)) {
         return array();
@@ -4701,9 +4707,13 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
               {$order_sql}
               LIMIT %d";
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla/columnas/order proceden de allowlists internas; valores y límite enlazados mediante $wpdb->prepare().
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only allowed SQL fragments, bind identifiers and parameter values
     $prepared_sql = $wpdb->prepare($query, $params);
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $prepared_sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Live diagnostic SQL with allowlisted fields and bound values
     return (array) $wpdb->get_results($prepared_sql, ARRAY_A);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 }
 
 function seo_core_system_test_classify_image_probe($probe) {
@@ -5110,7 +5120,9 @@ function seo_core_system_test_redirects_check($enabled) {
 
     $limit = max(1, (int) apply_filters('seo_core_system_test_redirect_analysis_limit', 200));
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $rows = $wpdb->get_results($wpdb->prepare("SELECT origin_url, target_url, status_code FROM %i ORDER BY id DESC LIMIT %d", $table, $limit), ARRAY_A);
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
     if (empty($rows)) {
         return seo_core_system_test_check_info('No hay redirecciones registradas.');
     }
@@ -6550,7 +6562,9 @@ function seo_core_system_test_technical() {
     $upload_dir = wp_get_upload_dir();
     $cron_stats = seo_core_system_test_cron_stats();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $autoload_size = (float) $wpdb->get_var("SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE autoload IN ('yes', 'on', 'auto-on', 'auto')");
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
     $results[] = seo_core_system_test_result('technical', '7.1 WordPress cargado', function_exists('get_bloginfo') && function_exists('get_option'), get_bloginfo('version'));
     $results[] = seo_core_system_test_result('technical', '7.2 Uploads accesible', !empty($upload_dir['basedir']) && is_dir($upload_dir['basedir']) && is_readable($upload_dir['basedir']), !empty($upload_dir['basedir']) ? $upload_dir['basedir'] : 'No detectado');
@@ -6708,6 +6722,7 @@ function seo_core_system_test_count_seo_nodes_by_role($role) {
     }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     return (int) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT COUNT(*) FROM %i WHERE seo_role = %s",
@@ -6715,6 +6730,7 @@ function seo_core_system_test_count_seo_nodes_by_role($role) {
             $role
         )
     );
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 }
 
 function seo_core_system_test_valid_page_id($page_id) {
@@ -7432,7 +7448,9 @@ function seo_core_system_test_table_exists($table_name) {
     global $wpdb;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live diagnostic SQL with allowlisted fields and bound values
     $found = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name));
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
     return $found === $table_name;
 }

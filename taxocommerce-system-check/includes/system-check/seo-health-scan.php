@@ -713,7 +713,9 @@ if (!function_exists('seo_health_scan_launch')) {
             $queue_sql = "UPDATE {$tables['items']} SET queued_scan_id=%d,queued_at=%s WHERE id IN ({$id_placeholders})";
             $queue_params = array_merge(array($run_id, $now), $ids);
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table/placeholder list; all values are integers/text bound through prepare(). / Direct write coordinates the scheduler/diagnostic state; caching is not applicable.
+            // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Internally generated SQL clauses and fixed placeholders with prepared bound values
             $queued = $wpdb->query($wpdb->prepare($queue_sql, $queue_params));
+            // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
 
         if ($queued === false || (int) $queued < 1) {
@@ -1355,11 +1357,15 @@ if (!function_exists('seo_health_render_scope_tab')) {
         $where_sql = implode(' AND ', $where);
         $count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_sql}";
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Internally generated SQL clauses and fixed placeholders with prepared bound values
         $total_rows = (int) $wpdb->get_var($wpdb->prepare($count_sql, $params));
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         $offset = ($paged - 1) * $per_page;
         $rows_sql = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,last_checked_at ASC,id ASC LIMIT %d OFFSET %d";
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table and whitelisted WHERE fragments; all dynamic values are bound through prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Internally generated SQL clauses and fixed placeholders with prepared bound values
         $rows = $wpdb->get_results($wpdb->prepare($rows_sql, array_merge($params,array($per_page,$offset))), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
         echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Estado por elemento</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
         foreach (array('error'=>'Errores','warning'=>'Avisos','pending'=>'Pendientes','ok'=>'Correctas','all'=>'Todas') as $key=>$label) {

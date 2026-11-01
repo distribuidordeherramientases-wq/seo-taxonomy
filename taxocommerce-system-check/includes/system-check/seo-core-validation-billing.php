@@ -803,7 +803,9 @@ if (!function_exists('seo_core_system_test_billing_documents_check')) {
             $table
         );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This diagnostic queries current site/database state; cached values would hide live server changes.
+        // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Bound canonical billing table and timestamp using wpdb prepare
         $stats = $wpdb->get_row($sql, ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         if (!empty($wpdb->last_error)) {
             return seo_core_system_test_result(
                 'checkout',
