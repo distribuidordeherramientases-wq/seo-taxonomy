@@ -175,6 +175,7 @@ final class SEO_Ojeador_Analysis {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- SQL contains only fixed internal WHERE clauses; all dynamic values and identifiers use %i/%d/%s bindings.
         $count_sql = $wpdb->prepare($count_sql, array_merge(array($table, $categories), $params));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Sin parámetros es SQL interno fijo; con parámetros, $count_sql ya está preparado.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $total = absint($wpdb->get_var($count_sql));
 
         $per_page = max(20, min(200, absint($args['per_page'])));
@@ -202,6 +203,7 @@ final class SEO_Ojeador_Analysis {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y ORDER BY proceden de allowlists internas; valores/paginación enlazados mediante placeholders.
         $select_sql = $wpdb->prepare($select_sql, $select_params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $select_sql es el resultado de $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($select_sql, ARRAY_A);
 
         foreach ($rows as &$row) {
@@ -228,6 +230,7 @@ final class SEO_Ojeador_Analysis {
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
         $categories = esc_sql( SEO_Ojeador_DB::table('categories') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return (array) $wpdb->get_results(
             $wpdb->prepare("SELECT r.term_id,COALESCE(NULLIF(c.category_name,''),t.name) AS category_name,COUNT(*) AS products_found
              FROM %i r
@@ -262,6 +265,7 @@ final class SEO_Ojeador_Analysis {
                 GROUP BY term_id", $table);
         $out = array();
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Consulta agregada fija sobre tabla interna, sin entrada de usuario.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         foreach ((array) $wpdb->get_results($sql, ARRAY_A) as $row) {
             $out[absint($row['term_id'] ?? 0)] = $row;
         }
@@ -272,6 +276,7 @@ final class SEO_Ojeador_Analysis {
     private static function top_merchant_shares() {
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $rows = (array) $wpdb->get_results($wpdb->prepare("SELECT term_id,merchant_key,COUNT(*) AS n
              FROM %i
              WHERE active=1 AND merchant_key<>''
@@ -300,6 +305,7 @@ final class SEO_Ojeador_Analysis {
         global $wpdb;
         $limit = max(1, min(100, absint($limit)));
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         return (array) $wpdb->get_results(
             $wpdb->prepare("SELECT merchant,merchant_key,COUNT(*) AS appearances,COUNT(DISTINCT term_id) AS categories,
                     SUM(CASE WHEN price IS NOT NULL AND price>0 THEN 1 ELSE 0 END) AS rows_with_price,
@@ -638,6 +644,7 @@ final class SEO_Ojeador_Analysis {
 
         global $wpdb;
         $table = esc_sql( SEO_Ojeador_DB::table('category_results') );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live read of custom research/catalog tables; writes and cron modify these rows and there is no safe shared cache invalidation.
         $out['unique_merchants'] = absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(DISTINCT merchant_key) FROM %i WHERE active=1 AND merchant_key<>''", $table )));
 
         $usage = SEO_Ojeador_Shopping::usage_month();
