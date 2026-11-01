@@ -112,6 +112,7 @@ final class TaxoCommerce_Scrappers {
         // Legacy Ingeniero links only carry tab=research/editorial/data/tests.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
         if ( '' === $tab && isset( $_GET['tab'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter, sanitized by this handler; no state-changing action.
             $legacy = sanitize_key( wp_unslash( $_GET['tab'] ) );
             if ( in_array( $legacy, array( 'research', 'editorial', 'data', 'tests' ), true ) ) {
                 $tab = 'ingeniero';
