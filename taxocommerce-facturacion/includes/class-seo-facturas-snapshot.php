@@ -345,8 +345,8 @@ final class SEO_Facturas_Snapshot {
                 $rows = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT v.semantic_group, v.label
-                         FROM {$object_table} ov
-                         INNER JOIN {$vocabulary_table} v
+                         FROM %i ov
+                         INNER JOIN %i v
                             ON v.id = ov.vocabulary_id
                            AND v.active = 1
                          WHERE ov.object_type = 'product'
@@ -355,6 +355,8 @@ final class SEO_Facturas_Snapshot {
                            AND v.semantic_group IN ('tipo','rol','aplicacion','plataforma','subtipo')
                          ORDER BY FIELD(v.semantic_group,'tipo','rol','aplicacion','plataforma','subtipo'),
                                   v.label ASC",
+                        $object_table,
+                        $vocabulary_table,
                         $product_id
                     ),
                     ARRAY_A
@@ -486,13 +488,14 @@ final class SEO_Facturas_Snapshot {
             $rows = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
                      LIMIT 3",
+                    $table,
                     $product_id
                 )
             );
