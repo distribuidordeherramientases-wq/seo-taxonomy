@@ -122,7 +122,9 @@ final class TaxoCommerce_Core_Menu_Editor {
 
     /** Validate a native menu before any write; never fall back on an invalid ID. */
     public static function target_menu_id( $create = false ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- All write actions call check_admin_referer() before resolving the target menu.
         if ( isset( $_POST['tc_menu_id'] ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The action nonce is verified in handle_action() or handle_activate_menu(); this only resolves an existing menu ID.
             $id = is_scalar( $_POST['tc_menu_id'] ) ? absint( $_POST['tc_menu_id'] ) : 0;
             if ( $id ) {
                 $menu = wp_get_nav_menu_object( $id );
