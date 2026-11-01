@@ -111,6 +111,7 @@ final class Category_Review {
                 'fields'         => 'ids',
                 'posts_per_page' => self::SAMPLE_MAX + 1,
                 'no_found_rows'  => true,
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Single exact product_cat term; at most 201 IDs for categories with <= 200 products, no_found_rows and no child expansion.
                 'tax_query'      => array(
                     array(
                         'taxonomy'         => 'product_cat',
