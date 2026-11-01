@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- Inicio de internacionalización WordPress mediante gettext (`Domain Path: /languages`), catálogos por idioma y traducción de etiquetas del menú, sin cambios funcionales. Seguimiento: #2040 (plan global #2036). Cobertura restante de interfaz, Autotest y manuales pendiente de revisión por idioma.
+
+
 Sin novedades adicionales pendientes.
 
 ## [0.1.7]
