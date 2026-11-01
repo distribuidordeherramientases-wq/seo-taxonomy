@@ -107,6 +107,7 @@ final class TaxoCommerce_Templates {
             !function_exists('seo_front_es_international_category_ids')) {
             require_once TCT_DIR . 'includes/seo-front-es-catalog.php';
         }
+        add_action('admin_enqueue_scripts',array(__CLASS__,'enqueue_policy_control'));
         add_action('admin_menu',array(__CLASS__,'menu'),65);
         add_action('admin_post_tct_save_role',array(__CLASS__,'save_role'));
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
@@ -263,6 +264,14 @@ final class TaxoCommerce_Templates {
         self::redirect($enabled
             ? 'Políticas de TaxoCommerce Templates activadas.'
             : 'Políticas suspendidas. WordPress, el tema y otros plugins conservan el control.');
+    }
+
+    public static function enqueue_policy_control() {
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+            return;
+        }
+        wp_enqueue_style( 'tct-policy-control', TCT_URL . 'assets/policy-switch.css', array(), TCT_VERSION );
     }
 
     public static function render_policy_control() {
