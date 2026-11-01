@@ -4701,6 +4701,8 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
 
     // Identifiers/ordering use the fixed column allowlists above; values and table are bound.
     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Generated allowlisted SQL structure, all values bound by prepare().
+    // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic number of %d placeholders, with the matching array of bound parameters.
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $status_where and $order_sql are assembled from fixed schema allowlists only.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Current supplier image status, intentionally uncached.
     // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- Generated clauses contain no untrusted raw identifiers or values.
     $images = (array) $wpdb->get_results(
@@ -4718,6 +4720,8 @@ function seo_core_system_test_external_product_image_rows($product_id, $limit = 
     );
     // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     return $images;
 }
