@@ -58,6 +58,7 @@ No. It reads already-saved local evidence; no third-party requests are started.
 * Restore a clean standalone package for Plugin Check: existing output escaping, validated POST filters, enabled WordPress query filters and five readme tags.
 * Document two justified, bounded native category queries with exact PHPCS annotations; retain audit selection, cursor limits, results and read-only semantics.
 * Add source-level regression guards for the eight findings reported from an outdated Playground package.
+* Document each required, prepared read-only SQL query against optional canonical module tables without changing results, freshness or storage.
 
 
 = 0.3.2 =
