@@ -312,6 +312,8 @@ final class Runner {
                     's'                       => $filters['search'],
                 );
             if ( 'products' === $scope && $filters['category_id'] ) {
+                // Native product-category filter, bounded to at most 40 IDs per cursor batch.
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Indexed term relationships are needed to retain the selected category; the ID seek and no_found_rows avoid unbounded/offset scans.
                 $query_args['tax_query'] = array(
                     array(
                         'taxonomy' => 'product_cat',

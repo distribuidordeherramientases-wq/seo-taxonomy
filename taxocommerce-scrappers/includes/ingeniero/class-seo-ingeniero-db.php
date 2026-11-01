@@ -788,7 +788,7 @@ final class SEO_Ingeniero_DB {
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
         $query = 'SELECT * FROM %i WHERE id IN (' . $placeholders . ') ORDER BY id ASC';
         $bindings = array_merge(array($table), $ids);
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The SQL is built solely from fixed %i/%d placeholders; all identifiers and values are bound.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- This SQL consists exclusively of literal %i/%d placeholders; IDs are absint() and all values are passed to prepare().
         $rows = (array) $wpdb->get_results($wpdb->prepare($query, $bindings), ARRAY_A);
         foreach ($rows as &$row) {
             $row['metadata'] = self::decode_json($row['metadata_json'] ?? '');

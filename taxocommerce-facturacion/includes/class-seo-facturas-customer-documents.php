@@ -100,6 +100,7 @@ final class SEO_Facturas_Customer_Documents {
     }
 
     public static function handle_download() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Descarga autenticada por firma HMAC y caducidad, verificadas abajo.
         if (empty($_GET['seo_facturas_document_download'])) {
             return;
         }
@@ -108,9 +109,13 @@ final class SEO_Facturas_Customer_Documents {
             self::deny('El sistema documental no esta disponible.');
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Los parametros se autentican como conjunto con la firma HMAC del pedido.
         $order_id = absint($_GET['order_id'] ?? 0);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parametro incluido en la firma HMAC comprobada antes de emitir.
         $type = sanitize_key(wp_unslash($_GET['document_type'] ?? ''));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caducidad validada antes de acceder al documento.
         $expires = absint($_GET['expires'] ?? 0);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Firma HMAC de acceso temporal, alternativa adecuada al nonce de sesion para invitados.
         $signature = sanitize_text_field(wp_unslash($_GET['signature'] ?? ''));
 
         if (!$order_id || !in_array($type, array(SEO_Facturas_Documents::TYPE_INVOICE, SEO_Facturas_Documents::TYPE_PROFORMA), true)) {
@@ -210,6 +215,7 @@ final class SEO_Facturas_Customer_Documents {
             return true;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Clave WooCommerce comparada con hash_equals para verificar acceso al pedido.
         $request_key = sanitize_text_field(wp_unslash($_GET['key'] ?? ''));
         $order_key = (string) $order->get_order_key();
         return $request_key && $order_key && hash_equals($order_key, $request_key);

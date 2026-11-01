@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.2.12]
+
+* Integrados los cambios del PR #2016 sobre la corrección posterior del PR #2020: conservadas las consultas preparadas y las lecturas de diagnóstico actuales; añadida una prueba de regresión del orden de parámetros del UPDATE de Health Scan.
+
+* Resueltos los casos pendientes de preparación SQL en informes de facturación, vocabulario, Health Scan y consulta de imágenes externas, manteniendo los identificadores mediante `%i` y los parámetros vinculados.
+* Las consultas de diagnóstico de estado actual conservan resultados en tiempo real. Las excepciones a avisos de acceso directo/caché se acotan a las operaciones concretas y se justifican, sin ocultar alertas de seguridad generales.
+* Verificada la procedencia de listas de parámetros SQL variables: enlaces de imágenes y escaneos usan plantillas de cláusulas e identificadores restringidas, con cada dato enlazado mediante `$wpdb->prepare()`; no se introducen datos SQL arbitrarios.
+* Justificadas localmente las lecturas sin caché que comprueban el estado actual de datos; se conservan los mensajes de error y la respuesta de las comprobaciones.
+* Ajustada la ubicación de las excepciones PHPCS a instrucciones individuales, evitando modificar el comportamiento de los avisos del resto de consultas del archivo.
+* Actualizados los tests y el empaquetado; no se cambian las API históricas `seo_*`, las tablas ni el monolítico.
+* PR y chequeo WordPress.org requeridos antes de desplegar; PRODUCCIÓN no incluida.
+
+
 ## [0.2.11]
 
 * Corregidos identificadores `%i` de Facturación (sin doble entrecomillado), sondeo de servicios, consultas de imágenes y escritura del inventario Health Scan; filtros de diagnóstico protegidos contra parámetros no escalares.

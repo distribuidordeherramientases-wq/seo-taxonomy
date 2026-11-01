@@ -257,10 +257,33 @@ $context_sql_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-d
 verify( false === strpos( $faq_sql_source, 'FROM {$table}' ), 'FAQ queries use prepared identifiers' );
 verify( false !== strpos( $faq_sql_source, "'SELECT COUNT(*) FROM %i WHERE active=1'" ), 'FAQ count uses WordPress identifier placeholder' );
 verify( false !== strpos( $context_sql_source, 'FROM %i' ), 'context provider identifiers prepared' );
+verify( 6 === substr_count( $faq_sql_source, 'phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching' ), 'Six canonical FAQ reads have reviewed, targeted DB annotations' );
+verify( 5 === substr_count( $context_sql_source, 'phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching' ), 'Five canonical context reads have reviewed, targeted DB annotations' );
 
 $admin_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-admin.php' );
 verify( false !== strpos( $admin_source, "is_string( \$_POST['search'] )" ), 'POST search validates scalar before sanitizing' );
 verify( false !== strpos( $admin_source, "is_scalar( \$_POST['category_id'] )" ), 'POST category ID ignores malformed arrays' );
 verify( false !== strpos( $admin_source, "is_scalar( \$_POST['rows'] )" ), 'POST row count ignores malformed arrays' );
+
+// Regression guards for the eight issues in the old Playground Plugin Check export.
+$runner_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-runner.php' );
+$editorial_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-editorial-specialist.php' );
+$category_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-category-review.php' );
+$readme_source = file_get_contents( dirname( __DIR__ ) . '/readme.txt' );
+$entry_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-auditor.php' );
+
+verify( false !== strpos( $runner_source, 'esc_html( $terms->get_error_message() )' ), 'Taxonomy exceptions are escaped' );
+verify( 0 === preg_match( '/[\'"]suppress_filters[\'"]\\s*=>\\s*true/', $editorial_source ), 'Editorial query never suppresses WordPress filters' );
+verify( false !== strpos( $editorial_source, "'suppress_filters' => false" ), 'Editorial query keeps WordPress filters enabled' );
+verify( false !== strpos( $admin_source, 'sanitize_text_field( wp_unslash( $_POST[\'search\'] ) )' ), 'POST search sanitized at ingress' );
+verify( false !== strpos( $admin_source, 'absint( wp_unslash( (string) $_POST[\'category_id\'] ) )' ), 'POST category ID sanitized at ingress' );
+verify( false !== strpos( $admin_source, 'absint( wp_unslash( (string) $_POST[\'rows\'] ) )' ), 'POST row limit sanitized at ingress' );
+verify( 1 === substr_count( $runner_source, 'phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query' ), 'Filtered cursor batch has one justified query annotation' );
+verify( 1 === substr_count( $category_source, 'phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query' ), 'Bounded category cohort has one justified query annotation' );
+verify( false !== strpos( $runner_source, 'const BATCH_SIZE = 40;' ), 'Category-filtered cursor batch stays bounded' );
+verify( false !== strpos( $category_source, 'const SAMPLE_MAX = 200;' ), 'Category cohort sample stays bounded' );
+verify( 1 === preg_match( '/^Tags:\\s*([^\\r\\n]+)/m', $readme_source, $readme_tags ), 'Plugin readme declares tags' );
+verify( count( array_filter( array_map( 'trim', explode( ',', $readme_tags[1] ) ) ) ) <= 5, 'WordPress.org tag count at most five' );
+verify( false !== strpos( $readme_source, 'Stable tag: 0.3.3' ) && false !== strpos( $entry_source, 'Version: 0.3.3' ), 'Standalone release version matches readme' );
 
 echo "TaxoCommerce Auditor native parity smoke tests passed.\n";
