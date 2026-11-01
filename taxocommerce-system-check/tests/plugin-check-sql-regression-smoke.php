@@ -10,6 +10,7 @@ $files = array(
     'health' => $root . '/includes/system-check/seo-health-scan.php',
     'semantic' => $root . '/includes/system-check/seo-core-validation-semantic.php',
     'url_audit' => $root . '/includes/class-taxocommerce-system-check-url-audit.php',
+    'data_layer' => $root . '/includes/system-check/seo-core-validation-data-layer.php',
 );
 $data = array();
 foreach ($files as $name => $file) {
@@ -35,6 +36,10 @@ $checks = array(
     array('health', '$wpdb->prepare($rows_sql', false),
     array('semantic', 'WordPress.DB.PreparedSQL.NotPrepared', true),
     array('url_audit', 'Live URL-audit count', true),
+    array('data_layer', 'FROM %i a', true),
+    array('data_layer', 'LEFT JOIN %i g ON g.group_id = a.group_id', true),
+    array('data_layer', 'FROM `{$table}` a', false),
+    array('data_layer', 'LEFT JOIN `{$groups_table}` g', false),
 );
 foreach ($checks as $check) {
     list($area, $text, $present) = $check;
@@ -46,8 +51,8 @@ foreach ($checks as $check) {
 }
 $plugin = file_get_contents($root . '/taxocommerce-system-check.php');
 $readme = file_get_contents($root . '/readme.txt');
-if (strpos($plugin, 'Version: 0.2.12') === false || strpos($readme, 'Stable tag: 0.2.12') === false) {
+if (strpos($plugin, 'Version: 0.2.13') === false || strpos($readme, 'Stable tag: 0.2.13') === false) {
     fwrite(STDERR, "Plugin/readme version mismatch.\n");
     exit(1);
 }
-echo "System Check 0.2.12 SQL and live-diagnostic source contracts validated.\n";
+echo "System Check 0.2.13 SQL and live-diagnostic source contracts validated.\n";
