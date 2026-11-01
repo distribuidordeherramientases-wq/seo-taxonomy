@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.13]
+
+* Sustituidas por consultas preparadas con identificadores `%i` las dos variantes del resumen de acciones pendientes de Action Scheduler (con y sin tabla de grupos), sin cambiar la información devuelta ni aplicar caché.
+* Reforzado el test de regresión para detectar la reintroducción de identificadores interpolados en ese diagnóstico; sincronizada la versión de las pruebas Auto Test y del paquete.
+* Contrastadas las advertencias del informe de Plugin Check proporcionado con el código de STAGING: las antiguas interpolaciones notificadas ya habían sido sustituidas en los PR #2020 y #2016; la instalación que generó el informe debe actualizarse para evaluar el paquete nuevo.
+* No se modifica el monolítico ni se despliega a producción. Issue #1958.
+
 ## [0.2.12]
 
 * Integrados los cambios del PR #2016 sobre la corrección posterior del PR #2020: conservadas las consultas preparadas y las lecturas de diagnóstico actuales; añadida una prueba de regresión del orden de parámetros del UPDATE de Health Scan.

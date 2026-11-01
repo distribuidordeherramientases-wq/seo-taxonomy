@@ -117,28 +117,40 @@ function seo_core_system_test_action_scheduler_checks() {
         && seo_core_system_test_table_exists($groups_table);
 
     if ($has_groups) {
-        $top_pending_sql = "SELECT a.hook, COALESCE(g.slug, '') AS action_group, COUNT(*) AS total,
-                                   MIN(a.scheduled_date_gmt) AS first_date,
-                                   MAX(a.scheduled_date_gmt) AS last_date
-                            FROM `{$table}` a
-                            LEFT JOIN `{$groups_table}` g ON g.group_id = a.group_id
-                            WHERE a.status = 'pending'
-                            GROUP BY a.hook, g.slug
-                            ORDER BY total DESC
-                            LIMIT 1";
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current Action Scheduler backlog without caching.
+        $top_pending = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT a.hook, COALESCE(g.slug, '') AS action_group, COUNT(*) AS total,
+                        MIN(a.scheduled_date_gmt) AS first_date,
+                        MAX(a.scheduled_date_gmt) AS last_date
+                 FROM %i a
+                 LEFT JOIN %i g ON g.group_id = a.group_id
+                 WHERE a.status = 'pending'
+                 GROUP BY a.hook, g.slug
+                 ORDER BY total DESC
+                 LIMIT 1",
+                $table,
+                $groups_table
+            ),
+            ARRAY_A
+        );
     } else {
-        $top_pending_sql = "SELECT a.hook, '' AS action_group, COUNT(*) AS total,
-                                   MIN(a.scheduled_date_gmt) AS first_date,
-                                   MAX(a.scheduled_date_gmt) AS last_date
-                            FROM `{$table}` a
-                            WHERE a.status = 'pending'
-                            GROUP BY a.hook
-                            ORDER BY total DESC
-                            LIMIT 1";
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read the current Action Scheduler backlog without caching.
+        $top_pending = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT a.hook, '' AS action_group, COUNT(*) AS total,
+                        MIN(a.scheduled_date_gmt) AS first_date,
+                        MAX(a.scheduled_date_gmt) AS last_date
+                 FROM %i a
+                 WHERE a.status = 'pending'
+                 GROUP BY a.hook
+                 ORDER BY total DESC
+                 LIMIT 1",
+                $table
+            ),
+            ARRAY_A
+        );
     }
-
-    // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Tablas proceden exclusivamente de Action Scheduler y la consulta es de solo lectura. / This diagnostic queries current site/database state; cached values would hide live server changes.
-    $top_pending = $wpdb->get_row($top_pending_sql, ARRAY_A);
 
     $top_detail = 'No hay acciones pendientes.';
     if (is_array($top_pending) && !empty($top_pending['hook'])) {
