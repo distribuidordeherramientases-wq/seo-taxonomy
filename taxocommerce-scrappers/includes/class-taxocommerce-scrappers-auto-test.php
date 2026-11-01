@@ -33,6 +33,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
                 continue;
             }
             // Read-only metadata query. Do not call maybe_install() from Autotest.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only schema inspection triggered by the administrator; freshness is required and no cache is appropriate.
             $found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
             if ( $found !== $table ) {
                 $missing[] = $name;
