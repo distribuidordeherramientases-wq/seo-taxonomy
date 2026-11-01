@@ -449,7 +449,9 @@ function seo_core_system_test_semantic_latest_nodes($object_type, $roles) {
 
     // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $query ya fue construido por $wpdb->prepare() con valores saneados; la tabla es interna. / This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Query uses canonical %i table, sanitized object type and generated %s role placeholders.
     $rows = $wpdb->get_results($query, ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
     $result = array();
 
     foreach ((array) $rows as $row) {
@@ -532,7 +534,9 @@ function seo_core_system_test_semantic_category_vocabulary($category_ids = array
     }
 
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Sin IDs es SQL interno fijo; con IDs, $sql es el resultado de $wpdb->prepare(). / This diagnostic queries current site/database state; cached values would hide live server changes.
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Both branches construct SQL only through prepare(), with canonical identifiers and bound IDs.
     $rows = $wpdb->get_results($sql, ARRAY_A);
+    // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
     foreach ((array) $rows as $row) {
         $object_id = absint($row['object_id'] ?? 0);
