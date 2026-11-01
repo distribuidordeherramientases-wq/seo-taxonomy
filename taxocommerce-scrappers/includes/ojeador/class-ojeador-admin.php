@@ -90,7 +90,7 @@ final class SEO_Ojeador_Admin {
             return $default;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Filtros y avisos GET de solo lectura.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Recommended -- Raw query value is returned deliberately so each caller can apply the sanitizer appropriate to its expected type.
         return wp_unslash($_GET[$key]);
     }
 
@@ -176,15 +176,18 @@ final class SEO_Ojeador_Admin {
         $scraper_usage = SEO_Ojeador_Shopping::scraperapi_usage_month();
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Avisos GET informativos de conexión; las acciones de guardar/probar requieren nonce.
         $notice = isset($_GET['ojeador_google_notice'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only navigation/filter value, or an input read after the authenticated nonce guard; no state change occurs here.
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_notice']))
             : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET informativo y saneado; no autoriza ninguna operación.
         $error_encoded = isset($_GET['ojeador_google_error'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only navigation/filter value, or an input read after the authenticated nonce guard; no state change occurs here.
             ? sanitize_text_field(wp_unslash($_GET['ojeador_google_error']))
             : '';
         $error = '' !== $error_encoded ? sanitize_text_field(rawurldecode($error_encoded)) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Parámetro GET informativo y saneado; no autoriza ninguna operación.
         $tested_provider = isset($_GET['ojeador_google_provider'])
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only navigation/filter value, or an input read after the authenticated nonce guard; no state change occurs here.
             ? sanitize_key((string) wp_unslash($_GET['ojeador_google_provider']))
             : '';
 
