@@ -13,6 +13,7 @@ define( 'TAXOCOMMERCE_CORE_VERSION', 'smoke-test' );
 define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 function absint( $number ) { return abs( (int) $number ); }
 function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
+function esc_html__( $s, $domain = '' ) { return esc_html( $s ); }
 function esc_attr( $s ) { return esc_html( $s ); }
 function esc_url( $s ) { return esc_html( $s ); }
 function number_format_i18n( $n, $dec = 0 ) { return number_format( $n, $dec, ',', '.' ); }
