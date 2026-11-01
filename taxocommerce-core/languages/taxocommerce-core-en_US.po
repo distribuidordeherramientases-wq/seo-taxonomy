@@ -779,13 +779,13 @@ msgid "Extracto: explica en pocas frases qué es, para qué sirve y qué detalle
 msgstr "Excerpt: briefly explain what the product is, what it is for and which specific detail matters when buying; do not repeat the title or use slogans."
 
 msgid "Falla un test o falta una extensión"
-msgstr ""
+msgstr "A test fails or an extension is missing"
 
 msgid "Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos."
 msgstr "The seo_relations table is missing. Reactivate TaxoCommerce Core to create it without deleting data."
 
 msgid "Falta una tabla SEO del esquema original. No se puede exportar."
-msgstr ""
+msgstr "An SEO table from the original schema is missing. Export is unavailable."
 
 msgid "FAQs"
 msgstr ""
@@ -1394,7 +1394,7 @@ msgid "Redirects"
 msgstr ""
 
 msgid "Referencias oficiales de Google Search Central:"
-msgstr ""
+msgstr "Official Google Search Central references:"
 
 msgid "register_module() acepta un identificador y metadatos como name, version, status, description y admin_url. El registro no instala la extensión ni registra automáticamente su pantalla: cada plugin sigue siendo responsable de sus propios hooks y permisos."
 msgstr "register_module() accepts an identifier and metadata such as name, version, status, description and admin_url. Registration neither installs an extension nor automatically creates an admin screen: each plugin remains responsible for its own hooks and permissions."
@@ -1712,7 +1712,7 @@ msgid "Utilizar imagen"
 msgstr "Use image"
 
 msgid "Ver árbol SEO completo (solo lectura)"
-msgstr ""
+msgstr "View full SEO tree (read-only)"
 
 msgid "Ver contenidos"
 msgstr "View content"
@@ -1721,7 +1721,7 @@ msgid "Ver en la tienda ↗"
 msgstr "View on store ↗"
 
 msgid "Ver Extensions"
-msgstr ""
+msgstr "View Extensions"
 
 msgid "Ver todo"
 msgstr "View all"
@@ -1736,13 +1736,13 @@ msgid "Versión"
 msgstr "Version"
 
 msgid "Versión de Core cargada:"
-msgstr ""
+msgstr "Loaded Core version:"
 
 msgid "Versión del Core"
 msgstr "Core version"
 
 msgid "Versión, ajustes de menú, logs acotados y cachés de informes."
-msgstr ""
+msgstr "Version, menu settings, bounded logs and report caches."
 
 msgid "Visión global"
 msgstr "Overview"
@@ -1751,7 +1751,7 @@ msgid "Vocabulary"
 msgstr ""
 
 msgid "Vocabulary todavía no está disponible."
-msgstr ""
+msgstr "Vocabulary is not available yet."
 
 msgid "WooCommerce"
 msgstr ""
@@ -1763,7 +1763,7 @@ msgid "WooCommerce order weights, dimensions, and shipping-cost rules."
 msgstr ""
 
 msgid "WordPress 6.5 o posterior; PHP 7.4 o posterior, según la cabecera del plugin."
-msgstr ""
+msgstr "WordPress 6.5 or later; PHP 7.4 or later, as declared in the plugin header."
 
 msgid "WordPress could not install the local ZIP."
 msgstr ""
@@ -1775,7 +1775,7 @@ msgid "WordPress could not prepare the ZIP temporarily."
 msgstr ""
 
 msgid "ZIP local disponible"
-msgstr ""
+msgstr "Local ZIP available"
 
 msgid "ZipArchive is not available on the server to validate the package."
 msgstr ""
