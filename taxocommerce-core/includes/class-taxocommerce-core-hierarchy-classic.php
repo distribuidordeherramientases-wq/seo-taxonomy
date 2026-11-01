@@ -20,27 +20,27 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'cluster_to_primary' => array(
                 'source_type' => 'cluster', 'target_type' => 'hub_primary',
                 'source_role' => 'cluster', 'target_role' => 'hub_primary',
-                'title' => 'Hubs primarios', 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_CLUSTER_META,
+                'title' => __( 'Hubs primarios', 'taxocommerce-core' ), 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_CLUSTER_META,
             ),
             'hub_primary_to_hub_secondary' => array(
                 'source_type' => 'hub_primary', 'target_type' => 'hub_secondary',
                 'source_role' => 'hub_primary', 'target_role' => 'hub_secondary',
-                'title' => 'Hubs secundarios', 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_PRIMARY_META,
+                'title' => __( 'Hubs secundarios', 'taxocommerce-core' ), 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_PRIMARY_META,
             ),
             'hub_secondary_to_category' => array(
                 'source_type' => 'hub_secondary', 'target_type' => 'product_cat',
                 'source_role' => 'hub_secondary', 'target_role' => 'category',
-                'title' => 'Categorías de productos', 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_SECONDARY_TERM_META,
+                'title' => __( 'Categorías de productos', 'taxocommerce-core' ), 'meta' => TaxoCommerce_Core_Hierarchy::PARENT_SECONDARY_TERM_META,
             ),
             'hub_secondary_to_landing' => array(
                 'source_type' => 'hub_secondary', 'target_type' => 'landing_page',
                 'source_role' => 'hub_secondary', 'target_role' => 'landing',
-                'title' => 'Landings', 'meta' => '',
+                'title' => __( 'Landings', 'taxocommerce-core' ), 'meta' => '',
             ),
             'hub_secondary_to_post' => array(
                 'source_type' => 'hub_secondary', 'target_type' => 'post',
                 'source_role' => 'hub_secondary', 'target_role' => 'post',
-                'title' => 'Entradas / posts', 'meta' => '',
+                'title' => __( 'Entradas / posts', 'taxocommerce-core' ), 'meta' => '',
             ),
         );
     }
@@ -566,7 +566,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     public static function render( $hierarchy, $country = 'ES' ) {
         $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
         if ( ! self::available() ) {
-            echo '<div class="notice notice-error"><p>Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.</p></div>';
+            echo '<div class="notice notice-error"><p>' . esc_html__( 'Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.', 'taxocommerce-core' ) . '</p></div>';
             return;
         }
 
@@ -632,7 +632,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
 
         echo '<div class="tc-classic-tree">';
         if ( ! $clusters ) {
-            echo '<p>No hay clusters clasificados. Ve a <strong>Asignación de roles</strong> para crear el primero.</p>';
+            echo '<p>' . wp_kses_post( __( 'No hay clusters clasificados. Ve a <strong>Asignación de roles</strong> para crear el primero.', 'taxocommerce-core' ) ) . '</p>';
         } else {
             foreach ( $clusters as $index => $cluster ) {
                 $open_cluster = 0 === $index && 0 === $focus;
@@ -643,14 +643,14 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                             || isset( $primary_map[ $linked_primary ][ $focus ] );
                     }
                 }
-                self::node_open( $cluster, 'Cluster', count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', $open_cluster );
+                self::node_open( $cluster, __( 'Cluster', 'taxocommerce-core' ), count( $cluster_map[ $cluster->ID ] ?? array() ), 'cluster', $open_cluster );
                 self::render_group( $cluster, array( 'cluster_to_primary' ), $defs, $country );
                 foreach ( array_keys( $cluster_map[ $cluster->ID ] ?? array() ) as $primary_id ) {
                     if ( ! isset( $p_by_id[ $primary_id ] ) ) {
                         continue;
                     }
                     $primary = $p_by_id[ $primary_id ];
-                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary_id ] ?? array() ), 'child',
+                    self::node_open( $primary, __( 'Hub primario', 'taxocommerce-core' ), count( $primary_map[ $primary_id ] ?? array() ), 'child',
                         $focus === (int) $primary_id || isset( $primary_map[ $primary_id ][ $focus ] ) );
                     self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs, $country );
                     foreach ( array_keys( $primary_map[ $primary_id ] ?? array() ) as $secondary_id ) {
@@ -659,7 +659,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         }
                         $secondary = $s_by_id[ $secondary_id ];
                         $links = self::secondary_link_count( $secondary_id, $country );
-                        self::node_open( $secondary, 'Hub secundario', $links, 'secondary', $focus === (int) $secondary_id );
+                        self::node_open( $secondary, __( 'Hub secundario', 'taxocommerce-core' ), $links, 'secondary', $focus === (int) $secondary_id );
                         self::render_group( $secondary, array(
                             'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
                         ), $defs, $country );
@@ -691,7 +691,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         } );
 
         if ( $loose_primaries || $loose_secondaries ) {
-            echo '<div class="tc-classic-orphans"><h3 class="tc-classic-section-title">Elementos pendientes de vincular</h3>';
+            echo '<div class="tc-classic-orphans"><h3 class="tc-classic-section-title">' . esc_html__( 'Elementos pendientes de vincular', 'taxocommerce-core' ) . '</h3>';
             if ( $loose_primaries ) {
                 $orphan_primary_focused = false;
                 foreach ( $loose_primaries as $loose_primary ) {
@@ -700,10 +700,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         break;
                     }
                 }
-                echo '<details' . ( $orphan_primary_focused ? ' open' : '' ) . '><summary>Hubs primarios sin cluster ('
+                echo '<details' . ( $orphan_primary_focused ? ' open' : '' ) . '><summary>' . esc_html__( 'Hubs primarios sin cluster', 'taxocommerce-core' ) . ' ('
  . esc_html( (string) count( $loose_primaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_primaries as $primary ) {
-                    self::node_open( $primary, 'Hub primario', count( $primary_map[ $primary->ID ] ?? array() ), 'child', $focus === (int) $primary->ID );
+                    self::node_open( $primary, __( 'Hub primario', 'taxocommerce-core' ), count( $primary_map[ $primary->ID ] ?? array() ), 'child', $focus === (int) $primary->ID );
                     self::render_group( $primary, array( 'hub_primary_to_hub_secondary' ), $defs, $country );
                     self::node_close();
                 }
@@ -717,10 +717,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                         break;
                     }
                 }
-                echo '<details' . ( $orphan_secondary_focused ? ' open' : '' ) . '><summary>Hubs secundarios sin hub primario ('
+                echo '<details' . ( $orphan_secondary_focused ? ' open' : '' ) . '><summary>' . esc_html__( 'Hubs secundarios sin hub primario', 'taxocommerce-core' ) . ' ('
  . esc_html( (string) count( $loose_secondaries ) ) . ')</summary><div class="tc-classic-orphans__body">';
                 foreach ( $loose_secondaries as $secondary ) {
-                    self::node_open( $secondary, 'Hub secundario', self::secondary_link_count( $secondary->ID, $country ), 'secondary', $focus === (int) $secondary->ID );
+                    self::node_open( $secondary, __( 'Hub secundario', 'taxocommerce-core' ), self::secondary_link_count( $secondary->ID, $country ), 'secondary', $focus === (int) $secondary->ID );
                     self::render_group( $secondary, array(
                         'hub_secondary_to_category', 'hub_secondary_to_landing', 'hub_secondary_to_post',
                     ), $defs, $country );
@@ -747,10 +747,10 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         echo '<details id="tc-source-' . esc_attr( (string) $page->ID ) . '" class="tc-classic-node tc-classic-node--' . esc_attr( $level ) . '"' . ( $open ? ' open' : '' ) . '>';
         echo '<summary><span class="tc-classic-node__role">' . esc_html( $role ) . '</span>';
         echo '<span class="tc-classic-node__label">' . esc_html( $page->post_title ) . '</span>';
-        echo '<span class="tc-classic-node__count">' . esc_html( (string) $count ) . ' relaciones</span></summary>';
+        echo '<span class="tc-classic-node__count">' . esc_html( (string) $count ) . ' ' . esc_html__( 'relaciones', 'taxocommerce-core' ) . '</span></summary>';
         echo '<div class="tc-classic-node__body"><div class="tc-classic-node__meta">ID '
             . esc_html( (string) $page->ID ) . ' · ' . esc_html( strtoupper( $page->post_status ) )
-            . ' · Plantilla: ' . esc_html( (string) ( get_page_template_slug( $page->ID ) ?: 'predeterminada' ) ) . '</div>';
+            . ' · ' . esc_html__( 'Plantilla', 'taxocommerce-core' ) . ': ' . esc_html( (string) ( get_page_template_slug( $page->ID ) ?: __( 'predeterminada', 'taxocommerce-core' ) ) ) . '</div>';
     }
 
     private static function render_group( $parent, $types, $definitions, $country = 'ES' ) {
@@ -795,7 +795,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         echo '<input type="hidden" name="relation_type" value="' . esc_attr( $type ) . '">';
         echo '<input type="hidden" name="tc_country" value="' . esc_attr( $country ) . '">';
         wp_nonce_field( 'taxocommerce_core_replace_hierarchy_' . $type . '_' . $parent->ID, 'taxocommerce_core_nonce' );
-        echo '<strong>Asignados (' . esc_html( (string) count( $selected ) ) . ')</strong>';
+        echo '<strong>' . esc_html__( 'Asignados', 'taxocommerce-core' ) . ' (' . esc_html( (string) count( $selected ) ) . ')</strong>';
         echo '<div class="tc-classic-selected">';
         foreach ( $selected as $id ) {
             $object = 'category' === $def['target_role'] ? get_term( $id, 'product_cat' ) : get_post( $id );
@@ -803,14 +803,14 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
                 self::check( self::target_name( $object ), $id, true );
             } else {
                 // Keep an orphan relation selected until the admin chooses to unlink it.
-                self::check( 'Elemento no disponible', $id, true );
+                self::check( __( 'Elemento no disponible', 'taxocommerce-core' ), $id, true );
             }
         }
         if ( ! $selected ) {
-            echo '<span class="tc-classic-none">Sin elementos asignados.</span>';
+            echo '<span class="tc-classic-none">' . esc_html__( 'Sin elementos asignados.', 'taxocommerce-core' ) . '</span>';
         }
-        echo '</div><strong>Disponibles</strong>';
-        echo '<input class="tc-classic-search" type="search" placeholder="Buscar por nombre o ID…" aria-label="Buscar elementos disponibles"';
+        echo '</div><strong>' . esc_html__( 'Disponibles', 'taxocommerce-core' ) . '</strong>';
+        echo '<input class="tc-classic-search" type="search" placeholder="' . esc_attr__( 'Buscar por nombre o ID…', 'taxocommerce-core' ) . '" aria-label="' . esc_attr__( 'Buscar elementos disponibles', 'taxocommerce-core' ) . '"';
         if ( 'category' === $def['target_role'] ) {
             echo ' data-tc-search="categories" data-tc-source="' . esc_attr( (string) $parent->ID ) . '"';
         } else {
@@ -827,15 +827,15 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         echo '</div>';
         if ( 'category' === $def['target_role'] ) {
-            echo '<p class="description">Se muestran 40 categorías iniciales. Escribe para buscar cualquier categoría del catálogo sin cargar miles de opciones.</p>';
+            echo '<p class="description">' . esc_html__( 'Se muestran 40 categorías iniciales. Escribe para buscar cualquier categoría del catálogo sin cargar miles de opciones.', 'taxocommerce-core' ) . '</p>';
         }
-        echo '<button class="button button-primary" type="submit">Guardar asignaciones</button>';
+        echo '<button class="button button-primary" type="submit">' . esc_html__( 'Guardar asignaciones', 'taxocommerce-core' ) . '</button>';
         echo '</form></div>';
     }
 
     public static function handle_search( $hierarchy ) {
         if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => 'Acceso denegado.' ), 403 );
+            wp_send_json_error( array( 'message' => __( 'Acceso denegado.', 'taxocommerce-core' ) ), 403 );
         }
         check_ajax_referer( 'taxocommerce_core_search_categories', 'nonce' );
         $query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
@@ -921,7 +921,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         $clusters = self::country_pages( 'cluster', $country );
         if ( ! $clusters ) {
-            echo '<p>Sin clusters clasificados todavía.</p>';
+            echo '<p>' . esc_html__( 'Sin clusters clasificados todavía.', 'taxocommerce-core' ) . '</p>';
             return;
         }
         echo '<div style="max-width:1120px">';
