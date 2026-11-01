@@ -235,7 +235,7 @@ function taxocommerce_distribution_render_sitemaps() {
     $audit = taxocommerce_distribution_sitemap_audit_stats();
 
     $result = isset( $_GET['tcdist_sitemap_result'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_sitemap_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $message = isset( $_GET['tcdist_sitemap_message'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['tcdist_sitemap_message'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $message = isset( $_GET['tcdist_sitemap_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tcdist_sitemap_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     ?>
     <div class="card" style="max-width:1220px;padding:20px;">
         <h2 style="margin-top:0;"><?php esc_html_e( 'XML Sitemaps', 'taxocommerce-distribution' ); ?></h2>
