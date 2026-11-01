@@ -9,9 +9,15 @@
  * Author: David Pérez
  * License: MIT
  * Text Domain: taxocommerce-facturacion
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Register this plugin's own WordPress language files at the supported init hook.
+add_action( 'init', static function () {
+    load_plugin_textdomain( 'taxocommerce-facturacion', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}, 1 );
 
 define( 'TAXOCOMMERCE_FACTURACION_VERSION', '0.1.2' );
 define( 'TAXOCOMMERCE_FACTURACION_FILE', __FILE__ );
@@ -112,8 +118,8 @@ function taxocommerce_facturacion_register_menu() {
     if ( function_exists( 'taxocommerce_core' ) ) {
         add_submenu_page(
             'taxocommerce-core',
-            'Facturas y presupuestos',
-            'Billing',
+            __( 'Facturas y presupuestos', 'taxocommerce-facturacion' ),
+            __( 'Billing', 'taxocommerce-facturacion' ),
             'manage_options',
             'taxocommerce-facturacion',
             'taxocommerce_facturacion_render_page'
@@ -122,7 +128,7 @@ function taxocommerce_facturacion_register_menu() {
     }
 
     add_menu_page(
-        'Facturas y presupuestos',
+        __( 'Facturas y presupuestos', 'taxocommerce-facturacion' ),
         'TaxoCommerce Billing',
         'manage_options',
         'taxocommerce-facturacion',
