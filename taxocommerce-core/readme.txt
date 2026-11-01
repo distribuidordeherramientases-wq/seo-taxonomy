@@ -26,6 +26,10 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
 
+== Languages ==
+
+TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. Translation coverage is being developed; not every administration string is internationalized yet. WordPress.org language packs will be supported once translations are approved.
+
 == Installation ==
 
 1. Install and activate TaxoCommerce Core on WordPress 6.5 or newer.
