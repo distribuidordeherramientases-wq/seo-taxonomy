@@ -713,11 +713,10 @@ if (!function_exists('seo_health_scan_launch')) {
             $queue_params = array_merge(array($tables['items'], $run_id, $now), $ids);
             // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only generated %d placeholders and canonical table %i are inserted; all values are bound.
             // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Generated ID list is accompanied by the same number of integer arguments.
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct write reserves pending scan items; caching is not applicable.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- This write reserves scan items atomically; a cache is inappropriate.
             $queued = $wpdb->query(
                 $wpdb->prepare('UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN (' . $id_placeholders . ')', $queue_params)
             );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
         }
@@ -1362,11 +1361,12 @@ if (!function_exists('seo_health_render_scope_tab')) {
         // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- Only allowlisted WHERE fragments assembled above; identifiers/values are bound.
         // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic, fixed-filter clause lists have matching arguments from $params.
         // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- WHERE templates contain only fixed local clauses; values are bound with prepare().
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live status/URL diagnostics must show current scan results.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current scan count must not be cached.
         $total_rows = (int) $wpdb->get_var(
             $wpdb->prepare('SELECT COUNT(*) FROM %i WHERE ' . $where_sql, array_merge(array($table), $params))
         );
         $offset = ($paged - 1) * $per_page;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current scan rows must not be cached.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM %i WHERE " . $where_sql . " ORDER BY CASE status_bucket WHEN 'error' THEN 0 WHEN 'warning' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,last_checked_at ASC,id ASC LIMIT %d OFFSET %d",
@@ -1374,7 +1374,6 @@ if (!function_exists('seo_health_render_scope_tab')) {
             ),
             ARRAY_A
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
         // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
