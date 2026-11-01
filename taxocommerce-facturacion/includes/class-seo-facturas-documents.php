@@ -194,8 +194,7 @@ final class SEO_Facturas_Documents {
             return null;
         }
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; id enlazado mediante placeholder.
-        $sql = $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $document_id);
+                $sql = $wpdb->prepare('SELECT * FROM %i WHERE id = %d LIMIT 1', $table, $document_id);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         return $wpdb->get_row($sql);
     }
@@ -208,12 +207,7 @@ final class SEO_Facturas_Documents {
             return null;
         }
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; order_id y tipo enlazados mediante placeholders.
-        $sql = $wpdb->prepare(
-            "SELECT * FROM {$table} WHERE order_id = %d AND document_type = %s LIMIT 1",
-            $order_id,
-            $type
-        );
+        $sql = $wpdb->prepare('SELECT * FROM %i WHERE order_id = %d AND document_type = %s LIMIT 1', $table, $order_id, $type);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         return $wpdb->get_row($sql);
     }
@@ -222,8 +216,7 @@ final class SEO_Facturas_Documents {
         global $wpdb;
         $limit = max(1, min(500, absint($limit)));
         $table = self::table_name();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Tabla interna controlada; limite enlazado mediante placeholder.
-        $sql = $wpdb->prepare("SELECT * FROM {$table} ORDER BY issued_at DESC, id DESC LIMIT %d", $limit);
+        $sql = $wpdb->prepare('SELECT * FROM %i ORDER BY issued_at DESC, id DESC LIMIT %d', $table, $limit);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         return $wpdb->get_results($sql);
     }

@@ -56,6 +56,7 @@ final class SEO_Facturas_Admin {
     }
 
     public static function enqueue_assets($hook_suffix) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Solo se lee el identificador de pantalla para cargar CSS; no se modifica estado.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
         if ('seo-facturas' !== $page) {
             return;
@@ -106,6 +107,7 @@ final class SEO_Facturas_Admin {
             'autotest'  => 'Autotest', 
         );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegacion de pestañas de solo lectura, no requiere nonce.
         $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'company';
         if (!isset($tabs[$tab])) {
             $tab = 'company';
@@ -162,13 +164,17 @@ final class SEO_Facturas_Admin {
             return;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Mensaje informativo escapado, sin operaciones de escritura.
         if (!empty($_GET['sf_error'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Texto mostrado con esc_html; sin efectos secundarios.
             $message = sanitize_text_field(wp_unslash($_GET['sf_error']));
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html($message) . '</p></div>';
             return;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Solo selecciona mensaje de un catalogo cerrado.
         if (!empty($_GET['sf_notice'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Identificador de mensaje de solo lectura.
             $notice = sanitize_key(wp_unslash($_GET['sf_notice']));
             $messages = array(
                 'document_generated' => 'Documento generado correctamente.',
@@ -585,7 +591,9 @@ final class SEO_Facturas_Admin {
         if (is_object($post_or_order) && isset($post_or_order->ID) && function_exists('wc_get_order')) {
             return wc_get_order(absint($post_or_order->ID));
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Identificador de pedido de la pantalla actual, solo lectura.
         if (isset($_GET['id']) && function_exists('wc_get_order')) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Recupera el pedido, no lo modifica.
             return wc_get_order(absint($_GET['id']));
         }
         return null;
