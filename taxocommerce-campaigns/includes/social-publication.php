@@ -188,6 +188,7 @@ function tccampaigns_social_create_pending_publication($product_id, $provider, $
 
     $table = tcsocial_network_publications_table();
     $now = current_time('mysql');
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign/social table write; WordPress provides no equivalent API.
     $inserted = $wpdb->insert(
         $table,
         array(
@@ -209,13 +210,15 @@ function tccampaigns_social_create_pending_publication($product_id, $provider, $
     $publication_id = (int) $wpdb->insert_id;
     $campaign_id = absint($campaign_id);
     if ($campaign_id > 0) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
         $column = $wpdb->get_var(
             $wpdb->prepare(
-                "SHOW COLUMNS FROM {$table} LIKE %s",
+                "SHOW COLUMNS FROM %i LIKE %s", $table,
                 'campaign_id'
             )
         );
         if ($column) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign/social table write; WordPress provides no equivalent API.
             $wpdb->update(
                 $table,
                 array('campaign_id' => $campaign_id),
@@ -322,6 +325,7 @@ function tccampaigns_social_publish_product($campaign_id, $product_id, $provider
     $table = tcsocial_network_publications_table();
     $updated_at = current_time('mysql');
     if (is_wp_error($result)) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign/social table write; WordPress provides no equivalent API.
         $wpdb->update(
             $table,
             array(
@@ -341,6 +345,7 @@ function tccampaigns_social_publish_product($campaign_id, $product_id, $provider
 
     $remote_id = isset($result['remote_id']) ? sanitize_text_field((string) $result['remote_id']) : '';
     $remote_url = isset($result['remote_url']) ? esc_url_raw((string) $result['remote_url']) : '';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom campaign/social table write; WordPress provides no equivalent API.
     $wpdb->update(
         $table,
         array(
@@ -531,6 +536,7 @@ function tccampaigns_social_occupied_offer_days($provider)
     $prefix = '_seo_social_campaign_schedule_';
     $suffix = '_' . $provider;
     $like = $wpdb->esc_like($prefix) . '%' . $wpdb->esc_like($suffix);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
     $scheduled = $wpdb->get_col(
         $wpdb->prepare(
             "SELECT meta_value FROM {$wpdb->postmeta}
@@ -552,14 +558,15 @@ function tccampaigns_social_occupied_offer_days($provider)
     if (function_exists('tcsocial_network_publications_table')) {
         $publications_table = tcsocial_network_publications_table();
         $today = wp_date('Y-m-d', time(), $timezone);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
         $published = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT published_at FROM {$publications_table}
+                "SELECT published_at FROM %i
                  WHERE provider = %s
                    AND content_type = 'campaign_product'
                    AND status = 'published'
                    AND published_at IS NOT NULL
-                   AND published_at >= %s",
+                   AND published_at >= %s", $publications_table,
                 $provider,
                 $today . ' 00:00:00'
             )
@@ -755,6 +762,7 @@ function tccampaigns_social_scheduled_rows()
     global $wpdb;
     $prefix = '_seo_social_campaign_schedule_';
     $like = $wpdb->esc_like($prefix) . '%';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh campaign/social publication inventory query; stale cached data would affect scheduling.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT pm.post_id, pm.meta_key, pm.meta_value, p.post_title\n             FROM {$wpdb->postmeta} pm\n             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id\n             WHERE pm.meta_key LIKE %s\n               AND CAST(pm.meta_value AS UNSIGNED) > 0\n             ORDER BY CAST(pm.meta_value AS UNSIGNED) ASC",
@@ -815,10 +823,13 @@ function tccampaigns_social_render_scheduler_panel()
         return;
     }
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notification from a nonce-protected action.
     $message = isset($_GET['campaign_social_msg']) ? sanitize_key(wp_unslash($_GET['campaign_social_msg'])) : '';
     if ($message !== '') {
-        $created = isset($_GET['campaign_created']) ? absint($_GET['campaign_created']) : 0;
-        $skipped = isset($_GET['campaign_skipped']) ? absint($_GET['campaign_skipped']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counter in redirect notice.
+        $created = isset($_GET['campaign_created']) ? absint(wp_unslash($_GET['campaign_created'])) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counter in redirect notice.
+        $skipped = isset($_GET['campaign_skipped']) ? absint(wp_unslash($_GET['campaign_skipped'])) : 0;
         $texts = array(
             'planned'    => array('success', sprintf('Campaña programada: %d oferta(s) nuevas a la hora comercial; %d producto(s) ya programados/publicados o sin día disponible.', $created, $skipped)),
             'no_slots'   => array('warning', 'No quedan días disponibles para nuevas ofertas dentro del periodo de campaña. Las entradas y landings no bloquean estos huecos; solo se reserva una oferta diaria por red.'),
