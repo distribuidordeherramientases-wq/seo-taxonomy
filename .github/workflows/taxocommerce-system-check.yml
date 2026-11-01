@@ -48,6 +48,7 @@ jobs:
           php taxocommerce-system-check/tests/php-check-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           php taxocommerce-system-check/tests/sql-explain-smoke.php
+          php taxocommerce-system-check/tests/plugin-check-sql-regression-smoke.php
           if grep -R --fixed-strings 'davidperezmartorell@gmail.com' taxocommerce-system-check; then
             echo 'Do not package a developer email address.'
             exit 1

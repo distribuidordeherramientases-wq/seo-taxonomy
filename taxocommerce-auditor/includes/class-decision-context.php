@@ -241,6 +241,7 @@ final class Decision_Context {
         }
 
         // Read-only local snapshot; do not launch market/comparator jobs.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only Comparador snapshot uses its canonical custom table with LIMIT 1000; fresh statuses are required and no WP CRUD API covers these rows.
         $rows = (array) $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT id,canonical_name,category_ids,primary_category_id,status,
@@ -348,6 +349,7 @@ final class Decision_Context {
 
     private static function table_exists( $table ) {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared SHOW TABLES checks dynamic optional integration schemas; a cross-request cache could misreport module availability after changes.
         return (string) $wpdb->get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( (string) $table ) )
         ) === (string) $table;
@@ -366,6 +368,7 @@ final class Decision_Context {
         $type = self::normalize_type( $type );
         $id = absint( $id );
         if ( 'product' === $type && $id ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live click/search counts from Dependiente's custom event table must reflect recent events; query is scoped to one product ID.
             $row = $wpdb->get_row(
                 $wpdb->prepare(
                     "SELECT COUNT(*) events,
@@ -394,6 +397,7 @@ final class Decision_Context {
         if ( 'category' === $type && $id ) {
             $term = get_term( $id, 'product_cat' );
             if ( $term instanceof \WP_Term ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live aggregates join canonical WordPress taxonomy relationships to Dependiente events for one category; caching requires invalidation across both sources.
                 $row = $wpdb->get_row(
                     $wpdb->prepare(
                         "SELECT COUNT(*) events,
@@ -442,6 +446,7 @@ final class Decision_Context {
         if ( ! self::table_exists( $table ) ) {
             return self::state_reference( false, 'unavailable', 'La tabla de TaxoCommerce Suppliers no está disponible.' );
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only latest Supplier sync status from a canonical custom table is limited to one product row; cached evidence could mask a new failure.
         $row = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT proveedor,proveedor_id_externo,sku,pais_origen,estado_seleccion,estado_sincronizacion,

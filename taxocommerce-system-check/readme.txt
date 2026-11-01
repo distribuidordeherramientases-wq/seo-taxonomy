@@ -37,9 +37,9 @@ System diagnostics can include server configuration, URLs and error details. Tre
 == Changelog ==
 
 = 0.2.12 =
-* Refine the real-time SQL diagnostics and WordPress Plugin Check compatibility, maintaining all historical public callback names.
-* Keep direct database and dynamic query exceptions constrained to their individual, reviewed, read-only or internally prepared statements.
-* Preserve the existing Auto Test, reports, and WordPress 6.2+/PHP 7.4 compatibility; production deployment remains separate.
+* Fix remaining Plugin Check SQL preparation findings by binding canonical table identifiers and preserving bound user values in billing, semantic checks, health scans and external images.
+* Document narrowly scoped live database diagnostics without introducing stale caches or changing public legacy SEO APIs.
+* Add regression assertions and validate installable ZIP with WordPress Plugin Check before release.
 
 
 = 0.2.11 =

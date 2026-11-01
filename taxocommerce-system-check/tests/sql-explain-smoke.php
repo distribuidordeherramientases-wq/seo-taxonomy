@@ -63,20 +63,16 @@ foreach ( array(
         exit( 1 );
     }
 }
-// The Health Scan queue UPDATE must bind the table identifier just like
-// the EXPLAIN checks; values and IDs are ordered after the %i argument.
+// Ensure that Health Scan binds its canonical table identifier before scan
+// values and generated integer IDs. This guards a regression of PR #2016.
 $health_source = file_get_contents( dirname( __DIR__ ) . '/includes/system-check/seo-health-scan.php' );
-foreach ( array(
-    'UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN',
-    'array_merge(array($tables[\'items\'], $run_id, $now), $ids)',
-) as $contract ) {
-    if ( false === strpos( $health_source, $contract ) ) {
-        fwrite( STDERR, "Missing safe Health Scan queue SQL contract: " . $contract . "\\n" );
-        exit( 1 );
-    }
-}
-if ( false !== strpos( $health_source, 'UPDATE {$tables' ) ) {
-    fwrite( STDERR, "Health Scan UPDATE must not interpolate table identifiers.\\n" );
+if (
+    ! is_string( $health_source )
+    || false === strpos( $health_source, "'UPDATE %i SET queued_scan_id=%d,queued_at=%s WHERE id IN ('" )
+    || false === strpos( $health_source, "array_merge(array(\$tables['items'], \$run_id, \$now), \$ids)" )
+    || false !== strpos( $health_source, 'UPDATE {$tables' )
+) {
+    fwrite( STDERR, "Health Scan queue must bind canonical table and ordered parameters.\n" );
     exit( 1 );
 }
-echo "Eight EXPLAIN templates and Health Scan UPDATE identifiers checked.\\n";
+echo "Eight canonical System Check EXPLAIN templates prepared safely.\n";
