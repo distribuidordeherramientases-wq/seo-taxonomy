@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Validación de Anomalías (#2071): prueba de instalación sin jerarquía ni tablas FAQ y corrección del doble gettext del test de Redirects que bloqueaba el despliegue de STAGING y Focazul. Sin cambios funcionales adicionales.
+
 ## [0.4.45]
 
 - Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
