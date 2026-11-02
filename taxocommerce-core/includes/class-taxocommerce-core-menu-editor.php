@@ -43,7 +43,24 @@ final class TaxoCommerce_Core_Menu_Editor {
     /** Retrieve a native menu without falling back to country-managed SEO menus. */
     public static function wordpress_menu_id() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only GET selector; it has no side effects.
-        $id = isset( $_GET['tc_menu_id'] ) && is_scalar( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        $explicit = isset( $_GET['tc_menu_id'] );
+        $id = $explicit && is_scalar( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        // Select an already published classic menu only when its theme location is unambiguous.
+        // Never guess for block themes, where the header is usually a wp_navigation post.
+        if ( ! $explicit && ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() ) ) {
+            $locations = (array) get_theme_mod( 'nav_menu_locations', array() );
+            $valid = array();
+            foreach ( $locations as $location => $menu_id ) {
+                $menu_id = absint( $menu_id );
+                if ( $menu_id && wp_get_nav_menu_object( $menu_id ) ) { $valid[ $location ] = $menu_id; }
+            }
+            foreach ( array( 'primary', 'menu-1', 'header' ) as $location ) {
+                if ( ! empty( $valid[ $location ] ) ) { $id = $valid[ $location ]; break; }
+            }
+            if ( ! $id && count( array_unique( array_values( $valid ) ) ) === 1 ) {
+                $id = (int) reset( $valid );
+            }
+        }
         if ( ! $id ) { return 0; }
         $menu = wp_get_nav_menu_object( $id );
         return $menu && ! is_wp_error( $menu ) ? $id : 0;
@@ -191,7 +208,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         $registered = get_registered_nav_menus();
         $assigned = (array) get_theme_mod( 'nav_menu_locations', array() );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET menu selector; writes require action nonces.
-        $explicit = isset( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        $explicit = isset( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : absint( $menu_id );
         echo '<section class="tc-menu-load" aria-labelledby="tc-menu-load-title">';
         echo '<h2 id="tc-menu-load-title">' . esc_html__( 'Cargar un menú de WordPress', 'taxocommerce-core' ) . '</h2>';
         echo '<form method="get" class="tc-menu-load-form"><input type="hidden" name="page" value="taxocommerce-core-menu">';
