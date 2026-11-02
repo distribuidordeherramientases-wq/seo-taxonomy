@@ -301,7 +301,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             } else {
                 $batch = self::is_wordpress_tab();
                 $prefix = $batch ? 'tc_items[' . absint( $item->ID ) . ']' : '';
-                $form_attr = $batch ? ' form="tc-menu-save-form"' : '';
+                $form_attr = $batch ? 'tc-menu-save-form' : '';
                 if ( $batch ) {
                     echo '<div class="tc-menu-item-edit">';
                 } else {
@@ -309,18 +309,18 @@ final class TaxoCommerce_Core_Menu_Editor {
                     self::manual_fields( 'edit' );
                     echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '">';
                 }
-                echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input type="text" name="' . esc_attr( $batch ? $prefix . '[title]' : 'item_title' ) . '"' . $form_attr . ' value="' . esc_attr( $item->title ) . '" maxlength="200" required></label></p>';
+                echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input type="text" name="' . esc_attr( $batch ? $prefix . '[title]' : 'item_title' ) . '"' . ( $batch ? ' form="' . esc_attr( $form_attr ) . '"' : '' ) . ' value="' . esc_attr( $item->title ) . '" maxlength="200" required></label></p>';
                 if ( 'custom' === (string) ( $item->type ?? '' ) ) {
-                    echo '<p><label>URL <input type="text" name="' . esc_attr( $batch ? $prefix . '[url]' : 'item_url' ) . '"' . $form_attr . ' value="' . esc_attr( $item->url ) . '" required></label></p>';
+                    echo '<p><label>URL <input type="text" name="' . esc_attr( $batch ? $prefix . '[url]' : 'item_url' ) . '"' . ( $batch ? ' form="' . esc_attr( $form_attr ) . '"' : '' ) . ' value="' . esc_attr( $item->url ) . '" required></label></p>';
                 }
-                echo '<p><label>' . esc_html__( 'Elemento superior', 'taxocommerce-core' ) . ' <select name="' . esc_attr( $batch ? $prefix . '[parent]' : 'item_parent' ) . '"' . $form_attr . '>';
+                echo '<p><label>' . esc_html__( 'Elemento superior', 'taxocommerce-core' ) . ' <select name="' . esc_attr( $batch ? $prefix . '[parent]' : 'item_parent' ) . '"' . ( $batch ? ' form="' . esc_attr( $form_attr ) . '"' : '' ) . '>';
                 echo '<option value="0">' . esc_html__( 'Nivel principal', 'taxocommerce-core' ) . '</option>';
                 foreach ( $items as $possible ) {
                     if ( (int) $possible->ID === (int) $item->ID ) { continue; }
                     echo '<option value="' . absint( $possible->ID ) . '"' . selected( absint( $item->menu_item_parent ), absint( $possible->ID ), false ) . '>' . esc_html( $possible->title ) . '</option>';
                 }
                 echo '</select></label></p>';
-                echo '<p><label>' . esc_html__( 'Posición', 'taxocommerce-core' ) . ' <input type="number" name="' . esc_attr( $batch ? $prefix . '[position]' : 'item_position' ) . '"' . $form_attr . ' min="1" max="100000" value="' . absint( $item->menu_order ?? 1 ) . '"></label></p>';
+                echo '<p><label>' . esc_html__( 'Posición', 'taxocommerce-core' ) . ' <input type="number" name="' . esc_attr( $batch ? $prefix . '[position]' : 'item_position' ) . '"' . ( $batch ? ' form="' . esc_attr( $form_attr ) . '"' : '' ) . ' min="1" max="100000" value="' . absint( $item->menu_order ?? 1 ) . '"></label></p>';
                 if ( $batch ) {
                     echo '<p class="description">' . esc_html__( 'Pulsa Guardar menú para aplicar estos cambios.', 'taxocommerce-core' ) . '</p></div>';
                 } else {
@@ -646,14 +646,14 @@ final class TaxoCommerce_Core_Menu_Editor {
             $result = self::create_menu( $name );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú nuevo creado. Puedes editarlo sin modificar los existentes.', 'taxocommerce-core' );
         } elseif ( 'save_menu' === $task ) {
-            $fields = isset( $_POST['tc_items'] ) && is_array( $_POST['tc_items'] ) ? wp_unslash( $_POST['tc_items'] ) : array();
+            $fields = isset( $_POST['tc_items'] ) && is_array( $_POST['tc_items'] ) ? map_deep( wp_unslash( $_POST['tc_items'] ), 'sanitize_text_field' ) : array();
             // Values are sanitized field-by-field within save_native_menu() after preflight validation.
             // Do not double-unslash strings in the validator.
             $name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] ) ? sanitize_text_field( wp_unslash( $_POST['menu_name'] ) ) : '';
             $result = self::save_native_menu( $fields, $name );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú guardado correctamente. Los cambios ya están en WordPress.', 'taxocommerce-core' );
         } elseif ( 'delete_menu' === $task ) {
-            $confirmed = isset( $_POST['confirm_delete'] ) && '1' === (string) $_POST['confirm_delete'];
+            $confirmed = isset( $_POST['confirm_delete'] ) && is_scalar( $_POST['confirm_delete'] ) && '1' === sanitize_text_field( wp_unslash( (string) $_POST['confirm_delete'] ) );
             $result = self::delete_native_menu( $confirmed );
             $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú eliminado correctamente de WordPress.', 'taxocommerce-core' );
         } elseif ( 'edit' === $task ) {
