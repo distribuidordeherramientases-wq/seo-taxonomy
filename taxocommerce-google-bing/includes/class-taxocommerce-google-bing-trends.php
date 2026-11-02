@@ -184,27 +184,27 @@ final class TaxoCommerce_Google_Bing_Trends {
             true
         );
         echo '<div class="tgb-trends">';
-        echo '<h2>Google Trends</h2>';
-        echo '<p>Consulta las tendencias de clústeres y hubs españoles. Las categorías se consultan únicamente bajo demanda.</p>';
+        echo '<h2>' . esc_html__( 'Google Trends', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Consulta las tendencias de clústeres y hubs españoles. Las categorías se consultan únicamente bajo demanda.', 'taxocommerce-google-bing' ) . '</p>';
         if ( class_exists( 'TaxoCommerce_Google_Bing_Trends_Hierarchy' ) ) {
             TaxoCommerce_Google_Bing_Trends_Hierarchy::render();
         }
-        echo '<details class="tgb-trends-manual"><summary><strong>Búsqueda manual de términos</strong></summary>';
+        echo '<details class="tgb-trends-manual">' . '<summary>' . '<strong>' . esc_html__( 'Búsqueda manual de términos', 'taxocommerce-google-bing' ) . '</strong>' . '</summary>';
 
         echo '<section class="tgb-trends-query">';
         echo '<form id="tgb-trends-search-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" target="_blank" rel="noopener noreferrer">';
         echo '<input type="hidden" name="action" value="tgb_trends_explore">';
         // Accessible no-JavaScript fallback: original handler opens Explore.
         wp_nonce_field( 'tgb_trends_explore' );
-        echo '<label for="tgb-trends-terms"><strong>Words or phrases to explore</strong></label>';
+        echo '<label for="tgb-trends-terms">' . '<strong>' . esc_html__( 'Words or phrases to explore', 'taxocommerce-google-bing' ) . '</strong>' . '</label>';
         echo '<textarea id="tgb-trends-terms" class="large-text" name="trends_terms" rows="4" maxlength="1500" required placeholder="cordless drills&#10;Makita&#10;impact wrenches"></textarea>';
-        echo '<p class="description">Enter one word or phrase per line, up to five. Results are shown only for those searches.</p>';
+        echo '<p class="description">' . esc_html__( 'Enter one word or phrase per line, up to five. Results are shown only for those searches.', 'taxocommerce-google-bing' ) . '</p>';
 
         echo '<div class="tgb-trends-controls">';
-        echo '<span><strong>Región:</strong> España</span>';
+        echo '<span>' . '<strong>' . esc_html__( 'Región:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'España', 'taxocommerce-google-bing' ) . '</span>';
         echo '<input type="hidden" id="tgb-trends-explore-geo" name="explore_geo" value="ES">';
 
-        echo '<label for="tgb-trends-explore-period"><strong>Period:</strong></label>';
+        echo '<label for="tgb-trends-explore-period">' . '<strong>' . esc_html__( 'Period:', 'taxocommerce-google-bing' ) . '</strong>' . '</label>';
         echo '<select id="tgb-trends-explore-period" name="explore_period">';
         foreach ( array(
             'now 7-d' => 'Last 7 days',
@@ -219,8 +219,8 @@ final class TaxoCommerce_Google_Bing_Trends {
         echo '</div>';
 
         echo '<div class="tgb-trends-actions">';
-        echo '<button class="button button-primary" type="submit">Search trends</button>';
-        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">Open in Google Trends ↗</a>';
+        echo '<button class="button button-primary" type="submit">' . esc_html__( 'Search trends', 'taxocommerce-google-bing' ) . '</button>';
+        echo '<a class="button" id="tgb-trends-open-google" href="https://trends.google.com/trends/explore" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Open in Google Trends ↗', 'taxocommerce-google-bing' ) . '</a>';
         echo '</div>';
         echo '<p id="tgb-trends-validation" class="notice notice-error inline" role="alert" hidden></p>';
         echo '</form>';
@@ -228,12 +228,12 @@ final class TaxoCommerce_Google_Bing_Trends {
 
         echo '<section id="tgb-trends-results" class="tgb-trends-results" aria-label="Google Trends results" hidden></section>';
         echo '<div id="tgb-trends-empty" class="tgb-trends-empty">';
-        echo '<strong>No results for this query yet.</strong>';
-        echo '<p>Esta búsqueda manual solo se ejecuta al pulsar el botón. Los gráficos comparativos de clústeres y hubs primarios se solicitan automáticamente arriba.</p>';
+        echo '<strong>' . esc_html__( 'No results for this query yet.', 'taxocommerce-google-bing' ) . '</strong>';
+        echo '<p>' . esc_html__( 'Esta búsqueda manual solo se ejecuta al pulsar el botón. Los gráficos comparativos de clústeres y hubs primarios se solicitan automáticamente arriba.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</div>';
         echo '</details>';
 
-        echo '<p class="description tgb-trends-api"><strong>Source: </strong><a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">Google Trends</a>. Embedded charts show relative interest indexes (0–100), not absolute volumes or store visits. Google may limit embedding for some charts. The <a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">official API for downloadable series</a> remains in restricted alpha access.</p>';
+        echo '<p class="description tgb-trends-api">' . '<strong>' . esc_html__( 'Source:', 'taxocommerce-google-bing' ) . ' ' . '</strong>' . '<a href="https://trends.google.com/trends/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Google Trends', 'taxocommerce-google-bing' ) . '</a>' . esc_html__( '. Embedded charts show relative interest indexes (0–100), not absolute volumes or store visits. Google may limit embedding for some charts. The', 'taxocommerce-google-bing' ) . ' ' . '<a href="https://developers.google.com/search/apis/trends" target="_blank" rel="noopener noreferrer">' . esc_html__( 'official API for downloadable series', 'taxocommerce-google-bing' ) . '</a>' . ' ' . esc_html__( 'remains in restricted alpha access.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<style>
           .tgb-trends{margin-top:18px;max-width:1250px}
           .tgb-trends-query{margin:18px 0;padding:18px;background:#fff;border:1px solid #dcdcde;border-radius:6px}

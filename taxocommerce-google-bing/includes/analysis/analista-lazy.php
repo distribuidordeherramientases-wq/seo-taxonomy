@@ -71,7 +71,7 @@ if (!function_exists('seo_analista_lazy_render_shell')) {
 
         echo '<div class="seo-analista-lazy-intro">';
         echo '<div><strong>Analista ' . esc_html(defined('SEO_ANALISTA_VERSION') ? SEO_ANALISTA_VERSION : '') . '</strong> · carga bajo demanda</div>';
-        echo '<p>Al abrir esta página no se ejecuta ningún informe pesado. Elige un bloque y Analista calculará únicamente ese informe.</p>';
+        echo '<p>' . esc_html__( 'Al abrir esta página no se ejecuta ningún informe pesado. Elige un bloque y Analista calculará únicamente ese informe.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</div>';
 
         echo '<div class="seo-analista-lazy-controls">';
@@ -85,7 +85,7 @@ if (!function_exists('seo_analista_lazy_render_shell')) {
 
         echo '<div id="seo-analista-lazy-status" class="seo-analista-lazy-status" aria-live="polite"></div>';
         echo '<div id="seo-analista-lazy-result" class="seo-analista-lazy-result">';
-        echo '<div class="seo-analista-lazy-empty"><strong>Ningún informe cargado.</strong><p>Pulsa uno de los botones anteriores para ejecutar solo ese análisis.</p></div>';
+        echo '<div class="seo-analista-lazy-empty">' . '<strong>' . esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ) . '</strong>' . '<p>' . esc_html__( 'Pulsa uno de los botones anteriores para ejecutar solo ese análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo '</div>';
 
         // Register the report UI for the footer: assets must not be printed directly inside admin HTML.
@@ -121,9 +121,9 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
         $purchases = (int) ($ga4['purchases'] ?? 0);
         $carts = (int) ($funnel['add_to_cart'] ?? 0);
         $checkouts = (int) ($funnel['begin_checkout'] ?? 0);
-        echo '<section class="seo-analista-section"><h2>Qué hacer para vender más</h2><p>Directrices basadas en datos disponibles. No confundir visibilidad con compradores ni compras externas de afiliación con WooCommerce.</p>';
+        echo '<section class="seo-analista-section">' . '<h2>' . esc_html__( 'Qué hacer para vender más', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Directrices basadas en datos disponibles. No confundir visibilidad con compradores ni compras externas de afiliación con WooCommerce.', 'taxocommerce-google-bing' ) . '</p>';
         if (empty($ga4['available'])) {
-            echo '<p>Analytics no está disponible. Comprueba la conexión antes de interpretar ventas o conversión.</p></section>';
+            echo '<p>' . esc_html__( 'Analytics no está disponible. Comprueba la conexión antes de interpretar ventas o conversión.', 'taxocommerce-google-bing' ) . '</p>' . '</section>';
             return;
         }
         echo '<div class="seo-analista-grid">';
@@ -134,18 +134,18 @@ if (!function_exists('seo_analista_lazy_render_directrices')) {
         seo_analista_render_metric_card('Inicios de compra', number_format_i18n($checkouts));
         echo '</div><ol>';
         if ($sessions === 0) {
-            echo '<li><strong>Comprobar medición.</strong> No hay sesiones suficientes para diagnosticar ventas.</li>';
+            echo '<li>' . '<strong>' . esc_html__( 'Comprobar medición.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'No hay sesiones suficientes para diagnosticar ventas.', 'taxocommerce-google-bing' ) . '</li>';
         } else {
-            if ($checkouts > $purchases) echo '<li><strong>Revisar el checkout.</strong> Hay más inicios de compra que compras registradas. Realiza una compra de prueba y comprueba transporte, pagos y eventos GA4; no se puede atribuir el abandono sin datos por usuario.</li>';
-            if ($carts > $checkouts) echo '<li><strong>Revisar carrito y gastos de envío.</strong> Los eventos de carrito superan los inicios de compra. Verifica los costes finales y los enlaces al checkout.</li>';
-            if ($sessions > 0 && $purchases === 0) echo '<li><strong>Comprobar intención de compra y precios.</strong> Hay visitas pero ninguna compra registrada. Contrasta productos visitados con stock, precios y competencia antes de modificar el catálogo.</li>';
-            echo '<li><strong>Separar ventas y afiliación.</strong> Analiza España y mercados internacionales por separado. Los clics hacia proveedores y las comisiones confirmadas requieren su propia medición: no están representados por las compras WooCommerce.</li>';
-            echo '<li><strong>Priorizar oportunidades reales.</strong> Revisa en Plan de acción las tareas con destino validado; no publiques contenido nuevo solo por aumentar impresiones.</li>';
+            if ($checkouts > $purchases) echo '<li>' . '<strong>' . esc_html__( 'Revisar el checkout.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Hay más inicios de compra que compras registradas. Realiza una compra de prueba y comprueba transporte, pagos y eventos GA4; no se puede atribuir el abandono sin datos por usuario.', 'taxocommerce-google-bing' ) . '</li>';
+            if ($carts > $checkouts) echo '<li>' . '<strong>' . esc_html__( 'Revisar carrito y gastos de envío.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Los eventos de carrito superan los inicios de compra. Verifica los costes finales y los enlaces al checkout.', 'taxocommerce-google-bing' ) . '</li>';
+            if ($sessions > 0 && $purchases === 0) echo '<li>' . '<strong>' . esc_html__( 'Comprobar intención de compra y precios.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Hay visitas pero ninguna compra registrada. Contrasta productos visitados con stock, precios y competencia antes de modificar el catálogo.', 'taxocommerce-google-bing' ) . '</li>';
+            echo '<li>' . '<strong>' . esc_html__( 'Separar ventas y afiliación.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Analiza España y mercados internacionales por separado. Los clics hacia proveedores y las comisiones confirmadas requieren su propia medición: no están representados por las compras WooCommerce.', 'taxocommerce-google-bing' ) . '</li>';
+            echo '<li>' . '<strong>' . esc_html__( 'Priorizar oportunidades reales.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Revisa en Plan de acción las tareas con destino validado; no publiques contenido nuevo solo por aumentar impresiones.', 'taxocommerce-google-bing' ) . '</li>';
         }
         if (array_key_exists('add_shipping_info', $funnel) && (int) $funnel['add_shipping_info'] === 0 && (int) ($funnel['add_payment_info'] ?? 0) > 0) {
-            echo '<li><strong>Verificar eventos de Analytics.</strong> Se registra información de pago pero no de envío; puede ser una configuración legítima o una medición incompleta.</li>';
+            echo '<li>' . '<strong>' . esc_html__( 'Verificar eventos de Analytics.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Se registra información de pago pero no de envío; puede ser una configuración legítima o una medición incompleta.', 'taxocommerce-google-bing' ) . '</li>';
         }
-        echo '</ol><p class="description">Los recuentos del embudo son eventos agregados, no necesariamente los mismos usuarios. Las directrices son verificaciones, no causas de pérdida demostradas.</p></section>';
+        echo '</ol>' . '<p class="description">' . esc_html__( 'Los recuentos del embudo son eventos agregados, no necesariamente los mismos usuarios. Las directrices son verificaciones, no causas de pérdida demostradas.', 'taxocommerce-google-bing' ) . '</p>' . '</section>';
     }
 }
 
@@ -158,7 +158,7 @@ if (!function_exists('seo_analista_lazy_render_search_console')) {
         $previous = (array) ($data['previous'] ?? array());
 
         if (empty($data['ready'])) {
-            echo '<div class="notice notice-warning inline"><p>Search Console no tiene datos utilizables para este periodo.</p></div>';
+            echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Search Console no tiene datos utilizables para este periodo.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             return;
         }
 
@@ -183,8 +183,8 @@ if (!function_exists('seo_analista_lazy_render_search_console')) {
 
         $queries = array_slice((array) ($data['queries'] ?? array()), 0, 40);
         if ($queries) {
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Consultas principales</h2><p>Vista parcial de Search Console. No ejecuta Contenido, Catálogo, Trends ni Competencia.</p></div></div>';
-            echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Consulta</th><th>Impresiones</th><th>Clics</th><th>Posición</th><th>Intento</th></tr></thead><tbody>';
+            echo '<section class="seo-analista-section">' . '<div class="seo-analista-section-head">' . '<div>' . '<h2>' . esc_html__( 'Consultas principales', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Vista parcial de Search Console. No ejecuta Contenido, Catálogo, Trends ni Competencia.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
+            echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Consulta', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Impresiones', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Posición', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Intento', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach ($queries as $row) {
                 $query = seo_analista_clean_query($row['query_text'] ?? $row['query'] ?? '');
                 if ($query === '') continue;
@@ -218,12 +218,12 @@ if (!function_exists('seo_analista_lazy_render_catalog')) {
         echo '</div>';
 
         if (!$items) {
-            echo '<div class="notice notice-info inline"><p>No hay directrices de catálogo disponibles para este periodo.</p></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'No hay directrices de catálogo disponibles para este periodo.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             return;
         }
 
-        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Catálogo y demanda</h2><p>Familias, categorías o huecos de surtido detectados. Este bloque no ejecuta los informes de contenido, estructura ni competencia.</p></div></div>';
-        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Tipo</th><th>Oportunidad</th><th>Decisión</th><th>Impresiones</th><th>Posición</th><th>Productos</th><th>Lectura</th></tr></thead><tbody>';
+        echo '<section class="seo-analista-section">' . '<div class="seo-analista-section-head">' . '<div>' . '<h2>' . esc_html__( 'Catálogo y demanda', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Familias, categorías o huecos de surtido detectados. Este bloque no ejecuta los informes de contenido, estructura ni competencia.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
+        echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Oportunidad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Decisión', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Impresiones', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Posición', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Productos', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Lectura', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($items as $row) {
             echo '<tr>';
             echo '<td>' . wp_kses_post(seo_analista_score_badge((int) ($row['score'] ?? 0))) . '</td>';
@@ -264,12 +264,12 @@ if (!function_exists('seo_analista_lazy_render_suppliers')) {
 
         $rows = (array) ($suppliers['rows'] ?? array());
         if (!$rows) {
-            echo '<div class="notice notice-info inline"><p>No hay datos de proveedores disponibles.</p></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'No hay datos de proveedores disponibles.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             return;
         }
 
-        echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Estado de proveedores</h2><p>Este informe consulta únicamente la fuente local de proveedores.</p></div></div>';
-        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Proveedor</th><th>Total</th><th>Vinculados</th><th>Pendientes</th><th>Errores</th><th>Última importación</th><th>Última sincronización</th></tr></thead><tbody>';
+        echo '<section class="seo-analista-section">' . '<div class="seo-analista-section-head">' . '<div>' . '<h2>' . esc_html__( 'Estado de proveedores', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Este informe consulta únicamente la fuente local de proveedores.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
+        echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Proveedor', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Total', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Vinculados', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pendientes', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Errores', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Última importación', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Última sincronización', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($rows as $row) {
             echo '<tr><td><strong>' . esc_html((string) ($row['proveedor'] ?? '')) . '</strong></td><td>' . esc_html(number_format_i18n((int) ($row['total'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['linked'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['pending'] ?? 0))) . '</td><td>' . esc_html(number_format_i18n((int) ($row['errors'] ?? 0))) . '</td><td>' . esc_html((string) ($row['last_import'] ?? '—')) . '</td><td>' . esc_html((string) ($row['last_sync'] ?? '—')) . '</td></tr>';
         }
@@ -304,7 +304,7 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
 
         if (function_exists('seo_analista_action_scheduler_health')) {
             $scheduler = seo_analista_action_scheduler_health();
-            echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Frescura operativa · Action Scheduler</h2><p>Se revisa por separado porque una cola vencida puede dejar fuentes desactualizadas sin que el dato parezca erróneo.</p></div></div>';
+            echo '<section class="seo-analista-section">' . '<div class="seo-analista-section-head">' . '<div>' . '<h2>' . esc_html__( 'Frescura operativa · Action Scheduler', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Se revisa por separado porque una cola vencida puede dejar fuentes desactualizadas sin que el dato parezca erróneo.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
             echo '<p><strong>Estado:</strong> ' . esc_html(strtoupper((string) ($scheduler['state'] ?? 'unknown'))) . ' · <strong>vencidas detectadas:</strong> ' . esc_html(number_format_i18n(absint($scheduler['overdue'] ?? 0))) . '</p>';
             echo '<p class="description">' . esc_html((string) ($scheduler['detail'] ?? '')) . '</p></section>';
         }
@@ -315,7 +315,7 @@ if (!function_exists('seo_analista_lazy_render_sources')) {
                 : (function_exists('seo_analista_382_self_tests') ? seo_analista_382_self_tests() : seo_analista_381_self_tests());
             echo '<section class="seo-analista-section"><div class="seo-analista-section-head"><div><h2>Pruebas Analista ' . esc_html((string) ($tests['version'] ?? '3.8.3')) . '</h2><p>Incluye T01-T06: coherencia HACER AHORA, acción ejecutable, etiquetas separadas, contadores/JSON, trazabilidad y regresiones.</p></div></div>';
             echo '<p><strong>' . esc_html(number_format_i18n(absint($tests['passed'] ?? 0))) . '/' . esc_html(number_format_i18n(absint($tests['total'] ?? 0))) . '</strong> pruebas superadas.</p>';
-            echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Regla</th></tr></thead><tbody>';
+            echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Regla', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach ((array) ($tests['tests'] ?? array()) as $test) {
                 echo '<tr><td><code>' . esc_html((string) ($test['code'] ?? '')) . '</code></td><td>' . (!empty($test['passed']) ? '<strong style="color:#0a7a37">OK</strong>' : '<strong style="color:#b42318">FALLO</strong>') . '</td><td>' . esc_html((string) ($test['detail'] ?? '')) . '</td></tr>';
             }

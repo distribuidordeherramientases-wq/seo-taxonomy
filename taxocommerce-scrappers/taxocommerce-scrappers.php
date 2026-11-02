@@ -182,3 +182,20 @@ final class TaxoCommerce_Scrappers {
 
 register_activation_hook( __FILE__, array( 'TaxoCommerce_Scrappers', 'activate' ) );
 add_action( 'plugins_loaded', array( 'TaxoCommerce_Scrappers', 'boot' ), 100 );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-scrappers';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

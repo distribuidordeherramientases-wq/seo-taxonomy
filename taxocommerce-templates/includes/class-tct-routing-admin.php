@@ -255,7 +255,7 @@ final class TCT_Routing_Admin {
         $visible = array_slice( $visible, ( $page - 1 ) * $page_size, $page_size, true );
 
         echo '<div class="wrap tct-routing-admin">';
-        echo '<h2>Enrutamiento de plantillas</h2>';
+        echo '<h2>' . esc_html__( 'Enrutamiento de plantillas', 'taxocommerce-templates' ) . '</h2>';
         echo '<p>Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en <code>seo_templates</code>, sin modificar archivos PHP.</p>';
         echo '<div class="notice notice-' . ( $enabled ? 'success' : 'warning' ) . ' inline"><p><strong>';
         echo $enabled ? 'Enrutador TaxoCommerce habilitado.' : 'Enrutador TaxoCommerce desactivado.';
@@ -265,7 +265,7 @@ final class TCT_Routing_Admin {
             : 'Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado.';
         echo '</p></div>';
         if ( ! $installed ) {
-            echo '<div class="notice notice-error inline"><p>Las tablas de plantillas no están disponibles; no se pueden guardar asociaciones. El interruptor superior sigue funcionando.</p></div>';
+            echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'Las tablas de plantillas no están disponibles; no se pueden guardar asociaciones. El interruptor superior sigue funcionando.', 'taxocommerce-templates' ) . '</p>' . '</div>';
         }
 
         $managed_count = count( self::visible( $items, $mapping, 'managed' ) );
@@ -301,11 +301,11 @@ final class TCT_Routing_Admin {
         echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="tct-routing-filters">';
         echo '<input type="hidden" name="page" value="taxocommerce-templates"><input type="hidden" name="tab" value="routing">';
         echo '<input type="hidden" name="tct_view" value="' . esc_attr( $view ) . '">';
-        echo '<label for="tct-routing-group">Familia</label><select id="tct-routing-group" name="tct_group">';
+        echo '<label for="tct-routing-group">' . esc_html__( 'Familia', 'taxocommerce-templates' ) . '</label>' . '<select id="tct-routing-group" name="tct_group">';
         foreach ( $groups as $code => $label ) {
             echo '<option value="' . esc_attr( $code ) . '" ' . selected( $group, $code, false ) . '>' . esc_html( $label ) . '</option>';
         }
-        echo '</select><label for="tct-routing-search">Buscar</label>';
+        echo '</select>' . '<label for="tct-routing-search">' . esc_html__( 'Buscar', 'taxocommerce-templates' ) . '</label>';
         echo '<input id="tct-routing-search" name="tct_search" type="search" value="' . esc_attr( $search ) . '" placeholder="Rol, petición o archivo">';
         submit_button( 'Filtrar', 'secondary', 'submit', false );
         echo '</form>';
@@ -334,10 +334,10 @@ final class TCT_Routing_Admin {
         if ( $total ) {
         echo '<h3>' . esc_html( 'managed' === $view ? 'Rutas heredadas existentes' : 'Catálogo de peticiones' ) . '</h3>';
         echo '<div class="tct-routing-scroll"><table class="widefat striped tct-routing-table"><thead><tr>';
-        echo '<th>Petición WordPress / WooCommerce</th><th>Rol SEO</th><th>Archivo / plantilla</th><th>Estado y origen</th><th>Diseñador</th>';
+        echo '<th>' . esc_html__( 'Petición WordPress / WooCommerce', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Rol SEO', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo / plantilla', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Estado y origen', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Diseñador', 'taxocommerce-templates' ) . '</th>';
         echo '</tr></thead><tbody>';
         if ( ! $visible ) {
-            echo '<tr><td colspan="5">No hay rutas que coincidan con el filtro.</td></tr>';
+            echo '<tr>' . '<td colspan="5">' . esc_html__( 'No hay rutas que coincidan con el filtro.', 'taxocommerce-templates' ) . '</td>' . '</tr>';
         }
         foreach ( $visible as $key => $item ) {
             $row = isset( $mapping[ $key ] ) ? $mapping[ $key ] : null;
@@ -365,7 +365,7 @@ final class TCT_Routing_Admin {
             echo '<input type="hidden" name="tct_view" value="' . esc_attr( $view ) . '">';
             echo '<input type="hidden" name="tct_search" value="' . esc_attr( $search ) . '">';
             echo '<select name="template_file" aria-label="Plantilla para ' . esc_attr( $item['label'] ) . '" ' . disabled( ! $installed, true, false ) . '>';
-            echo '<option value="">WordPress / Tema (sin asignación)</option>';
+            echo '<option value="">' . esc_html__( 'WordPress / Tema (sin asignación)', 'taxocommerce-templates' ) . '</option>';
             if ( '' !== $selected && ! in_array( $selected, $files, true ) ) {
                 echo '<option selected disabled value="' . esc_attr( $selected ) . '">' . esc_html( $selected . ' (no disponible)' ) . '</option>';
             }
@@ -380,14 +380,14 @@ final class TCT_Routing_Admin {
                     ? '<strong>Sin activar; archivo guardado</strong>'
                     : '<strong>Sin asignar: WordPress / Tema</strong>';
             } elseif ( ! $valid ) {
-                echo '<strong class="tct-routing-error">Archivo no encontrado</strong>';
+                echo '<strong class="tct-routing-error">' . esc_html__( 'Archivo no encontrado', 'taxocommerce-templates' ) . '</strong>';
             } elseif ( ! $enabled ) {
-                echo '<strong>Configurado; motor desactivado</strong>';
+                echo '<strong>' . esc_html__( 'Configurado; motor desactivado', 'taxocommerce-templates' ) . '</strong>';
             } else {
-                echo '<strong>Asignación activa</strong>';
+                echo '<strong>' . esc_html__( 'Asignación activa', 'taxocommerce-templates' ) . '</strong>';
             }
             if ( in_array( $key, array( 'taxonomy_product_cat', 'single_product', 'landing' ), true ) ) {
-                echo '<br><small>VEVOR US/DE/NL/FR: ruta especializada con prioridad.</small>';
+                echo '<br>' . '<small>' . esc_html__( 'VEVOR US/DE/NL/FR: ruta especializada con prioridad.', 'taxocommerce-templates' ) . '</small>';
             }
             echo '</td><td>';
             $editing = '';
@@ -424,8 +424,8 @@ final class TCT_Routing_Admin {
             echo '</p>';
         }
 
-        echo '<details class="tct-routing-special"><summary>Excepciones y diagnósticos del enrutamiento</summary>';
-        echo '<p>Las rutas VEVOR internacionales pueden ser atendidas por el piloto especializado y el antiguo monolito antes de la tabla general. También tienen rutas propias Dependiente y los componentes WooCommerce por bloques.</p>';
+        echo '<details class="tct-routing-special">' . '<summary>' . esc_html__( 'Excepciones y diagnósticos del enrutamiento', 'taxocommerce-templates' ) . '</summary>';
+        echo '<p>' . esc_html__( 'Las rutas VEVOR internacionales pueden ser atendidas por el piloto especializado y el antiguo monolito antes de la tabla general. También tienen rutas propias Dependiente y los componentes WooCommerce por bloques.', 'taxocommerce-templates' ) . '</p>';
         echo '<p>La asignación de una ruta no garantiza que sea la plantilla PHP finalmente ejecutada. Para verificar una URL real deben comprobarse el rol, el país y el filtro <code>template_include</code> del servidor.</p>';
         echo '<p><a href="' . esc_url( TCT_Request_Admin::admin_url( 'audit' ) ) . '">Abrir auditoría técnica de asociaciones existentes</a></p>';
         echo '<p><a href="' . esc_url( TCT_Request_Admin::admin_url( 'roles' ) ) . '">Gestionar las páginas asignadas a cada rol</a></p>';

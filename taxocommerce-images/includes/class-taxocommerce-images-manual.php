@@ -30,9 +30,9 @@ final class TaxoCommerce_Images_Manual {
         $sections = self::sections();
         echo '<section class="tci-manual" aria-label="Manual de TaxoCommerce Images">';
         echo '<style>.tci-manual{max-width:1180px;margin:20px 0}.tci-manual h1{font-size:26px;line-height:1.3;margin:30px 0 14px}.tci-manual h2{font-size:21px;line-height:1.4;margin:0 0 12px}.tci-manual h3{font-size:16px;margin:14px 0 8px}.tci-manual p,.tci-manual li{font-size:14px;line-height:1.7}.tci-manual-index,.tci-manual-card{background:#fff;border:1px solid #dcdcde;border-radius:5px;padding:20px;margin:16px 0}.tci-manual-index a{display:inline-block;margin:6px 12px 6px 0}.tci-manual-card{scroll-margin-top:35px}.tci-manual-index{overflow-wrap:anywhere}@media(max-width:782px){.tci-manual-index,.tci-manual-card{padding:14px}.tci-manual h1{font-size:23px}.tci-manual h2{font-size:19px}}</style>';
-        echo '<h1>Manual de TaxoCommerce Images</h1>';
-        echo '<p>Documentación integrada para administradores y desarrolladores. Consultarla no modifica imágenes ni inicia procesos.</p>';
-        echo '<nav class="tci-manual-index" aria-label="Índice del manual"><strong>Contenido</strong><div>';
+        echo '<h1>' . esc_html__( 'Manual de TaxoCommerce Images', 'taxocommerce-images' ) . '</h1>';
+        echo '<p>' . esc_html__( 'Documentación integrada para administradores y desarrolladores. Consultarla no modifica imágenes ni inicia procesos.', 'taxocommerce-images' ) . '</p>';
+        echo '<nav class="tci-manual-index" aria-label="Índice del manual">' . '<strong>' . esc_html__( 'Contenido', 'taxocommerce-images' ) . '</strong>' . '<div>';
         foreach ( $sections as $section ) {
             echo '<a href="#' . esc_attr( $section['id'] ) . '">' . esc_html( $section['title'] ) . '</a>';
         }

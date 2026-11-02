@@ -261,14 +261,14 @@ final class TCSocial_Auto_Test {
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
 
-        echo '<section class="seo-social-card"><h2>Auto Test de TaxoCommerce Social</h2>';
-        echo '<p>Chequeo local de solo lectura de conexiones registradas, plantillas, tablas, calendario y programador. No conecta cuentas ni publica. Se guardan los dos últimos resultados por administrador durante 30 días.</p>';
+        echo '<section class="seo-social-card">' . '<h2>' . esc_html__( 'Auto Test de TaxoCommerce Social', 'taxocommerce-social' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Chequeo local de solo lectura de conexiones registradas, plantillas, tablas, calendario y programador. No conecta cuentas ni publica. Se guardan los dos últimos resultados por administrador durante 30 días.', 'taxocommerce-social' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcsocial_auto_nonce' );
         submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
-            echo '<p>No existen resultados todavía. Pulsa Ejecutar Auto Test.</p></section>';
+            echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Auto Test.', 'taxocommerce-social' ) . '</p>' . '</section>';
             return;
         }
         $totals = $current['totals'];
@@ -285,14 +285,14 @@ final class TCSocial_Auto_Test {
             echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.';
             echo '</p>';
         } else {
-            echo '<p>No existe una ejecución anterior para comparar.</p>';
+            echo '<p>' . esc_html__( 'No existe una ejecución anterior para comparar.', 'taxocommerce-social' ) . '</p>';
         }
-        echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Grupo</th><th>Prueba</th><th>Estado</th><th>Diagnóstico</th><th>Tiempo</th></tr></thead><tbody>';
+        echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         $names = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $names[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody></table></div><p class="description">Un Auto Test correcto confirma los componentes disponibles; no garantiza la autorización de las cuentas ni una publicación externa satisfactoria.</p></section>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Un Auto Test correcto confirma los componentes disponibles; no garantiza la autorización de las cuentas ni una publicación externa satisfactoria.', 'taxocommerce-social' ) . '</p>' . '</section>';
     }
 }
 TCSocial_Auto_Test::register();

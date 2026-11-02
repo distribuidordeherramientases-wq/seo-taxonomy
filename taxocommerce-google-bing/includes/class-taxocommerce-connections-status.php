@@ -133,8 +133,8 @@ final class TaxoCommerce_Connections_Status {
         $definitions = self::definitions();
         $stored = self::records();
         echo '<section class="tgb-health-overview" aria-labelledby="tgb-health-heading">';
-        echo '<div class="tgb-health-top"><div><h2 id="tgb-health-heading">Estado de las conexiones</h2>';
-        echo '<p>Estados de credenciales y verificaciones manuales. Abrir esta pantalla no llama a proveedores externos.</p></div></div>';
+        echo '<div class="tgb-health-top">' . '<div>' . '<h2 id="tgb-health-heading">' . esc_html__( 'Estado de las conexiones', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Estados de credenciales y verificaciones manuales. Abrir esta pantalla no llama a proveedores externos.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
         echo '<div class="tgb-health-grid">';
         foreach ( $definitions as $id => $config ) {
             $record = $stored[ $id ] ?? array();
@@ -150,9 +150,9 @@ final class TaxoCommerce_Connections_Status {
                     echo '<small>' . esc_html( $detail ) . '</small>';
                 }
             } elseif ( 'configured' === $state && 'test' === $config['mode'] ) {
-                echo '<small>Prueba la conexión para verificarla.</small>';
+                echo '<small>' . esc_html__( 'Prueba la conexión para verificarla.', 'taxocommerce-google-bing' ) . '</small>';
             } elseif ( 'local' === $config['mode'] && 'configured' === $state ) {
-                echo '<small>Configuración local guardada; sin validación externa.</small>';
+                echo '<small>' . esc_html__( 'Configuración local guardada; sin validación externa.', 'taxocommerce-google-bing' ) . '</small>';
             }
             echo '</div>';
             if ( 'test' === $config['mode'] && ! empty( $config['ready'] ) && empty( $config['disabled'] ) ) {
@@ -160,11 +160,11 @@ final class TaxoCommerce_Connections_Status {
                 echo '<input type="hidden" name="action" value="tgb_check_connection">';
                 echo '<input type="hidden" name="provider" value="' . esc_attr( $id ) . '">';
                 wp_nonce_field( 'tgb_check_connection_' . $id );
-                echo '<button class="button button-small" type="submit">Comprobar</button></form>';
+                echo '<button class="button button-small" type="submit">' . esc_html__( 'Comprobar', 'taxocommerce-google-bing' ) . '</button>' . '</form>';
             }
             echo '</article>';
         }
-        echo '</div><p class="description">«Conectado» significa que el proveedor respondió correctamente en una prueba manual reciente (máximo 7 días). Cambiar credenciales exige repetirla. Los enlaces de afiliados y los catálogos configurados no equivalen a una conexión API validada.</p>';
+        echo '</div>' . '<p class="description">' . esc_html__( '«Conectado» significa que el proveedor respondió correctamente en una prueba manual reciente (máximo 7 días). Cambiar credenciales exige repetirla. Los enlaces de afiliados y los catálogos configurados no equivalen a una conexión API validada.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</section>';
     }
 

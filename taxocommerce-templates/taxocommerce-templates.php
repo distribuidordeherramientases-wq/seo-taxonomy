@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-templates
+ * Domain Path: /languages
  */
 defined('ABSPATH') || exit;
 define('TCT_VERSION','0.4.8');
@@ -153,8 +154,8 @@ final class TaxoCommerce_Templates {
     }
     public static function menu() {
         $parent=function_exists('taxocommerce_core')?'taxocommerce-core':null;
-        if($parent) add_submenu_page($parent,'TaxoCommerce Templates','Templates','manage_options','taxocommerce-templates',array(__CLASS__,'screen'));
-        else add_menu_page('TaxoCommerce Templates','Templates','manage_options','taxocommerce-templates',array(__CLASS__,'screen'),'dashicons-layout',62);
+        if($parent) add_submenu_page($parent,__( 'TaxoCommerce Templates', 'taxocommerce-templates' ),__( 'Templates', 'taxocommerce-templates' ),'manage_options','taxocommerce-templates',array(__CLASS__,'screen'));
+        else add_menu_page(__( 'TaxoCommerce Templates', 'taxocommerce-templates' ),__( 'Templates', 'taxocommerce-templates' ),'manage_options','taxocommerce-templates',array(__CLASS__,'screen'),'dashicons-layout',62);
     }
     private static function guard($nonce) {
         if(!current_user_can('manage_options')) wp_die('Permisos insuficientes.');
@@ -199,9 +200,9 @@ final class TaxoCommerce_Templates {
     }
     public static function metabox_content($post) {
         $role=self::installed()?self::page_role($post->ID):'';
-        echo '<p><label for="tct_role">Tipo de página</label></p><select id="tct_role" name="tct_role"><option value="">Sin rol</option>';
+        echo '<p>' . '<label for="tct_role">' . esc_html__( 'Tipo de página', 'taxocommerce-templates' ) . '</label>' . '</p>' . '<select id="tct_role" name="tct_role">' . '<option value="">' . esc_html__( 'Sin rol', 'taxocommerce-templates' ) . '</option>';
         foreach(self::roles() as $key=>$name)echo '<option value="'.esc_attr($key).'" '.selected($role,$key,false).'>'.esc_html($name).'</option>';
-        echo '</select><p class="description">Se aplica a todas las páginas del mismo rol.</p>';
+        echo '</select>' . '<p class="description">' . esc_html__( 'Se aplica a todas las páginas del mismo rol.', 'taxocommerce-templates' ) . '</p>';
         wp_nonce_field('tct_page_role','tct_page_role_nonce');
         // Save only during the native post save and after all validation.
     }
@@ -285,16 +286,16 @@ final class TaxoCommerce_Templates {
     public static function render_policy_control() {
         $enabled = self::policies_enabled();
         echo '<section class="tct-policy-control" aria-label="Aplicación de políticas de plantillas">';
-        echo '<h2>Aplicación de políticas</h2>';
+        echo '<h2>' . esc_html__( 'Aplicación de políticas', 'taxocommerce-templates' ) . '</h2>';
         echo '<p><strong>Estado: ' . esc_html($enabled ? 'Aplicando las políticas de Templates' : 'Políticas suspendidas') . '</strong></p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         wp_nonce_field('tct_settings');
         echo '<input type="hidden" name="action" value="tct_settings">';
         echo '<label><input type="checkbox" name="enable" value="1" ' . checked($enabled, true, false) . '> ';
-        echo '<strong>Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la web</strong></label>';
-        echo '<p class="description">Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no sustituye páginas, productos, categorías, comentarios, fragmentos WooCommerce ni correos. WordPress y los demás plugins recuperan el control.</p>';
-        echo '<p class="description"><strong>Protección al actualizar:</strong> tras instalar esta versión las políticas permanecen suspendidas, incluso si una versión anterior tenía el enrutador activo. Solo se habilitan cuando marcas esta casilla y guardas expresamente.</p>';
-        echo '<p class="description">Marcada: las rutas configuradas pueden aplicarse según sus prioridades, mercados y reglas. No activa automáticamente plantillas que sigan como borrador.</p>';
+        echo '<strong>' . esc_html__( 'Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la web', 'taxocommerce-templates' ) . '</strong>' . '</label>';
+        echo '<p class="description">' . esc_html__( 'Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no sustituye páginas, productos, categorías, comentarios, fragmentos WooCommerce ni correos. WordPress y los demás plugins recuperan el control.', 'taxocommerce-templates' ) . '</p>';
+        echo '<p class="description">' . '<strong>' . esc_html__( 'Protección al actualizar:', 'taxocommerce-templates' ) . '</strong>' . ' ' . esc_html__( 'tras instalar esta versión las políticas permanecen suspendidas, incluso si una versión anterior tenía el enrutador activo. Solo se habilitan cuando marcas esta casilla y guardas expresamente.', 'taxocommerce-templates' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Marcada: las rutas configuradas pueden aplicarse según sus prioridades, mercados y reglas. No activa automáticamente plantillas que sigan como borrador.', 'taxocommerce-templates' ) . '</p>';
         submit_button('Guardar estado de las políticas', 'secondary', 'submit', false);
         echo '</form></section>';
     }
@@ -398,7 +399,7 @@ final class TaxoCommerce_Templates {
             $tab = 'routing';
         }
         $main_tab = in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer';
-        echo '<div class="wrap"><h1>TaxoCommerce Templates</h1><nav class="nav-tab-wrapper">';
+        echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Templates', 'taxocommerce-templates' ) . '</h1>' . '<nav class="nav-tab-wrapper">';
         foreach (array(
             'routing'  => 'Enrutamiento',
             'designer' => 'Diseñador de plantillas',
@@ -434,7 +435,7 @@ final class TaxoCommerce_Templates {
             wp_die('Acceso denegado.');
         }
         if (!self::installed()) {
-            echo '<p>Faltan tablas; reactiva el módulo.</p>';
+            echo '<p>' . esc_html__( 'Faltan tablas; reactiva el módulo.', 'taxocommerce-templates' ) . '</p>';
             return;
         }
         global $wpdb;
@@ -450,17 +451,17 @@ final class TaxoCommerce_Templates {
         }
         $pages = get_posts(array('post_type'=>'page','post_status'=>'publish','posts_per_page'=>-1,'orderby'=>'title','order'=>'ASC','fields'=>'ids'));
         if (!$embedded) {
-            echo '<div class="wrap"><h1>Gestor de Plantillas</h1>';
+            echo '<div class="wrap">' . '<h1>' . esc_html__( 'Gestor de Plantillas', 'taxocommerce-templates' ) . '</h1>';
         }
-        echo '<p>Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.</p>';
+        echo '<p>' . esc_html__( 'Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.', 'taxocommerce-templates' ) . '</p>';
         if (!$embedded && isset($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
-        echo '<p class="description">El interruptor para aplicar o suspender las políticas está disponible al principio de la página, sin necesidad de desactivar el plugin.</p>';
-        echo '<h2>Archivos de plantilla</h2>';
+        echo '<p class="description">' . esc_html__( 'El interruptor para aplicar o suspender las políticas está disponible al principio de la página, sin necesidad de desactivar el plugin.', 'taxocommerce-templates' ) . '</p>';
+        echo '<h2>' . esc_html__( 'Archivos de plantilla', 'taxocommerce-templates' ) . '</h2>';
         echo '<p>La subida, duplicado, descarga, edicion y variantes se gestionan ahora desde <a href="' . esc_url(TCT_Request_Admin::admin_url('editor')) . '"><strong>Editor y biblioteca</strong></a>.</p>';
-        echo '<h2>Asignacion a paginas y rutas automaticas</h2>';
-        echo '<p>Las rutas automaticas se resuelven por tipo de peticion. Las rutas asignables admiten paginas existentes; las variantes no son roles independientes.</p>';
+        echo '<h2>' . esc_html__( 'Asignacion a paginas y rutas automaticas', 'taxocommerce-templates' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Las rutas automaticas se resuelven por tipo de peticion. Las rutas asignables admiten paginas existentes; las variantes no son roles independientes.', 'taxocommerce-templates' ) . '</p>';
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">';
         foreach ($rows as $row) {
             $key = $row->template_key;
@@ -476,7 +477,7 @@ final class TaxoCommerce_Templates {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             wp_nonce_field('tct_save_template');
             echo '<input type="hidden" name="action" value="tct_save_template"><input type="hidden" name="role" value="' . esc_attr($key) . '">';
-            echo '<select name="file" style="max-width:100%"><option value="">Elegir archivo principal</option>';
+            echo '<select name="file" style="max-width:100%">' . '<option value="">' . esc_html__( 'Elegir archivo principal', 'taxocommerce-templates' ) . '</option>';
             foreach ($files as $file) {
                 echo '<option value="' . esc_attr($file) . '" ' . selected($file,$row->template_file,false) . '>' . esc_html($file) . '</option>';
             }
@@ -486,7 +487,7 @@ final class TaxoCommerce_Templates {
             if ('email' !== $row->template_type) {
                 $mobile = TCT_Router::plan($row,'mobile');
                 $desktop = TCT_Router::plan($row,'desktop');
-                echo '<details style="margin-top:10px"><summary>Variantes telefono / ordenador</summary>';
+                echo '<details style="margin-top:10px">' . '<summary>' . esc_html__( 'Variantes telefono / ordenador', 'taxocommerce-templates' ) . '</summary>';
                 echo '<p>Telefono: <code>' . esc_html($mobile['variant']) . '</code> — ' . esc_html($mobile['source']) . '</p>';
                 echo '<p>Ordenador: <code>' . esc_html($desktop['variant']) . '</code> — ' . esc_html($desktop['source']) . '</p>';
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -502,10 +503,10 @@ final class TaxoCommerce_Templates {
                 echo '<a href="' . esc_url(TCT_Request_Admin::admin_url('editor',array('tct_source'=>$row->template_file))) . '">Ver / editar codigo</a></p>';
             }
             if ($is_assignable) {
-                echo '<h4>Paginas asignadas</h4>';
+                echo '<h4>' . esc_html__( 'Paginas asignadas', 'taxocommerce-templates' ) . '</h4>';
                 $assigned = isset($by_role[$key]) ? $by_role[$key] : array();
                 if (!$assigned) {
-                    echo '<p>Ninguna pagina asignada.</p>';
+                    echo '<p>' . esc_html__( 'Ninguna pagina asignada.', 'taxocommerce-templates' ) . '</p>';
                 }
                 foreach ($assigned as $id) {
                     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:5px 0">';
@@ -520,7 +521,7 @@ final class TaxoCommerce_Templates {
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
                 wp_nonce_field('tct_assign_page');
                 echo '<input type="hidden" name="action" value="tct_assign_page"><input type="hidden" name="template_key" value="' . esc_attr($key) . '">';
-                echo '<select name="page_id" required style="max-width:100%"><option value="">Seleccionar pagina libre</option>';
+                echo '<select name="page_id" required style="max-width:100%">' . '<option value="">' . esc_html__( 'Seleccionar pagina libre', 'taxocommerce-templates' ) . '</option>';
                 foreach ($pages as $id) {
                     if (isset($occupied[$id])) {
                         continue;
@@ -547,3 +548,20 @@ final class TaxoCommerce_Templates {
 }
 register_activation_hook(__FILE__,array('TaxoCommerce_Templates','activate'));
 add_action('plugins_loaded',array('TaxoCommerce_Templates','boot'),30);
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-templates';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

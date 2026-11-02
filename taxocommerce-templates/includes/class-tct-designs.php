@@ -269,38 +269,38 @@ final class TCT_Designs {
         echo '<p><a href="' . esc_url( TCT_Request_Admin::admin_url( 'routing' ) ) . '">← Enrutamiento</a></p>';
         echo '<h2>Editar plantilla: ' . esc_html( $design['name'] ) . '</h2>';
         echo '<p>Petición / rol: <strong>' . esc_html( $label ) . '</strong> · <code>' . esc_html( $design['route'] ) . '</code></p>';
-        echo '<p class="description">Cada plantilla tiene su propia configuración. Selecciona los países a los que se aplica y configura por separado los módulos de cada país. La presentación modular es un borrador mientras no exista un renderizador público.</p>';
+        echo '<p class="description">' . esc_html__( 'Cada plantilla tiene su propia configuración. Selecciona los países a los que se aplica y configura por separado los módulos de cada país. La presentación modular es un borrador mientras no exista un renderizador público.', 'taxocommerce-templates' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="tct-front-composer-form">';
         wp_nonce_field( 'tct_design_save' );
         echo '<input type="hidden" name="action" value="tct_design_save">';
         echo '<input type="hidden" name="design_id" value="' . esc_attr( $id ) . '">';
         echo '<input type="hidden" name="layout_desktop" id="tct-front-desktop-json">';
         echo '<input type="hidden" name="layout_mobile" id="tct-front-mobile-json">';
-        echo '<div class="tct-front-fields"><label>Nombre de la plantilla';
+        echo '<div class="tct-front-fields">' . '<label>' . esc_html__( 'Nombre de la plantilla', 'taxocommerce-templates' );
         echo '<input id="tct-front-name" name="template_name" maxlength="100" required value="' . esc_attr( $design['name'] ) . '"></label>';
-        echo '<label>Archivo PHP asociado <select name="template_file">';
-        echo '<option value="">Sin archivo (borrador visual)</option>';
+        echo '<label>' . esc_html__( 'Archivo PHP asociado', 'taxocommerce-templates' ) . ' ' . '<select name="template_file">';
+        echo '<option value="">' . esc_html__( 'Sin archivo (borrador visual)', 'taxocommerce-templates' ) . '</option>';
         foreach ( $files as $file ) {
             echo '<option value="' . esc_attr( $file ) . '" ' . selected( $file, $design['file'], false ) . '>' . esc_html( $file ) . '</option>';
         }
         echo '</select></label></div>';
-        echo '<fieldset class="tct-design-countries"><legend><strong>Países de esta plantilla</strong></legend>';
+        echo '<fieldset class="tct-design-countries">' . '<legend>' . '<strong>' . esc_html__( 'Países de esta plantilla', 'taxocommerce-templates' ) . '</strong>' . '</legend>';
         foreach ( self::COUNTRIES as $code ) {
             echo '<label><input type="checkbox" name="countries[]" value="' . esc_attr( $code ) . '" ' .
                 checked( in_array( $code, $design['countries'], true ), true, false ) . '> ' . esc_html( $code ) . '</label> ';
         }
         echo '</fieldset>';
-        echo '<p><label for="tct-front-market"><strong>Editar módulos del país</strong></label> ';
+        echo '<p>' . '<label for="tct-front-market">' . '<strong>' . esc_html__( 'Editar módulos del país', 'taxocommerce-templates' ) . '</strong>' . '</label>' . ' ';
         echo '<select id="tct-front-market" name="market">';
         foreach ( self::COUNTRIES as $code ) {
             echo '<option value="' . esc_attr( $code ) . '" ' . selected( $code, $market, false ) . '>' . esc_html( $code ) . '</option>';
         }
-        echo '</select> <span class="description">Guarda antes de cambiar de país para conservar los cambios de esta composición.</span></p>';
+        echo '</select>' . ' ' . '<span class="description">' . esc_html__( 'Guarda antes de cambiar de país para conservar los cambios de esta composición.', 'taxocommerce-templates' ) . '</span>' . '</p>';
         echo '<div class="tct-front-device-tabs" role="group">';
-        echo '<button class="button button-primary" type="button" data-tct-device="desktop" aria-pressed="true">Ordenador</button> ';
-        echo '<button class="button" type="button" data-tct-device="mobile" aria-pressed="false">Móvil</button></div>';
-        echo '<div class="tct-front-columns"><section class="tct-front-panel"><h3>Módulos disponibles</h3><ul id="tct-front-available-list" class="tct-front-list"></ul></section>';
-        echo '<section class="tct-front-panel"><h3>Composición de la plantilla</h3><ul id="tct-front-selected-list" class="tct-front-list"></ul></section></div>';
+        echo '<button class="button button-primary" type="button" data-tct-device="desktop" aria-pressed="true">' . esc_html__( 'Ordenador', 'taxocommerce-templates' ) . '</button>' . ' ';
+        echo '<button class="button" type="button" data-tct-device="mobile" aria-pressed="false">' . esc_html__( 'Móvil', 'taxocommerce-templates' ) . '</button>' . '</div>';
+        echo '<div class="tct-front-columns">' . '<section class="tct-front-panel">' . '<h3>' . esc_html__( 'Módulos disponibles', 'taxocommerce-templates' ) . '</h3>' . '<ul id="tct-front-available-list" class="tct-front-list">' . '</ul>' . '</section>';
+        echo '<section class="tct-front-panel">' . '<h3>' . esc_html__( 'Composición de la plantilla', 'taxocommerce-templates' ) . '</h3>' . '<ul id="tct-front-selected-list" class="tct-front-list">' . '</ul>' . '</section>' . '</div>';
         if ( $design['file'] && TCT_Router::path( $design['file'] ) ) {
             echo '<p><a href="' . esc_url( TCT_Request_Admin::admin_url( 'editor', array(
                 'tct_source' => $design['file'],
@@ -308,7 +308,7 @@ final class TCT_Designs {
         }
         echo '<p><label><input type="checkbox" name="is_active" value="1" ' .
             checked( ! empty( $design['active'] ), true, false ) . '> Activar esta ruta para los países seleccionados</label></p>';
-        echo '<p class="description">Solo se puede activar con archivo PHP existente y sin países solapados con otra plantilla activa del mismo rol. Requiere además el enrutador general habilitado. Los módulos visuales no modifican todavía el PHP.</p>';
+        echo '<p class="description">' . esc_html__( 'Solo se puede activar con archivo PHP existente y sin países solapados con otra plantilla activa del mismo rol. Requiere además el enrutador general habilitado. Los módulos visuales no modifican todavía el PHP.', 'taxocommerce-templates' ) . '</p>';
         submit_button( 'Guardar configuración de esta plantilla' );
         echo '</form></div>';
     }
@@ -338,7 +338,7 @@ final class TCT_Designs {
         }
         if ( ! $rows ) { return; }
         echo '<h3>Plantillas configuradas (' . count( $rows ) . ')</h3>';
-        echo '<table class="widefat striped tct-design-routes"><thead><tr><th>Petición / rol</th><th>Plantilla</th><th>Archivo PHP</th><th>Países</th><th>Estado</th><th>Editor</th></tr></thead><tbody>';
+        echo '<table class="widefat striped tct-design-routes">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Petición / rol', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Plantilla', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo PHP', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Países', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Editor', 'taxocommerce-templates' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $id => $design ) {
             $item = $items[ $design['route'] ];
             $link = TCT_Request_Admin::admin_url( 'designer', array( 'tct_design' => $id ) );

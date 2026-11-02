@@ -37,8 +37,8 @@ final class Assisted_Delete {
     public static function confirmation_page() {
         add_submenu_page(
             null,
-            'Eliminar contenido · TaxoCommerce Redirects',
-            'Eliminar contenido',
+            __( 'Eliminar contenido · TaxoCommerce Redirects', 'taxocommerce-redirects' ),
+            __( 'Eliminar contenido', 'taxocommerce-redirects' ),
             'read',
             Plugin::CONFIRM_SLUG,
             array( __CLASS__, 'render_confirmation' )

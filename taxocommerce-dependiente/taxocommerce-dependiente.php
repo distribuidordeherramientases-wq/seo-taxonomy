@@ -9,6 +9,7 @@
  * Author: David Perez
  * License: GPLv2 or later
  * Text Domain: taxocommerce-dependiente
+ * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -107,3 +108,20 @@ register_deactivation_hook( __FILE__, static function () {
     TCD_Maintenance::deactivate();
     wp_clear_scheduled_hook('tcd_original_linguista_worker');
 } );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-dependiente';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

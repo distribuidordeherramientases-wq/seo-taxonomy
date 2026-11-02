@@ -814,7 +814,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         if ( 'category' === $def['target_role'] ) {
             echo ' data-tc-search="categories" data-tc-source="' . esc_attr( (string) $parent->ID ) . '"';
         } else {
-            echo ' data-tc-search="local"';
+            echo ' ' . esc_html__( 'data-tc-search="local"', 'taxocommerce-core' );
         }
         echo '>';
         echo '<div class="tc-classic-available">';

@@ -529,7 +529,7 @@ if ( function_exists( 'wc_get_product' ) ) {
 
 $render_products = static function ( $products, $extra_class = '' ) {
     if ( empty( $products ) ) {
-        echo '<p class="sf-empty">No hay productos VEVOR publicados disponibles.</p>';
+        echo '<p class="sf-empty">' . esc_html__( 'No hay productos VEVOR publicados disponibles.', 'taxocommerce-templates' ) . '</p>';
         return;
     }
 

@@ -87,7 +87,7 @@ final class TCSUP_Autotest {
 		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'No tienes permisos para ejecutar el autotest.', 'taxocommerce-suppliers' ) );
 		}
-		echo '<section class="tcsup-card"><h2>Autotest de Suppliers</h2><p>Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP.</p>';
+		echo '<section class="tcsup-card">' . '<h2>' . esc_html__( 'Autotest de Suppliers', 'taxocommerce-suppliers' ) . '</h2>' . '<p>' . esc_html__( 'Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP.', 'taxocommerce-suppliers' ) . '</p>';
 		echo '<form method="post">';
 		wp_nonce_field( 'tcsup_autotest' );
 		echo '<input type="hidden" name="tcsup_run_autotest" value="1">';
@@ -95,7 +95,7 @@ final class TCSUP_Autotest {
 		echo '</form>';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified before executing the diagnostics.
 		if ( ! isset( $_POST['tcsup_run_autotest'] ) ) {
-			echo '<p class="description">Los resultados solo se muestran cuando se pulsa el botón; no se guardan.</p></section>';
+			echo '<p class="description">' . esc_html__( 'Los resultados solo se muestran cuando se pulsa el botón; no se guardan.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
 			return;
 		}
 		check_admin_referer( 'tcsup_autotest' );
@@ -120,6 +120,6 @@ final class TCSUP_Autotest {
 		if ( $group ) {
 			echo '</tbody></table>';
 		}
-		echo '<p class="description">Autotest de disponibilidad, no de resultados comerciales o de importación. No repara ni modifica tablas.</p></section>';
+		echo '<p class="description">' . esc_html__( 'Autotest de disponibilidad, no de resultados comerciales o de importación. No repara ni modifica tablas.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
 	}
 }

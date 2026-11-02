@@ -296,7 +296,7 @@ function tcsocial_facebook_render_connection($config)
     echo '<div class="seo-social-field"><label>Modo de publicacion</label><select name="connection[publish_mode]"><option value="link" ' . selected(isset($config['publish_mode']) ? $config['publish_mode'] : 'link', 'link', false) . '>Enlace con vista previa Open Graph</option><option value="photo" ' . selected(isset($config['publish_mode']) ? $config['publish_mode'] : 'link', 'photo', false) . '>Foto destacada + texto/enlace</option></select></div>';
     echo '</div>';
 
-    echo '<p class="seo-social-help">Para publicar en una Pagina, el token debe pertenecer a esa Pagina y disponer de los permisos necesarios de Pages. El modo Enlace deja que Facebook componga la vista previa desde los metadatos Open Graph de tu URL; el modo Foto fuerza la imagen destacada cuando existe.</p>';
+    echo '<p class="seo-social-help">' . esc_html__( 'Para publicar en una Pagina, el token debe pertenecer a esa Pagina y disponer de los permisos necesarios de Pages. El modo Enlace deja que Facebook componga la vista previa desde los metadatos Open Graph de tu URL; el modo Foto fuerza la imagen destacada cuando existe.', 'taxocommerce-social' ) . '</p>';
 
     if (!empty($config['last_test_at'])) {
         $ok = !empty($config['last_test_ok']);
@@ -306,7 +306,7 @@ function tcsocial_facebook_render_connection($config)
         }
     }
 
-    echo '<div class="seo-social-actions"><button type="submit" class="button">Guardar</button><button type="submit" class="button button-primary" name="test_after_save" value="1">Guardar y probar conexion</button></div>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button">' . esc_html__( 'Guardar', 'taxocommerce-social' ) . '</button>' . '<button type="submit" class="button button-primary" name="test_after_save" value="1">' . esc_html__( 'Guardar y probar conexion', 'taxocommerce-social' ) . '</button>' . '</div>';
     echo '</form>';
 
     if ($has_token || !empty($config['enabled'])) {

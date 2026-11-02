@@ -228,7 +228,7 @@ if (!function_exists('dht_seo_cart_v3_render')) {
         $cart = dht_seo_cart_v3_cart();
 
         if (!$cart || !method_exists($cart, 'get_cart')) {
-            echo '<div class="woocommerce"><div class="woocommerce-error">No se ha podido inicializar el carrito de WooCommerce.</div></div>';
+            echo '<div class="woocommerce">' . '<div class="woocommerce-error">' . esc_html__( 'No se ha podido inicializar el carrito de WooCommerce.', 'taxocommerce-templates' ) . '</div>' . '</div>';
             return;
         }
 

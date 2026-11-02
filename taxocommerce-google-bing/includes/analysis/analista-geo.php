@@ -416,10 +416,10 @@ if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
             }
         }
 
-        echo '<section class="seo-analista-section seo-analista-strategy"><h2>Plan estratégico integrado: ventas, SEO y visibilidad en IA</h2>';
-        echo '<p>Una única selección de actuaciones basada en Analytics, Analista, Auditor, Merchant y evidencias de datos estructurados, cuando estén disponibles. Se distingue lo ejecutable de lo que requiere investigación.</p>';
+        echo '<section class="seo-analista-section seo-analista-strategy">' . '<h2>' . esc_html__( 'Plan estratégico integrado: ventas, SEO y visibilidad en IA', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Una única selección de actuaciones basada en Analytics, Analista, Auditor, Merchant y evidencias de datos estructurados, cuando estén disponibles. Se distingue lo ejecutable de lo que requiere investigación.', 'taxocommerce-google-bing' ) . '</p>';
         if ( ! $unique ) {
-            echo '<p>No hay recomendaciones con evidencia suficiente en las fuentes disponibles. El plan de acción completo conserva las tareas para investigar o vigilar, sin fabricar intervenciones.</p>';
+            echo '<p>' . esc_html__( 'No hay recomendaciones con evidencia suficiente en las fuentes disponibles. El plan de acción completo conserva las tareas para investigar o vigilar, sin fabricar intervenciones.', 'taxocommerce-google-bing' ) . '</p>';
         } else {
             echo '<ol class="seo-analista-geo-priorities">';
             foreach ( $unique as $item ) {
@@ -440,8 +440,8 @@ if ( ! function_exists( 'taxocommerce_google_bing_geo_render_summary' ) ) {
                 . esc_html( number_format_i18n( (int) ( $ga4['traffic_quality']['ai_sessions'] ?? 0 ) ) )
                 . '. Es tráfico referido, no menciones de marca ni visibilidad en respuestas.</p>';
         } else {
-            echo '<p><strong>Sesiones atribuidas a asistentes IA:</strong> N/D (GA4 no disponible).</p>';
+            echo '<p>' . '<strong>' . esc_html__( 'Sesiones atribuidas a asistentes IA:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'N/D (GA4 no disponible).', 'taxocommerce-google-bing' ) . '</p>';
         }
-        echo '<p class="description">Las buenas prácticas SEO/GEO no implican una integración con GPTCore ni garantizan apariciones en ChatGPT, Gemini o Claude. Las referencias a autoridad, backlinks o menciones reales se omiten si no hay mediciones verificables. No se ejecutan acciones automáticamente.</p></section>';
+        echo '<p class="description">' . esc_html__( 'Las buenas prácticas SEO/GEO no implican una integración con GPTCore ni garantizan apariciones en ChatGPT, Gemini o Claude. Las referencias a autoridad, backlinks o menciones reales se omiten si no hay mediciones verificables. No se ejecutan acciones automáticamente.', 'taxocommerce-google-bing' ) . '</p>' . '</section>';
     }
 }

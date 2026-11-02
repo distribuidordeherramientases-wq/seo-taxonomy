@@ -395,7 +395,7 @@ if (!function_exists('dht_amazon_intent_links_markup')) {
         $tag = dht_amazon_partner_tag();
         if ($tag === '') {
             if (current_user_can('manage_options')) {
-                echo '<div class="dht-amazon-debug"><strong>Amazon:</strong> falta el Partner Tag.</div>';
+                echo '<div class="dht-amazon-debug">' . '<strong>' . esc_html__( 'Amazon:', 'taxocommerce-templates' ) . '</strong>' . ' ' . esc_html__( 'falta el Partner Tag.', 'taxocommerce-templates' ) . '</div>';
             }
             return;
         }
@@ -414,8 +414,8 @@ if (!function_exists('dht_amazon_intent_links_markup')) {
             echo '<article class="dht-amazon-intent-card">';
             echo '<a class="dht-amazon-intent-media" href="' . esc_url($url) . '" target="_blank" rel="sponsored noopener" data-amazon-click="search" data-amazon-context="' . esc_attr($context_type) . '" data-amazon-object-id="' . esc_attr($object_id) . '" data-amazon-intent="' . esc_attr($intent['type'] ?? 'direct') . '" data-amazon-query="' . esc_attr($query) . '">';
             echo '<span class="dht-amazon-intent-placeholder" aria-hidden="true"><span class="dht-amazon-placeholder-brand">Amazon</span><span class="dht-amazon-placeholder-query">' . esc_html($query) . '</span></span>';
-            echo '<span class="dht-amazon-source-badge">Amazon</span>';
-            echo '<span class="dht-amazon-media-note">Related search</span>';
+            echo '<span class="dht-amazon-source-badge">' . esc_html__( 'Amazon', 'taxocommerce-templates' ) . '</span>';
+            echo '<span class="dht-amazon-media-note">' . esc_html__( 'Related search', 'taxocommerce-templates' ) . '</span>';
             echo '</a>';
             echo '<div class="dht-amazon-intent-body">';
             echo '<span class="dht-amazon-intent-type">' . esc_html($is_direct ? 'More options' : 'Related') . '</span>';

@@ -1,0 +1,616 @@
+# Copyright (C) 2026 David Perez
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: TaxoCommerce Social 0.1.3\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/taxocommerce-social\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-02T16:56:48+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: taxocommerce-social\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-social.php
+#: includes/admin.php:9
+#: includes/admin.php:19
+#: includes/admin.php:20
+msgid "TaxoCommerce Social"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-social.php
+msgid "Social network connections, publishing templates and calendar for the TaxoCommerce family."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-social.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/admin.php:10
+msgid "Social"
+msgstr ""
+
+#: includes/admin.php:74
+msgid "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias."
+msgstr ""
+
+#: includes/admin.php:77
+#: includes/core.php:2718
+msgid "Redes sociales"
+msgstr ""
+
+#: includes/admin.php:77
+msgid "El calendario es la única agenda de este módulo. Las publicaciones se programan aquí y utilizan las plantillas de cada red."
+msgstr ""
+
+#: includes/admin.php:109
+msgid "Agenda social"
+msgstr ""
+
+#: includes/admin.php:109
+msgid "Programa publicaciones manualmente o por CSV y revisa el resultado en el calendario mensual. No se incorporan campañas de Marketing ni se reserva ninguna franja para Noticias."
+msgstr ""
+
+#: includes/admin.php:109
+msgid "Solo redes sociales"
+msgstr ""
+
+#: includes/calendar.php:242
+msgid "Calendario de publicaciones"
+msgstr ""
+
+#: includes/calendar.php:242
+msgid "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora campañas, ofertas ni reglas especiales de Noticias."
+msgstr ""
+
+#: includes/calendar.php:242
+msgid "Agenda visual"
+msgstr ""
+
+#: includes/calendar.php:256
+#: includes/core.php:2966
+#: includes/core.php:3156
+#: includes/programador.php:602
+msgid "Red"
+msgstr ""
+
+#: includes/calendar.php:256
+msgid "Todas las redes"
+msgstr ""
+
+#: includes/calendar.php:261
+msgid "Aplicar"
+msgstr ""
+
+#: includes/calendar.php:266
+msgid "Entrada"
+msgstr ""
+
+#: includes/calendar.php:267
+msgid "Landing"
+msgstr ""
+
+#: includes/calendar.php:268
+msgid "Colisión"
+msgstr ""
+
+#: includes/calendar.php:339
+msgid "Sin publicaciones"
+msgstr ""
+
+#: includes/calendar.php:349
+msgid "Vista compacta"
+msgstr ""
+
+#: includes/calendar.php:349
+msgid "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas, redes y duplicados reales."
+msgstr ""
+
+#: includes/class-auto-test.php:244
+#: includes/class-auto-test.php:258
+msgid "Sin permisos para Auto Test."
+msgstr ""
+
+#: includes/class-auto-test.php:264
+msgid "Auto Test de TaxoCommerce Social"
+msgstr ""
+
+#: includes/class-auto-test.php:265
+msgid "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas, calendario y programador. No conecta cuentas ni publica. Se guardan los dos últimos resultados por administrador durante 30 días."
+msgstr ""
+
+#: includes/class-auto-test.php:271
+msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
+msgstr ""
+
+#: includes/class-auto-test.php:288
+msgid "No existe una ejecución anterior para comparar."
+msgstr ""
+
+#: includes/class-auto-test.php:290
+msgid "Grupo"
+msgstr ""
+
+#: includes/class-auto-test.php:290
+msgid "Prueba"
+msgstr ""
+
+#: includes/class-auto-test.php:290
+#: includes/core.php:3156
+#: includes/programador.php:602
+msgid "Estado"
+msgstr ""
+
+#: includes/class-auto-test.php:290
+msgid "Diagnóstico"
+msgstr ""
+
+#: includes/class-auto-test.php:290
+msgid "Tiempo"
+msgstr ""
+
+#: includes/class-auto-test.php:295
+msgid "Un Auto Test correcto confirma los componentes disponibles; no garantiza la autorización de las cuentas ni una publicación externa satisfactoria."
+msgstr ""
+
+#: includes/class-manual.php:12
+msgid "Sin permisos para consultar los manuales."
+msgstr ""
+
+#: includes/core.php:1476
+#: includes/core.php:1542
+msgid "No tienes permisos para configurar redes sociales."
+msgstr ""
+
+#: includes/core.php:1568
+#: includes/core.php:2480
+msgid "No tienes permisos para modificar plantillas sociales."
+msgstr ""
+
+#: includes/core.php:1610
+msgid "No tienes permisos para modificar la automatizacion social."
+msgstr ""
+
+#: includes/core.php:1725
+msgid "No se pudo generar el archivo CSV."
+msgstr ""
+
+#: includes/core.php:1880
+msgid "No tienes permisos para exportar la programacion social."
+msgstr ""
+
+#: includes/core.php:2175
+#: includes/core.php:2231
+msgid "No tienes permisos para importar programaciones sociales."
+msgstr ""
+
+#: includes/core.php:2302
+msgid "No tienes permisos para programar publicaciones sociales."
+msgstr ""
+
+#: includes/core.php:2406
+msgid "No tienes permisos para modificar las publicaciones sociales."
+msgstr ""
+
+#: includes/core.php:2446
+msgid "No tienes permisos para publicar en redes sociales."
+msgstr ""
+
+#: includes/core.php:2509
+msgid "No tienes permisos para actualizar informes sociales."
+msgstr ""
+
+#: includes/core.php:2718
+msgid "Define una vez el formato, automatiza si quieres y usa el Programador solo como agenda."
+msgstr ""
+
+#: includes/core.php:2796
+msgid "Conectado"
+msgstr ""
+
+#: includes/core.php:2802
+msgid "Sin conectar"
+msgstr ""
+
+#: includes/core.php:2852
+msgid "Plantillas de publicación"
+msgstr ""
+
+#: includes/core.php:2852
+msgid "Define una sola vez cómo debe redactarse una entrada, una página o un producto incluido en una campaña de Marketing para cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar."
+msgstr ""
+
+#: includes/core.php:2852
+msgid "Formato general"
+msgstr ""
+
+#: includes/core.php:2873
+msgid "Variables disponibles:"
+msgstr ""
+
+#: includes/core.php:2878
+msgid "Guardar plantillas"
+msgstr ""
+
+#: includes/core.php:2891
+msgid "Publicación automática"
+msgstr ""
+
+#: includes/core.php:2891
+msgid "Activa esta opción únicamente si quieres que una pieza se publique en redes la primera vez que pasa a estado Publicado en WordPress. No cambia el formato: utiliza las plantillas generales."
+msgstr ""
+
+#: includes/core.php:2891
+msgid "Disparador"
+msgstr ""
+
+#: includes/core.php:2896
+msgid "Qué contenido activa la automatización"
+msgstr ""
+
+#: includes/core.php:2902
+msgid "Redes de destino"
+msgstr ""
+
+#: includes/core.php:2911
+msgid "Una red no conectada no publicará aunque esté seleccionada. Las ediciones posteriores del contenido no generan duplicados automáticos."
+msgstr ""
+
+#: includes/core.php:2912
+msgid "Guardar automatización"
+msgstr ""
+
+#: includes/core.php:2925
+#: includes/programador.php:557
+msgid "Programador"
+msgstr ""
+
+#: includes/core.php:2925
+msgid "Las ofertas de campaña salen a las"
+msgstr ""
+
+#: includes/core.php:2925
+msgid ". Las entradas de"
+msgstr ""
+
+#: includes/core.php:2925
+msgid "Noticias"
+msgstr ""
+
+#: includes/core.php:2925
+msgid "salen a las"
+msgstr ""
+
+#: includes/core.php:2925
+msgid "y pueden marcarse como prioritarias para adelantar a las noticias normales. Páginas y landings mantienen fecha y hora manual."
+msgstr ""
+
+#: includes/core.php:2925
+msgid "Agenda"
+msgstr ""
+
+#: includes/core.php:2933
+msgid "Validar CSV antes de importar"
+msgstr ""
+
+#: includes/core.php:2935
+msgid "Exportar"
+msgstr ""
+
+#: includes/core.php:2935
+msgid "Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con Excel en configuraciones regionales españolas."
+msgstr ""
+
+#: includes/core.php:2939
+msgid "Descargar plantilla CSV"
+msgstr ""
+
+#: includes/core.php:2940
+msgid "Exportar contenidos"
+msgstr ""
+
+#: includes/core.php:2941
+msgid "Exportar agenda"
+msgstr ""
+
+#: includes/core.php:2942
+msgid "Exportar historial"
+msgstr ""
+
+#: includes/core.php:2966
+msgid "Fila"
+msgstr ""
+
+#: includes/core.php:2966
+#: includes/core.php:3018
+#: includes/core.php:3156
+#: includes/programador.php:570
+#: includes/programador.php:602
+msgid "Contenido"
+msgstr ""
+
+#: includes/core.php:2966
+msgid "Fecha y hora"
+msgstr ""
+
+#: includes/core.php:2966
+msgid "Prioridad"
+msgstr ""
+
+#: includes/core.php:2966
+msgid "Resultado"
+msgstr ""
+
+#: includes/core.php:3006
+msgid "Tipo"
+msgstr ""
+
+#: includes/core.php:3006
+msgid "Entradas + Páginas/Landings"
+msgstr ""
+
+#: includes/core.php:3011
+msgid "Filtrar"
+msgstr ""
+
+#: includes/core.php:3018
+msgid "Redes"
+msgstr ""
+
+#: includes/core.php:3018
+msgid "Fecha / prioridad"
+msgstr ""
+
+#: includes/core.php:3018
+msgid "Acción"
+msgstr ""
+
+#: includes/core.php:3021
+msgid "No se ha encontrado contenido publicado."
+msgstr ""
+
+#: includes/core.php:3068
+msgid "Hora fija: 20:00."
+msgstr ""
+
+#: includes/core.php:3068
+msgid "Una noticia prioritaria adelanta a las no prioritarias ya programadas en cada red seleccionada."
+msgstr ""
+
+#: includes/core.php:3072
+msgid "Hora fija: 22:00."
+msgstr ""
+
+#: includes/core.php:3072
+msgid "Entradas y páginas/landings comparten un hueco diario y se alternan cuando existen ambos tipos."
+msgstr ""
+
+#: includes/core.php:3076
+msgid "Vista previa"
+msgstr ""
+
+#: includes/core.php:3090
+msgid "Cómo funciona:"
+msgstr ""
+
+#: includes/core.php:3090
+msgid "ofertas de campaña a las 18:00, Noticias a las 20:00 y el resto de entradas junto con páginas/landings a las 22:00. Las Noticias prioritarias adelantan a las Noticias normales. La cola de las 22:00 alterna entrada y página/landing cuando existen ambos tipos. WordPress ejecuta las tareas con WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente petición al sitio."
+msgstr ""
+
+#: includes/core.php:3133
+msgid "Rendimiento por publicacion"
+msgstr ""
+
+#: includes/core.php:3133
+msgid "Las visitas a la web se miden con el enlace etiquetado generado por el plugin. Las interacciones se sincronizan desde cada proveedor cuando su API lo permite."
+msgstr ""
+
+#: includes/core.php:3145
+msgid "La metrica"
+msgstr ""
+
+#: includes/core.php:3145
+msgid "Visitas a la web"
+msgstr ""
+
+#: includes/core.php:3145
+msgid "no depende de Facebook: se incrementa cuando alguien entra mediante el enlace social firmado. Esto permite comparar que publicaciones traen trafico real al sitio."
+msgstr ""
+
+#: includes/core.php:3156
+#: includes/programador.php:602
+msgid "Fecha"
+msgstr ""
+
+#: includes/core.php:3156
+msgid "Visitas web"
+msgstr ""
+
+#: includes/core.php:3156
+msgid "Reacciones"
+msgstr ""
+
+#: includes/core.php:3156
+msgid "Comentarios"
+msgstr ""
+
+#: includes/core.php:3156
+msgid "Compartidos"
+msgstr ""
+
+#: includes/core.php:3156
+msgid "Enlace"
+msgstr ""
+
+#: includes/core.php:3158
+msgid "Aun no hay publicaciones sociales registradas."
+msgstr ""
+
+#: includes/facebook.php:299
+msgid "Para publicar en una Pagina, el token debe pertenecer a esa Pagina y disponer de los permisos necesarios de Pages. El modo Enlace deja que Facebook componga la vista previa desde los metadatos Open Graph de tu URL; el modo Foto fuerza la imagen destacada cuando existe."
+msgstr ""
+
+#: includes/facebook.php:309
+#: includes/instagram.php:435
+#: includes/x.php:668
+msgid "Guardar"
+msgstr ""
+
+#: includes/facebook.php:309
+#: includes/instagram.php:435
+#: includes/linkedin.php:744
+#: includes/pinterest.php:1021
+#: includes/x.php:669
+msgid "Guardar y probar conexion"
+msgstr ""
+
+#: includes/linkedin.php:487
+msgid "No tienes permisos para conectar LinkedIn."
+msgstr ""
+
+#: includes/linkedin.php:700
+msgid "La aplicacion de LinkedIn debe disponer de permisos para administrar/leer la organizacion y publicar como pagina. El plugin usa OAuth 2.0 y LinkedIn Posts API."
+msgstr ""
+
+#: includes/linkedin.php:716
+msgid "Pagina de empresa"
+msgstr ""
+
+#: includes/linkedin.php:718
+msgid "Selecciona una pagina"
+msgstr ""
+
+#: includes/linkedin.php:742
+#: includes/pinterest.php:1019
+msgid "Guardar configuracion"
+msgstr ""
+
+#: includes/linkedin.php:752
+msgid "Conectar / renovar autorizacion con LinkedIn"
+msgstr ""
+
+#: includes/linkedin.php:755
+msgid "Guarda primero el Client ID y el Client Secret. Despues aparecera el boton para autorizar LinkedIn."
+msgstr ""
+
+#: includes/pinterest.php:518
+msgid "No tienes permisos para conectar Pinterest."
+msgstr ""
+
+#: includes/pinterest.php:794
+msgid "No tienes permisos para configurar Pinterest."
+msgstr ""
+
+#: includes/pinterest.php:987
+msgid "Tablero destino"
+msgstr ""
+
+#: includes/pinterest.php:989
+msgid "Selecciona un tablero"
+msgstr ""
+
+#: includes/pinterest.php:1001
+msgid "Tras OAuth, el plugin carga los tableros publicos disponibles y permite elegir el destino."
+msgstr ""
+
+#: includes/pinterest.php:1003
+msgid "Modo de publicacion"
+msgstr ""
+
+#: includes/pinterest.php:1029
+msgid "Conectar / renovar autorizacion con Pinterest"
+msgstr ""
+
+#: includes/pinterest.php:1032
+msgid "Guarda primero el App ID y el App Secret. Despues aparecera el boton para autorizar Pinterest."
+msgstr ""
+
+#: includes/pinterest.php:1043
+msgid "Para publicar, cada entrada o landing debe tener una imagen destacada accesible publicamente por Pinterest."
+msgstr ""
+
+#: includes/programador.php:324
+msgid "No tienes permisos para programar publicaciones."
+msgstr ""
+
+#: includes/programador.php:382
+msgid "No tienes permisos para cancelar publicaciones."
+msgstr ""
+
+#: includes/programador.php:421
+msgid "No tienes permisos para reintentar publicaciones."
+msgstr ""
+
+#: includes/programador.php:557
+msgid "Agenda la publicacion de entradas y landings en las redes conectadas. Esta primera version solo crea ejecuciones unicas: no modifica la frecuencia SEO ni republica contenido por su cuenta."
+msgstr ""
+
+#: includes/programador.php:558
+msgid "MVP · programacion manual"
+msgstr ""
+
+#: includes/programador.php:562
+msgid "Conecta al menos una red social antes de crear programaciones."
+msgstr ""
+
+#: includes/programador.php:570
+msgid "Selecciona entrada o landing..."
+msgstr ""
+
+#: includes/programador.php:578
+msgid "Se muestran los 150 contenidos publicados modificados mas recientemente."
+msgstr ""
+
+#: includes/programador.php:583
+msgid "Publicar en"
+msgstr ""
+
+#: includes/programador.php:592
+msgid "Nota interna opcional"
+msgstr ""
+
+#: includes/programador.php:595
+msgid "La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, prioridades y recomendaciones de Analista."
+msgstr ""
+
+#: includes/programador.php:601
+msgid "Cola y historial"
+msgstr ""
+
+#: includes/programador.php:602
+msgid "Origen / nota"
+msgstr ""
+
+#: includes/programador.php:602
+msgid "Acciones"
+msgstr ""
+
+#: includes/programador.php:605
+msgid "Todavia no hay publicaciones programadas."
+msgstr ""
+
+#: includes/programador.php:665
+msgid "Cancelar"
+msgstr ""
+
+#: includes/programador.php:670
+msgid "Reintentar ahora"
+msgstr ""
+
+#: includes/programador.php:682
+msgid "Siguiente evolucion"
+msgstr ""
+
+#: includes/x.php:443
+msgid "No tienes permisos para conectar X."
+msgstr ""
+
+#: includes/x.php:677
+msgid "Conectar / renovar X"
+msgstr ""

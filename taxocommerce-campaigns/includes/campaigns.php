@@ -2482,17 +2482,17 @@ function tccampaigns_render_import_export()
     );
 
     echo '<section class="seo-campaigns-card seo-campaign-import-export">';
-    echo '<h3 style="margin-top:0;">Importar / Exportar campanas</h3>';
-    echo '<p>Intercambia la campana completa: calendario, productos, precio de campana y posicion. Los archivos antiguos que solo contienen calendario siguen siendo compatibles.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Importar / Exportar campanas', 'taxocommerce-campaigns' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Intercambia la campana completa: calendario, productos, precio de campana y posicion. Los archivos antiguos que solo contienen calendario siguen siendo compatibles.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<div class="seo-campaign-ie-grid">';
     echo '<div><h4>Exportar</h4><p class="description">JSON es el formato canonico. CSV incluye filas <code>campaign</code> y <code>product</code> para poder editarlo en una hoja de calculo.</p><p><a class="button button-primary" href="' . esc_url($json_url) . '">Exportar JSON</a> <a class="button" href="' . esc_url($csv_url) . '">Exportar CSV</a></p></div>';
     echo '<div><h4>Importar / actualizar</h4><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" enctype="multipart/form-data">';
     echo '<input type="hidden" name="action" value="tccampaigns_import">';
     wp_nonce_field('tccampaigns_import');
     echo '<input type="file" name="campaign_import_file" accept=".json,.csv,application/json,text/csv" required>';
-    echo '<p><label><input type="checkbox" name="replace_products" value="1"> Sustituir completamente los productos de las campanas incluidas</label></p>';
+    echo '<p>' . '<label>' . '<input type="checkbox" name="replace_products" value="1">' . ' ' . esc_html__( 'Sustituir completamente los productos de las campanas incluidas', 'taxocommerce-campaigns' ) . '</label>' . '</p>';
     echo '<p class="description">Sin marcar, la importacion fusiona: anade o actualiza productos y no elimina los que falten. Si marcas la casilla, solo se sustituyen los productos de las campanas que tengan filas <code>product</code> en el archivo.</p>';
-    echo '<p><button type="submit" class="button button-primary">Importar / actualizar</button></p>';
+    echo '<p>' . '<button type="submit" class="button button-primary">' . esc_html__( 'Importar / actualizar', 'taxocommerce-campaigns' ) . '</button>' . '</p>';
     echo '<p class="description">Alta/actualizacion por <code>campaign_key</code>. Nunca borra campanas ausentes del archivo.</p>';
     echo '</form></div>';
     echo '</div></section>';
@@ -2597,7 +2597,7 @@ function tccampaigns_render_bucket($title, $campaigns, $state)
     echo '<h3><span>' . esc_html($title) . '</span><span class="seo-campaign-count">' . esc_html((string) count($campaigns)) . '</span></h3>';
 
     if (!$campaigns) {
-        echo '<p style="color:#646970;">No hay campañas en este grupo.</p>';
+        echo '<p style="color:#646970;">' . esc_html__( 'No hay campañas en este grupo.', 'taxocommerce-campaigns' ) . '</p>';
     }
 
     foreach ($campaigns as $campaign) {
@@ -2656,7 +2656,7 @@ function tccampaigns_render_dashboard()
         return strcmp($a->end_at, $b->end_at);
     });
 
-    echo '<div class="seo-campaigns-header"><div><h2>Campañas</h2><p>Organiza campanas realizadas, activas y futuras, sus productos y precios promocionales.</p></div>';
+    echo '<div class="seo-campaigns-header">' . '<div>' . '<h2>' . esc_html__( 'Campañas', 'taxocommerce-campaigns' ) . '</h2>' . '<p>' . esc_html__( 'Organiza campanas realizadas, activas y futuras, sus productos y precios promocionales.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
     echo '<a class="button button-primary" href="' . esc_url(tccampaigns_admin_url(array('campaign_action' => 'new'))) . '">Nueva campaña</a></div>';
 
     echo '<div class="seo-campaigns-grid">';
@@ -2699,7 +2699,7 @@ function tccampaigns_render_existing_products($campaign)
     echo '<h3 style="margin-top:0;">Productos de la campaña <span class="seo-campaign-count">' . esc_html((string) count($rows)) . '</span></h3>';
 
     if (!$rows) {
-        echo '<p>No hay productos anadidos todavia.</p></section>';
+        echo '<p>' . esc_html__( 'No hay productos anadidos todavia.', 'taxocommerce-campaigns' ) . '</p>' . '</section>';
         return;
     }
 
@@ -2708,7 +2708,7 @@ function tccampaigns_render_existing_products($campaign)
     echo '<input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
     wp_nonce_field('tccampaigns_update_products');
 
-    echo '<table><thead><tr><th>Producto</th><th>Precio habitual</th><th>Oferta actual</th><th>Precio campaña</th><th>Aplicado</th><th>Quitar</th></tr></thead><tbody>';
+    echo '<table>' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Precio habitual', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Oferta actual', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Precio campaña', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Aplicado', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Quitar', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($rows as $row) {
         $product = function_exists('wc_get_product') ? wc_get_product(absint($row->product_id)) : null;
         $regular = $product ? $product->get_regular_price('edit') : '';
@@ -2723,7 +2723,7 @@ function tccampaigns_render_existing_products($campaign)
         echo '</tr>';
     }
     echo '</tbody></table>';
-    echo '<p><button type="submit" class="button button-primary">Guardar productos y precios</button></p>';
+    echo '<p>' . '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar productos y precios', 'taxocommerce-campaigns' ) . '</button>' . '</p>';
     echo '</form></section>';
 }
 
@@ -2739,26 +2739,26 @@ function tccampaigns_render_product_search($campaign)
     $results = tccampaigns_search_products($search);
 
     echo '<section class="seo-campaigns-card seo-campaign-products">';
-    echo '<h3 style="margin-top:0;">Anadir productos</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Anadir productos', 'taxocommerce-campaigns' ) . '</h3>';
     echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" class="seo-campaign-search">';
     echo '<input type="hidden" name="page" value="taxocommerce-campaigns"><input type="hidden" name="tab" value="campaigns"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
     echo '<div class="seo-campaign-field"><label for="seo-campaign-product-search">Buscar por nombre o SKU</label><input id="seo-campaign-product-search" type="search" name="product_search" value="' . esc_attr($search) . '" placeholder="Ej.: Makita DTM52Z"></div>';
-    echo '<button type="submit" class="button">Buscar productos</button></form>';
+    echo '<button type="submit" class="button">' . esc_html__( 'Buscar productos', 'taxocommerce-campaigns' ) . '</button>' . '</form>';
 
     if ($search === '') {
-        echo '<p class="description">El catalogo no se carga completo. Busca por nombre o SKU y selecciona tantos productos como necesites.</p></section>';
+        echo '<p class="description">' . esc_html__( 'El catalogo no se carga completo. Busca por nombre o SKU y selecciona tantos productos como necesites.', 'taxocommerce-campaigns' ) . '</p>' . '</section>';
         return;
     }
 
     if (!$results) {
-        echo '<p>No se han encontrado productos.</p></section>';
+        echo '<p>' . esc_html__( 'No se han encontrado productos.', 'taxocommerce-campaigns' ) . '</p>' . '</section>';
         return;
     }
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tccampaigns_add_products"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
     wp_nonce_field('tccampaigns_add_products');
-    echo '<table><thead><tr><th>Seleccionar</th><th>Producto</th><th>Tipo</th><th>Precio habitual</th><th>Oferta actual</th><th>Precio campaña</th></tr></thead><tbody>';
+    echo '<table>' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Seleccionar', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Precio habitual', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Oferta actual', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Precio campaña', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($results as $row) {
         $product = function_exists('wc_get_product') ? wc_get_product(absint($row->ID)) : null;
@@ -2779,7 +2779,7 @@ function tccampaigns_render_product_search($campaign)
     }
 
     echo '</tbody></table>';
-    echo '<p><button type="submit" class="button button-primary">Anadir seleccionados</button></p>';
+    echo '<p>' . '<button type="submit" class="button button-primary">' . esc_html__( 'Anadir seleccionados', 'taxocommerce-campaigns' ) . '</button>' . '</p>';
     echo '</form></section>';
 }
 
@@ -2793,7 +2793,7 @@ function tccampaigns_render_editor($campaign_id, $is_new = false)
 {
     $campaign = $campaign_id ? tccampaigns_get($campaign_id) : null;
     if ($campaign_id && !$campaign) {
-        echo '<div class="notice notice-error inline"><p>La campaña indicada no existe.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'La campaña indicada no existe.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
         return;
     }
 
@@ -2820,7 +2820,7 @@ function tccampaigns_render_editor($campaign_id, $is_new = false)
 
     echo '<div class="seo-campaign-editor">';
     echo '<section class="seo-campaigns-card">';
-    echo '<h3 style="margin-top:0;">Datos de la campaña</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Datos de la campaña', 'taxocommerce-campaigns' ) . '</h3>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tccampaigns_save"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
     wp_nonce_field('tccampaigns_save');
@@ -2831,21 +2831,21 @@ function tccampaigns_render_editor($campaign_id, $is_new = false)
         echo '<div class="seo-campaign-field"><label>Serie</label><input type="text" readonly value="' . esc_attr((string) ($campaign->series_key ?? '')) . '"></div>';
     }
     echo '<div class="seo-campaign-field"><label>Edicion</label><input type="text" name="edition_label" value="' . esc_attr($campaign->edition_label) . '" placeholder="2026"></div>';
-    echo '<div class="seo-campaign-field"><label>Tipo</label><select name="campaign_type">';
+    echo '<div class="seo-campaign-field">' . '<label>' . esc_html__( 'Tipo', 'taxocommerce-campaigns' ) . '</label>' . '<select name="campaign_type">';
     foreach (tccampaigns_types() as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected(isset($campaign->campaign_type) ? $campaign->campaign_type : 'calendar', $key, false) . '>' . esc_html($label) . '</option>';
     }
     echo '</select></div>';
-    echo '<div class="seo-campaign-field"><label>Repeticion</label><select name="recurrence">';
+    echo '<div class="seo-campaign-field">' . '<label>' . esc_html__( 'Repeticion', 'taxocommerce-campaigns' ) . '</label>' . '<select name="recurrence">';
     foreach (array('none' => 'No recurrente', 'annual' => 'Anual', 'manual' => 'Nueva edicion manual') as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected($campaign->recurrence, $key, false) . '>' . esc_html($label) . '</option>';
     }
     echo '</select></div>';
-    echo '<div class="seo-campaign-field"><label>Creatividad social</label><select name="social_creative_template">';
+    echo '<div class="seo-campaign-field">' . '<label>' . esc_html__( 'Creatividad social', 'taxocommerce-campaigns' ) . '</label>' . '<select name="social_creative_template">';
     foreach (tccampaigns_social_creative_templates() as $key => $label) {
         echo '<option value="' . esc_attr($key) . '" ' . selected(isset($campaign->social_creative_template) ? $campaign->social_creative_template : 'design_1', $key, false) . '>' . esc_html($label) . '</option>';
     }
-    echo '</select><p class="description">Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook, Instagram, LinkedIn, Pinterest y X.</p></div>';
+    echo '</select>' . '<p class="description">' . esc_html__( 'Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook, Instagram, LinkedIn, Pinterest y X.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
     echo '<div class="seo-campaign-field"><label>Inicio</label><input type="datetime-local" name="start_at" required value="' . esc_attr(tccampaigns_datetime_local($campaign->start_at)) . '"></div>';
     echo '<div class="seo-campaign-field"><label>Fin</label><input type="datetime-local" name="end_at" required value="' . esc_attr(tccampaigns_datetime_local($campaign->end_at)) . '"></div>';
     echo '<div class="seo-campaign-field seo-campaign-field-full"><label><input type="checkbox" name="is_enabled" value="1" ' . checked(!empty($campaign->is_enabled), true, false) . '> Campaña habilitada</label><p class="description">El precio de campaña solo se aplica durante estas fechas. Al finalizar se intenta restaurar la oferta anterior del producto.</p></div>';
@@ -2856,24 +2856,24 @@ function tccampaigns_render_editor($campaign_id, $is_new = false)
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="tccampaigns_duplicate"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
         wp_nonce_field('tccampaigns_duplicate');
-        echo '<button type="submit" class="button">Crear nueva edicion (+1 ano)</button>';
-        echo '<p class="description">Conserva el nombre/serie y crea otro ID. No copia productos ni precios.</p>';
+        echo '<button type="submit" class="button">' . esc_html__( 'Crear nueva edicion (+1 ano)', 'taxocommerce-campaigns' ) . '</button>';
+        echo '<p class="description">' . esc_html__( 'Conserva el nombre/serie y crea otro ID. No copia productos ni precios.', 'taxocommerce-campaigns' ) . '</p>';
         echo '</form>';
 
         echo '<div class="seo-campaign-danger">';
-        echo '<h4>Gestion de la campana</h4>';
+        echo '<h4>' . esc_html__( 'Gestion de la campana', 'taxocommerce-campaigns' ) . '</h4>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;margin-right:10px;" onsubmit="return confirm(\'¿Vaciar todos los productos de esta campana? Los precios aplicados se restauraran antes.\');">';
         echo '<input type="hidden" name="action" value="tccampaigns_clear_products"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
         wp_nonce_field('tccampaigns_clear_products');
-        echo '<button type="submit" class="button">Vaciar productos</button>';
+        echo '<button type="submit" class="button">' . esc_html__( 'Vaciar productos', 'taxocommerce-campaigns' ) . '</button>';
         echo '</form>';
 
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block;" onsubmit="return confirm(\'¿Eliminar definitivamente esta campana? Se restauraran los precios aplicados y se cancelaran sus tareas programadas.\');">';
         echo '<input type="hidden" name="action" value="tccampaigns_delete"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
         wp_nonce_field('tccampaigns_delete');
-        echo '<button type="submit" class="button button-link-delete">Eliminar campana</button>';
+        echo '<button type="submit" class="button button-link-delete">' . esc_html__( 'Eliminar campana', 'taxocommerce-campaigns' ) . '</button>';
         echo '</form>';
-        echo '<p class="description">Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus relaciones con productos.</p>';
+        echo '<p class="description">' . esc_html__( 'Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus relaciones con productos.', 'taxocommerce-campaigns' ) . '</p>';
         echo '</div>';
     }
     echo '</section>';
@@ -2885,7 +2885,7 @@ function tccampaigns_render_editor($campaign_id, $is_new = false)
         tccampaigns_render_product_search($campaign);
         echo '</div>';
     } else {
-        echo '<section class="seo-campaigns-card"><h3 style="margin-top:0;">Productos</h3><p>Guarda primero la campaña. Despues aparecera aqui el selector multiple de productos y el precio de oferta de cada uno.</p></section>';
+        echo '<section class="seo-campaigns-card">' . '<h3 style="margin-top:0;">' . esc_html__( 'Productos', 'taxocommerce-campaigns' ) . '</h3>' . '<p>' . esc_html__( 'Guarda primero la campaña. Despues aparecera aqui el selector multiple de productos y el precio de oferta de cada uno.', 'taxocommerce-campaigns' ) . '</p>' . '</section>';
     }
 
     echo '</div>';

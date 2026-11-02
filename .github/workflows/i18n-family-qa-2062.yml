@@ -1,0 +1,42 @@
+name: TaxoCommerce family i18n completeness (#2062)
+on:
+  push:
+    branches: [fix/i18n-family-2062]
+    paths:
+      - '.github/workflows/i18n-family-qa-2062.yml'
+      - '.github/scripts/i18n-family-2062-qa.py'
+      - 'taxocommerce-*/languages/**'
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/workflows/i18n-family-qa-2062.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PO parser
+        run: python3 -m pip install --disable-pip-version-check polib
+      - name: Verify 20 plugins, 100 PO/MO files, placeholders and remaining untranslated UI
+        run: python3 .github/scripts/i18n-family-2062-qa.py
+      - name: Enforce translated catalogs
+        run: |
+          python3 - <<'PY'
+          import json
+          data=json.load(open('.github/i18n-family-2062-qa.json'))
+          missing=sum(z['untranslated'] for v in data.values() for z in v['locale'].values())
+          unwrapped=sum(v['possible_unwrapped_ui_count'] for v in data.values())
+          print('Missing translations:',missing,'Potential unwrapped PHP UI:',unwrapped)
+          if missing or unwrapped:
+              raise SystemExit('Incomplete locale coverage; do not merge')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i18n-family-2062-qa
+          path: .github/i18n-family-2062-qa.json
+          if-no-files-found: ignore
