@@ -47,8 +47,9 @@ class DeltaTests(unittest.TestCase):
                 git("add", ".")
                 git("commit", "-qm", "delete core")
                 deleted_head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+                self.assertIn("taxocommerce-core", module.changed_files(head, deleted_head))
                 with self.assertRaises(ValueError):
-                    module.changed_files(head, deleted_head)
+                    module.changed_files(head, deleted_head, selected_slug="taxocommerce-core")
             finally:
                 os.chdir(original)
 
