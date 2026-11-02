@@ -108,6 +108,10 @@ def main():
         domain="taxocommerce-"+slug
         langdir=ROOT/domain/"languages"
         po=polib.pofile(str(langdir/(domain+"-"+locale+".po")))
+        # polib expects uniform numeric plural indices, not mixed str/int keys.
+        for entry in po:
+            if entry.msgstr_plural:
+                entry.msgstr_plural={str(key): value for key,value in entry.msgstr_plural.items()}
         filled=0
         for e in po:
             if e.obsolete or not e.msgid:
