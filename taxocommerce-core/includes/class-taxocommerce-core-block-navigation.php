@@ -127,7 +127,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         echo '<p>' . esc_html__( 'Los menús clásicos y los bloques de navegación son sistemas distintos. Para cambiar la cabecera debes editar la navegación referenciada por su plantilla.', 'taxocommerce-core' ) . '</p>';
         if ( $menus ) {
             echo '<form method="get"><input type="hidden" name="page" value="taxocommerce-core-menu"><input type="hidden" name="tc_tab" value="wordpress">';
-            echo '<label for="tc-active-block-navigation">' . esc_html__( 'Navegaciones encontradas en las cabeceras', 'taxocommerce-core' ) . '</label> ';
+            echo '<label for="tc-active-block-navigation">' . esc_html__( 'Selecciona una navegación', 'taxocommerce-core' ) . '</label> ';
             echo '<select id="tc-active-block-navigation" name="tc_nav_id"><option value="0">' . esc_html__( 'Selecciona una navegación', 'taxocommerce-core' ) . '</option>';
             foreach ( $menus as $id => $source ) {
                 $post = get_post( $id );
@@ -175,7 +175,8 @@ final class TaxoCommerce_Core_Block_Navigation {
             }
         }
         echo '<p><a class="button" href="' . esc_url( admin_url( 'site-editor.php' ) ) . '">' . esc_html__( 'Editar cabecera en el Editor del sitio', 'taxocommerce-core' ) . '</a></p></section>';
-        echo '<hr><h2>' . esc_html__( 'Menús clásicos (independientes de la navegación de bloques)', 'taxocommerce-core' ) . '</h2>';
+        // Classic menus have their own WordPress theme-location editor and
+        // are intentionally not offered as a second tab in block themes.
     }
 
     /** Replace attributes only; preserve nested structure, CSS classes and unsupported blocks. */
