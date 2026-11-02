@@ -9,11 +9,13 @@ final class TaxoCommerce_Core_Block_Navigation {
     const ACTION = 'taxocommerce_core_save_block_navigation';
     const CREATE = 'taxocommerce_core_create_block_navigation';
     const ACTIVATE = 'taxocommerce_core_activate_block_navigation';
+    const ADD_LINK = 'taxocommerce_core_add_block_navigation_link';
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'save' ) );
         add_action( 'admin_post_' . self::CREATE, array( __CLASS__, 'create' ) );
         add_action( 'admin_post_' . self::ACTIVATE, array( __CLASS__, 'activate' ) );
+        add_action( 'admin_post_' . self::ADD_LINK, array( __CLASS__, 'add_link' ) );
     }
 
     /** Collect referenced navigation posts and inline navigation from the site's header templates. */
@@ -182,6 +184,15 @@ final class TaxoCommerce_Core_Block_Navigation {
             } else {
                 echo '<p>' . esc_html__( 'Esta navegación está vacía o utiliza bloques que deben editarse desde el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
             }
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( self::ADD_LINK ) . '">';
+            echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
+            echo '<input type="hidden" name="content_hash" value="' . esc_attr( hash( 'sha256', $post->post_content ) ) . '">';
+            wp_nonce_field( self::ADD_LINK . '_' . $selected );
+            echo '<h4>' . esc_html__( 'Añadir elementos al menú', 'taxocommerce-core' ) . '</h4>';
+            echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input name="item_title" type="text" maxlength="200" required></label> ';
+            echo '<label>URL <input name="item_url" type="url" required></label> ';
+            echo '<button class="button" type="submit">' . esc_html__( 'Añadir al menú', 'taxocommerce-core' ) . '</button></p></form>';
             $targets = self::editable_header_parts();
             if ( $targets ) {
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -265,7 +276,10 @@ final class TaxoCommerce_Core_Block_Navigation {
         if ( '' === $name || strlen( $name ) > 200 ) {
             self::redirect( 0, 'error', __( 'Indica un nombre de menú válido.', 'taxocommerce-core' ) );
         }
-        $existing = get_page_by_title( $name, OBJECT, 'wp_navigation' );
+        $existing = get_posts( array(
+            'post_type' => 'wp_navigation', 'post_status' => 'any', 'title' => $name,
+            'posts_per_page' => 1, 'fields' => 'ids',
+        ) );
         if ( $existing ) {
             self::redirect( 0, 'error', __( 'Ya existe otro menú con ese nombre.', 'taxocommerce-core' ) );
         }
@@ -279,6 +293,44 @@ final class TaxoCommerce_Core_Block_Navigation {
             self::redirect( 0, 'error', is_wp_error( $id ) ? $id->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
         }
         self::redirect( $id, 'ok', __( 'Menú nuevo creado. Puedes editarlo sin modificar los existentes.', 'taxocommerce-core' ) );
+    }
+
+    /** Add an explicitly requested link without rewriting existing navigation blocks. */
+    public static function add_link() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar este menú.', 'taxocommerce-core' ) );
+        }
+        $id = isset( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
+        check_admin_referer( self::ADD_LINK . '_' . $id );
+        $post = $id ? get_post( $id ) : false;
+        if ( ! $post || 'wp_navigation' !== $post->post_type || ! current_user_can( 'edit_post', $id ) ) {
+            self::redirect( $id, 'error', __( 'La navegación seleccionada no es editable.', 'taxocommerce-core' ) );
+        }
+        $hash = isset( $_POST['content_hash'] ) && is_scalar( $_POST['content_hash'] )
+            ? sanitize_text_field( wp_unslash( (string) $_POST['content_hash'] ) ) : '';
+        if ( ! hash_equals( hash( 'sha256', $post->post_content ), $hash ) ) {
+            self::redirect( $id, 'error', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+        }
+        $label = isset( $_POST['item_title'] ) && is_string( $_POST['item_title'] )
+            ? trim( sanitize_text_field( wp_unslash( $_POST['item_title'] ) ) ) : '';
+        $url = isset( $_POST['item_url'] ) && is_string( $_POST['item_url'] )
+            ? esc_url_raw( wp_unslash( $_POST['item_url'] ), array( 'https', 'http' ) ) : '';
+        if ( '' === $label || strlen( $label ) > 200 || '' === $url ) {
+            self::redirect( $id, 'error', __( 'Indica un texto y una URL válidos.', 'taxocommerce-core' ) );
+        }
+        $blocks = parse_blocks( $post->post_content );
+        $blocks[] = array(
+            'blockName' => 'core/navigation-link',
+            'attrs' => array( 'label' => $label, 'url' => $url ),
+            'innerBlocks' => array(),
+            'innerHTML' => '',
+            'innerContent' => array(),
+        );
+        $saved = wp_update_post( array( 'ID' => $id, 'post_content' => wp_slash( serialize_blocks( $blocks ) ) ), true );
+        if ( is_wp_error( $saved ) || ! $saved ) {
+            self::redirect( $id, 'error', is_wp_error( $saved ) ? $saved->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( $id, 'ok', __( 'Enlace personalizado añadido.', 'taxocommerce-core' ) );
     }
 
     public static function activate() {
