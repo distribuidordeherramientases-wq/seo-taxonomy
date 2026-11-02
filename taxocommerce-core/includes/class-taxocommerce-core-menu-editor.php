@@ -81,6 +81,30 @@ final class TaxoCommerce_Core_Menu_Editor {
         if ( $message && in_array( $result, array( 'ok', 'error' ), true ) ) {
             echo '<div class="notice notice-' . ( 'ok' === $result ? 'success' : 'error' ) . '"><p>' . esc_html( $message ) . '</p></div>';
         }
+        // A classic nav menu is not necessarily the navigation displayed by a block theme.
+        // Report the distinction before offering actions that only affect classic menus.
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'La cabecera puede usar una navegación de bloques distinta.', 'taxocommerce-core' ) . '</strong> ';
+            echo esc_html__( 'Guardar este menú clásico no cambia necesariamente la navegación visible de la web. Comprueba qué bloque Navegación utiliza la cabecera en el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+            if ( current_user_can( 'edit_theme_options' ) ) {
+                echo '<p><a class="button" href="' . esc_url( admin_url( 'site-editor.php' ) ) . '">' . esc_html__( 'Abrir Editor del sitio', 'taxocommerce-core' ) . '</a></p>';
+            }
+            echo '</div>';
+        } else {
+            $assigned = (array) get_theme_mod( 'nav_menu_locations', array() );
+            $registered = get_registered_nav_menus();
+            $places = array();
+            foreach ( $assigned as $location => $assigned_id ) {
+                if ( $menu_id && absint( $assigned_id ) === absint( $menu_id ) && isset( $registered[ $location ] ) ) {
+                    $places[] = $registered[ $location ];
+                }
+            }
+            if ( $menu_id ) {
+                echo '<p class="description"><strong>' . esc_html__( 'Estado de publicación:', 'taxocommerce-core' ) . '</strong> ';
+                echo $places ? esc_html( sprintf( __( 'Menú asignado a: %s', 'taxocommerce-core' ), implode( ', ', $places ) ) ) : esc_html__( 'Este menú no está asignado a ninguna ubicación clásica del tema.', 'taxocommerce-core' );
+                echo '</p>';
+            }
+        }
         self::load_controls( '', $menu_id );
         if ( ! $menu ) {
             echo '<p class="notice notice-info inline">' . esc_html__( 'Selecciona un menú de WordPress existente o crea uno nuevo para añadir y editar sus elementos.', 'taxocommerce-core' ) . '</p>';
