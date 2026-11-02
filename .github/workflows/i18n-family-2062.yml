@@ -1,0 +1,62 @@
+name: Prepare complete TaxoCommerce family i18n (#2062)
+
+on:
+  push:
+    branches:
+      - fix/i18n-family-2062
+    paths:
+      - '.github/workflows/i18n-family-2062.yml'
+      - '.github/scripts/i18n-family-2062.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  catalogs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Install official WordPress gettext extractor and PO/MO tools
+        run: |
+          python3 -m pip install --disable-pip-version-check polib requests
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          php /tmp/wp-cli.phar i18n make-pot --help >/dev/null
+      - name: Internationalize twenty standalone plugin menus and generate five locales
+        run: python3 .github/scripts/i18n-family-2062.py --apply
+      - name: PHP syntax and whitespace checks
+        run: |
+          set -euo pipefail
+          find taxocommerce-* -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l >/tmp/taxocommerce-php-lint.log
+          tail -n 5 /tmp/taxocommerce-php-lint.log
+          git diff --check
+      - name: Commit only to i18n work branch
+        run: |
+          set -euo pipefail
+          git config user.name "TaxoCommerce i18n CI"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add taxocommerce-*/ .github/i18n-family-2062-report.json
+          if ! git diff --cached --quiet; then
+            git commit -m "i18n: add gettext loaders and five catalog locales across 20 plugins (#2062)"
+            git push origin HEAD:fix/i18n-family-2062
+          fi
+      - name: Show gettext completeness report
+        if: always()
+        run: |
+          if test -f .github/i18n-family-2062-report.json; then
+            python3 - <<'PY'
+          import json
+          p=json.load(open(".github/i18n-family-2062-report.json"))
+          for name, row in p.items():
+              print(name, row["menu_labels_newly_internationalized"],
+                    {loc: (v["translated"],v["strings"]) for loc,v in row["locales"].items()})
+          PY
+          fi
