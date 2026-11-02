@@ -190,6 +190,8 @@ def translate_one(target: str, string: str) -> str:
     with TRANS_LOCK:
         if key in TRANSLATED:
             return TRANSLATED[key]
+        if key in FAILED:
+            return ""
     protected, placeholders = protect(string)
     # Public gettext source only; never send site content or credentials.
     result = None
@@ -217,6 +219,51 @@ def translate_one(target: str, string: str) -> str:
         TRANSLATED[key] = result
     return result
 
+def translate_many(target: str, strings: list[str]) -> dict[str, str]:
+    """Translate independent gettext messages in one request, verifying boundaries."""
+    if not strings:
+        return {}
+    if len(strings) == 1:
+        return {strings[0]: translate_one(target, strings[0])}
+    protected = [protect(s) for s in strings]
+    marker = "ZXQSEGMENTBREAKZXQ"
+    payload = ("\n" + marker + "\n").join(item[0] for item in protected)
+    rendered = None
+    for attempt in range(2):
+        try:
+            response = requests.get(
+                "https://translate.googleapis.com/translate_a/single",
+                params={"client": "gtx", "sl": "auto", "tl": target, "dt": "t", "q": payload},
+                timeout=18,
+            )
+            response.raise_for_status()
+            data = response.json()
+            rendered = "".join(item[0] or "" for item in data[0])
+            break
+        except (requests.RequestException, ValueError, KeyError, TypeError, IndexError):
+            time.sleep(0.25 + attempt * 0.5)
+    if rendered is None:
+        with TRANS_LOCK:
+            for string in strings:
+                FAILED.add((target, string))
+        return {string: "" for string in strings}
+    parts = rendered.split(marker)
+    if len(parts) != len(strings):
+        middle = len(strings) // 2
+        left = translate_many(target, strings[:middle])
+        left.update(translate_many(target, strings[middle:]))
+        return left
+    result = {}
+    for source, (translated, templates) in zip(strings, zip(parts, protected)):
+        value = unprotect(translated.strip(), templates[1])
+        if not value:
+            result[source] = translate_one(target, source)
+        else:
+            result[source] = value
+            with TRANS_LOCK:
+                TRANSLATED[target, source] = value
+    return result
+
 def gettext_entries(domain_dir: Path, domain: str, locale: str, target: str, executor):
     base = domain_dir / "languages"
     pot = polib.pofile(str(base / (domain + ".pot")))
@@ -241,12 +288,14 @@ def gettext_entries(domain_dir: Path, domain: str, locale: str, target: str, exe
         if old and old.msgstr and "fuzzy" not in old.flags:
             translations[e.msgid] = old.msgstr
     missing = {e.msgid for e in pot if e.msgid and e.msgid not in translations}
-    pending = {source: executor.submit(translate_one, target, source) for source in missing}
-    for source, future in pending.items():
+    sources = sorted(missing)
+    groups = [sources[i:i + 18] for i in range(0, len(sources), 18)]
+    pending = [executor.submit(translate_many, target, group) for group in groups]
+    for future in pending:
         try:
-            translations[source] = future.result()
+            translations.update(future.result())
         except Exception:
-            translations[source] = ""
+            pass
     blank = []
     for e in pot:
         if not e.msgid:
