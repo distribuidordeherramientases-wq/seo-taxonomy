@@ -5,12 +5,31 @@ on:
     branches:
       - staging
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/tests/taxocommerce-core/**'
+      - '.github/workflows/deploy-staging.yml'
 
 jobs:
+  core-menu-verify:
+    name: Core native menus PHP and smoke tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Core PHP syntax and native block menus
+        run: |
+          php -l taxocommerce-core/taxocommerce-core.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
+          php .github/tests/taxocommerce-core/block-navigation-smoke.php
+
   deploy-staging:
     name: Deploy plugin to STAGING
     # A cleanup-only merge must not redeploy the monolith or other modules.
-    if: ${{ !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup') || contains(github.event.head_commit.message, '[insights-tests-cleanup]')) }}
+    if: ${{ github.event_name != 'pull_request' && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup') || contains(github.event.head_commit.message, '[insights-tests-cleanup]')) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +43,9 @@ jobs:
         run: |
           php -l taxocommerce-core/taxocommerce-core.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
+          php .github/tests/taxocommerce-core/block-navigation-smoke.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
 
