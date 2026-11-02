@@ -45,6 +45,16 @@ function taxocommerce_core_anomalies_render() {
         echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No existen las tablas originales seo_nodes / seo_relations. No es posible realizar los chequeos estructurales.', 'taxocommerce-core' ) . '</p>' . '</div>' . '</section>';
         return;
     }
+    // An unconfigured store does not have a broken SEO hierarchy.
+    global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
+    $configured_nodes = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_nodes WHERE status=1 AND seo_role IN ('cluster', 'hub_primary', 'hub_secondary', 'landing')" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
+    $configured_relations = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations" );
+    if ( 0 === $configured_nodes && 0 === $configured_relations ) {
+        echo '<p class="description">' . esc_html__( 'Jerarquía SEO no configurada. No hay anomalías estructurales que comprobar.', 'taxocommerce-core' ) . '</p></section>';
+        return;
+    }
     taxocommerce_core_anomalies_render_report();
     echo '</section>';
 }
@@ -279,13 +289,12 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
 
     $faq_table = esc_sql( taxocommerce_core_anomalies_faq_table() );
 
-    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '🧩 FAQs sin elemento relacionado', 'taxocommerce-core' ) . '</h3>';
-    echo '<p>' . esc_html__( 'Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera categorías, productos o páginas/hubs.', 'taxocommerce-core' ) . '</p>';
-
-    if (!$faq_table) {
-        echo '<p style="color:#b32d2e;">No se encuentra la tabla <code>' . esc_html($wpdb->prefix . 'seo_faq') . '</code>.</p>';
+    // An optional FAQ module without a table is not an anomaly.
+    if ( ! $faq_table ) {
         return;
     }
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '🧩 FAQs sin elemento relacionado', 'taxocommerce-core' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera categorías, productos o páginas/hubs.', 'taxocommerce-core' ) . '</p>';
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin notice counter.
     if (isset($_GET['faq_category_orphans_deleted'])) {
@@ -797,8 +806,6 @@ function taxocommerce_core_anomalies_render_report() {
 
     if (function_exists('taxocommerce_core_anomalies_content_json_render_panel') && taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary')) {
         taxocommerce_core_anomalies_content_json_render_panel();
-    } else {
-        echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'JSON correctivo no disponible: faltan las tablas de Vocabulary.', 'taxocommerce-core' ) . '</p>' . '</div>';
     }
     
     echo "<div style='background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>";
@@ -1221,9 +1228,9 @@ function taxocommerce_core_anomalies_render_report() {
      *
      * Incluye publicados y programados; excluye borradores, papelera y revisiones.
      */
-    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '📰 Entradas editoriales sin Vocabulary semántico activo', 'taxocommerce-core' ) . '</h3>';
-
     $has_core_vocabulary = taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary');
+    if ( $has_core_vocabulary ) {
+    echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '📰 Entradas editoriales sin Vocabulary semántico activo', 'taxocommerce-core' ) . '</h3>';
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $posts_without_vocabulary_raw = $has_core_vocabulary ? $wpdb->get_results("
         SELECT
@@ -1384,20 +1391,25 @@ function taxocommerce_core_anomalies_render_report() {
     } else {
         echo '<p style="color:#2e7d32;font-style:italic;">' . esc_html__( 'Todas las entradas editoriales publicadas o programadas tienen al menos un término de Vocabulary canónico activo.', 'taxocommerce-core' ) . '</p>';
     }
-    
+    } // End Vocabulary-specific checks. No installed tables means no configured Vocabulary to audit.
+
+    if ( ! empty( $hubs_secondary ) ) {
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '⚠️ Categorías sin asignación estructural', 'taxocommerce-core' ) . '</h3>';
     $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $used = $wpdb->get_col("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='product_cat'");
     
     $has_cats_anomalies = false;
+    $default_product_cat = absint( get_option( 'default_product_cat', 0 ) );
     foreach ($cats as $c) {
+        if ( $default_product_cat === (int) $c->term_id ) { continue; }
         if (!in_array($c->term_id, $used)) {
             echo "• " . esc_html($c->name) . " <code style='font-size:12px;'>(" . esc_html((string) $c->term_id) . ")</code><br>";
             $has_cats_anomalies = true;
         }
     }
     if (!$has_cats_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'Todas las categorías de WooCommerce están correctamente vinculadas en la tabla de relaciones SEO.', 'taxocommerce-core' ) . '</p>';
+    } // Do not require structural assignment until a secondary hub exists.
 
         // Categorías sin productos + limpieza segura desde el propio informe.
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #ccd0d4;margin-top:40px;margin-bottom:15px;flex-wrap:wrap;">';
