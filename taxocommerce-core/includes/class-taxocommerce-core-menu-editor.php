@@ -264,7 +264,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         }
         if ( $menu ) { echo '<a class="button" href="' . esc_url( admin_url( 'nav-menus.php?action=edit&menu=' . absint( $menu_id ) ) ) . '">' . esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ) . '</a>'; }
         if ( $wordpress && $menu ) {
-            echo '<button type="submit" form="tc-menu-save-form" class="button button-primary">' . esc_html__( 'Guardar menú', 'taxocommerce-core' ) . '</button>';
+            echo '<button type="submit" form="tc-menu-save-form" class="button button-primary">' . esc_html( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ? __( 'Guardar menú clásico', 'taxocommerce-core' ) : __( 'Guardar menú', 'taxocommerce-core' ) ) . '</button>';
         }
         echo '</div>';
         if ( $wordpress && $menu && 'top' === $position && ! self::protected_menu( $menu_id ) ) {
