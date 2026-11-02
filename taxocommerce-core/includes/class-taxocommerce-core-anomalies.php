@@ -1533,6 +1533,10 @@ function taxocommerce_core_anomalies_render_report() {
             foreach ($cats_without_products as $cat) {
 
                 $term_id = (int) $cat->term_id;
+                // WooCommerce's fallback category is mandatory, not an orphan or deletion candidate.
+                if ( $term_id === absint( get_option( 'default_product_cat', 0 ) ) ) {
+                    continue;
+                }
                 $stored_count = (int) $cat->count;
 
                 $published_count = isset($real_counts[$term_id])
