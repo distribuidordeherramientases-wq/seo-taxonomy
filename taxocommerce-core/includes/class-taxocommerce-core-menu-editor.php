@@ -490,6 +490,8 @@ final class TaxoCommerce_Core_Menu_Editor {
         $name = (string) ( $menu->name ?? '' );
         if ( 'TaxoCommerce' === $name || 0 === strpos( $name, 'TaxoCommerce - ' ) ) { return true; }
         foreach ( (array) TaxoCommerce_Core_Country::countries() as $country => $label ) {
+            // Protect even a renamed or stale country menu referenced by its saved option.
+            if ( $menu_id === absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) ) ) { return true; }
             if ( $menu_id === absint( TaxoCommerce_Core_Menu::managed_menu_id( $country, false ) ) ) { return true; }
         }
         foreach ( (array) wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'publish,draft' ) ) as $item ) {
