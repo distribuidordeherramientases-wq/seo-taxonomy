@@ -18,7 +18,8 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Cached read-only inventory dashboard for products, posts, pages, categories, media, statuses and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
 * Native WordPress navigation menu generation with optional manual entries and safe regeneration.
-* Block-theme navigation: discover navigation posts in any theme template and offer other existing navigation posts for explicit selection, separately from classic menus; open the selected navigation directly in the native Site Editor. Inline template navigation remains editable in the native Site Editor.
+* Unified WordPress menu manager: classic-theme menus use their native locations; block-theme menus use wp_navigation posts with loading, safe link editing, creation and activation in an existing customized header part containing exactly one navigation block. The Site Editor is retained for theme-file headers and advanced inline navigation.
+* Optional SEO hierarchy menus are only proposed for populated hierarchies. No stored menu is overwritten by viewing the manager. Inline template navigation remains editable in the native Site Editor.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
