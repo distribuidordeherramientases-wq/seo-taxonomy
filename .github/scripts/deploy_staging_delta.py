@@ -38,7 +38,7 @@ def distributable(path):
     return parts[0], "/".join(relative)
 
 
-def changed_files(base, head):
+def changed_files(base, head, selected_slug=None):
     if not SHA.fullmatch(base) or not SHA.fullmatch(head):
         raise ValueError("Invalid baseline or HEAD commit")
     subprocess.run(["git", "merge-base", "--is-ancestor", base, head], check=True)
@@ -50,14 +50,21 @@ def changed_files(base, head):
             continue
         slug, relative = parsed
         if status.startswith("D"):
-            raise ValueError(f"Deletion requires a separately reviewed migration: {path}")
+            changes.setdefault(slug, set())
+            if selected_slug == slug:
+                raise ValueError(f"Deletion requires a separately reviewed migration: {path}")
+            continue
         if not status.startswith(("A", "C", "M", "T")):
             raise ValueError(f"Unexpected Git file status: {status} {path}")
         source = Path(path)
         if not source.is_file() or source.is_symlink():
-            raise ValueError(f"Missing or unsafe source file: {path}")
+            if selected_slug == slug:
+                raise ValueError(f"Missing or unsafe source file: {path}")
+            continue
         if not (Path(slug) / (slug + ".php")).is_file():
-            raise ValueError(f"Not a valid plugin directory: {slug}")
+            if selected_slug == slug:
+                raise ValueError(f"Not a valid plugin directory: {slug}")
+            continue
         changes.setdefault(slug, set()).add(relative)
     return {slug: sorted(names) for slug, names in sorted(changes.items())}
 
@@ -160,7 +167,7 @@ def upload_plugin(ftp, slug, files, required):
 
 def deploy(base, target, slug):
     head = git("rev-parse", "HEAD").decode().strip()
-    changes = changed_files(base, head)
+    changes = changed_files(base, head, selected_slug=slug)
     if slug not in changes:
         raise ValueError(f"No distributable changes selected for {slug}")
     if target == "focazul" and slug != "taxocommerce-core":
