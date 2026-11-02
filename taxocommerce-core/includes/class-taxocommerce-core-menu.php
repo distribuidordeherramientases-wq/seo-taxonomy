@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/class-taxocommerce-core-menu-editor.php';
+require_once __DIR__ . '/class-taxocommerce-core-block-navigation.php';
 
 /**
  * Builds a native WordPress menu from the TaxoCommerce SEO hierarchy.
@@ -166,6 +167,7 @@ final class TaxoCommerce_Core_Menu {
 		add_action( 'admin_post_taxocommerce_core_activate_menu', array( $this, 'handle_activate_menu' ) );
 		add_action( 'admin_post_taxocommerce_core_restore_menu', array( $this, 'handle_restore_menu' ) );
 		TaxoCommerce_Core_Menu_Editor::register_hooks();
+        TaxoCommerce_Core_Block_Navigation::register_hooks();
         add_filter( 'wp_nav_menu_args', array( $this, 'route_country_menu' ), 20 );
 	}
 
