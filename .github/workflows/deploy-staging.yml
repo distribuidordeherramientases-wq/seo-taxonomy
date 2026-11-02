@@ -124,45 +124,6 @@ jobs:
             **/*.pot
 
 
-      - name: Deploy TaxoCommerce Core to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
-          protocol: ftps
-          port: 21
-
-          local-dir: ./taxocommerce-core/
-          server-dir: ./wp-content/plugins/taxocommerce-core/
-          # Store FTP sync state outside the installed plugin directory.
-          state-name: ../.taxocommerce-core-ftp-state.json
-
-          dry-run: false
-          log-level: verbose
-
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/tests/**
-            .ftp-deploy-sync-state.json
-            **/.ftp-deploy-sync-state.json
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-
-
-      - name: Remove obsolete Core test files and hidden FTP state from STAGING
-        env:
-          TC_CORE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_CORE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_CORE_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
-
       - name: Deploy TaxoCommerce Database to STAGING
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -880,23 +841,68 @@ jobs:
               ['git', 'diff', '--name-only', '--diff-filter=ACMRT', before, 'HEAD'],
               text=True,
           ).splitlines()
-          slugs = sorted({
-              first for name in files
-              for first in [name.split('/', 1)[0]]
-              if '/' in name
-              and re.fullmatch(r'taxocommerce-[a-z0-9-]+', first)
-              and (Path(first) / (first + '.php')).is_file()
-          })
+          # Focazul currently runs Core; never install other staging plugins there.
+          slugs = ['taxocommerce-core'] if any(
+              name.startswith('taxocommerce-core/') or
+              name == '.github/workflows/deploy-staging.yml'
+              for name in files
+          ) else []
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write('slugs=' + json.dumps(slugs, separators=(',', ':')) + '\n')
               output.write('count=' + str(len(slugs)) + '\n')
           print('Focazul standalone modules changed:', ', '.join(slugs) or '(none)')
           PY
 
+  deploy-core-staging:
+    name: Core / STAGING
+    needs: [focazul-scope]
+    if: github.event_name == 'push' && needs.focazul-scope.outputs.count != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Core before deployment
+        run: |
+          php -l taxocommerce-core/taxocommerce-core.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
+          php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+          php .github/tests/taxocommerce-core/block-navigation-smoke.php
+      - name: Deploy Core to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-core/
+          server-dir: ./wp-content/plugins/taxocommerce-core/
+          state-name: ../.taxocommerce-core-ftp-state.json
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.*/**
+            **/.*
+            **/node_modules/**
+            tests/**
+            **/tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+      - name: Remove obsolete Core test files and hidden FTP state
+        env:
+          TC_CORE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
+          TC_CORE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
+          TC_CORE_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+
   deploy-focazul:
     name: Focazul live portability test / ${{ matrix.slug }}
-    needs: [deploy-staging, focazul-scope]
-    if: github.event_name == 'push' && needs.deploy-staging.result == 'success' && needs.focazul-scope.outputs.count != '0'
+    needs: [focazul-scope]
+    if: github.event_name == 'push' && needs.focazul-scope.outputs.count != '0'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -950,3 +956,19 @@ jobs:
             **/*.md
             **/*.pot
             **/*.log
+
+  verify-core-both-sites:
+    name: Core / both deployments successful
+    needs: [focazul-scope, deploy-core-staging, deploy-focazul]
+    if: always() && needs.focazul-scope.outputs.count != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful delivery to STAGING and Focazul
+        env:
+          STAGING_RESULT: ${{ needs.deploy-core-staging.result }}
+          FOCAZUL_RESULT: ${{ needs.deploy-focazul.result }}
+        run: |
+          echo "Core STAGING: $STAGING_RESULT"
+          echo "Core Focazul: $FOCAZUL_RESULT"
+          test "$STAGING_RESULT" = success
+          test "$FOCAZUL_RESULT" = success
