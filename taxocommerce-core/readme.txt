@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.42
+Stable tag: 0.4.43
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.43 =
+* Add explicit Save Menu buttons for batch editing of native WordPress menu name and items, with a clear saved confirmation and unsaved-changes indicator.
+* Add Delete Menu for regular WordPress menus with checkbox and dialog confirmation, preventing deletion of SEO/country-managed menus.
+* Preserve separate add/remove actions, safe parent validation, current theme menu locations and WooCommerce independence.
+
 
 = 0.4.42 =
 * A new WordPress-only menu tab edits native menus using posts, pages, normal categories and links without WooCommerce.

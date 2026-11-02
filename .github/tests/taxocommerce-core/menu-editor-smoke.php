@@ -23,11 +23,12 @@ function wp_get_nav_menu_object($id){if(is_numeric($id))return $GLOBALS['menus']
 function wp_get_nav_menus($args=array()){return array_values($GLOBALS['menus']);}
 function wp_create_nav_menu($name){$GLOBALS['writes']++;$id=max(array_keys($GLOBALS['menus']) ?: array(98))+1;$GLOBALS['menus'][$id]=(object)array('term_id'=>$id,'name'=>$name);return $id;}
 function wp_update_nav_menu_object($id,$data){$GLOBALS['writes']++;if(!isset($GLOBALS['menus'][$id]))return new WP_Error('bad_menu','Menu missing');$GLOBALS['menus'][$id]->name=$data['menu-name'];return $id;}
+function wp_delete_nav_menu($id){if(!isset($GLOBALS['menus'][$id]))return false;$GLOBALS['writes']++;unset($GLOBALS['menus'][$id]);foreach($GLOBALS['items'] as $k=>$item){if($item->menu_id===$id)unset($GLOBALS['items'][$k]);}return true;}
 function wp_get_nav_menu_items($id,$args=array()){return array_values(array_filter($GLOBALS['items'],static function($item)use($id){return $item->menu_id===$id;}));}
 function get_term_meta($id,$key,$single=true){return ''; } function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';} function update_post_meta($id,$key,$value){$GLOBALS['writes']++;$GLOBALS['meta'][$id][$key]=$value;if('_menu_item_menu_item_parent'===$key && isset($GLOBALS['items'][$id])){$GLOBALS['items'][$id]->menu_item_parent=$value;}return true;}
 function get_post($id){return $GLOBALS['posts'][$id]??null;} function get_the_title($post){return is_object($post)?$post->post_title:($GLOBALS['posts'][$post]->post_title??'');}
 function get_ancestors($id,$taxonomy,$type){return array();} function get_terms($args){return array((object)array('term_id'=>71,'name'=>'Tools'));} function get_term($id,$tax){return $id===71?(object)array('term_id'=>71,'name'=>'Tools'):null;}
-function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:max(1000,empty($GLOBALS['items'])?1000:(max(array_keys($GLOBALS['items']))+1));$old=$GLOBALS['items'][$id]??null;$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'menu_order'=>$data['menu-item-position']??($old->menu_order??1),'title'=>stripslashes($data['menu-item-title']),'type'=>$data['menu-item-type']??($old->type??'custom'),'url'=>$data['menu-item-url']??($old->url??'https://example.test/item'),'object'=>$data['menu-item-object']??($old->object??'custom'),'object_id'=>$data['menu-item-object-id']??($old->object_id??0),'data'=>$data);return $id;}
+function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:max(1000,empty($GLOBALS['items'])?1000:(max(array_keys($GLOBALS['items']))+1));$old=$GLOBALS['items'][$id]??null;$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'menu_order'=>!empty($data['menu-item-position'])?(int)$data['menu-item-position']:($old->menu_order??1),'title'=>stripslashes($data['menu-item-title']),'type'=>$data['menu-item-type']??($old->type??'custom'),'url'=>$data['menu-item-url']??($old->url??'https://example.test/item'),'object'=>$data['menu-item-object']??($old->object??'custom'),'object_id'=>$data['menu-item-object-id']??($old->object_id??0),'data'=>$data);return $id;}
 function wp_delete_post($id,$force){$GLOBALS['writes']++;$old=$GLOBALS['items'][$id]??false;unset($GLOBALS['items'][$id]);return $old;}
 function add_filter($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
 function check_admin_referer($action,$field){if(($_POST[$field]??'')!=='nonce-'.$action)throw new RuntimeException('nonce');} function check_ajax_referer($action,$field){check_admin_referer($action,$field);}
@@ -176,5 +177,61 @@ verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::target_menu_id(true)),'no impl
 verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::add_link('Bad','https://example.test/bad')),'cannot write to missing native menu');
 verify($before===$GLOBALS['writes'],'invalid native menu cannot write');
 unset($_GET['tc_tab'],$_GET['tc_menu_id']);$_POST=array();$GLOBALS['woo_enabled']=true;
+
+
+// Explicit Save / Delete native WordPress menus; SEO menus remain protected.
+$_GET=array('tc_tab'=>'wordpress','tc_menu_id'=>(string)$native);
+$_POST=array('tc_tab'=>'wordpress','tc_menu_id'=>(string)$native);
+$before=$GLOBALS['writes'];ob_start();$core->render();$save_html=ob_get_clean();
+verify($GLOBALS['writes']===$before,'opening Save/Delete screen never writes');
+verify(substr_count($save_html,'>Guardar menú<')===2,'save menu button visible at top and bottom');
+verify(strpos($save_html,'>Eliminar menú<')!==false,'delete button for regular native menu');
+verify(strpos($save_html,'name="confirm_delete" value="1" required')!==false,'delete requires a checkbox');
+verify(strpos($save_html,'name="task" value="save_menu"')!==false,'save submits explicit authenticated task');
+verify(substr_count($save_html,'form="tc-menu-save-form"')>=6,'menu item controls associated to the global Save form');
+$values=array();
+foreach(wp_get_nav_menu_items($native) as $item) {
+    $values[$item->ID]=array('title'=>$item->title,'parent'=>$item->menu_item_parent,'position'=>$item->menu_order);
+    if('custom'===$item->type) $values[$item->ID]['url']=$item->url;
+}
+verify(count($values)===3,'save test native menu has exactly three items');
+$ids=array_keys($values);
+$original=$GLOBALS['items'][$ids[0]]->title;
+$values[$ids[0]]['title']='Página guardada';
+verify($GLOBALS['items'][$ids[0]]->title===$original,'editing browser form must not write until Save submitted');
+$before=$GLOBALS['writes'];
+verify(TaxoCommerce_Core_Menu_Editor::save_native_menu($values,'Menú guardado')===true,'Save Menu persists all fields');
+verify($GLOBALS['menus'][$native]->name==='Menú guardado','Save Menu persists native menu name');
+verify($GLOBALS['items'][$ids[0]]->title==='Página guardada','Save Menu persists edited item title');
+verify($GLOBALS['writes']>$before,'Save Menu performed real WordPress writes');
+$before=$GLOBALS['writes'];
+verify(TaxoCommerce_Core_Menu_Editor::save_native_menu($values,'Menú guardado')===true,'saving unchanged menu accepted');
+verify($before===$GLOBALS['writes'],'saving unchanged menu does not write');
+$cycle=$values;$cycle[$ids[0]]['parent']=$ids[1];$cycle[$ids[1]]['parent']=$ids[0];
+$before=$GLOBALS['writes'];
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::save_native_menu($cycle,'Menú guardado')),'cycle rejected before writes');
+verify($before===$GLOBALS['writes'],'invalid hierarchy never saves partially');
+$foreign=$values;$foreign[999999]=$values[$ids[0]];
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::save_native_menu($foreign,'Menú guardado')),'foreign menu IDs rejected');
+verify($before===$GLOBALS['writes'],'foreign menu IDs cannot write');
+verify(TaxoCommerce_Core_Menu_Editor::protected_menu($es_id),'country managed SEO menu is protected');
+$stored_legacy=TaxoCommerce_Core_Menu_Editor::create_menu('Menú renombrado fuera de Core');
+$GLOBALS['options']['taxocommerce_core_menu_id_fr']=$stored_legacy;
+verify(TaxoCommerce_Core_Menu_Editor::protected_menu($stored_legacy),'renamed menu referenced by a country option is protected');
+unset($GLOBALS['options']['taxocommerce_core_menu_id_fr']);
+$_POST['tc_menu_id']=(string)$es_id;
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::delete_native_menu(true)),'cannot delete country SEO menu from native tab');
+verify(isset($GLOBALS['menus'][$es_id]),'protected SEO menu still exists');
+$_POST['tc_menu_id']=(string)$native;
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::delete_native_menu(false)),'delete requires explicit confirmation');
+verify(isset($GLOBALS['menus'][$native]),'no deletion without confirmation');
+verify(TaxoCommerce_Core_Menu_Editor::delete_native_menu(true)===true,'confirmed native menu deletion succeeds');
+verify(!isset($GLOBALS['menus'][$native]),'deleted native menu no longer exists');
+verify(isset($GLOBALS['menus'][$es_id]),'SEO managed menu remains after native deletion');
+$_GET=array('tc_tab'=>'wordpress','tc_menu_id'=>(string)$es_id);
+$before=$GLOBALS['writes'];ob_start();$core->render();$protected_html=ob_get_clean();
+verify(strpos($protected_html,'>Eliminar menú<')===false,'SEO managed menu never exposes delete button');
+verify($before===$GLOBALS['writes'],'protected menu view does not mutate SEO');
+$_GET=array();$_POST=array();
 
 echo 'PASS: '.$GLOBALS['checks']." menu checks. Isolated WP stubs; not a live WordPress test.\n";
