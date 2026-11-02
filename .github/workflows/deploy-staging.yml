@@ -813,3 +813,109 @@ jobs:
             **/*.bak
             **/*.md
             **/*.pot
+
+# Focazul is a separate live WordPress installation used to verify
+  # portability. Deploy only independent plugin directories changed in push.
+  focazul-scope:
+    name: Detect modified plugins for Focazul
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      slugs: ${{ steps.changed.outputs.slugs }}
+      count: ${{ steps.changed.outputs.count }}
+    steps:
+      - name: Checkout full history for reliable changed-file detection
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select changed standalone modules
+        id: changed
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          before = os.environ.get('BEFORE_SHA', '')
+          if not re.fullmatch(r'[0-9a-f]{40}', before) or before == '0' * 40:
+              raise SystemExit('Missing reliable previous staging commit: refusing Focazul upload')
+          files = subprocess.check_output(
+              ['git', 'diff', '--name-only', '--diff-filter=ACMRT', before, 'HEAD'],
+              text=True,
+          ).splitlines()
+          slugs = sorted({
+              first for name in files
+              for first in [name.split('/', 1)[0]]
+              if '/' in name
+              and re.fullmatch(r'taxocommerce-[a-z0-9-]+', first)
+              and (Path(first) / (first + '.php')).is_file()
+          })
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('slugs=' + json.dumps(slugs, separators=(',', ':')) + '\n')
+              output.write('count=' + str(len(slugs)) + '\n')
+          print('Focazul standalone modules changed:', ', '.join(slugs) or '(none)')
+          PY
+
+  deploy-focazul:
+    name: Focazul live portability test / ${{ matrix.slug }}
+    needs: [deploy-staging, focazul-scope]
+    if: github.event_name == 'push' && needs.deploy-staging.result == 'success' && needs.focazul-scope.outputs.count != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        slug: ${{ fromJSON(needs.focazul-scope.outputs.slugs) }}
+    steps:
+      - name: Checkout exactly the staging revision
+        uses: actions/checkout@v4
+      - name: Require independent Focazul FTPS credentials
+        env:
+          FTP_HOST: ${{ secrets.FOCAZUL_FTP_SERVER }}
+          FTP_USER: ${{ secrets.FOCAZUL_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.FOCAZUL_FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USER" ] || [ -z "$FTP_PASS" ]; then
+            echo "::error::Configure FOCAZUL_FTP_SERVER, FOCAZUL_FTP_USERNAME and FOCAZUL_FTP_PASSWORD in GitHub Actions secrets"
+            exit 1
+          fi
+      - name: Validate selected plugin before uploading
+        env:
+          PLUGIN: ${{ matrix.slug }}
+        run: |
+          test -f "$PLUGIN/$PLUGIN.php"
+          find "$PLUGIN" -type f -name '*.php' ! -path '*/tests/*' -print0 | xargs -0 -r -n1 php -l
+      - name: Deploy only this plugin to Focazul WordPress
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FOCAZUL_FTP_SERVER }}
+          username: ${{ secrets.FOCAZUL_FTP_USERNAME }}
+          password: ${{ secrets.FOCAZUL_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          # Create the FTP user rooted at Focazul's WordPress directory.
+          local-dir: ./${{ matrix.slug }}/
+          server-dir: ./wp-content/plugins/${{ matrix.slug }}/
+          state-name: ../.taxocommerce-focazul-${{ matrix.slug }}-ftp-state.json
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.*/**
+            **/.*
+            **/node_modules/**
+            tests/**
+            **/tests/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+            **/*.log
