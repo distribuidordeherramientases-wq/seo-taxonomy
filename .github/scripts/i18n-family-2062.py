@@ -354,6 +354,9 @@ def main():
             menu_count += count
             new, converted_echo = WRAP_ECHO(new, "taxocommerce-" + slug)
             echo_count += converted_echo
+            if file.name == "seo-core-validation-visual.php":
+                # Existing trailing space becomes a new patch line when gettext is added.
+                new = re.sub(r"(?m)[ \t]+$", "", new)
             if new != source and args.apply:
                 file.write_text(new, encoding="utf-8")
         REPORT[slug] = {"menu_labels_newly_internationalized": menu_count, "echo_texts_newly_internationalized": echo_count}
