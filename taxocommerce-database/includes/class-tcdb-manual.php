@@ -26,9 +26,9 @@ final class TCDB_Manual {
           .tcdb-manual-table th{background:#f6f7f7}.tcdb-manual code{overflow-wrap:anywhere}
           @media(max-width:782px){.tcdb-manual-section{padding:16px}.tcdb-manual h1{font-size:23px}}
         </style>';
-        echo '<h1>Manual de TaxoCommerce Database</h1>';
-        echo '<p>Guías de uso y mantenimiento del plugin. La lectura de estos manuales no ejecuta consultas, limpiezas ni exportaciones.</p>';
-        echo '<nav class="tcdb-manual-index" aria-label="Índice de documentación"><strong>Contenido</strong><div>';
+        echo '<h1>' . esc_html__( 'Manual de TaxoCommerce Database', 'taxocommerce-database' ) . '</h1>';
+        echo '<p>' . esc_html__( 'Guías de uso y mantenimiento del plugin. La lectura de estos manuales no ejecuta consultas, limpiezas ni exportaciones.', 'taxocommerce-database' ) . '</p>';
+        echo '<nav class="tcdb-manual-index" aria-label="Índice de documentación">' . '<strong>' . esc_html__( 'Contenido', 'taxocommerce-database' ) . '</strong>' . '<div>';
         foreach ( array(
             'usuario' => 'Manual de usuario',
             'errores' => 'Errores en datos',
@@ -47,7 +47,7 @@ final class TCDB_Manual {
         }
         echo '</div></nav>';
 
-        echo '<h1 id="usuario">Manual de usuario final</h1>';
+        echo '<h1 id="usuario">' . esc_html__( 'Manual de usuario final', 'taxocommerce-database' ) . '</h1>';
         self::section( 'errores', '1. Errores en datos', '
             <p>Comprueba la integridad de los nodos y relaciones SEO. Los indicadores muestran relaciones analizadas, incidencias, avisos de configuración, nodos sin contenido activo, duplicados y productos con varios ámbitos. Los resultados normales no requieren acción.</p>
             <h3>Acciones de reparación disponibles</h3>
@@ -118,7 +118,7 @@ final class TCDB_Manual {
             <p><strong>Importante:</strong> sin tablas exportables el test no marca la exportación como correcta. La ausencia de tablas SEO se indica como prueba no ejecutada. El Auto Test no borra datos, no repara relaciones ni genera o restaura backups completos; esas operaciones requieren pruebas específicas con datos aislados.</p>
         ');
 
-        echo '<h1 id="desarrollador">Manual técnico para desarrolladores</h1>';
+        echo '<h1 id="desarrollador">' . esc_html__( 'Manual técnico para desarrolladores', 'taxocommerce-database' ) . '</h1>';
         self::section( 'arquitectura', '6. Arquitectura y ciclo de carga', '
             <p>Plugin independiente de WordPress, mínimo PHP 7.4 y WordPress 6.5. El punto de entrada <code>taxocommerce-database.php</code> declara versión/rutas e incluye cuatro archivos: Clean DB, SEO Data Table, el Auto Test y este manual. No requiere TaxoCommerce Core: con Core aparece como submenú; sin Core registra menú propio.</p>
             <div class="tcdb-manual-table"><table><thead><tr><th>Archivo</th><th>Responsabilidad</th></tr></thead><tbody>

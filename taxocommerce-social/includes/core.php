@@ -2715,7 +2715,7 @@ function tcsocial_network_render_admin_tab()
     tcsocial_network_render_notice();
 
     echo '<div class="seo-social-header">';
-    echo '<div><h2>Redes sociales</h2><p>Define una vez el formato, automatiza si quieres y usa el Programador solo como agenda.</p></div>';
+    echo '<div>' . '<h2>' . esc_html__( 'Redes sociales', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Define una vez el formato, automatiza si quieres y usa el Programador solo como agenda.', 'taxocommerce-social' ) . '</p>' . '</div>';
     echo '<div class="seo-social-provider-strip">';
     $settings = tcsocial_network_get_settings();
     foreach (tcsocial_network_get_providers() as $provider_key => $provider) {
@@ -2793,13 +2793,13 @@ function tcsocial_network_render_connections()
         echo '<h2>' . esc_html(isset($provider['label']) ? $provider['label'] : ucfirst($provider_key)) . '</h2>';
 
         if (!empty($config['enabled'])) {
-            echo '<p><span class="seo-social-state is-ok">Conectado</span> ';
+            echo '<p>' . '<span class="seo-social-state is-ok">' . esc_html__( 'Conectado', 'taxocommerce-social' ) . '</span>' . ' ';
             if (!empty($config['page_name'])) {
                 echo '<strong>' . esc_html($config['page_name']) . '</strong>';
             }
             echo '</p>';
         } else {
-            echo '<p><span class="seo-social-state">Sin conectar</span></p>';
+            echo '<p>' . '<span class="seo-social-state">' . esc_html__( 'Sin conectar', 'taxocommerce-social' ) . '</span>' . '</p>';
         }
 
         if (!empty($provider['render_connection_callback']) && is_callable($provider['render_connection_callback'])) {
@@ -2849,7 +2849,7 @@ function tcsocial_network_render_templates()
     $providers = tcsocial_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Plantillas de publicación</h2><p>Define una sola vez cómo debe redactarse una entrada, una página o un producto incluido en una campaña de Marketing para cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar.</p></div><span class="seo-social-state is-ok">Formato general</span></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Plantillas de publicación', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Define una sola vez cómo debe redactarse una entrada, una página o un producto incluido en una campaña de Marketing para cada red. El Programador utilizará estas plantillas automáticamente; aquí no se decide cuándo publicar.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<span class="seo-social-state is-ok">' . esc_html__( 'Formato general', 'taxocommerce-social' ) . '</span>' . '</div>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_network_save_templates">';
     wp_nonce_field('tcsocial_network_save_templates');
@@ -2870,12 +2870,12 @@ function tcsocial_network_render_templates()
     }
     echo '</div>';
 
-    echo '<div class="seo-social-vars"><strong>Variables disponibles:</strong> ';
+    echo '<div class="seo-social-vars">' . '<strong>' . esc_html__( 'Variables disponibles:', 'taxocommerce-social' ) . '</strong>' . ' ';
     foreach (array('{titulo}', '{extracto}', '{fecha}', '{url}', '{sitio}', '{autor}', '{tipo}', '{categorias}', '{imagen}', '{campana}', '{producto}', '{precio_regular}', '{precio_oferta}', '{descuento}', '{descuento_pct}', '{fecha_inicio}', '{fecha_fin}') as $var) {
         echo '<code>' . esc_html($var) . '</code>';
     }
     echo '</div>';
-    echo '<div class="seo-social-actions"><button type="submit" class="button button-primary">Guardar plantillas</button></div>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar plantillas', 'taxocommerce-social' ) . '</button>' . '</div>';
     echo '</form></section>';
 }
 
@@ -2888,18 +2888,18 @@ function tcsocial_network_render_automation()
     $providers = tcsocial_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Publicación automática</h2><p>Activa esta opción únicamente si quieres que una pieza se publique en redes la primera vez que pasa a estado Publicado en WordPress. No cambia el formato: utiliza las plantillas generales.</p></div><span class="seo-social-state">Disparador</span></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Publicación automática', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Activa esta opción únicamente si quieres que una pieza se publique en redes la primera vez que pasa a estado Publicado en WordPress. No cambia el formato: utiliza las plantillas generales.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<span class="seo-social-state">' . esc_html__( 'Disparador', 'taxocommerce-social' ) . '</span>' . '</div>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_network_save_automation">';
     wp_nonce_field('tcsocial_network_save_automation');
 
-    echo '<h3 style="margin-top:20px">Qué contenido activa la automatización</h3>';
+    echo '<h3 style="margin-top:20px">' . esc_html__( 'Qué contenido activa la automatización', 'taxocommerce-social' ) . '</h3>';
     echo '<div class="seo-social-automation-options">';
     echo '<label class="seo-social-option"><input type="checkbox" name="auto_publish[post]" value="1" ' . checked(!empty($settings['auto_publish']['post']), true, false) . '> <strong style="display:inline">Entradas</strong><small>Solo en la primera transición a Publicado.</small></label>';
     echo '<label class="seo-social-option"><input type="checkbox" name="auto_publish[page]" value="1" ' . checked(!empty($settings['auto_publish']['page']), true, false) . '> <strong style="display:inline">Páginas / Landings</strong><small>Solo en la primera transición a Publicado.</small></label>';
     echo '</div>';
 
-    echo '<h3 style="margin-top:22px">Redes de destino</h3>';
+    echo '<h3 style="margin-top:22px">' . esc_html__( 'Redes de destino', 'taxocommerce-social' ) . '</h3>';
     echo '<div class="seo-social-network-checks">';
     foreach ($providers as $provider_key => $provider) {
         $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
@@ -2908,8 +2908,8 @@ function tcsocial_network_render_automation()
         echo '<label class="seo-social-network-check"><input type="checkbox" name="auto_publish_providers[' . esc_attr($provider_key) . ']" value="1" ' . checked($checked, true, false) . '> ' . esc_html($label) . ' <span class="seo-social-state ' . ($connected ? 'is-ok' : '') . '">' . esc_html($connected ? 'conectado' : 'sin conectar') . '</span></label>';
     }
     echo '</div>';
-    echo '<p class="seo-social-help">Una red no conectada no publicará aunque esté seleccionada. Las ediciones posteriores del contenido no generan duplicados automáticos.</p>';
-    echo '<div class="seo-social-actions"><button type="submit" class="button button-primary">Guardar automatización</button></div>';
+    echo '<p class="seo-social-help">' . esc_html__( 'Una red no conectada no publicará aunque esté seleccionada. Las ediciones posteriores del contenido no generan duplicados automáticos.', 'taxocommerce-social' ) . '</p>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar automatización', 'taxocommerce-social' ) . '</button>' . '</div>';
     echo '</form></section>';
 }
 
@@ -2922,7 +2922,7 @@ function tcsocial_network_render_scheduler()
     $providers = tcsocial_network_get_providers();
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Programador</h2><p>Las ofertas de campaña salen a las <strong>18:00</strong>. Las entradas de <strong>Noticias</strong> salen a las <strong>20:00</strong> y pueden marcarse como prioritarias para adelantar a las noticias normales. Páginas y landings mantienen fecha y hora manual.</p></div><span class="seo-social-state is-scheduled">Agenda</span></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Programador', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Las ofertas de campaña salen a las', 'taxocommerce-social' ) . ' ' . '<strong>' . '18:00' . '</strong>' . esc_html__( '. Las entradas de', 'taxocommerce-social' ) . ' ' . '<strong>' . esc_html__( 'Noticias', 'taxocommerce-social' ) . '</strong>' . ' ' . esc_html__( 'salen a las', 'taxocommerce-social' ) . ' ' . '<strong>' . '20:00' . '</strong>' . ' ' . esc_html__( 'y pueden marcarse como prioritarias para adelantar a las noticias normales. Páginas y landings mantienen fecha y hora manual.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<span class="seo-social-state is-scheduled">' . esc_html__( 'Agenda', 'taxocommerce-social' ) . '</span>' . '</div>';
 
     echo '<div class="seo-social-scheduler-io">';
     echo '<div class="seo-social-scheduler-io__block"><h3>Programacion masiva con Excel / CSV</h3><p class="seo-social-help">Descarga la lista de contenidos, prepara la hoja en Excel y guardala como <strong>CSV UTF-8</strong>. Columnas obligatorias: <code>contenido_id</code>, <code>redes</code> y <code>fecha_hora</code>. Para Noticias puedes añadir <code>prioridad</code> con valor <code>si</code> o <code>1</code>; la hora se normaliza automáticamente a las 20:00. En <code>redes</code> puedes usar una o varias, por ejemplo <code>facebook,instagram,x</code>. Las fechas aceptan <code>2026-09-25 10:30</code> o <code>25/09/2026 10:30</code>.</p>';
@@ -2930,16 +2930,16 @@ function tcsocial_network_render_scheduler()
     echo '<input type="hidden" name="action" value="tcsocial_network_scheduler_import_preview">';
     wp_nonce_field('tcsocial_network_scheduler_import');
     echo '<input type="file" name="schedule_csv" accept=".csv,.txt,.tsv,text/csv,text/plain" required>';
-    echo '<button type="submit" class="button button-primary">Validar CSV antes de importar</button></form></div>';
+    echo '<button type="submit" class="button button-primary">' . esc_html__( 'Validar CSV antes de importar', 'taxocommerce-social' ) . '</button>' . '</form>' . '</div>';
 
-    echo '<div class="seo-social-scheduler-io__block"><h3>Exportar</h3><p class="seo-social-help">Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con Excel en configuraciones regionales españolas.</p>';
+    echo '<div class="seo-social-scheduler-io__block">' . '<h3>' . esc_html__( 'Exportar', 'taxocommerce-social' ) . '</h3>' . '<p class="seo-social-help">' . esc_html__( 'Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con Excel en configuraciones regionales españolas.', 'taxocommerce-social' ) . '</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="seo-social-export-actions">';
     echo '<input type="hidden" name="action" value="tcsocial_network_scheduler_export">';
     wp_nonce_field('tcsocial_network_scheduler_export');
-    echo '<button class="button" type="submit" name="export_kind" value="template">Descargar plantilla CSV</button>';
-    echo '<button class="button" type="submit" name="export_kind" value="content">Exportar contenidos</button>';
-    echo '<button class="button" type="submit" name="export_kind" value="agenda">Exportar agenda</button>';
-    echo '<button class="button" type="submit" name="export_kind" value="history">Exportar historial</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="template">' . esc_html__( 'Descargar plantilla CSV', 'taxocommerce-social' ) . '</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="content">' . esc_html__( 'Exportar contenidos', 'taxocommerce-social' ) . '</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="agenda">' . esc_html__( 'Exportar agenda', 'taxocommerce-social' ) . '</button>';
+    echo '<button class="button" type="submit" name="export_kind" value="history">' . esc_html__( 'Exportar historial', 'taxocommerce-social' ) . '</button>';
     echo '</form></div></div>';
 
     $import_token = sanitize_key((string) tcsocial_network_query_arg('import_key', ''));
@@ -2963,7 +2963,7 @@ function tcsocial_network_render_scheduler()
         }
 
         echo '<div class="seo-social-import-preview"><div class="seo-social-intro"><div><h3>Previsualizacion de importacion</h3><p>Valida antes de crear tareas. Las filas con error no se importaran. Si ya existe una programacion para el mismo contenido y red, se reprogramara a la nueva fecha.</p></div><span class="seo-social-state ' . ($error_count ? 'is-pending' : 'is-ok') . '">' . esc_html((string) $valid_count) . ' validas · ' . esc_html((string) $error_count) . ' con error</span></div>';
-        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fila</th><th>Contenido</th><th>Red</th><th>Fecha y hora</th><th>Prioridad</th><th>Resultado</th></tr></thead><tbody>';
+        echo '<div class="seo-social-table-wrap">' . '<table class="seo-social-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fila', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Contenido', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Red', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Fecha y hora', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($import_preview['entries'] as $entry) {
             $errors = isset($entry['errors']) && is_array($entry['errors']) ? $entry['errors'] : array();
             $state_class = !empty($errors) ? 'is-failed' : (!empty($entry['existing_at']) ? 'is-pending' : 'is-ok');
@@ -3003,22 +3003,22 @@ function tcsocial_network_render_scheduler()
 
     echo '<form method="get" class="seo-social-filterbar" style="margin-top:18px">';
     echo '<input type="hidden" name="page" value="taxocommerce-social"><input type="hidden" name="tab" value="calendar"><input type="hidden" name="social_subtab" value="scheduler">';
-    echo '<div class="seo-social-field"><label>Tipo</label><select name="social_type"><option value="">Entradas + Páginas/Landings</option>';
+    echo '<div class="seo-social-field">' . '<label>' . esc_html__( 'Tipo', 'taxocommerce-social' ) . '</label>' . '<select name="social_type">' . '<option value="">' . esc_html__( 'Entradas + Páginas/Landings', 'taxocommerce-social' ) . '</option>';
     $current_type = sanitize_key((string) tcsocial_network_query_arg('social_type', ''));
     echo '<option value="post" ' . selected($current_type, 'post', false) . '>Entradas</option><option value="page" ' . selected($current_type, 'page', false) . '>Páginas / Landings</option></select></div>';
     $search = sanitize_text_field((string) tcsocial_network_query_arg('social_search', ''));
     echo '<div class="seo-social-field is-search"><label>Buscar contenido</label><input type="text" name="social_search" value="' . esc_attr($search) . '" placeholder="Título del contenido..."></div>';
-    echo '<button class="button" type="submit">Filtrar</button>';
+    echo '<button class="button" type="submit">' . esc_html__( 'Filtrar', 'taxocommerce-social' ) . '</button>';
     echo '</form>';
 
     $query = tcsocial_network_publications_query();
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_network_scheduler_action">';
     wp_nonce_field('tcsocial_network_scheduler');
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Redes</th><th>Fecha / prioridad</th><th>Acción</th></tr></thead><tbody>';
+    echo '<div class="seo-social-table-wrap">' . '<table class="seo-social-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Contenido', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Redes', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Fecha / prioridad', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Acción', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     if (!$query->have_posts()) {
-        echo '<tr><td colspan="4">No se ha encontrado contenido publicado.</td></tr>';
+        echo '<tr>' . '<td colspan="4">' . esc_html__( 'No se ha encontrado contenido publicado.', 'taxocommerce-social' ) . '</td>' . '</tr>';
     }
 
     while ($query->have_posts()) {
@@ -3065,15 +3065,15 @@ function tcsocial_network_render_scheduler()
 
         if ($is_news) {
             echo '<td class="seo-social-date"><input type="date" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha para ' . esc_attr(get_the_title($post)) . '">';
-            echo '<p class="seo-social-help"><strong>Hora fija: 20:00.</strong> Una noticia prioritaria adelanta a las no prioritarias ya programadas en cada red seleccionada.</p>';
+            echo '<p class="seo-social-help">' . '<strong>' . esc_html__( 'Hora fija: 20:00.', 'taxocommerce-social' ) . '</strong>' . ' ' . esc_html__( 'Una noticia prioritaria adelanta a las no prioritarias ya programadas en cada red seleccionada.', 'taxocommerce-social' ) . '</p>';
             echo '<label style="display:inline-flex;align-items:center;gap:7px;margin-top:6px;font-weight:600"><input type="checkbox" name="priority[' . esc_attr((string) $post->ID) . ']" value="1" ' . checked($news_priority, true, false) . '> Prioritaria</label></td>';
         } else {
             echo '<td class="seo-social-date"><input type="date" name="schedule_at[' . esc_attr((string) $post->ID) . ']" aria-label="Fecha para ' . esc_attr(get_the_title($post)) . '">';
-            echo '<p class="seo-social-help"><strong>Hora fija: 22:00.</strong> Entradas y páginas/landings comparten un hueco diario y se alternan cuando existen ambos tipos.</p></td>';
+            echo '<p class="seo-social-help">' . '<strong>' . esc_html__( 'Hora fija: 22:00.', 'taxocommerce-social' ) . '</strong>' . ' ' . esc_html__( 'Entradas y páginas/landings comparten un hueco diario y se alternan cuando existen ambos tipos.', 'taxocommerce-social' ) . '</p>' . '</td>';
         }
 
         echo '<td><div class="seo-social-row-actions" style="margin-top:0"><button type="submit" name="schedule_content_id" value="' . esc_attr((string) $post->ID) . '" class="button button-primary" ' . disabled(!$has_connected, true, false) . '>Programar</button><button type="submit" name="publish_content_id" value="' . esc_attr((string) $post->ID) . '" class="button" ' . disabled(!$has_connected, true, false) . '>Publicar ahora</button></div>';
-        echo '<details style="margin-top:9px"><summary style="cursor:pointer">Vista previa</summary><div class="seo-social-template-preview-grid">';
+        echo '<details style="margin-top:9px">' . '<summary style="cursor:pointer">' . esc_html__( 'Vista previa', 'taxocommerce-social' ) . '</summary>' . '<div class="seo-social-template-preview-grid">';
         foreach ($providers as $provider_key => $provider) {
             $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
             $template = tcsocial_network_get_template_for_content($post, $provider_key);
@@ -3087,7 +3087,7 @@ function tcsocial_network_render_scheduler()
     wp_reset_postdata();
 
     echo '</tbody></table></div></form>';
-    echo '<p class="seo-social-code-note"><strong>Cómo funciona:</strong> ofertas de campaña a las 18:00, Noticias a las 20:00 y el resto de entradas junto con páginas/landings a las 22:00. Las Noticias prioritarias adelantan a las Noticias normales. La cola de las 22:00 alterna entrada y página/landing cuando existen ambos tipos. WordPress ejecuta las tareas con WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente petición al sitio.</p>';
+    echo '<p class="seo-social-code-note">' . '<strong>' . esc_html__( 'Cómo funciona:', 'taxocommerce-social' ) . '</strong>' . ' ' . esc_html__( 'ofertas de campaña a las 18:00, Noticias a las 20:00 y el resto de entradas junto con páginas/landings a las 22:00. Las Noticias prioritarias adelantan a las Noticias normales. La cola de las 22:00 alterna entrada y página/landing cuando existen ambos tipos. WordPress ejecuta las tareas con WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente petición al sitio.', 'taxocommerce-social' ) . '</p>';
     echo '</section>';
 }
 
@@ -3130,7 +3130,7 @@ function tcsocial_network_render_reports()
     echo '</div>';
 
     echo '<section class="seo-social-card">';
-    echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap"><div><h2>Rendimiento por publicacion</h2><p>Las visitas a la web se miden con el enlace etiquetado generado por el plugin. Las interacciones se sincronizan desde cada proveedor cuando su API lo permite.</p></div>';
+    echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">' . '<div>' . '<h2>' . esc_html__( 'Rendimiento por publicacion', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Las visitas a la web se miden con el enlace etiquetado generado por el plugin. Las interacciones se sincronizan desde cada proveedor cuando su API lo permite.', 'taxocommerce-social' ) . '</p>' . '</div>';
     echo '<div class="seo-social-actions" style="margin-top:0">';
     foreach (tcsocial_network_get_providers() as $provider_key => $provider) {
         if (empty($provider['sync_callback']) || !is_callable($provider['sync_callback'])) {
@@ -3142,7 +3142,7 @@ function tcsocial_network_render_reports()
         echo '<button type="submit" class="button button-primary">Actualizar metricas de ' . esc_html($label) . '</button></form>';
     }
     echo '</div></div>';
-    echo '<p class="seo-social-code-note">La metrica <strong>Visitas a la web</strong> no depende de Facebook: se incrementa cuando alguien entra mediante el enlace social firmado. Esto permite comparar que publicaciones traen trafico real al sitio.</p>';
+    echo '<p class="seo-social-code-note">' . esc_html__( 'La metrica', 'taxocommerce-social' ) . ' ' . '<strong>' . esc_html__( 'Visitas a la web', 'taxocommerce-social' ) . '</strong>' . ' ' . esc_html__( 'no depende de Facebook: se incrementa cuando alguien entra mediante el enlace social firmado. Esto permite comparar que publicaciones traen trafico real al sitio.', 'taxocommerce-social' ) . '</p>';
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Consulta para planificacion/exportacion/reportes con filtros exactos; datos recientes sin cache persistente.
     $rows = $wpdb->get_results(
@@ -3153,9 +3153,9 @@ function tcsocial_network_render_reports()
         )
     );
 
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Contenido</th><th>Red</th><th>Estado</th><th>Fecha</th><th>Visitas web</th><th>Reacciones</th><th>Comentarios</th><th>Compartidos</th><th>Enlace</th></tr></thead><tbody>';
+    echo '<div class="seo-social-table-wrap">' . '<table class="seo-social-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Contenido', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Red', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Fecha', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Visitas web', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Reacciones', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Comentarios', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Compartidos', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Enlace', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     if (empty($rows)) {
-        echo '<tr><td colspan="9">Aun no hay publicaciones sociales registradas.</td></tr>';
+        echo '<tr>' . '<td colspan="9">' . esc_html__( 'Aun no hay publicaciones sociales registradas.', 'taxocommerce-social' ) . '</td>' . '</tr>';
     }
     foreach ((array) $rows as $row) {
         echo '<tr>';

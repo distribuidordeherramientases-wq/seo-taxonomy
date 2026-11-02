@@ -1,3 +1,7 @@
+## Unreleased - Familia i18n #2062
+
+- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
+
 # CHANGELOG — TaxoCommerce Database
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).

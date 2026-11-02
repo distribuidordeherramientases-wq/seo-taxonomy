@@ -27,7 +27,7 @@ final class SEO_Ojeador_Admin {
     }
 
     public static function register_page() {
-        add_submenu_page(null, 'Ojeador', 'Ojeador', 'manage_options', self::PAGE, array(__CLASS__, 'render'));
+        add_submenu_page(null, __( 'Ojeador', 'taxocommerce-scrappers' ), __( 'Ojeador', 'taxocommerce-scrappers' ), 'manage_options', self::PAGE, array(__CLASS__, 'render'));
     }
 
     public static function register_tool_card($tools) {

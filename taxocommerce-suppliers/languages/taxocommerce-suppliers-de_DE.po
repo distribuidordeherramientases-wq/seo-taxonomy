@@ -1,0 +1,89 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-suppliers\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-suppliers.php includes/class-tcsup-admin.php:41
+#: includes/class-tcsup-admin.php:49 includes/class-tcsup-admin.php:50
+msgid "TaxoCommerce Suppliers"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-suppliers.php
+msgid ""
+"Supplier catalogue intake, purchasing, product decisions, supplier prices, "
+"WooCommerce linking, and external image references."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-suppliers.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/class-tcsup-admin.php:42
+msgid "Suppliers"
+msgstr ""
+
+#: includes/class-tcsup-admin.php:74
+msgid "You do not have permission to manage TaxoCommerce Suppliers."
+msgstr ""
+
+#: includes/class-tcsup-admin.php:203
+msgid "CSV mapping template saved."
+msgstr ""
+
+#: includes/class-tcsup-admin.php:206
+msgid "Price data saved."
+msgstr ""
+
+#: includes/class-tcsup-admin.php:209
+msgid "External image references saved."
+msgstr ""
+
+#: includes/class-tcsup-autotest.php:88
+msgid "No tienes permisos para ejecutar el autotest."
+msgstr ""
+
+#: includes/class-tcsup-autotest.php:90
+msgid "Autotest de Suppliers"
+msgstr ""
+
+#: includes/class-tcsup-autotest.php:90
+msgid ""
+"Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos "
+"ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes "
+"HTTP."
+msgstr ""
+
+#: includes/class-tcsup-autotest.php:98
+msgid ""
+"Los resultados solo se muestran cuando se pulsa el botón; no se guardan."
+msgstr ""
+
+#: includes/class-tcsup-autotest.php:123
+msgid ""
+"Autotest de disponibilidad, no de resultados comerciales o de importación. "
+"No repara ni modifica tablas."
+msgstr ""
+
+#: includes/class-tcsup-csv.php:155
+msgid "You do not have permission to manage supplier imports."
+msgstr ""
+
+#: includes/class-tcsup-manual.php:15
+msgid "No tienes permisos para consultar el manual."
+msgstr ""
+
+#: includes/class-tcsup-products.php:15
+msgid "You do not have permission to manage supplier products."
+msgstr ""
+
+#: includes/class-tcsup-purchasing.php:184
+msgid "WooCommerce must be active to resolve sales into supplier purchases."
+msgstr ""

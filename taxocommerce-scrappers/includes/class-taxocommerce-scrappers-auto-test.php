@@ -138,8 +138,8 @@ final class TaxoCommerce_Scrappers_Auto_Test {
             wp_die( esc_html__( 'No tienes permisos para ejecutar el autotest.', 'taxocommerce-scrappers' ) );
         }
         echo '<div class="wrap taxocommerce-scrappers-autotest">';
-        echo '<h2>Autotest de Scrappers</h2>';
-        echo '<p>Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.</p>';
+        echo '<h2>' . esc_html__( 'Autotest de Scrappers', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<form method="post">';
         wp_nonce_field( 'taxocommerce_scrappers_autotest' );
         echo '<input type="hidden" name="tcs_run_autotest" value="1">';
@@ -148,7 +148,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
 
         // Intentional POST: read-only diagnostics run only after explicit admin action.
         if ( ! isset( $_POST['tcs_run_autotest'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified below before running checks.
-            echo '<p>El autotest aún no se ha ejecutado en esta visita.</p></div>';
+            echo '<p>' . esc_html__( 'El autotest aún no se ha ejecutado en esta visita.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
             return;
         }
         check_admin_referer( 'taxocommerce_scrappers_autotest' );
@@ -172,7 +172,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
                 }
                 $group = $check['group'];
                 echo '<h3>' . esc_html( $group ) . '</h3>';
-                echo '<table class="widefat striped"><thead><tr><th scope="col">Comprobación</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead><tbody>';
+                echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th scope="col">' . esc_html__( 'Comprobación', 'taxocommerce-scrappers' ) . '</th>' . '<th scope="col">' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '<th scope="col">' . esc_html__( 'Detalle', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             }
             $states = array( 'ok' => 'Correcto', 'warning' => 'Aviso', 'error' => 'Error' );
             echo '<tr><th scope="row">' . esc_html( $check['name'] ) . '</th><td><strong>' . esc_html( $states[ $check['status'] ] ) . '</strong></td><td>' . esc_html( $check['detail'] ) . '</td></tr>';
@@ -180,6 +180,6 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         if ( '' !== $group ) {
             echo '</tbody></table>';
         }
-        echo '<p class="description">El resultado es puntual, no se guarda. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.</p></div>';
+        echo '<p class="description">' . esc_html__( 'El resultado es puntual, no se guarda. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
     }
 }

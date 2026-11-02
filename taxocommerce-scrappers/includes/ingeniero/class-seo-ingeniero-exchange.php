@@ -69,9 +69,9 @@ final class SEO_Ingeniero_Exchange {
 
     public static function render_panel() {
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Importar / Exportar conocimiento</h3>';
+        echo '<h3 style="margin-top:0">' . esc_html__( 'Importar / Exportar conocimiento', 'taxocommerce-scrappers' ) . '</h3>';
         echo '<p>Permite incorporar investigación realizada fuera de SerpApi. <strong>Todo conocimiento importado entra en estado <code>review</code></strong> y debe conservar al menos una fuente original con URL.</p>';
-        echo '<p class="description">Formato canónico: JSON. CSV sirve para trabajo manual o investigación externa por filas. La importación no publica contenido ni modifica el índice comercial de Dependiente.</p>';
+        echo '<p class="description">' . esc_html__( 'Formato canónico: JSON. CSV sirve para trabajo manual o investigación externa por filas. La importación no publica contenido ni modifica el índice comercial de Dependiente.', 'taxocommerce-scrappers' ) . '</p>';
 
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px">';
         self::render_action_form('seo_ingeniero_exchange_export_json', 'Exportar conocimiento JSON', 'secondary');
@@ -84,26 +84,26 @@ final class SEO_Ingeniero_Exchange {
         wp_nonce_field('seo_ingeniero_exchange_import');
 
         echo '<table class="form-table"><tbody>';
-        echo '<tr><th scope="row"><label for="seo-ingeniero-import-file">Archivo</label></th><td>';
+        echo '<tr>' . '<th scope="row">' . '<label for="seo-ingeniero-import-file">' . esc_html__( 'Archivo', 'taxocommerce-scrappers' ) . '</label>' . '</th>' . '<td>';
         echo '<input id="seo-ingeniero-import-file" type="file" name="ingeniero_file" accept=".json,.csv,application/json,text/csv" required>';
-        echo '<p class="description">Máximo 10 MB. JSON o CSV UTF-8.</p></td></tr>';
+        echo '<p class="description">' . esc_html__( 'Máximo 10 MB. JSON o CSV UTF-8.', 'taxocommerce-scrappers' ) . '</p>' . '</td>' . '</tr>';
 
-        echo '<tr><th scope="row">Modo</th><td><select name="import_mode">';
-        echo '<option value="add_only">Añadir solo conocimiento que no exista</option>';
-        echo '<option value="update_review">Actualizar existentes y dejar en revisión</option>';
-        echo '</select><p class="description">El modo seguro es “Añadir solo”. Nunca activa automáticamente conocimiento importado.</p></td></tr>';
+        echo '<tr>' . '<th scope="row">' . esc_html__( 'Modo', 'taxocommerce-scrappers' ) . '</th>' . '<td>' . '<select name="import_mode">';
+        echo '<option value="add_only">' . esc_html__( 'Añadir solo conocimiento que no exista', 'taxocommerce-scrappers' ) . '</option>';
+        echo '<option value="update_review">' . esc_html__( 'Actualizar existentes y dejar en revisión', 'taxocommerce-scrappers' ) . '</option>';
+        echo '</select>' . '<p class="description">' . esc_html__( 'El modo seguro es “Añadir solo”. Nunca activa automáticamente conocimiento importado.', 'taxocommerce-scrappers' ) . '</p>' . '</td>' . '</tr>';
 
-        echo '<tr><th scope="row">Categoría</th><td>';
-        echo '<label><input type="checkbox" name="strict_category" value="1" checked> Exigir que cada fila/objeto pueda resolverse a una categoría WooCommerce existente</label>';
-        echo '<p class="description">Se intenta resolver por term_id y, si no coincide, por slug y nombre.</p></td></tr>';
+        echo '<tr>' . '<th scope="row">' . esc_html__( 'Categoría', 'taxocommerce-scrappers' ) . '</th>' . '<td>';
+        echo '<label>' . '<input type="checkbox" name="strict_category" value="1" checked>' . ' ' . esc_html__( 'Exigir que cada fila/objeto pueda resolverse a una categoría WooCommerce existente', 'taxocommerce-scrappers' ) . '</label>';
+        echo '<p class="description">' . esc_html__( 'Se intenta resolver por term_id y, si no coincide, por slug y nombre.', 'taxocommerce-scrappers' ) . '</p>' . '</td>' . '</tr>';
         echo '</tbody></table>';
 
         submit_button('Importar conocimiento', 'primary', 'submit', false);
         echo '</form>';
 
-        echo '<details style="margin-top:18px"><summary><strong>Columnas CSV</strong></summary>';
+        echo '<details style="margin-top:18px">' . '<summary>' . '<strong>' . esc_html__( 'Columnas CSV', 'taxocommerce-scrappers' ) . '</strong>' . '</summary>';
         echo '<p><code>term_id, category_slug, category_name, lesson, knowledge_type, concept, summary, confidence, tags, source_url, source_title, source_type, trust_level, evidence</code></p>';
-        echo '<p class="description">Una fila representa una relación conocimiento ↔ fuente. Para aportar varias fuentes al mismo conocimiento, repite term_id + lesson + knowledge_type con otra source_url.</p>';
+        echo '<p class="description">' . esc_html__( 'Una fila representa una relación conocimiento ↔ fuente. Para aportar varias fuentes al mismo conocimiento, repite term_id + lesson + knowledge_type con otra source_url.', 'taxocommerce-scrappers' ) . '</p>';
         echo '</details>';
 
         echo '</div>';

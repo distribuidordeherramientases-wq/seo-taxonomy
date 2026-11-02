@@ -376,16 +376,16 @@ if (!function_exists('seo_analista_render_bing_settings_form')) {
         if (!current_user_can('manage_options')) return;
         $settings = seo_analista_bing_get_settings();
         $configured = seo_analista_bing_api_key() !== '';
-        echo '<details class="seo-analista-sources"><summary><strong>Bing Webmaster</strong> · conexion complementaria</summary>';
+        echo '<details class="seo-analista-sources">' . '<summary>' . '<strong>' . esc_html__( 'Bing Webmaster', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( '· conexion complementaria', 'taxocommerce-google-bing' ) . '</summary>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:14px;max-width:780px">';
         echo '<input type="hidden" name="action" value="seo_analista_save_bing_settings">';
         wp_nonce_field('seo_analista_save_bing_settings', 'seo_analista_bing_nonce');
         echo '<p><label><input type="checkbox" name="bing_enabled" value="1" ' . checked(!empty($settings['enabled']), true, false) . '> Activar Bing como fuente secundaria del Analista</label></p>';
         echo '<p><strong>URL verificada en Bing Webmaster</strong><br><input class="regular-text code" type="url" name="bing_site_url" value="' . esc_attr((string) ($settings['site_url'] ?? home_url('/'))) . '"></p>';
         echo '<p><strong>API key de Bing Webmaster</strong><br><input class="regular-text" type="password" autocomplete="new-password" name="bing_api_key" value="" placeholder="' . esc_attr($configured ? 'Clave ya configurada; dejala vacia para conservarla' : 'Pega aqui la API key') . '"></p>';
-        if ($configured && !defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p><label><input type="checkbox" name="bing_clear_api_key" value="1"> Eliminar la API key guardada</label></p>';
-        if (defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p class="description">La clave se esta leyendo desde SEO_BING_WEBMASTER_API_KEY y no se guarda en Analista.</p>';
-        echo '<p class="description">IndexNow no se duplica: Cloudflare sigue siendo el responsable de los envios. Bing se usa aqui solo para lectura y comparacion.</p>';
+        if ($configured && !defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p>' . '<label>' . '<input type="checkbox" name="bing_clear_api_key" value="1">' . ' ' . esc_html__( 'Eliminar la API key guardada', 'taxocommerce-google-bing' ) . '</label>' . '</p>';
+        if (defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p class="description">' . esc_html__( 'La clave se esta leyendo desde SEO_BING_WEBMASTER_API_KEY y no se guarda en Analista.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'IndexNow no se duplica: Cloudflare sigue siendo el responsable de los envios. Bing se usa aqui solo para lectura y comparacion.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button('Guardar Bing', 'secondary', 'submit', false);
         echo '</form></details>';
     }

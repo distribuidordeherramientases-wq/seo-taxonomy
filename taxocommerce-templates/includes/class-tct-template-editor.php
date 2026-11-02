@@ -434,7 +434,7 @@ final class TCT_Template_Editor {
         echo '</form></div>';
 
         echo '<div style="overflow:auto"><table class="widefat striped" style="min-width:1050px">';
-        echo '<thead><tr><th>Archivo</th><th>Origen</th><th>Tipo</th><th>Asignado a</th><th>Tamaño</th><th>Modificado</th><th>Acciones</th></tr></thead><tbody>';
+        echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Archivo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Asignado a', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Modificado', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-templates' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
         $shown = 0;
         foreach ($files as $name) {
@@ -458,7 +458,7 @@ final class TCT_Template_Editor {
 
             echo '<tr><td><strong><code>' . esc_html($name) . '</code></strong>';
             if ($source === $name) {
-                echo '<br><span class="dashicons dashicons-arrow-right-alt" aria-hidden="true"></span> abierto';
+                echo '<br>' . '<span class="dashicons dashicons-arrow-right-alt" aria-hidden="true">' . '</span>' . ' ' . esc_html__( 'abierto', 'taxocommerce-templates' );
             }
             echo '</td><td>' . esc_html($origin) . '</td><td>' . esc_html($kind) . '</td><td>';
             if (!$assigned) {
@@ -503,18 +503,18 @@ final class TCT_Template_Editor {
         }
 
         if (!$shown) {
-            echo '<tr><td colspan="7">No hay archivos que coincidan con el filtro.</td></tr>';
+            echo '<tr>' . '<td colspan="7">' . esc_html__( 'No hay archivos que coincidan con el filtro.', 'taxocommerce-templates' ) . '</td>' . '</tr>';
         }
         echo '</tbody></table></div></section>';
     }
 
     private static function render_upload($assign, $can_edit) {
         echo '<section style="background:#fff;border:1px solid #c3c4c7;padding:16px;margin:20px 0">';
-        echo '<h2>Subir plantilla PHP</h2>';
+        echo '<h2>' . esc_html__( 'Subir plantilla PHP', 'taxocommerce-templates' ) . '</h2>';
         echo '<p>La subida se guarda en la biblioteca persistente. Si reemplazas un archivo propio existente, antes se crea una copia <code>.bak</code>.</p>';
 
         if (!$can_edit || !current_user_can('update_plugins')) {
-            echo '<div class="notice notice-warning inline"><p>La subida esta deshabilitada por permisos o por la configuracion de seguridad de WordPress.</p></div>';
+            echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'La subida esta deshabilitada por permisos o por la configuracion de seguridad de WordPress.', 'taxocommerce-templates' ) . '</p>' . '</div>';
             echo '</section>';
             return;
         }
@@ -527,7 +527,7 @@ final class TCT_Template_Editor {
             echo '<p>Al completar la subida se asociara a <code>' . esc_html($assign) . '</code>.</p>';
         }
         echo '<input type="file" name="template_file" accept=".php" required> ';
-        echo '<label><input type="checkbox" name="replace" value="1"> Reemplazar archivo propio existente y crear backup</label> ';
+        echo '<label>' . '<input type="checkbox" name="replace" value="1">' . ' ' . esc_html__( 'Reemplazar archivo propio existente y crear backup', 'taxocommerce-templates' ) . '</label>' . ' ';
         submit_button('Subir a la biblioteca','secondary','submit',false);
         echo '</form></section>';
     }
@@ -572,20 +572,20 @@ final class TCT_Template_Editor {
         }
 
         if (!$embedded) {
-            echo '<div class="wrap tct-template-editor"><h1>Editor y biblioteca de plantillas</h1>';
+            echo '<div class="wrap tct-template-editor">' . '<h1>' . esc_html__( 'Editor y biblioteca de plantillas', 'taxocommerce-templates' ) . '</h1>';
         }
-        echo '<p>El gestor antiguo de archivos queda centralizado aqui: puedes consultar todas las plantillas, subir archivos, duplicarlos, descargar una copia, crear variantes y editar el PHP propio.</p>';
-        echo '<p>Los archivos integrados en el plugin son de <strong>solo lectura</strong>. Cualquier cambio se guarda como copia persistente fuera de la carpeta del plugin.</p>';
+        echo '<p>' . esc_html__( 'El gestor antiguo de archivos queda centralizado aqui: puedes consultar todas las plantillas, subir archivos, duplicarlos, descargar una copia, crear variantes y editar el PHP propio.', 'taxocommerce-templates' ) . '</p>';
+        echo '<p>' . esc_html__( 'Los archivos integrados en el plugin son de', 'taxocommerce-templates' ) . ' ' . '<strong>' . esc_html__( 'solo lectura', 'taxocommerce-templates' ) . '</strong>' . esc_html__( '. Cualquier cambio se guarda como copia persistente fuera de la carpeta del plugin.', 'taxocommerce-templates' ) . '</p>';
 
         if (!$can_edit) {
-            echo '<div class="notice notice-warning"><p>La edicion PHP esta deshabilitada por la configuracion de seguridad o por los permisos del usuario. Puedes consultar y descargar archivos, pero no guardarlos.</p></div>';
+            echo '<div class="notice notice-warning">' . '<p>' . esc_html__( 'La edicion PHP esta deshabilitada por la configuracion de seguridad o por los permisos del usuario. Puedes consultar y descargar archivos, pero no guardarlos.', 'taxocommerce-templates' ) . '</p>' . '</div>';
         }
 
         self::render_library($source);
         self::render_upload($assign, $can_edit);
 
         echo '<section style="background:#fff;border:1px solid #c3c4c7;padding:16px;margin-top:20px">';
-        echo '<h2>Editor de codigo PHP</h2>';
+        echo '<h2>' . esc_html__( 'Editor de codigo PHP', 'taxocommerce-templates' ) . '</h2>';
 
         if ($original_path) {
             echo '<p>Codigo inicial tomado de la plantilla original de WordPress/WooCommerce: <code>' . esc_html(basename($original_path)) . '</code>.</p>';
@@ -605,14 +605,14 @@ final class TCT_Template_Editor {
             echo '<input type="hidden" name="assign_request" value="' . esc_attr($assign) . '">';
             echo '<p>Destino: <code>' . esc_html($assign) . '</code>. Al guardar correctamente, el archivo quedara asociado a esa peticion.</p>';
         }
-        echo '<p><label for="tct_filename"><strong>Guardar en archivo</strong></label> ';
+        echo '<p>' . '<label for="tct_filename">' . '<strong>' . esc_html__( 'Guardar en archivo', 'taxocommerce-templates' ) . '</strong>' . '</label>' . ' ';
         echo '<input type="text" name="filename" id="tct_filename" value="' . esc_attr($filename) . '" size="44" required ' . disabled(!$can_edit,true,false) . '></p>';
 
         if ($bundled && $target === '') {
             echo '<p class="description">La plantilla integrada no se sobrescribe; se guardara como <code>' . esc_html($filename) . '</code>.</p>';
         }
 
-        echo '<label for="tct_code"><strong>Contenido de la plantilla</strong></label>';
+        echo '<label for="tct_code">' . '<strong>' . esc_html__( 'Contenido de la plantilla', 'taxocommerce-templates' ) . '</strong>' . '</label>';
         echo '<textarea name="code" id="tct_code" rows="30" style="width:100%;font-family:monospace;font-size:13px;tab-size:4" spellcheck="false" ' .
             disabled(!$can_edit,true,false) . '>' . esc_textarea($code) . '</textarea>';
         echo '<p><label><input type="checkbox" name="confirm_replace" value="1" ' . disabled(!$can_edit,true,false) . '> Confirmo que deseo sobrescribir el archivo propio si ya existe; se guardara una copia de seguridad.</label></p>';

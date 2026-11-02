@@ -923,7 +923,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
         if (isset($_GET['analista_notice'])) {
             $notice = sanitize_key(wp_unslash($_GET['analista_notice']));
             if ($notice === 'competitive_generated') {
-                echo '<div class="notice notice-success inline"><p><strong>Informe competitivo generado y guardado.</strong></p></div>';
+                echo '<div class="notice notice-success inline">' . '<p>' . '<strong>' . esc_html__( 'Informe competitivo generado y guardado.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>' . '</div>';
             } elseif ($notice === 'competitive_error') {
                 $message = isset($_GET['analista_message'])
                     ? sanitize_text_field( wp_unslash( $_GET['analista_message'] ) )
@@ -934,8 +934,8 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
 
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
         echo '<section class="seo-analista-section seo-analista-forms">';
-        echo '<div class="seo-analista-section-head"><div><h2>Informe competitivo profundo</h2>';
-        echo '<p>Compara dominios con una base homogénea de evidencia pública y añade, sólo para nuestra web, Search Console, GA4 y Bing. La generación es explícita: abrir esta pantalla no consume SerpApi/ScraperAPI ni rastrea competidores.</p></div></div>';
+        echo '<div class="seo-analista-section-head">' . '<div>' . '<h2>' . esc_html__( 'Informe competitivo profundo', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Compara dominios con una base homogénea de evidencia pública y añade, sólo para nuestra web, Search Console, GA4 y Bing. La generación es explícita: abrir esta pantalla no consume SerpApi/ScraperAPI ni rastrea competidores.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
 
         echo '<div class="seo-analista-grid compact">';
         if (function_exists('seo_analista_render_metric_card')) {
@@ -959,16 +959,16 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
             );
             echo '<a class="button button-secondary" href="' . esc_url($export_url) . '">Exportar JSON</a>';
         }
-        echo '<p class="description">Coste: hasta 12 búsquedas SERP y un muestreo público acotado por dominio. SerpApi se usa primero y ScraperAPI como fallback, según la conexión compartida ya configurada.</p>';
+        echo '<p class="description">' . esc_html__( 'Coste: hasta 12 búsquedas SERP y un muestreo público acotado por dominio. SerpApi se usa primero y ScraperAPI como fallback, según la conexión compartida ya configurada.', 'taxocommerce-google-bing' ) . '</p>';
 
         if (!$report) {
-            echo '<p class="description" style="margin-top:12px;">Configura primero los dominios en <strong>Competidores</strong>. Las palabras vigiladas son opcionales.</p>';
+            echo '<p class="description" style="margin-top:12px;">' . esc_html__( 'Configura primero los dominios en', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'Competidores', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( '. Las palabras vigiladas son opcionales.', 'taxocommerce-google-bing' ) . '</p>';
             echo '</section>';
             return;
         }
 
         $summary = (array) ($report['summary'] ?? array());
-        echo '<h3>Conclusión ejecutiva</h3>';
+        echo '<h3>' . esc_html__( 'Conclusión ejecutiva', 'taxocommerce-google-bing' ) . '</h3>';
         echo '<p>' . esc_html((string) ($summary['statement'] ?? '')) . '</p>';
         echo '<p class="description">Fuente SERP: ' . esc_html((string) ($report['ranking_source'] ?? '')) . ' · Palabras analizadas: ' . esc_html(number_format_i18n(count((array) ($report['keywords'] ?? array())))) . '.</p>';
 
@@ -981,9 +981,9 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
             'ux'=>'UX',
             'technical'=>'Técnico',
         );
-        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Dominio</th>';
+        echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Dominio', 'taxocommerce-google-bing' ) . '</th>';
         foreach ($labels as $label) echo '<th>' . esc_html($label) . '</th>';
-        echo '<th>Índice</th><th>Evidencia</th></tr></thead><tbody>';
+        echo '<th>' . esc_html__( 'Índice', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Evidencia', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) ($report['matrix'] ?? array()) as $row) {
             $is_own = !empty($row['is_own']);
             echo '<tr' . ($is_own ? ' class="seo-analista-own"' : '') . '><td><strong>' . esc_html((string) ($row['domain'] ?? '')) . ($is_own ? ' · nosotros' : '') . '</strong></td>';
@@ -997,7 +997,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
         echo '</tbody></table></div>';
 
         if (!empty($report['strengths'])) {
-            echo '<h3>Dónde estamos por encima</h3><ul>';
+            echo '<h3>' . esc_html__( 'Dónde estamos por encima', 'taxocommerce-google-bing' ) . '</h3>' . '<ul>';
             foreach ((array) $report['strengths'] as $row) {
                 echo '<li><strong>' . esc_html((string) ($row['label'] ?? '')) . '</strong>: ' .
                     esc_html(number_format_i18n((float) ($row['own'] ?? 0),2) . '/5 frente a mediana ' . number_format_i18n((float) ($row['peer_median'] ?? 0),2) . '/5') . '.</li>';
@@ -1006,7 +1006,7 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
         }
 
         if (!empty($report['gaps'])) {
-            echo '<h3>Dónde estamos por debajo</h3><ul>';
+            echo '<h3>' . esc_html__( 'Dónde estamos por debajo', 'taxocommerce-google-bing' ) . '</h3>' . '<ul>';
             foreach ((array) $report['gaps'] as $row) {
                 echo '<li><strong>' . esc_html((string) ($row['label'] ?? '')) . '</strong>: ' .
                     esc_html(number_format_i18n((float) ($row['own'] ?? 0),2) . '/5 frente a mediana ' . number_format_i18n((float) ($row['peer_median'] ?? 0),2) . '/5') . '.</li>';
@@ -1014,14 +1014,14 @@ if (!function_exists('seo_analista_render_competitive_deep_panel')) {
             echo '</ul>';
         }
 
-        echo '<h3>Plan priorizado</h3>';
-        echo '<div class="seo-analista-table-wrap"><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Área</th><th>Acción</th><th>Impacto</th><th>Esfuerzo</th></tr></thead><tbody>';
+        echo '<h3>' . esc_html__( 'Plan priorizado', 'taxocommerce-google-bing' ) . '</h3>';
+        echo '<div class="seo-analista-table-wrap">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Área', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Acción', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Impacto', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Esfuerzo', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) ($report['plan'] ?? array()) as $row) {
             echo '<tr><td>' . esc_html(absint($row['priority'] ?? 0)) . '</td><td>' . esc_html((string) ($row['dimension'] ?? '')) . '</td><td>' . esc_html((string) ($row['action'] ?? '')) . '</td><td>' . esc_html((string) ($row['impact'] ?? '')) . '</td><td>' . esc_html((string) ($row['effort'] ?? '')) . '</td></tr>';
         }
         echo '</tbody></table></div>';
 
-        echo '<details style="margin-top:14px;"><summary><strong>Calidad y límites de la evidencia</strong></summary><ul>';
+        echo '<details style="margin-top:14px;">' . '<summary>' . '<strong>' . esc_html__( 'Calidad y límites de la evidencia', 'taxocommerce-google-bing' ) . '</strong>' . '</summary>' . '<ul>';
         foreach ((array) ($report['limitations'] ?? array()) as $limit) {
             echo '<li>' . esc_html((string) $limit) . '</li>';
         }

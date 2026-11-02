@@ -422,9 +422,9 @@ final class TCT_Association_Audit {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
-        echo '<div class="wrap"><h1>Auditoria de asociaciones antiguas y modernas</h1>';
+        echo '<div class="wrap">' . '<h1>' . esc_html__( 'Auditoria de asociaciones antiguas y modernas', 'taxocommerce-templates' ) . '</h1>';
         if (!TaxoCommerce_Templates::installed()) {
-            echo '<p>Tablas de asociaciones no disponibles.</p></div>';
+            echo '<p>' . esc_html__( 'Tablas de asociaciones no disponibles.', 'taxocommerce-templates' ) . '</p>' . '</div>';
             return;
         }
         $rows = self::templates_report();
@@ -432,7 +432,7 @@ final class TCT_Association_Audit {
         $totals = self::summary($rows, $mails);
         $legacy = self::legacy_directory();
         echo '<p>Los dos gestores utilizan las mismas filas de <code>seo_templates</code> y <code>seo_nodes</code> en ESTA instalacion.';
-        echo ' No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos.</p>';
+        echo ' ' . esc_html__( 'No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos.', 'taxocommerce-templates' ) . '</p>';
         echo '<p><strong>Origen de archivos antiguos:</strong> ' . ($legacy ? esc_html($legacy) : 'No se ha localizado el directorio antiguo') . '</p>';
         echo '<p><strong>Registradas:</strong> ' . (int)$totals['registered'] .
             ' · <strong>Objetos asociados activos:</strong> ' . (int)$totals['objects'] .
@@ -441,21 +441,21 @@ final class TCT_Association_Audit {
             ' · <strong>Solo en plugin antiguo:</strong> ' . (int)$totals['present_old_only'] .
             ' · <strong>Roles sin registro:</strong> ' . (int)$totals['orphan_roles'] . '</p>';
         $takeover = self::takeover_report();
-        echo '<h2>Comprobacion de cambio de plugin</h2>';
+        echo '<h2>' . esc_html__( 'Comprobacion de cambio de plugin', 'taxocommerce-templates' ) . '</h2>';
         if (!$takeover['files_present']) {
             echo '<div class="notice notice-error inline"><p><strong>No desactives todavia el gestor antiguo:</strong> hay ' .
                 (int)count($takeover['file_blockers']) . ' incidencias de archivos o relaciones pendientes.</p>';
-            echo '<details><summary>Ver incidencias de sustitucion</summary><ul>';
+            echo '<details>' . '<summary>' . esc_html__( 'Ver incidencias de sustitucion', 'taxocommerce-templates' ) . '</summary>' . '<ul>';
             foreach ($takeover['file_blockers'] as $blocker) {
                 echo '<li>' . esc_html($blocker) . '</li>';
             }
             echo '</ul></details></div>';
         } else {
-            echo '<div class="notice notice-warning inline"><p>Se han localizado todos los archivos activos registrados, ';
-            echo 'pero no se ha verificado la equivalencia funcional ni los recursos. Mantener el motor nuevo desactivado.</p></div>';
+            echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Se han localizado todos los archivos activos registrados,', 'taxocommerce-templates' ) . ' ';
+            echo esc_html__( 'pero no se ha verificado la equivalencia funcional ni los recursos. Mantener el motor nuevo desactivado.', 'taxocommerce-templates' ) . '</p>' . '</div>';
         }
-        echo '<div class="notice notice-warning inline"><p>Una asociacion guardada NO confirma que su PHP funcione sin el plugin antiguo. ';
-        echo 'Las funciones, assets y dependencias deben migrarse y probarse antes de activar el motor de plantillas.</p></div>';
+        echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Una asociacion guardada NO confirma que su PHP funcione sin el plugin antiguo.', 'taxocommerce-templates' ) . ' ';
+        echo esc_html__( 'Las funciones, assets y dependencias deben migrarse y probarse antes de activar el motor de plantillas.', 'taxocommerce-templates' ) . '</p>' . '</div>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline-block">';
         wp_nonce_field('tct_export_associations');
         echo '<input type="hidden" name="action" value="tct_export_associations">';
@@ -467,8 +467,8 @@ final class TCT_Association_Audit {
         submit_button('Recrear fichas de roles huerfanos (sin alterar relaciones)','secondary','submit',false);
         echo '</form>';
 
-        echo '<h2>Asociaciones y archivos</h2>';
-        echo '<table class="widefat striped"><thead><tr><th>Rol / tipo</th><th>Archivo asignado</th><th>Objetos</th><th>Antiguo</th><th>Nuevo</th><th>Estado</th></tr></thead><tbody>';
+        echo '<h2>' . esc_html__( 'Asociaciones y archivos', 'taxocommerce-templates' ) . '</h2>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Rol / tipo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo asignado', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Objetos', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Antiguo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Nuevo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-templates' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($rows as $item) {
             echo '<tr><td><strong>' . esc_html($item['name']) . '</strong><br><code>' . esc_html($item['key']) . '</code></td>';
             echo '<td><code>' . esc_html($item['file'] ? $item['file'] : '(sin asignar)') . '</code></td>';
@@ -477,7 +477,7 @@ final class TCT_Association_Audit {
                 echo '<br><small>' . esc_html($item['object_types']) . '</small>';
             }
             if ($item['object_count'] > 0) {
-                echo '<details><summary>Ejemplos de objetos</summary>';
+                echo '<details>' . '<summary>' . esc_html__( 'Ejemplos de objetos', 'taxocommerce-templates' ) . '</summary>';
                 foreach (self::sample_objects($item['key']) as $obj) {
                     $name = $obj->object_type . ' #' . (int)$obj->object_id;
                     if (in_array($obj->object_type, array('page','post','product'), true)) {
@@ -504,11 +504,11 @@ final class TCT_Association_Audit {
             echo '</td></tr>';
         }
         echo '</tbody></table>';
-        echo '<h2>Correos WooCommerce del gestor antiguo</h2>';
+        echo '<h2>' . esc_html__( 'Correos WooCommerce del gestor antiguo', 'taxocommerce-templates' ) . '</h2>';
         if (!$mails) {
-            echo '<p>No existen asignaciones antiguas de correo en esta base de datos.</p>';
+            echo '<p>' . esc_html__( 'No existen asignaciones antiguas de correo en esta base de datos.', 'taxocommerce-templates' ) . '</p>';
         } else {
-            echo '<table class="widefat striped"><thead><tr><th>Correo</th><th>Clave de plantilla</th><th>Archivo</th><th>Activo</th><th>Disponible en nuevo</th></tr></thead><tbody>';
+            echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Correo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Clave de plantilla', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Activo', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Disponible en nuevo', 'taxocommerce-templates' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach ($mails as $mail) {
                 echo '<tr><td>' . esc_html($mail['name']) . '<br><code>' . esc_html($mail['mail_key']) . '</code></td>';
                 echo '<td><code>' . esc_html($mail['template_key']) . '</code></td><td>' . esc_html($mail['template_file']) . '</td>';
@@ -516,7 +516,7 @@ final class TCT_Association_Audit {
             }
             echo '</tbody></table>';
         }
-        echo '<p class="description">Diagnostico local: no supone que STAGING tenga los mismos datos que produccion si la clonacion esta desactualizada.</p>';
+        echo '<p class="description">' . esc_html__( 'Diagnostico local: no supone que STAGING tenga los mismos datos que produccion si la clonacion esta desactualizada.', 'taxocommerce-templates' ) . '</p>';
         echo '</div>';
     }
 }

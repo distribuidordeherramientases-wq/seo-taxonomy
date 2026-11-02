@@ -522,7 +522,7 @@ $render_products = static function ($products, $extra_class = '') {
         $products = array_values(array_filter((array) $products, 'seo_front_es_product_is_visible'));
     }
     if (empty($products)) {
-        echo '<p class="sf-empty">No hay productos disponibles en este bloque.</p>';
+        echo '<p class="sf-empty">' . esc_html__( 'No hay productos disponibles en este bloque.', 'taxocommerce-templates' ) . '</p>';
         return;
     }
 

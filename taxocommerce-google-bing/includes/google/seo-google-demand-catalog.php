@@ -1483,7 +1483,7 @@ function seo_google_render_demand_catalog() {
     $period = seo_google_get_analysis_period($settings['property_id'], $days);
 
     if (!$period) {
-        echo '<div class="notice notice-error inline"><p>No se pudo calcular el periodo de analisis.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No se pudo calcular el periodo de analisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
 
@@ -1526,8 +1526,8 @@ function seo_google_render_demand_catalog() {
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;margin-bottom:20px;">';
     echo '<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">';
-    echo '<div><h3 style="margin:0 0 6px;">Demanda × Catalogo</h3>';
-    echo '<p style="margin:0;max-width:950px;">Relaciona consultas reales de Search Console con las categorias y productos actuales de WooCommerce. <strong>No mide todo el mercado</strong>: mide la demanda en la que Google ya relaciona alguna URL de la web. Las consultas genericas reciben menos peso para que volumen no sea igual a prioridad.</p></div>';
+    echo '<div>' . '<h3 style="margin:0 0 6px;">' . esc_html__( 'Demanda × Catalogo', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p style="margin:0;max-width:950px;">' . esc_html__( 'Relaciona consultas reales de Search Console con las categorias y productos actuales de WooCommerce.', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'No mide todo el mercado', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( ': mide la demanda en la que Google ya relaciona alguna URL de la web. Las consultas genericas reciben menos peso para que volumen no sea igual a prioridad.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     echo '<div><code>V' . esc_html(SEO_GOOGLE_DEMAND_CATALOG_VERSION) . '</code></div>';
     echo '</div>';
 
@@ -1549,7 +1549,7 @@ function seo_google_render_demand_catalog() {
     echo '</div>';
 
     echo '<div style="margin-top:16px;background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;">';
-    echo '<strong>Como leerlo:</strong> “Demanda util” = impresiones ponderadas por accionabilidad de la consulta. Search Console sirve para priorizar oportunidades, pero <strong>no autoriza por si solo a reducir o eliminar catalogo</strong>. La baja senal se muestra como demanda insuficiente o sin senal reciente hasta incorporar mas historico y datos comerciales.';
+    echo '<strong>' . esc_html__( 'Como leerlo:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( '“Demanda util” = impresiones ponderadas por accionabilidad de la consulta. Search Console sirve para priorizar oportunidades, pero', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'no autoriza por si solo a reducir o eliminar catalogo', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( '. La baja senal se muestra como demanda insuficiente o sin senal reciente hasta incorporar mas historico y datos comerciales.', 'taxocommerce-google-bing' );
     echo '</div>';
     echo '</div>';
 
@@ -1559,7 +1559,7 @@ function seo_google_render_demand_catalog() {
     echo '<input type="hidden" name="tab" value="google_intelligence">';
     echo '<input type="hidden" name="google_view" value="demand_catalog">';
 
-    echo '<label><strong>Periodo</strong><br><select name="demand_days" style="width:100%;">';
+    echo '<label>' . '<strong>' . esc_html__( 'Periodo', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="demand_days" style="width:100%;">';
     foreach (array(14, 28, 60, 90) as $option_days) {
         echo '<option value="' . absint($option_days) . '" ' . selected($days, $option_days, false) . '>' . absint($option_days) . ' dias</option>';
     }
@@ -1567,8 +1567,8 @@ function seo_google_render_demand_catalog() {
 
     echo '<label><strong>Impresiones min. por consulta+URL</strong><br><input type="number" min="0" step="1" name="demand_min" value="' . esc_attr($min_imp) . '" style="width:100%;"></label>';
 
-    echo '<label><strong>Decision</strong><br><select name="demand_decision" style="width:100%;">';
-    echo '<option value="">Todas</option>';
+    echo '<label>' . '<strong>' . esc_html__( 'Decision', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="demand_decision" style="width:100%;">';
+    echo '<option value="">' . esc_html__( 'Todas', 'taxocommerce-google-bing' ) . '</option>';
     foreach (array_keys($summary) as $option) {
         echo '<option value="' . esc_attr($option) . '" ' . selected($decision, $option, false) . '>' . esc_html($option) . '</option>';
     }
@@ -1583,7 +1583,7 @@ function seo_google_render_demand_catalog() {
 
     $diag = isset($report['diagnostics']) && is_array($report['diagnostics']) ? $report['diagnostics'] : array();
     echo '<div style="margin-top:12px;padding:10px 12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;">';
-    echo '<strong>Diagnostico de datos almacenados:</strong> ';
+    echo '<strong>' . esc_html__( 'Diagnostico de datos almacenados:', 'taxocommerce-google-bing' ) . '</strong>' . ' ';
     echo esc_html(number_format_i18n(absint($diag['stored_rows'] ?? 0))) . ' filas totales · ';
     echo esc_html(number_format_i18n(absint($diag['current_rows'] ?? 0))) . ' filas en periodo actual · ';
     echo esc_html(number_format_i18n(absint($diag['current_pairs'] ?? 0))) . ' pares actuales sin filtro · ';
@@ -1597,13 +1597,13 @@ function seo_google_render_demand_catalog() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:2px solid #2271b1;padding:18px;border-radius:6px;margin-bottom:20px;overflow:auto;">';
-    echo '<h3 style="margin-top:0;">Que potenciar y en que sentido</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Que potenciar y en que sentido', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<p>Ranking ejecutivo para decidir <strong>donde actuar</strong> y <strong>como ampliar</strong>: mas variantes dentro de una familia, categorias cercanas, nueva familia, mapeo o trabajo SEO. La misma recomendacion se expone como datos estructurados mediante <code>seo_google_demand_get_catalog_guidance()</code> para que otros procesos puedan reutilizarla.</p>';
     if (!$focus_ranking) {
-        echo '<p>No hay oportunidades suficientes con los filtros actuales.</p>';
+        echo '<p>' . esc_html__( 'No hay oportunidades suficientes con los filtros actuales.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
         echo '<table class="widefat striped" style="min-width:1120px;"><thead><tr>';
-        echo '<th>Prioridad</th><th>Tipo</th><th>Que potenciar</th><th>Estrategia</th><th>Direccion detectada</th><th>Imp.</th><th>Demanda util</th><th>Pos.</th><th>Tendencia</th><th>Catalogo / pista</th><th>Por que</th>';
+        echo '<th>' . esc_html__( 'Prioridad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Que potenciar', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Estrategia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Direccion detectada', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Demanda util', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tendencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Catalogo / pista', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Por que', 'taxocommerce-google-bing' ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ($focus_ranking as $item) {
             echo '<tr>';
@@ -1624,7 +1624,7 @@ function seo_google_render_demand_catalog() {
                 foreach ($item['dimension_labels'] as $dim) { $parts[] = esc_html($dim['label']); }
                 echo wp_kses_post(implode('<br>', array_slice($parts, 0, 5)));
             } else {
-                echo '<small>Sin atributo concreto suficiente; revisar subintenciones.</small>';
+                echo '<small>' . esc_html__( 'Sin atributo concreto suficiente; revisar subintenciones.', 'taxocommerce-google-bing' ) . '</small>';
             }
             echo '</td>';
             echo '<td>' . esc_html(number_format_i18n($item['impressions'], 0)) . '</td>';
@@ -1637,14 +1637,14 @@ function seo_google_render_demand_catalog() {
             } elseif (!empty($item['suggested_category'])) {
                 echo 'Posible relacion: <strong>' . esc_html($item['suggested_category']['name']) . '</strong><br><small>similitud ' . esc_html(number_format_i18n($item['suggested_category']['score'] * 100, 0)) . '%; revisar manualmente</small>';
             } else {
-                echo 'Sin categoria clara';
+                echo esc_html__( 'Sin categoria clara', 'taxocommerce-google-bing' );
             }
             echo '</td>';
             echo '<td style="min-width:340px;">' . esc_html($item['note']);
             if (!empty($item['strategy']['secondary'])) { echo '<br><small><strong>Secundaria:</strong> ' . esc_html($item['strategy']['secondary']) . '</small>'; }
-            if (!empty($item['strategy']['automation_ready'])) { echo '<br><small><strong>Apta para automatizacion:</strong> si, con validacion de cobertura.</small>'; }
+            if (!empty($item['strategy']['automation_ready'])) { echo '<br>' . '<small>' . '<strong>' . esc_html__( 'Apta para automatizacion:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'si, con validacion de cobertura.', 'taxocommerce-google-bing' ) . '</small>'; }
             if (!empty($item['evidence'])) {
-                echo '<details style="margin-top:6px;"><summary>Consultas que lo justifican</summary><ol style="margin:7px 0 0 18px;">';
+                echo '<details style="margin-top:6px;">' . '<summary>' . esc_html__( 'Consultas que lo justifican', 'taxocommerce-google-bing' ) . '</summary>' . '<ol style="margin:7px 0 0 18px;">';
                 foreach ($item['evidence'] as $ev) {
                     echo '<li><strong>' . esc_html($ev['query']) . '</strong> <small>(' . esc_html(number_format_i18n($ev['impressions'], 0)) . ' imp.)</small></li>';
                 }
@@ -1657,16 +1657,16 @@ function seo_google_render_demand_catalog() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
-    echo '<h3 style="margin-top:0;">Prioridad por categoria</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Prioridad por categoria', 'taxocommerce-google-bing' ) . '</h3>';
 
     if (!$filtered) {
-        echo '<p>No hay categorias que cumplan los filtros.</p></div>';
+        echo '<p>' . esc_html__( 'No hay categorias que cumplan los filtros.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
 
     echo '<table class="widefat striped" style="min-width:1250px;">';
     echo '<thead><tr>';
-    echo '<th>Prioridad</th><th>Categoria</th><th>Decision</th><th>Productos</th><th>Imp.</th><th>Demanda util</th><th>Precision</th><th>Clics</th><th>CTR</th><th>Pos.</th><th>Tendencia</th><th>Consultas / landings</th><th>Evidencias</th>';
+    echo '<th>' . esc_html__( 'Prioridad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Categoria', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Decision', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Productos', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Demanda util', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Precision', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tendencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Consultas / landings', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Evidencias', 'taxocommerce-google-bing' ) . '</th>';
     echo '</tr></thead><tbody>';
 
     foreach ($filtered as $category) {
@@ -1694,7 +1694,7 @@ function seo_google_render_demand_catalog() {
         echo '<td style="min-width:360px;">';
 
         if ($category['top_queries']) {
-            echo '<details><summary>Ver consultas principales</summary><ol style="margin:8px 0 0 18px;">';
+            echo '<details>' . '<summary>' . esc_html__( 'Ver consultas principales', 'taxocommerce-google-bing' ) . '</summary>' . '<ol style="margin:8px 0 0 18px;">';
             foreach ($category['top_queries'] as $query) {
                 echo '<li style="margin-bottom:8px;"><strong>' . esc_html($query['query']) . '</strong><br><small>';
                 echo esc_html(number_format_i18n($query['impressions'], 0)) . ' imp. · ';
@@ -1714,14 +1714,14 @@ function seo_google_render_demand_catalog() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-top:20px;overflow:auto;">';
-    echo '<h3 style="margin-top:0;">Intenciones sin representar claramente</h3>';
-    echo '<p>Agrupa variantes de consultas no mapeadas para responder a una pregunta mas util: <strong>que familias o necesidades esta insinuando Google aunque hoy no tengan una categoria claramente asociada</strong>. La agrupacion es heuristica; siempre se muestran las consultas originales.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Intenciones sin representar claramente', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Agrupa variantes de consultas no mapeadas para responder a una pregunta mas util:', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'que familias o necesidades esta insinuando Google aunque hoy no tengan una categoria claramente asociada', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( '. La agrupacion es heuristica; siempre se muestran las consultas originales.', 'taxocommerce-google-bing' ) . '</p>';
 
     if (!$intent_clusters) {
-        echo '<p>No hay intenciones no mapeadas con los filtros actuales.</p>';
+        echo '<p>' . esc_html__( 'No hay intenciones no mapeadas con los filtros actuales.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
         echo '<table class="widefat striped" style="min-width:1120px;"><thead><tr>';
-        echo '<th>Prioridad</th><th>Intencion</th><th>Decision</th><th>Imp.</th><th>Demanda util</th><th>Precision</th><th>Pos.</th><th>Tendencia</th><th>Posible categoria</th><th>Consultas</th>';
+        echo '<th>' . esc_html__( 'Prioridad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Intencion', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Decision', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Demanda util', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Precision', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tendencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Posible categoria', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Consultas', 'taxocommerce-google-bing' ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ($intent_clusters as $cluster) {
             echo '<tr>';
@@ -1747,15 +1747,15 @@ function seo_google_render_demand_catalog() {
         }
         echo '</tbody></table>';
     }
-    echo '<details style="margin-top:16px;"><summary><strong>Ver consultas individuales sin mapear</strong></summary>';
+    echo '<details style="margin-top:16px;">' . '<summary>' . '<strong>' . esc_html__( 'Ver consultas individuales sin mapear', 'taxocommerce-google-bing' ) . '</strong>' . '</summary>';
     echo '<div style="overflow:auto;margin-top:12px;">';
-    echo '<h4>Detalle sin agrupar</h4>';
+    echo '<h4>' . esc_html__( 'Detalle sin agrupar', 'taxocommerce-google-bing' ) . '</h4>';
 
     if (!$unmapped_queries) {
-        echo '<p>No hay demanda sin mapear con los filtros actuales.</p>';
+        echo '<p>' . esc_html__( 'No hay demanda sin mapear con los filtros actuales.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
         echo '<table class="widefat striped" style="min-width:1050px;"><thead><tr>';
-        echo '<th>Consulta</th><th>Imp.</th><th>Demanda util</th><th>Precision</th><th>Clics</th><th>CTR</th><th>Pos.</th><th>Tendencia</th><th>Landings</th>';
+        echo '<th>' . esc_html__( 'Consulta', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Demanda util', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Precision', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Tendencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Landings', 'taxocommerce-google-bing' ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ($unmapped_queries as $query) {
             echo '<tr>';
@@ -1787,13 +1787,13 @@ function seo_google_render_demand_catalog() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-top:20px;">';
-    echo '<h3 style="margin-top:0;">Limites de esta version</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Limites de esta version', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<ul style="list-style:disc;padding-left:22px;line-height:1.65;">';
-    echo '<li>Search Console solo revela demanda donde Google ya relaciona el dominio con una consulta; no representa todo lo que busca el mercado.</li>';
-    echo '<li>La atribucion se hace a la categoria mas profunda de la landing de producto, o directamente a la categoria cuando Google muestra su URL.</li>';
-    echo '<li>Las consultas no mapeadas se agrupan por similitud lexical para descubrir intenciones. La agrupacion es orientativa y conserva siempre la evidencia original.</li>';
-    echo '<li>La baja senal organica no se interpreta como orden de reducir catalogo. Para eso necesitaremos mas historico y ventas, margen, stock y estacionalidad.</li>';
-    echo '<li>Keyword Planner se incorporara despues como fuente separada para descubrir demanda de mercado donde el dominio aun no aparece.</li>';
+    echo '<li>' . esc_html__( 'Search Console solo revela demanda donde Google ya relaciona el dominio con una consulta; no representa todo lo que busca el mercado.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'La atribucion se hace a la categoria mas profunda de la landing de producto, o directamente a la categoria cuando Google muestra su URL.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Las consultas no mapeadas se agrupan por similitud lexical para descubrir intenciones. La agrupacion es orientativa y conserva siempre la evidencia original.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'La baja senal organica no se interpreta como orden de reducir catalogo. Para eso necesitaremos mas historico y ventas, margen, stock y estacionalidad.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Keyword Planner se incorporara despues como fuente separada para descubrir demanda de mercado donde el dominio aun no aparece.', 'taxocommerce-google-bing' ) . '</li>';
     echo '</ul>';
     echo '</div>';
 }

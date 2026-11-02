@@ -239,7 +239,7 @@ function tcsocial_calendar_render_admin()
     $current = (new DateTimeImmutable('now', wp_timezone()))->format('Y-m');
 
     echo '<section class="seo-social-card seo-social-calendar-head">';
-    echo '<div class="seo-social-intro"><div><h2>Calendario de publicaciones</h2><p>Vista mensual exclusiva de publicaciones en redes sociales. No incorpora campañas, ofertas ni reglas especiales de Noticias.</p></div><span class="seo-social-state is-scheduled">Agenda visual</span></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Calendario de publicaciones', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Vista mensual exclusiva de publicaciones en redes sociales. No incorpora campañas, ofertas ni reglas especiales de Noticias.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<span class="seo-social-state is-scheduled">' . esc_html__( 'Agenda visual', 'taxocommerce-social' ) . '</span>' . '</div>';
 
     echo '<div class="seo-social-calendar-toolbar">';
     echo '<div class="seo-social-calendar-nav">';
@@ -253,19 +253,19 @@ function tcsocial_calendar_render_admin()
     echo '<input type="hidden" name="tab" value="calendar">';
     echo '<input type="hidden" name="social_subtab" value="calendar">';
     echo '<input type="hidden" name="social_month" value="' . esc_attr($month_key) . '">';
-    echo '<label><span>Red</span><select name="social_calendar_provider"><option value="">Todas las redes</option>';
+    echo '<label>' . '<span>' . esc_html__( 'Red', 'taxocommerce-social' ) . '</span>' . '<select name="social_calendar_provider">' . '<option value="">' . esc_html__( 'Todas las redes', 'taxocommerce-social' ) . '</option>';
     foreach ($providers as $provider_key => $provider) {
         $label = isset($provider['label']) ? (string) $provider['label'] : ucfirst($provider_key);
         echo '<option value="' . esc_attr($provider_key) . '" ' . selected($provider_filter, $provider_key, false) . '>' . esc_html($label) . '</option>';
     }
-    echo '</select></label><button class="button" type="submit">Aplicar</button></form>';
+    echo '</select>' . '</label>' . '<button class="button" type="submit">' . esc_html__( 'Aplicar', 'taxocommerce-social' ) . '</button>' . '</form>';
     echo '</div>';
 
     echo '<div class="seo-social-calendar-title-row"><h3>' . esc_html(ucfirst(wp_date('F Y', $month->getTimestamp(), wp_timezone()))) . '</h3>';
     echo '<div class="seo-social-calendar-legend">';
-    echo '<span class="seo-social-calendar-legend-item is-post">Entrada</span>';
-    echo '<span class="seo-social-calendar-legend-item is-page">Landing</span>';
-        echo '<span class="seo-social-calendar-legend-item is-collision">Colisión</span>';
+    echo '<span class="seo-social-calendar-legend-item is-post">' . esc_html__( 'Entrada', 'taxocommerce-social' ) . '</span>';
+    echo '<span class="seo-social-calendar-legend-item is-page">' . esc_html__( 'Landing', 'taxocommerce-social' ) . '</span>';
+        echo '<span class="seo-social-calendar-legend-item is-collision">' . esc_html__( 'Colisión', 'taxocommerce-social' ) . '</span>';
     echo '</div></div>';
 
     echo '<div class="seo-social-calendar-metrics">';
@@ -336,7 +336,7 @@ function tcsocial_calendar_render_admin()
                 echo '</div>';
             }
         } elseif ($is_empty_future) {
-            echo '<span class="seo-social-calendar-empty-label">Sin publicaciones</span>';
+            echo '<span class="seo-social-calendar-empty-label">' . esc_html__( 'Sin publicaciones', 'taxocommerce-social' ) . '</span>';
         }
 
         echo '</div>';
@@ -346,7 +346,7 @@ function tcsocial_calendar_render_admin()
     echo '</section>';
 
     echo '<section class="seo-social-card">';
-    echo '<div class="seo-social-intro"><div><h2>Vista compacta</h2><p>Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas, redes y duplicados reales.</p></div></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Vista compacta', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas, redes y duplicados reales.', 'taxocommerce-social' ) . '</p>' . '</div>' . '</div>';
 
     if (!$events) {
         echo '<p class="seo-social-code-note">No hay publicaciones programadas para este mes' . ($provider_filter !== '' ? ' en la red seleccionada' : '') . '.</p>';

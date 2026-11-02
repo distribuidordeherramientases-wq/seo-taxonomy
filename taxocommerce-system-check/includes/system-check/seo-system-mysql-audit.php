@@ -291,7 +291,7 @@ function seo_system_mysql_audit_render_sparkline($history, $path, $label, $suffi
 
     echo '<div class="seo-mysql-history-card"><strong>' . esc_html($label) . '</strong>';
     if (count($points) < 2) {
-        echo '<div class="seo-muted" style="padding:24px 0">Necesita al menos 2 chequeos completos.</div></div>';
+        echo '<div class="seo-muted" style="padding:24px 0">' . esc_html__( 'Necesita al menos 2 chequeos completos.', 'taxocommerce-system-check' ) . '</div>' . '</div>';
         return;
     }
 
@@ -317,8 +317,8 @@ function seo_system_mysql_audit_render_sparkline($history, $path, $label, $suffi
 
 function seo_system_mysql_audit_render_history($history = null) {
     if (!is_array($history)) $history = seo_system_mysql_audit_load_history();
-    echo '<div class="seo-status-card"><h2>Evolución MySQL · fotografías del chequeo</h2>';
-    echo '<p>Gráficos ligeros generados con las fotografías guardadas al ejecutar el chequeo completo. No consultan MySQL de nuevo.</p>';
+    echo '<div class="seo-status-card">' . '<h2>' . esc_html__( 'Evolución MySQL · fotografías del chequeo', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Gráficos ligeros generados con las fotografías guardadas al ejecutar el chequeo completo. No consultan MySQL de nuevo.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-mysql-history-grid">';
     seo_system_mysql_audit_render_sparkline($history, 'database.total_size', 'Tamaño BBDD', ' GB', 1073741824);
     seo_system_mysql_audit_render_sparkline($history, 'health.max_connections_percent', 'Pico conexiones', '%');
@@ -343,8 +343,8 @@ function seo_system_mysql_audit_render_table_size_chart($tables) {
     foreach ($rows as $row) $max = max($max, (float)($row['data_length'] ?? 0) + (float)($row['index_length'] ?? 0));
     if ($max <= 0) return;
 
-    echo '<div class="seo-status-card"><h2>Distribución de las tablas SEO más grandes</h2>';
-    echo '<p>Gráfico estático calculado con el inventario ya obtenido; no realiza consultas adicionales.</p>';
+    echo '<div class="seo-status-card">' . '<h2>' . esc_html__( 'Distribución de las tablas SEO más grandes', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Gráfico estático calculado con el inventario ya obtenido; no realiza consultas adicionales.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-mysql-table-chart">';
     foreach ($rows as $row) {
         $total = (float)($row['data_length'] ?? 0) + (float)($row['index_length'] ?? 0);
@@ -659,7 +659,7 @@ function seo_system_mysql_audit_render() {
     $summary = (array)$audit['summary'];
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Auditoría SQL de TaxoCommerce SEO</h2>';
+    echo '<h2>' . esc_html__( 'Auditoría SQL de TaxoCommerce SEO', 'taxocommerce-system-check' ) . '</h2>';
     echo '<p>Solo lectura: revisa señales MySQL, tablas propias, índices y planes <code>EXPLAIN</code>. No crea ni elimina índices.</p>';
 
     echo '<div class="seo-mysql-query-kpis">';
@@ -696,13 +696,13 @@ function seo_system_mysql_audit_render() {
         array('Espera media lock InnoDB',$derived['innodb_row_lock_avg_ms']===null?'N/D':number_format_i18n($derived['innodb_row_lock_avg_ms'],2).' ms',($derived['innodb_row_lock_avg_ms']!==null&&$derived['innodb_row_lock_avg_ms']>100?'warning':'info'),'Tiempo medio acumulado por espera de bloqueo InnoDB.')
     );
 
-    echo '<h3>Señales globales del servidor MySQL</h3><table class="seo-status-table"><thead><tr><th>Señal</th><th>Valor</th><th>Estado</th><th>Lectura</th></tr></thead><tbody>';
+    echo '<h3>' . esc_html__( 'Señales globales del servidor MySQL', 'taxocommerce-system-check' ) . '</h3>' . '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Señal', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Valor', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Lectura', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($signals as $row) {
         echo '<tr><td><strong>'.esc_html($row[0]).'</strong></td><td>'.esc_html($row[1]).'</td><td>'.wp_kses_post(seo_server_status_badge($row[2])).'</td><td class="seo-muted">'.esc_html($row[3]).'</td></tr>';
     }
     echo '</tbody></table>';
 
-    echo '<h3 style="margin-top:22px">Tablas propias e índices</h3><table class="seo-status-table"><thead><tr><th>Tabla</th><th>Filas aprox.</th><th>Tamaño</th><th>Índices</th><th>PRIMARY</th></tr></thead><tbody>';
+    echo '<h3 style="margin-top:22px">' . esc_html__( 'Tablas propias e índices', 'taxocommerce-system-check' ) . '</h3>' . '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Filas aprox.', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Índices', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'PRIMARY', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach (array_slice((array)$custom['tables'],0,30) as $table) {
         $size=(float)$table['data_length']+(float)$table['index_length'];
         echo '<tr><td><code>'.esc_html($table['table']).'</code></td><td>'.esc_html(number_format_i18n($table['rows'])).'</td><td>'.esc_html(seo_server_status_format_bytes($size)).'</td><td>'.esc_html(number_format_i18n($table['index_count'])).'</td><td>'.(!empty($table['has_primary'])?wp_kses_post(seo_server_status_badge('ok')):wp_kses_post(seo_server_status_badge('info'))).'</td></tr>';
@@ -710,8 +710,8 @@ function seo_system_mysql_audit_render() {
     echo '</tbody></table>';
 
     if (!empty($custom['lookup_without_index'])) {
-        echo '<h3 style="margin-top:22px">Candidatos de índice</h3><p>Heurística sobre tablas con al menos 5.000 filas. No implica crear el índice sin revisar la consulta real.</p>';
-        echo '<table class="seo-status-table"><thead><tr><th>Tabla</th><th>Columna</th><th>Filas aprox.</th></tr></thead><tbody>';
+        echo '<h3 style="margin-top:22px">' . esc_html__( 'Candidatos de índice', 'taxocommerce-system-check' ) . '</h3>' . '<p>' . esc_html__( 'Heurística sobre tablas con al menos 5.000 filas. No implica crear el índice sin revisar la consulta real.', 'taxocommerce-system-check' ) . '</p>';
+        echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Columna', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Filas aprox.', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($custom['lookup_without_index'],0,40) as $row) {
             echo '<tr><td><code>'.esc_html($row['table']).'</code></td><td><code>'.esc_html($row['column']).'</code></td><td>'.esc_html(number_format_i18n($row['rows'])).'</td></tr>';
         }
@@ -719,21 +719,21 @@ function seo_system_mysql_audit_render() {
     }
 
     if (!empty($custom['duplicate_indexes'])) {
-        echo '<h3 style="margin-top:22px">Índices duplicados exactos</h3><table class="seo-status-table"><thead><tr><th>Tabla</th><th>Índice A</th><th>Índice B</th><th>Columnas</th></tr></thead><tbody>';
+        echo '<h3 style="margin-top:22px">' . esc_html__( 'Índices duplicados exactos', 'taxocommerce-system-check' ) . '</h3>' . '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Índice A', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Índice B', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Columnas', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($custom['duplicate_indexes'] as $row) {
             echo '<tr><td><code>'.esc_html($row['table']).'</code></td><td><code>'.esc_html($row['index_a']).'</code></td><td><code>'.esc_html($row['index_b']).'</code></td><td>'.esc_html($row['columns']).'</td></tr>';
         }
         echo '</tbody></table>';
     }
 
-    echo '<h3 style="margin-top:22px">EXPLAIN de consultas representativas</h3><p>EXPLAIN analiza el plan del optimizador sin ejecutar el SELECT de negocio.</p>';
-    echo '<table class="seo-status-table"><thead><tr><th>Consulta</th><th>Tabla</th><th>Tipo</th><th>Índice</th><th>Filas</th><th>Extra</th><th>Estado</th></tr></thead><tbody>';
+    echo '<h3 style="margin-top:22px">' . esc_html__( 'EXPLAIN de consultas representativas', 'taxocommerce-system-check' ) . '</h3>' . '<p>' . esc_html__( 'EXPLAIN analiza el plan del optimizador sin ejecutar el SELECT de negocio.', 'taxocommerce-system-check' ) . '</p>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Consulta', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Índice', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Filas', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Extra', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ((array)$audit['plans'] as $plan) {
         echo '<tr><td><strong>'.esc_html($plan['label']).'</strong><div class="seo-muted">'.esc_html($plan['detail']).'</div></td><td><code>'.esc_html($plan['table']).'</code></td><td><code>'.esc_html($plan['type']).'</code></td><td><code>'.esc_html($plan['key_used']?:'—').'</code></td><td>'.esc_html(number_format_i18n($plan['rows'])).'</td><td class="seo-muted">'.esc_html($plan['extra']).'</td><td>'.wp_kses_post(seo_server_status_badge($plan['status'])).'</td></tr>';
     }
-    if (empty($audit['plans'])) echo '<tr><td colspan="7">No se pudieron construir planes para las tablas disponibles.</td></tr>';
+    if (empty($audit['plans'])) echo '<tr>' . '<td colspan="7">' . esc_html__( 'No se pudieron construir planes para las tablas disponibles.', 'taxocommerce-system-check' ) . '</td>' . '</tr>';
     echo '</tbody></table>';
 
-    echo '<p class="seo-status-note"><strong>Criterio:</strong> primero diagnosticamos en STAGING. Si aparece un índice claramente útil, se incorporará después mediante una migración versionada; nunca desde este informe.</p>';
+    echo '<p class="seo-status-note">' . '<strong>' . esc_html__( 'Criterio:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'primero diagnosticamos en STAGING. Si aparece un índice claramente útil, se incorporará después mediante una migración versionada; nunca desde este informe.', 'taxocommerce-system-check' ) . '</p>';
     echo '</div>';
 }

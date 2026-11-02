@@ -141,8 +141,8 @@ final class TaxoCommerce_Billing_Autotest {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Sin permisos para el Autotest.', 'taxocommerce-facturacion' ) );
         }
-        echo '<h2>Autotest de Billing</h2>';
-        echo '<p>Comprobaciones de disponibilidad y configuración. No se crean facturas, proformas ni presupuestos, no se generan PDF, no se envían correos y no se modifica ningún pedido.</p>';
+        echo '<h2>' . esc_html__( 'Autotest de Billing', 'taxocommerce-facturacion' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y configuración. No se crean facturas, proformas ni presupuestos, no se generan PDF, no se envían correos y no se modifica ningún pedido.', 'taxocommerce-facturacion' ) . '</p>';
         echo '<form method="post">';
         wp_nonce_field( 'taxocommerce_billing_autotest' );
         echo '<input type="hidden" name="taxocommerce_billing_run" value="1">';
@@ -151,7 +151,7 @@ final class TaxoCommerce_Billing_Autotest {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately before any diagnostics.
         if ( ! isset( $_POST['taxocommerce_billing_run'] ) ) {
-            echo '<p class="description">Pulsa el botón para realizar las comprobaciones. El resultado no se guarda.</p>';
+            echo '<p class="description">' . esc_html__( 'Pulsa el botón para realizar las comprobaciones. El resultado no se guarda.', 'taxocommerce-facturacion' ) . '</p>';
             return;
         }
         check_admin_referer( 'taxocommerce_billing_autotest' );
@@ -181,6 +181,6 @@ final class TaxoCommerce_Billing_Autotest {
         if ( $group ) {
             echo '</tbody></table>';
         }
-        echo '<p class="description">Es un diagnóstico de disponibilidad: no valida cálculos fiscales, PDF emitidos, entrega de emails ni permisos efectivos de clientes.</p>';
+        echo '<p class="description">' . esc_html__( 'Es un diagnóstico de disponibilidad: no valida cálculos fiscales, PDF emitidos, entrega de emails ni permisos efectivos de clientes.', 'taxocommerce-facturacion' ) . '</p>';
     }
 }

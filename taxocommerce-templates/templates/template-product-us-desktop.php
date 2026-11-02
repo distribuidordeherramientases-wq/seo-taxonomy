@@ -23,7 +23,7 @@ if (! $product instanceof WC_Product) {
 
 if (! $product instanceof WC_Product) {
     dht_template_render_header();
-    echo '<main class="dht-page dht-status-page"><section class="dht-section"><div class="dht-content dht-status-card"><h1>Product unavailable</h1><p>Product information could not be loaded.</p></div></section></main>';
+    echo '<main class="dht-page dht-status-page">' . '<section class="dht-section">' . '<div class="dht-content dht-status-card">' . '<h1>' . esc_html__( 'Product unavailable', 'taxocommerce-templates' ) . '</h1>' . '<p>' . esc_html__( 'Product information could not be loaded.', 'taxocommerce-templates' ) . '</p>' . '</div>' . '</section>' . '</main>';
     dht_template_render_footer();
     return;
 }
@@ -1223,7 +1223,7 @@ $schema_product_graph = array(
     if ($related_products) {
         dht_shared_render_product_grid($related_products, 'dht-related-product-grid', 3);
     } else {
-        echo '<p>No related products are available.</p>';
+        echo '<p>' . esc_html__( 'No related products are available.', 'taxocommerce-templates' ) . '</p>';
     }
     ?>
   </section>

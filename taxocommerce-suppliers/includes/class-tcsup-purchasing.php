@@ -181,7 +181,7 @@ final class TCSUP_Purchasing {
 
 	public static function render() {
 		if ( ! class_exists( 'WooCommerce' ) || ! function_exists( 'wc_get_orders' ) ) {
-			echo '<section class="tcsup-card"><div class="notice notice-error inline"><p>WooCommerce must be active to resolve sales into supplier purchases.</p></div></section>';
+			echo '<section class="tcsup-card">' . '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'WooCommerce must be active to resolve sales into supplier purchases.', 'taxocommerce-suppliers' ) . '</p>' . '</div>' . '</section>';
 			return;
 		}
 

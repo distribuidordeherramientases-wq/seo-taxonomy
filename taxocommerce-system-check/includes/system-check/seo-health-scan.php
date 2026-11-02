@@ -1235,7 +1235,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
     function seo_health_render_scope_tab($scope) {
         $scope_config = seo_health_scan_scope_config($scope);
         if (!$scope_config) {
-            echo '<div class="notice notice-error inline"><p>Ámbito de auditoría no válido.</p></div>';
+            echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'Ámbito de auditoría no válido.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
             return;
         }
         seo_health_scan_maybe_upgrade();
@@ -1257,9 +1257,9 @@ if (!function_exists('seo_health_render_scope_tab')) {
         echo '<div class="seo-health-card">';
         echo '<h2 style="margin-top:0">Errores y disponibilidad de ' . esc_html(strtolower($scope_config['label'])) . '</h2>';
         if ($scope === 'image') {
-            echo '<p>Este escaneo comprueba directamente las URLs de imagen conocidas y activas. No vuelve a recorrer las 14.000+ URLs del sitemap para cada pasada, por lo que reduce mucho la carga y evita que el proceso se rompa por una cadena larga de páginas.</p>';
+            echo '<p>' . esc_html__( 'Este escaneo comprueba directamente las URLs de imagen conocidas y activas. No vuelve a recorrer las 14.000+ URLs del sitemap para cada pasada, por lo que reduce mucho la carga y evita que el proceso se rompa por una cadena larga de páginas.', 'taxocommerce-system-check' ) . '</p>';
         } elseif ($scope === 'product') {
-            echo '<p>El inventario se construye solo con <strong>productos WooCommerce publicados</strong>. Se procesa por lotes seguros y los pendientes se cubren primero.</p>';
+            echo '<p>' . esc_html__( 'El inventario se construye solo con', 'taxocommerce-system-check' ) . ' ' . '<strong>' . esc_html__( 'productos WooCommerce publicados', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( '. Se procesa por lotes seguros y los pendientes se cubren primero.', 'taxocommerce-system-check' ) . '</p>';
         } else {
             echo '<p>El inventario se construye solo con <strong>' . esc_html(strtolower($scope_config['label'])) . ' publicadas</strong>. Otros tipos de contenido no entran en este escaneo.</p>';
         }
@@ -1270,9 +1270,9 @@ if (!function_exists('seo_health_render_scope_tab')) {
                 echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="scan">';
                 wp_nonce_field('seo_health_scan_action');
                 if (!empty($missing)) {
-                    echo '<button class="button button-primary" disabled>Iniciar escaneo</button></form>';
+                    echo '<button class="button button-primary" disabled>' . esc_html__( 'Iniciar escaneo', 'taxocommerce-system-check' ) . '</button>' . '</form>';
                 } else {
-                    echo '<button class="button button-primary">Iniciar escaneo</button></form>';
+                    echo '<button class="button button-primary">' . esc_html__( 'Iniciar escaneo', 'taxocommerce-system-check' ) . '</button>' . '</form>';
                 }
             }
         } else {
@@ -1293,12 +1293,12 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" onsubmit="return confirm(\'¿Parar este escaneo? Los resultados aún no recibidos quedarán sin actualizar.\');">';
             echo '<input type="hidden" name="action" value="seo_health_scan_action"><input type="hidden" name="scope" value="' . esc_attr($scope) . '"><input type="hidden" name="task" value="cancel">';
             wp_nonce_field('seo_health_scan_action');
-            echo '<button class="button" style="color:#b32d2e;border-color:#b32d2e">Parar escaneo</button></form>';
+            echo '<button class="button" style="color:#b32d2e;border-color:#b32d2e">' . esc_html__( 'Parar escaneo', 'taxocommerce-system-check' ) . '</button>' . '</form>';
             echo '<span class="description"><strong>En curso:</strong> ' . esc_html($active['mode'] === 'load_test' ? 'test de carga' : 'escaneo') . ' · ' . esc_html(number_format_i18n($active['processed_items'])) . '/' . esc_html(number_format_i18n($active['total_items'])) . '</span>';
         }
         echo '</div>';
         if ('page' === $scope) {
-            echo '<p class="description"><strong>Escaneo completo:</strong> al iniciarlo, WordPress actualiza automáticamente el inventario y reserva todas las páginas publicadas para una única ejecución del worker. No requiere pulsar "Actualizar inventario" ni lanzar lotes sucesivos.</p>';
+            echo '<p class="description">' . '<strong>' . esc_html__( 'Escaneo completo:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'al iniciarlo, WordPress actualiza automáticamente el inventario y reserva todas las páginas publicadas para una única ejecución del worker. No requiere pulsar "Actualizar inventario" ni lanzar lotes sucesivos.', 'taxocommerce-system-check' ) . '</p>';
         } else {
             echo '<p class="description"><strong>Escaneo por lotes:</strong> cada ejecución reserva un máximo de ' . esc_html(number_format_i18n(absint($scope_config['batch']))) . ' elementos para ser compatible con el worker GitHub actual. Los pendientes se cubren primero; el test de carga mantiene su propia muestra.</p>';
         }
@@ -1319,7 +1319,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
         echo '<div class="seo-health-card"><h3 style="margin-top:0">Cobertura: ' . esc_html(number_format_i18n($coverage,1)) . '%</h3><div class="seo-health-progress"><span style="width:' . esc_attr((string) min(100,$coverage)) . '%"></span></div></div>';
 
         if ($latest) {
-            echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Última ejecución</h3>';
+            echo '<div class="seo-health-card" style="margin-top:12px">' . '<h3 style="margin-top:0">' . esc_html__( 'Última ejecución', 'taxocommerce-system-check' ) . '</h3>';
             echo '<p><strong>' . esc_html($latest['mode'] === 'load_test' ? 'Test de carga' : 'Escaneo') . '</strong> · estado ' . esc_html($latest['status']) . ' · ' . esc_html(number_format_i18n($latest['processed_items'])) . '/' . esc_html(number_format_i18n($latest['total_items'])) . ' · OK ' . esc_html(number_format_i18n($latest['ok_items'])) . ' · avisos ' . esc_html(number_format_i18n($latest['warning_items'])) . ' · errores ' . esc_html(number_format_i18n($latest['error_items'])) . '.</p>';
             echo '<p class="description">Creada ' . esc_html($latest['created_at'] ?: '—') . ' · finalizada ' . esc_html($latest['completed_at'] ?: '—') . '.</p>';
             if (!empty($latest['duration_ms'])) {
@@ -1378,7 +1378,7 @@ if (!function_exists('seo_health_render_scope_tab')) {
         // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
-        echo '<div class="seo-health-card" style="margin-top:12px"><h3 style="margin-top:0">Estado por elemento</h3><div style="display:flex;gap:6px;flex-wrap:wrap">';
+        echo '<div class="seo-health-card" style="margin-top:12px">' . '<h3 style="margin-top:0">' . esc_html__( 'Estado por elemento', 'taxocommerce-system-check' ) . '</h3>' . '<div style="display:flex;gap:6px;flex-wrap:wrap">';
         foreach (array('error'=>'Errores','warning'=>'Avisos','pending'=>'Pendientes','ok'=>'Correctas','all'=>'Todas') as $key=>$label) {
             echo '<a class="button' . ($filter===$key?' button-primary':'') . '" href="' . esc_url(seo_health_scan_admin_url($scope,array('health_filter'=>$key))) . '">' . esc_html($label) . '</a>';
         }
@@ -1387,9 +1387,9 @@ if (!function_exists('seo_health_render_scope_tab')) {
             echo '<input type="hidden" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '">';
         }
         echo '<input type="hidden" name="health_filter" value="' . esc_attr($filter) . '"><input type="search" name="health_s" value="' . esc_attr($search) . '" placeholder="Buscar URL o error" class="regular-text"><button class="button">Buscar</button></form>';
-        echo '<table class="widefat striped"><thead><tr><th>Elemento</th><th>Estado</th><th>HTTP</th><th>Tiempo</th><th>Detalle</th><th>Último chequeo</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Elemento', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'HTTP', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Último chequeo', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         if (empty($rows)) {
-            echo '<tr><td colspan="6">No hay resultados para este filtro.</td></tr>';
+            echo '<tr>' . '<td colspan="6">' . esc_html__( 'No hay resultados para este filtro.', 'taxocommerce-system-check' ) . '</td>' . '</tr>';
         } else {
             foreach ($rows as $row) {
                 $status = $row['last_checked_at'] ? (string) $row['status_bucket'] : 'pending';

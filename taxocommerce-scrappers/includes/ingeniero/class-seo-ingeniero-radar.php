@@ -124,15 +124,15 @@ final class SEO_Ingeniero_Radar {
     public static function render() {
         if (!current_user_can('manage_options'))return;
         $state=self::state();$stats=(array)($state['last_run']??array());
-        echo '<h2>Radar externo · novedades, tendencias y nuevos ámbitos</h2>';
-        echo '<p>Ingeniero consulta noticias externas conectadas a demandas de Analista y familias del catálogo. El hallazgo es una pista de investigación, nunca un hecho técnico verificado ni contenido listo para publicar. Solucionador no consulta internet.</p>';
+        echo '<h2>' . esc_html__( 'Radar externo · novedades, tendencias y nuevos ámbitos', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Ingeniero consulta noticias externas conectadas a demandas de Analista y familias del catálogo. El hallazgo es una pista de investigación, nunca un hecho técnico verificado ni contenido listo para publicar. Solucionador no consulta internet.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<p><strong>Última ejecución:</strong> '.esc_html((string)($stats['at']??'Nunca')).' · <strong>Búsquedas:</strong> '.esc_html((string)($stats['searched']??0)).' · <strong>Nuevos hallazgos:</strong> '.esc_html((string)($stats['found']??0)).' · <strong>Errores:</strong> '.esc_html((string)($stats['errors']??0)).'</p>';
         if (!empty($state['last_error']))echo '<p class="notice notice-warning">'.esc_html((string)$state['last_error']).'</p>';
         echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="seo_ingeniero_radar_scan">';
         wp_nonce_field('seo_ingeniero_radar_scan');submit_button('Buscar novedades ahora (máx. 2 consultas)','secondary','submit',false);echo '</form>';
-        echo '<p class="description">Noticias, ideas de posts, posibles landings y categorías nuevas quedan separadas como recomendaciones. Solo los editores decidirán qué desarrollar; no se crean objetos WordPress automáticamente.</p>';
+        echo '<p class="description">' . esc_html__( 'Noticias, ideas de posts, posibles landings y categorías nuevas quedan separadas como recomendaciones. Solo los editores decidirán qué desarrollar; no se crean objetos WordPress automáticamente.', 'taxocommerce-scrappers' ) . '</p>';
         $items=(array)($state['items']??array());
-        if (!$items)echo '<p>Sin hallazgos todavía. Ejecuta una exploración cuando haya crédito de proveedores.</p>';
+        if (!$items)echo '<p>' . esc_html__( 'Sin hallazgos todavía. Ejecuta una exploración cuando haya crédito de proveedores.', 'taxocommerce-scrappers' ) . '</p>';
         foreach(array_slice($items,0,80,true)as$key=>$item) {
             echo '<details class="postbox" style="padding:12px;margin:10px 0"><summary><strong>'.esc_html((string)$item['title']).'</strong> · '.esc_html((string)$item['status']).' · '.esc_html((string)$item['seed_source']).' · prioridad '.esc_html((string)$item['priority']).'</summary>';
             echo '<p><a href="'.esc_url((string)$item['url']).'" target="_blank" rel="noopener noreferrer">Fuente original</a> · '.esc_html((string)$item['published_at']).' · '.esc_html((string)$item['domain']).'</p>';
@@ -140,7 +140,7 @@ final class SEO_Ingeniero_Radar {
             echo '<p><strong>Consulta:</strong> '.esc_html((string)$item['seed']).' · <strong>Clasificación sugerida:</strong> '.esc_html((string)$item['suggested_type']).' · <strong>Categorías verificadas:</strong> '.esc_html(implode(', ',(array)$item['category_ids'])).'</p>';
             echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="seo_ingeniero_radar_review"><input type="hidden" name="item_id" value="'.esc_attr($key).'">';
             wp_nonce_field('seo_ingeniero_radar_review');
-            echo '<label>Destino editorial <select name="decision">';
+            echo '<label>' . esc_html__( 'Destino editorial', 'taxocommerce-scrappers' ) . ' ' . '<select name="decision">';
             foreach(array('research'=>'Investigar','news'=>'Noticia','post'=>'Post','landing'=>'Posible landing','category'=>'Posible categoría nueva','rejected'=>'Descartar')as$v=>$label)echo '<option value="'.esc_attr($v).'" '.selected((string)$item['status'],$v,false).'>'.esc_html($label).'</option>';
             echo '</select></label>';
             echo '<p><label>Justificación / comprobaciones pendientes<br><textarea name="note" rows="2" style="width:100%">'.esc_textarea((string)$item['note']).'</textarea></label></p>';

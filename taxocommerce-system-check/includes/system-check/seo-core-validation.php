@@ -168,7 +168,7 @@ function seo_core_system_test_render_product_excerpt_exports($result = array()) 
     $count = isset($evidence['without_excerpt']) ? (int) $evidence['without_excerpt'] : 0;
 
     echo '<div style="margin-top:10px;padding-top:8px;border-top:1px solid #dcdcde;">';
-    echo '<strong>Descarga de afectados</strong>';
+    echo '<strong>' . esc_html__( 'Descarga de afectados', 'taxocommerce-system-check' ) . '</strong>';
     echo '<p class="description" style="margin:4px 0 8px;">Lista completa actual de productos publicados con <code>wp_posts.post_excerpt</code> vacio. El ultimo chequeo detecto ' . esc_html(number_format_i18n($count)) . '.</p>';
     echo '<a class="button button-secondary button-small" href="' . esc_url(seo_core_system_test_product_excerpt_export_url('json')) . '">Descargar JSON</a> ';
     echo '<a class="button button-secondary button-small" href="' . esc_url(seo_core_system_test_product_excerpt_export_url('csv')) . '">Descargar CSV</a>';
@@ -359,8 +359,8 @@ function seo_core_system_test() {
     }
 
     echo '<div class="wrap seo-core-system-test-wrap">';
-    echo '<h1>Plugin Validation</h1>';
-    echo '<p>Chequeo interno de SEO System orientado a confirmar si el negocio sigue funcionando tras una subida.</p>';
+    echo '<h1>' . esc_html__( 'Plugin Validation', 'taxocommerce-system-check' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Chequeo interno de SEO System orientado a confirmar si el negocio sigue funcionando tras una subida.', 'taxocommerce-system-check' ) . '</p>';
 
     if (function_exists('seo_core_validation_render_settings_notice')) {
         seo_core_validation_render_settings_notice($settings_notice);
@@ -395,8 +395,8 @@ function seo_core_system_test() {
     }
 
     if ($active_tab === 'code_integrity') {
-        echo '<h2>Inventario de funciones y archivos del plugin</h2>';
-        echo '<p class="seo-core-test-muted">Este inventario pertenece únicamente a Integridad del código.</p>';
+        echo '<h2>' . esc_html__( 'Inventario de funciones y archivos del plugin', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<p class="seo-core-test-muted">' . esc_html__( 'Este inventario pertenece únicamente a Integridad del código.', 'taxocommerce-system-check' ) . '</p>';
         seo_core_system_test_render_function_inventory();
     }
 
@@ -505,9 +505,9 @@ function seo_core_system_test_render_run_button($active_tab = 'summary') {
     echo '<input type="hidden" name="seo_core_system_test_run" value="1">';
     submit_button('Ejecutar validación completa', 'primary', 'submit', false);
     if (in_array($active_tab, array('operation', 'seo_content', 'services'), true)) {
-        echo '<p class="description" style="margin-top:8px;">Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios en sus áreas correspondientes.</p>';
+        echo '<p class="description" style="margin-top:8px;">' . esc_html__( 'Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba transaccional del Data Layer conservan sus controles propios en sus áreas correspondientes.', 'taxocommerce-system-check' ) . '</p>';
     } else {
-        echo '<p class="description" style="margin-top:8px;">Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra los resultados.</p>';
+        echo '<p class="description" style="margin-top:8px;">' . esc_html__( 'Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra los resultados.', 'taxocommerce-system-check' ) . '</p>';
     }
     echo '</form>';
 }
@@ -547,7 +547,7 @@ function seo_core_system_test_render_link_audit_controls() {
     submit_button('Reiniciar auditoría', 'delete', 'submit', false);
     echo '</form>';
     echo '</div>';
-    echo '<p class="description">La auditoría se divide en tres peticiones independientes. Los resultados se acumulan y cada bloque puede repetirse sin volver a ejecutar los demás.</p>';
+    echo '<p class="description">' . esc_html__( 'La auditoría se divide en tres peticiones independientes. Los resultados se acumulan y cada bloque puede repetirse sin volver a ejecutar los demás.', 'taxocommerce-system-check' ) . '</p>';
 }
 
 function seo_core_system_test_render_data_layer_controls() {
@@ -645,10 +645,10 @@ function seo_core_system_test_render_styles() {
 }
 
 function seo_core_system_test_render_intro() {
-    echo '<h2>Validación pendiente</h2>';
-    echo '<p>Pulsa <strong>Ejecutar validación completa</strong> para lanzar los chequeos básicos de continuidad del sistema.</p>';
+    echo '<h2>' . esc_html__( 'Validación pendiente', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Pulsa', 'taxocommerce-system-check' ) . ' ' . '<strong>' . esc_html__( 'Ejecutar validación completa', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'para lanzar los chequeos básicos de continuidad del sistema.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-core-test-note">';
-    echo '<strong>V7.0:</strong> guarda el último diagnóstico, muestra primero lo crítico y expone un resumen seguro para el módulo de informes. La auditoría de Enlaces y 404 continúa dividida en tres bloques acumulativos.';
+    echo '<strong>' . 'V7.0:' . '</strong>' . ' ' . esc_html__( 'guarda el último diagnóstico, muestra primero lo crítico y expone un resumen seguro para el módulo de informes. La auditoría de Enlaces y 404 continúa dividida en tres bloques acumulativos.', 'taxocommerce-system-check' );
     echo '</div>';
 }
 
@@ -6877,7 +6877,7 @@ function seo_core_system_test_render_run_metadata($active_tab = 'summary') {
 
     if ($completed_at <= 0) {
         echo '<div class="seo-core-run-meta">';
-        echo '<div class="seo-core-run-meta-item seo-core-run-meta-main"><strong>Último chequeo</strong><span>No hay una ejecución guardada todavía.</span></div>';
+        echo '<div class="seo-core-run-meta-item seo-core-run-meta-main">' . '<strong>' . esc_html__( 'Último chequeo', 'taxocommerce-system-check' ) . '</strong>' . '<span>' . esc_html__( 'No hay una ejecución guardada todavía.', 'taxocommerce-system-check' ) . '</span>' . '</div>';
         echo '</div>';
         return;
     }
@@ -7259,11 +7259,11 @@ function seo_core_system_test_render_compact_health($results, $active_tab = 'sum
 function seo_core_system_test_render_priority_issues($results, $limit = 12) {
     $incidents = seo_core_system_test_extract_incidents($results, $limit);
     if (empty($incidents)) {
-        echo '<div class="seo-core-test-note"><strong>Sin incidencias prioritarias:</strong> los chequeos ejecutados no contienen errores críticos, importantes ni avisos.</div>';
+        echo '<div class="seo-core-test-note">' . '<strong>' . esc_html__( 'Sin incidencias prioritarias:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'los chequeos ejecutados no contienen errores críticos, importantes ni avisos.', 'taxocommerce-system-check' ) . '</div>';
         return;
     }
 
-    echo '<h3>Qué requiere atención</h3><div class="seo-core-priority-list">';
+    echo '<h3>' . esc_html__( 'Qué requiere atención', 'taxocommerce-system-check' ) . '</h3>' . '<div class="seo-core-priority-list">';
     foreach ($incidents as $incident) {
         $detail = wp_strip_all_tags((string) $incident['detail']);
         if (function_exists('mb_strlen') && mb_strlen($detail) > 260) {
@@ -7303,7 +7303,7 @@ function seo_core_system_test_render_summary_tab_kpis($results) {
         ),
     );
 
-    echo '<h3>Estado por pestaña</h3>';
+    echo '<h3>' . esc_html__( 'Estado por pestaña', 'taxocommerce-system-check' ) . '</h3>';
     echo '<div class="seo-core-summary-tab-grid">';
     foreach ($tabs as $tab_id => $config) {
         $groups = $config['groups'];
@@ -7350,7 +7350,7 @@ function seo_core_system_test_render_module_overview($results) {
         'connections'    => array('title' => 'Conexiones Google / GitHub', 'tab' => 'services'),
     );
 
-    echo '<h3>KPIs por área</h3>';
+    echo '<h3>' . esc_html__( 'KPIs por área', 'taxocommerce-system-check' ) . '</h3>';
     echo '<div class="seo-core-module-grid">';
     foreach ($modules as $group => $config) {
         $rows = array_values(array_filter((array) $results, static function ($result) use ($group) {
@@ -7544,8 +7544,8 @@ function seo_core_system_test_render_services_connections($results) {
         return isset($result['group']) && in_array($result['group'], array('services', 'connections'), true);
     }));
 
-    echo '<h2>Servicios y conexiones</h2>';
-    echo '<p>Cada fila representa el estado agregado de un servicio o conexión. Su puntuación forma parte del cálculo global de Plugin Validation.</p>';
+    echo '<h2>' . esc_html__( 'Servicios y conexiones', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Cada fila representa el estado agregado de un servicio o conexión. Su puntuación forma parte del cálculo global de Plugin Validation.', 'taxocommerce-system-check' ) . '</p>';
 
     if (function_exists('seo_core_service_release_summary')) {
         $release = seo_core_service_release_summary();
@@ -7553,7 +7553,7 @@ function seo_core_system_test_render_services_connections($results) {
         $release_score = isset($release['score']) && $release['score'] !== null ? (int) $release['score'] . '%' : 'Pendiente';
         $release_class = $release_status === 'ok' ? 'ok' : ($release_status === 'pending' ? 'warning' : 'important');
         echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($release_class) . '" style="margin:14px 0 20px;max-width:900px;">';
-        echo '<strong>Aceptación post-release</strong>';
+        echo '<strong>' . esc_html__( 'Aceptación post-release', 'taxocommerce-system-check' ) . '</strong>';
         echo '<div class="seo-core-health-value">' . esc_html($release_score) . '</div>';
         echo '<span class="seo-core-test-muted">Versión actual: ' . esc_html((string) ($release['current_version'] ?? '—')) . ' · versión comprobada: ' . esc_html((string) ($release['checked_version'] ?? 'pendiente')) . '</span>';
         if (!empty($release['checked_at'])) {
@@ -7577,14 +7577,14 @@ function seo_core_system_test_render_services_connections($results) {
         echo '<section class="seo-core-test-section">';
         echo '<h2>' . esc_html($title) . '</h2>';
         if (empty($group_rows)) {
-            echo '<p class="seo-core-test-empty">Todavía no hay resultados para este bloque.</p>';
+            echo '<p class="seo-core-test-empty">' . esc_html__( 'Todavía no hay resultados para este bloque.', 'taxocommerce-system-check' ) . '</p>';
             echo '</section>';
             continue;
         }
 
         echo '<div class="seo-core-test-table-wrap">';
         echo '<table class="seo-core-test-table">';
-        echo '<thead><tr><th>Servicio</th><th>Estado</th><th>Valor</th><th>Detalle</th></tr></thead><tbody>';
+        echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Servicio', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Valor', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($group_rows as $row) {
             $score = isset($row['evidence']['score']) ? (int) $row['evidence']['score'] : null;
             $label = preg_replace('/^\\d+(?:\\.\\d+)*\\s+/', '', (string) ($row['label'] ?? 'Servicio'));
@@ -7678,7 +7678,7 @@ function seo_core_system_test_render_advanced_group($results, $group, $open = fa
     }
 
     if (empty($rows)) {
-        echo '<p class="seo-core-test-empty">Todavía no hay resultados para esta sección.</p>';
+        echo '<p class="seo-core-test-empty">' . esc_html__( 'Todavía no hay resultados para esta sección.', 'taxocommerce-system-check' ) . '</p>';
     } else {
         seo_core_system_test_render_group($rows, $group, false);
         if ($group === 'links_404') {
@@ -7698,7 +7698,7 @@ function seo_core_system_test_render_links_404_items($group_results) {
         echo '<details class="seo-core-test-details">';
         echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
-        echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
+        echo '<table class="seo-core-test-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'URL', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($result['items'] as $item) {
             echo '<tr>';
             echo '<td><strong>' . esc_html(ucfirst((string) ($item['priority'] ?? 'baja'))) . '</strong></td>';
@@ -7731,8 +7731,8 @@ function seo_core_system_test_render_functional_business($results) {
         $counts[$severity]++;
     }
 
-    echo '<h2>Funcionalidad del negocio</h2>';
-    echo '<p>Simulación de navegación pública, calidad HTML/SEO, recursos, redirecciones y salud comercial sobre elementos representativos.</p>';
+    echo '<h2>' . esc_html__( 'Funcionalidad del negocio', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Simulación de navegación pública, calidad HTML/SEO, recursos, redirecciones y salud comercial sobre elementos representativos.', 'taxocommerce-system-check' ) . '</p>';
 
     echo '<div class="seo-core-test-grid">';
     seo_core_system_test_summary_card('Pruebas funcionales', count($functional_results), 'info');
@@ -7742,7 +7742,7 @@ function seo_core_system_test_render_functional_business($results) {
     echo '</div>';
 
     echo '<div class="seo-core-test-note">';
-    echo '<strong>Modo seguro:</strong> las solicitudes son GET y el test no añade productos al carrito, no crea pedidos, no procesa pagos y no modifica registros. La validación general no ejecuta la auditoría 404 completa; esa comprobación se lanza desde la sección Enlaces y 404 de Chequeos avanzados. Las páginas de verificación del firewall o antibot se clasifican como aviso no concluyente; un error HTTP real sin firma de protección continúa siendo KO.';
+    echo '<strong>' . esc_html__( 'Modo seguro:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'las solicitudes son GET y el test no añade productos al carrito, no crea pedidos, no procesa pagos y no modifica registros. La validación general no ejecuta la auditoría 404 completa; esa comprobación se lanza desde la sección Enlaces y 404 de Chequeos avanzados. Las páginas de verificación del firewall o antibot se clasifican como aviso no concluyente; un error HTTP real sin firma de protección continúa siendo KO.', 'taxocommerce-system-check' );
     echo '</div>';
 
     seo_core_system_test_render_group($results, 'functional', false);
@@ -7762,15 +7762,15 @@ function seo_core_system_test_render_links_404($results) {
         $counts[$severity]++;
     }
 
-    echo '<h2>Enlaces y errores 404</h2>';
-    echo '<p>Auditoría de enlaces internos, URLs publicadas en sitemap, reglas de redirección, imágenes y recursos locales. Cada incidencia conserva uno o varios orígenes para facilitar su reparación.</p>';
+    echo '<h2>' . esc_html__( 'Enlaces y errores 404', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Auditoría de enlaces internos, URLs publicadas en sitemap, reglas de redirección, imágenes y recursos locales. Cada incidencia conserva uno o varios orígenes para facilitar su reparación.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-core-test-grid">';
     seo_core_system_test_summary_card('Pruebas de enlaces', count($group_results), 'info');
     seo_core_system_test_summary_card('OK', $counts['ok'], 'ok');
     seo_core_system_test_summary_card('Avisos', $counts['warning'], 'warning');
     seo_core_system_test_summary_card('KO', $counts['ko'], 'ko');
     echo '</div>';
-    echo '<div class="seo-core-test-note"><strong>Modo seguro:</strong> no corrige ni crea redirecciones automáticamente. Omite enlaces de cierre de sesión, acciones de carrito, nonces y otras URLs GET que podrían alterar una sesión. Cada bloque tiene un límite estricto, se guarda por separado y puede repetirse. Una comprobación pendiente se muestra como Info, no como Aviso ni como falso OK.</div>';
+    echo '<div class="seo-core-test-note">' . '<strong>' . esc_html__( 'Modo seguro:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'no corrige ni crea redirecciones automáticamente. Omite enlaces de cierre de sesión, acciones de carrito, nonces y otras URLs GET que podrían alterar una sesión. Cada bloque tiene un límite estricto, se guarda por separado y puede repetirse. Una comprobación pendiente se muestra como Info, no como Aviso ni como falso OK.', 'taxocommerce-system-check' ) . '</div>';
 
     seo_core_system_test_render_group($results, 'links_404', false);
 
@@ -7781,7 +7781,7 @@ function seo_core_system_test_render_links_404($results) {
         echo '<details class="seo-core-test-details">';
         echo '<summary>' . esc_html($result['label']) . ': detalle de incidencias (' . esc_html(number_format_i18n(count($result['items']))) . ')</summary>';
         echo '<div class="seo-core-test-details-content"><div class="seo-core-test-table-wrap">';
-        echo '<table class="seo-core-test-table"><thead><tr><th>Prioridad</th><th>Estado</th><th>URL</th><th>Origen</th><th>Detalle</th></tr></thead><tbody>';
+        echo '<table class="seo-core-test-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'URL', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($result['items'] as $item) {
             echo '<tr>';
             echo '<td><strong>' . esc_html(ucfirst((string) (isset($item['priority']) ? $item['priority'] : 'baja'))) . '</strong></td>';
@@ -7798,8 +7798,8 @@ function seo_core_system_test_render_links_404($results) {
 function seo_core_system_test_render_code_integrity($results) {
     $inventory = seo_core_system_test_get_code_inventory();
 
-    echo '<h2>Integridad del código</h2>';
-    echo '<p>Inventario estático de los archivos PHP propios del plugin. No ejecuta los archivos analizados: lee sus tokens para localizar declaraciones, hooks, posibles colisiones y patrones de compatibilidad con WordPress.org.</p>';
+    echo '<h2>' . esc_html__( 'Integridad del código', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Inventario estático de los archivos PHP propios del plugin. No ejecuta los archivos analizados: lee sus tokens para localizar declaraciones, hooks, posibles colisiones y patrones de compatibilidad con WordPress.org.', 'taxocommerce-system-check' ) . '</p>';
 
     echo '<div class="seo-core-test-grid">';
     seo_core_system_test_summary_card('Archivos PHP detectados', $inventory['file_count'], 'info');
@@ -8006,7 +8006,7 @@ function seo_core_system_test_render_callback_details($callbacks) {
     echo '<details class="seo-core-test-details" open>';
     echo '<summary>Callbacks literales no resueltos (' . esc_html(number_format_i18n(count($callbacks))) . ')</summary>';
     echo '<div class="seo-core-test-details-content"><table class="seo-core-test-table">';
-    echo '<thead><tr><th>Callback</th><th>Hook</th><th>Registro</th><th>Ubicación</th></tr></thead><tbody>';
+    echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Callback', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Hook', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Registro', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Ubicación', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($callbacks as $callback) {
         echo '<tr>';
@@ -8028,7 +8028,7 @@ function seo_core_system_test_render_inventory_table($title, $entries, $columns)
     echo '<div class="seo-core-test-details-content">';
 
     if (empty($entries)) {
-        echo '<p class="seo-core-test-empty">Sin elementos.</p>';
+        echo '<p class="seo-core-test-empty">' . esc_html__( 'Sin elementos.', 'taxocommerce-system-check' ) . '</p>';
         echo '</div></details>';
         return;
     }
@@ -8094,8 +8094,8 @@ function seo_core_system_test_render_summary($summary, $results) {
     $score = $health['score'] === null ? 'Pendiente' : (int) $health['score'] . '%';
     $status_label = $health['score'] === null ? 'Sin datos' : seo_core_system_test_impact_label($health['status']);
 
-    echo '<h2>Resumen ejecutivo</h2>';
-    echo '<div class="seo-core-scope-note"><strong>Vista general de la última validación.</strong>Estos KPIs reutilizan los resultados ya guardados: entrar en Resumen no vuelve a ejecutar ningún chequeo. Desde cada tarjeta puedes abrir el detalle correspondiente.</div>';
+    echo '<h2>' . esc_html__( 'Resumen ejecutivo', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<div class="seo-core-scope-note">' . '<strong>' . esc_html__( 'Vista general de la última validación.', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( 'Estos KPIs reutilizan los resultados ya guardados: entrar en Resumen no vuelve a ejecutar ningún chequeo. Desde cada tarjeta puedes abrir el detalle correspondiente.', 'taxocommerce-system-check' ) . '</div>';
 
     echo '<div class="seo-core-summary-global">';
     echo '<div class="seo-core-health-box seo-core-health-' . esc_attr($health['status']) . '"><strong>Estado global</strong><div class="seo-core-health-value">' . esc_html($status_label . ' · ' . $score) . '</div><span class="seo-core-test-muted">SEO Core / Plugin Validation</span></div>';
@@ -8116,7 +8116,7 @@ function seo_core_system_test_render_summary($summary, $results) {
     echo '</div>';
 
     echo '<details class="seo-core-test-details seo-core-summary-report">';
-    echo '<summary>Informe técnico en texto para desarrolladores</summary>';
+    echo '<summary>' . esc_html__( 'Informe técnico en texto para desarrolladores', 'taxocommerce-system-check' ) . '</summary>';
     echo '<div class="seo-core-test-details-content">';
     seo_core_system_test_render_final_report($summary, $results);
     echo '</div>';
@@ -8373,7 +8373,7 @@ function seo_core_system_test_render_group($results, $group, $show_heading = tru
         echo '<h2>' . esc_html(isset($labels[$group]) ? $labels[$group] : $group) . '</h2>';
     }
     echo '<table class="seo-core-test-table">';
-    echo '<thead><tr><th>Grupo</th><th>Test</th><th>Detalle</th><th>Resultado</th></tr></thead>';
+    echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Test', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>';
     echo '<tbody>';
 
     foreach ($results as $result) {
@@ -8406,12 +8406,12 @@ function seo_core_system_test_render_group($results, $group, $show_heading = tru
 function seo_core_system_test_render_final_report($summary, $results) {
     $report = seo_core_system_test_build_final_report($summary, $results);
 
-    echo '<h2>Informe final</h2>';
-    echo '<p>Este bloque está pensado para el futuro envío por email al sysadmin. Prioriza KO y avisos; los OK quedan resumidos.</p>';
+    echo '<h2>' . esc_html__( 'Informe final', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Este bloque está pensado para el futuro envío por email al sysadmin. Prioriza KO y avisos; los OK quedan resumidos.', 'taxocommerce-system-check' ) . '</p>';
     echo '<textarea class="seo-core-test-report" readonly>' . esc_textarea($report) . '</textarea>';
 
     echo '<div class="seo-core-test-note">';
-    echo '<strong>Criterio:</strong> si hay KO, el estado general será REVISAR. Si no hay KO pero sí avisos, será AVISOS. Si no hay incidencias, será CORRECTO.';
+    echo '<strong>' . esc_html__( 'Criterio:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'si hay KO, el estado general será REVISAR. Si no hay KO pero sí avisos, será AVISOS. Si no hay incidencias, será CORRECTO.', 'taxocommerce-system-check' );
     echo '</div>';
 }
 
@@ -8609,23 +8609,23 @@ function seo_core_system_test_render_diagnostics_controls($results = null, $comp
         echo '<div class="seo-core-diagnostics-compact-body">';
     } else {
         echo '<section class="seo-core-diagnostics-consent" aria-labelledby="seo-core-diagnostics-title">';
-        echo '<h2 id="seo-core-diagnostics-title">Envío opcional de diagnósticos al desarrollador</h2>';
+        echo '<h2 id="seo-core-diagnostics-title">' . esc_html__( 'Envío opcional de diagnósticos al desarrollador', 'taxocommerce-system-check' ) . '</h2>';
     }
 
-    echo '<p>Esta función es voluntaria y está desactivada hasta que un administrador del sitio la autoriza. Sirve únicamente para recibir información técnica que ayude a detectar errores, regresiones y problemas de compatibilidad de SEO System. Puedes desactivarla de nuevo en cualquier momento.</p>';
+    echo '<p>' . esc_html__( 'Esta función es voluntaria y está desactivada hasta que un administrador del sitio la autoriza. Sirve únicamente para recibir información técnica que ayude a detectar errores, regresiones y problemas de compatibilidad de SEO System. Puedes desactivarla de nuevo en cualquier momento.', 'taxocommerce-system-check' ) . '</p>';
     echo '<form method="post">';
     wp_nonce_field('seo_core_system_test_diagnostics', 'seo_core_system_test_diagnostics_nonce');
     echo '<label><input type="checkbox" name="seo_core_system_test_diagnostics_consent" value="1" ' . checked($consent, true, false) . '> <strong>Permitir el envío automático al desarrollador tras cada ejecución completada</strong></label>';
     if ($recipient !== '') {
         echo '<p class="seo-core-diagnostics-privacy"><strong>Destinatario técnico:</strong> ' . esc_html($recipient) . '.</p>';
     }
-    echo '<p class="seo-core-diagnostics-privacy">Si lo autorizas, el resumen puede incluir el dominio, un identificador aleatorio de instalación, fecha y motivo de la ejecución, versiones técnicas (SEO System, WordPress, WooCommerce y PHP), puntuaciones agregadas e incidencias detectadas. No se envían contraseñas, tokens, cookies, pedidos, clientes, direcciones, filas completas de tablas ni contenido completo de logs.</p>';
-    echo '<p class="seo-core-diagnostics-privacy">El correo de administración del propio sitio puede recibir una copia del mismo resumen para que el titular conserve visibilidad del envío.</p>';
+    echo '<p class="seo-core-diagnostics-privacy">' . esc_html__( 'Si lo autorizas, el resumen puede incluir el dominio, un identificador aleatorio de instalación, fecha y motivo de la ejecución, versiones técnicas (SEO System, WordPress, WooCommerce y PHP), puntuaciones agregadas e incidencias detectadas. No se envían contraseñas, tokens, cookies, pedidos, clientes, direcciones, filas completas de tablas ni contenido completo de logs.', 'taxocommerce-system-check' ) . '</p>';
+    echo '<p class="seo-core-diagnostics-privacy">' . esc_html__( 'El correo de administración del propio sitio puede recibir una copia del mismo resumen para que el titular conserve visibilidad del envío.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-core-diagnostics-actions">';
-    echo '<button type="submit" class="button button-primary" name="seo_core_system_test_diagnostics_action" value="save">Guardar autorización</button>';
+    echo '<button type="submit" class="button button-primary" name="seo_core_system_test_diagnostics_action" value="save">' . esc_html__( 'Guardar autorización', 'taxocommerce-system-check' ) . '</button>';
     echo '<button type="submit" class="button" name="seo_core_system_test_diagnostics_action" value="send" ' . disabled($has_results, false, false) . '>Enviar ahora el último diagnóstico</button>';
     if (!$has_results) {
-        echo '<span class="description">Ejecuta primero la validación completa para generar el informe.</span>';
+        echo '<span class="description">' . esc_html__( 'Ejecuta primero la validación completa para generar el informe.', 'taxocommerce-system-check' ) . '</span>';
     }
     echo '</div></form>';
 
@@ -8700,10 +8700,10 @@ if (!function_exists('seo_core_system_test_render_function_inventory')) {
 
         $functions = seo_core_system_test_collect_function_inventory();
 
-        echo '<h2>Inventario de funciones globales del plugin</h2>';
+        echo '<h2>' . esc_html__( 'Inventario de funciones globales del plugin', 'taxocommerce-system-check' ) . '</h2>';
 
         if (empty($functions)) {
-            echo '<p>No se han encontrado funciones PHP en el plugin o no se ha podido leer la ruta.</p>';
+            echo '<p>' . esc_html__( 'No se han encontrado funciones PHP en el plugin o no se ha podido leer la ruta.', 'taxocommerce-system-check' ) . '</p>';
             return;
         }
 
@@ -8732,14 +8732,14 @@ if (!function_exists('seo_core_system_test_render_function_inventory')) {
 
         if (!empty($duplicates)) {
 
-            echo '<h3>Funciones globales duplicadas</h3>';
+            echo '<h3>' . esc_html__( 'Funciones globales duplicadas', 'taxocommerce-system-check' ) . '</h3>';
             echo '<table class="widefat striped">';
             echo '<thead>';
             echo '<tr>';
-            echo '<th>Función</th>';
-            echo '<th>Archivo</th>';
-            echo '<th>Línea</th>';
-            echo '<th>Tipo</th>';
+            echo '<th>' . esc_html__( 'Función', 'taxocommerce-system-check' ) . '</th>';
+            echo '<th>' . esc_html__( 'Archivo', 'taxocommerce-system-check' ) . '</th>';
+            echo '<th>' . esc_html__( 'Línea', 'taxocommerce-system-check' ) . '</th>';
+            echo '<th>' . esc_html__( 'Tipo', 'taxocommerce-system-check' ) . '</th>';
             echo '</tr>';
             echo '</thead>';
             echo '<tbody>';
@@ -8760,15 +8760,15 @@ if (!function_exists('seo_core_system_test_render_function_inventory')) {
         }
 
         echo '<details style="margin-top:20px;">';
-        echo '<summary style="cursor:pointer;font-weight:600;">Ver inventario completo de funciones</summary>';
+        echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Ver inventario completo de funciones', 'taxocommerce-system-check' ) . '</summary>';
 
         echo '<table class="widefat striped" style="margin-top:12px;">';
         echo '<thead>';
         echo '<tr>';
-        echo '<th>Función</th>';
-        echo '<th>Archivo</th>';
-        echo '<th>Línea</th>';
-        echo '<th>Tipo</th>';
+        echo '<th>' . esc_html__( 'Función', 'taxocommerce-system-check' ) . '</th>';
+        echo '<th>' . esc_html__( 'Archivo', 'taxocommerce-system-check' ) . '</th>';
+        echo '<th>' . esc_html__( 'Línea', 'taxocommerce-system-check' ) . '</th>';
+        echo '<th>' . esc_html__( 'Tipo', 'taxocommerce-system-check' ) . '</th>';
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';

@@ -1768,17 +1768,17 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
         @media(max-width:782px){.seo-diag-export-head{display:block}.seo-diag-export-actions{margin-top:12px}.seo-diag-count-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}
     </style>';
     if ('updated_sent' === $message) {
-        echo '<p style="margin:0 0 12px;color:#1d6b43;font-weight:700;">Análisis actualizado y resumen enviado automáticamente.</p>';
+        echo '<p style="margin:0 0 12px;color:#1d6b43;font-weight:700;">' . esc_html__( 'Análisis actualizado y resumen enviado automáticamente.', 'taxocommerce-system-check' ) . '</p>';
     } elseif ('updated' === $message) {
-        echo '<p style="margin:0 0 12px;color:#1d6b43;font-weight:700;">Análisis actualizado correctamente.</p>';
+        echo '<p style="margin:0 0 12px;color:#1d6b43;font-weight:700;">' . esc_html__( 'Análisis actualizado correctamente.', 'taxocommerce-system-check' ) . '</p>';
     } elseif ('refresh_error' === $message) {
-        echo '<p style="margin:0 0 12px;color:#b32d2e;font-weight:700;">No se pudo completar la actualización. Revisa el registro de errores.</p>';
+        echo '<p style="margin:0 0 12px;color:#b32d2e;font-weight:700;">' . esc_html__( 'No se pudo completar la actualización. Revisa el registro de errores.', 'taxocommerce-system-check' ) . '</p>';
     }
 
     echo '<div class="seo-diag-export-head"><div>';
-    echo '<p style="margin:0 0 5px;"><span class="seo-diag-scope-tag">Global · todos los ámbitos</span></p>';
-    echo '<h2 style="margin:0 0 6px;">Resumen global de todos los chequeos</h2>';
-    echo '<p style="margin:0;max-width:900px;">Esta es la única puntuación consolidada. Reúne el diagnóstico general del servidor y todas las áreas de SEO Core. El detalle se concentra en Integridad del código y Chequeos avanzados.</p>';
+    echo '<p style="margin:0 0 5px;">' . '<span class="seo-diag-scope-tag">' . esc_html__( 'Global · todos los ámbitos', 'taxocommerce-system-check' ) . '</span>' . '</p>';
+    echo '<h2 style="margin:0 0 6px;">' . esc_html__( 'Resumen global de todos los chequeos', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p style="margin:0;max-width:900px;">' . esc_html__( 'Esta es la única puntuación consolidada. Reúne el diagnóstico general del servidor y todas las áreas de SEO Core. El detalle se concentra en Integridad del código y Chequeos avanzados.', 'taxocommerce-system-check' ) . '</p>';
     echo '</div><div class="seo-diag-export-actions">';
     echo '<a class="button button-primary" href="' . esc_url($refresh_url) . '">Actualizar análisis</a>';
     echo '<a class="button" href="' . esc_url($pdf_url) . '">Descargar PDF</a>';
@@ -1825,12 +1825,12 @@ function seo_system_diagnostics_render_export_panel($context = 'auto') {
     echo '<p class="seo-diag-context"><strong>Cambios desde la ejecución anterior:</strong> ' . esc_html($trend_text) . '. Los contadores son globales y cada incidencia se cuenta una sola vez por origen, código e impacto.</p>';
 
     echo '<details class="seo-diag-explain">';
-    echo '<summary>Cómo se compone este resumen y qué no se suma dos veces</summary>';
+    echo '<summary>' . esc_html__( 'Cómo se compone este resumen y qué no se suma dos veces', 'taxocommerce-system-check' ) . '</summary>';
     echo '<div class="seo-diag-explain-body"><ul>';
-    echo '<li><strong>Estado global</strong>: consolidación ponderada de Servidor y SEO Core.</li>';
-    echo '<li><strong>Servidor</strong>: diagnóstico general de alojamiento, PHP, MySQL, WordPress y recursos.</li>';
-    echo '<li><strong>SEO Core</strong>: suma de todos los tests del plugin, aunque la interfaz los muestre concentrados en dos vistas.</li>';
-    echo '<li><strong>Contenido y FAQs</strong>: detalle informativo del bloque Datos, SEO y contenido; ya está incluido en SEO Core y no vuelve a sumarse.</li>';
+    echo '<li>' . '<strong>' . esc_html__( 'Estado global', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( ': consolidación ponderada de Servidor y SEO Core.', 'taxocommerce-system-check' ) . '</li>';
+    echo '<li>' . '<strong>' . esc_html__( 'Servidor', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( ': diagnóstico general de alojamiento, PHP, MySQL, WordPress y recursos.', 'taxocommerce-system-check' ) . '</li>';
+    echo '<li>' . '<strong>' . esc_html__( 'SEO Core', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( ': suma de todos los tests del plugin, aunque la interfaz los muestre concentrados en dos vistas.', 'taxocommerce-system-check' ) . '</li>';
+    echo '<li>' . '<strong>' . esc_html__( 'Contenido y FAQs', 'taxocommerce-system-check' ) . '</strong>' . esc_html__( ': detalle informativo del bloque Datos, SEO y contenido; ya está incluido en SEO Core y no vuelve a sumarse.', 'taxocommerce-system-check' ) . '</li>';
     echo '</ul></div></details>';
 
     if (($context === 'core_summary' || seo_system_diagnostics_is_core_validation_screen()) && function_exists('seo_core_system_test_render_diagnostics_controls')) {
@@ -1849,10 +1849,10 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
     $semantic = is_array($semantic) ? $semantic : array();
 
     echo '<div class="seo-report-card">';
-    echo '<h2>Contenido, categorías y FAQs</h2>';
+    echo '<h2>' . esc_html__( 'Contenido, categorías y FAQs', 'taxocommerce-system-check' ) . '</h2>';
 
     if (empty($semantic)) {
-        echo '<p>No existe todavía una auditoría semántica. Pulsa <strong>Actualizar auditoría</strong>.</p>';
+        echo '<p>' . esc_html__( 'No existe todavía una auditoría semántica. Pulsa', 'taxocommerce-system-check' ) . ' ' . '<strong>' . esc_html__( 'Actualizar auditoría', 'taxocommerce-system-check' ) . '</strong>' . '.' . '</p>';
         echo '</div>';
         return;
     }
@@ -1865,7 +1865,7 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
 
     echo '<p><strong>Preparación editorial:</strong> ' . esc_html(seo_system_diagnostics_format_score($score)) . '. Esta cifra resume señales observables; no declara que el contenido sea perfecto.</p>';
 
-    echo '<table class="seo-report-table"><thead><tr><th>Área</th><th>Control</th><th>Resultado</th></tr></thead><tbody>';
+    echo '<table class="seo-report-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Área', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Control', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     $rows = array(
         array('Categorías', 'Ámbitos inválidos', (int) ($categories['invalid_scope'] ?? 0)),
@@ -1908,11 +1908,11 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
     }
     echo '</tbody></table>';
 
-    echo '<h3>Qué modificar</h3>';
+    echo '<h3>' . esc_html__( 'Qué modificar', 'taxocommerce-system-check' ) . '</h3>';
     if (empty($actions)) {
-        echo '<p>No se han generado acciones editoriales prioritarias.</p>';
+        echo '<p>' . esc_html__( 'No se han generado acciones editoriales prioritarias.', 'taxocommerce-system-check' ) . '</p>';
     } else {
-        echo '<table class="seo-report-table"><thead><tr><th>Prioridad</th><th>Entidad / campo</th><th>Registros</th><th>Acción recomendada</th></tr></thead><tbody>';
+        echo '<table class="seo-report-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Entidad / campo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Registros', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Acción recomendada', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($actions, 0, 20) as $action) {
             echo '<tr>';
             echo '<td><span class="seo-report-badge">' . esc_html(strtoupper((string) ($action['priority'] ?? ''))) . '</span></td>';
@@ -1944,7 +1944,7 @@ function seo_system_diagnostics_render_semantic_alignment($semantic) {
         echo '</details>';
     }
 
-    echo '<p class="seo-report-muted">El módulo es de solo lectura. Las alertas semánticas indican qué revisar; no cambian categorías, productos, atributos, etiquetas ni FAQs.</p>';
+    echo '<p class="seo-report-muted">' . esc_html__( 'El módulo es de solo lectura. Las alertas semánticas indican qué revisar; no cambian categorías, productos, atributos, etiquetas ni FAQs.', 'taxocommerce-system-check' ) . '</p>';
     echo '</div>';
 }
 
@@ -1983,15 +1983,15 @@ function seo_system_diagnostics_render_report_page() {
     );
 
     echo '<div class="wrap seo-system-quality-report">';
-    echo '<h1>Informe completo TaxoCommerce System Check</h1>';
-    echo '<p>Auditoría técnica, funcional, comercial, SEO y semántica preparada para revisión interna, un analista externo o una IA.</p>';
+    echo '<h1>' . esc_html__( 'Informe completo TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Auditoría técnica, funcional, comercial, SEO y semántica preparada para revisión interna, un analista externo o una IA.', 'taxocommerce-system-check' ) . '</p>';
 
     if ('updated_sent' === $message) {
-        echo '<div class="notice notice-success is-dismissible"><p>Auditoría actualizada y resumen enviado automáticamente.</p></div>';
+        echo '<div class="notice notice-success is-dismissible">' . '<p>' . esc_html__( 'Auditoría actualizada y resumen enviado automáticamente.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
     } elseif ('updated' === $message) {
-        echo '<div class="notice notice-success is-dismissible"><p>Auditoría actualizada correctamente.</p></div>';
+        echo '<div class="notice notice-success is-dismissible">' . '<p>' . esc_html__( 'Auditoría actualizada correctamente.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
     } elseif ('refresh_error' === $message) {
-        echo '<div class="notice notice-error is-dismissible"><p>No se pudo completar la actualización. Revisa el registro de errores.</p></div>';
+        echo '<div class="notice notice-error is-dismissible">' . '<p>' . esc_html__( 'No se pudo completar la actualización. Revisa el registro de errores.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
     }
 
     echo '<style>
@@ -2013,7 +2013,7 @@ function seo_system_diagnostics_render_report_page() {
     echo '</div>';
 
     echo '<div class="seo-report-card">';
-    echo '<h2>Resumen ejecutivo</h2>';
+    echo '<h2>' . esc_html__( 'Resumen ejecutivo', 'taxocommerce-system-check' ) . '</h2>';
     echo '<p><strong>Estado general:</strong> <span class="seo-report-badge">' . esc_html(seo_system_diagnostics_report_status_label((string) ($summary['overall'] ?? 'info'))) . '</span></p>';
     echo '<div class="seo-report-grid">';
     seo_system_diagnostics_render_score_card('Servidor', (int) ($summary['server_health']['score'] ?? 0));
@@ -2026,9 +2026,9 @@ function seo_system_diagnostics_render_report_page() {
     seo_system_diagnostics_render_semantic_alignment($semantic);
 
     echo '<div class="seo-report-card">';
-    echo '<h2>Incidencias principales</h2>';
+    echo '<h2>' . esc_html__( 'Incidencias principales', 'taxocommerce-system-check' ) . '</h2>';
     if (empty($incidents)) {
-        echo '<p>No hay incidencias en los chequeos disponibles.</p>';
+        echo '<p>' . esc_html__( 'No hay incidencias en los chequeos disponibles.', 'taxocommerce-system-check' ) . '</p>';
     } else {
         foreach (array_slice($incidents, 0, 30) as $incident) {
             echo '<div class="seo-report-incident">';
@@ -2042,9 +2042,9 @@ function seo_system_diagnostics_render_report_page() {
     }
     echo '</div>';
 
-    echo '<div class="seo-report-card"><h2>Interpretación</h2>';
-    echo '<p>Las puntuaciones resumen señales técnicas, funcionales y semánticas. Sirven para localizar incidencias y ordenar el trabajo, pero requieren interpretación antes de aplicar cambios.</p>';
-    echo '<p>El PDF es adecuado para lectura y comunicación. El JSON conserva la estructura completa y es el formato recomendado para facilitar una segunda revisión por una IA.</p>';
+    echo '<div class="seo-report-card">' . '<h2>' . esc_html__( 'Interpretación', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Las puntuaciones resumen señales técnicas, funcionales y semánticas. Sirven para localizar incidencias y ordenar el trabajo, pero requieren interpretación antes de aplicar cambios.', 'taxocommerce-system-check' ) . '</p>';
+    echo '<p>' . esc_html__( 'El PDF es adecuado para lectura y comunicación. El JSON conserva la estructura completa y es el formato recomendado para facilitar una segunda revisión por una IA.', 'taxocommerce-system-check' ) . '</p>';
     echo '</div>';
     echo '</div>';
 }

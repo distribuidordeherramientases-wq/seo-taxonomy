@@ -665,8 +665,8 @@ function tcsocial_x_render_connection($config)
     }
 
     echo '<div class="seo-social-actions">';
-    echo '<button type="submit" class="button">Guardar</button>';
-    echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">Guardar y probar conexion</button>';
+    echo '<button type="submit" class="button">' . esc_html__( 'Guardar', 'taxocommerce-social' ) . '</button>';
+    echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">' . esc_html__( 'Guardar y probar conexion', 'taxocommerce-social' ) . '</button>';
     echo '</div>';
     echo '</form>';
 
@@ -674,7 +674,7 @@ function tcsocial_x_render_connection($config)
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
         echo '<input type="hidden" name="action" value="tcsocial_x_oauth_start">';
         wp_nonce_field('tcsocial_x_oauth_start');
-        echo '<button type="submit" class="button button-primary">Conectar / renovar X</button>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Conectar / renovar X', 'taxocommerce-social' ) . '</button>';
         echo '</form>';
     }
 

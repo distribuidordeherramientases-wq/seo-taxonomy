@@ -697,7 +697,7 @@ function tcsocial_linkedin_render_connection($config)
     $selected_id = isset($config['organization_id']) ? (string) $config['organization_id'] : '';
 
     echo '<p class="seo-social-help"><strong>Redirect URL para LinkedIn Developer Portal:</strong><br><code>' . esc_html(tcsocial_linkedin_redirect_uri()) . '</code></p>';
-    echo '<p class="seo-social-help">La aplicacion de LinkedIn debe disponer de permisos para administrar/leer la organizacion y publicar como pagina. El plugin usa OAuth 2.0 y LinkedIn Posts API.</p>';
+    echo '<p class="seo-social-help">' . esc_html__( 'La aplicacion de LinkedIn debe disponer de permisos para administrar/leer la organizacion y publicar como pagina. El plugin usa OAuth 2.0 y LinkedIn Posts API.', 'taxocommerce-social' ) . '</p>';
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     echo '<input type="hidden" name="action" value="tcsocial_network_save_connection"><input type="hidden" name="provider" value="linkedin">';
@@ -713,9 +713,9 @@ function tcsocial_linkedin_render_connection($config)
     echo '<div class="seo-social-field"><label>Modo de publicacion</label><select name="connection[publish_mode]"><option value="article" ' . selected(isset($config['publish_mode']) ? $config['publish_mode'] : 'article', 'article', false) . '>Articulo con enlace y tarjeta</option><option value="text" ' . selected(isset($config['publish_mode']) ? $config['publish_mode'] : 'article', 'text', false) . '>Texto + enlace</option></select></div>';
     echo '</div>';
 
-    echo '<div class="seo-social-field" style="margin-top:12px"><label>Pagina de empresa</label>';
+    echo '<div class="seo-social-field" style="margin-top:12px">' . '<label>' . esc_html__( 'Pagina de empresa', 'taxocommerce-social' ) . '</label>';
     if (!empty($organizations)) {
-        echo '<select name="connection[organization_id]"><option value="">Selecciona una pagina</option>';
+        echo '<select name="connection[organization_id]">' . '<option value="">' . esc_html__( 'Selecciona una pagina', 'taxocommerce-social' ) . '</option>';
         foreach ($organizations as $organization) {
             if (!is_array($organization) || empty($organization['id'])) {
                 continue;
@@ -739,9 +739,9 @@ function tcsocial_linkedin_render_connection($config)
         }
     }
 
-    echo '<div class="seo-social-actions"><button type="submit" class="button">Guardar configuracion</button>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button">' . esc_html__( 'Guardar configuracion', 'taxocommerce-social' ) . '</button>';
     if ($has_token && $selected_id !== '') {
-        echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">Guardar y probar conexion</button>';
+        echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">' . esc_html__( 'Guardar y probar conexion', 'taxocommerce-social' ) . '</button>';
     }
     echo '</div></form>';
 
@@ -749,10 +749,10 @@ function tcsocial_linkedin_render_connection($config)
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
         echo '<input type="hidden" name="action" value="tcsocial_linkedin_oauth_start">';
         wp_nonce_field('tcsocial_linkedin_oauth_start');
-        echo '<button type="submit" class="button button-primary">Conectar / renovar autorizacion con LinkedIn</button>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Conectar / renovar autorizacion con LinkedIn', 'taxocommerce-social' ) . '</button>';
         echo '</form>';
     } else {
-        echo '<p class="seo-social-help">Guarda primero el Client ID y el Client Secret. Despues aparecera el boton para autorizar LinkedIn.</p>';
+        echo '<p class="seo-social-help">' . esc_html__( 'Guarda primero el Client ID y el Client Secret. Despues aparecera el boton para autorizar LinkedIn.', 'taxocommerce-social' ) . '</p>';
     }
 
     if ($has_token || !empty($config['enabled'])) {

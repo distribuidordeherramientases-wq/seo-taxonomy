@@ -2568,8 +2568,8 @@ function seo_google_render_trends_market() {
     </style>';
 
     echo '<div class="seo-trends-card">';
-    echo '<h2 style="margin:0 0 6px;">Mercado Google · Trends</h2>';
-    echo '<p style="margin:0;max-width:1000px;"><strong>Objetivo:</strong> descubrir demanda externa y temas emergentes del entorno comercial. El catálogo, las categorías y los hubs solo delimitan el negocio; las páginas, landings y posts se consultan después para medir cobertura y decidir qué mejorar.</p>';
+    echo '<h2 style="margin:0 0 6px;">' . esc_html__( 'Mercado Google · Trends', 'taxocommerce-google-bing' ) . '</h2>';
+    echo '<p style="margin:0;max-width:1000px;">' . '<strong>' . esc_html__( 'Objetivo:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'descubrir demanda externa y temas emergentes del entorno comercial. El catálogo, las categorías y los hubs solo delimitan el negocio; las páginas, landings y posts se consultan después para medir cobertura y decidir qué mejorar.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<p class="seo-trends-muted"><code>V' . esc_html(SEO_GOOGLE_TRENDS_VERSION) . '</code> · Search Console y Analytics mantienen sus conexiones independientes. Este modulo usa la capa web publica de Explore con consultas suaves; no es la Google Trends API oficial (Alpha). La via web no requiere OAuth ni API key. La API oficial requiere acceso Alpha concedido por Google y puede incorporarse como proveedor cuando la cuenta sea admitida.</p>';
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
@@ -2581,9 +2581,9 @@ function seo_google_render_trends_market() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
         echo '<div class="notice notice-success inline"><p>CSV importado: ' . esc_html(number_format_i18n(absint($_GET['rows'] ?? 0))) . ' señales procesadas.</p></div>';
     } elseif ('cleared' === $notice) {
-        echo '<div class="notice notice-success inline"><p>Se han eliminado las señales almacenadas de Trends.</p></div>';
+        echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Se han eliminado las señales almacenadas de Trends.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     } elseif ('settings_saved' === $notice) {
-        echo '<div class="notice notice-success inline"><p>Configuración del radar guardada.</p></div>';
+        echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Configuración del radar guardada.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
     if (!empty($_GET['trends_error'])) {
@@ -2594,7 +2594,7 @@ function seo_google_render_trends_market() {
     echo '</div>';
 
     echo '<div class="seo-trends-grid">';
-    echo '<div class="seo-trends-card"><h3>Radar emergente</h3>';
+    echo '<div class="seo-trends-card">' . '<h3>' . esc_html__( 'Radar emergente', 'taxocommerce-google-bing' ) . '</h3>';
     $radar_badge = $status['radar']['connected']
         ? 'OPERATIVO'
         : ('error' === (string) ($status['radar']['status'] ?? '') ? 'ERROR DE DESCARGA' : 'PENDIENTE DE PRUEBA');
@@ -2608,7 +2608,7 @@ function seo_google_render_trends_market() {
     submit_button('Actualizar mercado + radar', 'primary', 'submit', false);
     echo '</form></div>';
 
-    echo '<div class="seo-trends-card"><h3>Exploración de mercado · web pública</h3>';
+    echo '<div class="seo-trends-card">' . '<h3>' . esc_html__( 'Exploración de mercado · web pública', 'taxocommerce-google-bing' ) . '</h3>';
     $market_state = (string) ($status['market']['status'] ?? '');
     if ('partial' === $market_state) {
         $market_badge = 'DATOS PARCIALES';
@@ -2626,7 +2626,7 @@ function seo_google_render_trends_market() {
     echo wp_kses_post(seo_google_trends_status_badge($market_badge_connected, $market_badge));
     echo '<p>' . esc_html($status['market']['detail']) . '</p>';
     if (!empty($status['market']['diagnostic_phase']) || !empty($status['market']['diagnostic_http']) || !empty($status['market']['diagnostic_endpoint'])) {
-        echo '<p class="seo-trends-muted"><strong>Ultimo diagnostico tecnico:</strong> ';
+        echo '<p class="seo-trends-muted">' . '<strong>' . esc_html__( 'Ultimo diagnostico tecnico:', 'taxocommerce-google-bing' ) . '</strong>' . ' ';
         $diag = array_filter(array(
             (string) ($status['market']['diagnostic_phase'] ?? ''),
             (string) ($status['market']['diagnostic_method'] ?? ''),
@@ -2638,17 +2638,17 @@ function seo_google_render_trends_market() {
     echo '<p class="seo-trends-muted">Primero se prueba <code>GET /trends/api/explore</code>; solo ante 404/405 se intenta POST una vez. 401/403/429 se tratan como rechazo o limitación; 404/405 como cambio de ruta/método. Autocomplete se usa únicamente para descubrimiento auxiliar y nunca como volumen de demanda.</p></div>';
 
     $gsc_connected = function_exists('seo_google_connection_status') && 'connected' === seo_google_connection_status();
-    echo '<div class="seo-trends-card"><h3>Search Console</h3>';
+    echo '<div class="seo-trends-card">' . '<h3>' . esc_html__( 'Search Console', 'taxocommerce-google-bing' ) . '</h3>';
     echo wp_kses_post(seo_google_trends_status_badge($gsc_connected, $gsc_connected ? 'CONECTADO' : 'REVISAR'));
-    echo '<p>Se usa para saber dónde ya aparece vuestra web y con qué consultas. No alimenta el radar ni sustituye la demanda externa.</p>';
+    echo '<p>' . esc_html__( 'Se usa para saber dónde ya aparece vuestra web y con qué consultas. No alimenta el radar ni sustituye la demanda externa.', 'taxocommerce-google-bing' ) . '</p>';
     if (function_exists('seo_google_admin_url')) {
         echo '<a class="button" href="' . esc_url(seo_google_admin_url('sync')) . '">Ver sincronización</a>';
     }
     echo '</div>';
     echo '</div>';
 
-    echo '<div class="seo-trends-card"><h3>Perímetro comercial del radar</h3>';
-    echo '<p>Se genera con áreas manuales, clusters, hubs, categorías y atributos de producto. <strong>No se escanean landings ni posts para decidir qué busca el mercado.</strong></p>';
+    echo '<div class="seo-trends-card">' . '<h3>' . esc_html__( 'Perímetro comercial del radar', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Se genera con áreas manuales, clusters, hubs, categorías y atributos de producto.', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'No se escanean landings ni posts para decidir qué busca el mercado.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_google_trends_save_settings">';
     wp_nonce_field('seo_google_trends_save_settings', 'seo_google_trends_settings_nonce');
     echo '<table class="form-table"><tr><th><label for="seo-trends-manual-seeds">Áreas adicionales</label></th><td><textarea id="seo-trends-manual-seeds" name="manual_seeds" rows="5" class="large-text" placeholder="Ej.: herramientas de taller&#10;equipamiento para camión&#10;seguridad vial">' . esc_textarea($settings['manual_seeds']) . '</textarea><p class="description">Una por línea. Úsalas para áreas estratégicas que todavía no estén bien representadas en el catálogo.</p></td></tr>';
@@ -2668,23 +2668,23 @@ function seo_google_render_trends_market() {
     }
     echo '</div></div>';
 
-    echo '<div class="seo-trends-card"><h3>Importación CSV · respaldo manual</h3>';
-    echo '<p>La exploración pública automática es la vía principal. Si Google limita temporalmente las consultas desde el servidor, puedes seguir importando un CSV de <strong>En aumento</strong>, <strong>Principales</strong> o <strong>Relacionadas</strong> sin perder el motor de decisiones.</p>';
+    echo '<div class="seo-trends-card">' . '<h3>' . esc_html__( 'Importación CSV · respaldo manual', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'La exploración pública automática es la vía principal. Si Google limita temporalmente las consultas desde el servidor, puedes seguir importando un CSV de', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'En aumento', 'taxocommerce-google-bing' ) . '</strong>' . ', ' . '<strong>' . esc_html__( 'Principales', 'taxocommerce-google-bing' ) . '</strong>' . ' o ' . '<strong>' . esc_html__( 'Relacionadas', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'sin perder el motor de decisiones.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<form method="post" enctype="multipart/form-data" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="seo_google_trends_import">';
     wp_nonce_field('seo_google_trends_import', 'seo_google_trends_nonce');
-    echo '<table class="form-table"><tr><th>Semilla analizada</th><td><input required name="seed" class="regular-text" placeholder="Ej.: neveras para camión"></td></tr>';
-    echo '<tr><th>Tipo</th><td><select name="result_type"><option value="rising">En aumento</option><option value="top">Principales</option><option value="related">Relacionadas</option></select></td></tr>';
+    echo '<table class="form-table">' . '<tr>' . '<th>' . esc_html__( 'Semilla analizada', 'taxocommerce-google-bing' ) . '</th>' . '<td>' . '<input required name="seed" class="regular-text" placeholder="Ej.: neveras para camión">' . '</td>' . '</tr>';
+    echo '<tr>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-google-bing' ) . '</th>' . '<td>' . '<select name="result_type">' . '<option value="rising">' . esc_html__( 'En aumento', 'taxocommerce-google-bing' ) . '</option>' . '<option value="top">' . esc_html__( 'Principales', 'taxocommerce-google-bing' ) . '</option>' . '<option value="related">' . esc_html__( 'Relacionadas', 'taxocommerce-google-bing' ) . '</option>' . '</select>' . '</td>' . '</tr>';
     echo '<tr><th>País</th><td><input name="geo" value="' . esc_attr($settings['geo']) . '" size="6"></td></tr>';
-    echo '<tr><th>Periodo</th><td><input name="timeframe" value="12m" size="12"></td></tr>';
-    echo '<tr><th>CSV</th><td><input required type="file" name="trends_csv" accept=".csv,text/csv"></td></tr></table>';
+    echo '<tr>' . '<th>' . esc_html__( 'Periodo', 'taxocommerce-google-bing' ) . '</th>' . '<td>' . '<input name="timeframe" value="12m" size="12">' . '</td>' . '</tr>';
+    echo '<tr>' . '<th>' . esc_html__( 'CSV', 'taxocommerce-google-bing' ) . '</th>' . '<td>' . '<input required type="file" name="trends_csv" accept=".csv,text/csv">' . '</td>' . '</tr>' . '</table>';
     submit_button('Importar CSV de Trends');
     echo '</form></div>';
 
-    echo '<div class="seo-trends-card" style="overflow:auto;"><h3>Señales externas almacenadas</h3>';
+    echo '<div class="seo-trends-card" style="overflow:auto;">' . '<h3>' . esc_html__( 'Señales externas almacenadas', 'taxocommerce-google-bing' ) . '</h3>';
     if (!$signals) {
-        echo '<p>Todavía no hay señales almacenadas. Actualiza el radar o importa un CSV de Explore.</p>';
+        echo '<p>' . esc_html__( 'Todavía no hay señales almacenadas. Actualiza el radar o importa un CSV de Explore.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Señal</th><th>Fuente</th><th>Área relacionada</th><th>Indicador</th><th>Observada</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Señal', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Fuente', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Área relacionada', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Indicador', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Observada', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($signals as $row) {
             $meta = seo_google_trends_meta_decode($row['signal_meta'] ?? '');
             $provider = (string) ($row['provider'] ?? '');

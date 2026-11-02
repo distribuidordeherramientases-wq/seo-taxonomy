@@ -119,7 +119,7 @@ final class TaxoCommerce_Core_Vocabulary {
             echo '</div>';
         }
         echo '</div>';
-        echo '<p class="tc-field-help">Usa términos existentes del vocabulario canónico. Las etiquetas asignadas por procesos automáticos se muestran protegidas y no se sobrescriben aquí.</p>';
+        echo '<p class="tc-field-help">' . esc_html__( 'Usa términos existentes del vocabulario canónico. Las etiquetas asignadas por procesos automáticos se muestran protegidas y no se sobrescriben aquí.', 'taxocommerce-core' ) . '</p>';
         echo '</section>';
     }
 

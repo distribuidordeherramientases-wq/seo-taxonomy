@@ -1,0 +1,433 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-auditor\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-auditor.php
+msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-auditor.php
+msgid ""
+"Read-only WordPress and WooCommerce content quality audits with detailed "
+"KPIs and full JSON exports."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-auditor.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/class-admin.php:32
+msgid "No tienes permisos para consultar Auditor."
+msgstr ""
+
+#: includes/class-admin.php:40
+msgid "Auditor de contenidos"
+msgstr ""
+
+#: includes/class-admin.php:41 includes/class-admin.php:49
+msgid "Auditor"
+msgstr ""
+
+#: includes/class-admin.php:48
+msgid "TaxoCommerce Auditor"
+msgstr ""
+
+#: includes/class-admin.php:88
+msgid "Auditoría filtrada"
+msgstr ""
+
+#: includes/class-admin.php:88
+msgid "· revisión rápida de una muestra o búsqueda concreta."
+msgstr ""
+
+#: includes/class-admin.php:100
+msgid "Categoría"
+msgstr ""
+
+#: includes/class-admin.php:100
+msgid "Todas"
+msgstr ""
+
+#: includes/class-admin.php:106 includes/class-admin.php:457
+msgid "Máximo"
+msgstr ""
+
+#: includes/class-admin.php:148
+msgid "Último informe"
+msgstr ""
+
+#: includes/class-admin.php:161
+msgid "Auditoría completa"
+msgstr ""
+
+#: includes/class-admin.php:161
+msgid ""
+"· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la"
+" cola."
+msgstr ""
+
+#: includes/class-admin.php:191
+msgid ""
+"Especialista de solo lectura en calidad e integridad del contenido. Detecta "
+"errores, incoherencias y trabajo pendiente; no publica, borra, mueve ni "
+"redirige contenidos."
+msgstr ""
+
+#: includes/class-admin.php:192
+msgid "Fuentes:"
+msgstr ""
+
+#: includes/class-admin.php:192
+msgid ""
+"WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local"
+" persistido de otros módulos cuando existe. No ejecuta APIs externas durante"
+" la auditoría."
+msgstr ""
+
+#: includes/class-admin.php:225
+msgid ""
+"Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
+"bloque. Para indicadores representativos del conjunto, utiliza"
+msgstr ""
+
+#: includes/class-admin.php:225
+msgid "Auditar todo"
+msgstr ""
+
+#: includes/class-admin.php:270
+msgid "Detalle del informe"
+msgstr ""
+
+#: includes/class-admin.php:272
+msgid ""
+"No hay todavía un informe finalizado para este bloque. Ejecuta Auditar y "
+"consulta su estado."
+msgstr ""
+
+#: includes/class-admin.php:361
+msgid "Estado general"
+msgstr ""
+
+#: includes/class-admin.php:368
+msgid "Diagnóstico específico"
+msgstr ""
+
+#: includes/class-admin.php:374
+msgid "No hay indicadores específicos disponibles para este bloque."
+msgstr ""
+
+#: includes/class-admin.php:384
+msgid "Resumen del último análisis"
+msgstr ""
+
+#: includes/class-admin.php:403
+msgid "KPIs específicos"
+msgstr ""
+
+#: includes/class-admin.php:408
+msgid ""
+"El panel completo de KPIs de este tipo se muestra encima del detalle del "
+"informe."
+msgstr ""
+
+#: includes/class-admin.php:413
+msgid "Reglas con más incidencias"
+msgstr ""
+
+#: includes/class-admin.php:414
+msgid "Regla"
+msgstr ""
+
+#: includes/class-admin.php:414 includes/class-admin.php:619
+msgid "Hallazgos"
+msgstr ""
+
+#: includes/class-admin.php:419
+msgid "Sin incidencias registradas."
+msgstr ""
+
+#: includes/class-admin.php:424
+msgid "Atención:"
+msgstr ""
+
+#: includes/class-admin.php:424
+msgid ""
+"se conservan los recuentos completos por regla y prioridad, pero las tareas "
+"mostradas son una muestra acotada para evitar informes demasiado pesados."
+msgstr ""
+
+#: includes/class-admin.php:426
+msgid ""
+"El índice de calidad es una evaluación interna para ordenar revisiones. No "
+"equivale a una puntuación de Google ni de Bing."
+msgstr ""
+
+#: includes/class-admin.php:430
+msgid "Plan de trabajo · prioridades P1–P5"
+msgstr ""
+
+#: includes/class-admin.php:447
+msgid "Puntuación interna de calidad"
+msgstr ""
+
+#: includes/class-admin.php:447
+msgid ""
+"Se conservan las cinco dimensiones del Auditor anterior; es una señal de "
+"priorización propia, no el algoritmo de un buscador."
+msgstr ""
+
+#: includes/class-admin.php:457
+msgid "Dimensión"
+msgstr ""
+
+#: includes/class-admin.php:470
+msgid "Entidades con menor puntuación"
+msgstr ""
+
+#: includes/class-admin.php:471 includes/class-admin.php:504
+msgid "Entidad"
+msgstr ""
+
+#: includes/class-admin.php:471
+msgid "Calidad"
+msgstr ""
+
+#: includes/class-admin.php:471
+msgid "Dimensiones"
+msgstr ""
+
+#: includes/class-admin.php:493
+msgid "Plan de revisión priorizado"
+msgstr ""
+
+#: includes/class-admin.php:494
+msgid ""
+"Cada tarea incluye prioridad, estado, evidencia y recomendación. Una "
+"prioridad alta no autoriza a modificar automáticamente contenidos."
+msgstr ""
+
+#: includes/class-admin.php:499
+msgid "Sin hallazgos."
+msgstr ""
+
+#: includes/class-admin.php:504
+msgid "Prioridad"
+msgstr ""
+
+#: includes/class-admin.php:504
+msgid "Problema"
+msgstr ""
+
+#: includes/class-admin.php:504 includes/class-admin.php:567
+msgid "Evidencia"
+msgstr ""
+
+#: includes/class-admin.php:504
+msgid "Recomendación"
+msgstr ""
+
+#: includes/class-admin.php:504 includes/class-auto-test.php:258
+msgid "Estado"
+msgstr ""
+
+#: includes/class-admin.php:532
+msgid "Hallazgos por regla"
+msgstr ""
+
+#: includes/class-admin.php:535
+msgid ""
+"Esta vista resume la totalidad de incidencias contabilizadas, no solo las "
+"que caben en la muestra de tareas."
+msgstr ""
+
+#: includes/class-admin.php:536
+msgid "Código de hallazgo"
+msgstr ""
+
+#: includes/class-admin.php:536
+msgid "Incidencias"
+msgstr ""
+
+#: includes/class-admin.php:541
+msgid "Ninguna incidencia."
+msgstr ""
+
+#: includes/class-admin.php:549
+msgid "Reequilibrio de categorías"
+msgstr ""
+
+#: includes/class-admin.php:550
+msgid ""
+"Se conserva la referencia histórica de 5–10 productos por categoría. El "
+"tamaño solo señala casos para revisar:"
+msgstr ""
+
+#: includes/class-admin.php:550
+msgid "no justifica por sí solo dividir, fusionar ni crear una URL"
+msgstr ""
+
+#: includes/class-admin.php:557
+msgid ""
+"La generación de propuestas está activa. La aprobación/aplicación con "
+"movimiento de productos y redirecciones 301 sigue deshabilitada en esta "
+"migración: requiere una capa transaccional nativa validada."
+msgstr ""
+
+#: includes/class-admin.php:561
+msgid ""
+"No hay propuestas respaldadas por evidencia semántica suficiente. Las "
+"categorías fuera del tamaño de referencia siguen reflejadas como hallazgos "
+"para revisión manual."
+msgstr ""
+
+#: includes/class-admin.php:565
+msgid "La tabla contiene una muestra de propuestas, no el total."
+msgstr ""
+
+#: includes/class-admin.php:567
+msgid "Categoría origen"
+msgstr ""
+
+#: includes/class-admin.php:567
+msgid "Tipo"
+msgstr ""
+
+#: includes/class-admin.php:567
+msgid "Productos"
+msgstr ""
+
+#: includes/class-admin.php:567
+msgid "Acción"
+msgstr ""
+
+#: includes/class-admin.php:589
+msgid "Revisión; no hay cambios automáticos."
+msgstr ""
+
+#: includes/class-admin.php:595
+msgid "Contexto de decisión"
+msgstr ""
+
+#: includes/class-admin.php:595
+msgid ""
+"Auditor evalúa consistencia interna y no consulta directamente APIs de "
+"buscadores, compras ni analítica."
+msgstr ""
+
+#: includes/class-admin.php:599
+msgid "Analista, Ojeador, Dependiente y Comparador:"
+msgstr ""
+
+#: includes/class-admin.php:599
+msgid ""
+"datos no disponibles para este informe. Ausente no significa cero; no se ha "
+"inventado ningún valor."
+msgstr ""
+
+#: includes/class-admin.php:601
+msgid ""
+"Contexto leído exclusivamente de proveedores persistidos mediante el filtro "
+"de integración del nuevo Auditor."
+msgstr ""
+
+#: includes/class-admin.php:609
+msgid ""
+"Los enlaces a fuentes y el contraste externo son tareas distintas de la "
+"auditoría de contenidos."
+msgstr ""
+
+#: includes/class-admin.php:614
+msgid "Historial de auditorías completadas"
+msgstr ""
+
+#: includes/class-admin.php:616
+msgid "No existen ejecuciones completadas todavía."
+msgstr ""
+
+#: includes/class-admin.php:619
+msgid "Fecha UTC"
+msgstr ""
+
+#: includes/class-admin.php:619
+msgid "Duración"
+msgstr ""
+
+#: includes/class-admin.php:619
+msgid "Revisados"
+msgstr ""
+
+#: includes/class-admin.php:641 includes/class-admin.php:676
+msgid "Bloque Auditor no reconocido."
+msgstr ""
+
+#: includes/class-admin.php:655
+msgid ""
+"Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote"
+" antes de reiniciarla."
+msgstr ""
+
+#: includes/class-admin.php:665
+msgid "Acción no reconocida."
+msgstr ""
+
+#: includes/class-admin.php:681
+msgid "No hay informe completo que exportar."
+msgstr ""
+
+#: includes/class-auto-test.php:213 includes/class-auto-test.php:227
+msgid "Sin permisos para Auto Test."
+msgstr ""
+
+#: includes/class-auto-test.php:232
+msgid "Auto Test de Auditor"
+msgstr ""
+
+#: includes/class-auto-test.php:233
+msgid ""
+"Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y "
+"disponibilidad de exportación. Es de solo lectura: no inicia procesos ni "
+"modifica contenidos. Se guardan dos resultados por usuario durante 30 días."
+msgstr ""
+
+#: includes/class-auto-test.php:239
+msgid "Todavía no hay resultados. Pulsa Ejecutar Auto Test."
+msgstr ""
+
+#: includes/class-auto-test.php:256
+msgid "No hay una ejecución anterior para comparar."
+msgstr ""
+
+#: includes/class-auto-test.php:258
+msgid "Grupo"
+msgstr ""
+
+#: includes/class-auto-test.php:258
+msgid "Prueba"
+msgstr ""
+
+#: includes/class-auto-test.php:258
+msgid "Resultado"
+msgstr ""
+
+#: includes/class-auto-test.php:258
+msgid "Tiempo"
+msgstr ""
+
+#: includes/class-auto-test.php:263
+msgid ""
+"No demuestra por sí mismo que una auditoría completa o la exportación JSONL "
+"funcionen con un catálogo real."
+msgstr ""
+
+#: includes/class-manual.php:10
+msgid "Sin permisos para consultar este manual."
+msgstr ""

@@ -117,15 +117,15 @@ final class TCT_Request_Admin {
         $visible = array_slice($matching, ($page-1) * $page_size, $page_size, true);
 
         if (!$embedded) {
-            echo '<div class="wrap"><h1>Tipos de peticion y plantillas</h1>';
+            echo '<div class="wrap">' . '<h1>' . esc_html__( 'Tipos de peticion y plantillas', 'taxocommerce-templates' ) . '</h1>';
         }
-        echo '<p>Elige el tipo de contenido o la plantilla interna que debe ejecutarse. ';
-        echo '<strong>Sin asignacion:</strong> WordPress y el tema mantienen intacta su jerarquia habitual.</p>';
-        echo '<p>Las rutas por roles (clúster, hubs y landings) se gestionan en la sección <strong>Asociar rol y archivo</strong> de este gestor.</p>';
-        echo '<p>Las acciones de WooCommerce, como agregar un producto al carrito, no son paginas por si mismas. Se ofrecen las plantillas de interfaz correspondientes (boton, ficha, minicarrito y avisos) cuando WooCommerce las registra como archivos PHP.</p>';
+        echo '<p>' . esc_html__( 'Elige el tipo de contenido o la plantilla interna que debe ejecutarse.', 'taxocommerce-templates' ) . ' ';
+        echo '<strong>' . esc_html__( 'Sin asignacion:', 'taxocommerce-templates' ) . '</strong>' . ' ' . esc_html__( 'WordPress y el tema mantienen intacta su jerarquia habitual.', 'taxocommerce-templates' ) . '</p>';
+        echo '<p>' . esc_html__( 'Las rutas por roles (clúster, hubs y landings) se gestionan en la sección', 'taxocommerce-templates' ) . ' ' . '<strong>' . esc_html__( 'Asociar rol y archivo', 'taxocommerce-templates' ) . '</strong>' . ' ' . esc_html__( 'de este gestor.', 'taxocommerce-templates' ) . '</p>';
+        echo '<p>' . esc_html__( 'Las acciones de WooCommerce, como agregar un producto al carrito, no son paginas por si mismas. Se ofrecen las plantillas de interfaz correspondientes (boton, ficha, minicarrito y avisos) cuando WooCommerce las registra como archivos PHP.', 'taxocommerce-templates' ) . '</p>';
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0">';
         echo '<input type="hidden" name="page" value="taxocommerce-templates"><input type="hidden" name="tab" value="requests">';
-        echo '<label for="tct_group">Familia</label><select name="tct_group" id="tct_group">';
+        echo '<label for="tct_group">' . esc_html__( 'Familia', 'taxocommerce-templates' ) . '</label>' . '<select name="tct_group" id="tct_group">';
         foreach ($groups as $group => $entries) {
             echo '<option value="' . esc_attr($group) . '" ' . selected($selected_group,$group,false) . '>' .
                 esc_html($group . ' (' . count($entries) . ')') . '</option>';
@@ -135,9 +135,9 @@ final class TCT_Request_Admin {
         echo '</form><p><strong>' . (int)$total . '</strong> tipo(s) en esta seleccion. ';
         echo '<a href="' . esc_url(self::admin_url('editor')) . '">Crear o editar un archivo PHP</a></p>';
 
-        echo '<table class="widefat striped"><thead><tr><th>Peticion</th><th>Referencia del sistema</th><th>Archivo asignado / respaldo</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Peticion', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Referencia del sistema', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo asignado / respaldo', 'taxocommerce-templates' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         if (!$visible) {
-            echo '<tr><td colspan="3">No se han encontrado tipos.</td></tr>';
+            echo '<tr>' . '<td colspan="3">' . esc_html__( 'No se han encontrado tipos.', 'taxocommerce-templates' ) . '</td>' . '</tr>';
         }
         foreach ($visible as $key => $def) {
             $row = isset($current[$key]) ? $current[$key] : null;
@@ -149,7 +149,7 @@ final class TCT_Request_Admin {
             wp_nonce_field('tct_save_request');
             echo '<input type="hidden" name="action" value="tct_save_request"><input type="hidden" name="request_key" value="' . esc_attr($key) . '">';
             echo '<select name="template_file" style="max-width:220px;width:100%">';
-            echo '<option value="">— Predeterminada: WordPress / tema —</option>';
+            echo '<option value="">' . esc_html__( '— Predeterminada: WordPress / tema —', 'taxocommerce-templates' ) . '</option>';
             if ($selected !== '' && !isset($files[$selected])) {
                 echo '<option value="' . esc_attr($selected) . '" selected disabled>' . esc_html($selected . ' (archivo pendiente)') . '</option>';
             }
@@ -163,7 +163,7 @@ final class TCT_Request_Admin {
                 echo '<small>' . ($exists ? 'Archivo disponible' : 'Sin archivo: se mantiene el respaldo del tema') . '</small> ';
                 echo '<a href="' . esc_url(self::admin_url('editor',array('tct_source'=>$exists ? $selected : '', 'tct_assign'=>$key))) . '">Editar codigo PHP</a>';
             } else {
-                echo '<small>Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index.</small> ';
+                echo '<small>' . esc_html__( 'Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index.', 'taxocommerce-templates' ) . '</small>' . ' ';
                 echo '<a href="' . esc_url(self::admin_url('editor',array('tct_assign'=>$key))) . '">Crear desde archivo original / editor de texto</a>';
             }
             echo '</td></tr>';
@@ -181,7 +181,7 @@ final class TCT_Request_Admin {
             }
             echo '</p>';
         }
-        echo '<p class="description">Las plantillas WooCommerce por bloques (HTML) se editan con el Editor del sitio; este gestor asigna archivos PHP clasicos.</p>';
+        echo '<p class="description">' . esc_html__( 'Las plantillas WooCommerce por bloques (HTML) se editan con el Editor del sitio; este gestor asigna archivos PHP clasicos.', 'taxocommerce-templates' ) . '</p>';
         if (!$embedded) {
             echo '</div>';
         }

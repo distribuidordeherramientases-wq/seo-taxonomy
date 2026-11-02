@@ -819,7 +819,7 @@ function tccampaigns_social_exportable_agenda_rows()
 function tccampaigns_social_render_scheduler_panel()
 {
     if (!function_exists('tccampaigns_get_social_catalog')) {
-        echo '<div class="seo-social-code-note"><strong>Campañas:</strong> el modulo TaxoCommerce Campaigns no esta disponible.</div>';
+        echo '<div class="seo-social-code-note">' . '<strong>' . esc_html__( 'Campañas:', 'taxocommerce-campaigns' ) . '</strong>' . ' ' . esc_html__( 'el modulo TaxoCommerce Campaigns no esta disponible.', 'taxocommerce-campaigns' ) . '</div>';
         return;
     }
 
@@ -844,7 +844,7 @@ function tccampaigns_social_render_scheduler_panel()
 
     $campaigns = tccampaigns_get_social_catalog();
     if (!function_exists('tcsocial_network_get_settings') || !function_exists('tcsocial_network_get_providers')) {
-        echo '<div class="notice notice-info inline"><p>Activa TaxoCommerce Social para programar y publicar ofertas en redes. El calendario comercial y los banners públicos siguen funcionando sin Social.</p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'Activa TaxoCommerce Social para programar y publicar ofertas en redes. El calendario comercial y los banners públicos siguen funcionando sin Social.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
         return;
     }
     $settings = tcsocial_network_get_settings();
@@ -857,14 +857,14 @@ function tccampaigns_social_render_scheduler_panel()
     }
 
     echo '<section class="seo-social-card" style="margin-top:18px">';
-    echo '<div class="seo-social-intro"><div><h2>Campañas de Marketing</h2><p>Lee directamente <strong>TaxoCommerce Campaigns</strong>. Las ofertas se programan a la <strong>hora comercial configurada</strong> y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red.</p></div><span class="seo-social-state is-ok">Fuente: Campaigns</span></div>';
+    echo '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Campañas de Marketing', 'taxocommerce-campaigns' ) . '</h2>' . '<p>' . esc_html__( 'Lee directamente', 'taxocommerce-campaigns' ) . ' ' . '<strong>' . esc_html__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</strong>' . esc_html__( '. Las ofertas se programan a la', 'taxocommerce-campaigns' ) . ' ' . '<strong>' . esc_html__( 'hora comercial configurada', 'taxocommerce-campaigns' ) . '</strong>' . ' ' . esc_html__( 'y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red.', 'taxocommerce-campaigns' ) . '</p>' . '</div>' . '<span class="seo-social-state is-ok">' . esc_html__( 'Fuente: Campaigns', 'taxocommerce-campaigns' ) . '</span>' . '</div>';
 
     if (!$campaigns) {
-        echo '<p class="seo-social-code-note">No hay campañas habilitadas actuales o futuras con productos disponibles.</p></section>';
+        echo '<p class="seo-social-code-note">' . esc_html__( 'No hay campañas habilitadas actuales o futuras con productos disponibles.', 'taxocommerce-campaigns' ) . '</p>' . '</section>';
         return;
     }
     if (!$connected) {
-        echo '<p class="seo-social-code-note">Conecta al menos una red social para programar productos de campaña.</p>';
+        echo '<p class="seo-social-code-note">' . esc_html__( 'Conecta al menos una red social para programar productos de campaña.', 'taxocommerce-campaigns' ) . '</p>';
     }
 
     echo '<div class="seo-social-grid" style="margin-top:18px">';
@@ -887,7 +887,7 @@ function tccampaigns_social_render_scheduler_panel()
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="tccampaigns_social_plan"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $campaign->id) . '">';
         wp_nonce_field('tccampaigns_social_plan');
-        echo '<div class="seo-social-field"><label>Redes</label><div class="seo-social-network-checks">';
+        echo '<div class="seo-social-field">' . '<label>' . esc_html__( 'Redes', 'taxocommerce-campaigns' ) . '</label>' . '<div class="seo-social-network-checks">';
         foreach ($providers as $provider_key => $provider) {
             $label = isset($provider['label']) ? (string) $provider['label'] : ucfirst($provider_key);
             $is_connected = isset($connected[$provider_key]);
@@ -895,15 +895,15 @@ function tccampaigns_social_render_scheduler_panel()
         }
         echo '</div></div>';
         echo '<div class="seo-social-grid" style="margin-top:12px">';
-        echo '<div class="seo-social-field"><label>Max. productos por red</label><input type="number" name="max_items" min="1" max="50" value="4"><p class="seo-social-help">Se programa como máximo una oferta por día y red.</p></div>';
+        echo '<div class="seo-social-field">' . '<label>' . esc_html__( 'Max. productos por red', 'taxocommerce-campaigns' ) . '</label>' . '<input type="number" name="max_items" min="1" max="50" value="4">' . '<p class="seo-social-help">' . esc_html__( 'Se programa como máximo una oferta por día y red.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
         echo '<div class="seo-social-field"><label>Hora comercial de ofertas</label><input type="text" value="' . esc_attr(tccampaigns_social_fixed_publication_time()) . '" readonly><p class="seo-social-help">Hora fija de WordPress. Los posts y landings del mismo día no bloquean la oferta.</p></div>';
         echo '</div>';
         echo '<div class="seo-social-actions"><button class="button button-primary" type="submit" ' . disabled(empty($connected), true, false) . '>Programar ofertas</button></div>';
-        echo '<p class="seo-social-help">No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media.</p>';
+        echo '<p class="seo-social-help">' . esc_html__( 'No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media.', 'taxocommerce-campaigns' ) . '</p>';
         echo '</form>';
 
         if (!empty($products[0])) {
-            echo '<details style="margin-top:10px"><summary style="cursor:pointer">Vista previa de plantilla</summary><div class="seo-social-template-preview-grid">';
+            echo '<details style="margin-top:10px">' . '<summary style="cursor:pointer">' . esc_html__( 'Vista previa de plantilla', 'taxocommerce-campaigns' ) . '</summary>' . '<div class="seo-social-template-preview-grid">';
             foreach ($providers as $provider_key => $provider) {
                 $label = isset($provider['label']) ? (string) $provider['label'] : ucfirst($provider_key);
                 $preview_url = add_query_arg(array('utm_source' => $provider_key, 'utm_medium' => 'social'), (string) $products[0]['url']);
@@ -924,11 +924,11 @@ function tccampaigns_social_render_scheduler_panel()
     echo '</div>';
 
     $scheduled = tccampaigns_social_scheduled_rows();
-    echo '<h3 style="margin-top:22px">Campañas ya insertadas en la agenda</h3>';
+    echo '<h3 style="margin-top:22px">' . esc_html__( 'Campañas ya insertadas en la agenda', 'taxocommerce-campaigns' ) . '</h3>';
     if (!$scheduled) {
-        echo '<p class="seo-social-help">Todavia no hay productos de campaña programados.</p>';
+        echo '<p class="seo-social-help">' . esc_html__( 'Todavia no hay productos de campaña programados.', 'taxocommerce-campaigns' ) . '</p>';
     } else {
-        echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fecha</th><th>Campaña</th><th>Producto</th><th>Red</th><th>Accion</th></tr></thead><tbody>';
+        echo '<div class="seo-social-table-wrap">' . '<table class="seo-social-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fecha', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Campaña', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Red', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Accion', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($scheduled as $row) {
             echo '<tr><td><strong>' . esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), (int) $row['timestamp'], wp_timezone())) . '</strong></td>';
             echo '<td>' . esc_html((string) $row['campaign_name']) . '</td>';
@@ -936,7 +936,7 @@ function tccampaigns_social_render_scheduler_panel()
             echo '<td>' . esc_html(ucfirst((string) $row['provider'])) . '</td><td>';
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tccampaigns_social_cancel"><input type="hidden" name="campaign_id" value="' . esc_attr((string) $row['campaign_id']) . '"><input type="hidden" name="product_id" value="' . esc_attr((string) $row['product_id']) . '"><input type="hidden" name="provider" value="' . esc_attr((string) $row['provider']) . '">';
             wp_nonce_field('tccampaigns_social_cancel');
-            echo '<button class="button button-small" type="submit">Cancelar</button></form></td></tr>';
+            echo '<button class="button button-small" type="submit">' . esc_html__( 'Cancelar', 'taxocommerce-campaigns' ) . '</button>' . '</form>' . '</td>' . '</tr>';
         }
         echo '</tbody></table></div>';
     }

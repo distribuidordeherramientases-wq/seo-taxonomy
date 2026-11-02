@@ -65,7 +65,7 @@ final class TaxoCommerce_Connections_Google_Bing {
 			TaxoCommerce_Google_Bing_OAuth::render();
 			return;
 		}
-		echo '<div class="notice notice-info inline"><p>Google OAuth will be migrated in the next phase. Service account, Search Console, GA4, Merchant, and Bing settings are already managed by Connections.</p></div>';
+		echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'Google OAuth will be migrated in the next phase. Service account, Search Console, GA4, Merchant, and Bing settings are already managed by Connections.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
 	}
 
 	public static function save_google() {

@@ -1,0 +1,652 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-faqs\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-faqs.php includes/class-taxocommerce-faqs.php:112
+#: includes/class-taxocommerce-faqs.php:115
+msgid "TaxoCommerce FAQs"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-faqs.php
+msgid ""
+"Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic "
+"labels. Uninstalling deletes stored FAQ data."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-faqs.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:195
+msgid "Sin permisos para ejecutar Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:216
+msgid "Sin permisos para descargar Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:224
+msgid "No hay informe válido para este sitio."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:226
+msgid "Error creando JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:427
+msgid "Sin permisos para consultar Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:457
+msgid "Auto Test — FAQs"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:458
+msgid ""
+"Chequeo seguro y no destructivo para comparar la disponibilidad del plugin "
+"antes y después de actualizarlo. No crea, edita, elimina ni importa "
+"preguntas. Solo guarda sus informes por usuario y sitio."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:466
+msgid "Referencia ANTES"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:472
+msgid "Sin referencia guardada. Ejecútala antes de actualizar."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:476
+msgid "Último chequeo"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:482
+msgid "Todavía no hay una ejecución."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:486
+msgid "Resultados"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:494
+msgid "Comparación de despliegues"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:499
+msgid ""
+"Sin regresiones en los casos comparables. Las pruebas manuales siguen "
+"pendientes."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:503
+msgid ""
+"Para comparar, utiliza Comprobar DESPUÉS con todos los grupos en el mismo "
+"sitio."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-auto-test.php:526
+msgid ""
+"El chequeo no reemplaza las pruebas reales en staging ni WordPress Plugin "
+"Check para el repositorio. Nunca desinstales FAQs en producción como parte "
+"de una prueba."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-lifecycle.php:120
+msgid ""
+"Desactivar conserva las FAQs. Eliminar TaxoCommerce FAQs borra "
+"definitivamente la tabla seo_faq y todas sus preguntas, incluidas las "
+"compartidas con TaxoCommerce SEO. Exporta el CSV antes de eliminarlo. Las "
+"categorías y el vocabulario se conservan."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:19
+msgid "1. Acceso y precauciones"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:21
+msgid ""
+"Abre TaxoCommerce FAQs desde el menú propio o desde Contenidos de "
+"TaxoCommerce Core, cuando esté activo. Las pestañas son FAQs, Auto Test y "
+"Manual. La administración requiere manage_options."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:22
+msgid ""
+"El manual es de solo lectura. No crea ni altera preguntas, categorías, "
+"etiquetas, registros o configuraciones."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:23
+msgid ""
+"Antes de operaciones masivas exporta el CSV y guarda una copia de seguridad "
+"de la base de datos. La tabla de preguntas también puede utilizarse desde "
+"otros módulos TaxoCommerce."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:28
+msgid "2. Inventario e indicadores"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:30
+msgid ""
+"La pestaña FAQs muestra total de preguntas, activas, desactivadas, destinos "
+"distintos, categorías cubiertas, preguntas sin categoría y aperturas "
+"registradas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:31
+msgid ""
+"Utiliza Buscar para filtrar por el texto de la pregunta y el desplegable de "
+"categoría para revisar un grupo concreto. La lista muestra hasta 25 FAQs por"
+" página."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:32
+msgid ""
+"Los indicadores reflejan los datos existentes en la tabla canónica: no hacen"
+" auditorías de contenido ni sustituyen una comprobación editorial."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:37
+msgid "3. Crear una pregunta frecuente"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:39
+msgid ""
+"En Nueva FAQ selecciona una categoría de producto WooCommerce existente. Es "
+"obligatoria para las nuevas preguntas, incluso cuando el destino sea una "
+"página o un producto."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:40
+msgid ""
+"Escoge Destino: Categoría, Hub / Página o Producto. Indica el ID del destino"
+" cuando sea necesario; para Categoría puede utilizarse la categoría "
+"seleccionada."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:41
+msgid ""
+"Introduce Pregunta y Respuesta, configura el orden y marca FAQ activa si "
+"deseas habilitarla. Guarda con Crear FAQ. La pregunta se limita a 255 "
+"caracteres; el destino debe existir."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:46
+msgid "4. Editar, activar y desactivar"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:48
+msgid ""
+"Desde Inventario pulsa Editar para recuperar una FAQ existente. Cambia sus "
+"campos y pulsa Guardar FAQ. La aplicación conserva su identificador."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:49
+msgid ""
+"Desmarca FAQ activa para mantener la pregunta guardada sin publicarla. La "
+"disponibilidad final en el sitio público depende de los módulos que consumen"
+" estas preguntas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:50
+msgid ""
+"Las preguntas heredadas sin categoría siguen disponibles para revisión. Al "
+"guardar una nueva versión selecciona una categoría válida; la activación del"
+" plugin no publica automáticamente las preguntas anteriores."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:55
+msgid "5. Destinos y categoría obligatoria"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:57
+msgid ""
+"Los tipos de destino son 1 (Hub / Página), 2 (Categoría de producto) y 3 "
+"(Producto). El ID debe apuntar a un objeto real de WordPress o WooCommerce."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:58
+msgid ""
+"product_cat_id establece la categoría de producto de la FAQ. No confundas "
+"esta asociación editorial con el ID del objeto de destino cuando corresponda"
+" a una página o un producto."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:59
+msgid ""
+"El indicador Sin categoría permite localizar registros históricos que "
+"todavía requieren clasificación. No modifiques el esquema directamente para "
+"forzar asociaciones."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:64
+msgid "6. Etiquetas semánticas de Vocabulary"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:66
+msgid ""
+"Si están disponibles seo_vocabulary y seo_object_vocabulary, la edición "
+"permite seleccionar etiquetas ya existentes en los grupos rol, tipo, "
+"aplicación, plataforma y subtipo."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:67
+msgid ""
+"Las etiquetas no se crean desde FAQs. Si Vocabulary no está disponible, se "
+"mantiene la edición de preguntas y las relaciones anteriores no se eliminan "
+"por ausencia del módulo."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:68
+msgid ""
+"Revisa las etiquetas antes de guardar una edición. No confundas los términos"
+" semánticos con categorías WooCommerce: se almacenan en relaciones "
+"distintas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:73
+msgid "7. Exportar FAQs a CSV"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:75
+msgid ""
+"En Importar / Exportar CSV pulsa Exportar FAQs CSV. Guarda el fichero UTF-8 "
+"resultante antes de aplicar correcciones masivas o actualizar componentes."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:76
+msgid ""
+"El formato transporta identificadores, destino, categoría, pregunta, "
+"respuesta, orden, estado y etiquetas semánticas disponibles. Las etiquetas "
+"se representan mediante slugs separados por barras verticales."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:77
+msgid ""
+"Comprueba el fichero descargado y conserva una copia inalterada. La "
+"exportación no equivale a un respaldo de todas las tablas WordPress."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:82
+msgid "8. Importar FAQs desde CSV"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:84
+msgid ""
+"Utiliza un CSV UTF-8 compatible con las cabeceras exportadas por este "
+"plugin. El límite por importación es 500 filas y 2 MB."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:85
+msgid ""
+"Si una fila contiene el ID de una pregunta existente se actualiza ese "
+"registro; si el ID es desconocido o cero, se crea una pregunta con ID local "
+"nuevo. Verifica el destino y la categoría válida antes de importar."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:86
+msgid ""
+"Las respuestas pueden contener comas, comillas y saltos de línea si el CSV "
+"está correctamente entrecomillado. Revisa los mensajes de error, las "
+"preguntas afectadas y la copia de seguridad antes de repetir una "
+"importación."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:91
+msgid "9. Borrado y conservación de datos"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:93
+msgid ""
+"El botón Eliminar de una fila solicita confirmación y borra esa FAQ. Esta "
+"operación es permanente: exporta los datos antes de borrar."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:94
+msgid ""
+"Desactivar el plugin NO borra sus preguntas. En cambio, eliminar "
+"TaxoCommerce FAQs desde WordPress ejecuta uninstall.php y elimina la tabla "
+"compartida seo_faq, sus preguntas y relaciones semánticas FAQ."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:95
+msgid ""
+"Nunca utilices desinstalar como prueba en producción: las preguntas también "
+"pueden ser utilizadas por TaxoCommerce SEO. Para ensayar desinstalación usa "
+"un WordPress desechable y un respaldo verificable."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:100
+msgid "10. Auto Test antes y después de actualizar"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:102
+msgid ""
+"Abre la pestaña Auto Test y pulsa Guardar estado ANTES antes del despliegue."
+" Después de instalar la nueva versión pulsa Comprobar DESPUÉS en el mismo "
+"sitio."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:103
+msgid ""
+"El chequeo muestra pruebas correctas, errores, omitidas y no ejecutadas, "
+"agrupadas por módulo. Se pueden ejecutar grupos independientes y descargar "
+"resultados JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:104
+msgid ""
+"Auto Test no importa, modifica ni elimina preguntas. Las pruebas de "
+"creación, edición, CSV, frontend y desinstalación quedan señaladas como "
+"manuales y deben realizarse en un entorno de prueba."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:109
+msgid "11. Resolución de incidencias"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:111
+msgid ""
+"Si falta la tabla de FAQs, no fuerces importaciones: revisa instalación, "
+"permisos SQL y estado de la tabla antes de iniciar una migración. Auto Test "
+"puede verificar el esquema sin modificarlo."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:112
+msgid ""
+"Si no aparece una pregunta revisa su estado activo, destino, categoría y el "
+"módulo que presenta FAQs en el frontend. Un registro guardado no garantiza "
+"por sí solo su visualización pública."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:113
+msgid ""
+"Si fallan las etiquetas comprueba las tablas opcionales Vocabulary. Para "
+"errores de CSV revisa cabecera, comillas, UTF-8, máximo de filas y tamaño "
+"del fichero."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:118
+msgid "12. Arquitectura y responsabilidades"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:120
+msgid ""
+"La entrada taxocommerce-faqs.php carga TaxoCommerce_FAQs (editor y CSV), "
+"TaxoCommerce_FAQs_Lifecycle (instalación y desinstalación), y "
+"TaxoCommerce_FAQs_Auto_Test (diagnóstico). TaxoCommerce_FAQs_Manual "
+"documenta el módulo sin ejecutar procesos."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:121
+msgid ""
+"TaxoCommerce FAQs utiliza la tabla histórica compartida [prefijo]seo_faq "
+"como fuente de verdad. No se crea un CPT ni se duplica la tabla del "
+"monolito."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:122
+msgid ""
+"La integración con TaxoCommerce Core es opcional: registra el módulo faqs "
+"para Contenidos y ofrece menú administrativo cuando Core no existe."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:127
+msgid "13. Esquema y migración"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:129
+msgid ""
+"La tabla seo_faq incluye id, object_type, object_id, product_cat_id, "
+"question, answer, sort_order, active, load_count, open_count, created_at y "
+"updated_at."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:130
+msgid ""
+"El activador crea o actualiza de forma incremental la tabla, preservando las"
+" filas existentes y añadiendo product_cat_id cuando falta. Solo completa "
+"automáticamente categorías heredadas inequívocas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:131
+msgid ""
+"En multisitio, la inicialización usa el prefijo de cada sitio y restaura el "
+"contexto original. Auto Test solo consulta el esquema: jamás invoca "
+"instaladores ni migraciones."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:136
+msgid "14. Rutas, permisos y seguridad"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:138
+msgid ""
+"Las acciones de administración son admin_post_taxocommerce_faqs_save, "
+"_delete, _export e _import. Todas requieren capacidad manage_options y "
+"validación de nonce en su controlador."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:139
+msgid ""
+"La pestaña Auto Test ofrece acciones propias para ejecutar comprobaciones y "
+"descargar JSON, protegidas también mediante capacidad y nonce. Manual es "
+"únicamente una pantalla de lectura, sin formularios de escritura."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:140
+msgid ""
+"Las entradas de preguntas se sanean y las respuestas admiten HTML permitido "
+"por WordPress. Mantén escaping en salida y nunca expongas SQL, trazas, "
+"contenido editorial o rutas internas en resultados de diagnóstico."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:145
+msgid "15. Contrato CSV y Vocabulary"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:147
+msgid ""
+"CSV incluye id, object_type, object_id, product_cat_id, question, answer, "
+"sort_order y active, además de grupos semánticos rol, tipo, aplicacion, "
+"plataforma y subtipo cuando procede."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:148
+msgid ""
+"La importación CSV valida límites de 500 filas y 2 MB y la relación con "
+"categorías reales. El parser propio permite celdas entrecomilladas con "
+"saltos de línea sin truncar respuestas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:149
+msgid ""
+"Las relaciones de etiquetas se almacenan en seo_object_vocabulary con "
+"object_type=faq, usando términos ya existentes de seo_vocabulary. Ambos "
+"elementos son opcionales y no deben ser eliminados por una migración de "
+"FAQs."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:154
+msgid "16. Ciclo de vida y riesgos de desinstalación"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:156
+msgid ""
+"La activación se registra mediante register_activation_hook; la "
+"desactivación no borra datos. Solo uninstall.php puede iniciar la limpieza "
+"permanente, condicionada a WP_UNINSTALL_PLUGIN y los marcadores de "
+"inicialización."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:157
+msgid ""
+"La desinstalación elimina seo_faq y las relaciones object_type=faq, pero "
+"preserva Vocabulary, categorías y otras relaciones. Una eliminación puede "
+"afectar a TaxoCommerce SEO porque comparte los datos FAQ."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:158
+msgid ""
+"Nunca lances pruebas destructivas en producción. Verifica instalación, "
+"actualización y limpieza de multisitio mediante tests aislados y un sitio "
+"desechable."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:163
+msgid "17. Pruebas y despliegue"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:165
+msgid ""
+"En GitHub se mantienen las pruebas CLI de menú, esquema, ciclo de vida, "
+"desinstalación y Auto Test. Estas pruebas no deben instalarse dentro del ZIP"
+" para WordPress."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:166
+msgid ""
+"Antes de desplegar ejecuta PHP lint compatible con PHP 7.4, las regresiones,"
+" Plugin Check del paquete y un Auto Test ANTES/DESPUÉS. Comprueba también el"
+" menú con Core y sin Core."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:167
+msgid ""
+"Valida manualmente crear, editar, desactivar, CSV y presentación pública con"
+" datos de prueba. No declares la actualización aceptada solo porque las "
+"comprobaciones estructurales pasen."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:178
+msgid "Sin permisos para consultar el manual."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:181
+#: includes/class-taxocommerce-faqs-manual.php:183
+msgid "Manual de TaxoCommerce FAQs"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:184
+msgid ""
+"Manual de usuario y manual técnico integrados. Su consulta no modifica "
+"preguntas ni inicia trabajos."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:185
+msgid "Manual de usuario"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs-manual.php:185
+msgid "Manual técnico"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:115
+#: includes/class-taxocommerce-faqs.php:558
+#: includes/class-taxocommerce-faqs.php:608
+msgid "FAQs"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:128
+msgid "No tienes permisos para gestionar FAQs."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:557
+msgid "Secciones de FAQs"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:558
+msgid "Auto Test"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:558
+msgid "Manual"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:573
+msgid ""
+"Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para "
+"instalarla."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:608
+msgid ""
+"Preguntas frecuentes asociadas a hubs, categorías o productos. Datos "
+"compartidos con TaxoCommerce SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:617
+msgid "Categoría de producto *"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:621
+msgid ""
+"Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI "
+"correspondiente."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:621
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Destino"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:631
+msgid "Etiquetas de Vocabulary"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:631
+msgid "Selecciona las etiquetas existentes. No se crean etiquetas nuevas."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:644
+msgid ""
+"Vocabulary no está disponible; se conservarán las etiquetas existentes."
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:652
+msgid "Buscar"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Pregunta"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Categoría"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Activa"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Aperturas"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:653
+msgid "Acciones"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:659
+msgid "Eliminar"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:665
+msgid "Importar / Exportar CSV"
+msgstr ""
+
+#: includes/class-taxocommerce-faqs.php:665
+msgid ""
+"CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID "
+"existente; las nuevas filas reciben ID nuevo."
+msgstr ""

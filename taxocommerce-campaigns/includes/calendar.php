@@ -79,7 +79,7 @@ function tccampaigns_calendar_render() {
         );
     }
 
-    echo '<section class="tcc-card"><div class="tcc-calendar-head"><div><h2>Calendario de campañas y ofertas</h2><p>Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de oferta; no mezcla entradas, páginas ni Noticias.</p></div><div>';
+    echo '<section class="tcc-card">' . '<div class="tcc-calendar-head">' . '<div>' . '<h2>' . esc_html__( 'Calendario de campañas y ofertas', 'taxocommerce-campaigns' ) . '</h2>' . '<p>' . esc_html__( 'Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de oferta; no mezcla entradas, páginas ni Noticias.', 'taxocommerce-campaigns' ) . '</p>' . '</div>' . '<div>';
     echo '<a class="button" href="'.esc_url(tccampaigns_calendar_url(array('campaign_month'=>$prev))).'">‹</a> ';
     echo '<strong>'.esc_html(wp_date('F Y',$first->getTimestamp(),$tz)).'</strong> ';
     echo '<a class="button" href="'.esc_url(tccampaigns_calendar_url(array('campaign_month'=>$next))).'">›</a></div></div>';

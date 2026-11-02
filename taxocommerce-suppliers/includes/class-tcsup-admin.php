@@ -38,16 +38,16 @@ final class TCSUP_Admin {
 		if ( function_exists( 'taxocommerce_core' ) ) {
 			add_submenu_page(
 				'taxocommerce-core',
-				'TaxoCommerce Suppliers',
-				'Suppliers',
+				__( 'TaxoCommerce Suppliers', 'taxocommerce-suppliers' ),
+				__( 'Suppliers', 'taxocommerce-suppliers' ),
 				$capability,
 				self::PAGE,
 				array( __CLASS__, 'render' )
 			);
 		} else {
 			add_menu_page(
-				'TaxoCommerce Suppliers',
-				'TaxoCommerce Suppliers',
+				__( 'TaxoCommerce Suppliers', 'taxocommerce-suppliers' ),
+				__( 'TaxoCommerce Suppliers', 'taxocommerce-suppliers' ),
 				$capability,
 				self::PAGE,
 				array( __CLASS__, 'render' ),
@@ -200,13 +200,13 @@ final class TCSUP_Admin {
 			);
 		}
 		if ( isset( $_GET['template_saved'] ) ) {
-			echo '<div class="notice notice-success"><p>CSV mapping template saved.</p></div>';
+			echo '<div class="notice notice-success">' . '<p>' . esc_html__( 'CSV mapping template saved.', 'taxocommerce-suppliers' ) . '</p>' . '</div>';
 		}
 		if ( isset( $_GET['price_saved'] ) ) {
-			echo '<div class="notice notice-success"><p>Price data saved.</p></div>';
+			echo '<div class="notice notice-success">' . '<p>' . esc_html__( 'Price data saved.', 'taxocommerce-suppliers' ) . '</p>' . '</div>';
 		}
 		if ( isset( $_GET['images_saved'] ) ) {
-			echo '<div class="notice notice-success"><p>External image references saved.</p></div>';
+			echo '<div class="notice notice-success">' . '<p>' . esc_html__( 'External image references saved.', 'taxocommerce-suppliers' ) . '</p>' . '</div>';
 		}
 		// phpcs:enable
 	}

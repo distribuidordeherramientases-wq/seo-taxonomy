@@ -10,6 +10,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-import-export
+ * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,3 +56,20 @@ function taxocommerce_import_export_boot() {
 }
 add_action( 'plugins_loaded', 'taxocommerce_import_export_boot', 25 );
 TaxoCommerce_Import_Export_Auto_Test::register();
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-import-export';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

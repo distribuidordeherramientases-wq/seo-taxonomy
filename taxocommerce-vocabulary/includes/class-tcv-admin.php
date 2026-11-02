@@ -17,8 +17,8 @@ final class TCV_Admin {
         if ( function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
             add_submenu_page(
                 'taxocommerce-core',
-                'TaxoCommerce Vocabulary',
-                'Vocabulary',
+                __( 'TaxoCommerce Vocabulary', 'taxocommerce-vocabulary' ),
+                __( 'Vocabulary', 'taxocommerce-vocabulary' ),
                 'manage_options',
                 'taxocommerce-vocabulary',
                 array( __CLASS__, 'render' )
@@ -27,8 +27,8 @@ final class TCV_Admin {
         }
 
         add_menu_page(
-            'TaxoCommerce Vocabulary',
-            'Vocabulary',
+            __( 'TaxoCommerce Vocabulary', 'taxocommerce-vocabulary' ),
+            __( 'Vocabulary', 'taxocommerce-vocabulary' ),
             'manage_options',
             'taxocommerce-vocabulary',
             array( __CLASS__, 'render' ),
@@ -117,7 +117,7 @@ final class TCV_Admin {
         foreach ( TCV_Classifier::GROUPS as $g ) {
             echo '<option value="' . esc_attr( $g ) . '">' . esc_html( strtoupper( $g ) ) . '</option>';
         }
-        echo '</select> <input name="label" class="regular-text" placeholder="Nombre visible" required> <button class="button button-primary">Dar de alta</button></form></div>';
+        echo '</select>' . ' ' . '<input name="label" class="regular-text" placeholder="Nombre visible" required>' . ' ' . '<button class="button button-primary">' . esc_html__( 'Dar de alta', 'taxocommerce-vocabulary' ) . '</button>' . '</form>' . '</div>';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT semantic_group,slug,label,source,active FROM %i ORDER BY semantic_group,label LIMIT %d',
@@ -126,11 +126,11 @@ final class TCV_Admin {
             ),
             ARRAY_A
         );
-        echo '<div class="tcv-panel"><h2>Diccionario</h2><table class="widefat striped"><thead><tr><th>Grupo</th><th>Etiqueta</th><th>Slug</th><th>Origen</th><th>Estado</th></tr></thead><tbody>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Diccionario', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Etiqueta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Slug', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $r ) {
             echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? 'Activa' : 'Inactiva' ) . '</td></tr>';
         }
-        echo '</tbody></table><p class="description">Se muestran como máximo 300 filas en esta vista.</p></div>';
+        echo '</tbody>' . '</table>' . '<p class="description">' . esc_html__( 'Se muestran como máximo 300 filas en esta vista.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
     }
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -151,7 +151,7 @@ final class TCV_Admin {
             ),
             ARRAY_A
         );
-        echo '<div class="tcv-panel"><h2>Atributos técnicos canónicos</h2><p>Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce.</p><table class="widefat striped"><thead><tr><th>Atributo</th><th>Tipo</th><th>Unidad</th><th>Términos</th><th>Aliases</th><th>Estado</th></tr></thead><tbody>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Atributos técnicos canónicos', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce.', 'taxocommerce-vocabulary' ) . '</p>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Atributo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Unidad', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Términos', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Aliases', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $attrs as $a ) {
             echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? 'Activo' : 'Inactivo' ) . '</td></tr>';
         }
@@ -177,12 +177,12 @@ final class TCV_Admin {
             $categories = array();
         }
 
-        echo '<div class="tcv-panel"><h2>Clasificador</h2><p>El análisis es correctivo y limitado. No recorre todo el catálogo: primero filtra y después analiza como máximo el número de filas seleccionado.</p>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Clasificador', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'El análisis es correctivo y limitado. No recorre todo el catálogo: primero filtra y después analiza como máximo el número de filas seleccionado.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="tcv-filter">';
         echo '<input type="hidden" name="action" value="tcv_analyze_filtered">';
         wp_nonce_field( 'tcv_analyze_filtered' );
         echo '<label>Buscar<input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="Producto, SKU o ID"></label>';
-        echo '<label>Categoría<select name="category_id"><option value="0">Todas</option>';
+        echo '<label>' . esc_html__( 'Categoría', 'taxocommerce-vocabulary' ) . '<select name="category_id">' . '<option value="0">' . esc_html__( 'Todas', 'taxocommerce-vocabulary' ) . '</option>';
         foreach ( $categories as $category ) {
             echo '<option value="' . esc_attr( $category->term_id ) . '" ' . selected( $filters['category_id'], $category->term_id, false ) . '>' . esc_html( $category->name ) . '</option>';
         }
@@ -196,23 +196,23 @@ final class TCV_Admin {
             'without_platform'=>'Sin PLATAFORMA',
             'without_subtype'=>'Sin SUBTIPO',
         );
-        echo '<label>Cobertura<select name="coverage">';
+        echo '<label>' . esc_html__( 'Cobertura', 'taxocommerce-vocabulary' ) . '<select name="coverage">';
         foreach ( $coverage_labels as $value=>$label ) {
             echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['coverage'], $value, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></label>';
         $priority_labels = array( 'all'=>'Todas las anomalías','p1'=>'P1 · falta TIPO','p2'=>'P2 · falta ROL','p3'=>'P3 · falta APLICACIÓN','p4'=>'P4 · falta SUBTIPO','p5'=>'P5 · falta PLATAFORMA' );
-        echo '<label>Prioridad<select name="priority">';
+        echo '<label>' . esc_html__( 'Prioridad', 'taxocommerce-vocabulary' ) . '<select name="priority">';
         foreach ( $priority_labels as $value=>$label ) {
             echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['priority'], $value, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></label>';
-        echo '<label>Filas<select name="rows">';
+        echo '<label>' . esc_html__( 'Filas', 'taxocommerce-vocabulary' ) . '<select name="rows">';
         foreach ( array(10,25,50,100) as $n ) {
             echo '<option value="' . esc_attr( $n ) . '" ' . selected( $filters['rows'], $n, false ) . '>' . esc_html( $n ) . '</option>';
         }
         echo '</select></label>';
-        echo '<div class="tcv-filter-actions"><button class="button button-primary">Analizar filtro</button></div>';
+        echo '<div class="tcv-filter-actions">' . '<button class="button button-primary">' . esc_html__( 'Analizar filtro', 'taxocommerce-vocabulary' ) . '</button>' . '</div>';
         echo '</form></div>';
 
         $report = TCV_Classifier::last_report();
@@ -224,7 +224,7 @@ final class TCV_Admin {
         }
 
         $rows = TCV_Classifier::recent_proposals( 100 );
-        echo '<div class="tcv-panel"><h2>Propuestas recientes</h2><table class="widefat striped"><thead><tr><th>Producto</th><th>Grupo</th><th>Propuesta</th><th>Estado</th><th>Confianza</th><th>Actualizado</th></tr></thead><tbody>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Propuestas recientes', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Propuesta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Actualizado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $r ) {
             $edit = get_edit_post_link( absint( $r['product_id'] ) );
             echo '<tr><td><a href="' . esc_url( $edit ) . '">#' . esc_html( $r['product_id'] ) . '</a></td><td>' . esc_html( $r['semantic_group'] ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td>' . esc_html( $r['state'] ) . '</td><td>' . esc_html( number_format_i18n( (float) $r['confidence'] * 100, 1 ) ) . '%</td><td>' . esc_html( $r['updated_at'] ) . '</td></tr>';
@@ -233,10 +233,10 @@ final class TCV_Admin {
 
         echo '<div class="tcv-panel"><h2>Análisis puntual de categoría</h2><p>Para revisar una categoría concreta sin recorrer el catálogo completo.</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
         wp_nonce_field( 'tcv_analyze_category' );
-        echo '<label>Categoría ID <input type="number" name="term_id" min="1" required></label> <button class="button">Analizar categoría</button></form></div>';
+        echo '<label>' . esc_html__( 'Categoría ID', 'taxocommerce-vocabulary' ) . ' ' . '<input type="number" name="term_id" min="1" required>' . '</label>' . ' ' . '<button class="button">' . esc_html__( 'Analizar categoría', 'taxocommerce-vocabulary' ) . '</button>' . '</form>' . '</div>';
 
         $cats = TCV_Classifier::recent_category_proposals( 100 );
-        echo '<div class="tcv-panel"><h2>Propuestas recientes de categorías</h2><table class="widefat striped"><thead><tr><th>Categoría</th><th>Grupo</th><th>Propuesta</th><th>Estado</th><th>Confianza</th></tr></thead><tbody>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Propuestas recientes de categorías', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Categoría', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Propuesta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $cats as $r ) {
             $term = get_term( absint( $r['term_id'] ), 'product_cat' );
             $name = ( $term && ! is_wp_error( $term ) ) ? $term->name : '#' . $r['term_id'];
@@ -278,7 +278,7 @@ final class TCV_Admin {
     private static function control() {
         global $wpdb;
         $t = TCV_Schema::tables();
-        echo '<div class="tcv-panel"><h2>Control de integridad</h2><table class="widefat striped"><thead><tr><th>Tabla</th><th>Estado</th><th>Filas</th></tr></thead><tbody>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Control de integridad', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Filas', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $t as $table ) {
             $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
             $count = 0;

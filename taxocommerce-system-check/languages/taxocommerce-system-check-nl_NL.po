@@ -1,0 +1,1514 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-system-check\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-system-check.php taxocommerce-system-check.php:119
+#: taxocommerce-system-check.php:239
+msgid "TaxoCommerce System Check"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-system-check.php
+msgid ""
+"Independent WordPress, server and plugin diagnostics with local checks, "
+"reports and optional administrator notifications."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-system-check.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:170
+#: includes/class-taxocommerce-system-check-php.php:141
+#: includes/class-taxocommerce-system-check-user-guide.php:149
+#: taxocommerce-system-check.php:233 taxocommerce-system-check.php:284
+#: taxocommerce-system-check.php:354 taxocommerce-system-check.php:372
+msgid "Acceso no autorizado."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:176
+msgid "Auto Test · System Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:177
+msgid ""
+"Comprueba las rutas, servicios y contratos del propio plugin. Es una "
+"ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:184
+msgid ""
+"Las pruebas no se ejecutan al abrir esta pestaña. Pulsa el botón para "
+"obtener un resultado actual."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:195
+#: includes/class-taxocommerce-system-check-php.php:151
+msgid "Comprobación"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:195
+#: includes/class-taxocommerce-system-check-php.php:151
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+#: includes/system-check/seo-core-validation.php:7587
+#: includes/system-check/seo-core-validation.php:7701
+#: includes/system-check/seo-core-validation.php:7784
+#: includes/system-check/seo-health-scan.php:1390
+#: includes/system-check/seo-system-mysql-audit.php:699
+#: includes/system-check/seo-system-mysql-audit.php:730
+#: includes/system-check/seo-system-server-status.php:291
+#: includes/system-check/seo-system-server-status.php:1981
+#: includes/system-check/seo-system-server-status.php:2834
+#: includes/system-check/seo-system-server-status.php:2930
+#: includes/system-check/seo-system-server-status.php:2969
+#: includes/system-check/seo-system-server-status.php:3200
+msgid "Estado"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:195
+msgid "Evidencia"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-auto-test.php:207
+msgid ""
+"Un resultado correcto indica que el componente está accesible, no que un "
+"escaneo real haya funcionado. Las pruebas omitidas nunca cuentan como "
+"superadas. No equivale al Plugin Check de WordPress.org."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-php.php:148
+msgid "PHP · TaxoCommerce System Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-php.php:149
+msgid ""
+"Diagnóstico PHP autónomo y de solo lectura. No depende del antiguo "
+"TaxoCommerce SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-php.php:151
+#: includes/system-check/seo-core-validation.php:7587
+#: includes/system-check/seo-system-mysql-audit.php:699
+#: includes/system-check/seo-system-server-status.php:291
+#: includes/system-check/seo-system-server-status.php:1981
+msgid "Valor"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-php.php:151
+msgid "Información"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:655
+#: includes/class-taxocommerce-system-check-url-audit.php:735
+#: includes/class-taxocommerce-system-check-url-audit.php:803
+#: taxocommerce-system-check.php:395
+msgid "No autorizado."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:739
+msgid "El inventario HTTP no está disponible."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:805
+msgid "Chequeos HTTP de recursos"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:806
+msgid ""
+"Comprueba las URL públicas desde este servidor mediante peticiones HTTP "
+"reales. No necesita GitHub. No equivale a un monitor externo de "
+"disponibilidad."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:808
+msgid ""
+"No se ha cargado el motor del inventario. Revisa la instalación de System "
+"Check."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:984
+msgid "Detalle por URL"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:992
+msgid "Buscar"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+msgid "Recurso"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+#: includes/system-check/seo-health-scan.php:1390
+msgid "HTTP"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+#: includes/system-check/seo-health-scan.php:1390
+msgid "Tiempo"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+#: includes/system-check/seo-core-validation.php:6880
+#: includes/system-check/seo-health-scan.php:1390
+msgid "Último chequeo"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:993
+#: includes/system-check/seo-core-validation.php:7587
+#: includes/system-check/seo-core-validation.php:7701
+#: includes/system-check/seo-core-validation.php:7784
+#: includes/system-check/seo-core-validation.php:8376
+#: includes/system-check/seo-health-scan.php:1390
+msgid "Detalle"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-url-audit.php:995
+msgid "No hay URLs para este filtro."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-user-guide.php:159
+msgid "Manual de System Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-user-guide.php:160
+msgid ""
+"Documentación de usuario y técnica de las funciones disponibles en este "
+"plugin."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-user-guide.php:169
+#: includes/system-check/seo-system-mysql-audit.php:730
+msgid "Índice"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:355
+msgid "Sugerencia de corrección"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:397
+msgid "Centro de corrección asistida"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:398
+msgid ""
+"Las sugerencias distinguen entre configuración del test, diagnóstico, "
+"edición de archivos y corrección de datos. No se aplican cambios automáticos"
+" al catálogo ni a las tablas SEO."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:416
+msgid ""
+"No hay incidencias con una guía específica en el último resultado. Ejecuta "
+"la validación completa después de guardar los ajustes."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:423
+msgid "Plan semántico sugerido"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:423
+#: includes/system-check/seo-core-validation.php:7701
+#: includes/system-check/seo-core-validation.php:7784
+#: includes/system-check/seo-system-diagnostics-reporting.php:1915
+msgid "Prioridad"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:423
+msgid "Acción"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:423
+msgid "Afectados"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:423
+msgid "Sugerencia"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:435
+msgid "Configuración de Plugin Validation"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:436
+#: includes/system-check/seo-core-validation.php:8414
+#: includes/system-check/seo-system-mysql-audit.php:737
+msgid "Criterio:"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:436
+msgid ""
+"los límites son tolerancias operativas. No corrigen datos ni convierten un "
+"fallo real en correcto; permiten reflejar migraciones, excepciones conocidas"
+" y el volumen pendiente aceptado."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:441
+msgid "Producto y búsqueda representativos"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:447
+msgid "Modo de búsqueda"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:451
+msgid ""
+"El modo adaptativo evita falsos fallos con títulos largos, signos y motores "
+"de búsqueda que exigen demasiados términos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:456
+msgid "HTTP, plantillas y SEO técnico"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:467
+msgid "Rangos de salud semántica"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:478
+#: includes/system-check/seo-system-server-status.php:3200
+msgid "Diagnóstico"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:482
+msgid "Guardar configuración"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:488
+msgid "Muestra que se usará"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-settings.php:493
+msgid "No se ha podido resolver un producto publicado representativo."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:240
+msgid "No tienes permisos para ejecutar este chequeo."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:574
+msgid ""
+"Chequeo visual enviado a GitHub Actions. El resultado llegara "
+"automaticamente a esta seccion."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:582
+msgid "Renderizado real:"
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:582
+msgid ""
+"este bloque usa Chromium/Playwright en GitHub Actions. WordPress no ejecuta "
+"un navegador dentro del hosting."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:593
+msgid ""
+"Configura primero la conexion GitHub Actions que ya utiliza TaxoCommerce "
+"SEO. El workflow visual debe existir en el mismo repositorio."
+msgstr ""
+
+#: includes/system-check/seo-core-validation-visual.php:595
+msgid ""
+"Se prueban hasta 7 URLs representativas en movil, tablet y escritorio. Las "
+"capturas completas quedan como artefacto del workflow."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:171
+msgid "Descarga de afectados"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:194
+msgid "No tienes permisos para exportar estos datos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:201
+msgid "Formato de exportacion no valido."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:240
+msgid "No se pudo abrir la salida CSV."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:298
+#: includes/system-check/seo-system-server-status.php:25
+msgid "No tienes permisos para acceder a esta página."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:362
+#: taxocommerce-system-check.php:126 taxocommerce-system-check.php:132
+msgid "Plugin Validation"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:363
+msgid ""
+"Chequeo interno de SEO System orientado a confirmar si el negocio sigue "
+"funcionando tras una subida."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:398
+msgid "Inventario de funciones y archivos del plugin"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:399
+msgid "Este inventario pertenece únicamente a Integridad del código."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:508
+msgid ""
+"Actualiza todos los chequeos pasivos. La auditoría 404 y la prueba "
+"transaccional del Data Layer conservan sus controles propios en sus áreas "
+"correspondientes."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:510
+msgid ""
+"Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra "
+"los resultados."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:550
+msgid ""
+"La auditoría se divide en tres peticiones independientes. Los resultados se "
+"acumulan y cada bloque puede repetirse sin volver a ejecutar los demás."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:648
+msgid "Validación pendiente"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:649
+msgid "Pulsa"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:649
+msgid "Ejecutar validación completa"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:649
+msgid "para lanzar los chequeos básicos de continuidad del sistema."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:651
+msgid ""
+"guarda el último diagnóstico, muestra primero lo crítico y expone un resumen"
+" seguro para el módulo de informes. La auditoría de Enlaces y 404 continúa "
+"dividida en tres bloques acumulativos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:6880
+msgid "No hay una ejecución guardada todavía."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7262
+#: includes/system-check/seo-system-server-status.php:2216
+msgid "Sin incidencias prioritarias:"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7262
+msgid ""
+"los chequeos ejecutados no contienen errores críticos, importantes ni "
+"avisos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7266
+#: includes/system-check/seo-system-server-status.php:2219
+msgid "Qué requiere atención"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7306
+msgid "Estado por pestaña"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7353
+msgid "KPIs por área"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7547
+msgid "Servicios y conexiones"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7548
+msgid ""
+"Cada fila representa el estado agregado de un servicio o conexión. Su "
+"puntuación forma parte del cálculo global de Plugin Validation."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7556
+msgid "Aceptación post-release"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7580
+msgid "Todavía no hay resultados para este bloque."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7587
+msgid "Servicio"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7681
+msgid "Todavía no hay resultados para esta sección."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7701
+#: includes/system-check/seo-core-validation.php:7784
+msgid "URL"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7701
+#: includes/system-check/seo-core-validation.php:7784
+msgid "Origen"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7734
+msgid "Funcionalidad del negocio"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7735
+msgid ""
+"Simulación de navegación pública, calidad HTML/SEO, recursos, redirecciones "
+"y salud comercial sobre elementos representativos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7745
+#: includes/system-check/seo-core-validation.php:7773
+msgid "Modo seguro:"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7745
+msgid ""
+"las solicitudes son GET y el test no añade productos al carrito, no crea "
+"pedidos, no procesa pagos y no modifica registros. La validación general no "
+"ejecuta la auditoría 404 completa; esa comprobación se lanza desde la "
+"sección Enlaces y 404 de Chequeos avanzados. Las páginas de verificación del"
+" firewall o antibot se clasifican como aviso no concluyente; un error HTTP "
+"real sin firma de protección continúa siendo KO."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7765
+msgid "Enlaces y errores 404"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7766
+msgid ""
+"Auditoría de enlaces internos, URLs publicadas en sitemap, reglas de "
+"redirección, imágenes y recursos locales. Cada incidencia conserva uno o "
+"varios orígenes para facilitar su reparación."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7773
+msgid ""
+"no corrige ni crea redirecciones automáticamente. Omite enlaces de cierre de"
+" sesión, acciones de carrito, nonces y otras URLs GET que podrían alterar "
+"una sesión. Cada bloque tiene un límite estricto, se guarda por separado y "
+"puede repetirse. Una comprobación pendiente se muestra como Info, no como "
+"Aviso ni como falso OK."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7801
+msgid "Integridad del código"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:7802
+msgid ""
+"Inventario estático de los archivos PHP propios del plugin. No ejecuta los "
+"archivos analizados: lee sus tokens para localizar declaraciones, hooks, "
+"posibles colisiones y patrones de compatibilidad con WordPress.org."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8009
+msgid "Callback"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8009
+#: includes/system-check/seo-system-server-status.php:3200
+msgid "Hook"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8009
+msgid "Registro"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8009
+msgid "Ubicación"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8031
+msgid "Sin elementos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8097
+#: includes/system-check/seo-system-diagnostics-reporting.php:2016
+msgid "Resumen ejecutivo"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8098
+msgid "Vista general de la última validación."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8098
+msgid ""
+"Estos KPIs reutilizan los resultados ya guardados: entrar en Resumen no "
+"vuelve a ejecutar ningún chequeo. Desde cada tarjeta puedes abrir el detalle"
+" correspondiente."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8119
+msgid "Informe técnico en texto para desarrolladores"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8376
+msgid "Grupo"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8376
+msgid "Test"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8376
+#: includes/system-check/seo-system-diagnostics-reporting.php:1868
+msgid "Resultado"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8409
+msgid "Informe final"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8410
+msgid ""
+"Este bloque está pensado para el futuro envío por email al sysadmin. "
+"Prioriza KO y avisos; los OK quedan resumidos."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8414
+msgid ""
+"si hay KO, el estado general será REVISAR. Si no hay KO pero sí avisos, será"
+" AVISOS. Si no hay incidencias, será CORRECTO."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8612
+msgid "Envío opcional de diagnósticos al desarrollador"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8615
+msgid ""
+"Esta función es voluntaria y está desactivada hasta que un administrador del"
+" sitio la autoriza. Sirve únicamente para recibir información técnica que "
+"ayude a detectar errores, regresiones y problemas de compatibilidad de SEO "
+"System. Puedes desactivarla de nuevo en cualquier momento."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8622
+msgid ""
+"Si lo autorizas, el resumen puede incluir el dominio, un identificador "
+"aleatorio de instalación, fecha y motivo de la ejecución, versiones técnicas"
+" (SEO System, WordPress, WooCommerce y PHP), puntuaciones agregadas e "
+"incidencias detectadas. No se envían contraseñas, tokens, cookies, pedidos, "
+"clientes, direcciones, filas completas de tablas ni contenido completo de "
+"logs."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8623
+msgid ""
+"El correo de administración del propio sitio puede recibir una copia del "
+"mismo resumen para que el titular conserve visibilidad del envío."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8625
+msgid "Guardar autorización"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8628
+msgid "Ejecuta primero la validación completa para generar el informe."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8703
+msgid "Inventario de funciones globales del plugin"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8706
+msgid ""
+"No se han encontrado funciones PHP en el plugin o no se ha podido leer la "
+"ruta."
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8735
+msgid "Funciones globales duplicadas"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8739
+#: includes/system-check/seo-core-validation.php:8768
+msgid "Función"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8740
+#: includes/system-check/seo-core-validation.php:8769
+#: includes/system-check/seo-system-server-status.php:2969
+msgid "Archivo"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8741
+#: includes/system-check/seo-core-validation.php:8770
+msgid "Línea"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8742
+#: includes/system-check/seo-core-validation.php:8771
+#: includes/system-check/seo-system-mysql-audit.php:730
+msgid "Tipo"
+msgstr ""
+
+#: includes/system-check/seo-core-validation.php:8763
+msgid "Ver inventario completo de funciones"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1238
+msgid "Ámbito de auditoría no válido."
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1260
+msgid ""
+"Este escaneo comprueba directamente las URLs de imagen conocidas y activas. "
+"No vuelve a recorrer las 14.000+ URLs del sitemap para cada pasada, por lo "
+"que reduce mucho la carga y evita que el proceso se rompa por una cadena "
+"larga de páginas."
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1262
+msgid "El inventario se construye solo con"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1262
+msgid "productos WooCommerce publicados"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1262
+msgid ". Se procesa por lotes seguros y los pendientes se cubren primero."
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1273
+#: includes/system-check/seo-health-scan.php:1275
+msgid "Iniciar escaneo"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1296
+msgid "Parar escaneo"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1301
+msgid "Escaneo completo:"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1301
+msgid ""
+"al iniciarlo, WordPress actualiza automáticamente el inventario y reserva "
+"todas las páginas publicadas para una única ejecución del worker. No "
+"requiere pulsar \"Actualizar inventario\" ni lanzar lotes sucesivos."
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1322
+msgid "Última ejecución"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1381
+msgid "Estado por elemento"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1390
+msgid "Elemento"
+msgstr ""
+
+#: includes/system-check/seo-health-scan.php:1392
+msgid "No hay resultados para este filtro."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1771
+msgid "Análisis actualizado y resumen enviado automáticamente."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1773
+msgid "Análisis actualizado correctamente."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1775
+#: includes/system-check/seo-system-diagnostics-reporting.php:1994
+msgid "No se pudo completar la actualización. Revisa el registro de errores."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1779
+msgid "Global · todos los ámbitos"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1780
+msgid "Resumen global de todos los chequeos"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1781
+msgid ""
+"Esta es la única puntuación consolidada. Reúne el diagnóstico general del "
+"servidor y todas las áreas de SEO Core. El detalle se concentra en "
+"Integridad del código y Chequeos avanzados."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1828
+msgid "Cómo se compone este resumen y qué no se suma dos veces"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1830
+msgid "Estado global"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1830
+msgid ": consolidación ponderada de Servidor y SEO Core."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1831
+#: includes/system-check/seo-system-server-status.php:2849
+msgid "Servidor"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1831
+msgid ""
+": diagnóstico general de alojamiento, PHP, MySQL, WordPress y recursos."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1832
+msgid "SEO Core"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1832
+msgid ""
+": suma de todos los tests del plugin, aunque la interfaz los muestre "
+"concentrados en dos vistas."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1833
+msgid "Contenido y FAQs"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1833
+msgid ""
+": detalle informativo del bloque Datos, SEO y contenido; ya está incluido en"
+" SEO Core y no vuelve a sumarse."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1852
+msgid "Contenido, categorías y FAQs"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1855
+msgid "No existe todavía una auditoría semántica. Pulsa"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1855
+msgid "Actualizar auditoría"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1868
+msgid "Área"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1868
+msgid "Control"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1911
+msgid "Qué modificar"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1913
+msgid "No se han generado acciones editoriales prioritarias."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1915
+msgid "Entidad / campo"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1915
+msgid "Registros"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1915
+msgid "Acción recomendada"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1947
+msgid ""
+"El módulo es de solo lectura. Las alertas semánticas indican qué revisar; no"
+" cambian categorías, productos, atributos, etiquetas ni FAQs."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1986
+msgid "Informe completo TaxoCommerce System Check"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1987
+msgid ""
+"Auditoría técnica, funcional, comercial, SEO y semántica preparada para "
+"revisión interna, un analista externo o una IA."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1990
+msgid "Auditoría actualizada y resumen enviado automáticamente."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:1992
+msgid "Auditoría actualizada correctamente."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2029
+msgid "Incidencias principales"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2031
+msgid "No hay incidencias en los chequeos disponibles."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2045
+msgid "Interpretación"
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2046
+msgid ""
+"Las puntuaciones resumen señales técnicas, funcionales y semánticas. Sirven "
+"para localizar incidencias y ordenar el trabajo, pero requieren "
+"interpretación antes de aplicar cambios."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2047
+msgid ""
+"El PDF es adecuado para lectura y comunicación. El JSON conserva la "
+"estructura completa y es el formato recomendado para facilitar una segunda "
+"revisión por una IA."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2054
+msgid "No tienes permisos para actualizar este informe."
+msgstr ""
+
+#: includes/system-check/seo-system-diagnostics-reporting.php:2104
+#: includes/system-check/seo-system-diagnostics-reporting.php:2116
+#: includes/system-check/seo-system-diagnostics-reporting.php:2128
+#: includes/system-check/seo-system-diagnostics-reporting.php:2141
+msgid "No tienes permisos para descargar este informe."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:294
+msgid "Necesita al menos 2 chequeos completos."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:320
+msgid "Evolución MySQL · fotografías del chequeo"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:321
+msgid ""
+"Gráficos ligeros generados con las fotografías guardadas al ejecutar el "
+"chequeo completo. No consultan MySQL de nuevo."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:346
+msgid "Distribución de las tablas SEO más grandes"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:347
+msgid ""
+"Gráfico estático calculado con el inventario ya obtenido; no realiza "
+"consultas adicionales."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:662
+msgid "Auditoría SQL de TaxoCommerce SEO"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:699
+msgid "Señales globales del servidor MySQL"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:699
+msgid "Señal"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:699
+msgid "Lectura"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+msgid "Tablas propias e índices"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+#: includes/system-check/seo-system-mysql-audit.php:714
+#: includes/system-check/seo-system-mysql-audit.php:722
+#: includes/system-check/seo-system-mysql-audit.php:730
+#: includes/system-check/seo-system-server-status.php:2756
+msgid "Tabla"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+#: includes/system-check/seo-system-mysql-audit.php:714
+#: includes/system-check/seo-system-server-status.php:2756
+msgid "Filas aprox."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+#: includes/system-check/seo-system-server-status.php:2834
+#: includes/system-check/seo-system-server-status.php:2930
+#: includes/system-check/seo-system-server-status.php:2969
+msgid "Tamaño"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+#: includes/system-check/seo-system-server-status.php:2756
+msgid "Índices"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:705
+msgid "PRIMARY"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:713
+msgid "Candidatos de índice"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:713
+msgid ""
+"Heurística sobre tablas con al menos 5.000 filas. No implica crear el índice"
+" sin revisar la consulta real."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:714
+msgid "Columna"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:722
+msgid "Índices duplicados exactos"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:722
+msgid "Índice A"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:722
+msgid "Índice B"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:722
+msgid "Columnas"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:729
+msgid "EXPLAIN de consultas representativas"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:729
+msgid ""
+"EXPLAIN analiza el plan del optimizador sin ejecutar el SELECT de negocio."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:730
+msgid "Consulta"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:730
+msgid "Filas"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:730
+msgid "Extra"
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:734
+msgid "No se pudieron construir planes para las tablas disponibles."
+msgstr ""
+
+#: includes/system-check/seo-system-mysql-audit.php:737
+msgid ""
+"primero diagnosticamos en STAGING. Si aparece un índice claramente útil, se "
+"incorporará después mediante una migración versionada; nunca desde este "
+"informe."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:63
+msgid "Server Status"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:64
+msgid ""
+"Panel de diagnóstico de solo lectura del servidor, WordPress, seguridad, "
+"base de datos, WooCommerce, rendimiento y logs."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:131
+msgid ""
+"Vista rápida sin guardar. Ejecuta el chequeo completo para crear una "
+"referencia y calcular tendencia."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:291
+#: includes/system-check/seo-system-server-status.php:1981
+msgid "Chequeo"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:291
+msgid "Observación"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:957
+msgid "Configuración del monitor externo de GitHub"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:958
+msgid ""
+"Guarda estos tres valores como Secrets del repositorio. El secreto solo se "
+"muestra a administradores de WordPress."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1014
+msgid "GitHub externo"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1036
+msgid "Correcto"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1037
+msgid "Lento"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1038
+msgid "Importante"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1039
+msgid "Error"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1944
+msgid "Seguridad"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1945
+msgid ""
+"Chequeos de endurecimiento local, actualizaciones, integridad de archivos y "
+"superficie publica. Todo es de solo lectura."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1948
+msgid "Sin datos de seguridad:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1948
+msgid "ejecuta el chequeo completo para generar la nueva seccion."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1961
+msgid "Vista rapida:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1961
+msgid ""
+"los sondeos HTTP publicos, checksums del core y recorrido de uploads solo se"
+" ejecutan con"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1961
+msgid "Ejecutar chequeo completo"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:1981
+msgid "Observacion"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2216
+msgid "el chequeo actual no contiene errores críticos, importantes ni avisos."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2232
+msgid "Salud por área"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2268
+msgid "Resumen general"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2269
+msgid ""
+"Vista rápida de los puntos más importantes del entorno. Los errores y avisos"
+" aparecen antes del detalle técnico."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2308
+msgid "Sugerencia:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2308
+msgid ""
+"esta pantalla es solo lectura. Las limpiezas reales deberían seguir en Clean"
+" Database para evitar mezclar diagnóstico con acciones destructivas."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2322
+msgid "PHP"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2323
+msgid ""
+"Parámetros PHP relevantes para WordPress, WooCommerce, importaciones y "
+"llamadas API."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2562
+msgid "Recursos observables desde WordPress"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2563
+msgid ""
+"Gráficos instantáneos del proceso PHP y del sistema accesible. En hosting "
+"compartido la CPU se estima con"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2563
+msgid "load average / núcleos visibles"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2563
+msgid "; no sustituye las métricas físicas de WePanel."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2605
+msgid "Rendimiento de consultas MySQL"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2630
+msgid "Lectura parcial:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2630
+msgid ""
+"alguna consulta diagnóstica no pudo completarse con los permisos "
+"disponibles. El resto de métricas sigue siendo válido."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2641
+msgid "MySQL / MariaDB"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2642
+msgid ""
+"Configuracion, estadisticas, recursos observables y rendimiento de consultas"
+" de la base de datos actual."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2653
+msgid "Configuracion MySQL / MariaDB"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2718
+msgid "Estadisticas de MySQL / MariaDB"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2719
+msgid ""
+"Datos agregados de la base de datos usada por WordPress. No se muestra el "
+"contenido de las filas."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2747
+msgid "Tablas más grandes"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2748
+msgid ""
+"Ayuda a detectar crecimiento anormal en options, postmeta, actionscheduler o"
+" tablas de plugins."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2751
+msgid "No se pudieron leer las tablas grandes."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2756
+msgid "Datos"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2756
+#: includes/system-check/seo-system-server-status.php:3200
+msgid "Total"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2756
+msgid "Motor"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2778
+msgid "WordPress"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2778
+msgid ""
+"Información general de WordPress, constantes relevantes, cron y residuos "
+"core."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2822
+msgid "wp_options y autoload"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2823
+msgid ""
+"El autoload excesivo suele afectar a todas las cargas de WordPress porque "
+"esas opciones se cargan al inicio."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2833
+msgid "Top opciones autoload más pesadas"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2834
+msgid "Opción"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2849
+msgid ""
+"Información básica del entorno de alojamiento, carga y uso de directorios "
+"clave."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2928
+msgid "Uso de espacio por directorios"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2929
+msgid ""
+"Lectura aproximada con límite de archivos para no bloquear hostings "
+"compartidos."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2930
+msgid "Directorio"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2930
+msgid "Archivos revisados"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2960
+msgid "Archivos grandes detectados"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2961
+msgid ""
+"Busca logs, backups y paquetes grandes dentro de rutas de WordPress. No "
+"elimina nada."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2964
+msgid ""
+"No se han detectado logs, SQL, ZIP, GZ o backups mayores de 10 MB en las "
+"rutas revisadas."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2969
+msgid "Modificado"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2984
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:2984
+msgid "Chequeos básicos del catálogo, calidad de producto y colas internas."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3191
+msgid "Detalle Action Scheduler"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3192
+msgid ""
+"Muestra los hooks con más acciones pendientes o fallidas para identificar "
+"colas atascadas."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3195
+msgid "No hay acciones pendientes o fallidas relevantes."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3200
+msgid "Más antigua"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3213
+msgid "Rendimiento"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3214
+msgid ""
+"Lectura agrupada de los indicadores que suelen explicar lentitud en "
+"WordPress y WooCommerce."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3226
+msgid "Logs"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3234
+msgid "Log PHP / sistema"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3235
+msgid ""
+"Este es el destino configurado por PHP para errores del servidor. "
+"TaxoCommerce SEO no lo configura ni lo modifica automaticamente: cada "
+"hosting puede usar una ruta, permisos o incluso syslog distintos. Si el "
+"archivo es legible por el mismo proceso PHP que ejecuta WordPress, puede "
+"mostrarse aqui aunque este fuera del directorio publico."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3286
+msgid "Como activar o cambiar el log PHP / sistema"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3294
+msgid ""
+"El log PHP es opcional, pero recomendable para diagnosticar errores fatales."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3297
+msgid ""
+"La ruta exacta depende del hosting. TaxoCommerce SEO no la inventa ni la "
+"fuerza durante la instalacion."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3300
+msgid "Recomendacion:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3300
+msgid ""
+"el error_log de PHP esta dentro del directorio publico. Muevelo a una ruta "
+"privada del hosting y vuelve a ejecutar Seguridad."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3302
+msgid "Privacidad de la ruta no concluyente:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3302
+msgid ""
+"TaxoCommerce SEO no puede determinar si el destino queda dentro o fuera del "
+"document root. El cliente debe confirmarlo en el panel del hosting."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3304
+msgid "Log PHP configurado pero aun sin archivo:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3304
+msgid ""
+"esto puede ser normal si no se ha producido ningun error desde que se cambio"
+" la ruta. PHP suele crear el archivo al escribir la primera entrada."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3306
+msgid "Log PHP activo pero no legible desde WordPress:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3306
+msgid ""
+"TaxoCommerce SEO no intentara cambiar permisos. El cliente debe consultarlo "
+"desde el panel del hosting o pedir acceso al proveedor."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3308
+msgid "Destino gestionado por el sistema:"
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3308
+msgid ""
+"PHP no esta escribiendo en un archivo local convencional accesible desde "
+"WordPress. TaxoCommerce SEO lo deja en modo informativo."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3317
+msgid ""
+"La lectura es voluntaria y solo para administradores. Antes de mostrarlo se "
+"enmascaran patrones comunes de contrasenas, tokens, claves API y cabeceras "
+"Authorization."
+msgstr ""
+
+#: includes/system-check/seo-system-server-status.php:3321
+msgid "Ultimas 120 lineas del log PHP / sistema"
+msgstr ""
+
+#: taxocommerce-system-check.php:119 taxocommerce-system-check.php:121
+msgid "System Check"
+msgstr ""
+
+#: taxocommerce-system-check.php:123
+msgid "PHP independiente"
+msgstr ""
+
+#: taxocommerce-system-check.php:125 taxocommerce-system-check.php:133
+#: taxocommerce-system-check.php:291
+msgid "Estado del sistema"
+msgstr ""
+
+#: taxocommerce-system-check.php:127 taxocommerce-system-check.php:401
+msgid "Chequeos HTTP"
+msgstr ""
+
+#: taxocommerce-system-check.php:238
+msgid "Familia TaxoCommerce"
+msgstr ""
+
+#: taxocommerce-system-check.php:240
+msgid ""
+"Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde "
+"una única interfaz."
+msgstr ""
+
+#: taxocommerce-system-check.php:291
+msgid "Motor original no disponible."
+msgstr ""
+
+#: taxocommerce-system-check.php:376
+msgid "Plugin Validation · módulos activos"
+msgstr ""
+
+#: taxocommerce-system-check.php:377
+msgid ""
+"Sin Core solo se comprueba System Check. Con Core se usan sus módulos "
+"activos; no hay una lista duplicada."
+msgstr ""
+
+#: taxocommerce-system-check.php:378
+msgid "Plugin"
+msgstr ""
+
+#: taxocommerce-system-check.php:378
+msgid "Versión"
+msgstr ""
+
+#: taxocommerce-system-check.php:378
+msgid "Comprobación básica"
+msgstr ""
+
+#: taxocommerce-system-check.php:389
+msgid ""
+"Comprobación de carga y servicios básicos de System Check. No sustituye "
+"todavía los chequeos profundos, que se adaptarán por módulo."
+msgstr ""
+
+#: taxocommerce-system-check.php:401
+msgid "El módulo de auditoría HTTP no se ha cargado."
+msgstr ""

@@ -984,9 +984,9 @@ function tcsocial_pinterest_render_connection($config)
     echo '<div class="seo-social-field"><label>Pinterest App Secret</label><input type="password" name="connection[app_secret]" value="" autocomplete="new-password" placeholder="' . esc_attr($has_secret ? 'Secret guardado; deja vacio para conservarlo' : 'App Secret de Pinterest') . '"></div>';
     echo '</div>';
 
-    echo '<div class="seo-social-field" style="margin-top:12px"><label>Tablero destino</label>';
+    echo '<div class="seo-social-field" style="margin-top:12px">' . '<label>' . esc_html__( 'Tablero destino', 'taxocommerce-social' ) . '</label>';
     if (!empty($boards)) {
-        echo '<select name="connection[board_id]"><option value="">Selecciona un tablero</option>';
+        echo '<select name="connection[board_id]">' . '<option value="">' . esc_html__( 'Selecciona un tablero', 'taxocommerce-social' ) . '</option>';
         foreach ($boards as $board) {
             if (!is_array($board) || empty($board['id'])) {
                 continue;
@@ -998,9 +998,9 @@ function tcsocial_pinterest_render_connection($config)
     } else {
         echo '<input type="text" inputmode="numeric" name="connection[board_id]" value="' . esc_attr($selected_id) . '" placeholder="ID numerico del tablero">';
     }
-    echo '<p class="seo-social-help">Tras OAuth, el plugin carga los tableros publicos disponibles y permite elegir el destino.</p></div>';
+    echo '<p class="seo-social-help">' . esc_html__( 'Tras OAuth, el plugin carga los tableros publicos disponibles y permite elegir el destino.', 'taxocommerce-social' ) . '</p>' . '</div>';
 
-    echo '<div class="seo-social-field" style="margin-top:12px"><label>Modo de publicacion</label><input type="text" value="Pin con imagen destacada + titulo + descripcion + enlace UTM" readonly></div>';
+    echo '<div class="seo-social-field" style="margin-top:12px">' . '<label>' . esc_html__( 'Modo de publicacion', 'taxocommerce-social' ) . '</label>' . '<input type="text" value="Pin con imagen destacada + titulo + descripcion + enlace UTM" readonly>' . '</div>';
 
     echo '<details style="margin-top:12px"><summary style="cursor:pointer">Token manual (opcional)</summary><div class="seo-social-field" style="margin-top:10px"><label>Access Token</label><input type="password" name="connection[access_token]" value="" autocomplete="new-password" placeholder="' . esc_attr($has_token ? 'Token guardado; deja vacio para conservarlo' : 'Solo para pruebas o token generado fuera del plugin') . '"><p class="seo-social-help">El token se cifra antes de guardarlo. OAuth es la opcion recomendada.</p></div></details>';
 
@@ -1016,9 +1016,9 @@ function tcsocial_pinterest_render_connection($config)
         }
     }
 
-    echo '<div class="seo-social-actions"><button type="submit" class="button">Guardar configuracion</button>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button">' . esc_html__( 'Guardar configuracion', 'taxocommerce-social' ) . '</button>';
     if ($has_token && $selected_id !== '') {
-        echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">Guardar y probar conexion</button>';
+        echo '<button type="submit" class="button button-primary" name="test_after_save" value="1">' . esc_html__( 'Guardar y probar conexion', 'taxocommerce-social' ) . '</button>';
     }
     echo '</div></form>';
 
@@ -1026,10 +1026,10 @@ function tcsocial_pinterest_render_connection($config)
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
         echo '<input type="hidden" name="action" value="tcsocial_pinterest_oauth_start">';
         wp_nonce_field('tcsocial_pinterest_oauth_start');
-        echo '<button type="submit" class="button button-primary">Conectar / renovar autorizacion con Pinterest</button>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Conectar / renovar autorizacion con Pinterest', 'taxocommerce-social' ) . '</button>';
         echo '</form>';
     } else {
-        echo '<p class="seo-social-help">Guarda primero el App ID y el App Secret. Despues aparecera el boton para autorizar Pinterest.</p>';
+        echo '<p class="seo-social-help">' . esc_html__( 'Guarda primero el App ID y el App Secret. Despues aparecera el boton para autorizar Pinterest.', 'taxocommerce-social' ) . '</p>';
     }
 
     if ($has_token || !empty($config['enabled'])) {
@@ -1040,5 +1040,5 @@ function tcsocial_pinterest_render_connection($config)
         echo '</form>';
     }
 
-    echo '<p class="seo-social-help" style="margin-top:12px">Para publicar, cada entrada o landing debe tener una imagen destacada accesible publicamente por Pinterest.</p>';
+    echo '<p class="seo-social-help" style="margin-top:12px">' . esc_html__( 'Para publicar, cada entrada o landing debe tener una imagen destacada accesible publicamente por Pinterest.', 'taxocommerce-social' ) . '</p>';
 }

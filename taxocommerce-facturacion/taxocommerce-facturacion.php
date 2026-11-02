@@ -65,7 +65,7 @@ function taxocommerce_facturacion_render_page() {
     }
 
     echo '<div class="wrap seo-facturas-wrap taxocommerce-billing-shell">';
-    echo '<h1>TaxoCommerce Billing</h1>';
+    echo '<h1>' . esc_html__( 'TaxoCommerce Billing', 'taxocommerce-facturacion' ) . '</h1>';
     echo '<nav class="nav-tab-wrapper taxocommerce-billing-tabs" aria-label="Secciones de TaxoCommerce Billing">';
     foreach ( $tabs as $key => $label ) {
         $url = add_query_arg(
@@ -86,7 +86,7 @@ function taxocommerce_facturacion_render_page() {
         SEO_Facturas_Admin::render_page();
         echo '</div>';
     } else {
-        echo '<div class="notice notice-error inline"><p>El módulo documental de Billing no está disponible.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'El módulo documental de Billing no está disponible.', 'taxocommerce-facturacion' ) . '</p>' . '</div>';
     }
     echo '</div>';
 }
@@ -125,7 +125,7 @@ function taxocommerce_facturacion_register_menu() {
 
     add_menu_page(
         __( 'Facturas y presupuestos', 'taxocommerce-facturacion' ),
-        'TaxoCommerce Billing',
+        __( 'TaxoCommerce Billing', 'taxocommerce-facturacion' ),
         'manage_options',
         'taxocommerce-facturacion',
         'taxocommerce_facturacion_render_page',
@@ -191,3 +191,20 @@ function taxocommerce_facturacion_force_core_submenu( $submenu_file ) {
     return $submenu_file;
 }
 add_filter( 'submenu_file', 'taxocommerce_facturacion_force_core_submenu', 999 );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-facturacion';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

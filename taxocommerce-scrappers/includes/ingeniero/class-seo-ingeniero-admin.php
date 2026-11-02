@@ -22,8 +22,8 @@ final class SEO_Ingeniero_Admin {
     public static function register_page() {
         add_submenu_page(
             null,
-            'Ingeniero',
-            'Ingeniero',
+            __( 'Ingeniero', 'taxocommerce-scrappers' ),
+            __( 'Ingeniero', 'taxocommerce-scrappers' ),
             'manage_options',
             'seo-ingeniero',
             array(__CLASS__, 'render')
@@ -393,7 +393,7 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div class="wrap seo-ingeniero-admin">';
         echo '<h1>Ingeniero <small style="font-weight:400;color:#646970">v' . esc_html(SEO_INGENIERO_VERSION) . '</small></h1>';
-        echo '<p><strong>Servicio de investigación externa y editorial.</strong> Investiga por categoría y clasifica cada fuente/evidencia como <strong>L1 técnica</strong>, <strong>L2 práctica</strong> o <strong>L3 actualidad</strong>, conservando trazabilidad para su uso editorial posterior.</p>';
+        echo '<p>' . '<strong>' . esc_html__( 'Servicio de investigación externa y editorial.', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'Investiga por categoría y clasifica cada fuente/evidencia como', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'L1 técnica', 'taxocommerce-scrappers' ) . '</strong>' . ', ' . '<strong>' . esc_html__( 'L2 práctica', 'taxocommerce-scrappers' ) . '</strong>' . ' o ' . '<strong>' . esc_html__( 'L3 actualidad', 'taxocommerce-scrappers' ) . '</strong>' . esc_html__( ', conservando trazabilidad para su uso editorial posterior.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Ingeniero">';
         foreach (array('research'=>'Investigación', 'editorial'=>'Editorial', 'posts'=>'Posts', 'landings'=>'Landings', 'radar'=>'Radar externo', 'data'=>'Datos y fuentes', 'tests'=>'Pruebas') as $key=>$label) {
             echo '<a class="nav-tab ' . ($tab === $key ? 'nav-tab-active' : '') . '" href="' . esc_url(self::page_url($key)) . '">' . esc_html($label) . '</a>';
@@ -440,20 +440,20 @@ final class SEO_Ingeniero_Admin {
 
         echo '<section class="seo-ingeniero">';
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h2 style="margin-top:0">Ingeniero</h2>';
-        echo '<p>Ingeniero investiga cada categoría en tres capas: <strong>L1 técnica</strong>, <strong>L2 práctica/comunidad</strong> y <strong>L3 actualidad sectorial</strong>. Cada evidencia conserva su capa, subtipo, fuente, confianza y fecha. La salida editorial se gestiona aparte y nunca autopublica.</p>';
-        echo '<p class="description">Separación deliberada: L1 puede respaldar hechos técnicos; L2 conserva preguntas/experiencias sin elevarlas automáticamente a hecho; L3 conserva novedades con fecha y vigencia.</p>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Ingeniero', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Ingeniero investiga cada categoría en tres capas:', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'L1 técnica', 'taxocommerce-scrappers' ) . '</strong>' . ', ' . '<strong>' . esc_html__( 'L2 práctica/comunidad', 'taxocommerce-scrappers' ) . '</strong>' . ' y ' . '<strong>' . esc_html__( 'L3 actualidad sectorial', 'taxocommerce-scrappers' ) . '</strong>' . esc_html__( '. Cada evidencia conserva su capa, subtipo, fuente, confianza y fecha. La salida editorial se gestiona aparte y nunca autopublica.', 'taxocommerce-scrappers' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Separación deliberada: L1 puede respaldar hechos técnicos; L2 conserva preguntas/experiencias sin elevarlas automáticamente a hecho; L3 conserva novedades con fecha y vigencia.', 'taxocommerce-scrappers' ) . '</p>';
         echo '</div>';
 
         self::render_kpis($all_candidates, $stats_map, $category_states, $totals, $state);
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Investigación externa L1 / L2 / L3</h3>';
+        echo '<h3 style="margin-top:0">' . esc_html__( 'Investigación externa L1 / L2 / L3', 'taxocommerce-scrappers' ) . '</h3>';
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_prepare">';
         wp_nonce_field('seo_ingeniero_prepare');
-        echo '<label><strong>Categorías por lote</strong><br><input type="number" name="limit" min="1" max="100" value="20" class="small-text"><br><small class="description">Se seleccionan entre las pendientes.</small></label> ';
+        echo '<label>' . '<strong>' . esc_html__( 'Categorías por lote', 'taxocommerce-scrappers' ) . '</strong>' . '<br>' . '<input type="number" name="limit" min="1" max="100" value="20" class="small-text">' . '<br>' . '<small class="description">' . esc_html__( 'Se seleccionan entre las pendientes.', 'taxocommerce-scrappers' ) . '</small>' . '</label>' . ' ';
         submit_button('Preparar lección', 'secondary', 'submit', false);
         echo '</form>';
 
@@ -483,9 +483,9 @@ final class SEO_Ingeniero_Admin {
         echo '</div>';
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Fuente de búsqueda</h3>';
-        echo '<p>Proveedores Google compartidos con Ojeador: <strong>SerpApi → ScraperAPI</strong>. Ingeniero prueba primero SerpApi y, cuando la cuota real está agotada o la conexión falla, continúa automáticamente con ScraperAPI. Las dos API keys se gestionan en <strong>Herramientas → Conexiones con proveedores</strong>.</p>';
-        echo '<p>El contador propio de Ingeniero es <strong>informativo</strong> y ya no bloquea la investigación ni impide el fallback entre proveedores.</p>';
+        echo '<h3 style="margin-top:0">' . esc_html__( 'Fuente de búsqueda', 'taxocommerce-scrappers' ) . '</h3>';
+        echo '<p>' . esc_html__( 'Proveedores Google compartidos con Ojeador:', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'SerpApi → ScraperAPI', 'taxocommerce-scrappers' ) . '</strong>' . esc_html__( '. Ingeniero prueba primero SerpApi y, cuando la cuota real está agotada o la conexión falla, continúa automáticamente con ScraperAPI. Las dos API keys se gestionan en', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'Herramientas → Conexiones con proveedores', 'taxocommerce-scrappers' ) . '</strong>' . '.' . '</p>';
+        echo '<p>' . esc_html__( 'El contador propio de Ingeniero es', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'informativo', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'y ya no bloquea la investigación ni impide el fallback entre proveedores.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<p><strong>Búsquedas lógicas de Ingeniero este mes:</strong> ' . esc_html(number_format_i18n($usage['used'])) . '.</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_settings">';
@@ -504,10 +504,10 @@ final class SEO_Ingeniero_Admin {
         if ($detail_term_id) self::render_category_detail($detail_term_id);
 
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Capas de conocimiento activas</h3>';
-        echo '<p><strong>L1 · Técnica:</strong> manuales, fichas, fabricantes, organismos y normativa.</p>';
-        echo '<p><strong>L2 · Práctica:</strong> foros, Reddit, comunidades, dudas, problemas, comparaciones y casos de uso. Sus señales no se convierten automáticamente en hechos técnicos.</p>';
-        echo '<p><strong>L3 · Actualidad:</strong> noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y actualizaciones de fabricante. Se conserva fecha y fuente para revisar vigencia.</p>';
+        echo '<h3 style="margin-top:0">' . esc_html__( 'Capas de conocimiento activas', 'taxocommerce-scrappers' ) . '</h3>';
+        echo '<p>' . '<strong>' . esc_html__( 'L1 · Técnica:', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'manuales, fichas, fabricantes, organismos y normativa.', 'taxocommerce-scrappers' ) . '</p>';
+        echo '<p>' . '<strong>' . esc_html__( 'L2 · Práctica:', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'foros, Reddit, comunidades, dudas, problemas, comparaciones y casos de uso. Sus señales no se convierten automáticamente en hechos técnicos.', 'taxocommerce-scrappers' ) . '</p>';
+        echo '<p>' . '<strong>' . esc_html__( 'L3 · Actualidad:', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y actualizaciones de fabricante. Se conserva fecha y fuente para revisar vigencia.', 'taxocommerce-scrappers' ) . '</p>';
         echo '</div>';
 
         echo '</section>';
@@ -543,10 +543,10 @@ final class SEO_Ingeniero_Admin {
 
         echo '<section class="seo-ingeniero-editorial">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Editorial por temas</h2>';
-        echo '<p>Ingeniero agrupa la investigación L1/L2/L3 por <strong>tema editorial</strong>. Una categoría puede producir cero, una o varias propuestas cuando exista masa suficiente y no haya contenido equivalente.</p>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Editorial por temas', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Ingeniero agrupa la investigación L1/L2/L3 por', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'tema editorial', 'taxocommerce-scrappers' ) . '</strong>' . esc_html__( '. Una categoría puede producir cero, una o varias propuestas cuando exista masa suficiente y no haya contenido equivalente.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<p class="description">Acciones: <code>CREATE_POST</code>, <code>IMPROVE_EXISTING_POST</code>, <code>CREATE_FAQ</code>, <code>WATCH</code> y <code>DISCARD</code>. L2 se trata como experiencia/opinión; L3 conserva frescura; ningún contenido se publica automáticamente.</p>';
-        echo '<p><strong>Regla 0.5.0:</strong> la unidad editorial es el tema, no la categoría. Los temas técnicos y prácticos relacionados pueden fusionarse en un dossier mixto para evitar posts duplicados.</p>';
+        echo '<p>' . '<strong>' . esc_html__( 'Regla 0.5.0:', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'la unidad editorial es el tema, no la categoría. Los temas técnicos y prácticos relacionados pueden fusionarse en un dossier mixto para evitar posts duplicados.', 'taxocommerce-scrappers' ) . '</p>';
         echo '</div>';
 
         $cards = array(
@@ -578,18 +578,18 @@ final class SEO_Ingeniero_Admin {
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_export">';
         wp_nonce_field('seo_ingeniero_export');
-        echo '<button type="submit" class="button">Descargar JSON</button>';
+        echo '<button type="submit" class="button">' . esc_html__( 'Descargar JSON', 'taxocommerce-scrappers' ) . '</button>';
         echo '</form>';
         echo '</div>';
 
         echo '<form method="get" action="' . esc_url(admin_url('admin.php')) . '" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:12px 0">';
         echo '<input type="hidden" name="page" value="taxocommerce-scrappers"><input type="hidden" name="tcs_tab" value="ingeniero"><input type="hidden" name="tab" value="editorial">';
-        echo '<label>Estado<br><select name="editorial_status"><option value="">Todos</option>';
+        echo '<label>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '<br>' . '<select name="editorial_status">' . '<option value="">' . esc_html__( 'Todos', 'taxocommerce-scrappers' ) . '</option>';
         foreach (array('candidate'=>'Candidato','review'=>'Revisión','approved'=>'Aprobado','draft'=>'Borrador','published'=>'Publicado','needs_update'=>'Necesita actualizar','closed'=>'Cerrado') as $key=>$label) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($status,$key,false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></label>';
-        echo '<label>Acción<br><select name="editorial_action"><option value="">Todas</option>';
+        echo '<label>' . esc_html__( 'Acción', 'taxocommerce-scrappers' ) . '<br>' . '<select name="editorial_action">' . '<option value="">' . esc_html__( 'Todas', 'taxocommerce-scrappers' ) . '</option>';
         foreach (array('CREATE_POST','IMPROVE_EXISTING_POST','CREATE_FAQ','WATCH','DISCARD') as $key) {
             echo '<option value="' . esc_attr($key) . '" ' . selected($action,$key,false) . '>' . esc_html($key) . '</option>';
         }
@@ -598,7 +598,7 @@ final class SEO_Ingeniero_Admin {
         echo '</form>';
 
         echo '<div class="postbox" style="padding:0;margin-top:12px;overflow:auto">';
-        echo '<table class="widefat striped"><thead><tr><th>Categoría / tema</th><th>Acción</th><th>Cobertura</th><th>Estado</th><th>Base</th><th>Post</th><th>Actualizado</th><th>Acciones</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Categoría / tema', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Acción', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Cobertura', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Base', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Post', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Actualizado', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) ($list['rows'] ?? array()) as $row) {
             $term_id = absint($row['term_id'] ?? 0);
             $term = $term_id ? get_term($term_id, 'product_cat') : null;
@@ -648,7 +648,7 @@ final class SEO_Ingeniero_Admin {
             }
             echo '</td></tr>';
         }
-        if (empty($list['rows'])) echo '<tr><td colspan="8">Todavía no hay dossiers que coincidan con los filtros.</td></tr>';
+        if (empty($list['rows'])) echo '<tr>' . '<td colspan="8">' . esc_html__( 'Todavía no hay dossiers que coincidan con los filtros.', 'taxocommerce-scrappers' ) . '</td>' . '</tr>';
         echo '</tbody></table></div>';
 
         if (absint($list['pages'] ?? 1) > 1) {
@@ -684,13 +684,13 @@ final class SEO_Ingeniero_Admin {
         $dossier = (array) ($brief['dossier'] ?? array());
         $category = (array) ($brief['category'] ?? array());
         echo '<div id="ingeniero-editorial-brief" class="postbox" style="padding:18px;margin-top:18px">';
-        echo '<h2 style="margin-top:0">Brief editorial para Editora</h2>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Brief editorial para Editora', 'taxocommerce-scrappers' ) . '</h2>';
         echo '<p><strong>' . esc_html((string) ($dossier['suggested_title'] ?? '')) . '</strong></p>';
         echo '<p>Categoría: <strong>' . esc_html((string) ($category['name'] ?? '')) . '</strong> · Tema: <code>' . esc_html((string) ($dossier['topic_key'] ?? '')) . '</code> · Acción: <code>' . esc_html((string) ($dossier['recommended_action'] ?? '')) . '</code> · Capa: <code>' . esc_html((string)($dossier['primary_layer'] ?? '')) . '</code> · Tipo: <code>' . esc_html((string)($dossier['content_type'] ?? '')) . '</code>.</p>';
 
         $qa_items=(array)($brief['qa_items'] ?? array());
         echo '<h3>Preguntas y respuestas técnicas · ' . esc_html(number_format_i18n(count($qa_items))) . '</h3>';
-        echo '<p class="description">Se muestran todos los knowledge activos incluidos en el dossier. La pregunta es una formulación editorial del tipo de conocimiento; la respuesta es la síntesis técnica almacenada por Ingeniero.</p>';
+        echo '<p class="description">' . esc_html__( 'Se muestran todos los knowledge activos incluidos en el dossier. La pregunta es una formulación editorial del tipo de conocimiento; la respuesta es la síntesis técnica almacenada por Ingeniero.', 'taxocommerce-scrappers' ) . '</p>';
         if ($qa_items) {
             echo '<div style="display:grid;gap:10px">';
             foreach ($qa_items as $item) {
@@ -705,14 +705,14 @@ final class SEO_Ingeniero_Admin {
             }
             echo '</div>';
         } else {
-            echo '<p>No hay preguntas-respuestas técnicas en este dossier.</p>';
+            echo '<p>' . esc_html__( 'No hay preguntas-respuestas técnicas en este dossier.', 'taxocommerce-scrappers' ) . '</p>';
         }
 
-        echo '<h3>Must cover</h3><ul>';
+        echo '<h3>' . esc_html__( 'Must cover', 'taxocommerce-scrappers' ) . '</h3>' . '<ul>';
         foreach ((array) ($brief['must_cover'] ?? array()) as $item) echo '<li>' . esc_html((string) $item) . '</li>';
         echo '</ul>';
 
-        echo '<h3>Diagnóstico del knowledge incluido</h3><table class="widefat striped"><thead><tr><th>Tipo / concepto</th><th>Síntesis</th><th>Confianza</th><th>Evidencias</th></tr></thead><tbody>';
+        echo '<h3>' . esc_html__( 'Diagnóstico del knowledge incluido', 'taxocommerce-scrappers' ) . '</h3>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tipo / concepto', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Síntesis', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Evidencias', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) ($brief['knowledge'] ?? array()) as $row) {
             echo '<tr><td><code>' . esc_html((string) ($row['knowledge_type'] ?? '')) . '</code><br>' . esc_html((string) ($row['concept'] ?? '')) . '</td>';
             echo '<td>' . esc_html((string) ($row['summary'] ?? '')) . '</td>';
@@ -721,7 +721,7 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</tbody></table>';
 
-        echo '<h3 style="margin-top:18px">Fuentes trazables</h3><table class="widefat striped"><thead><tr><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Recuperada</th></tr></thead><tbody>';
+        echo '<h3 style="margin-top:18px">' . esc_html__( 'Fuentes trazables', 'taxocommerce-scrappers' ) . '</h3>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fuente', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Recuperada', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) ($brief['sources'] ?? array()) as $source) {
             echo '<tr><td><a href="' . esc_url((string) ($source['url'] ?? '')) . '" target="_blank" rel="noopener">' . esc_html((string) (($source['title'] ?? '') ?: ($source['url'] ?? ''))) . '</a></td>';
             echo '<td><code>' . esc_html((string) ($source['source_type'] ?? '')) . '</code></td>';
@@ -731,10 +731,10 @@ final class SEO_Ingeniero_Admin {
         echo '</tbody></table>';
 
         $internal_links = (array) ($brief['internal_links'] ?? array());
-        echo '<h3 style="margin-top:18px">Enlaces internos sugeridos</h3>';
-        echo '<p class="description">Referencias propias para contexto editorial; no convierten la pieza técnica en publicidad.</p>';
+        echo '<h3 style="margin-top:18px">' . esc_html__( 'Enlaces internos sugeridos', 'taxocommerce-scrappers' ) . '</h3>';
+        echo '<p class="description">' . esc_html__( 'Referencias propias para contexto editorial; no convierten la pieza técnica en publicidad.', 'taxocommerce-scrappers' ) . '</p>';
         if (!empty($internal_links['categories'])) {
-            echo '<p><strong>Categorías:</strong> ';
+            echo '<p>' . '<strong>' . esc_html__( 'Categorías:', 'taxocommerce-scrappers' ) . '</strong>' . ' ';
             $links = array();
             foreach ((array) $internal_links['categories'] as $category_row) {
                 $name = (string) ($category_row['name'] ?? '');
@@ -754,7 +754,7 @@ final class SEO_Ingeniero_Admin {
         }
 
         $coverage = (array) ($brief['coverage'] ?? array());
-        echo '<h3 style="margin-top:18px">Cobertura existente</h3>';
+        echo '<h3 style="margin-top:18px">' . esc_html__( 'Cobertura existente', 'taxocommerce-scrappers' ) . '</h3>';
         echo '<p>Estado: <code>' . esc_html((string) ($coverage['status'] ?? 'uncovered')) . '</code> · score ' . esc_html(number_format_i18n(((float) ($coverage['score'] ?? 0))*100,1)) . '%.</p>';
         if (!empty($coverage['matches'])) {
             echo '<ul>';
@@ -768,7 +768,7 @@ final class SEO_Ingeniero_Admin {
 
         $metrics = (array) ($brief['metrics_28d'] ?? array());
         if (!empty($metrics['has_snapshot'])) {
-            echo '<h3 style="margin-top:18px">Rendimiento · Analista · 28 días</h3>';
+            echo '<h3 style="margin-top:18px">' . esc_html__( 'Rendimiento · Analista · 28 días', 'taxocommerce-scrappers' ) . '</h3>';
             echo '<p><strong>Impresiones:</strong> ' . esc_html(number_format_i18n(absint($metrics['impressions'] ?? 0)))
                 . ' · <strong>Clics:</strong> ' . esc_html(number_format_i18n(absint($metrics['clicks'] ?? 0)))
                 . ' · <strong>Vistas:</strong> ' . esc_html(number_format_i18n(absint($metrics['pageviews'] ?? 0)))
@@ -799,8 +799,8 @@ final class SEO_Ingeniero_Admin {
     private static function render_data_tab() {
         echo '<section class="seo-ingeniero-data">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Datos y fuentes</h2>';
-        echo '<p>Fuentes, conocimiento e intercambio de datos de Ingeniero.</p>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Datos y fuentes', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Fuentes, conocimiento e intercambio de datos de Ingeniero.', 'taxocommerce-scrappers' ) . '</p>';
         if (class_exists('SEO_Ingeniero_Exchange')) {
             SEO_Ingeniero_Exchange::render_panel();
         }
@@ -811,16 +811,16 @@ final class SEO_Ingeniero_Admin {
     private static function render_tests_tab() {
         echo '<section class="seo-ingeniero-tests">';
         echo '<div class="postbox" style="padding:18px;margin-top:16px">';
-        echo '<h2 style="margin-top:0">Pruebas del proceso editorial</h2>';
-        echo '<p>Comprobaciones deterministas de agrupación, hash, cobertura, aprobación humana, unicidad y rol público. No crean posts ni llaman a servicios externos.</p>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Pruebas del proceso editorial', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprobaciones deterministas de agrupación, hash, cobertura, aprobación humana, unicidad y rol público. No crean posts ni llaman a servicios externos.', 'taxocommerce-scrappers' ) . '</p>';
         if (!class_exists('SEO_Ingeniero_Tests')) {
-            echo '<div class="notice notice-error inline"><p>No está disponible la batería de pruebas.</p></div></div></section>';
+            echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No está disponible la batería de pruebas.', 'taxocommerce-scrappers' ) . '</p>' . '</div>' . '</div>' . '</section>';
             return;
         }
         $tests = SEO_Ingeniero_Tests::run();
         $passed = count(array_filter($tests, static function($row){ return !empty($row['pass']); }));
         echo '<p><strong>' . esc_html(number_format_i18n($passed)) . '/' . esc_html(number_format_i18n(count($tests))) . '</strong> pruebas correctas.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Prueba</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($tests as $row) {
             echo '<tr><td><code>' . esc_html((string) ($row['code'] ?? '')) . '</code></td>';
             echo '<td><strong>' . (!empty($row['pass']) ? 'OK' : 'FALLO') . '</strong></td>';
@@ -877,12 +877,12 @@ final class SEO_Ingeniero_Admin {
             echo '<div class="postbox" style="padding:14px;margin:0"><strong style="display:block;font-size:20px">' . esc_html((string) $value) . '</strong><span>' . esc_html($label) . '</span></div>';
         }
         echo '</div>';
-        echo '<p class="description" style="margin-top:-6px"><strong>Investigadas</strong> significa que Ingeniero ya ha obtenido conocimiento de la categoría. <strong>Aprobadas</strong> son las investigadas que ya no tienen bloques pendientes de revisión.</p>';
+        echo '<p class="description" style="margin-top:-6px">' . '<strong>' . esc_html__( 'Investigadas', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'significa que Ingeniero ya ha obtenido conocimiento de la categoría.', 'taxocommerce-scrappers' ) . ' ' . '<strong>' . esc_html__( 'Aprobadas', 'taxocommerce-scrappers' ) . '</strong>' . ' ' . esc_html__( 'son las investigadas que ya no tienen bloques pendientes de revisión.', 'taxocommerce-scrappers' ) . '</p>';
     }
 
     private static function render_category_table($candidates, $stats_map, $category_states, $catalog_total = 0) {
         echo '<div class="postbox seo-dependiente-admin__box" style="padding:18px">';
-        echo '<h3 style="margin-top:0">Categorías</h3>';
+        echo '<h3 style="margin-top:0">' . esc_html__( 'Categorías', 'taxocommerce-scrappers' ) . '</h3>';
         $catalog_total = absint($catalog_total);
         if ($catalog_total > count((array) $candidates)) {
             echo '<p class="description">La tabla muestra las primeras ' . esc_html(number_format_i18n(count((array) $candidates))) . ' categorías de ' . esc_html(number_format_i18n($catalog_total)) . ' del catálogo, incluidas las que aún tienen 0 productos, ordenadas por número de productos. Los KPI superiores sí usan el catálogo completo.</p>';
@@ -899,7 +899,7 @@ final class SEO_Ingeniero_Admin {
             echo '<span class="description">Convierte únicamente <code>review</code> en <code>active</code>; no toca rechazados ni conocimiento sustituido.</span>';
             echo '</div>';
         }
-        echo '<table class="widefat striped"><thead><tr><th>Categoría</th><th>Productos</th><th>Estado</th><th>Fuentes</th><th>Conocimiento</th><th>Confianza</th><th>Última</th><th>Acciones</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Categoría', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Productos', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Fuentes', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Conocimiento', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Última', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ((array) $candidates as $row) {
             $tid = absint($row['term_id'] ?? 0);
             $stat = (array) ($stats_map[$tid] ?? array());
@@ -928,10 +928,10 @@ final class SEO_Ingeniero_Admin {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:inline">';
             echo '<input type="hidden" name="action" value="seo_ingeniero_research_category"><input type="hidden" name="term_id" value="' . esc_attr($tid) . '">';
             wp_nonce_field('seo_ingeniero_research_category');
-            echo '<button class="button button-small" type="submit">Reinvestigar categoría</button></form></td>';
+            echo '<button class="button button-small" type="submit">' . esc_html__( 'Reinvestigar categoría', 'taxocommerce-scrappers' ) . '</button>' . '</form>' . '</td>';
             echo '</tr>';
         }
-        if (!$candidates) echo '<tr><td colspan="8">No hay categorías de producto.</td></tr>';
+        if (!$candidates) echo '<tr>' . '<td colspan="8">' . esc_html__( 'No hay categorías de producto.', 'taxocommerce-scrappers' ) . '</td>' . '</tr>';
         echo '</tbody></table>';
         echo '</div>';
     }
@@ -969,7 +969,7 @@ final class SEO_Ingeniero_Admin {
 
         echo '<div id="ingeniero-review" class="postbox seo-dependiente-admin__box" style="padding:18px">';
         echo '<h3 style="margin-top:0">Revisión · ' . esc_html((string) $term->name) . '</h3>';
-        echo '<p>Filtra la evidencia por capa para distinguir datos técnicos, señales prácticas y actualidad antes de decidir su uso editorial.</p>';
+        echo '<p>' . esc_html__( 'Filtra la evidencia por capa para distinguir datos técnicos, señales prácticas y actualidad antes de decidir su uso editorial.', 'taxocommerce-scrappers' ) . '</p>';
 
         echo '<p style="display:flex;gap:6px;flex-wrap:wrap">';
         foreach ($allowed_layers as $key=>$label) {
@@ -978,8 +978,8 @@ final class SEO_Ingeniero_Admin {
         }
         echo '</p>';
 
-        echo '<h4>Conocimiento consolidado</h4>';
-        echo '<table class="widefat striped"><thead><tr><th>Capa</th><th>Subtipo</th><th>Resumen/evidencia</th><th>Confianza</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>';
+        echo '<h4>' . esc_html__( 'Conocimiento consolidado', 'taxocommerce-scrappers' ) . '</h4>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Capa', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Subtipo', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Resumen/evidencia', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Revisión', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($knowledge as $row) {
             $lesson = sanitize_key((string) ($row['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL));
             echo '<tr><td><strong>' . esc_html(SEO_Ingeniero::lesson_label($lesson)) . '</strong></td>';
@@ -987,7 +987,7 @@ final class SEO_Ingeniero_Admin {
             echo '<td><strong>Síntesis propia:</strong> ' . esc_html((string) ($row['summary'] ?? ''));
             $facts = isset($row['facts']) && is_array($row['facts']) ? $row['facts'] : array();
             if ($facts) {
-                echo '<details><summary>Ver evidencias y fuentes</summary><ul style="margin:8px 0 0 18px">';
+                echo '<details>' . '<summary>' . esc_html__( 'Ver evidencias y fuentes', 'taxocommerce-scrappers' ) . '</summary>' . '<ul style="margin:8px 0 0 18px">';
                 foreach ($facts as $fact) {
                     $url = esc_url((string) ($fact['source_url'] ?? ''));
                     $title = (string) ($fact['source_title'] ?? '');
@@ -1009,16 +1009,16 @@ final class SEO_Ingeniero_Admin {
             echo '<td><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="display:flex;gap:5px;flex-wrap:wrap">';
             echo '<input type="hidden" name="action" value="seo_ingeniero_review"><input type="hidden" name="knowledge_id" value="' . esc_attr(absint($row['id'] ?? 0)) . '"><input type="hidden" name="term_id" value="' . esc_attr($term_id) . '">';
             wp_nonce_field('seo_ingeniero_review');
-            echo '<button class="button button-small button-primary" name="decision" value="approve">Aprobar</button>';
-            echo '<button class="button button-small" name="decision" value="review">Mantener revisión</button>';
-            echo '<button class="button button-small" name="decision" value="reject">Rechazar</button>';
+            echo '<button class="button button-small button-primary" name="decision" value="approve">' . esc_html__( 'Aprobar', 'taxocommerce-scrappers' ) . '</button>';
+            echo '<button class="button button-small" name="decision" value="review">' . esc_html__( 'Mantener revisión', 'taxocommerce-scrappers' ) . '</button>';
+            echo '<button class="button button-small" name="decision" value="reject">' . esc_html__( 'Rechazar', 'taxocommerce-scrappers' ) . '</button>';
             echo '</form></td></tr>';
         }
-        if (!$knowledge) echo '<tr><td colspan="6">Todavía no hay conocimiento consolidado para esta capa.</td></tr>';
+        if (!$knowledge) echo '<tr>' . '<td colspan="6">' . esc_html__( 'Todavía no hay conocimiento consolidado para esta capa.', 'taxocommerce-scrappers' ) . '</td>' . '</tr>';
         echo '</tbody></table>';
 
-        echo '<h4 style="margin-top:20px">Fuentes originales consultadas</h4>';
-        echo '<table class="widefat striped"><thead><tr><th>Capa</th><th>Fuente</th><th>Tipo</th><th>Confianza</th><th>Estado</th></tr></thead><tbody>';
+        echo '<h4 style="margin-top:20px">' . esc_html__( 'Fuentes originales consultadas', 'taxocommerce-scrappers' ) . '</h4>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Capa', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Fuente', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Confianza', 'taxocommerce-scrappers' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-scrappers' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($sources as $source) {
             $lesson = sanitize_key((string) ($source['lesson'] ?? SEO_Ingeniero::LESSON_TECHNICAL));
             echo '<tr><td><strong>' . esc_html(SEO_Ingeniero::lesson_label($lesson)) . '</strong></td>';
@@ -1027,7 +1027,7 @@ final class SEO_Ingeniero_Admin {
             echo '<td>' . esc_html((string) $source['trust_level']) . '</td>';
             echo '<td><code>' . esc_html((string) $source['status']) . '</code></td></tr>';
         }
-        if (!$sources) echo '<tr><td colspan="5">No hay fuentes guardadas para esta capa.</td></tr>';
+        if (!$sources) echo '<tr>' . '<td colspan="5">' . esc_html__( 'No hay fuentes guardadas para esta capa.', 'taxocommerce-scrappers' ) . '</td>' . '</tr>';
         echo '</tbody></table>';
 
         echo '<p style="margin-top:15px"><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';

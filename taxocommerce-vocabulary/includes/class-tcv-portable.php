@@ -30,8 +30,8 @@ final class TCV_Portable {
 
     public static function render_panel() {
         $preview = get_transient( self::preview_key() );
-        echo '<div class="tcv-panel" style="margin-top:20px"><h2>Catálogo completo · JSON portable</h2>';
-        echo '<p>Copia portable para backup, análisis externo o traslado entre instalaciones. Los IDs numéricos viajan solo como auditoría; el destino se resuelve mediante claves portables.</p>';
+        echo '<div class="tcv-panel" style="margin-top:20px">' . '<h2>' . esc_html__( 'Catálogo completo · JSON portable', 'taxocommerce-vocabulary' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Copia portable para backup, análisis externo o traslado entre instalaciones. Los IDs numéricos viajan solo como auditoría; el destino se resuelve mediante claves portables.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<div class="tcv-grid">';
 
         echo '<div><h3>Exportar catálogo</h3><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -47,26 +47,26 @@ final class TCV_Portable {
         foreach ( $labels as $scope => $label ) {
             echo '<label style="display:block;margin:6px 0"><input type="checkbox" name="scope[]" value="' . esc_attr( $scope ) . '" checked> ' . esc_html( $label ) . '</label>';
         }
-        echo '<p><button class="button button-primary">Descargar JSON completo</button></p></form>';
-        echo '<p class="description">No incluye productos completos, imágenes, pedidos, usuarios ni configuración general de WordPress.</p></div>';
+        echo '<p>' . '<button class="button button-primary">' . esc_html__( 'Descargar JSON completo', 'taxocommerce-vocabulary' ) . '</button>' . '</p>' . '</form>';
+        echo '<p class="description">' . esc_html__( 'No incluye productos completos, imágenes, pedidos, usuarios ni configuración general de WordPress.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
 
-        echo '<div><h3>Importar catálogo</h3>';
-        echo '<p><strong>La simulación es obligatoria.</strong> Para aplicar debes volver a subir exactamente el mismo archivo y mantener el mismo modo.</p>';
+        echo '<div>' . '<h3>' . esc_html__( 'Importar catálogo', 'taxocommerce-vocabulary' ) . '</h3>';
+        echo '<p>' . '<strong>' . esc_html__( 'La simulación es obligatoria.', 'taxocommerce-vocabulary' ) . '</strong>' . ' ' . esc_html__( 'Para aplicar debes volver a subir exactamente el mismo archivo y mantener el mismo modo.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tcv_import_portable_json">';
         wp_nonce_field( 'tcv_import_portable_json' );
         echo '<p><input type="file" name="portable_json" accept=".json,application/json" required></p>';
-        echo '<p><label><strong>Modo</strong><br><select name="portable_mode">';
-        echo '<option value="merge">MERGE · añadir/actualizar sin retirar asignaciones locales</option>';
-        echo '<option value="mirror">MIRROR · igualar asignaciones de los objetos incluidos</option>';
+        echo '<p>' . '<label>' . '<strong>' . esc_html__( 'Modo', 'taxocommerce-vocabulary' ) . '</strong>' . '<br>' . '<select name="portable_mode">';
+        echo '<option value="merge">' . esc_html__( 'MERGE · añadir/actualizar sin retirar asignaciones locales', 'taxocommerce-vocabulary' ) . '</option>';
+        echo '<option value="mirror">' . esc_html__( 'MIRROR · igualar asignaciones de los objetos incluidos', 'taxocommerce-vocabulary' ) . '</option>';
         echo '</select></label></p>';
-        echo '<p><button class="button button-primary" name="portable_intent" value="preview">1. Simular importación</button></p>';
-        echo '<p><button class="button" name="portable_intent" value="apply">2. Aplicar archivo simulado</button></p>';
+        echo '<p>' . '<button class="button button-primary" name="portable_intent" value="preview">' . esc_html__( '1. Simular importación', 'taxocommerce-vocabulary' ) . '</button>' . '</p>';
+        echo '<p>' . '<button class="button" name="portable_intent" value="apply">' . esc_html__( '2. Aplicar archivo simulado', 'taxocommerce-vocabulary' ) . '</button>' . '</p>';
         echo '</form>';
         if ( is_array( $preview ) && ! empty( $preview['summary'] ) ) {
             echo '<p class="description"><strong>Última simulación:</strong> ' . esc_html( wp_json_encode( $preview['summary'], JSON_UNESCAPED_UNICODE ) ) . '</p>';
         }
-        echo '<p class="description">MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete.</p></div>';
+        echo '<p class="description">' . esc_html__( 'MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
         echo '</div></div>';
     }
 

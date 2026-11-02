@@ -554,12 +554,12 @@ function tcsocial_programador_render_admin()
 
     echo '<section class="seo-social-card">';
     echo '<div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap">';
-    echo '<div><h2>Programador</h2><p>Agenda la publicacion de entradas y landings en las redes conectadas. Esta primera version solo crea ejecuciones unicas: no modifica la frecuencia SEO ni republica contenido por su cuenta.</p></div>';
-    echo '<span class="seo-social-state is-pending">MVP · programacion manual</span>';
+    echo '<div>' . '<h2>' . esc_html__( 'Programador', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Agenda la publicacion de entradas y landings en las redes conectadas. Esta primera version solo crea ejecuciones unicas: no modifica la frecuencia SEO ni republica contenido por su cuenta.', 'taxocommerce-social' ) . '</p>' . '</div>';
+    echo '<span class="seo-social-state is-pending">' . esc_html__( 'MVP · programacion manual', 'taxocommerce-social' ) . '</span>';
     echo '</div>';
 
     if (empty($connected)) {
-        echo '<p class="seo-social-code-note">Conecta al menos una red social antes de crear programaciones.</p>';
+        echo '<p class="seo-social-code-note">' . esc_html__( 'Conecta al menos una red social antes de crear programaciones.', 'taxocommerce-social' ) . '</p>';
     }
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -567,7 +567,7 @@ function tcsocial_programador_render_admin()
     wp_nonce_field('tcsocial_programador_create');
 
     echo '<div class="seo-social-grid" style="margin-top:18px">';
-    echo '<div class="seo-social-field"><label>Contenido</label><select name="content_id" required><option value="">Selecciona entrada o landing...</option>';
+    echo '<div class="seo-social-field">' . '<label>' . esc_html__( 'Contenido', 'taxocommerce-social' ) . '</label>' . '<select name="content_id" required>' . '<option value="">' . esc_html__( 'Selecciona entrada o landing...', 'taxocommerce-social' ) . '</option>';
     foreach ($contents as $content) {
         if (!$content instanceof WP_Post) {
             continue;
@@ -575,12 +575,12 @@ function tcsocial_programador_render_admin()
         $label = function_exists('tcsocial_network_content_type_label') ? tcsocial_network_content_type_label($content) : $content->post_type;
         echo '<option value="' . esc_attr((string) $content->ID) . '">' . esc_html('[' . $label . '] ' . get_the_title($content) . ' · #' . $content->ID) . '</option>';
     }
-    echo '</select><p class="seo-social-help">Se muestran los 150 contenidos publicados modificados mas recientemente.</p></div>';
+    echo '</select>' . '<p class="seo-social-help">' . esc_html__( 'Se muestran los 150 contenidos publicados modificados mas recientemente.', 'taxocommerce-social' ) . '</p>' . '</div>';
 
     echo '<div class="seo-social-field"><label>Fecha y hora</label><input type="datetime-local" name="scheduled_at" value="' . esc_attr($default_datetime) . '" required><p class="seo-social-help">Zona horaria WordPress: ' . esc_html(wp_timezone_string()) . '. Elige libremente la fecha y hora de publicación.</p></div>';
     echo '</div>';
 
-    echo '<div class="seo-social-field" style="margin-top:14px"><label>Publicar en</label><div style="display:flex;gap:18px;flex-wrap:wrap;padding:10px 0">';
+    echo '<div class="seo-social-field" style="margin-top:14px">' . '<label>' . esc_html__( 'Publicar en', 'taxocommerce-social' ) . '</label>' . '<div style="display:flex;gap:18px;flex-wrap:wrap;padding:10px 0">';
     foreach ($providers as $provider_key => $provider) {
         $is_connected = isset($connected[$provider_key]);
         $label = isset($provider['label']) ? $provider['label'] : ucfirst($provider_key);
@@ -589,20 +589,20 @@ function tcsocial_programador_render_admin()
     echo '</div></div>';
 
     echo '<div class="seo-social-field" style="margin-top:8px"><label>Texto / plantilla opcional</label><textarea name="message_template" placeholder="Dejalo vacio para usar la plantilla vigente de cada red en el momento de publicar."></textarea><p class="seo-social-help">Si lo rellenas, este texto se usara como plantilla para todas las redes seleccionadas. Puedes usar {titulo}, {extracto}, {fecha}, {url}, {sitio}, {autor}, {tipo}, {categorias} e {imagen}.</p></div>';
-    echo '<div class="seo-social-field" style="margin-top:12px"><label>Nota interna opcional</label><input type="text" name="notes" value="" placeholder="Ej.: lanzamiento, noticia proveedor, campana septiembre..."></div>';
+    echo '<div class="seo-social-field" style="margin-top:12px">' . '<label>' . esc_html__( 'Nota interna opcional', 'taxocommerce-social' ) . '</label>' . '<input type="text" name="notes" value="" placeholder="Ej.: lanzamiento, noticia proveedor, campana septiembre...">' . '</div>';
 
     echo '<div class="seo-social-actions"><button type="submit" class="button button-primary" ' . disabled(empty($connected), true, false) . '>Programar publicacion</button>';
-    echo '<span class="seo-social-help">La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, prioridades y recomendaciones de Analista.</span></div>';
+    echo '<span class="seo-social-help">' . esc_html__( 'La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, prioridades y recomendaciones de Analista.', 'taxocommerce-social' ) . '</span>' . '</div>';
     echo '</form>';
     echo '</section>';
 
     $jobs = tcsocial_programador_jobs(100);
     echo '<section class="seo-social-card">';
-    echo '<h2>Cola y historial</h2>';
-    echo '<div class="seo-social-table-wrap"><table class="seo-social-table"><thead><tr><th>Fecha</th><th>Contenido</th><th>Red</th><th>Estado</th><th>Origen / nota</th><th>Acciones</th></tr></thead><tbody>';
+    echo '<h2>' . esc_html__( 'Cola y historial', 'taxocommerce-social' ) . '</h2>';
+    echo '<div class="seo-social-table-wrap">' . '<table class="seo-social-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fecha', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Contenido', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Red', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Origen / nota', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     if (empty($jobs)) {
-        echo '<tr><td colspan="6">Todavia no hay publicaciones programadas.</td></tr>';
+        echo '<tr>' . '<td colspan="6">' . esc_html__( 'Todavia no hay publicaciones programadas.', 'taxocommerce-social' ) . '</td>' . '</tr>';
     }
 
     foreach ($jobs as $job) {
@@ -662,12 +662,12 @@ function tcsocial_programador_render_admin()
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             echo '<input type="hidden" name="action" value="tcsocial_programador_cancel"><input type="hidden" name="schedule_id" value="' . esc_attr((string) $job->id) . '">';
             wp_nonce_field('tcsocial_programador_cancel_' . (int) $job->id);
-            echo '<button class="button" type="submit">Cancelar</button></form>';
+            echo '<button class="button" type="submit">' . esc_html__( 'Cancelar', 'taxocommerce-social' ) . '</button>' . '</form>';
         } elseif (in_array($status, array('failed', 'cancelled'), true)) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
             echo '<input type="hidden" name="action" value="tcsocial_programador_retry"><input type="hidden" name="schedule_id" value="' . esc_attr((string) $job->id) . '">';
             wp_nonce_field('tcsocial_programador_retry_' . (int) $job->id);
-            echo '<button class="button" type="submit">Reintentar ahora</button></form>';
+            echo '<button class="button" type="submit">' . esc_html__( 'Reintentar ahora', 'taxocommerce-social' ) . '</button>' . '</form>';
         } else {
             echo '<span class="seo-social-help">-</span>';
         }
@@ -679,7 +679,7 @@ function tcsocial_programador_render_admin()
     echo '</section>';
 
     echo '<section class="seo-social-card">';
-    echo '<h2>Siguiente evolucion</h2>';
+    echo '<h2>' . esc_html__( 'Siguiente evolucion', 'taxocommerce-social' ) . '</h2>';
     echo '<p class="seo-social-help" style="font-size:13px">La tabla ya conserva <code>source</code> y <code>notes</code> para que mas adelante Analista pueda proponer tareas con prioridad y motivo. La recurrencia no se activa en esta version para evitar republicar automaticamente contenido sin revisar si necesita cambios.</p>';
     echo '</section>';
 }
