@@ -19,6 +19,37 @@ class DeltaTests(unittest.TestCase):
                      "taxocommerce-core/uploads/payload.txt", "random/file.php"):
             self.assertIsNone(module.distributable(path), path)
 
+    def test_shared_ftp_site_roots_are_isolated(self):
+        self.assertEqual(
+            module.remote_plugin_dir("staging", "taxocommerce-core"),
+            "./staging.distribuidordeherramientas.es/wp-content/plugins/taxocommerce-core/",
+        )
+        self.assertEqual(
+            module.remote_plugin_dir("focazul", "taxocommerce-core"),
+            "./asociacionfocazul/wp-content/plugins/taxocommerce-core/",
+        )
+        self.assertEqual(
+            module.remote_plugin_dir("staging", "taxocommerce-vocabulary"),
+            "./staging.distribuidordeherramientas.es/wp-content/plugins/taxocommerce-vocabulary/",
+        )
+        for target, slug in (
+            ("focazul", "taxocommerce-vocabulary"),
+            ("production", "taxocommerce-core"),
+            ("staging", "../wp-config.php"),
+        ):
+            with self.assertRaises(ValueError):
+                module.remote_plugin_dir(target, slug)
+
+    def test_upload_core_checks_correct_site_without_writing_other_site(self):
+        ftp = mock.Mock()
+        ftp.pwd.return_value = "/asociacionfocazul/wp-content/plugins/taxocommerce-core"
+        with mock.patch.object(module, "existing_file_hash", return_value="present"):
+            module.upload_plugin(ftp, "focazul", "taxocommerce-core", [], required=True)
+        ftp.cwd.assert_called_once_with(
+            "./asociacionfocazul/wp-content/plugins/taxocommerce-core/"
+        )
+        ftp.storbinary.assert_not_called()
+
     def test_changes_include_only_real_changed_runtime_files(self):
         with tempfile.TemporaryDirectory() as temp:
             import os
