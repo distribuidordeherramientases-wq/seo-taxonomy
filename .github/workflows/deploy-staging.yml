@@ -20,8 +20,11 @@ jobs:
       - name: Validate Core FTPS cleanup Python syntax
         run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
 
-      - name: Validate Core architecture report before any STAGING FTP upload
+      - name: Validate Core architecture report and block menu PHP before any STAGING FTP upload
         run: |
+          php -l taxocommerce-core/taxocommerce-core.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
 
