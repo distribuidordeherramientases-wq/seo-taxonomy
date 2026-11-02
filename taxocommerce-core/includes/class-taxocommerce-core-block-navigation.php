@@ -22,39 +22,33 @@ final class TaxoCommerce_Core_Block_Navigation {
         $parts = get_block_templates( array( 'area' => 'header' ), 'wp_template_part' );
         if ( ! is_array( $parts ) ) { $parts = array(); }
 
-        // Prefer header parts actually referenced by the site's main page templates.
-        $templates = get_block_templates( array( 'slug__in' => array( 'front-page', 'home', 'index' ) ), 'wp_template' );
+        // The active header can come from page, single, archive or a custom
+        // block template. Limiting discovery to three template slugs misses it.
+        $templates = get_block_templates( array(), 'wp_template' );
         $used_slugs = array();
         if ( is_array( $templates ) ) {
-            $order = array( 'front-page' => 0, 'home' => 1, 'index' => 2 );
+            $order = array( 'front-page' => 0, 'home' => 1, 'page' => 2, 'index' => 3, 'single' => 4 );
             usort( $templates, static function ( $a, $b ) use ( $order ) {
                 return ( $order[ $a->slug ] ?? 10 ) - ( $order[ $b->slug ] ?? 10 );
             } );
             foreach ( $templates as $template ) {
                 $found = array();
-                self::scan( parse_blocks( (string) $template->content ), $found, $inline, $used_slugs );
-                if ( $used_slugs || $found ) {
-                    foreach ( $found as $id ) { $menus[ $id ] = (string) $template->title; }
-                    break;
-                }
+                $template_parts = array();
+                self::scan( parse_blocks( (string) $template->content ), $found, $inline, $template_parts );
+                foreach ( $found as $id ) { $menus[ $id ] = (string) $template->title; }
+                foreach ( $template_parts as $slug ) { $used_slugs[ $slug ] = true; }
             }
         }
 
+        // Include all actual header template parts, even when an edited theme
+        // refers to them from a template whose slug is not one of the defaults.
+        // Identical navigation IDs are deduplicated. No menu is created here.
         foreach ( $parts as $part ) {
-            if ( $used_slugs && ! in_array( (string) $part->slug, $used_slugs, true ) ) { continue; }
             $found = array();
             $nested_parts = array();
             self::scan( parse_blocks( (string) $part->content ), $found, $inline, $nested_parts );
-            foreach ( $found as $id ) { $menus[ $id ] = (string) $part->title; }
-        }
-
-        // When the main templates do not identify a header, report all header parts as candidates.
-        if ( ! $menus && ! $used_slugs ) {
-            foreach ( $parts as $part ) {
-                $found = array();
-                $nested = array();
-                self::scan( parse_blocks( (string) $part->content ), $found, $inline, $nested );
-                foreach ( $found as $id ) { $menus[ $id ] = (string) $part->title; }
+            foreach ( $found as $id ) {
+                $menus[ $id ] = (string) $part->title;
             }
         }
         foreach ( $menus as $id => $label ) {
@@ -107,9 +101,28 @@ final class TaxoCommerce_Core_Block_Navigation {
         if ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() ) { return; }
         $found = self::header_references();
         $menus = $found['menus'];
+        // A Navigation block may use WordPress' fallback without a ref, or an
+        // existing wp_navigation post from another theme. Make those posts
+        // selectable while clearly distinguishing them from header references.
+        $other_menus = get_posts( array(
+            'post_type' => 'wp_navigation',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'title',
+            'order' => 'ASC',
+            'suppress_filters' => true,
+        ) );
+        $other_menus = is_array( $other_menus ) ? $other_menus : array();
+        foreach ( $other_menus as $nav ) {
+            if ( ! isset( $menus[ $nav->ID ] ) ) {
+                $menus[ $nav->ID ] = __( 'Navegación existente (sin referencia de cabecera confirmada)', 'taxocommerce-core' );
+            }
+        }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation choice.
         $requested = isset( $_GET['tc_nav_id'] ) ? absint( $_GET['tc_nav_id'] ) : 0;
-        $selected = $requested && isset( $menus[ $requested ] ) ? $requested : ( count( $menus ) === 1 ? (int) key( $menus ) : 0 );
+        // Only a directly referenced header navigation is automatically
+        // selected. Other navigation posts require an explicit choice.
+        $selected = $requested && isset( $menus[ $requested ] ) ? $requested : ( count( $found['menus'] ) === 1 ? (int) key( $found['menus'] ) : 0 );
         echo '<section class="tc-menu-controls"><h2>' . esc_html__( 'Navegación de la cabecera (tema de bloques)', 'taxocommerce-core' ) . '</h2>';
         echo '<p>' . esc_html__( 'Los menús clásicos y los bloques de navegación son sistemas distintos. Para cambiar la cabecera debes editar la navegación referenciada por su plantilla.', 'taxocommerce-core' ) . '</p>';
         if ( $menus ) {
@@ -123,17 +136,19 @@ final class TaxoCommerce_Core_Block_Navigation {
             echo '</select> <button class="button" type="submit">' . esc_html__( 'Cargar navegación de cabecera', 'taxocommerce-core' ) . '</button></form>';
         }
         if ( $found['inline'] ) {
-            echo '<p class="notice notice-warning inline">' . esc_html__( 'Hay enlaces de navegación integrados en la plantilla, sin menú independiente. Se editan en el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+            echo '<p class="notice notice-warning inline">' . esc_html__( 'El tema contiene una navegación integrada directamente en una plantilla. No aparece en los menús clásicos ni se puede guardar como un menú independiente. Para editar exactamente esa navegación, abre el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
         }
         if ( ! $selected ) {
-            echo '<p>' . esc_html__( 'No se ha identificado una única navegación editable. No se modificará ningún menú por suposición.', 'taxocommerce-core' ) . '</p>';
+            echo '<p>' . esc_html__( 'No se ha confirmado una única navegación de cabecera editable. Selecciona una navegación de bloques para examinarla, o abre el Editor del sitio si la cabecera utiliza enlaces integrados. No se modificará ningún menú por suposición.', 'taxocommerce-core' ) . '</p>';
         } else {
             $post = get_post( $selected );
             $blocks = parse_blocks( $post->post_content );
             $links = array();
             self::links( $blocks, $links );
             echo '<h3>' . esc_html( $post->post_title ) . '</h3>';
-            echo '<p>' . esc_html__( 'Este contenido está referenciado desde una plantilla de cabecera. Guardarlo modifica esa navegación de bloques, no los menús clásicos.', 'taxocommerce-core' ) . '</p>';
+            echo '<p>' . esc_html( isset( $found['menus'][ $selected ] )
+                ? __( 'Este contenido está referenciado desde una plantilla de cabecera. Guardarlo modifica esa navegación de bloques, no los menús clásicos.', 'taxocommerce-core' )
+                : __( 'Esta navegación existe en WordPress, pero su uso en la cabecera no está confirmado. Comprueba que sus enlaces coinciden con el menú público antes de guardar.', 'taxocommerce-core' ) ) . '</p>';
             if ( $links ) {
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
                 echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '"><input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
@@ -197,7 +212,9 @@ final class TaxoCommerce_Core_Block_Navigation {
         $id = isset( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
         check_admin_referer( self::ACTION . '_' . $id );
         $known = self::header_references();
-        $post = $id && isset( $known['menus'][ $id ] ) ? get_post( $id ) : false;
+        $post = $id ? get_post( $id ) : false;
+        // A non-header wp_navigation post can also be selected explicitly.
+        // Protect it with its WordPress edit capability and content hash.
         if ( ! $post || 'wp_navigation' !== $post->post_type || ! current_user_can( 'edit_post', $id ) ) {
             wp_die( esc_html__( 'La navegación seleccionada no es editable.', 'taxocommerce-core' ) );
         }
