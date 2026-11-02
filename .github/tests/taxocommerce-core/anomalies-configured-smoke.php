@@ -1,0 +1,66 @@
+<?php
+/**
+ * Run independently: php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+ * WordPress and WooCommerce stubs are intentionally confined to this CLI test.
+ */
+if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
+define( 'ABSPATH', __DIR__ );
+define( 'TAXOCOMMERCE_CORE_VERSION', 'test' );
+function add_action( $hook, $callback ) {}
+function current_user_can( $cap ) { return true; }
+function apply_filters( $hook, $value ) { return $value; }
+function esc_html__( $text, $domain = '' ) { return $text; }
+function esc_attr__( $text, $domain = '' ) { return $text; }
+function esc_sql( $value ) { return $value; }
+function sanitize_key( $value ) { return strtolower( $value ); }
+
+final class Anomalies_Configured_Test_DB {
+    public $prefix = 'wp_';
+    public $tables = array();
+    public $active_nodes = 0;
+    public $relations = 0;
+    public function esc_like( $text ) { return $text; }
+    public function prepare( $query, $value ) {
+        return 'TEST_TABLE:' . (string) $value;
+    }
+    public function get_var( $query ) {
+        if ( 0 === strpos( $query, 'TEST_TABLE:' ) ) {
+            $table = substr( $query, strlen( 'TEST_TABLE:' ) );
+            return in_array( $table, $this->tables, true ) ? $table : null;
+        }
+        if ( false !== strpos( $query, 'FROM wp_seo_nodes' ) ) {
+            return $this->active_nodes;
+        }
+        if ( false !== strpos( $query, 'FROM wp_seo_relations' ) ) {
+            return $this->relations;
+        }
+        throw new RuntimeException( 'Unexpected SQL: ' . $query );
+    }
+}
+$wpdb = new Anomalies_Configured_Test_DB();
+require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-anomalies.php';
+function tc_anomalies_expect( $test, $message ) {
+    if ( ! $test ) { fwrite( STDERR, 'FAIL: ' . $message . PHP_EOL ); exit( 1 ); }
+}
+
+ob_start();
+taxocommerce_core_anomalies_render();
+$html = ob_get_clean();
+tc_anomalies_expect( false !== strpos( $html, 'jerarquía SEO no está disponible' ), 'missing schema is neutral' );
+tc_anomalies_expect( false === strpos( $html, 'notice-error' ), 'missing schema not presented as an error' );
+tc_anomalies_expect( false === strpos( $html, 'Reporte de Auditoría' ), 'missing schema does not show report' );
+
+$wpdb->tables = array( 'wp_seo_nodes', 'wp_seo_relations' );
+ob_start();
+taxocommerce_core_anomalies_render();
+$html = ob_get_clean();
+tc_anomalies_expect( false !== strpos( $html, 'Jerarquía SEO no configurada' ), 'empty schema is unconfigured' );
+tc_anomalies_expect( false === strpos( $html, 'Clusters sin hubs primarios' ), 'empty schema has no structural sections' );
+tc_anomalies_expect( false === strpos( $html, 'JSON correctivo no disponible' ), 'empty schema has no Vocabulary warning' );
+
+ob_start();
+taxocommerce_core_anomalies_render_faq_orphans();
+$html = ob_get_clean();
+tc_anomalies_expect( '' === $html, 'missing optional FAQ table produces no warning' );
+
+echo 'Core conditional anomalies smoke OK' . PHP_EOL;

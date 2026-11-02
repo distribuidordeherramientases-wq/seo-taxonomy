@@ -25,6 +25,11 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
+          php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
+          php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
 
   deploy-staging:
     name: Deploy plugin to STAGING
@@ -46,6 +51,8 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
+          php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
 

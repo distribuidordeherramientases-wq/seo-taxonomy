@@ -18,6 +18,8 @@ $GLOBALS['tc_redirects_actions'] = array();
 $GLOBALS['tc_redirects_did_actions'] = array();
 $GLOBALS['tc_redirects_menu'] = array();
 
+// Minimal WordPress gettext stub for this standalone CLI test. Runtime uses WordPress itself.
+function __( $text, $domain = 'default' ) { return $text; }
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
     $GLOBALS['tc_redirects_actions'][ $hook ][] = $callback;
 }
