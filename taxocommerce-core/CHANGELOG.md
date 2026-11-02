@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+## [0.4.45]
+
+- Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
+- Gestor unificado sin pestaña independiente de menús clásicos. En temas de bloques se carga el listado de navegaciones nativas (`wp_navigation`), se pueden crear nuevas, editar enlaces y añadir enlaces de primer nivel. Los menús clásicos de temas clásicos mantienen sus herramientas anteriores.
+- Activación de una navegación de bloques en cabeceras del tema (ficheros o plantillas personalizadas) cuando hay una sola navegación identificable; se guarda la personalización mediante `wp_template_part` de WordPress sin modificar ficheros físicos. No se tocan cabeceras ambiguas.
+- La opción de generar/sincronizar desde jerarquía SEO solo aparece con un árbol real; la ejecución rechaza una jerarquía vacía antes de borrar elementos generados. Issue #2069.
+- Acceso directo al Editor del sitio para la navegación seleccionada y aviso desde la pestaña SEO en temas de bloques, evitando confundir el menú clásico cargado con el menú publicado en la cabecera.
+- La selección es solo lectura; el guardado mantiene verificaciones de nonce, permisos y contenido concurrente. No se modifica automáticamente el menú publicado. Issue #2069.
 - Anomalías (#2071): un sitio sin jerarquía SEO ni relaciones configuradas muestra un estado neutro en lugar de una auditoría vacía. Los informes de Vocabulary y FAQ no anuncian errores por ausencia de tablas de módulos opcionales. La categoría predeterminada de WooCommerce se excluye de las alertas de falta de asignación y de categorías vacías. Se conservan las comprobaciones cuando existen definiciones y datos.
 
 ## [0.4.44]

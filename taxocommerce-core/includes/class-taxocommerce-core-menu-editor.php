@@ -32,12 +32,9 @@ final class TaxoCommerce_Core_Menu_Editor {
     }
 
 
-    /** The basic editor is independent of WooCommerce, country metadata and SEO relations. */
+    /** One WordPress-native menu manager; legacy tab URLs use the same screen. */
     public static function is_wordpress_tab( $write = false ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Read-only tab selector, all write endpoints check their nonces.
-        $request = $write ? $_POST : $_GET;
-        return isset( $request['tc_tab'] ) && is_string( $request['tc_tab'] )
-            && 'wordpress' === sanitize_key( wp_unslash( $request['tc_tab'] ) );
+        return true;
     }
 
     /** Retrieve a native menu without falling back to country-managed SEO menus. */
@@ -67,20 +64,9 @@ final class TaxoCommerce_Core_Menu_Editor {
         return $menu && ! is_wp_error( $menu ) ? $id : 0;
     }
 
-    /** Distinct tabs in the existing Core menu manager. */
-    public static function tabs( $active = 'seo' ) {
-        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Tipos de gestor de menús', 'taxocommerce-core' ) . '">';
-        foreach ( array(
-            'seo' => __( 'Menús SEO / WooCommerce', 'taxocommerce-core' ),
-            'wordpress' => __( 'Menús WordPress', 'taxocommerce-core' ),
-        ) as $key => $label ) {
-            $url = add_query_arg( array(
-                'page' => 'taxocommerce-core-menu',
-                'tc_tab' => $key,
-            ), admin_url( 'admin.php' ) );
-            echo '<a class="nav-tab' . ( $active === $key ? ' nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '"' . ( $active === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
-        }
-        echo '</nav>';
+    /** Retained as a no-op for older extensions: there is only one menu screen. */
+    public static function tabs( $active = 'wordpress' ) {
+        // The native WordPress navigation editor and optional SEO proposal share one screen.
     }
 
     /** Independent WordPress menu screen: no hierarchy, country lookup or WooCommerce API. */
@@ -95,8 +81,8 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<div class="wrap tcc-family-screen">';
         echo '<h1>' . esc_html__( 'Gestor de menús', 'taxocommerce-core' ) . '</h1>';
         self::tabs( 'wordpress' );
-        // The block navigation editor is displayed before any classic menu actions.
-        echo '<p>' . esc_html__( 'Menús básicos de WordPress: páginas, entradas, categorías y enlaces personalizados. No requieren WooCommerce ni jerarquía SEO.', 'taxocommerce-core' ) . '</p>';
+        // Navigations provided by the current WordPress theme are the source of truth.
+        echo '<p>' . esc_html__( 'Gestiona las páginas, entradas, categorías y enlaces de este menú nativo WordPress.', 'taxocommerce-core' ) . '</p>';
         if ( $message && in_array( $result, array( 'ok', 'error' ), true ) ) {
             echo '<div class="notice notice-' . ( 'ok' === $result ? 'success' : 'error' ) . '"><p>' . esc_html( $message ) . '</p></div>';
         }
@@ -125,9 +111,25 @@ final class TaxoCommerce_Core_Menu_Editor {
             }
         }
         TaxoCommerce_Core_Block_Navigation::render();
+
+        // A block theme renders wp_navigation, not the legacy nav_menu selected
+        // by wp_get_nav_menus(). Never present an unrelated classic menu as active.
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            $core = function_exists( 'taxocommerce_core' ) ? taxocommerce_core() : null;
+            if ( $core && is_callable( array( $core, 'menu' ) ) ) {
+                $core->menu()->render_hierarchy_proposal();
+            }
+            echo '</div>';
+            return;
+        }
+
         self::load_controls( '', $menu_id );
         if ( ! $menu ) {
             echo '<p class="notice notice-info inline">' . esc_html__( 'Selecciona un menú de WordPress existente o crea uno nuevo para añadir y editar sus elementos.', 'taxocommerce-core' ) . '</p>';
+            $core = function_exists( 'taxocommerce_core' ) ? taxocommerce_core() : null;
+            if ( $core && is_callable( array( $core, 'menu' ) ) ) {
+                $core->menu()->render_hierarchy_proposal();
+            }
             echo '</div>';
             return;
         }
@@ -143,6 +145,10 @@ final class TaxoCommerce_Core_Menu_Editor {
         self::controls( $menu_id, 'top' );
         self::render( $menu_id );
         self::controls( $menu_id, 'bottom' );
+        $core = function_exists( 'taxocommerce_core' ) ? taxocommerce_core() : null;
+        if ( $core && is_callable( array( $core, 'menu' ) ) ) {
+            $core->menu()->render_hierarchy_proposal();
+        }
         echo '</div>';
     }
 
@@ -154,7 +160,7 @@ final class TaxoCommerce_Core_Menu_Editor {
 
     private static function types( $wordpress = false ) {
         $types = array( 'page' => __( 'Páginas', 'taxocommerce-core' ), 'post' => __( 'Entradas', 'taxocommerce-core' ), 'category' => __( 'Categorías', 'taxocommerce-core' ) );
-        if ( ! $wordpress && taxonomy_exists( 'product_cat' ) ) { $types['product_cat'] = __( 'Categorías de producto', 'taxocommerce-core' ); }
+        if ( taxonomy_exists( 'product_cat' ) ) { $types['product_cat'] = __( 'Categorías de producto', 'taxocommerce-core' ); }
         return $types;
     }
 
@@ -324,7 +330,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<p>' . esc_html( self::is_wordpress_tab() ? __( 'Gestiona las páginas, entradas, categorías y enlaces de este menú nativo WordPress.', 'taxocommerce-core' ) : __( 'Puedes editar los elementos del menú cargado. Los elementos generados desde la jerarquía SEO se conservan protegidos; los manuales pueden modificarse o eliminarse.', 'taxocommerce-core' ) ) . '</p>';
         echo '<div class="tc-menu-editor"><aside><h2>' . esc_html__( 'Añadir elementos al menú', 'taxocommerce-core' ) . '</h2>';
         self::box( 'page', true ); self::box( 'post' ); self::custom_box(); self::box( 'category' );
-        if ( ! self::is_wordpress_tab() && taxonomy_exists( 'product_cat' ) ) { self::box( 'product_cat' ); }
+        if ( taxonomy_exists( 'product_cat' ) ) { self::box( 'product_cat' ); }
         echo '</aside><section><h2>' . esc_html__( 'Estructura del menú', 'taxocommerce-core' ) . '</h2><div class="tc-menu-structure"><div class="tc-menu-summary"><strong>' . esc_html( self::is_wordpress_tab() ? __( 'Elementos del menú WordPress', 'taxocommerce-core' ) : __( 'Estructura SEO automática + elementos de WordPress', 'taxocommerce-core' ) ) . '</strong><p>';
         echo esc_html( sprintf(
             /* translators: 1: generated navigation items; 2: manually added items. */
@@ -432,7 +438,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             } else {
                 $term = get_term( $id, $type );
                 if ( ! $term || is_wp_error( $term ) ) { return new WP_Error( 'menu_term', 'La categoría seleccionada no existe.' ); }
-                if ( 'product_cat' === $type && TaxoCommerce_Core_Country::term( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'La categoría pertenece a otro país.' ); }
+                if ( 'product_cat' === $type && ! self::is_wordpress_tab( true ) && TaxoCommerce_Core_Country::term( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'La categoría pertenece a otro país.' ); }
                 $data[] = array( 'menu-item-object-id' => $id, 'menu-item-object' => $type, 'menu-item-type' => 'taxonomy', 'menu-item-title' => wp_slash( $term->name ) );
             }
         }
