@@ -27,6 +27,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             'error' => __( 'No se pudo cargar la lista. Vuelve a intentarlo.', 'taxocommerce-core' ),
             'page' => __( 'Página', 'taxocommerce-core' ),
             'remove' => __( '¿Eliminar este elemento manual del menú?', 'taxocommerce-core' ),
+            'deleteMenu' => __( '¿Eliminar definitivamente este menú y todos sus elementos? Esta operación no se puede deshacer.', 'taxocommerce-core' ),
         ) );
     }
 

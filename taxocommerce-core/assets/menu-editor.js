@@ -85,6 +85,22 @@
             document.querySelectorAll('[data-tc-menu-location]').forEach(function (other) { other.value = select.value; });
         });
     });
+    var saveForm = document.getElementById('tc-menu-save-form');
+    if (saveForm) {
+        var unsaved = document.querySelector('[data-tc-menu-unsaved]');
+        function markDirty() { if (unsaved) { unsaved.hidden = false; } }
+        document.querySelectorAll('[form="tc-menu-save-form"]').forEach(function (field) {
+            field.addEventListener('input', markDirty);
+            field.addEventListener('change', markDirty);
+        });
+        saveForm.addEventListener('input', markDirty);
+        saveForm.addEventListener('change', markDirty);
+    }
+    document.querySelectorAll('[data-tc-menu-delete]').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!window.confirm(tcMenuEditor.deleteMenu)) { event.preventDefault(); }
+        });
+    });
     document.querySelectorAll('[data-tc-menu-remove]').forEach(function (form) {
         form.addEventListener('submit', function (event) { if (!window.confirm(tcMenuEditor.remove)) { event.preventDefault(); } });
     });

@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.4.43]
+
+- Botones visibles «Guardar menú» (superior/inferior) en la pestaña Menús WordPress: guardan de forma explícita nombre, títulos, URLs, orden y jerarquía; aviso de cambios pendientes y mensaje de resultado.
+- Nuevo «Eliminar menú» para un menú nativo seleccionado, con casilla y diálogo de confirmación. Protege todos los menús SEO por país y menús con elementos automáticos; informa si está asignado al tema. La eliminación usa la API nativa WordPress.
+- Validación previa de todos los elementos, pertenencia y ausencia de ciclos, nonces y capacidades, sin guardar al abrir un menú. Se conserva el comportamiento anterior de «Menús SEO / WooCommerce», y los botones de añadir/quitar elementos siguen guardando inmediatamente.
+- Pruebas de regresión, manuales actualizados, Issue #2056. No se toca el monolito ni se publica en producción.
+
+
 ## [0.4.42]
 
 - Nueva pestaña Menús WordPress para editar menús clásicos con entradas, páginas, categorías y enlaces, sin WooCommerce ni restricciones de país.

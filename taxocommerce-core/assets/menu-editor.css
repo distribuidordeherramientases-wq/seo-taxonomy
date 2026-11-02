@@ -53,3 +53,9 @@
     .tc-menu-load-form,.tc-menu-create-form { align-items:stretch; flex-direction:column; }
     .tc-menu-load-form select,.tc-menu-create-form input[name=menu_name] { width:100%; }
 }
+
+.tc-menu-delete-form { margin:12px 0 0; padding:12px; border:1px solid #d63638; background:#fff; border-radius:4px; }
+.tc-menu-delete-form label { display:block; margin:8px 0; }
+.tc-menu-delete-form .button-link-delete { color:#b32d2e; }
+.tc-menu-unsaved { border-left:4px solid #dba617; padding:8px 12px; background:#fff8e5; font-weight:600; }
+#tc-menu-save-name { min-width:260px; max-width:100%; }
