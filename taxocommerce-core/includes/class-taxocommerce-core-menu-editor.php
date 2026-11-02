@@ -44,6 +44,7 @@ final class TaxoCommerce_Core_Menu_Editor {
     public static function wordpress_menu_id() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only GET selector; it has no side effects.
         $explicit = isset( $_GET['tc_menu_id'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only explicit menu selection; mutations verify action nonces.
         $id = $explicit && is_scalar( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
         // Select an already published classic menu only when its theme location is unambiguous.
         // Never guess for block themes, where the header is usually a wp_navigation post.
