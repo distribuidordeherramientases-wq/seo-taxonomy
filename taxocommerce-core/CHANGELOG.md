@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.4.42]
+
+- Nueva pestaña Menús WordPress para editar menús clásicos con entradas, páginas, categorías y enlaces, sin WooCommerce ni restricciones de país.
+- Separada de Menús SEO / WooCommerce. Cargar y seleccionar no modifica menús, ubicación del tema ni datos; las escrituras usan nonce y capacidades y requieren menú explícito.
+- Conservadas la jerarquía SEO, los menús por país y las API existentes. Manual de usuario/técnico y pruebas sin WooCommerce. Issue #2051; sin publicar en producción.
+
+
 ## [0.4.41]
 
 - Añadido selector de menús nativos de WordPress con indicación de ubicaciones del tema: permite **cargar y editar el menú actual**, sin sustituir el menú generado para cada país ni alterar el front-end al cargarlo.

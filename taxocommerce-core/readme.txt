@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.41
+Stable tag: 0.4.42
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.42 =
+* A new WordPress-only menu tab edits native menus using posts, pages, normal categories and links without WooCommerce.
+* Preserve the SEO/WooCommerce country menu workflow unchanged and forbid silent creation of SEO menus from the WordPress tab.
+* Extend isolated regression tests, user and technical guides.
+
 
 = 0.4.41 =
 * Load any existing native WordPress navigation menu into Core's menu editor without changing its country-managed menu or current theme location.

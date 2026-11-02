@@ -176,6 +176,10 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	public function render() {
 		$this->guard();
+        if ( TaxoCommerce_Core_Menu_Editor::is_wordpress_tab() ) {
+            TaxoCommerce_Core_Menu_Editor::render_wordpress_screen();
+            return;
+        }
 
 		$country    = self::country();
 		$tree       = $this->build_tree( $country );
@@ -199,6 +203,7 @@ final class TaxoCommerce_Core_Menu {
 				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
 			<?php endif; ?>
 
+            <?php TaxoCommerce_Core_Menu_Editor::tabs( 'seo' ); ?>
             <?php
             $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
             $managed_id = $this->get_menu_id( $country );
@@ -672,6 +677,7 @@ final class TaxoCommerce_Core_Menu {
 			array(
                 'tc_country' => self::country( true ),
                 'tc_menu_id' => self::selected_menu_id( true ),
+                'tc_tab' => TaxoCommerce_Core_Menu_Editor::is_wordpress_tab( true ) ? 'wordpress' : 'seo',
 				'page'       => 'taxocommerce-core-menu',
 				'tc_result'  => sanitize_key( $result ),
 				'tc_message' => sanitize_text_field( $message ),
