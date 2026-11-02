@@ -64,7 +64,7 @@ final class TaxoCommerce_Scrappers {
         if ( function_exists( 'taxocommerce_core' ) ) {
             add_submenu_page(
                 'taxocommerce-core',
-                'TaxoCommerce Scrappers',
+                __( 'TaxoCommerce Scrappers', 'taxocommerce-scrappers' ),
                 __( 'Scrappers', 'taxocommerce-scrappers' ),
                 'manage_options',
                 'taxocommerce-scrappers',
@@ -74,7 +74,7 @@ final class TaxoCommerce_Scrappers {
         }
 
         add_menu_page(
-            'TaxoCommerce Scrappers',
+            __( 'TaxoCommerce Scrappers', 'taxocommerce-scrappers' ),
             __( 'Scrappers', 'taxocommerce-scrappers' ),
             'manage_options',
             'taxocommerce-scrappers',
@@ -92,10 +92,10 @@ final class TaxoCommerce_Scrappers {
         $core->register_module(
             'scrappers',
             array(
-                'name'        => 'TaxoCommerce Scrappers',
+                'name'        => __( 'TaxoCommerce Scrappers', 'taxocommerce-scrappers' ),
                 'version'     => TAXOCOMMERCE_SCRAPPERS_VERSION,
                 'status'      => 'active',
-                'description' => 'SerpApi/ScraperAPI connections, market price intelligence with Ojeador, and technical research with Ingeniero.',
+                'description' => __( 'SerpApi/ScraperAPI connections, market price intelligence with Ojeador, and technical research with Ingeniero.', 'taxocommerce-scrappers' ),
                 'admin_url'   => admin_url( 'admin.php?page=taxocommerce-scrappers' ),
             )
         );
@@ -132,15 +132,15 @@ final class TaxoCommerce_Scrappers {
         $tab = self::tab();
 
         echo '<div class="wrap">';
-        echo '<h1>TaxoCommerce Scrappers</h1>';
-        echo '<p>External research layer. Ojeador and Ingeniero reuse the proven legacy engines while SerpApi and ScraperAPI are configured once for both services.</p>';
-        echo '<nav class="nav-tab-wrapper" aria-label="TaxoCommerce Scrappers">';
+        echo '<h1>' . esc_html__( 'TaxoCommerce Scrappers', 'taxocommerce-scrappers' ) . '</h1>';
+        echo '<p>' . esc_html__( 'External research layer. Ojeador and Ingeniero reuse the proven legacy engines while SerpApi and ScraperAPI are configured once for both services.', 'taxocommerce-scrappers' ) . '</p>';
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'TaxoCommerce Scrappers', 'taxocommerce-scrappers' ) . '">';
         foreach ( array(
-            'connections' => 'Connections',
-            'ojeador'     => 'Ojeador',
-            'ingeniero'   => 'Ingeniero',
-            'autotest'   => 'Autotest',
-            'manual'     => 'Manual',
+            'connections' => __( 'Connections', 'taxocommerce-scrappers' ),
+            'ojeador'     => __( 'Ojeador', 'taxocommerce-scrappers' ),
+            'ingeniero'   => __( 'Ingeniero', 'taxocommerce-scrappers' ),
+            'autotest'   => __( 'Autotest', 'taxocommerce-scrappers' ),
+            'manual'     => __( 'Manual', 'taxocommerce-scrappers' ),
         ) as $key => $label ) {
             $url = add_query_arg(
                 array(
