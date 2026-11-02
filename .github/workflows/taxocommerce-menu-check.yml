@@ -3,8 +3,10 @@ on:
   pull_request:
     paths:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php'
       - 'taxocommerce-core/assets/menu-editor.*'
       - '.github/tests/taxocommerce-core/menu-editor-smoke.php'
+      - '.github/tests/taxocommerce-core/block-navigation-smoke.php'
       - '.github/tests/taxocommerce-core/country-scope-smoke.php'
       - '.github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
@@ -20,8 +22,10 @@ on:
     branches: [staging]
     paths:
       - 'taxocommerce-core/includes/class-taxocommerce-core-menu*.php'
+      - 'taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php'
       - 'taxocommerce-core/assets/menu-editor.*'
       - '.github/tests/taxocommerce-core/menu-editor-smoke.php'
+      - '.github/tests/taxocommerce-core/block-navigation-smoke.php'
       - '.github/tests/taxocommerce-core/country-scope-smoke.php'
       - '.github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php'
       - 'taxocommerce-core/includes/class-taxocommerce-core-country.php'
@@ -52,6 +56,8 @@ jobs:
         run: find taxocommerce-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Menu behavior and callback regression
         run: php .github/tests/taxocommerce-core/menu-editor-smoke.php
+      - name: Block navigation detection and save regression
+        run: php .github/tests/taxocommerce-core/block-navigation-smoke.php
       - name: Auto Test functional checks (pass, failure, skipped, permissions)
         run: php .github/tests/taxocommerce-core/auto-test-smoke.php
       - name: Auto Test belongs in Core internal tabs, never WordPress sidebar

@@ -43,7 +43,25 @@ final class TaxoCommerce_Core_Menu_Editor {
     /** Retrieve a native menu without falling back to country-managed SEO menus. */
     public static function wordpress_menu_id() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This is a read-only GET selector; it has no side effects.
-        $id = isset( $_GET['tc_menu_id'] ) && is_scalar( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        $explicit = isset( $_GET['tc_menu_id'] );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only explicit menu selection; mutations verify action nonces.
+        $id = $explicit && is_scalar( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        // Select an already published classic menu only when its theme location is unambiguous.
+        // Never guess for block themes, where the header is usually a wp_navigation post.
+        if ( ! $explicit && ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() ) ) {
+            $locations = (array) get_theme_mod( 'nav_menu_locations', array() );
+            $valid = array();
+            foreach ( $locations as $location => $menu_id ) {
+                $menu_id = absint( $menu_id );
+                if ( $menu_id && wp_get_nav_menu_object( $menu_id ) ) { $valid[ $location ] = $menu_id; }
+            }
+            foreach ( array( 'primary', 'menu-1', 'header' ) as $location ) {
+                if ( ! empty( $valid[ $location ] ) ) { $id = $valid[ $location ]; break; }
+            }
+            if ( ! $id && count( array_unique( array_values( $valid ) ) ) === 1 ) {
+                $id = (int) reset( $valid );
+            }
+        }
         if ( ! $id ) { return 0; }
         $menu = wp_get_nav_menu_object( $id );
         return $menu && ! is_wp_error( $menu ) ? $id : 0;
@@ -77,6 +95,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<div class="wrap tcc-family-screen">';
         echo '<h1>' . esc_html__( 'Gestor de menús', 'taxocommerce-core' ) . '</h1>';
         self::tabs( 'wordpress' );
+        // The block navigation editor is displayed before any classic menu actions.
         echo '<p>' . esc_html__( 'Menús básicos de WordPress: páginas, entradas, categorías y enlaces personalizados. No requieren WooCommerce ni jerarquía SEO.', 'taxocommerce-core' ) . '</p>';
         if ( $message && in_array( $result, array( 'ok', 'error' ), true ) ) {
             echo '<div class="notice notice-' . ( 'ok' === $result ? 'success' : 'error' ) . '"><p>' . esc_html( $message ) . '</p></div>';
@@ -105,6 +124,7 @@ final class TaxoCommerce_Core_Menu_Editor {
                 echo '</p>';
             }
         }
+        TaxoCommerce_Core_Block_Navigation::render();
         self::load_controls( '', $menu_id );
         if ( ! $menu ) {
             echo '<p class="notice notice-info inline">' . esc_html__( 'Selecciona un menú de WordPress existente o crea uno nuevo para añadir y editar sus elementos.', 'taxocommerce-core' ) . '</p>';
@@ -189,7 +209,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         $registered = get_registered_nav_menus();
         $assigned = (array) get_theme_mod( 'nav_menu_locations', array() );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET menu selector; writes require action nonces.
-        $explicit = isset( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : 0;
+        $explicit = isset( $_GET['tc_menu_id'] ) ? absint( $_GET['tc_menu_id'] ) : absint( $menu_id );
         echo '<section class="tc-menu-load" aria-labelledby="tc-menu-load-title">';
         echo '<h2 id="tc-menu-load-title">' . esc_html__( 'Cargar un menú de WordPress', 'taxocommerce-core' ) . '</h2>';
         echo '<form method="get" class="tc-menu-load-form"><input type="hidden" name="page" value="taxocommerce-core-menu">';
@@ -262,7 +282,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         }
         if ( $menu ) { echo '<a class="button" href="' . esc_url( admin_url( 'nav-menus.php?action=edit&menu=' . absint( $menu_id ) ) ) . '">' . esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ) . '</a>'; }
         if ( $wordpress && $menu ) {
-            echo '<button type="submit" form="tc-menu-save-form" class="button button-primary">' . esc_html__( 'Guardar menú', 'taxocommerce-core' ) . '</button>';
+            echo '<button type="submit" form="tc-menu-save-form" class="button button-primary">' . esc_html( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ? __( 'Guardar menú clásico', 'taxocommerce-core' ) : __( 'Guardar menú', 'taxocommerce-core' ) ) . '</button>';
         }
         echo '</div>';
         if ( $wordpress && $menu && 'top' === $position && ! self::protected_menu( $menu_id ) ) {
@@ -677,7 +697,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             // Do not double-unslash strings in the validator.
             $name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] ) ? sanitize_text_field( wp_unslash( $_POST['menu_name'] ) ) : '';
             $result = self::save_native_menu( $fields, $name );
-            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú guardado correctamente. Los cambios ya están en WordPress.', 'taxocommerce-core' );
+            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú clásico guardado en WordPress. La cabecera de un tema de bloques puede usar otra navegación.', 'taxocommerce-core' );
         } elseif ( 'delete_menu' === $task ) {
             $confirmed = isset( $_POST['confirm_delete'] ) && is_scalar( $_POST['confirm_delete'] ) && '1' === sanitize_text_field( wp_unslash( (string) $_POST['confirm_delete'] ) );
             $result = self::delete_native_menu( $confirmed );
