@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Despliegue (#2084): Core se transfiere a STAGING y Asociación Focazul en trabajos independientes; el resultado conjunto exige éxito en ambos sitios. Fallos de System Check u otros plugins no bloquean Core en Focazul. Sin modificar el código funcional del plugin.
+
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
 ## [0.4.45]
