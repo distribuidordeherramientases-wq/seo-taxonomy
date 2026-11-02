@@ -12,6 +12,7 @@ import argparse
 import collections
 import concurrent.futures
 import json
+import runpy
 import os
 import re
 import subprocess
@@ -55,6 +56,7 @@ TRANS_LOCK = threading.Lock()
 TRANSLATED = {}
 FAILED = set()
 REPORT = {}
+WRAP_ECHO = runpy.run_path(str(Path(__file__).with_name('i18n-family-2062-extra.py')))['wrap_literal_echo']
 
 def matching_paren(src: str, at: int) -> int | None:
     depth, quote, escaped = 0, None, False
@@ -340,6 +342,7 @@ def main():
         source = entry.read_text(encoding="utf-8")
         new = add_loader(source, slug)
         new, count = wrap_menu_labels(new, "taxocommerce-" + slug)
+        new, echo_count = WRAP_ECHO(new, "taxocommerce-" + slug)
         if new != source and args.apply:
             entry.write_text(new, encoding="utf-8")
         menu_count = count
@@ -349,9 +352,11 @@ def main():
             source = file.read_text(encoding="utf-8")
             new, count = wrap_menu_labels(source, "taxocommerce-" + slug)
             menu_count += count
+            new, converted_echo = WRAP_ECHO(new, "taxocommerce-" + slug)
+            echo_count += converted_echo
             if new != source and args.apply:
                 file.write_text(new, encoding="utf-8")
-        REPORT[slug] = {"menu_labels_newly_internationalized": menu_count}
+        REPORT[slug] = {"menu_labels_newly_internationalized": menu_count, "echo_texts_newly_internationalized": echo_count}
         if args.apply:
             changelog = directory / "CHANGELOG.md"
             if changelog.exists():
@@ -359,7 +364,7 @@ def main():
                 if "Familia i18n #2062" not in current:
                     changelog.write_text(
                         "## Unreleased - Familia i18n #2062\n\n"
-                        "- Dominio gettext, carga de catalogos locales y etiquetas de menus nativos; "
+                        "- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; "
                         "catálogos PO/MO sincronizados con el texto fuente.\n\n" + current,
                         encoding="utf-8",
                     )
