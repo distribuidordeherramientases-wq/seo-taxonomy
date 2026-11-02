@@ -19,6 +19,7 @@ final class Anomalies_Configured_Test_DB {
     public $tables = array();
     public $active_nodes = 0;
     public $relations = 0;
+    public $structural_relations = 0;
     public function esc_like( $text ) { return $text; }
     public function prepare( $query, $value ) {
         return 'TEST_TABLE:' . (string) $value;
@@ -32,6 +33,9 @@ final class Anomalies_Configured_Test_DB {
             return $this->active_nodes;
         }
         if ( false !== strpos( $query, 'FROM wp_seo_relations' ) ) {
+            if ( false !== strpos( $query, 'relation_type IN' ) ) {
+                return $this->structural_relations;
+            }
             return $this->relations;
         }
         throw new RuntimeException( 'Unexpected SQL: ' . $query );
@@ -57,6 +61,13 @@ $html = ob_get_clean();
 tc_anomalies_expect( false !== strpos( $html, 'Jerarquía SEO no configurada' ), 'empty schema is unconfigured' );
 tc_anomalies_expect( false === strpos( $html, 'Clusters sin hubs primarios' ), 'empty schema has no structural sections' );
 tc_anomalies_expect( false === strpos( $html, 'JSON correctivo no disponible' ), 'empty schema has no Vocabulary warning' );
+
+$wpdb->relations = 5; // Other SEO relations exist, but there is no hierarchy definition.
+ob_start();
+taxocommerce_core_anomalies_render();
+$html = ob_get_clean();
+tc_anomalies_expect( false !== strpos( $html, 'Jerarquía SEO no configurada' ), 'unrelated SEO relations do not enable hierarchy audit' );
+tc_anomalies_expect( false === strpos( $html, 'Clusters sin hubs primarios' ), 'unrelated SEO relations do not produce fake structural statuses' );
 
 ob_start();
 taxocommerce_core_anomalies_render_faq_orphans();
