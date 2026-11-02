@@ -7,9 +7,13 @@ defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Core_Block_Navigation {
     const ACTION = 'taxocommerce_core_save_block_navigation';
+    const CREATE = 'taxocommerce_core_create_block_navigation';
+    const ACTIVATE = 'taxocommerce_core_activate_block_navigation';
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'save' ) );
+        add_action( 'admin_post_' . self::CREATE, array( __CLASS__, 'create' ) );
+        add_action( 'admin_post_' . self::ACTIVATE, array( __CLASS__, 'activate' ) );
     }
 
     /** Collect referenced navigation posts and inline navigation from the site's header templates. */
@@ -122,7 +126,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         $requested = isset( $_GET['tc_nav_id'] ) ? absint( $_GET['tc_nav_id'] ) : 0;
         // Only a directly referenced header navigation is automatically
         // selected. Other navigation posts require an explicit choice.
-        $selected = $requested && isset( $menus[ $requested ] ) ? $requested : ( count( $found['menus'] ) === 1 ? (int) key( $found['menus'] ) : 0 );
+        $selected = $requested && isset( $menus[ $requested ] ) ? $requested : ( count( $found['menus'] ) === 1 ? (int) key( $found['menus'] ) : ( count( $menus ) === 1 ? (int) key( $menus ) : 0 ) );
         echo '<section class="tc-menu-controls"><h2>' . esc_html__( 'Navegación de la cabecera (tema de bloques)', 'taxocommerce-core' ) . '</h2>';
         echo '<p>' . esc_html__( 'Los menús clásicos y los bloques de navegación son sistemas distintos. Para cambiar la cabecera debes editar la navegación referenciada por su plantilla.', 'taxocommerce-core' ) . '</p>';
         if ( $menus ) {
@@ -133,8 +137,13 @@ final class TaxoCommerce_Core_Block_Navigation {
                 $post = get_post( $id );
                 echo '<option value="' . absint( $id ) . '"' . selected( $selected, $id, false ) . '>' . esc_html( $post->post_title . ' (ID ' . $id . ' — ' . $source . ')' ) . '</option>';
             }
-            echo '</select> <button class="button" type="submit">' . esc_html__( 'Cargar navegación de cabecera', 'taxocommerce-core' ) . '</button></form>';
+            echo '</select> <button class="button" type="submit">' . esc_html__( 'Cargar para editar', 'taxocommerce-core' ) . '</button></form>';
         }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr( self::CREATE ) . '">';
+        wp_nonce_field( self::CREATE );
+        echo '<label>' . esc_html__( 'Nombre del nuevo menú', 'taxocommerce-core' ) . ' <input type="text" name="menu_name" maxlength="200" required></label> ';
+        echo '<button class="button" type="submit">' . esc_html__( 'Crear menú nuevo', 'taxocommerce-core' ) . '</button></form>';
         if ( $found['inline'] ) {
             echo '<p class="notice notice-warning inline">' . esc_html__( 'El tema contiene una navegación integrada directamente en una plantilla. No aparece en los menús clásicos ni se puede guardar como un menú independiente. Para editar exactamente esa navegación, abre el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
         }
@@ -171,12 +180,133 @@ final class TaxoCommerce_Core_Block_Navigation {
                 }
                 echo '<button class="button button-primary" type="submit">' . esc_html__( 'Guardar navegación de cabecera', 'taxocommerce-core' ) . '</button></form>';
             } else {
-                echo '<p>' . esc_html__( 'Esta navegación utiliza bloques que deben editarse desde el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+                echo '<p>' . esc_html__( 'Esta navegación está vacía o utiliza bloques que deben editarse desde el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+            }
+            $targets = self::editable_header_parts();
+            if ( $targets ) {
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTIVATE ) . '">';
+                echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
+                wp_nonce_field( self::ACTIVATE . '_' . $selected );
+                echo '<label>' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . ' <select name="tc_header_id">';
+                foreach ( $targets as $target ) {
+                    echo '<option value="' . absint( $target['id'] ) . '">' . esc_html( $target['title'] ) . '</option>';
+                }
+                echo '</select></label> ';
+                echo '<button type="submit" class="button">' . esc_html__( 'Activar en esta ubicación', 'taxocommerce-core' ) . '</button></form>';
+                echo '<p class="description">' . esc_html__( 'La activación sustituye la referencia al menú en la cabecera seleccionada; el menú anterior permanece guardado.', 'taxocommerce-core' ) . '</p>';
+            } else {
+                echo '<p class="description">' . esc_html__( 'La cabecera procede de una plantilla del tema no personalizada o contiene varias navegaciones. Para activarla, usa el Editor del sitio; no se cambiará la plantilla por suposición.', 'taxocommerce-core' ) . '</p>';
             }
         }
         echo '<p><a class="button" href="' . esc_url( admin_url( 'site-editor.php' ) ) . '">' . esc_html__( 'Editar cabecera en el Editor del sitio', 'taxocommerce-core' ) . '</a></p></section>';
         // Classic menus have their own WordPress theme-location editor and
         // are intentionally not offered as a second tab in block themes.
+    }
+
+    /**
+     * Only database-backed header parts with exactly one Navigation block can
+     * be changed safely. Theme files, ambiguous headers and inline navigation
+     * in unrelated templates must not be overwritten by Core.
+     */
+    private static function editable_header_parts() {
+        if ( ! function_exists( 'get_block_templates' ) ) { return array(); }
+        $parts = get_block_templates( array( 'area' => 'header' ), 'wp_template_part' );
+        $targets = array();
+        foreach ( is_array( $parts ) ? $parts : array() as $part ) {
+            $id = absint( $part->wp_id ?? 0 );
+            $post = $id ? get_post( $id ) : false;
+            if ( ! $post || 'wp_template_part' !== $post->post_type || ! current_user_can( 'edit_post', $id ) ) {
+                continue;
+            }
+            $count = 0;
+            self::count_navigation_blocks( parse_blocks( $post->post_content ), $count );
+            if ( 1 === $count ) {
+                $targets[] = array( 'id' => $id, 'title' => (string) $part->title );
+            }
+        }
+        return $targets;
+    }
+
+    private static function count_navigation_blocks( $blocks, &$count ) {
+        foreach ( $blocks as $block ) {
+            if ( 'core/navigation' === ( $block['blockName'] ?? '' ) ) { ++$count; }
+            if ( ! empty( $block['innerBlocks'] ) ) {
+                self::count_navigation_blocks( $block['innerBlocks'], $count );
+            }
+        }
+    }
+
+    private static function set_reference( &$blocks, $nav_id ) {
+        foreach ( $blocks as &$block ) {
+            if ( 'core/navigation' === ( $block['blockName'] ?? '' ) ) {
+                $block['attrs'] = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : array();
+                $block['attrs']['ref'] = $nav_id;
+                $block['innerBlocks'] = array();
+                $block['innerHTML'] = '';
+                $block['innerContent'] = array();
+                return true;
+            }
+            if ( ! empty( $block['innerBlocks'] ) && self::set_reference( $block['innerBlocks'], $nav_id ) ) {
+                return true;
+            }
+        }
+        unset( $block );
+        return false;
+    }
+
+    public static function create() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar este menú.', 'taxocommerce-core' ) );
+        }
+        check_admin_referer( self::CREATE );
+        $name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] )
+            ? trim( sanitize_text_field( wp_unslash( $_POST['menu_name'] ) ) ) : '';
+        if ( '' === $name || strlen( $name ) > 200 ) {
+            self::redirect( 0, 'error', __( 'Indica un nombre de menú válido.', 'taxocommerce-core' ) );
+        }
+        $existing = get_page_by_title( $name, OBJECT, 'wp_navigation' );
+        if ( $existing ) {
+            self::redirect( 0, 'error', __( 'Ya existe otro menú con ese nombre.', 'taxocommerce-core' ) );
+        }
+        $id = wp_insert_post( array(
+            'post_type' => 'wp_navigation',
+            'post_status' => 'publish',
+            'post_title' => $name,
+            'post_content' => '',
+        ), true );
+        if ( is_wp_error( $id ) || ! $id ) {
+            self::redirect( 0, 'error', is_wp_error( $id ) ? $id->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( $id, 'ok', __( 'Menú nuevo creado. Puedes editarlo sin modificar los existentes.', 'taxocommerce-core' ) );
+    }
+
+    public static function activate() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para asignar menús al tema.', 'taxocommerce-core' ) );
+        }
+        $id = isset( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
+        check_admin_referer( self::ACTIVATE . '_' . $id );
+        $nav = $id ? get_post( $id ) : false;
+        $header_id = isset( $_POST['tc_header_id'] ) ? absint( $_POST['tc_header_id'] ) : 0;
+        $targets = wp_list_pluck( self::editable_header_parts(), 'id' );
+        if ( ! $nav || 'wp_navigation' !== $nav->post_type || 'publish' !== $nav->post_status
+            || ! current_user_can( 'edit_post', $id ) || ! in_array( $header_id, $targets, true ) ) {
+            self::redirect( $id, 'error', __( 'La ubicación de menú seleccionada no es válida.', 'taxocommerce-core' ) );
+        }
+        $header = get_post( $header_id );
+        $blocks = parse_blocks( $header->post_content );
+        if ( ! self::set_reference( $blocks, $id ) ) {
+            self::redirect( $id, 'error', __( 'La ubicación de menú seleccionada no es válida.', 'taxocommerce-core' ) );
+        }
+        $updated = wp_update_post( array(
+            'ID' => $header_id,
+            'post_content' => wp_slash( serialize_blocks( $blocks ) ),
+        ), true );
+        if ( is_wp_error( $updated ) || ! $updated ) {
+            self::redirect( $id, 'error', is_wp_error( $updated ) ? $updated->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( $id, 'ok', __( 'Menú activado en la ubicación seleccionada.', 'taxocommerce-core' ) );
     }
 
     /** Replace attributes only; preserve nested structure, CSS classes and unsupported blocks. */
