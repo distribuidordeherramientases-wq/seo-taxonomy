@@ -1,0 +1,41 @@
+name: Compile TaxoCommerce JavaScript language packs (#2062)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  make-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official WordPress JavaScript gettext compiler
+        run: curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+      - name: Compile updated PO catalogs into native JS JSON packs
+        run: |
+          set -euo pipefail
+          for d in taxocommerce-*/languages; do
+            php /tmp/wp-cli.phar i18n make-json "$d" --no-purge
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          files=list(Path('.').glob('taxocommerce-*/languages/*.json'))
+          print('Native WordPress JS locale JSON files:',len(files))
+          if len(files)<65:
+              raise SystemExit('Missing native JavaScript language catalogs')
+          for path in files:
+              data=json.loads(path.read_text())
+              assert data.get('locale_data'),str(path)
+          PY
+          git diff --check
+      - name: Commit compiled JavaScript packs only to work branch
+        run: |
+          set -euo pipefail
+          git config user.name 'TaxoCommerce i18n CI'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add taxocommerce-*/languages/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'i18n: publish WordPress native JS translation JSON for 5 locales (#2062)'
+            git push origin HEAD:fix/i18n-family-2062
+          fi
