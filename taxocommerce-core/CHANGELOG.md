@@ -17,6 +17,7 @@
 - La opción de generar/sincronizar desde jerarquía SEO solo aparece con un árbol real; la ejecución rechaza una jerarquía vacía antes de borrar elementos generados. Issue #2069.
 - Acceso directo al Editor del sitio para la navegación seleccionada y aviso desde la pestaña SEO en temas de bloques, evitando confundir el menú clásico cargado con el menú publicado en la cabecera.
 - La selección es solo lectura; el guardado mantiene verificaciones de nonce, permisos y contenido concurrente. No se modifica automáticamente el menú publicado. Issue #2069.
+- Anomalías (#2071): un sitio sin jerarquía SEO ni relaciones configuradas muestra un estado neutro en lugar de una auditoría vacía. Los informes de Vocabulary y FAQ no anuncian errores por ausencia de tablas de módulos opcionales. La categoría predeterminada de WooCommerce se excluye de las alertas de falta de asignación y de categorías vacías. Se conservan las comprobaciones cuando existen definiciones y datos.
 
 ## [0.4.44]
 
