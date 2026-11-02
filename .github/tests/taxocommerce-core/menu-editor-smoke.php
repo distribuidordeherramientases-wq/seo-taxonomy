@@ -8,13 +8,15 @@ class TaxoCommerce_Core_Hierarchy_Classic { public static function map( $kind, $
 class WP_Query { public $posts; public function __construct( $args ) { $GLOBALS['last_query']=$args; $rows=array_values( array_filter( $GLOBALS['posts'], static function( $post ) use ( $args ) { return $post->post_type===$args['post_type'] && 'publish'===$post->post_status && ''===$post->post_password && ( ''===$args['s'] || false!==stripos( $post->post_title, $args['s'] ) ); } ) ); $this->posts=array_slice( $rows, $args['offset'], $args['posts_per_page'] ); } }
 $GLOBALS['hooks']=array(); $GLOBALS['options']=array('taxocommerce_core_menu_id'=>99,'taxocommerce_core_menu_location_backup'=>array('locations'=>array('primary'=>1)));
 $GLOBALS['menus']=array(99=>(object)array('term_id'=>99,'name'=>'TaxoCommerce')); $GLOBALS['items']=array(); $GLOBALS['meta']=array(); $GLOBALS['writes']=0; $GLOBALS['allowed']=true;
+$GLOBALS['woo_enabled']=true;
 $GLOBALS['posts']=array(); for($i=1;$i<=130;$i++){ $GLOBALS['posts'][$i]=new WP_Post($i,'Example page '.$i); }
 $GLOBALS['posts'][131]=new WP_Post(131,'Draft'); $GLOBALS['posts'][131]->post_status='draft';
 function is_wp_error($x){return $x instanceof WP_Error;} function absint($x){return abs((int)$x);} function sanitize_key($x){return preg_replace('/[^a-z0-9_-]/','',strtolower((string)$x));} function sanitize_text_field($x){return trim(strip_tags((string)$x));}
-function __($x,$d=''){return $x;} function esc_html__($x,$d=''){return esc_html($x);} function esc_html_e($x,$d=''){echo esc_html($x);} function esc_html($x){return htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');} function esc_attr($x){return esc_html($x);} function esc_url($x){return esc_html($x);}
+function __($x,$d=''){return $x;} function esc_html__($x,$d=''){return esc_html($x);} function esc_attr__($x,$d=''){return esc_attr($x);} function esc_html_e($x,$d=''){echo esc_html($x);} function esc_html($x){return htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');} function esc_attr($x){return esc_html($x);} function esc_url($x){return esc_html($x);}
 function esc_url_raw($x,$allowed=array()){return preg_match('/^javascript:/i',$x)?'':$x;} function wp_specialchars_decode($x,$flags){return html_entity_decode($x,$flags,'UTF-8');} function wp_slash($x){return addslashes($x);} function wp_unslash($x){return is_array($x)?array_map('wp_unslash',$x):stripslashes($x);}
+function add_query_arg($args,$url=''){return $url.'?'.http_build_query($args);}
 function selected($a,$b=true,$echo=true){$s=(string)$a===(string)$b?' selected="selected"':'';if($echo)echo $s;return $s;}
-function taxonomy_exists($x){return in_array($x,array('category','product_cat'),true);} function admin_url($x=''){return 'https://example.test/wp-admin/'.$x;} function wp_create_nonce($a){return 'nonce-'.$a;}
+function taxonomy_exists($x){return in_array($x,array('category','product_cat'),true) && ('product_cat'!==$x || !empty($GLOBALS['woo_enabled']));} function admin_url($x=''){return 'https://example.test/wp-admin/'.$x;} function wp_create_nonce($a){return 'nonce-'.$a;}
 function get_option($k,$d=false){return $GLOBALS['options'][$k]??$d;} function update_option($k,$v,$autoload=false){$GLOBALS['writes']++;$GLOBALS['options'][$k]=$v;return true;}
 function get_theme_mod($k,$d=array()){return array('primary'=>99);} function get_registered_nav_menus(){return array('primary'=>'Menu principal','footer'=>'Pie');}
 function wp_get_nav_menu_object($id){if(is_numeric($id))return $GLOBALS['menus'][(int)$id]??false;foreach($GLOBALS['menus'] as $m){if($m->name===$id)return $m;}return false;}
@@ -25,7 +27,7 @@ function wp_get_nav_menu_items($id,$args=array()){return array_values(array_filt
 function get_term_meta($id,$key,$single=true){return ''; } function get_post_meta($id,$key,$single=true){return $GLOBALS['meta'][$id][$key]??'';} function update_post_meta($id,$key,$value){$GLOBALS['writes']++;$GLOBALS['meta'][$id][$key]=$value;if('_menu_item_menu_item_parent'===$key && isset($GLOBALS['items'][$id])){$GLOBALS['items'][$id]->menu_item_parent=$value;}return true;}
 function get_post($id){return $GLOBALS['posts'][$id]??null;} function get_the_title($post){return is_object($post)?$post->post_title:($GLOBALS['posts'][$post]->post_title??'');}
 function get_ancestors($id,$taxonomy,$type){return array();} function get_terms($args){return array((object)array('term_id'=>71,'name'=>'Tools'));} function get_term($id,$tax){return $id===71?(object)array('term_id'=>71,'name'=>'Tools'):null;}
-function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:1000+count($GLOBALS['items']);$old=$GLOBALS['items'][$id]??null;$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'menu_order'=>$data['menu-item-position']??($old->menu_order??1),'title'=>stripslashes($data['menu-item-title']),'type'=>$data['menu-item-type']??($old->type??'custom'),'url'=>$data['menu-item-url']??($old->url??'https://example.test/item'),'object'=>$data['menu-item-object']??($old->object??'custom'),'object_id'=>$data['menu-item-object-id']??($old->object_id??0),'data'=>$data);return $id;}
+function wp_update_nav_menu_item($menu_id,$id,$data){$GLOBALS['writes']++;$id=$id?:max(1000,empty($GLOBALS['items'])?1000:(max(array_keys($GLOBALS['items']))+1));$old=$GLOBALS['items'][$id]??null;$GLOBALS['items'][$id]=(object)array('ID'=>$id,'menu_id'=>$menu_id,'menu_item_parent'=>$data['menu-item-parent-id'],'menu_order'=>$data['menu-item-position']??($old->menu_order??1),'title'=>stripslashes($data['menu-item-title']),'type'=>$data['menu-item-type']??($old->type??'custom'),'url'=>$data['menu-item-url']??($old->url??'https://example.test/item'),'object'=>$data['menu-item-object']??($old->object??'custom'),'object_id'=>$data['menu-item-object-id']??($old->object_id??0),'data'=>$data);return $id;}
 function wp_delete_post($id,$force){$GLOBALS['writes']++;$old=$GLOBALS['items'][$id]??false;unset($GLOBALS['items'][$id]);return $old;}
 function add_filter($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function add_action($hook,$cb,$priority=10,$args=1){$GLOBALS['hooks'][$hook][]=$cb;} function apply_filters($name,$value){return $value;} function current_user_can($cap){return $GLOBALS['allowed'];} function wp_die($text){throw new RuntimeException($text);}
 function check_admin_referer($action,$field){if(($_POST[$field]??'')!=='nonce-'.$action)throw new RuntimeException('nonce');} function check_ajax_referer($action,$field){check_admin_referer($action,$field);}
@@ -139,5 +141,40 @@ verify(!is_wp_error($new_id) && $new_id!==$existing_id && $new_id!==$es_id,'new 
 verify(TaxoCommerce_Core_Menu::managed_menu_id('ES',false)===$es_id,'new native menu does not replace country menu');
 verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::create_menu('  ')),'invalid empty native menu name rejected');
 unset($_GET['tc_menu_id']);unset($_GET['tc_country']);unset($_POST['tc_menu_id']);
+
+
+// Verify isolated WordPress-only tab with WooCommerce entirely absent.
+$GLOBALS['woo_enabled']=false;
+$_GET=array('tc_tab'=>'wordpress');$_POST=array();
+$before=$GLOBALS['writes'];ob_start();$core->render();$basic=ob_get_clean();
+verify($GLOBALS['writes']===$before,'WordPress tab loads without any database changes');
+verify(strpos($basic,'Menús WordPress')!==false,'basic tab label');
+verify(strpos($basic,'Selecciona un menú de WordPress')!==false,'explicit menu selection');
+verify(strpos($basic,'País del menú')===false,'country picker is SEO-only');
+verify(strpos($basic,'value="taxocommerce_core_sync_menu"')===false,'no SEO sync in WordPress tab');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::objects('product_cat','recent',1,'','ES',true)),'Woo taxonomy excluded');
+$pages=TaxoCommerce_Core_Menu_Editor::objects('page','all',2,'','FR',true);
+verify(count($pages['items'])===25 && empty($GLOBALS['last_query']['meta_query']),'native pages are not filtered by country');
+$native=TaxoCommerce_Core_Menu_Editor::create_menu('Nuevo menú estándar');
+verify(!is_wp_error($native),'native menu created without WooCommerce');
+$_GET['tc_menu_id']=(string)$native;
+$before=$GLOBALS['writes'];ob_start();$core->render();$basic_loaded=ob_get_clean();
+verify($GLOBALS['writes']===$before,'opening native menu never writes');
+verify(strpos($basic_loaded,'Nuevo menú estándar')!==false,'selected WordPress menu shown');
+verify(substr_count($basic_loaded,'class="tc-menu-box"')===4,'normal pages posts categories and links only');
+verify(strpos($basic_loaded,'value="taxocommerce_core_sync_menu"')===false,'SEO sync unavailable on native tab');
+verify(strpos($basic_loaded,'name="tc_tab" value="wordpress"')!==false,'tab propagated into edit forms');
+$_POST=array('tc_tab'=>'wordpress','tc_menu_id'=>(string)$native);
+verify(TaxoCommerce_Core_Menu_Editor::target_menu_id(true)===$native,'valid native menu targeted');
+verify(TaxoCommerce_Core_Menu_Editor::add_objects('page',array(2))===1,'add native WordPress page');
+verify(TaxoCommerce_Core_Menu_Editor::add_objects('category',array(71))===1,'add native WordPress category');
+verify(TaxoCommerce_Core_Menu_Editor::add_link('Enlace','https://example.test/link')>0,'add custom link');
+verify(count(wp_get_nav_menu_items($native))===3,'native menu contains three items');
+verify(TaxoCommerce_Core_Menu::managed_menu_id('ES',false)===$es_id,'country menu preserved');
+$_POST=array('tc_tab'=>'wordpress','tc_menu_id'=>'0');$before=$GLOBALS['writes'];
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::target_menu_id(true)),'no implicit creation of SEO menu');
+verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::add_link('Bad','https://example.test/bad')),'cannot write to missing native menu');
+verify($before===$GLOBALS['writes'],'invalid native menu cannot write');
+unset($_GET['tc_tab'],$_GET['tc_menu_id']);$_POST=array();$GLOBALS['woo_enabled']=true;
 
 echo 'PASS: '.$GLOBALS['checks']." menu checks. Isolated WP stubs; not a live WordPress test.\n";

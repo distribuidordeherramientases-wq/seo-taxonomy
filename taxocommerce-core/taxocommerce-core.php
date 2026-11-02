@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Core - Catalog & Content Management for WooCommerce
  * Description: Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.
- * Version: 0.4.41
+ * Version: 0.4.42
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.41' );
+define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.42' );
 define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
@@ -59,9 +59,25 @@ function taxocommerce_core_boot() {
 }
 add_action( 'plugins_loaded', 'taxocommerce_core_boot', 20 );
 
-/** Register Core translations after WordPress has initialized. */
+/**
+ * Prefer WordPress language packs and retain standalone bundled translations.
+ * WordPress.org plugins do not need load_plugin_textdomain(); a local MO fallback
+ * is still needed for the GitHub-distributed standalone ZIP and English menus.
+ */
 function taxocommerce_core_load_textdomain() {
-	load_plugin_textdomain( 'taxocommerce-core', false, dirname( TAXOCOMMERCE_CORE_BASENAME ) . '/languages' );
+    $domain = 'taxocommerce-core';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        // WordPress can load the globally installed language pack on demand.
+        return;
+    }
+    $catalog = TAXOCOMMERCE_CORE_PATH . 'languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
 }
 add_action( 'init', 'taxocommerce_core_load_textdomain', 1 );
 

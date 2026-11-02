@@ -5,9 +5,14 @@
 
 ## [Unreleased]
 
+Sin novedades pendientes documentadas.
+
+## [0.1.1] — 2026-11-01
+
+- Identificada explícitamente la versión 0.1.1 para distinguir el paquete corregido de la 0.1.0 instalada anteriormente; sincronizados la cabecera, la constante y el Stable tag de WordPress.org.
 - Revisados los avisos de Plugin Check del módulo Campaigns: identificadores de tablas SQL con `%i` en `$wpdb->prepare()`, entradas de administración y comentarios PHPCS localizados para operaciones sobre tablas propias sin API alternativa.
 - Revisadas también las consultas de Autotest y conservadas explícitamente las APIs públicas históricas de integración con Core, Templates y GD (sin renombrarlas).
-- Conservadas las reglas de precios, programación y productos. Seguimiento: #1544; validar CI y pruebas funcionales de STAGING.
+- Conservadas las reglas de precios, programación y productos. Seguimiento: #1544; QA automatizada superada, pendiente validación funcional en STAGING.
 
 - Incorporadas pestañas Manual (usuario y técnico) y Autotest interno de solo lectura; comprueba carga, tablas, versión de esquema y dependencias sin modificar campañas, precios ni programación.
 - Ampliados y separados claramente el manual operativo para usuarios y la guía técnica para desarrolladores futuros: navegación, procedimientos comerciales, estructura del código, tablas y migraciones, hooks, compatibilidad, seguridad, pruebas y diagnóstico, siguiendo el formato de los plugins Suppliers, Billing y Scrappers.

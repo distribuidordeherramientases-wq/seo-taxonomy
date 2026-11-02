@@ -99,7 +99,15 @@ final class TaxoCommerce_Core_User_Guide {
 					</section>
 					<section id="tc-guide-menus">
 						<h2><?php esc_html_e( '5. Menu Manager: construir la navegación', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'Menu Manager permite crear un menú de WordPress a partir de la jerarquía SEO y añadir páginas, entradas, categorías y enlaces personalizados manualmente.', 'taxocommerce-core' ); ?></p>
+						<p><?php esc_html_e( 'Gestor de menús incluye Menús SEO / WooCommerce y Menús WordPress, independientes entre sí.', 'taxocommerce-core' ); ?></p>
+                        <h3><?php esc_html_e( 'Menús WordPress (sin WooCommerce)', 'taxocommerce-core' ); ?></h3>
+                        <ol>
+                            <li><?php esc_html_e( 'En Gestor de menús, abre la pestaña Menús WordPress.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'Carga un menú existente o crea uno nuevo; cargar no modifica los menús publicados.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y posición.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema.', 'taxocommerce-core' ); ?></li>
+                        </ol>
+                        <p><?php esc_html_e( 'La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO.', 'taxocommerce-core' ); ?></p>
 						<h3><?php esc_html_e( 'Crear y publicar un menú', 'taxocommerce-core' ); ?></h3>
 						<ol>
 							<li><?php esc_html_e( 'Selecciona el país del menú.', 'taxocommerce-core' ); ?></li>
