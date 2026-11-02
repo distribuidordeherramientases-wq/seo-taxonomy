@@ -50,7 +50,7 @@ function taxocommerce_core_anomalies_render() {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
     $configured_nodes = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_nodes WHERE status=1 AND seo_role IN ('cluster', 'hub_primary', 'hub_secondary', 'landing')" );
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
-    $configured_relations = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations" );
+    $configured_relations = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE relation_type IN ('cluster_to_primary', 'hub_primary_to_hub_secondary', 'hub_secondary_to_category', 'hub_secondary_to_landing', 'landing_to_category')" );
     if ( 0 === $configured_nodes && 0 === $configured_relations ) {
         echo '<p class="description">' . esc_html__( 'Jerarquía SEO no configurada. No hay anomalías estructurales que comprobar.', 'taxocommerce-core' ) . '</p></section>';
         return;
