@@ -88,6 +88,12 @@ final class TaxoCommerce_Core_Menu_Editor {
         }
         echo '<h2>' . esc_html( $menu->name ) . '</h2>';
         echo '<p>' . esc_html__( 'Identificador del menú:', 'taxocommerce-core' ) . ' <code>' . absint( $menu_id ) . '</code></p>';
+        echo '<form id="tc-menu-save-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        self::manual_fields( 'save_menu' );
+        echo '<p><label for="tc-menu-save-name">' . esc_html__( 'Nombre del menú', 'taxocommerce-core' ) . '</label> ';
+        echo '<input id="tc-menu-save-name" type="text" name="menu_name" value="' . esc_attr( $menu->name ) . '" maxlength="200" required></p>';
+        echo '</form>';
+        echo '<p class="description">' . esc_html__( 'Los cambios de texto, enlaces, jerarquía, orden o nombre se aplicarán al pulsar Guardar menú. Añadir o quitar un elemento se guarda al confirmar esa operación.', 'taxocommerce-core' ) . '</p>';
         self::controls( $menu_id, 'top' );
         self::render( $menu_id );
         self::controls( $menu_id, 'bottom' );
@@ -229,7 +235,24 @@ final class TaxoCommerce_Core_Menu_Editor {
             echo '<button type="submit" class="button button-primary">' . ( $menu ? esc_html__( 'Sincronizar propuesta', 'taxocommerce-core' ) : esc_html__( 'Crear menú desde la jerarquía', 'taxocommerce-core' ) ) . '</button></form>';
         }
         if ( $menu ) { echo '<a class="button" href="' . esc_url( admin_url( 'nav-menus.php?action=edit&menu=' . absint( $menu_id ) ) ) . '">' . esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ) . '</a>'; }
+        if ( $wordpress && $menu ) {
+            echo '<button type="submit" form="tc-menu-save-form" class="button button-primary">' . esc_html__( 'Guardar menú', 'taxocommerce-core' ) . '</button>';
+        }
         echo '</div>';
+        if ( $wordpress && $menu && 'top' === $position && ! self::protected_menu( $menu_id ) ) {
+            $assigned_to = array();
+            foreach ( $active as $location => $assigned_id ) {
+                if ( absint( $assigned_id ) === absint( $menu_id ) && isset( $locations[ $location ] ) ) { $assigned_to[] = $locations[ $location ]; }
+            }
+            echo '<form method="post" data-tc-menu-delete class="tc-menu-delete-form" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            self::manual_fields( 'delete_menu' );
+            echo '<p><strong>' . esc_html__( 'Eliminar menú', 'taxocommerce-core' ) . '</strong></p>';
+            if ( $assigned_to ) {
+                echo '<p class="description">' . esc_html__( 'Atención: está asignado a una ubicación del tema. Si lo eliminas, dejará de utilizarse allí.', 'taxocommerce-core' ) . ' ' . esc_html( implode( ', ', $assigned_to ) ) . '</p>';
+            }
+            echo '<label><input type="checkbox" name="confirm_delete" value="1" required> ' . esc_html__( 'Confirmo que quiero eliminar definitivamente este menú de WordPress y sus elementos.', 'taxocommerce-core' ) . '</label> ';
+            echo '<button class="button button-link-delete" type="submit">' . esc_html__( 'Eliminar menú', 'taxocommerce-core' ) . '</button></form>';
+        }
         if ( $menu && $locations ) {
             echo '<h3>' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . '</h3><form class="tc-menu-actions" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
             echo '<input type="hidden" name="action" value="taxocommerce_core_activate_menu"><input type="hidden" name="tc_country" value="' . esc_attr( TaxoCommerce_Core_Menu::country() ) . '"><input type="hidden" name="tc_menu_id" value="' . esc_attr( $menu_id ) . '">';
@@ -274,22 +297,33 @@ final class TaxoCommerce_Core_Menu_Editor {
             if ( $automatic ) {
                 echo '<p>' . esc_html__( 'Modifica este elemento en la Jerarquía SEO y sincroniza la propuesta.', 'taxocommerce-core' ) . '</p>';
             } else {
-                echo '<form method="post" class="tc-menu-item-edit" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-                self::manual_fields( 'edit' );
-                echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '">';
-                echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input type="text" name="item_title" value="' . esc_attr( $item->title ) . '" maxlength="200" required></label></p>';
-                if ( 'custom' === (string) ( $item->type ?? '' ) ) {
-                    echo '<p><label>URL <input type="text" name="item_url" value="' . esc_attr( $item->url ) . '" required></label></p>';
+                $batch = self::is_wordpress_tab();
+                $prefix = $batch ? 'tc_items[' . absint( $item->ID ) . ']' : '';
+                $form_attr = $batch ? ' form="tc-menu-save-form"' : '';
+                if ( $batch ) {
+                    echo '<div class="tc-menu-item-edit">';
+                } else {
+                    echo '<form method="post" class="tc-menu-item-edit" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                    self::manual_fields( 'edit' );
+                    echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '">';
                 }
-                echo '<p><label>' . esc_html__( 'Elemento superior', 'taxocommerce-core' ) . ' <select name="item_parent">';
+                echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input type="text" name="' . esc_attr( $batch ? $prefix . '[title]' : 'item_title' ) . '"' . $form_attr . ' value="' . esc_attr( $item->title ) . '" maxlength="200" required></label></p>';
+                if ( 'custom' === (string) ( $item->type ?? '' ) ) {
+                    echo '<p><label>URL <input type="text" name="' . esc_attr( $batch ? $prefix . '[url]' : 'item_url' ) . '"' . $form_attr . ' value="' . esc_attr( $item->url ) . '" required></label></p>';
+                }
+                echo '<p><label>' . esc_html__( 'Elemento superior', 'taxocommerce-core' ) . ' <select name="' . esc_attr( $batch ? $prefix . '[parent]' : 'item_parent' ) . '"' . $form_attr . '>';
                 echo '<option value="0">' . esc_html__( 'Nivel principal', 'taxocommerce-core' ) . '</option>';
                 foreach ( $items as $possible ) {
                     if ( (int) $possible->ID === (int) $item->ID ) { continue; }
                     echo '<option value="' . absint( $possible->ID ) . '"' . selected( absint( $item->menu_item_parent ), absint( $possible->ID ), false ) . '>' . esc_html( $possible->title ) . '</option>';
                 }
                 echo '</select></label></p>';
-                echo '<p><label>' . esc_html__( 'Posición', 'taxocommerce-core' ) . ' <input type="number" name="item_position" min="1" max="100000" value="' . absint( $item->menu_order ?? 1 ) . '"></label></p>';
-                echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></form>';
+                echo '<p><label>' . esc_html__( 'Posición', 'taxocommerce-core' ) . ' <input type="number" name="' . esc_attr( $batch ? $prefix . '[position]' : 'item_position' ) . '"' . $form_attr . ' min="1" max="100000" value="' . absint( $item->menu_order ?? 1 ) . '"></label></p>';
+                if ( $batch ) {
+                    echo '<p class="description">' . esc_html__( 'Pulsa Guardar menú para aplicar estos cambios.', 'taxocommerce-core' ) . '</p></div>';
+                } else {
+                    echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar cambios', 'taxocommerce-core' ) . '</button></form>';
+                }
                 echo '<form method="post" data-tc-menu-remove action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
                 self::manual_fields( 'remove' );
                 echo '<input type="hidden" name="menu_item_id" value="' . absint( $item->ID ) . '"><button type="submit" class="button-link-delete">' . esc_html__( 'Eliminar del menú', 'taxocommerce-core' ) . '</button></form>';
