@@ -105,6 +105,8 @@ final class TaxoCommerce_Core_User_Guide {
                             <li><?php esc_html_e( 'En Gestor de menús, abre la pestaña Menús WordPress.', 'taxocommerce-core' ); ?></li>
                             <li><?php esc_html_e( 'Carga un menú existente o crea uno nuevo; cargar no modifica los menús publicados.', 'taxocommerce-core' ); ?></li>
                             <li><?php esc_html_e( 'Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y posición.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'Pulsa Guardar menú para grabar juntos el nombre y los cambios de sus elementos. Hasta entonces son cambios sin guardar. Añadir o quitar un elemento sí se guarda al confirmar su operación.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'Para eliminar un menú básico, selecciona ese menú y usa Eliminar menú; exige marcar la casilla y confirmar. No se permite borrar los menús SEO de país.', 'taxocommerce-core' ); ?></li>
                             <li><?php esc_html_e( 'Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema.', 'taxocommerce-core' ); ?></li>
                         </ol>
                         <p><?php esc_html_e( 'La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO.', 'taxocommerce-core' ); ?></p>
