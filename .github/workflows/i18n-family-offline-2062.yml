@@ -1,0 +1,62 @@
+name: Complete TaxoCommerce offline translations (#2062)
+on:
+  push:
+    branches: [fix/i18n-family-2062]
+    paths:
+      - '.github/workflows/i18n-family-offline-2062.yml'
+      - '.github/scripts/i18n-family-2062-offline.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  localize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        locale: [es_ES, en_US, fr_FR, de_DE, nl_NL]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline translation runtime
+        run: python -m pip install --disable-pip-version-check polib langdetect argostranslate
+      - name: Translate missing catalog entries preserving WordPress placeholders
+        env:
+          TC_I18N_OUTPUT: /tmp/argosi18n-out
+        run: python .github/scripts/i18n-family-2062-offline.py ${{ matrix.locale }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-gettext-${{ matrix.locale }}
+          path: /tmp/argosi18n-out/
+          if-no-files-found: error
+          retention-days: 3
+  integrate:
+    needs: localize
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: offline-gettext-*
+          path: .
+          merge-multiple: true
+      - name: Validate MO integrity and translation placeholders
+        run: |
+          python3 -m pip install --disable-pip-version-check polib
+          python3 .github/scripts/i18n-family-2062-qa.py || true
+      - name: Commit locale files to the i18n work branch only
+        run: |
+          set -euo pipefail
+          git config user.name 'TaxoCommerce i18n CI'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add taxocommerce-*/languages/
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m 'i18n: fill five language catalogs offline across 20 plugins (#2062)'
+            git push origin HEAD:fix/i18n-family-2062
+          fi
