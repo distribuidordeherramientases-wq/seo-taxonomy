@@ -68,4 +68,18 @@ ensure( 'Search' === $blocks[0]['innerBlocks'][1]['attrs']['label'], 'Unsupporte
 $index = 0;
 $error = $method->invokeArgs( null, array( &$blocks, array( array( 'label' => 'Only one', 'url' => 'https://example.test/' ) ), &$index ) );
 ensure( is_wp_error( $error ), 'Incomplete form must not save a partial menu' );
+$counter = new ReflectionMethod( 'TaxoCommerce_Core_Block_Navigation', 'count_navigation_blocks' );
+$count = 0;
+$counter->invokeArgs( null, array( $GLOBALS['fixtures']['header-part'], &$count ) );
+ensure( 1 === $count, 'Single-header navigation detection failed' );
+$setter = new ReflectionMethod( 'TaxoCommerce_Core_Block_Navigation', 'set_reference' );
+$header_blocks = $GLOBALS['fixtures']['header-part'];
+$updated = $setter->invokeArgs( null, array( &$header_blocks, 1234 ) );
+ensure( true === $updated, 'Header activation must update exactly one navigation reference' );
+ensure( 1234 === $header_blocks[0]['innerBlocks'][0]['attrs']['ref'], 'Header navigation reference mismatch' );
+ensure( 'core/group' === $header_blocks[0]['blockName'], 'Header wrapper must be preserved' );
+$refs = new ReflectionMethod( 'TaxoCommerce_Core_Block_Navigation', 'links' );
+$loaded = array();
+$refs->invokeArgs( null, array( $blocks, &$loaded ) );
+ensure( 2 === count( $loaded ), 'Classic and nested navigation block links must be enumerable' );
 echo "Block navigation detection and update smoke passed.\n";
