@@ -146,6 +146,10 @@ final class TaxoCommerce_Core_Block_Navigation {
             $links = array();
             self::links( $blocks, $links );
             echo '<h3>' . esc_html( $post->post_title ) . '</h3>';
+            $edit_link = get_edit_post_link( $selected, 'raw' );
+            if ( $edit_link ) {
+                echo '<p><a class="button" href="' . esc_url( $edit_link ) . '">' . esc_html__( 'Editar esta navegación en WordPress', 'taxocommerce-core' ) . '</a></p>';
+            }
             echo '<p>' . esc_html( isset( $found['menus'][ $selected ] )
                 ? __( 'Este contenido está referenciado desde una plantilla de cabecera. Guardarlo modifica esa navegación de bloques, no los menús clásicos.', 'taxocommerce-core' )
                 : __( 'Esta navegación existe en WordPress, pero su uso en la cabecera no está confirmado. Comprueba que sus enlaces coinciden con el menú público antes de guardar.', 'taxocommerce-core' ) ) . '</p>';
