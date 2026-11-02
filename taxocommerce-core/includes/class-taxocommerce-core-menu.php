@@ -206,6 +206,14 @@ final class TaxoCommerce_Core_Menu {
 			<?php endif; ?>
 
             <?php TaxoCommerce_Core_Menu_Editor::tabs( 'seo' ); ?>
+            <?php if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) : ?>
+                <div class="notice notice-info inline"><p>
+                    <?php esc_html_e( 'El tema utiliza navegación de bloques. El menú de cabecera puede ser distinto de este menú SEO o de los menús clásicos.', 'taxocommerce-core' ); ?>
+                    <a href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core-menu', 'tc_tab' => 'wordpress' ), admin_url( 'admin.php' ) ) ); ?>">
+                        <?php esc_html_e( 'Ver y editar las navegaciones de WordPress', 'taxocommerce-core' ); ?>
+                    </a>
+                </p></div>
+            <?php endif; ?>
             <?php
             $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
             $managed_id = $this->get_menu_id( $country );
