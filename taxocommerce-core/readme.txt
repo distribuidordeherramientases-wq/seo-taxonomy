@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.43
+Stable tag: 0.4.44
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,6 +18,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Cached read-only inventory dashboard for products, posts, pages, categories, media, statuses and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
 * Native WordPress navigation menu generation with optional manual entries and safe regeneration.
+* Block-theme navigation: locate navigation blocks referenced in header templates and edit their standard links separately from classic WordPress menus; embedded navigation remains editable in the native Site Editor.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
@@ -53,6 +54,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.44 =
+
+* Separate editable block navigation from classic nav menus; locate published wp_navigation references used by header templates, edit link labels/URLs, save safely with a revision check. Inline or ambiguous navigation uses the WordPress Site Editor.
 
 = 0.4.43 =
 * Add explicit Save Menu buttons for batch editing of native WordPress menu name and items, with a clear saved confirmation and unsaved-changes indicator.
