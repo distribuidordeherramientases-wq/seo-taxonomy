@@ -74,4 +74,29 @@ taxocommerce_core_anomalies_render_faq_orphans();
 $html = ob_get_clean();
 tc_anomalies_expect( '' === $html, 'missing optional FAQ table produces no warning' );
 
+// A configured hierarchy with no findings should not render successful sections.
+$reported = 0;
+ob_start();
+ob_start();
+echo '<h3>Sin incidencias</h3>';
+taxocommerce_core_anomalies_finish_section( false, false, $reported );
+$hidden = ob_get_clean();
+tc_anomalies_expect( '' === $hidden && 0 === $reported, 'only issues mode omits successful sections' );
+
+// Real findings remain visible and counted; the optional detailed view preserves old output.
+ob_start();
+ob_start();
+echo '<h3>Incidencia real</h3>';
+taxocommerce_core_anomalies_finish_section( true, false, $reported );
+$found_html = ob_get_clean();
+tc_anomalies_expect( false !== strpos( $found_html, 'Incidencia real' ) && 1 === $reported, 'actual findings remain visible' );
+
+ob_start();
+ob_start();
+echo '<h3>Comprobación superada</h3>';
+taxocommerce_core_anomalies_finish_section( false, true, $reported );
+$detail_html = ob_get_clean();
+tc_anomalies_expect( false !== strpos( $detail_html, 'Comprobación superada' ), 'detailed view preserves success sections' );
+tc_anomalies_expect( 1 === $reported, 'detailed view does not count success as findings' );
+
 echo 'Core conditional anomalies smoke OK' . PHP_EOL;
