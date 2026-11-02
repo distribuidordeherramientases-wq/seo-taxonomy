@@ -77,6 +77,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<div class="wrap tcc-family-screen">';
         echo '<h1>' . esc_html__( 'Gestor de menús', 'taxocommerce-core' ) . '</h1>';
         self::tabs( 'wordpress' );
+        // The block navigation editor is displayed before any classic menu actions.
         echo '<p>' . esc_html__( 'Menús básicos de WordPress: páginas, entradas, categorías y enlaces personalizados. No requieren WooCommerce ni jerarquía SEO.', 'taxocommerce-core' ) . '</p>';
         if ( $message && in_array( $result, array( 'ok', 'error' ), true ) ) {
             echo '<div class="notice notice-' . ( 'ok' === $result ? 'success' : 'error' ) . '"><p>' . esc_html( $message ) . '</p></div>';
@@ -105,6 +106,7 @@ final class TaxoCommerce_Core_Menu_Editor {
                 echo '</p>';
             }
         }
+        TaxoCommerce_Core_Block_Navigation::render();
         self::load_controls( '', $menu_id );
         if ( ! $menu ) {
             echo '<p class="notice notice-info inline">' . esc_html__( 'Selecciona un menú de WordPress existente o crea uno nuevo para añadir y editar sus elementos.', 'taxocommerce-core' ) . '</p>';
@@ -677,7 +679,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             // Do not double-unslash strings in the validator.
             $name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] ) ? sanitize_text_field( wp_unslash( $_POST['menu_name'] ) ) : '';
             $result = self::save_native_menu( $fields, $name );
-            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú guardado correctamente. Los cambios ya están en WordPress.', 'taxocommerce-core' );
+            $message = is_wp_error( $result ) ? $result->get_error_message() : __( 'Menú clásico guardado en WordPress. La cabecera de un tema de bloques puede usar otra navegación.', 'taxocommerce-core' );
         } elseif ( 'delete_menu' === $task ) {
             $confirmed = isset( $_POST['confirm_delete'] ) && is_scalar( $_POST['confirm_delete'] ) && '1' === sanitize_text_field( wp_unslash( (string) $_POST['confirm_delete'] ) );
             $result = self::delete_native_menu( $confirmed );
