@@ -21,6 +21,24 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 EXCLUDE_PARTS = {"tests", "node_modules", "uploads", "__pycache__"}
 EXCLUDE_SUFFIXES = (".bak", ".md", ".pot", ".log", ".pyc")
 
+# Both WordPress installations are siblings beneath the FTP account's
+# new /home/hosting160568eu/public_html root. Never deploy to the root itself.
+SITE_FTP_ROOTS = {
+    "staging": "staging.distribuidordeherramientas.es",
+    "focazul": "asociacionfocazul",
+}
+
+
+def remote_plugin_dir(target, slug):
+    if target not in SITE_FTP_ROOTS:
+        raise ValueError(f"Unrecognized FTP destination: {target}")
+    if not SLUG.fullmatch(slug):
+        raise ValueError(f"Invalid plugin slug: {slug}")
+    if target == "focazul" and slug != "taxocommerce-core":
+        raise ValueError("Only Core can be deployed to Focazul")
+    return "./" + SITE_FTP_ROOTS[target] + "/wp-content/plugins/" + slug + "/"
+
+
 
 def git(*args):
     return subprocess.check_output(["git", *args])
@@ -118,9 +136,9 @@ def existing_file_hash(ftp, name):
     return digest.hexdigest()
 
 
-def upload_plugin(ftp, slug, files, required):
+def upload_plugin(ftp, target, slug, files, required):
     try:
-        ftp.cwd("./wp-content/plugins/" + slug + "/")
+        ftp.cwd(remote_plugin_dir(target, slug))
     except ftplib.error_perm as exc:
         if not required and str(exc).startswith("550"):
             print(f"SKIP {slug}: plugin directory absent on this WordPress")
@@ -172,7 +190,10 @@ def deploy(base, target, slug):
         raise ValueError(f"No distributable changes selected for {slug}")
     if target == "focazul" and slug != "taxocommerce-core":
         raise ValueError("Only Core is authorized for Focazul")
-    env_prefix = "STAGING" if target == "staging" else "FOCAZUL"
+    # One FTPS login shared by both clients; each site has an isolated path.
+    # Validate the destination before connecting to the server.
+    remote_plugin_dir(target, slug)
+    env_prefix = "STAGING"
     host = os.environ[env_prefix + "_FTP_SERVER"]
     user = os.environ[env_prefix + "_FTP_USERNAME"]
     password = os.environ[env_prefix + "_FTP_PASSWORD"]
@@ -184,7 +205,7 @@ def deploy(base, target, slug):
             ftp.connect(host, 21)
             ftp.login(user, password)
             ftp.prot_p()
-            upload_plugin(ftp, slug, changes[slug], required=(slug == "taxocommerce-core"))
+            upload_plugin(ftp, target, slug, changes[slug], required=(slug == "taxocommerce-core"))
             ftp.quit()
             return
         except (OSError, EOFError, ftplib.error_temp) as exc:

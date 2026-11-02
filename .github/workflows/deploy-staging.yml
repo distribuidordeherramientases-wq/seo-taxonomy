@@ -78,7 +78,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Upload only changed files of an already installed plugin
+      - name: Upload only changed files to STAGING using shared FTPS login
+        # Account root: /home/hosting160568eu/public_html
+        # Target path: ./staging.distribuidordeherramientas.es/wp-content/plugins/<slug>/
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
@@ -96,11 +98,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Upload exactly the same changed Core files to Focazul
+      - name: Upload Core changes to Focazul using the shared FTPS login
+        # FTP user root: /home/hosting160568eu/public_html
+        # Target path is restricted in deploy_staging_delta.py to
+        # ./asociacionfocazul/wp-content/plugins/taxocommerce-core/
         env:
-          FOCAZUL_FTP_SERVER: ${{ secrets.FOCAZUL_FTP_SERVER }}
-          FOCAZUL_FTP_USERNAME: ${{ secrets.FOCAZUL_FTP_USERNAME }}
-          FOCAZUL_FTP_PASSWORD: ${{ secrets.FOCAZUL_FTP_PASSWORD }}
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
           BASE: ${{ needs.plan.outputs.base }}
         run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug taxocommerce-core
 
