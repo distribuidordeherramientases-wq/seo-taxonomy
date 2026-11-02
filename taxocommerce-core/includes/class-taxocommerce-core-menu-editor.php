@@ -94,6 +94,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<input id="tc-menu-save-name" type="text" name="menu_name" value="' . esc_attr( $menu->name ) . '" maxlength="200" required></p>';
         echo '</form>';
         echo '<p class="description">' . esc_html__( 'Los cambios de texto, enlaces, jerarquía, orden o nombre se aplicarán al pulsar Guardar menú. Añadir o quitar un elemento se guarda al confirmar esa operación.', 'taxocommerce-core' ) . '</p>';
+        echo '<p class="tc-menu-unsaved" data-tc-menu-unsaved hidden>' . esc_html__( 'Hay cambios pendientes de guardar.', 'taxocommerce-core' ) . '</p>';
         self::controls( $menu_id, 'top' );
         self::render( $menu_id );
         self::controls( $menu_id, 'bottom' );
@@ -548,7 +549,7 @@ final class TaxoCommerce_Core_Menu_Editor {
                 }
             }
             $item = $map[ $id ];
-            $title = sanitize_text_field( wp_unslash( (string) $fields['title'] ) );
+            $title = sanitize_text_field( (string) $fields['title'] );
             $parent = absint( $fields['parent'] );
             $position = absint( $fields['position'] );
             $url = (string) ( $item->url ?? '' );
@@ -556,7 +557,7 @@ final class TaxoCommerce_Core_Menu_Editor {
                 if ( ! isset( $fields['url'] ) || ! is_scalar( $fields['url'] ) ) {
                     return new WP_Error( 'menu_link', __( 'Falta la URL de un enlace personalizado.', 'taxocommerce-core' ) );
                 }
-                $url = esc_url_raw( wp_unslash( (string) $fields['url'] ), array( 'http', 'https', 'mailto', 'tel' ) );
+                $url = esc_url_raw( (string) $fields['url'], array( 'http', 'https', 'mailto', 'tel' ) );
                 if ( '' === $url ) {
                     return new WP_Error( 'menu_link', __( 'La URL del enlace personalizado no es válida.', 'taxocommerce-core' ) );
                 }
