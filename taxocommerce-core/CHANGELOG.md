@@ -9,6 +9,12 @@
 
 ## [Unreleased]
 
+## [0.4.45]
+
+- Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
+- Acceso directo al Editor del sitio para la navegación seleccionada y aviso desde la pestaña SEO en temas de bloques, evitando confundir el menú clásico cargado con el menú publicado en la cabecera.
+- La selección es solo lectura; el guardado mantiene verificaciones de nonce, permisos y contenido concurrente. No se modifica automáticamente el menú publicado. Issue #2069.
+
 ## [0.4.44]
 
 - Gestor Menús WordPress: edición explícita de las entradas `wp_navigation` referenciadas desde plantillas de cabecera de temas de bloques. Guarda los atributos de los enlaces sin alterar bloques no compatibles, comprueba nonce/permisos y rechaza cambios concurrentes. Los menús clásicos siguen siendo independientes; se evita afirmar que su guardado actualiza la cabecera. Menús embebidos y situaciones ambiguas se derivan al Editor del sitio. Issue #2060.
