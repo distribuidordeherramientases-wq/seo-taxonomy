@@ -1,0 +1,19 @@
+name: i18n source snapshot for PHP and JS text audit (#2062)
+on:
+  push:
+    branches: [audit/i18n-family-2062-source-snapshot]
+    paths: [.github/workflows/i18n-source-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package source files for offline review
+        run: tar -czf /tmp/taxocommerce-family-source-2062.tar.gz taxocommerce-*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxocommerce-family-source-2062
+          path: /tmp/taxocommerce-family-source-2062.tar.gz
+          retention-days: 1
