@@ -1,0 +1,15 @@
+name: Stop obsolete localization run (#2062)
+on:
+  push:
+    branches: [audit/i18n-family-2062-source-snapshot]
+    paths: [.github/workflows/i18n-cancel-obsolete-second-2062.yml]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/41487875016/cancel"
