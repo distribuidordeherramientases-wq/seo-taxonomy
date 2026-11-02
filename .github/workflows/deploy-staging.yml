@@ -33,8 +33,10 @@ jobs:
 
   deploy-staging:
     name: Deploy plugin to STAGING
-    # A cleanup-only merge must not redeploy the monolith or other modules.
-    if: ${{ github.event_name != 'pull_request' && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup') || contains(github.event.head_commit.message, '[insights-tests-cleanup]')) }}
+    needs: [focazul-scope]
+    # A Core-only change deploys through the scoped job below. Other push and
+    # manual deployment behaviour is retained for compatibility.
+    if: ${{ always() && github.event_name != 'pull_request' && (github.event_name != 'push' || (needs.focazul-scope.result == 'success' && needs.focazul-scope.outputs.slugs != '["taxocommerce-core"]')) && !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup') || contains(github.event.head_commit.message, '[insights-tests-cleanup]')) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -893,10 +895,50 @@ jobs:
           print('Focazul standalone modules changed:', ', '.join(slugs) or '(none)')
           PY
 
+  deploy-core-only:
+    name: Deploy modified Core only to STAGING
+    needs: [focazul-scope]
+    if: ${{ github.event_name == 'push' && needs.focazul-scope.result == 'success' && needs.focazul-scope.outputs.slugs == '["taxocommerce-core"]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the staging revision
+        uses: actions/checkout@v4
+      - name: Validate Core PHP and navigation/anomalies regressions
+        run: |
+          find taxocommerce-core -type f -name '*.php' ! -path '*/tests/*' -print0 | xargs -0 -r -n1 php -l
+          php .github/tests/taxocommerce-core/block-navigation-smoke.php
+          php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+      - name: Deploy only TaxoCommerce Core to STAGING
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./taxocommerce-core/
+          server-dir: ./wp-content/plugins/taxocommerce-core/
+          state-name: ../.taxocommerce-core-ftp-state.json
+          dry-run: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.*/**
+            **/.*
+            tests/**
+            **/tests/**
+            **/node_modules/**
+            **/*.bak
+            **/*.md
+            **/*.pot
+
   deploy-focazul:
     name: Focazul live portability test / ${{ matrix.slug }}
-    needs: [deploy-staging, focazul-scope]
-    if: github.event_name == 'push' && needs.deploy-staging.result == 'success' && needs.focazul-scope.outputs.count != '0'
+    needs: [deploy-staging, deploy-core-only, focazul-scope]
+    if: ${{ always() && github.event_name == 'push' && needs.focazul-scope.result == 'success' && needs.focazul-scope.outputs.count != '0' && (needs.deploy-staging.result == 'success' || needs.deploy-core-only.result == 'success') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
