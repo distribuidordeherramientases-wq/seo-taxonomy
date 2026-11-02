@@ -49,9 +49,8 @@ function taxocommerce_core_anomalies_render() {
     global $wpdb;
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
     $configured_nodes = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_nodes WHERE status=1 AND seo_role IN ('cluster', 'hub_primary', 'hub_secondary', 'landing')" );
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
-    $configured_relations = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_relations WHERE relation_type IN ('cluster_to_primary', 'hub_primary_to_hub_secondary', 'hub_secondary_to_category', 'hub_secondary_to_landing', 'landing_to_category')" );
-    if ( 0 === $configured_nodes && 0 === $configured_relations ) {
+    // Existing relationship rows are not proof of a configured hierarchy.
+    if ( 0 === $configured_nodes ) {
         echo '<p class="description">' . esc_html__( 'Jerarquía SEO no configurada. No hay anomalías estructurales que comprobar.', 'taxocommerce-core' ) . '</p></section>';
         return;
     }
@@ -293,6 +292,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
     if ( ! $faq_table ) {
         return;
     }
+    ob_start();
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '🧩 FAQs sin elemento relacionado', 'taxocommerce-core' ) . '</h3>';
     echo '<p>' . esc_html__( 'Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera categorías, productos o páginas/hubs.', 'taxocommerce-core' ) . '</p>';
 
@@ -390,6 +390,13 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
          WHERE object_type NOT IN (1, 2, 3)", $faq_table )
     );
 
+    $faq_findings = $category_total + $product_orphans + $product_not_published + $hub_orphans + $hub_trash + $unknown_type;
+    if ( 0 === $faq_findings && ! taxocommerce_core_anomalies_show_all()
+        && ! isset( $_GET['faq_category_orphans_deleted'] ) && ! isset( $_GET['faq_product_orphans_deleted'] ) ) {
+        ob_end_clean();
+        return;
+    }
+    echo ob_get_clean(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped section heading and notices.
     echo '<table class="widefat striped" style="margin:10px 0 20px;">';
     echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Chequeo', 'taxocommerce-core' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-core' ) . '</th>' . '<th>' . esc_html__( 'Lectura', 'taxocommerce-core' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     taxocommerce_core_anomalies_faq_row('FAQs en categorías inexistentes', $category_total, 'Afecta a ' . $category_objects . ' object_id de categoría.');
@@ -780,8 +787,33 @@ function taxocommerce_core_anomalies_recount_categories() {
     exit;
 }
 
+/**
+ * True only when the administrator explicitly wants successful audit sections too.
+ */
+function taxocommerce_core_anomalies_show_all() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display preference.
+    return isset( $_GET['tc_anomalies_all'] ) && is_string( $_GET['tc_anomalies_all'] )
+        && '1' === wp_unslash( $_GET['tc_anomalies_all'] );
+}
+
+/**
+ * Emit a section only if it contains a real finding, unless the full view was requested.
+ * The original queries and actions remain unchanged; only their presentation is filtered.
+ */
+function taxocommerce_core_anomalies_finish_section( $has_findings, $show_all, &$visible_findings ) {
+    $html = ob_get_clean();
+    if ( $has_findings ) {
+        ++$visible_findings;
+    }
+    if ( $has_findings || $show_all ) {
+        echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the original report renderers.
+    }
+}
+
 function taxocommerce_core_anomalies_render_report() {
     global $wpdb;
+    $show_all = taxocommerce_core_anomalies_show_all();
+    $visible_findings = 0;
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM {$wpdb->prefix}seo_nodes WHERE status=1");
@@ -803,13 +835,19 @@ function taxocommerce_core_anomalies_render_report() {
 
     echo '<h2>' . esc_html__( '🚨 Reporte de Auditoría y Control de Estructura', 'taxocommerce-core' ) . '</h2>';
     echo '<p>' . esc_html__( 'Monitoreo global de la integridad estructural de Nodos y relaciones semánticas en la base de datos.', 'taxocommerce-core' ) . '</p>';
+    $report_url = admin_url( 'admin.php?page=taxocommerce-core-content&tc_type=anomalies' );
+    echo '<p><a class="button button-secondary" href="' .
+        esc_url( $show_all ? $report_url : add_query_arg( 'tc_anomalies_all', '1', $report_url ) ) .
+        '">' . esc_html( $show_all ? __( 'Mostrar solo incidencias', 'taxocommerce-core' ) :
+        __( 'Mostrar todas las comprobaciones', 'taxocommerce-core' ) ) . '</a></p>';
 
-    if (function_exists('taxocommerce_core_anomalies_content_json_render_panel') && taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary')) {
+    if ($show_all && function_exists('taxocommerce_core_anomalies_content_json_render_panel') && taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary')) {
         taxocommerce_core_anomalies_content_json_render_panel();
     }
     
     echo "<div style='background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);'>";
 
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px;">' . esc_html__( 'Clusters sin hubs primarios', 'taxocommerce-core' ) . '</h3>';
     $has_clusters_anomalies = false;
     foreach ($clusters as $cluster_id) {
@@ -822,6 +860,8 @@ function taxocommerce_core_anomalies_render_report() {
     }
     if (!$has_clusters_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'No se encontraron incidencias en esta sección.', 'taxocommerce-core' ) . '</p>';
     
+    taxocommerce_core_anomalies_finish_section( $has_clusters_anomalies, $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . esc_html__( 'Hubs primarios sin cluster', 'taxocommerce-core' ) . '</h3>';
     $has_hp_anomalies = false;
     foreach ($hubs_primary as $hp_id) {
@@ -834,6 +874,8 @@ function taxocommerce_core_anomalies_render_report() {
     }
     if (!$has_hp_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'No se encontraron incidencias en esta sección.', 'taxocommerce-core' ) . '</p>';
     
+    taxocommerce_core_anomalies_finish_section( $has_hp_anomalies, $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . esc_html__( 'Hubs secundarios sin hub primary', 'taxocommerce-core' ) . '</h3>';
     $has_hs_anomalies = false;
     foreach ($hubs_secondary as $hs_id) {
@@ -847,6 +889,8 @@ function taxocommerce_core_anomalies_render_report() {
     if (!$has_hs_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'No se encontraron incidencias en esta sección.', 'taxocommerce-core' ) . '</p>';
     
     
+    taxocommerce_core_anomalies_finish_section( $has_hs_anomalies, $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="
     color:#b57d00;
     border-bottom:1px solid #ccd0d4;
@@ -979,6 +1023,8 @@ function taxocommerce_core_anomalies_render_report() {
     
     
     
+    taxocommerce_core_anomalies_finish_section( ! empty( $secondary_without_categories ), $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . esc_html__( 'Hubs primarios en múltiples clusters', 'taxocommerce-core' ) . '</h3>';
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $multi = $wpdb->get_results("SELECT target_id, COUNT(*) as c FROM {$wpdb->prefix}seo_relations WHERE relation_type='cluster_to_primary' GROUP BY target_id HAVING c > 1");
@@ -990,6 +1036,8 @@ function taxocommerce_core_anomalies_render_report() {
         echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'No se encontraron incidencias en esta sección.', 'taxocommerce-core' ) . '</p>';
     }
     
+    taxocommerce_core_anomalies_finish_section( ! empty( $multi ), $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . esc_html__( 'Landings sin hub secondary', 'taxocommerce-core' ) . '</h3>';
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $landings = $wpdb->get_results("SELECT DISTINCT target_id FROM {$wpdb->prefix}seo_relations WHERE target_type='landing_page'");
@@ -1009,6 +1057,8 @@ function taxocommerce_core_anomalies_render_report() {
      * Solo se auditan páginas con seo_role=landing: clusters, hubs y páginas
      * corporativas siguen otras reglas estructurales y no deben marcarse aquí.
      */
+    taxocommerce_core_anomalies_finish_section( $has_landings_anomalies, $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '🧭 Landing pages sin categoría de producto asociada', 'taxocommerce-core' ) . '</h3>';
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
@@ -1088,6 +1138,8 @@ function taxocommerce_core_anomalies_render_report() {
      * - Noticias y contenidos funcionales/corporativos se excluyen de esta anomalía.
      * - Solo se revisan posts publicados o programados.
      */
+    taxocommerce_core_anomalies_finish_section( ! empty( $landings_without_product_category ), $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '🔗 Posts editoriales sin categoría de producto relacionada', 'taxocommerce-core' ) . '</h3>';
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
@@ -1214,6 +1266,7 @@ function taxocommerce_core_anomalies_render_report() {
     } else {
         echo '<p style="color:#2e7d32;font-style:italic;">' . esc_html__( 'Todas las Guías y Comparativas publicadas o programadas tienen al menos una categoría de producto relacionada.', 'taxocommerce-core' ) . '</p>';
     }
+    taxocommerce_core_anomalies_finish_section( ! empty( $posts_without_product_category ), $show_all, $visible_findings );
 
     /*
      * Entradas editoriales sin Vocabulary semantico activo.
@@ -1230,6 +1283,7 @@ function taxocommerce_core_anomalies_render_report() {
      */
     $has_core_vocabulary = taxocommerce_core_anomalies_table_exists('seo_object_vocabulary') && taxocommerce_core_anomalies_table_exists('seo_vocabulary');
     if ( $has_core_vocabulary ) {
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '📰 Entradas editoriales sin Vocabulary semántico activo', 'taxocommerce-core' ) . '</h3>';
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $posts_without_vocabulary_raw = $has_core_vocabulary ? $wpdb->get_results("
@@ -1391,9 +1445,11 @@ function taxocommerce_core_anomalies_render_report() {
     } else {
         echo '<p style="color:#2e7d32;font-style:italic;">' . esc_html__( 'Todas las entradas editoriales publicadas o programadas tienen al menos un término de Vocabulary canónico activo.', 'taxocommerce-core' ) . '</p>';
     }
+    taxocommerce_core_anomalies_finish_section( ! empty( $posts_without_vocabulary ), $show_all, $visible_findings );
     } // End Vocabulary-specific checks. No installed tables means no configured Vocabulary to audit.
 
     if ( ! empty( $hubs_secondary ) ) {
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#ff9800; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '⚠️ Categorías sin asignación estructural', 'taxocommerce-core' ) . '</h3>';
     $cats = get_terms(['taxonomy' => 'product_cat', 'hide_empty' => false]);
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
@@ -1409,10 +1465,12 @@ function taxocommerce_core_anomalies_render_report() {
         }
     }
     if (!$has_cats_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'Todas las categorías de WooCommerce están correctamente vinculadas en la tabla de relaciones SEO.', 'taxocommerce-core' ) . '</p>';
+    taxocommerce_core_anomalies_finish_section( $has_cats_anomalies, $show_all, $visible_findings );
     } // Do not require structural assignment until a secondary hub exists.
 
         // Empty product categories are structural findings only when a secondary-hub structure exists.
         if ( ! empty( $hubs_secondary ) ) {
+        ob_start(); // Audit section buffered to suppress irrelevant success messages.
         // Categorías sin productos + limpieza segura desde el propio informe.
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #ccd0d4;margin-top:40px;margin-bottom:15px;flex-wrap:wrap;">';
 
@@ -1681,8 +1739,10 @@ function taxocommerce_core_anomalies_render_report() {
 
 
 
+        taxocommerce_core_anomalies_finish_section( ! empty( $empty_categories ) || ! empty( $counter_anomalies ), $show_all, $visible_findings );
         } // End structurally relevant category audit.
 
+        ob_start(); // Audit section buffered to suppress irrelevant success messages.
         echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . '
             ' . esc_html__( 'Hubs secundarios en múltiples hubs primarios', 'taxocommerce-core' ) . '
         ' . '</h3>';
@@ -1772,6 +1832,8 @@ function taxocommerce_core_anomalies_render_report() {
             ' . '</p>';
         }
 
+        taxocommerce_core_anomalies_finish_section( ! empty( $secondary_multiple_parents ), $show_all, $visible_findings );
+    ob_start(); // Audit section buffered to suppress irrelevant success messages.
     echo '<h3 style="color:#b57d00; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:40px;">' . esc_html__( '💥 Categorías DUPLICADAS en múltiples Hubs Secundarios', 'taxocommerce-core' ) . '</h3>';
     
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
@@ -1813,8 +1875,18 @@ function taxocommerce_core_anomalies_render_report() {
         echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( '¡Excelente! No existen categorías duplicadas. Cada categoría de WooCommerce pertenece a un único Hub Secundario.', 'taxocommerce-core' ) . '</p>';
     }
 
+    taxocommerce_core_anomalies_finish_section( ! empty( $duplicate_cats ), $show_all, $visible_findings );
     // FAQs que han perdido el enlace con su categoría, producto o página.
+    ob_start();
     taxocommerce_core_anomalies_render_faq_orphans();
+    $faq_html = ob_get_clean();
+    if ( '' !== trim( $faq_html ) ) {
+        ++$visible_findings;
+        echo $faq_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in FAQ renderer.
+    }
 
+    if ( 0 === $visible_findings && ! $show_all ) {
+        echo '<p class="description">' . esc_html__( 'No se han detectado incidencias en la estructura configurada.', 'taxocommerce-core' ) . '</p>';
+    }
     echo "</div>";
 }

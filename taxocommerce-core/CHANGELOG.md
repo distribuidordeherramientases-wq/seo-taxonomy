@@ -13,6 +13,11 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.46]
+
+- Anomalías (#2071): se muestran por defecto solo incidencias reales de jerarquías configuradas. El botón «Mostrar todas las comprobaciones» permite consultar resultados correctos. FAQs/Vocabulary opcionales sin configurar no se presentan como errores; las relaciones históricas no activan una jerarquía vacía.
+- Pruebas de regresión para el filtro, jerarquías no configuradas y relaciones heredadas; se conserva el despliegue dual independiente del PR #2085.
+
 ## [0.4.45]
 
 - Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
