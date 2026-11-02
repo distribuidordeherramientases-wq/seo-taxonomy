@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+- Gestor de menús WordPress: aviso explícito en temas de bloques cuando el menú clásico editado no es necesariamente el que se muestra en la cabecera, con acceso al Editor del sitio. En temas clásicos informa de las ubicaciones asignadas al menú seleccionado. Sin modificación automática de menús o navegación publicada. Issue #2058.
+
 ## [0.4.43]
 
 - Botones visibles «Guardar menú» (superior/inferior) en la pestaña Menús WordPress: guardan de forma explícita nombre, títulos, URLs, orden y jerarquía; aviso de cambios pendientes y mensaje de resultado.
