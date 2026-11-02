@@ -12,6 +12,9 @@
 ## [0.4.45]
 
 - Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
+- Gestor unificado sin pestaña independiente de menús clásicos. En temas de bloques se carga el listado de navegaciones nativas (`wp_navigation`), se pueden crear nuevas, editar enlaces y añadir enlaces de primer nivel. Los menús clásicos de temas clásicos mantienen sus herramientas anteriores.
+- Activación de una navegación de bloques únicamente en cabeceras personalizadas y editables, con una sola navegación identificable. No se sobrescriben ficheros de tema ni plantillas ambiguas; se ofrece el Editor del sitio para los demás casos.
+- La opción de generar/sincronizar desde jerarquía SEO solo aparece con un árbol real; la ejecución rechaza una jerarquía vacía antes de borrar elementos generados. Issue #2069.
 - Acceso directo al Editor del sitio para la navegación seleccionada y aviso desde la pestaña SEO en temas de bloques, evitando confundir el menú clásico cargado con el menú publicado en la cabecera.
 - La selección es solo lectura; el guardado mantiene verificaciones de nonce, permisos y contenido concurrente. No se modifica automáticamente el menú publicado. Issue #2069.
 
