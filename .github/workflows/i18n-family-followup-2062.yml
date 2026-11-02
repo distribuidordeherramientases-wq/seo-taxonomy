@@ -1,0 +1,63 @@
+name: Finish TaxoCommerce family PHP and JavaScript gettext (#2062)
+on:
+  push:
+    branches: [fix/i18n-family-2062]
+    paths: [.github/workflows/i18n-family-followup-2062.yml]
+permissions:
+  contents: write
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WP gettext and JS AST tools
+        run: |
+          python3 -m pip install --disable-pip-version-check polib
+          npm install --prefix /tmp/tcjs -s --no-save typescript@5
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+      - name: Internationalize all remaining safe PHP labels and JavaScript UI strings
+        run: |
+          php .github/scripts/i18n-family-2062-echo.php .
+          python3 .github/scripts/i18n-family-2062-controls.py .
+          python3 .github/scripts/i18n-family-2062-array-labels.py .
+          TS_MODULE_PATH=/tmp/tcjs/node_modules/typescript node .github/scripts/i18n-family-2062-js.js . /tmp/tci18n-manifest.json
+          python3 .github/scripts/i18n-family-2062-js-register.py . /tmp/tci18n-manifest.json
+      - name: Rebuild all 20 POT files and preserve existing translated PO entries
+        run: |
+          set -euo pipefail
+          for entry in taxocommerce-*/taxocommerce-*.php; do
+            plugin=$(dirname "$entry")
+            test "$(basename "$entry")" = "$plugin.php" || continue
+            php /tmp/wp-cli.phar i18n make-pot "$plugin" "$plugin/languages/$plugin.pot" --domain="$plugin" --exclude=tests,uninstall.php --skip-audit
+          done
+          python3 .github/scripts/i18n-family-2062-sync.py .
+      - name: Validate all PHP and JavaScript syntax
+        run: |
+          set -euo pipefail
+          find taxocommerce-* -type f -name '*.php' -print0 | xargs -0 -P 4 -n1 php -l >/tmp/php-lint-2062.txt
+          find taxocommerce-* -type f -name '*.js' -not -path '*/tests/*' -print0 | xargs -0 -P 4 -n1 node --check
+          git diff --check
+      - name: Recompile native JavaScript JSON catalogs
+        run: |
+          for langdir in taxocommerce-*/languages; do
+            php /tmp/wp-cli.phar i18n make-json "$langdir" --no-purge
+          done
+      - name: Trigger next offline fill of newly extracted gettext strings
+        run: |
+          # The offline translation workflow starts on an update of its driver.
+          printf '\n# PHP and JS re-extraction for issue 2062 completed.\n' >> .github/scripts/i18n-family-2062-offline.py
+      - name: Commit source and extracted catalogs only on work branch
+        run: |
+          set -euo pipefail
+          git config user.name 'TaxoCommerce i18n CI'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add taxocommerce-*/ .github/scripts/i18n-family-2062-offline.py
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m 'i18n: complete PHP+JS gettext extraction for all 20 plugins (#2062)'
+            git push origin HEAD:fix/i18n-family-2062
+          fi
