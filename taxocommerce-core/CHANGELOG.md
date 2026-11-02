@@ -9,12 +9,14 @@
 
 ## [Unreleased]
 
-## [0.4.46]
-
-- Informe de Anomalías (#2071): «Solo incidencias» por defecto y opción de consultar todas las comprobaciones. No presenta secciones vacías, supuestas incidencias de clasificaciones ausentes ni módulos FAQ/Vocabulary opcionales no configurados. La detección de jerarquía exige al menos un nodo activo real; las relaciones históricas no bastan. Se conservan consultas, comprobaciones y acciones de limpieza existentes.
-- Actualizada versión y documentación del plugin. Validación funcional y entrega a Focazul pendientes de comprobar.
+- Despliegue (#2084): Core se transfiere a STAGING y Asociación Focazul en trabajos independientes; el resultado conjunto exige éxito en ambos sitios. Fallos de System Check u otros plugins no bloquean Core en Focazul. Sin modificar el código funcional del plugin.
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
+
+## [0.4.46]
+
+- Anomalías (#2071): se muestran por defecto solo incidencias reales de jerarquías configuradas. El botón «Mostrar todas las comprobaciones» permite consultar resultados correctos. FAQs/Vocabulary opcionales sin configurar no se presentan como errores; las relaciones históricas no activan una jerarquía vacía.
+- Pruebas de regresión para el filtro, jerarquías no configuradas y relaciones heredadas; se conserva el despliegue dual independiente del PR #2085.
 
 ## [0.4.45]
 
