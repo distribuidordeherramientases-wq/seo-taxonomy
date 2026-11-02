@@ -205,7 +205,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         if ( ! hash_equals( hash( 'sha256', $post->post_content ), $hash ) ) {
             self::redirect( $id, 'error', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
         }
-        $submitted = isset( $_POST['nav_links'] ) && is_array( $_POST['nav_links'] ) ? wp_unslash( $_POST['nav_links'] ) : array();
+        $submitted = isset( $_POST['nav_links'] ) && is_array( $_POST['nav_links'] ) ? map_deep( wp_unslash( $_POST['nav_links'] ), 'sanitize_text_field' ) : array();
         $blocks = parse_blocks( $post->post_content );
         $links = array();
         self::links( $blocks, $links );
