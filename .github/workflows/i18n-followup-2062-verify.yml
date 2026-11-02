@@ -1,0 +1,56 @@
+name: Verify native PHP and JavaScript i18n conversion (#2062)
+on:
+  push:
+    branches: [audit/i18n-family-2062-source-snapshot]
+    paths: [.github/workflows/i18n-followup-2062-verify.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install POT/JS tools
+        run: |
+          python3 -m pip install --disable-pip-version-check polib
+          npm install --prefix /tmp/tcjs -s --no-save typescript@5
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+      - name: Convert PHP echo HTML, controls and JavaScript
+        run: |
+          php .github/scripts/i18n-family-2062-echo.php .
+          python3 .github/scripts/i18n-family-2062-controls.py .
+          TS_MODULE_PATH=/tmp/tcjs/node_modules/typescript node .github/scripts/i18n-family-2062-js.js . /tmp/tci18n-manifest.json
+          python3 .github/scripts/i18n-family-2062-js-register.py . /tmp/tci18n-manifest.json
+      - name: Rebuild twenty catalogs using WordPress extractor
+        run: |
+          set -euo pipefail
+          for entry in taxocommerce-*/taxocommerce-*.php; do
+            plugin=$(dirname "$entry")
+            test "$(basename "$entry")" = "$plugin.php" || continue
+            php /tmp/wp-cli.phar i18n make-pot "$plugin" "$plugin/languages/$plugin.pot" --domain="$plugin" --exclude=tests,uninstall.php --skip-audit
+          done
+          python3 .github/scripts/i18n-family-2062-sync.py .
+      - name: Compile JavaScript translation bundles
+        run: |
+          for lang in taxocommerce-*/languages; do
+            php /tmp/wp-cli.phar i18n make-json "$lang" --no-purge
+          done
+      - name: PHP and JS syntax plus diff checks
+        run: |
+          find taxocommerce-* -name '*.php' -type f -print0 | xargs -0 -P 4 -n 1 php -l >/tmp/tc-php-lint.txt
+          find taxocommerce-* -name '*.js' -type f -not -path '*/tests/*' -print0 | xargs -0 -P 4 -n 1 node --check
+          git diff --check
+          echo 'JavaScript catalog JSON bundles:'
+          find taxocommerce-* -path '*/languages/*' -name '*.json' | wc -l
+          echo 'Modified sources:'
+          git diff --stat | tail -n 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: i18n-followup-2062-test
+          path: /tmp/tci18n-manifest.json
+          if-no-files-found: ignore
