@@ -1,3 +1,7 @@
+## Unreleased
+
+- [i18n #2062] Los menús de administración, las pestañas y los textos principales de Scrappers utilizan gettext con el dominio `taxocommerce-scrappers`, sin modificar sus identificadores internos. Pendiente: completar catálogos y auditar el resto de pantallas heredadas.
+
 # CHANGELOG — TaxoCommerce Scrappers
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
