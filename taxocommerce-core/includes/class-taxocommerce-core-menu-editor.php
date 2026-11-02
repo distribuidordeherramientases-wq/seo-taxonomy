@@ -101,7 +101,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             }
             if ( $menu_id ) {
                 echo '<p class="description"><strong>' . esc_html__( 'Estado de publicación:', 'taxocommerce-core' ) . '</strong> ';
-                echo $places ? esc_html( sprintf( __( 'Menú asignado a: %s', 'taxocommerce-core' ), implode( ', ', $places ) ) ) : esc_html__( 'Este menú no está asignado a ninguna ubicación clásica del tema.', 'taxocommerce-core' );
+                echo $places ? esc_html( sprintf( /* translators: %s: comma-separated theme menu location names. */ __( 'Menú asignado a: %s', 'taxocommerce-core' ), implode( ', ', $places ) ) ) : esc_html__( 'Este menú no está asignado a ninguna ubicación clásica del tema.', 'taxocommerce-core' );
                 echo '</p>';
             }
         }
