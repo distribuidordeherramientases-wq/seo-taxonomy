@@ -42,7 +42,7 @@ function taxocommerce_core_anomalies_render() {
     echo '<section class="tc-anomalies" aria-label="' . esc_attr__('Anomalías', 'taxocommerce-core') . '">';
     if (!taxocommerce_core_anomalies_table_exists('seo_nodes') ||
         !taxocommerce_core_anomalies_table_exists('seo_relations')) {
-        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No existen las tablas originales seo_nodes / seo_relations. No es posible realizar los chequeos estructurales.', 'taxocommerce-core' ) . '</p>' . '</div>' . '</section>';
+        echo '<p class="description">' . esc_html__( 'La jerarquía SEO no está disponible o no se ha configurado. No se pueden comprobar anomalías estructurales.', 'taxocommerce-core' ) . '</p></section>';
         return;
     }
     // An unconfigured store does not have a broken SEO hierarchy.
@@ -1411,6 +1411,8 @@ function taxocommerce_core_anomalies_render_report() {
     if (!$has_cats_anomalies) echo '<p style="color:#2e7d32; font-style:italic;">' . esc_html__( 'Todas las categorías de WooCommerce están correctamente vinculadas en la tabla de relaciones SEO.', 'taxocommerce-core' ) . '</p>';
     } // Do not require structural assignment until a secondary hub exists.
 
+        // Empty product categories are structural findings only when a secondary-hub structure exists.
+        if ( ! empty( $hubs_secondary ) ) {
         // Categorías sin productos + limpieza segura desde el propio informe.
         echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #ccd0d4;margin-top:40px;margin-bottom:15px;flex-wrap:wrap;">';
 
@@ -1678,6 +1680,8 @@ function taxocommerce_core_anomalies_render_report() {
 
 
 
+
+        } // End structurally relevant category audit.
 
         echo '<h3 style="color:#d63638; border-bottom:1px solid #ccd0d4; padding-bottom:5px; margin-top:30px;">' . '
             ' . esc_html__( 'Hubs secundarios en múltiples hubs primarios', 'taxocommerce-core' ) . '
