@@ -94,8 +94,8 @@ class HistoricModularDeployTests(unittest.TestCase):
             readme = (module / "readme.txt").read_text(
                 encoding="utf-8", errors="replace"
             )
-            version = re.search(r"(?mi)^\\s*\\*\\s*Version:\\s*(\\S+)", main)
-            stable = re.search(r"(?mi)^Stable tag:\\s*(\\S+)", readme)
+            version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main)
+            stable = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
             if not version or not stable or version.group(1) != stable.group(1):
                 errors.append(module.name + ": Version != Stable tag")
         self.assertEqual(errors, [])
