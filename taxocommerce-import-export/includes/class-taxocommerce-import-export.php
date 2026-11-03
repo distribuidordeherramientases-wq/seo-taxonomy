@@ -215,7 +215,7 @@ final class TaxoCommerce_Import_Export {
 				<div class="tcc-page-header__content">
 					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-import-export' ); ?></p>
 					<h1><?php echo esc_html__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ); ?></h1>
-					<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías, posts, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
+					<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías WooCommerce, categorías WordPress, entradas, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
 				</div>
 			</header>
 
@@ -280,7 +280,7 @@ final class TaxoCommerce_Import_Export {
 				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
 			<?php endif; ?>
 
-			<h2><?php echo esc_html__( 'Importación individual de datos y contenidos', 'taxocommerce-import-export' ); ?></h2>
+			<h2><?php echo esc_html__( 'Importación individual de datos y contenidos (incluidas categorías WordPress)', 'taxocommerce-import-export' ); ?></h2>
 			<div class="tcc-family-grid">
 				<div class="card">
 					<h3><?php echo esc_html__( 'Importar CSV', 'taxocommerce-import-export' ); ?></h3>
