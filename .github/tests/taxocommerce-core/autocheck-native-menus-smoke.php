@@ -115,6 +115,7 @@ check_status( 'menus', 'pass', 'Only configured markets are checked, empty menus
 $GLOBALS['options']['taxocommerce_core_menu_id_pt'] = 999;
 check_status( 'menus', 'fail', 'A stored but missing country menu is an error' );
 $GLOBALS['options'] = array();
+unset( $GLOBALS['menus'][31] );
 check_status( 'menus', 'skip', 'No SEO menus on a fresh site is expected' );
 
 if ( 0 !== $GLOBALS['writes'] ) {
