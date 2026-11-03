@@ -42,11 +42,11 @@ update_post_meta($gen,TaxoCommerce_Core_Menu::GENERATED_META,1);
 $manual=wp_update_nav_menu_item(99,0,array('menu-item-title'=>'Manual <safe>','menu-item-parent-id'=>$gen));
 $before=$GLOBALS['writes'];ob_start();$core->render();$html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'view never mutates menu');
-verify(strpos($html,'MENÚ QUE ESTÁS EDITANDO O CREANDO')!==false,'menu identity heading visible');
-verify(strpos($html,'&#039;menu&#039; =&gt; &#039;TaxoCommerce - ES&#039;')!==false,'ES template selector escaped');
-verify(strpos($html,'Nombre actual en WordPress: TaxoCommerce')!==false,'legacy ES menu name disclosed');
+verify(strpos($html,'Gestor de menús')!==false,'unified native menu heading visible');
+verify(strpos($html,'name="tc_country"')===false,'native menu editor does not invent country selectors');
+verify(strpos($html,'<h2>TaxoCommerce</h2>')!==false,'real WordPress menu name disclosed');
 
-verify(substr_count($html,'value="taxocommerce_core_sync_menu"')===2,'sync top and bottom');
+verify(substr_count($html,'value="taxocommerce_core_sync_menu"')===0,'native menu must not synchronize country hierarchy');
 verify(substr_count($html,'value="taxocommerce_core_activate_menu"')===2,'activate top and bottom');
 verify(substr_count($html,'value="taxocommerce_core_restore_menu"')===2,'restore top and bottom');
 verify(substr_count($html,'nav-menus.php?action=edit')===2,'native editor top and bottom');
@@ -86,8 +86,8 @@ verify($GLOBALS['options']['taxocommerce_core_menu_id_us']===$us_id,'US stores i
 $_GET['tc_country']='US';
 $before=$GLOBALS['writes'];ob_start();$core->render();$us_html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'US menu identity view does not write');
-verify(strpos($us_html,'TaxoCommerce - US')!==false,'US menu name clearly visible');
-verify(strpos($us_html,'&#039;menu&#039; =&gt; &#039;TaxoCommerce - US&#039;')!==false,'US template selector visible');
+verify(strpos($us_html,'<h2>TaxoCommerce</h2>')!==false,'native screen keeps the assigned WordPress menu');
+verify(strpos($us_html,'name="tc_country"')===false,'native screen does not activate US SEO menu');
 verify(strpos($us_html,'TaxoCommerce - ES')===false,'US identity does not claim ES menu');
 unset($_GET['tc_country']);
 
@@ -149,7 +149,7 @@ $GLOBALS['woo_enabled']=false;
 $_GET=array('tc_tab'=>'wordpress');$_POST=array();
 $before=$GLOBALS['writes'];ob_start();$core->render();$basic=ob_get_clean();
 verify($GLOBALS['writes']===$before,'WordPress tab loads without any database changes');
-verify(strpos($basic,'Menús WordPress')!==false,'basic tab label');
+verify(strpos($basic,'Gestor de menús')!==false,'unified WordPress menu heading');
 verify(strpos($basic,'Selecciona un menú de WordPress')!==false,'explicit menu selection');
 verify(strpos($basic,'País del menú')===false,'country picker is SEO-only');
 verify(strpos($basic,'value="taxocommerce_core_sync_menu"')===false,'no SEO sync in WordPress tab');
