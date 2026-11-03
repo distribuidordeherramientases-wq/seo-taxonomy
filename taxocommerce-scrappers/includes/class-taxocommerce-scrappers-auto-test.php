@@ -138,12 +138,12 @@ final class TaxoCommerce_Scrappers_Auto_Test {
             wp_die( esc_html__( 'No tienes permisos para ejecutar el autotest.', 'taxocommerce-scrappers' ) );
         }
         echo '<div class="wrap taxocommerce-scrappers-autotest">';
-        echo '<h2>' . esc_html__( 'Autotest de Scrappers', 'taxocommerce-scrappers' ) . '</h2>';
+        echo '<h2>' . esc_html__( 'Autocheck de Scrappers', 'taxocommerce-scrappers' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.', 'taxocommerce-scrappers' ) . '</p>';
         echo '<form method="post">';
         wp_nonce_field( 'taxocommerce_scrappers_autotest' );
         echo '<input type="hidden" name="tcs_run_autotest" value="1">';
-        submit_button( 'Ejecutar autotest', 'primary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
         echo '</form>';
 
         // Intentional POST: read-only diagnostics run only after explicit admin action.
@@ -154,6 +154,25 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         check_admin_referer( 'taxocommerce_scrappers_autotest' );
 
         $checks = self::run();
+        $autocheck_totals = array();
+        foreach ( $checks as $autocheck_item ) {
+            $autocheck_status = (string) ( $autocheck_item['status'] ?? 'unknown' );
+            $autocheck_totals[ $autocheck_status ] = ( $autocheck_totals[ $autocheck_status ] ?? 0 ) + 1;
+        }
+        $autocheck_report = array(
+            'schema' => 1,
+            'plugin' => 'taxocommerce-scrappers',
+            'version' => defined( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) ? constant( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) : '',
+            'generated_at' => gmdate( 'c' ),
+            'totals' => $autocheck_totals,
+            'rows' => $checks,
+        );
+        set_transient( 'taxocommerce_scrappers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_scrappers_autocheck_json">';
+        wp_nonce_field( 'taxocommerce_scrappers_autocheck_json' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-scrappers' ), 'secondary', 'submit', false );
+        echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $checks as $check ) {
             if ( isset( $counts[ $check['status'] ] ) ) {
@@ -183,3 +202,31 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         echo '<p class="description">' . esc_html__( 'El resultado es puntual, no se guarda. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
     }
 }
+
+
+/**
+ * Download the current user's most recent explicit diagnostic run.
+ * Never execute an import, export, connection or worker during download.
+ */
+function taxocommerce_scrappers_autocheck_export_json() {
+    if ( ! ( current_user_can( 'manage_options' ) ) ) {
+        wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-scrappers' ) );
+    }
+    check_admin_referer( 'taxocommerce_scrappers_autocheck_json' );
+    $report = get_transient( 'taxocommerce_scrappers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id() );
+    if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+        wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-scrappers' ) );
+    }
+    $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-scrappers' ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-scrappers-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is a JSON attachment.
+    echo $json;
+    exit;
+}
+add_action( 'admin_post_taxocommerce_scrappers_autocheck_json', 'taxocommerce_scrappers_autocheck_export_json' );
