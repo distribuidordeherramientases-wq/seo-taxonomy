@@ -4,7 +4,7 @@ Tags: woocommerce, mysql, database, backup, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.6
+Stable tag: 0.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,9 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 4. Download an SQL backup before any irreversible cleanup operation.
 
 == Changelog ==
+
+= 0.4.7 =
+* Nombre uniforme «Autocheck» y descarga autenticada del último informe JSON, con resultados por comprobación y sin ejecutar operaciones reales.
 
 = 0.4.6 =
 * Cabecera administrativa uniforme de TaxoCommerce con nombre, icono y versión visible.

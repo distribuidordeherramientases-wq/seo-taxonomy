@@ -3,12 +3,14 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCDB_Auto_Test {
+    const JSON_ACTION = 'taxocommerce_database_autocheck_json';
     const ACTION = 'tcdb_run_auto_test';
     const NONCE = 'tcdb_auto_test_run';
     const PREFIX = 'tcdb_auto_test_';
 
     public static function boot() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle' ) );
+        add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
     }
     private static function result( $status, $message ) {
         return array( 'status' => $status, 'message' => $message );
@@ -65,7 +67,7 @@ final class TCDB_Auto_Test {
     private static function test_hooks() {
         $hooks = array( 'admin_post_' . self::ACTION, 'admin_post_tcdb_legacy_data_export_table_csv', 'admin_post_tcdb_legacy_data_export_table_sql', 'admin_post_tcdb_legacy_data_export_all' );
         foreach ( $hooks as $hook ) { if ( ! has_action( $hook ) ) { return self::fail( 'Ruta no registrada: ' . $hook ); } }
-        return self::pass( 'Auto Test y 3 exportadores registrados; no se han invocado.' );
+        return self::pass( 'Autocheck y 3 exportadores registrados; no se han invocado.' );
     }
     private static function test_db() {
         global $wpdb;
@@ -170,7 +172,7 @@ final class TCDB_Auto_Test {
         return self::skip( 'Por seguridad, no se ejecutan limpiezas, reparaciones, importaciones ni exportaciones reales. Validar con datos de prueba en staging.' );
     }
     public static function handle() {
-        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-database' ) ); }
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-database' ) ); }
         check_admin_referer( self::NONCE, 'tcdb_auto_nonce' );
         $key = self::PREFIX . get_current_user_id();
         $history = get_transient( $key );
@@ -180,19 +182,50 @@ final class TCDB_Auto_Test {
         wp_safe_redirect( admin_url( 'admin.php?page=taxocommerce-database&tcdb_screen=auto-test' ) );
         exit;
     }
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (current_user_can( 'manage_options' )) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-database' ) );
+        }
+        check_admin_referer( self::NONCE, 'tcdb_auto_nonce' );
+        $history = get_transient( self::PREFIX . get_current_user_id() );
+        $report = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-database' ) );
+        }
+        $report['plugin'] = 'taxocommerce-database';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-database' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-database-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
     public static function render() {
-        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-database' ) ); }
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-database' ) ); }
         $history = get_transient( self::PREFIX . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
-        echo '<div class="wrap tcdb-auto" style="max-width:1150px">' . '<h2>' . esc_html__( 'Auto Test de Database', 'taxocommerce-database' ) . '</h2>';
+        echo '<div class="wrap tcdb-auto" style="max-width:1150px">' . '<h2>' . esc_html__( 'Autocheck de Database', 'taxocommerce-database' ) . '</h2>';
         echo '<p>' . esc_html__( 'Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.', 'taxocommerce-database' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcdb_auto_nonce' );
-        submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
         echo '</form>';
-        if ( ! $current ) { echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Auto Test.', 'taxocommerce-database' ) . '</p>' . '</div>'; return; }
+        if ( ! $current ) { echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Autocheck.', 'taxocommerce-database' ) . '</p>' . '</div>'; return; }
         $totals = $current['totals'];
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::JSON_ACTION ) . '">';
+        wp_nonce_field( self::NONCE, 'tcdb_auto_nonce' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-database' ), 'secondary', 'submit', false );
+        echo '</form>';
+
         echo '<h3>Último resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
@@ -208,7 +241,7 @@ final class TCDB_Auto_Test {
             $status_label = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $status_label[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Auto Test comprueba disponibilidad, lectura y contratos de datos; NO demuestra por sí solo que un backup completo sea restaurable ni que los borrados funcionen con datos reales.', 'taxocommerce-database' ) . '</p>' . '</div>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Autocheck comprueba disponibilidad, lectura y contratos de datos; NO demuestra por sí solo que un backup completo sea restaurable ni que los borrados funcionen con datos reales.', 'taxocommerce-database' ) . '</p>' . '</div>';
     }
 }
 TCDB_Auto_Test::boot();

@@ -63,7 +63,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
     public static function cases() {
         $cases = array(
             'runtime'           => array( 'startup', 'Clases y funciones cargadas' ),
-            'navigation'        => array( 'startup', 'Menú, rutas y pantalla Auto Test' ),
+            'navigation'        => array( 'startup', 'Menú, rutas y pantalla Autocheck' ),
             'assets'            => array( 'startup', 'CSS y JavaScript de las pestañas' ),
             'core'              => array( 'startup', 'Integración opcional en Core' ),
             'connection_hooks'  => array( 'connections', 'Acciones de conexiones y credenciales' ),
@@ -88,7 +88,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'report_store'      => array( 'snapshots', 'Contrato de lectura de tres proveedores' ),
             'report_structure'  => array( 'snapshots', 'Validación de metadatos de snapshots' ),
             'report_exports'    => array( 'snapshots', 'Acciones protegidas de exportación' ),
-            'admin_permissions' => array( 'security', 'Permisos y nonces de Auto Test' ),
+            'admin_permissions' => array( 'security', 'Permisos y nonces de Autocheck' ),
             'oauth_safelist'    => array( 'security', 'Destino OAuth de Google permitido' ),
             'baseline_storage'  => array( 'security', 'Historial de pruebas por usuario y sitio' ),
             'live_requests'     => array( 'uat', 'Verificación HTTP actual de APIs externas' ),
@@ -116,7 +116,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
 
     public static function handle_run() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'No tienes permisos para ejecutar Auto Test.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'No tienes permisos para ejecutar Autocheck.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( self::NONCE, 'tgb_auto_test_nonce' );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Validated by check_admin_referer() above.
@@ -166,7 +166,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'X-Content-Type-Options: nosniff' );
-        header( 'Content-Disposition: attachment; filename="taxocommerce-insights-auto-test-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-google-bing-autocheck-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is an explicit JSON download, not HTML.
         echo $json;
         exit;
@@ -318,7 +318,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         if ( $missing || ! has_action( 'admin_menu', 'taxocommerce_google_bing_register_menu' ) ) {
             return self::fail( 'Falta el registro del menú o la pantalla Insights.' );
         }
-        return self::pass( 'Menú principal y pantalla registrados. Auto Test tiene ruta y acciones separadas.' );
+        return self::pass( 'Menú principal y pantalla registrados. Autocheck tiene ruta y acciones separadas.' );
     }
 
     private static function check_assets() {
@@ -612,7 +612,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             && has_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'handle_export' ) )
             && self::allowed()
             ? self::pass( 'Ejecución y exportación solo de administradores, con nonce independiente.' )
-            : self::fail( 'Faltan las acciones protegidas de Auto Test.' );
+            : self::fail( 'Faltan las acciones protegidas de Autocheck.' );
     }
 
     private static function check_oauth_safelist() {
@@ -678,7 +678,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
 
     public static function render() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'No tienes permiso para abrir Auto Test.', 'taxocommerce-google-bing' ) );
+            wp_die( esc_html__( 'No tienes permiso para abrir Autocheck.', 'taxocommerce-google-bing' ) );
         }
         $before = self::stored_report( 'baseline' );
         $last = self::stored_report( 'last' );
@@ -692,7 +692,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
         $totals = $last['totals'] ?? array( 'pass' => 0, 'fail' => 0, 'skip' => 0, 'not_run' => count( $cases ) );
         ?>
         <section class="tgb-at" aria-labelledby="tgb-at-title">
-            <h2 id="tgb-at-title"><?php esc_html_e( 'Auto Test — TaxoCommerce Insights', 'taxocommerce-google-bing' ); ?></h2>
+            <h2 id="tgb-at-title"><?php esc_html_e( 'Autocheck — TaxoCommerce Insights', 'taxocommerce-google-bing' ); ?></h2>
             <p><?php esc_html_e( 'Diagnóstico por módulos y comparación antes/después de actualizar el plugin. No modifica fuentes, informes, credenciales ni conexiones; solo conserva dos pequeños resultados por administrador.', 'taxocommerce-google-bing' ); ?></p>
             <div class="tgb-at-actions">
                 <?php self::run_form( 'all', 'before', '1. Guardar estado ANTES', true ); ?>

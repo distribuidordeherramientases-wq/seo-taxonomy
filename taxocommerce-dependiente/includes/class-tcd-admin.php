@@ -49,7 +49,7 @@ final class TCD_Admin {
         echo '<a class="nav-tab '.esc_attr('knowledge'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('knowledge')).'">Conocimiento / Importar–Exportar</a>';
         echo '<a class="nav-tab '.esc_attr('backup'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('backup')).'">Backup / Restaurar</a>';
         echo '<a class="nav-tab '.esc_attr('learning-log'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('learning-log')).'">Log de aprendizaje</a>';
-        echo '<a class="nav-tab '.esc_attr('auto-test'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('auto-test')).'">Auto Test</a>';
+        echo '<a class="nav-tab '.esc_attr('auto-test'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('auto-test')).'">'.esc_html__( 'Autocheck', 'taxocommerce-dependiente' ).'</a>';
         echo '<a class="nav-tab '.esc_attr('user-guide'===$active?'nav-tab-active':'').'" href="'.esc_url(self::tab_url('user-guide')).'">User Guide</a>';
         echo '</nav>';
     }

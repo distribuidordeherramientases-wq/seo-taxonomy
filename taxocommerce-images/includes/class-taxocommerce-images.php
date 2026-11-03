@@ -255,7 +255,7 @@ final class TaxoCommerce_Images {
 			'library'    => __( 'Media local', 'taxocommerce-images' ),
 			'thumbnails' => __( 'Miniaturas', 'taxocommerce-images' ),
 			'settings'   => __( 'Ajustes', 'taxocommerce-images' ),
-			'auto-test'  => __( 'Auto Test', 'taxocommerce-images' ),
+			'auto-test'  => __( 'Autocheck', 'taxocommerce-images' ),
 			'manual'     => __( 'Manual', 'taxocommerce-images' ),
 		);
 		if ( ! isset( $tabs[ $tab ] ) ) {

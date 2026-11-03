@@ -37,6 +37,31 @@ jobs:
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
+      - name: Verify all 20 Autocheck JSON contracts and PHP syntax
+        run: |
+          set -euo pipefail
+          php -l .github/tests/taxocommerce-autocheck-family.php
+          php .github/tests/taxocommerce-autocheck-family.php
+          find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
+            php -l "$file" > /dev/null
+          done
+          php taxocommerce-auditor/tests/auto-test-manual-smoke.php
+          php taxocommerce-database/tests/auto-test-smoke.php
+          php taxocommerce-dependiente/tests/auto-test-smoke.php
+          php taxocommerce-distribution/tests/manual-autocheck-smoke.php
+          php taxocommerce-facturacion/tests/manual-autotest-smoke.php
+          php taxocommerce-faqs/tests/auto-test-smoke.php
+          php taxocommerce-google-bing/tests/auto-test-smoke.php
+          php taxocommerce-images/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-logistica/tests/auto-test-smoke.php
+          php taxocommerce-redirects/tests/auto-test-smoke.php
+          php taxocommerce-scrappers/tests/manual-autotest-smoke.php
+          php taxocommerce-social/tests/auto-test-manual-smoke.php
+          php taxocommerce-suppliers/tests/smoke.php
+          php taxocommerce-system-check/tests/auto-test-guide-smoke.php
+          php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-vocabulary/tests/auto-test-manual-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
         run: |
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-csv.php

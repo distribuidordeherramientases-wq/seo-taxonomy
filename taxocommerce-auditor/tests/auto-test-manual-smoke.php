@@ -11,6 +11,7 @@ $GLOBALS['tca_hooks'] = array();
 $GLOBALS['tca_options'] = array();
 $GLOBALS['tca_written'] = 0;
 
+function add_filter( $hook, $callback, $priority = 10, $args = 1 ) { return true; }
 function add_action( $hook, $callback, $priority = 10, $args = 1 ) {
     $GLOBALS['tca_hooks'][ $hook ][] = $callback;
 }
@@ -63,7 +64,7 @@ verify( $GLOBALS['tca_written'] === 0, 'No WordPress option mutated by suite' );
 ob_start();
 Auto_Test::render();
 $auto = ob_get_clean();
-verify( strpos( $auto, 'Ejecutar Auto Test' ) !== false, 'Auto Test renders run button' );
+verify( strpos( $auto, 'Ejecutar Autocheck' ) !== false, 'Auto Test renders run button' );
 verify( strpos( $auto, 'taxocommerce_auditor_auto_nonce' ) !== false, 'Run form nonce present' );
 
 ob_start();
@@ -77,7 +78,7 @@ foreach ( array(
 }
 
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-admin.php' );
-verify( strpos( $admin, "'auto-test' => 'Auto Test'" ) !== false, 'Auto Test tab wired' );
+verify( strpos( $admin, "'auto-test' => __( 'Autocheck', 'taxocommerce-auditor' )" ) !== false, 'Auto Test tab wired' );
 verify( strpos( $admin, "'manual' => 'Manual'" ) !== false, 'Manual tab wired' );
 verify( strpos( $admin, 'self::render_scope_controls( $selected )' ) !== false, 'Five legacy scope controls unchanged' );
 verify( strpos( $admin, "'categories' === $scope" ) !== false, 'Category-only report view still available' );

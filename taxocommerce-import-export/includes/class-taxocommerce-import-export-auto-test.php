@@ -103,7 +103,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'load_priorities'  => array( 'load', 'Cinco velocidades de importación y exportación' ),
             'load_adaptive'    => array( 'load', 'Regulador adaptativo sin escrituras' ),
             'load_state'       => array( 'load', 'Configuración actual del regulador' ),
-            'security_actions' => array( 'security', 'Rutas protegidas del Auto Test' ),
+            'security_actions' => array( 'security', 'Rutas protegidas del Autocheck' ),
             'reports'          => array( 'security', 'Persistencia aislada por usuario y sitio' ),
             'safe_queue_upgrade' => array( 'deployment', 'Cola de importación sin procesos activos' ),
             'safe_export_upgrade' => array( 'deployment', 'Exportación del administrador no activa' ),
@@ -218,7 +218,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     }
 
     public static function handle_run() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Auto Test.', 'taxocommerce-import-export' ) ); }
+        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-import-export' ) ); }
         check_admin_referer( self::NONCE, 'tc_ie_auto_nonce' );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability checked above.
         $group = isset( $_POST['test_group'] ) && is_string( $_POST['test_group'] )
@@ -253,7 +253,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'X-Content-Type-Options: nosniff' );
-        header( 'Content-Disposition: attachment; filename="taxocommerce-import-export-auto-test-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-import-export-autocheck-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional JSON download, not HTML.
         echo $json;
         exit;
@@ -540,7 +540,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             && has_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) )
             && has_action( 'admin_post_' . self::DOWNLOAD_ACTION, array( __CLASS__, 'handle_download' ) )
             ? self::pass( 'Acciones protegidas por capacidad y nonce registradas.' )
-            : self::fail( 'Auto Test no tiene sus acciones de administración.' );
+            : self::fail( 'Autocheck no tiene sus acciones de administración.' );
     }
 
     private static function check_reports() {
@@ -579,7 +579,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     }
 
     public static function render() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Auto Test.', 'taxocommerce-import-export' ) ); }
+        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-import-export' ) ); }
         $before = self::get_saved( 'before' );
         $last = self::get_saved( 'latest' );
         $cases = self::cases();
@@ -592,7 +592,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
         $comparison = $before && $last ? self::compare( $before, $last ) : null;
         ?>
         <section class="tc-ie-at" aria-labelledby="tc-ie-at-title">
-            <h2 id="tc-ie-at-title"><?php esc_html_e( 'Auto Test — Import / Export', 'taxocommerce-import-export' ); ?></h2>
+            <h2 id="tc-ie-at-title"><?php esc_html_e( 'Autocheck — Import / Export', 'taxocommerce-import-export' ); ?></h2>
             <p><?php esc_html_e( 'Diagnóstico seguro por módulos para comprobar el plugin antes y después de actualizarlo. No importa productos, no exporta archivos, no ejecuta workers ni cambia opciones del catálogo.', 'taxocommerce-import-export' ); ?></p>
             <div class="tc-ie-at-actions">
                 <?php self::button( 'all', 'before', '1. Guardar estado ANTES', true ); ?>

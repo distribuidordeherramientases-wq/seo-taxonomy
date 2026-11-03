@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Connections (Compatibility Bridge)
  * Description: Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.
- * Version: 0.3.0
+ * Version: 0.3.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_VERSION' ) ) {
-	define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.3.0' );
+	define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.3.1' );
 }
 if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_FILE' ) ) {
 	define( 'TAXOCOMMERCE_CONNECTIONS_FILE', __FILE__ );
@@ -23,6 +23,9 @@ if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_FILE' ) ) {
 if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_PATH' ) ) {
 	define( 'TAXOCOMMERCE_CONNECTIONS_PATH', plugin_dir_path( __FILE__ ) );
 }
+
+require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-autocheck.php';
+TaxoCommerce_Connections_Autocheck::boot();
 
 /**
  * Returns the new canonical Connections screen.

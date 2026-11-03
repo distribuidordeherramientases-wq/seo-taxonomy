@@ -173,7 +173,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
             taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_run' => '1' ) ),
             'tcs_auto_test_run'
         );
-        echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Auto Test · System Check', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Autocheck · System Check', 'taxocommerce-system-check' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.', 'taxocommerce-system-check' ) . '</p>';
         echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Auto Test</a></p>';
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
@@ -186,6 +186,17 @@ final class TaxoCommerce_System_Check_Auto_Test {
         }
         check_admin_referer( 'tcs_auto_test_run' );
         $report = self::run();
+        $autocheck_report = $report;
+        $autocheck_report['plugin'] = 'taxocommerce-system-check';
+        $autocheck_report['schema'] = 1;
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_system_check_autocheck_json">';
+        wp_nonce_field( 'taxocommerce_system_check_autocheck_json' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-system-check' ), 'secondary', 'submit', false );
+        echo '</form>';
         echo '<p><strong>Resultados:</strong> ' . esc_html( (string) $report['totals']['pass'] ) . ' correctas, '
             . esc_html( (string) $report['totals']['fail'] ) . ' fallidas y '
             . esc_html( (string) $report['totals']['skip'] ) . ' no ejecutadas / no aplicables. '
@@ -206,4 +217,34 @@ final class TaxoCommerce_System_Check_Auto_Test {
         }
         echo '<p class="description">' . esc_html__( 'Un resultado correcto indica que el componente está accesible, no que un escaneo real haya funcionado. Las pruebas omitidas nunca cuentan como superadas. No equivale al Plugin Check de WordPress.org.', 'taxocommerce-system-check' ) . '</p>' . '</section>';
     }
+}
+
+
+/**
+ * Download the current user's most recent explicit diagnostic run.
+ * Never execute an import, export, connection or worker during download.
+ */
+function taxocommerce_system_check_autocheck_export_json() {
+    if ( ! ( current_user_can( 'manage_options' ) ) ) {
+        wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-system-check' ) );
+    }
+    check_admin_referer( 'taxocommerce_system_check_autocheck_json' );
+    $report = get_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id() );
+    if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+        wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-system-check' ) );
+    }
+    $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-system-check' ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-system-check-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is a JSON attachment.
+    echo $json;
+    exit;
+}
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'admin_post_taxocommerce_system_check_autocheck_json', 'taxocommerce_system_check_autocheck_export_json' );
 }

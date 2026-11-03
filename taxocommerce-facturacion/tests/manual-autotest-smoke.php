@@ -116,7 +116,7 @@ $admin  = file_get_contents( dirname( __DIR__ ) . '/includes/class-seo-facturas-
 $manual = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-billing-manual.php' );
 billing_smoke_assert(
     strpos( $admin, "'manual'    => 'Manual'" ) !== false &&
-    strpos( $admin, "'autotest'  => 'Autotest'" ) !== false &&
+    strpos( $admin, "'autotest'  => __( 'Autocheck', 'taxocommerce-facturacion' )" ) !== false &&
     strpos( $admin, 'TaxoCommerce_Billing_Autotest::render();' ) !== false &&
     strpos( $admin, 'TaxoCommerce_Billing_Manual::render();' ) !== false &&
     strpos( $main, 'class-taxocommerce-billing-autotest.php' ) !== false &&

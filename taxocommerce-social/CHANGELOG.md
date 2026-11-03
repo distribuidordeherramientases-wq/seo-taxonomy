@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.1.5] — 2026-11-03
+
+- Nombre uniforme «Autocheck» y exportación JSON autenticada de los resultados con detalle por prueba.
+- Issue #2150, PR #2151; rutas existentes conservadas y sin pruebas de escritura.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce Social

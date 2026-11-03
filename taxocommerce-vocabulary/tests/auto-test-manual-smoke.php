@@ -118,10 +118,10 @@ foreach ( array( 'Manual de usuario', 'Manual técnico', 'MERGE', 'MIRROR', 'Aut
 ob_start();
 TCV_Auto_Test::render();
 $auto = ob_get_clean();
-tcv_test( strpos( $auto, 'Ejecutar Auto Test' ) !== false, 'autotest form displayed' );
+tcv_test( strpos( $auto, 'Ejecutar Autocheck' ) !== false, 'autotest form displayed' );
 tcv_test( strpos( $auto, 'tcv_auto_nonce' ) !== false, 'autotest form includes nonce' );
 
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcv-admin.php' );
-tcv_test( strpos( $admin, "'auto-test'=>'Auto Test'" ) !== false && strpos( $admin, "'manual'=>'Manual'" ) !== false, 'tabs wired' );
+tcv_test( strpos( $admin, "'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' )" ) !== false && strpos( $admin, "'manual'=>'Manual'" ) !== false, 'tabs wired' );
 tcv_test( strpos( $admin, "'control' === \$tab" ) !== false, 'original control route preserved' );
 echo "Vocabulary Auto Test and Manual smoke passed.\n";

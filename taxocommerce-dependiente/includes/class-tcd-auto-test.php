@@ -11,12 +11,14 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCD_Auto_Test {
+	const JSON_ACTION = 'taxocommerce_dependiente_autocheck_json';
 	const ACTION = 'tcd_run_auto_test';
 	const NONCE = 'tcd_auto_test_run';
 	const REPORT_PREFIX = 'tcd_auto_test_';
 
 	public static function boot() {
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) );
+		add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
 	}
 
 	private static function allowed() {
@@ -81,7 +83,7 @@ final class TCD_Auto_Test {
 
 	public static function handle_run() {
 		if ( ! self::allowed() ) {
-			wp_die( esc_html__( 'No tienes permisos para ejecutar Auto Test.', 'taxocommerce-dependiente' ) );
+			wp_die( esc_html__( 'No tienes permisos para ejecutar Autocheck.', 'taxocommerce-dependiente' ) );
 		}
 		check_admin_referer( self::NONCE, 'tcd_auto_test_nonce' );
 		$requested = isset( $_POST['test_group'] ) && is_scalar( $_POST['test_group'] )
@@ -185,7 +187,7 @@ final class TCD_Auto_Test {
 		if ( ! self::allowed() ) { return self::fail( 'El usuario no tiene permisos de gestión.' ); }
 		$hooks = array( 'admin_post_' . self::ACTION, 'admin_menu' );
 		foreach ( $hooks as $hook ) { if ( ! has_action( $hook ) ) { return self::fail( 'Falta ' . $hook ); } }
-		return self::pass( 'Acceso autorizado y panel/Auto Test registrados; petición protegida con nonce.' );
+		return self::pass( 'Acceso autorizado y panel/Autocheck registrados; petición protegida con nonce.' );
 	}
 
 	private static function schema( $tables ) {
@@ -193,13 +195,13 @@ final class TCD_Auto_Test {
 		$missing = array();
 		$wrong = array();
 		foreach ( $tables as $table => $required_columns ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Autocheck checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
 			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 			if ( (string) $exists !== (string) $table ) {
 				$missing[] = $table;
 				continue;
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Autocheck checks live custom-table status; WordPress has no API for this schema and cached results would conceal failures after deployment.
 			$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
 			if ( ! is_array( $columns ) || $wpdb->last_error ) {
 				$wrong[] = $table . ' (no se pueden leer columnas)';
@@ -376,7 +378,7 @@ final class TCD_Auto_Test {
 		return self::pass( 'L' . $lesson . ': informe accesible y coherente. Resultado de la lección: ' .
 			( 'passed' === $status ? 'aprobada' : 'no aprobada' ) . ' (' .
 			round( $ratio * 100, 1 ) . '%; umbral ' . round( $threshold * 100, 1 ) .
-			'%; ' . $failed . ' casos fallidos). El Auto Test no califica la formación.' );
+			'%; ' . $failed . ' casos fallidos). El Autocheck no califica la formación.' );
 	}
 
 	private static function check_linguist_curriculum() {
@@ -413,7 +415,7 @@ final class TCD_Auto_Test {
 		if ( 'error' === (string) $state['status'] ) {
 			return self::pass( 'M11: control, worker y lectura del estado operativos; el último curso registró error: ' .
 				substr( (string) ( $state['last_error'] ?? '' ), 0, 160 ) .
-				'. Es un resultado del curso, no un fallo de disponibilidad. El Auto Test no ejecuta lecciones reales.' );
+				'. Es un resultado del curso, no un fallo de disponibilidad. El Autocheck no ejecuta lecciones reales.' );
 		}
 		return self::pass( 'Control y worker M11 disponibles; estado ' . (string) $state['status'] .
 			'; curso al ' . round( (float) $course, 1 ) . '%. No se exige completar ni aprobar la formación.' );
@@ -608,9 +610,34 @@ final class TCD_Auto_Test {
 		return self::skip( 'No se ejecutan escrituras sobre catálogo, aprendizaje, feedback ni backups. La UAT completa requiere staging aislado y restauración controlada.' );
 	}
 
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (self::allowed()) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-dependiente' ) );
+        }
+        check_admin_referer( self::NONCE, 'tcd_auto_test_nonce' );
+        $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-dependiente' ) );
+        }
+        $report['plugin'] = 'taxocommerce-dependiente';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-dependiente' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-dependiente-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
 	public static function render() {
 		if ( ! self::allowed() ) {
-			wp_die( esc_html__( 'No tienes permisos para abrir Auto Test.', 'taxocommerce-dependiente' ) );
+			wp_die( esc_html__( 'No tienes permisos para abrir Autocheck.', 'taxocommerce-dependiente' ) );
 		}
 		$cases = self::cases();
 		$report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
@@ -623,7 +650,14 @@ final class TCD_Auto_Test {
 		$totals = $report['totals'] ?? array( 'pass'=>0, 'fail'=>0, 'skip'=>0, 'not_run'=>count( $cases ) );
 		?>
 		<section id="tcd-auto-test">
-			<h2><?php esc_html_e( 'Auto Test', 'taxocommerce-dependiente' ); ?></h2>
+			<?php if ( ! empty( $report['rows'] ) ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( self::JSON_ACTION ); ?>">
+                    <?php wp_nonce_field( self::NONCE, 'tcd_auto_test_nonce' ); ?>
+                    <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-dependiente' ), 'secondary', 'submit', false ); ?>
+                </form>
+			<?php endif; ?>
+			<h2><?php esc_html_e( 'Autocheck', 'taxocommerce-dependiente' ); ?></h2>
 			<p><?php esc_html_e( 'Comprueba los principales contratos de Dependiente tras cada actualización, por grupos o en una sola pasada. No modifica el aprendizaje en curso.', 'taxocommerce-dependiente' ); ?></p>
 			<style>
 				#tcd-auto-test .tc-at-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:18px 0}
@@ -644,7 +678,7 @@ final class TCD_Auto_Test {
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
 				<input type="hidden" name="test_group" value="all">
 				<?php wp_nonce_field( self::NONCE, 'tcd_auto_test_nonce' ); ?>
-				<?php submit_button( __( 'Ejecutar Auto Test completo', 'taxocommerce-dependiente' ), 'primary', 'submit', false ); ?>
+				<?php submit_button( __( 'Ejecutar Autocheck completo', 'taxocommerce-dependiente' ), 'primary', 'submit', false ); ?>
 				<span><?php esc_html_e( 'Solo lectura, sin reiniciar formación ni alterar productos, memoria o workers.', 'taxocommerce-dependiente' ); ?></span>
 			</form>
 			<?php if ( $report ) : ?>

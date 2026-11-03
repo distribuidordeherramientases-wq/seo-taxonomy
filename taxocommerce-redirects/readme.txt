@@ -4,7 +4,7 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
@@ -80,6 +80,9 @@ retired and all native relationships have been verified.
   requires separate authenticated wp-admin or WP-CLI access.
 
 == Changelog ==
+
+= 0.1.9 =
+* Pestaña «Autocheck» con descarga JSON ya existente, conservación de controles de seguridad y de comparaciones de regresiones.
 
 = 0.1.8 =
 * Cabecera administrativa común de TaxoCommerce con icono, descripción, versión visible y pestañas originales conservadas.
