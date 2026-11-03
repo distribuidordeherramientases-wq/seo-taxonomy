@@ -147,6 +147,13 @@ jobs:
           echo "All applicable deployments completed successfully"
       - uses: actions/checkout@v4
         if: needs.plan.outputs.core == 'true'
+      - name: Verify and repair tracked Core file parity on both installations
+        if: needs.plan.outputs.core == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/deploy_staging_delta.py reconcile-core
       - name: Audit WordPress MO catalogues on STAGING after Core delivery
         if: needs.plan.outputs.core == 'true'
         env:
