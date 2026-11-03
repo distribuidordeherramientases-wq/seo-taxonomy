@@ -324,6 +324,7 @@ final class TaxoCommerce_Core_Editor_UI {
         self::toolbar( 'categories', $id, $term->name, $score, 'publish', get_term_link( $term, 'product_cat' ) );
         self::open_form( 'categories', $id );
         self::content_card( $term->name, $term->slug, true );
+        self::textarea( 'excerpt', __( 'Extracto de categoría', 'taxocommerce-core' ), (string) get_term_meta( $id, 'seo_excerpt', true ), 5 );
         self::rich_editor( $term->description, 'Descripción de categoría', 13 );
         TaxoCommerce_Core_Vocabulary::render( 'categories', $id );
         self::side();
