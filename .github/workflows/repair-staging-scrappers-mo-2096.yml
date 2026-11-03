@@ -39,3 +39,9 @@ jobs:
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 .github/scripts/repair_staging_scrappers_mo.py
+      - name: Read-only audit of all installed STAGING MO after restoration
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/audit_staging_mo.py
