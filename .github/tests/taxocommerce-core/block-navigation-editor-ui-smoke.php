@@ -114,6 +114,7 @@ check( strpos( $html, 'data-tc-menu-remove' ) !== false, 'Leaf link removal avai
 check( strpos( $html, 'value="taxocommerce_core_remove_block_navigation_link"' ) !== false, 'Removal uses guarded block controller' );
 check( strpos( $html, 'value="taxocommerce_core_activate_block_navigation"' ) !== false, 'Activation offered for actual header templates' );
 check( strpos( $html, 'name="tc_menu_id"' ) === false, 'Must not confuse a wp_navigation post with a classic menu' );
+check( strpos( $html, 'value="taxocommerce_core_delete_block_navigation"' ) === false, 'Navigation referenced by a header cannot be deleted' );
 preg_match_all( '/\bid="([^"]+)"/', $html, $ids );
 check( count( $ids[1] ) === count( array_unique( $ids[1] ) ), 'Unique form/selector IDs' );
 
@@ -131,4 +132,6 @@ ob_start();
 TaxoCommerce_Core_Menu_Editor::render_wordpress_screen();
 $chosen = ob_get_clean();
 check( strpos( $chosen, 'class="tc-menu-editor"' ) !== false, 'Explicit navigation selection remains editable' );
+check( strpos( $chosen, 'value="taxocommerce_core_delete_block_navigation"' ) !== false, 'Unreferenced navigation may be deleted after confirmation' );
+check( strpos( $chosen, 'name="confirm_delete" value="1" required' ) !== false, 'Menu deletion requires an explicit checkbox' );
 echo 'PASS: ' . $GLOBALS['checks'] . " unified block menu UI checks (isolated WordPress stubs).\n";
