@@ -9,9 +9,8 @@
 
 ## [Unreleased]
 
-- AutoCheck manual (#2126): verificación voluntaria desde el panel de Core después de cargar las rutas WordPress. Añade diagnóstico de accesibilidad de pantallas administrativas, archivos/versión, conexión de lectura a MySQL, categorías y roles. Captura por prueba errores PHP y los incorpora al JSON como `errors`, con `not_executed` para comprobaciones omitidas. Sin ejecución automática ni escrituras en los datos de la tienda.
-
-- Corrección de permisos en navegación (#2109): los accesos internos de Core (Contenidos, Jerarquía, Menús y Manual) permanecen registrados en `$submenu` para que WordPress resuelva las URLs de administración. Se ocultan únicamente con CSS, sin eliminar rutas ni alterar capacidades. Pruebas de regresión para Core aislado y con extensiones instaladas. No se modifica producción.
+- Corrección de navegación (#2109): se conservan en `$submenu` las rutas internas de administración de WordPress y se ocultan solo visualmente, evitando el error de acceso denegado en Contenidos, Jerarquía, Menús y Manual.
+- AutoCheck manual (#2126): ejecución exclusivamente voluntaria desde el panel Core con rutas WordPress cargadas; nuevas comprobaciones de permisos/callbacks, integridad básica de archivos y versión, lectura MySQL, categorías y roles. Los avisos PHP producidos durante cada chequeo y las pruebas no ejecutadas aparecen en la interfaz y en JSON. Ninguna escritura de datos de tienda ni automatización añadida.
 
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
 
@@ -22,6 +21,12 @@
 - Despliegue (#2084): Core se transfiere a STAGING y Asociación Focazul en trabajos independientes; el resultado conjunto exige éxito en ambos sitios. Fallos de System Check u otros plugins no bloquean Core en Focazul. Sin modificar el código funcional del plugin.
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
+
+## [0.4.54] - 2026-11-03
+
+- Plugin Check (#2121): se corrigen los dos errores de navegación de bloques (eliminación de `suppress_filters=true` redundante y escape de profundidad en HTML) y se sanea el POST de confirmación/bloques de objetos.
+- Se justifican específicamente los parámetros GET de solo lectura de Anomalías y el filtro `meta_key` del selector administrativo de países, sin cambiar datos, consultas ni validación de permisos.
+- Igualdad del plugin genérico para STAGING y Focazul; quedan pendientes de comprobación externa la ejecución de Plugin Check y la prueba visual de la navegación real. No se despliega automáticamente a PRO.
 
 ## [0.4.53]
 

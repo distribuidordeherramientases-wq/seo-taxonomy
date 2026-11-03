@@ -60,6 +60,8 @@ jobs:
           php .github/tests/taxocommerce-core/autocheck-json-smoke.php
           php .github/tests/taxocommerce-core/autocheck-json-smoke.php download | php .github/tests/taxocommerce-core/autocheck-json-smoke.php validate
           php .github/tests/taxocommerce-core/autocheck-native-menus-smoke.php
+          php -l .github/tests/taxocommerce-core/autocheck-relations-smoke.php
+          php .github/tests/taxocommerce-core/autocheck-relations-smoke.php
           php .github/tests/taxocommerce-core/country-scope-smoke.php
           php .github/tests/taxocommerce-core/menu-page-countries-smoke.php
           php .github/tests/taxocommerce-core/menu-editor-smoke.php

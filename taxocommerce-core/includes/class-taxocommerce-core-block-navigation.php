@@ -123,7 +123,6 @@ final class TaxoCommerce_Core_Block_Navigation {
         $other_menus = get_posts( array(
             'post_type' => 'wp_navigation', 'post_status' => 'publish',
             'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC',
-            'suppress_filters' => true,
         ) );
         foreach ( is_array( $other_menus ) ? $other_menus : array() as $nav ) {
             if ( ! isset( $menus[ $nav->ID ] ) ) {
@@ -196,7 +195,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         echo '<ul class="tc-menu-items">';
         foreach ( $links as $index => $link ) {
             $depth = min( 4, absint( $link['depth'] ) );
-            echo '<li class="tc-menu-depth-' . $depth . '"><details class="tc-menu-item"><summary><strong>' .
+            echo '<li class="tc-menu-depth-' . esc_attr( $depth ) . '"><details class="tc-menu-item"><summary><strong>' .
                 esc_html( $link['label'] ) . '</strong><span>' . esc_html__( 'Manual', 'taxocommerce-core' ) . '</span></summary>';
             echo '<div class="tc-menu-item-content">';
             if ( $link['url'] ) {
@@ -278,7 +277,8 @@ final class TaxoCommerce_Core_Block_Navigation {
         }
         $id = isset( $_POST['tc_nav_id'] ) && is_scalar( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
         check_admin_referer( self::DELETE . '_' . $id );
-        $confirmed = isset( $_POST['confirm_delete'] ) && '1' === (string) $_POST['confirm_delete'];
+        $confirmed = isset( $_POST['confirm_delete'] ) && is_scalar( $_POST['confirm_delete'] )
+            && '1' === sanitize_text_field( wp_unslash( $_POST['confirm_delete'] ) );
         if ( ! $confirmed ) {
             self::redirect( $id, 'error', __( 'Confirma la eliminación del menú.', 'taxocommerce-core' ) );
         }
@@ -444,7 +444,8 @@ final class TaxoCommerce_Core_Block_Navigation {
         }
         $type = isset( $_POST['object_type'] ) && is_string( $_POST['object_type'] )
             ? sanitize_key( wp_unslash( $_POST['object_type'] ) ) : '';
-        $ids = isset( $_POST['object_ids'] ) ? wp_unslash( $_POST['object_ids'] ) : array();
+        $ids = isset( $_POST['object_ids'] ) && is_array( $_POST['object_ids'] )
+            ? array_map( 'absint', wp_unslash( $_POST['object_ids'] ) ) : array();
         $new_blocks = self::object_blocks( $type, $ids );
         if ( is_wp_error( $new_blocks ) ) { self::redirect( $id, 'error', $new_blocks->get_error_message() ); }
         $blocks = array_merge( parse_blocks( $post->post_content ), $new_blocks );
