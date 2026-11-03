@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.52
+Stable tag: 0.4.53
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
+* The built-in Autocheck offers an authenticated **Download JSON** button after running checks; exports the report as displayed (including failed and skipped cases), with local site identity for comparing staging installations. It does not replace authenticated UAT write tests.
 * Optional extension discovery for the other TaxoCommerce modules.
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
 
@@ -55,6 +56,9 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+= 0.4.53 =
+* Add secure administrator-only JSON download of the latest per-user Core Autocheck report, with site/version metadata, detailed results and unchanged pass/fail/skip totals.
+* Add automated authorization, nonce, isolation, UI and JSON-output regressions. No catalog or menu changes.
 
 = 0.4.52 =
 * Make the built-in Autocheck discoverable from the menu manager without adding a WordPress sidebar submenu; preserve existing Auto Test URLs.
