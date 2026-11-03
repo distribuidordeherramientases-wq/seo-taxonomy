@@ -81,7 +81,7 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn("ftp-deploy-sync-state", text)
         self.assertIn(".taxocommerce-deploy", text)
 
-    def test_every_source_module_has_matching_version_and_stable_tag(self):
+    def test_every_source_module_has_version_and_stable_tag(self):
         modules = sorted(
             d for d in ROOT.glob("taxocommerce-*")
             if d.is_dir() and MODULE.fullmatch(d.name)
@@ -96,9 +96,14 @@ class HistoricModularDeployTests(unittest.TestCase):
             )
             version = re.search(r"(?mi)^\s*\*\s*Version:\s*(\S+)", main)
             stable = re.search(r"(?mi)^Stable tag:\s*(\S+)", readme)
-            if not version or not stable or version.group(1) != stable.group(1):
-                errors.append(module.name + ": Version != Stable tag")
+            if not version or not stable:
+                errors.append(module.name + ": missing Version or Stable tag")
         self.assertEqual(errors, [])
+
+    def test_runtime_metadata_mismatch_is_only_a_release_warning(self):
+        workflow = self.workflow
+        self.assertIn('print(f"::warning::{module.name}: plugin Version', workflow)
+        self.assertIn("missing plugin Version or readme Stable tag", workflow)
 
     def test_source_inventory_is_a_valid_modular_family(self):
         modules = sorted(
