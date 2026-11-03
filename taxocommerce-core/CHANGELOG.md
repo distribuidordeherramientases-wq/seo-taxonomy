@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
+
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
 
 - Infraestructura de actualizaciones (#2086): STAGING y Focazul reciben únicamente los archivos de plugin modificados desde el último release satisfactorio. Solo se actualizan plugins ya instalados; Focazul únicamente Core. Sin FTP cuando no hay cambios y sin copiar plugins ajenos. Verificación SHA-256 por fichero y fallo conjunto de Core si uno de sus dos destinos falla. Sin cambios de lógica funcional en Core.
