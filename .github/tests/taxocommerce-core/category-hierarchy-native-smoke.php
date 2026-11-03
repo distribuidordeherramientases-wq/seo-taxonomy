@@ -91,5 +91,5 @@ check( TaxoCommerce_Core_Hierarchy_Classic::role_node( 30 ) === 'hub_primary', '
 check( $GLOBALS['wpdb']->calls === 1, 'one historical read only' );
 TaxoCommerce_Core_Hierarchy_Classic::migrate_page_roles_to_native( $hierarchy );
 check( $GLOBALS['wpdb']->calls === 1, 'migration is idempotent' );
-check( true === get_option( 'taxocommerce_core_roles_native_v1', false ), 'migration completion recorded' );
+check( 1 === get_option( 'taxocommerce_core_roles_native_v1', false ), 'migration completion recorded' );
 echo "Core native categories and page-role migration OK\n";
