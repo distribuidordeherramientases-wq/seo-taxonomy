@@ -25,7 +25,8 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function valid( $country ) {
-		return isset( self::countries()[ strtoupper( trim( (string) $country ) ) ] );
+		// Country values must not depend on an installation-specific preset.
+		return 1 === preg_match( '/^[A-Z]{2}$/D', strtoupper( trim( (string) $country ) ) );
 	}
 
 	public static function normalize( $country ) {
@@ -112,7 +113,12 @@ final class TaxoCommerce_Core_Country {
 			echo '<option value=""' . selected( $current, '', false ) . '>' .
 				esc_html__( 'Global (sin país)', 'taxocommerce-core' ) . '</option>';
 		}
-		foreach ( self::countries() as $code => $label ) {
+		$choices = self::countries();
+		if ( '' !== $current && ! isset( $choices[ $current ] ) ) {
+			// Keep any valid imported country editable without inventing defaults.
+			$choices[ $current ] = $current;
+		}
+		foreach ( $choices as $code => $label ) {
 			echo '<option value="' . esc_attr( $code ) . '"' . selected( $current, $code, false ) . '>' .
 				esc_html( $label . ' (' . $code . ')' ) . '</option>';
 		}
@@ -131,7 +137,7 @@ final class TaxoCommerce_Core_Country {
 	public static function label( $country ) {
 		$country = self::normalize( $country );
 		$all = self::countries();
-		return $country ? $all[ $country ] . ' (' . $country . ')' : __( 'Global (sin país)', 'taxocommerce-core' );
+		return $country ? ( $all[ $country ] ?? $country ) . ' (' . $country . ')' : __( 'Global (sin país)', 'taxocommerce-core' );
 	}
 
 	public static function read_posted( $name = self::FIELD ) {
