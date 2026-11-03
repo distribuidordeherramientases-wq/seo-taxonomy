@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Core 0.4.57 (#2147): eliminada del panel la tarjeta «TaxoCommerce SEO actual / No detectado» y el texto de convivencia con el monolito; se conservan versión, estado de WooCommerce y extensiones registradas, sin cambiar integraciones de migración.
+
 - Categorías nativas (#2123): el editor de Core lee y guarda la descripción mediante la taxonomía de WooCommerce y el extracto en `wp_termmeta.seo_excerpt`, conservando textos existentes si el campo no se envía. Las categorías no consultan `seo_nodes`.
 - Jerarquía (#2123): roles de páginas leídos desde `wp_postmeta._taxocommerce_core_seo_role` en el árbol, informes, selector y auditoría. Importación idempotente sin sobrescribir roles nativos desde los nodos históricos activos de `seo_nodes`; `seo_relations` mantiene los enlaces y el antiguo nodo se conserva como espejo para otras extensiones.
 - Regresión sin WordPress para edición nativa de categorías y migración de roles, integrada en el workflow de validación de STAGING. No se despliega en producción.
