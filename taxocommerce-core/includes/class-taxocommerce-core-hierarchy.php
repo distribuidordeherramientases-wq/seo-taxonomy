@@ -69,17 +69,18 @@ final class TaxoCommerce_Core_Hierarchy {
 		TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 	}
 
+	/** Import active legacy page roles into WordPress post metadata once. */
+	public function migrate_native_roles() {
+		if ( current_user_can( 'manage_options' ) ) {
+			TaxoCommerce_Core_Hierarchy_Classic::migrate_page_roles_to_native( $this );
+		}
+	}
+
 	/**
-	 * Migrate links previously stored only as native Core metadata.
+	 * Reconcile native hierarchy relationships with canonical links.
 	 * Existing seo_relations rows are never deleted or overwritten.
 	 */
-    public function migrate_native_roles() {
-        if ( current_user_can( 'manage_options' ) ) {
-            TaxoCommerce_Core_Hierarchy_Classic::migrate_page_roles_to_native( $this );
-        }
-    }
-
-    	public function reconcile_relations() {
+	public function reconcile_relations() {
 		if ( current_user_can( 'manage_options' ) ) {
 			TaxoCommerce_Core_Hierarchy_Classic::reconcile_role_nodes( $this );
 			TaxoCommerce_Core_Hierarchy_Classic::reconcile_native( $this );
