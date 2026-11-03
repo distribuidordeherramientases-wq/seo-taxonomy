@@ -152,27 +152,86 @@ class DeployProTests(unittest.TestCase):
             mod.reconcile_one(ftp, root, "taxocommerce-core", ["../seo-taxonomy.php"], [])
         self.assertFalse(ftp.transfers)
 
-    def test_missing_plugin_blocks_entire_family_preflight(self):
+    def test_missing_plugin_is_skipped_without_installing_it(self):
         ftp = FakeFTP()
         root = mod.enter_wp_plugins_root(ftp)
-        with self.assertRaisesRegex(RuntimeError, "absent on PRO"):
-            mod.verify_installed_plugins(ftp, root, {
-                "taxocommerce-core": ["taxocommerce-core.php"],
-                "taxocommerce-missing": ["taxocommerce-missing.php"]
-            })
+        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-core")
+        self.assertTrue(present)
+        self.assertIsNone(why)
+        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-auditor")
+        self.assertFalse(present)
+        self.assertEqual(why, "plugin_directory_missing_or_inaccessible")
         self.assertFalse(ftp.transfers)
-        self.assertNotIn("/site/wp-content/plugins/taxocommerce-missing", ftp.dirs)
+        self.assertNotIn("/site/wp-content/plugins/taxocommerce-auditor", ftp.dirs)
 
-    def test_missing_main_file_blocks_preflight(self):
+    def test_missing_main_file_is_skipped(self):
         ftp = FakeFTP()
         ftp.files.pop("/site/wp-content/plugins/taxocommerce-foo/taxocommerce-foo.php")
         root = mod.enter_wp_plugins_root(ftp)
-        with self.assertRaisesRegex(RuntimeError, "Main plugin file"):
-            mod.verify_installed_plugins(ftp, root, {
-                "taxocommerce-core": ["taxocommerce-core.php"],
-                "taxocommerce-foo": ["taxocommerce-foo.php"],
-            })
+        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-foo")
+        self.assertFalse(present)
+        self.assertEqual(why, "plugin_entrypoint_missing_or_inaccessible")
         self.assertFalse(ftp.transfers)
+
+    def test_full_workflow_updates_existing_plugins_skips_absent_auditor(self):
+        ftp = FakeFTP()
+        ftp.connect = lambda *args: None
+        ftp.login = lambda *args: None
+        ftp.prot_p = lambda: None
+        ftp.quit = lambda: None
+        ftp.close = lambda: None
+        commit = "a" * 40
+        names = ("taxocommerce-core", "taxocommerce-auditor", "taxocommerce-foo")
+        tracked = b"\\0".join(
+            (slug + "/" + filename).encode()
+            for slug in names for filename in ("readme.txt", slug + ".php")
+        ) + b"\\0"
+
+        def git_response(args, **kwargs):
+            return commit if args[1] == "rev-parse" else tracked
+
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = os.getcwd()
+            try:
+                os.chdir(temp)
+                for slug in names:
+                    root = Path(slug)
+                    root.mkdir()
+                    (root / (slug + ".php")).write_text("<?php /* Plugin Name: " + slug + " */")
+                    (root / "readme.txt").write_text("Release file")
+                    (root / "tests").mkdir()
+                    (root / "tests" / "test.php").write_text("Development-only")
+                env = {
+                    "GITHUB_REF_NAME": "staging",
+                    "GITHUB_SHA": commit,
+                    "FTP_SERVER": "example.test",
+                    "FTP_USERNAME": "example",
+                    "FTP_PASSWORD": "fake",
+                    "GITHUB_STEP_SUMMARY": str(Path(temp) / "summary.txt"),
+                }
+                with patch.dict(os.environ, env, clear=True), \\
+                     patch.object(mod.subprocess, "check_output", side_effect=git_response), \\
+                     patch.object(mod.ftplib, "FTP_TLS", return_value=ftp):
+                    mod.main()
+                report = __import__("json").loads(Path("pro-release-manifest.json").read_text())
+                self.assertEqual(report["source_modules"], 3)
+                self.assertEqual(report["modules_verified"], 2)
+                self.assertEqual(report["modules_skipped"], 1)
+                self.assertEqual(report["release_status"], "updated_available_plugins_with_skips")
+                self.assertEqual(report["skipped_plugins"][0]["slug"], "taxocommerce-auditor")
+                self.assertEqual({row["slug"] for row in report["plugins"]},
+                                 {"taxocommerce-core", "taxocommerce-foo"})
+                self.assertNotIn("/site/wp-content/plugins/taxocommerce-auditor", ftp.dirs)
+                self.assertTrue(all(path.startswith((
+                    "/site/wp-content/plugins/taxocommerce-core/",
+                    "/site/wp-content/plugins/taxocommerce-foo/"
+                )) for path in ftp.transfers))
+                self.assertFalse(any("tests" in path or ".git" in path for path in ftp.transfers))
+                summary = Path("summary.txt").read_text()
+                self.assertIn("SKIPPED `taxocommerce-auditor`", summary)
+                self.assertIn("Modules not available on PRO: 1", summary)
+            finally:
+                os.chdir(cwd)
 
     def test_explicit_plugins_path_is_restricted(self):
         ftp = FakeFTP()
