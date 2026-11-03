@@ -177,6 +177,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
         echo '<input type="hidden" name="content_hash" value="' . esc_attr( $hash ) . '">';
+        echo '<input type="hidden" name="menu_title_hash" value="' . esc_attr( hash( 'sha256', $post->post_title ) ) . '">';
         wp_nonce_field( self::ACTION . '_' . $selected );
         echo '<label for="tc-menu-save-name">' . esc_html__( 'Nombre del menú', 'taxocommerce-core' ) . '</label> ';
         echo '<input id="tc-menu-save-name" type="text" name="menu_name" maxlength="200" value="' . esc_attr( $post->post_title ) . '" required>';
@@ -680,6 +681,15 @@ final class TaxoCommerce_Core_Block_Navigation {
         $result = self::update_links( $blocks, $submitted, $index );
         if ( is_wp_error( $result ) ) { self::redirect( $id, 'error', $result->get_error_message() ); }
         $new_content = serialize_blocks( $blocks );
+        // The current unified form guards concurrent menu title edits too.
+        // Legacy forms without this optional field remain supported.
+        if ( isset( $_POST['menu_title_hash'] ) ) {
+            $title_hash = is_scalar( $_POST['menu_title_hash'] )
+                ? sanitize_text_field( wp_unslash( $_POST['menu_title_hash'] ) ) : '';
+            if ( ! hash_equals( hash( 'sha256', $post->post_title ), $title_hash ) ) {
+                self::redirect( $id, 'error', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+            }
+        }
         // Older Core block-menu forms did not submit the name; retain backward
         // compatibility while enabling the same "Nombre del menú" control.
         $menu_name = isset( $_POST['menu_name'] ) && is_string( $_POST['menu_name'] )
