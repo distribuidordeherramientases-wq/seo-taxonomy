@@ -66,7 +66,7 @@ final class TaxoCommerce_Database {
             'table:explorer'        => array( 'Explorar tablas', 'table', 'section', 'explorer' ),
             'table:export'          => array( 'Exportar tablas', 'table', 'section', 'export' ),
             'manual'                => array( 'Manual', 'manual', 'section', 'manual' ),
-            'auto-test'             => array( 'Autocheck', 'auto-test', 'section', 'auto-test' ),
+            'auto-test'             => array( __( 'Autocheck', 'taxocommerce-database' ), 'auto-test', 'section', 'auto-test' ),
         );
         $active = in_array( $screen, array( 'manual', 'auto-test' ), true ) ? $screen : ( 'table' === $screen ? 'table:' . $table_section : 'clean:' . $clean_tab );
         if ( ! isset( $tabs[ $active ] ) ) {
