@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.3
+Stable tag: 0.2.4
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
@@ -36,6 +36,11 @@ Explicitly excluded:
 * Automatic supplier website extraction.
 
 == Changelog ==
+
+= 0.2.4 =
+* Cabecera administrativa uniforme de TaxoCommerce con nombre, icono y versión visible.
+* Compatible sin Core; se conservan los controles, pestañas y permisos existentes.
+
 
 = 0.2.3 =
 * Verify POST nonces in their mutation handlers and sanitize numeric prices, CSV column mappings and supplier image URLs.
