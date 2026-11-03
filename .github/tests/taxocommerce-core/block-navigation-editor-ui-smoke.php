@@ -100,6 +100,7 @@ check( strpos( $html, 'class="tc-menu-load"' ) !== false, 'Shared native menu lo
 check( strpos( $html, 'id="tc-block-menu-existing"' ) !== false, 'Real block menu load dropdown' );
 check( strpos( $html, 'My actual navigation' ) !== false, 'Active referenced navigation shown' );
 check( strpos( $html, 'id="tc-menu-save-form"' ) !== false, 'Same form contract as classic editor' );
+check( strpos( $html, 'name="menu_title_hash"' ) !== false, 'Concurrent menu title updates protected by a hash' );
 check( substr_count( $html, '>Guardar menú<' ) === 2, 'Same top and bottom save controls' );
 check( substr_count( $html, 'data-position=' ) === 2, 'Same top and bottom publication sections' );
 check( strpos( $html, 'class="tc-menu-editor"' ) !== false, 'Same two-column menu structure' );
