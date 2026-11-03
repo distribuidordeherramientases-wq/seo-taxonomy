@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
  * Description: Publishes commercial feeds and professional XML sitemaps through independent bounded processes.
- * Version: 0.1.2
+ * Version: 0.1.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.2' );
+define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.3' );
 define( 'TAXOCOMMERCE_DISTRIBUTION_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DISTRIBUTION_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -29,7 +29,7 @@ if ( ! defined( 'TCDIST_FEED_GROUP' ) ) {
     define( 'TCDIST_FEED_GROUP', 'taxocommerce-distribution-feeds' );
 }
 if ( ! defined( 'TCDIST_SITEMAP_BATCH_SIZE' ) ) {
-    define( 'TCDIST_SITEMAP_BATCH_SIZE', 1000 );
+    define( 'TCDIST_SITEMAP_BATCH_SIZE', 250 );
 }
 if ( ! defined( 'TCDIST_SITEMAP_SCHEMA_VERSION' ) ) {
     define( 'TCDIST_SITEMAP_SCHEMA_VERSION', 2 );
@@ -60,6 +60,7 @@ function taxocommerce_distribution_boot() {
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/feeds/channels.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/feeds/admin.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/sitemaps/engine.php';
+    require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/sitemaps/batch-worker.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/manual.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/autocheck.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/admin.php';
@@ -123,6 +124,7 @@ register_deactivation_hook(
     static function () {
         wp_clear_scheduled_hook( 'taxocommerce_distribution_feed_worker' );
         wp_clear_scheduled_hook( 'tcdist_sitemap_regenerate_sitemaps_event' );
+        wp_clear_scheduled_hook( TCDIST_SITEMAP_WORKER_HOOK );
         flush_rewrite_rules( false );
     }
 );
