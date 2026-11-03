@@ -35,6 +35,18 @@ class ErrorSummaryTests(unittest.TestCase):
         self.assertIn("Parse error: T_VARIABLE", answer)
         self.assertIn("taxocommerce-core.php:54", answer)
 
+    def test_missing_required_file_is_classified_before_uncaught_error(self):
+        line = (
+            "[03-Nov-2026 08:15:00 UTC] PHP Fatal error: Uncaught Error: "
+            "Failed opening required '/home/account/public_html/asociacionfocazul/"
+            "wp-content/plugins/taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php' "
+            "in /home/account/public_html/asociacionfocazul/wp-content/plugins/"
+            "taxocommerce-core/includes/class-taxocommerce-core-menu.php:13"
+        )
+        summary = classify_error(line)
+        self.assertIn("Required file missing", summary)
+        self.assertNotIn("/home/account", summary)
+
     def test_unknown_error_does_not_echo_sensitive_values(self):
         line = (
             "[03-Nov-2026 08:14:00 UTC] PHP Fatal error: "
