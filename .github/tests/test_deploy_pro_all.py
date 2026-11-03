@@ -27,6 +27,7 @@ class FakeFTP:
         self.here = "/site/wp-content/plugins"
         self.transfers = []
         self.tamper = False
+        self.blocked_dirs = set()
 
     def pwd(self):
         return self.here
@@ -36,9 +37,21 @@ class FakeFTP:
 
     def cwd(self, path):
         dest = self.absolute(path)
+        if dest in self.blocked_dirs:
+            raise ftplib.error_perm("550 Permission denied")
         if dest not in self.dirs:
             raise ftplib.error_perm("550 directory not found")
         self.here = dest
+
+    def nlst(self):
+        prefix = self.here.rstrip("/") + "/"
+        children = set()
+        for item in self.dirs | set(self.files):
+            if item.startswith(prefix):
+                child = item[len(prefix):].split("/", 1)[0]
+                if child:
+                    children.add(child)
+        return sorted(children)
 
     def mkd(self, path):
         dest = self.absolute(path)
@@ -107,18 +120,18 @@ class DeployProTests(unittest.TestCase):
         for login in ("/site", "/site/wp-content/plugins", "/site/wp-content/plugins/taxocommerce-core"):
             ftp = FakeFTP()
             ftp.here = login
-            root = mod.enter_wp_plugins_root(ftp)
+            root, visible = mod.enter_wp_plugins_root(ftp)
             self.assertEqual(root, "/site/wp-content/plugins")
             self.assertEqual(ftp.here, root)
         bad = FakeFTP()
         bad.files.clear()
-        with self.assertRaisesRegex(RuntimeError, "No se localiza"):
+        with self.assertRaisesRegex(RuntimeError, "FTPS cannot locate"):
             mod.enter_wp_plugins_root(bad)
         self.assertFalse(bad.transfers)
 
     def test_reconcile_all_creates_missing_plugin_without_deleting(self):
         ftp = FakeFTP()
-        root = mod.enter_wp_plugins_root(ftp)
+        root, visible = mod.enter_wp_plugins_root(ftp)
         with tempfile.TemporaryDirectory() as temp:
             cwd = os.getcwd()
             try:
@@ -145,7 +158,7 @@ class DeployProTests(unittest.TestCase):
 
     def test_rejects_extra_repository_files_and_unsafe_paths(self):
         ftp = FakeFTP()
-        root = mod.enter_wp_plugins_root(ftp)
+        root, visible = mod.enter_wp_plugins_root(ftp)
         with self.assertRaisesRegex(ValueError, "non-release"):
             mod.reconcile_one(ftp, root, "taxocommerce-core", [".git/config"], [])
         with self.assertRaisesRegex(ValueError, "non-release"):
@@ -154,23 +167,22 @@ class DeployProTests(unittest.TestCase):
 
     def test_missing_plugin_is_skipped_without_installing_it(self):
         ftp = FakeFTP()
-        root = mod.enter_wp_plugins_root(ftp)
-        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-core")
+        root, visible = mod.enter_wp_plugins_root(ftp)
+        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-core", visible)
         self.assertTrue(present)
         self.assertIsNone(why)
-        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-auditor")
+        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-auditor", visible)
         self.assertFalse(present)
-        self.assertEqual(why, "plugin_directory_missing_or_inaccessible")
+        self.assertEqual(why, "plugin_not_present_in_selected_root")
         self.assertFalse(ftp.transfers)
         self.assertNotIn("/site/wp-content/plugins/taxocommerce-auditor", ftp.dirs)
 
     def test_missing_main_file_is_skipped(self):
         ftp = FakeFTP()
         ftp.files.pop("/site/wp-content/plugins/taxocommerce-foo/taxocommerce-foo.php")
-        root = mod.enter_wp_plugins_root(ftp)
-        present, why = mod.probe_installed_plugin(ftp, root, "taxocommerce-foo")
-        self.assertFalse(present)
-        self.assertEqual(why, "plugin_entrypoint_missing_or_inaccessible")
+        root, visible = mod.enter_wp_plugins_root(ftp)
+        with self.assertRaisesRegex(RuntimeError, "cannot read existing plugin entrypoint"):
+            mod.probe_installed_plugin(ftp, root, "taxocommerce-foo", visible)
         self.assertFalse(ftp.transfers)
 
     def test_full_workflow_updates_existing_plugins_skips_absent_auditor(self):
@@ -233,17 +245,60 @@ class DeployProTests(unittest.TestCase):
             finally:
                 os.chdir(cwd)
 
+    def test_choose_correct_wepanel_site_instead_of_three_plugin_root(self):
+        """The user's PRO site shows 19 modules; do not pick a 3-module site."""
+        ftp = FakeFTP()
+        correct = "/site/hosting160568eu-279554.webempresa.site/wp-content/plugins"
+        ftp.dirs.update({
+            "/site/hosting160568eu-279554.webempresa.site",
+            "/site/hosting160568eu-279554.webempresa.site/wp-content",
+            correct,
+        })
+        expected = {"taxocommerce-core", "taxocommerce-images", "taxocommerce-import-export"}
+        expected.update("taxocommerce-module-" + str(i) for i in range(1, 18))
+        for slug in expected - {"taxocommerce-module-17"}:
+            ftp.dirs.add(correct + "/" + slug)
+            ftp.files[correct + "/" + slug + "/" + slug + ".php"] = (
+                b"<?php /* Plugin Name: TaxoCommerce Core */" if slug == "taxocommerce-core"
+                else b"<?php /* Plugin Name: Example */"
+            )
+        ftp.here = "/site"
+        selected, names = mod.enter_wp_plugins_root(ftp, expected)
+        self.assertEqual(selected, correct)
+        self.assertEqual(len(expected & names), 19)
+        ready, skipped = mod.preflight_plugins(ftp, selected, names, sorted(expected))
+        self.assertEqual(len(ready), 19)
+        self.assertEqual(len(skipped), 1)
+        self.assertEqual(skipped[0]["slug"], "taxocommerce-module-17")
+        self.assertFalse(ftp.transfers)
+
+    def test_only_three_of_twenty_blocks_before_upload(self):
+        ftp = FakeFTP()
+        expected = {"taxocommerce-core", "taxocommerce-images", "taxocommerce-import-export"}
+        expected.update("taxocommerce-module-" + str(i) for i in range(1, 18))
+        with self.assertRaisesRegex(RuntimeError, "root mismatch or insufficient FTP visibility"):
+            mod.enter_wp_plugins_root(ftp, expected)
+        self.assertFalse(ftp.transfers)
+
+    def test_listed_but_inaccessible_ftp_plugin_blocks_before_upload(self):
+        ftp = FakeFTP()
+        root, visible = mod.enter_wp_plugins_root(ftp)
+        ftp.blocked_dirs.add(root + "/taxocommerce-foo")
+        with self.assertRaisesRegex(RuntimeError, "is listed.*CWD returned 550 Permission denied"):
+            mod.preflight_plugins(ftp, root, visible, ["taxocommerce-core", "taxocommerce-foo"])
+        self.assertFalse(ftp.transfers)
+
     def test_explicit_plugins_path_is_restricted(self):
         ftp = FakeFTP()
         with patch.dict(os.environ, {"PRO_FTP_PLUGINS_DIR": "/site/wp-content/plugins"}):
-            self.assertEqual(mod.enter_wp_plugins_root(ftp), "/site/wp-content/plugins")
+            self.assertEqual(mod.enter_wp_plugins_root(ftp)[0], "/site/wp-content/plugins")
         with patch.dict(os.environ, {"PRO_FTP_PLUGINS_DIR": "/site/../.git"}):
             with self.assertRaisesRegex(RuntimeError, "Unsafe"):
                 mod.enter_wp_plugins_root(FakeFTP())
 
     def test_integrity_mismatch_aborts(self):
         ftp = FakeFTP()
-        root = mod.enter_wp_plugins_root(ftp)
+        root, visible = mod.enter_wp_plugins_root(ftp)
         with tempfile.TemporaryDirectory() as temp:
             cwd = os.getcwd()
             try:
