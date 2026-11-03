@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Auditoría de calidad compartida (#2107): test **de solo lectura** ejecutado automáticamente después del despliegue de Core en las dos tiendas. Compara todos los archivos instalables por SHA-256 contra el mismo commit, detecta identificadores comerciales en el código fuente y analiza el estado HTTP y la navegación pública de STAGING y Focazul. El informe JSON/Markdown distingue PASS, FAIL, WARNING y NOT_CHECKED y se conserva como artefacto de GitHub Actions. La validación de interfaz wp-admin de ambos sitios es condicional a credenciales de pruebas independientes; no se declara comprobada cuando no están configuradas. Sin copiar datos ni realizar cambios de configuración/funciones del plugin o en PRODUCCIÓN.
+
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
 
 - Infraestructura de actualizaciones (#2086): STAGING y Focazul reciben únicamente los archivos de plugin modificados desde el último release satisfactorio. Solo se actualizan plugins ya instalados; Focazul únicamente Core. Sin FTP cuando no hay cambios y sin copiar plugins ajenos. Verificación SHA-256 por fichero y fallo conjunto de Core si uno de sus dos destinos falla. Sin cambios de lógica funcional en Core.
