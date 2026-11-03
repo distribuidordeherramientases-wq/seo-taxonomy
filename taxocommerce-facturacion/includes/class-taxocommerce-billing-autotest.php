@@ -151,7 +151,7 @@ final class TaxoCommerce_Billing_Autotest {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately before any diagnostics.
         if ( ! isset( $_POST['taxocommerce_billing_run'] ) ) {
-            echo '<p class="description">' . esc_html__( 'Pulsa el botón para realizar las comprobaciones. El resultado no se guarda.', 'taxocommerce-facturacion' ) . '</p>';
+            echo '<p class="description">' . esc_html__( 'Pulsa el botón para realizar las comprobaciones. El último resultado se conserva una hora para descargar el JSON.', 'taxocommerce-facturacion' ) . '</p>';
             return;
         }
         check_admin_referer( 'taxocommerce_billing_autotest' );
