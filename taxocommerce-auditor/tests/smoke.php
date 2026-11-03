@@ -284,6 +284,6 @@ verify( false !== strpos( $runner_source, 'const BATCH_SIZE = 40;' ), 'Category-
 verify( false !== strpos( $category_source, 'const SAMPLE_MAX = 200;' ), 'Category cohort sample stays bounded' );
 verify( 1 === preg_match( '/^Tags:\\s*([^\\r\\n]+)/m', $readme_source, $readme_tags ), 'Plugin readme declares tags' );
 verify( count( array_filter( array_map( 'trim', explode( ',', $readme_tags[1] ) ) ) ) <= 5, 'WordPress.org tag count at most five' );
-verify( false !== strpos( $readme_source, 'Stable tag: 0.3.3' ) && false !== strpos( $entry_source, 'Version: 0.3.3' ), 'Standalone release version matches readme' );
+verify( 1 === preg_match( '/Version:\\s*(\\d+\\.\\d+\\.\\d+)/', $entry_source, $observed_version ) && false !== strpos( $readme_source, 'Stable tag: ' . $observed_version[1] ), 'Standalone release version matches readme' );
 
 echo "TaxoCommerce Auditor native parity smoke tests passed.\n";
