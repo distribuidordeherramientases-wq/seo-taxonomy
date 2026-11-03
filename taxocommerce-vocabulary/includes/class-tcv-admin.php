@@ -85,7 +85,7 @@ final class TCV_Admin {
     }
 
     private static function nav( $active ) {
-        $tabs = array( 'labels'=>'Etiquetas','attributes'=>'Atributos','classifier'=>'Clasificador','io'=>'Importar / Exportar','control'=>'Control','auto-test'=>'Auto Test','manual'=>'Manual' );
+        $tabs = array( 'labels'=>'Etiquetas','attributes'=>'Atributos','classifier'=>'Clasificador','io'=>'Importar / Exportar','control'=>'Control','auto-test'=>'Autocheck','manual'=>'Manual' );
         echo '<nav class="nav-tab-wrapper">';
         foreach ( $tabs as $key => $label ) {
             $url = add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>$key ), admin_url( 'admin.php' ) );
