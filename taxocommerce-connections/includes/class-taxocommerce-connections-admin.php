@@ -214,6 +214,10 @@ final class TaxoCommerce_Connections_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'TaxoCommerce Connections', 'taxocommerce-connections' ); ?></h1>
+            <nav class="nav-tab-wrapper">
+                <a class="nav-tab nav-tab-active" href="<?php echo esc_url( self::url() ); ?>"><?php esc_html_e( 'Connections', 'taxocommerce-connections' ); ?></a>
+                <a class="nav-tab" href="<?php echo esc_url( TaxoCommerce_Connections_Autocheck::url() ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-connections' ); ?></a>
+            </nav>
 			<p><?php esc_html_e( 'Shared connections used by multiple modules. Credentials and OAuth live here; reports, feeds, and publishing remain owned by their functional plugins.', 'taxocommerce-connections' ); ?></p>
 			<?php self::notice(); ?>
 
