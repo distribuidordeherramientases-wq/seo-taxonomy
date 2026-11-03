@@ -87,7 +87,8 @@ function taxocommerce_distribution_handle_sitemap_regenerate() {
 function taxocommerce_distribution_save_sitemap_speed() {
     taxocommerce_distribution_guard();
     check_admin_referer( 'tcdist_sitemap_speed' );
-    $raw = isset( $_POST['tcdist_sitemap_speed'] ) ? wp_unslash( $_POST['tcdist_sitemap_speed'] ) : '';
+    $raw = isset( $_POST['tcdist_sitemap_speed'] ) && is_scalar( $_POST['tcdist_sitemap_speed'] )
+        ? sanitize_text_field( wp_unslash( $_POST['tcdist_sitemap_speed'] ) ) : '';
     if ( ! is_scalar( $raw ) || ! preg_match( '/^[1-5]$/', (string) $raw ) ) {
         wp_die( esc_html__( 'Selecciona una velocidad entre 1 y 5.', 'taxocommerce-distribution' ) );
     }
