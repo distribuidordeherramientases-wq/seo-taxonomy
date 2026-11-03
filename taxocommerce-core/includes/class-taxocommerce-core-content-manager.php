@@ -708,8 +708,10 @@ final class TaxoCommerce_Core_Content_Manager {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
         $description = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
         // Only overwrite the saved excerpt when the editor actually submitted the field.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- save_content() validates the form nonce before calling this category saver.
         $excerpt = isset( $_POST['excerpt'] ) && is_string( $_POST['excerpt'] )
             ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : null;
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         $image_id = TaxoCommerce_Core_Editor_UI::image_id();
         if ( is_wp_error( $image_id ) ) {
             return $image_id;
