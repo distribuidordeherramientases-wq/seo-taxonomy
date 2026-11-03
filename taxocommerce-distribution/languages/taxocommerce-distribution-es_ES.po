@@ -1043,3 +1043,63 @@ msgid ""
 "de archivo. Distribución manual y automática tienen propietarios distintos "
 "durante la migración."
 msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
+msgstr "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "No se puede reprogramar la generación de sitemaps."
+msgstr "No se puede reprogramar la generación de sitemaps."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no ha podido programar el siguiente bloque; los XML publicados no se han sustituido."
+msgstr "WP-Cron no ha podido programar el siguiente bloque; los XML publicados no se han sustituido."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no puede recuperar la generación interrumpida."
+msgstr "WP-Cron no puede recuperar la generación interrumpida."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso."
+msgstr "Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Inicio de esta generación:"
+msgstr "Inicio de esta generación:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última publicación completada:"
+msgstr "Última publicación completada:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última actividad:"
+msgstr "Última actividad:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "En ejecución"
+msgstr "En ejecución"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Completado"
+msgstr "Completado"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Detenido"
+msgstr "Detenido"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin iniciar"
+msgstr "Sin iniciar"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Todavía no publicado"
+msgstr "Todavía no publicado"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La fecha de los archivos XML corresponde a la última publicación, no al inicio del trabajo."
+msgstr "La fecha de los archivos XML corresponde a la última publicación, no al inicio del trabajo."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La generación está en curso. El índice visible todavía pertenece a la publicación anterior."
+msgstr "La generación está en curso. El índice visible todavía pertenece a la publicación anterior."
