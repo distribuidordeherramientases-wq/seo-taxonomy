@@ -4,6 +4,12 @@
 
 # CHANGELOG — TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
 
+## [Unreleased] — Cabecera común
+
+- Cabecera visual común basada en Core, con nombre, icono, descripción y versión desde la cabecera real.
+- Rutas, pestañas, permisos y funciones conservados, sin dependencia obligatoria entre plugins. Issue #2137.
+- No se incrementa la versión en esta rama porque el PR #2135 de sitemaps ya prepara una nueva versión; coordinar la fusión.
+
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]
