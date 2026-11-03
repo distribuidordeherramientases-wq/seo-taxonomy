@@ -201,7 +201,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         if ( '' !== $group ) {
             echo '</tbody></table>';
         }
-        echo '<p class="description">' . esc_html__( 'El resultado es puntual, no se guarda. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
+        echo '<p class="description">' . esc_html__( 'Se conserva el último resultado una hora para descargarlo. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
     }
 }
 
