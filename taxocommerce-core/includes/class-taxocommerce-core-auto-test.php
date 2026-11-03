@@ -113,6 +113,21 @@ final class TaxoCommerce_Core_Auto_Test {
                     'skip' => (int) $totals['skip'],
                 ),
                 'tests' => $report['rows'],
+                'errors' => array_values( array_map( static function( $row ) {
+                    return array(
+                        'id' => $row['id'],
+                        'group' => $row['group'],
+                        'message' => $row['message'],
+                        'php_errors' => $row['php_errors'] ?? array(),
+                    );
+                }, array_filter( $report['rows'], static function( $row ) {
+                    return 'fail' === $row['status'];
+                } ) ) ),
+                'not_executed' => array_values( array_map( static function( $row ) {
+                    return array( 'id' => $row['id'], 'message' => $row['message'] );
+                }, array_filter( $report['rows'], static function( $row ) {
+                    return 'skip' === $row['status'];
+                } ) ) ),
             ),
         );
     }
@@ -193,6 +208,23 @@ final class TaxoCommerce_Core_Auto_Test {
         $totals = array( 'pass' => 0, 'fail' => 0, 'skip' => 0 );
         foreach ( $cases as $id => $labels ) {
             $began = microtime( true );
+            $warnings = array();
+            // The temporary error handler captures only PHP errors raised inside
+            // this particular manual check, never all site errors or unrelated logs.
+            set_error_handler( static function( $severity, $message, $file, $line ) use ( &$warnings ) {
+                if ( 0 === ( error_reporting() & $severity ) ) {
+                    return false;
+                }
+                if ( count( $warnings ) < 10 ) {
+                    $warnings[] = array(
+                        'severity' => (int) $severity,
+                        'message' => sanitize_text_field( (string) $message ),
+                        'file' => basename( (string) $file ),
+                        'line' => (int) $line,
+                    );
+                }
+                return true;
+            } );
             try {
                 $method = array( __CLASS__, 'check_' . $id );
                 $result = is_callable( $method ) ? call_user_func( $method ) : self::bad( 'Test sin implementación: ' . $id );
@@ -202,6 +234,13 @@ final class TaxoCommerce_Core_Auto_Test {
                 }
             } catch ( Throwable $error ) {
                 $result = self::bad( get_class( $error ) . ': ' . $error->getMessage() );
+            } finally {
+                restore_error_handler();
+            }
+            if ( $warnings ) {
+                $result['status'] = 'fail';
+                $result['message'] .= ' Se produjeron ' . count( $warnings ) . ' avisos/errores PHP durante la prueba.';
+                $result['php_errors'] = $warnings;
             }
             $result['id'] = $id;
             $result['group'] = $labels[0];
