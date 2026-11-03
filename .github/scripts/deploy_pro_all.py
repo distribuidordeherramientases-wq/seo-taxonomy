@@ -141,10 +141,10 @@ def write_report(report, source, error=None):
     Path("pro-release-manifest.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
     if summary_path:
-        lines = ["## TaxoCommerce STAGING -> PRO", "", "Commit: \`" + source + "\`",
+        lines = ["## TaxoCommerce STAGING -> PRO", "", "Commit: `" + source + "`",
                  "", "Modules verified: " + str(len(report)), ""]
         for row in report:
-            lines.append("- \`" + row["slug"] + "\`: " + str(row["updated"]) + " updated, " + str(row["unchanged"]) + " unchanged")
+            lines.append("- `" + row["slug"] + "`: " + str(row["updated"]) + " updated, " + str(row["unchanged"]) + " unchanged")
         if error:
             lines.extend(["", "**FAILURE:** " + type(error).__name__ + " (see job log; publication incomplete)"])
         with open(summary_path, "a", encoding="utf-8") as out:
