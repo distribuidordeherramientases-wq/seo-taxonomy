@@ -304,7 +304,7 @@ final class TaxoCommerce_Core_Menu {
         $submitted = isset( $_POST['tc_country'] ) && is_string( $_POST['tc_country'] )
             ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['tc_country'] ) ) ) ) : '';
         if ( $submitted !== $country || ! array_key_exists( $country, self::available_countries() ) ) {
-            $this->redirect( 'error', __( 'El país del menú no está asignado a ninguna página.', 'taxocommerce-core' ) );
+            $this->redirect( 'error', __( 'País no válido.', 'taxocommerce-core' ) );
         }
 		$tree = $this->build_tree( $country );
 		if ( ! $tree ) {
