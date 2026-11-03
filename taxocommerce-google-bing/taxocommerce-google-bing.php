@@ -148,7 +148,7 @@ function taxocommerce_google_bing_screen() {
             'bing'             => 'Bing',
             'google_trends'    => 'Google Trends',
             'user_guide'       => 'User Guide',
-            'auto_test'        => 'Autocheck',
+            'auto_test'        => __( 'Autocheck', 'taxocommerce-google-bing' ),
         ) as $key => $label
     ) {
         $url = add_query_arg(
