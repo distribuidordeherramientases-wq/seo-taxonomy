@@ -213,6 +213,7 @@ def enter_wp_plugins_root(ftp, modules=None):
             + ". Set PRO_FTP_PLUGINS_DIR to the correct PRO location; "
             "no files uploaded."
         )
+    ftp.cwd(root)
     print("PRO FTPS selected root: " + root + " ("
           + str(score) + "/" + str(len(expected))
           + " TaxoCommerce plugin folders visible)", flush=True)
