@@ -67,7 +67,7 @@ $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-f
 tc_faq_at_check( false !== strpos( $entry, 'class-taxocommerce-faqs-auto-test.php' ), 'entrypoint include' );
 tc_faq_at_check( false !== strpos( $entry, 'TaxoCommerce_FAQs_Auto_Test::register()' ), 'actions registered' );
 tc_faq_at_check( false !== strpos( $admin, 'TaxoCommerce_FAQs_Auto_Test::render()' ), 'UI routing' );
-tc_faq_at_check( false !== strpos( $admin, "'auto-test' => __( 'Auto Test', 'taxocommerce-faqs' )" ), 'consistent Auto Test tab' );
+tc_faq_at_check( false !== strpos( $admin, "'auto-test' => __( 'Autocheck', 'taxocommerce-faqs' )" ), 'consistent Auto Test tab' );
 tc_faq_at_check( false !== strpos( $admin, 'self::ensure_category()' ), 'legacy schema method preserved' );
 tc_faq_at_check( false !== strpos( $admin, 'taxocommerce_faqs_save' ), 'FAQ CRUD preserved' );
 
@@ -76,7 +76,7 @@ TaxoCommerce_FAQs_Auto_Test::render();
 $html = ob_get_clean();
 tc_faq_at_check( false !== strpos( $html, 'Guardar estado ANTES' ), 'baseline button' );
 tc_faq_at_check( false !== strpos( $html, 'Comprobar DESPUÉS' ), 'after button' );
-tc_faq_at_check( false !== strpos( $html, 'Auto Test' ), 'consistent test name' );
+tc_faq_at_check( false !== strpos( $html, 'Autocheck' ), 'consistent test name' );
 tc_faq_at_check( substr_count( $html, '<details' ) === count( $groups ), 'groups rendered' );
 
 echo 'FAQ Auto Test smoke passed: 25 checks, comparison, UI, permissions and no FAQ writes.' . PHP_EOL;
