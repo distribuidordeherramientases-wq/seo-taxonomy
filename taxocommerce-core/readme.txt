@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.57
+Stable tag: 0.4.58
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.58 =
+* Normalize the existing Core diagnostics run button to Autocheck, matching every TaxoCommerce plugin. Preserve all existing check IDs, endpoint slugs, and protected JSON download behavior.
+
 
 = 0.4.57 =
 * Retirada la tarjeta de detección del antiguo TaxoCommerce SEO y el mensaje de convivencia obsoleto del panel Core.
