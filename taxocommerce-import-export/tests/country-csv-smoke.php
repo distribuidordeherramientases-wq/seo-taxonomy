@@ -30,7 +30,7 @@ $invoke = static function ( $method, ...$args ) use ( $csv ) {
 	$reflection->setAccessible( true );
 	return $reflection->invokeArgs( $csv, $args );
 };
-foreach ( array( 'products', 'products_reduced', 'product_categories', 'pages', 'posts' ) as $type ) {
+foreach ( array( 'products', 'products_reduced', 'product_categories', 'wp_categories', 'pages', 'posts' ) as $type ) {
 	$header = $csv->export_header_for_job( $type );
 	check( count( array_filter( $header, static function( $item ) { return $item === 'country_code'; } ) ) === 1, $type . ' has one country column' );
 	check( end( $header ) === 'country_code', $type . ' country is appended for legacy CSV compatibility' );
@@ -52,4 +52,4 @@ check( $invoke( 'country_for_export', 10, true ) === 'US', 'new country saved on
 $invoke( 'save_country', 1, '' );
 check( $invoke( 'country_for_export', 1 ) === '', 'full blank clears old country' );
 check( in_array( 'country_code', $csv->normalize_headers_for_batch( array( 'pais_origen' ) ), true ), 'legacy country alias' );
-echo "PASS: five CSV schemas and country import/export compatibility.\n";
+echo "PASS: six CSV schemas and country import/export compatibility.\n";
