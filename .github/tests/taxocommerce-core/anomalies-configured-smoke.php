@@ -14,6 +14,13 @@ function esc_attr__( $text, $domain = '' ) { return $text; }
 function esc_sql( $value ) { return $value; }
 function sanitize_key( $value ) { return strtolower( $value ); }
 
+final class TaxoCommerce_Core_Hierarchy_Classic {
+    public static function role_pages( $role ) {
+        $count = (int) ( $GLOBALS['tc_role_counts'][ $role ] ?? 0 );
+        return array_fill( 0, $count, (object) array( 'ID' => 123 ) );
+    }
+}
+
 final class Anomalies_Configured_Test_DB {
     public $prefix = 'wp_';
     public $tables = array();
@@ -41,6 +48,7 @@ final class Anomalies_Configured_Test_DB {
         throw new RuntimeException( 'Unexpected SQL: ' . $query );
     }
 }
+$GLOBALS['tc_role_counts'] = array();
 $wpdb = new Anomalies_Configured_Test_DB();
 require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-anomalies.php';
 function tc_anomalies_expect( $test, $message ) {

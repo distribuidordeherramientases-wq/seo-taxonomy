@@ -9,6 +9,13 @@
 
 ## [Unreleased]
 
+- Categorías nativas (#2123): el editor de Core lee y guarda la descripción mediante la taxonomía de WooCommerce y el extracto en `wp_termmeta.seo_excerpt`, conservando textos existentes si el campo no se envía. Las categorías no consultan `seo_nodes`.
+- Jerarquía (#2123): roles de páginas leídos desde `wp_postmeta._taxocommerce_core_seo_role` en el árbol, informes, selector y auditoría. Importación idempotente sin sobrescribir roles nativos desde los nodos históricos activos de `seo_nodes`; `seo_relations` mantiene los enlaces y el antiguo nodo se conserva como espejo para otras extensiones.
+- Regresión sin WordPress para edición nativa de categorías y migración de roles, integrada en el workflow de validación de STAGING. No se despliega en producción.
+
+- Corrección de navegación (#2109): se conservan en `$submenu` las rutas internas de administración de WordPress y se ocultan solo visualmente, evitando el error de acceso denegado en Contenidos, Jerarquía, Menús y Manual.
+- AutoCheck manual (#2126): ejecución exclusivamente voluntaria desde el panel Core con rutas WordPress cargadas; nuevas comprobaciones de permisos/callbacks, integridad básica de archivos y versión, lectura MySQL, categorías y roles. Los avisos PHP producidos durante cada chequeo y las pruebas no ejecutadas aparecen en la interfaz y en JSON. Ninguna escritura de datos de tienda ni automatización añadida.
+
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
 
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
@@ -18,6 +25,12 @@
 - Despliegue (#2084): Core se transfiere a STAGING y Asociación Focazul en trabajos independientes; el resultado conjunto exige éxito en ambos sitios. Fallos de System Check u otros plugins no bloquean Core en Focazul. Sin modificar el código funcional del plugin.
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
+
+## [0.4.54] - 2026-11-03
+
+- Plugin Check (#2121): se corrigen los dos errores de navegación de bloques (eliminación de `suppress_filters=true` redundante y escape de profundidad en HTML) y se sanea el POST de confirmación/bloques de objetos.
+- Se justifican específicamente los parámetros GET de solo lectura de Anomalías y el filtro `meta_key` del selector administrativo de países, sin cambiar datos, consultas ni validación de permisos.
+- Igualdad del plugin genérico para STAGING y Focazul; quedan pendientes de comprobación externa la ejecución de Plugin Check y la prueba visual de la navegación real. No se despliega automáticamente a PRO.
 
 ## [0.4.53]
 
