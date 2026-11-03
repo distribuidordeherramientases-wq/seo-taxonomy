@@ -140,6 +140,25 @@ def local_source_audit(report, paths):
               "PASS", "Sin referencias explícitas a clientes y marcas conocidas en los archivos ejecutables de Core")
 
 
+
+def global_country_audit(report):
+    """Catch the legacy default ES country, which is not global/empty."""
+    file = Path("taxocommerce-core/includes/class-taxocommerce-core-country.php")
+    if not file.is_file():
+        check(report, "shared_code", "País Global por defecto", "NOT_CHECKED",
+              "Archivo de países no disponible para inspección")
+        return
+    source = file.read_text(encoding="utf-8")
+    matches = re.findall(r"""return\s+['"]ES['"]\s*;""", source)
+    if matches:
+        check(report, "shared_code", "País Global por defecto", "WARNING",
+              f"{len(matches)} retornos ES heredados; los contenidos sin país deberían usar Global (vacío). Seguimiento #2082")
+    else:
+        check(report, "shared_code", "País Global por defecto", "PASS",
+              "No se detectaron retornos ES por defecto en el módulo de país")
+
+
+
 def remote_hash(ftp, root, relative):
     parts = relative.split("/")
     ftp.cwd(root)
@@ -365,6 +384,7 @@ def main():
     report = {"commit": os.getenv("GITHUB_SHA", "local").strip(), "checks": []}
     paths = core_source_files()
     local_source_audit(report, paths)
+    global_country_audit(report)
     ftps_parity(report, paths)
     for site, cfg in SITES.items():
         public_navigation(report, site, cfg["url"])
