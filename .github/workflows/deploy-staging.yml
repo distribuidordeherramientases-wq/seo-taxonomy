@@ -65,6 +65,8 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-auto-test.php
           php -l .github/tests/taxocommerce-core/autocheck-json-smoke.php
           php .github/tests/taxocommerce-core/auto-test-smoke.php
+          php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
+          php .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-json-smoke.php
           php .github/tests/taxocommerce-core/autocheck-json-smoke.php download | php .github/tests/taxocommerce-core/autocheck-json-smoke.php validate
           php .github/tests/taxocommerce-core/autocheck-native-menus-smoke.php

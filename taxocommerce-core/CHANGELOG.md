@@ -9,6 +9,9 @@
 
 ## [Unreleased]
 
+- Corrección de navegación (#2109): se conservan en `$submenu` las rutas internas de administración de WordPress y se ocultan solo visualmente, evitando el error de acceso denegado en Contenidos, Jerarquía, Menús y Manual.
+- AutoCheck manual (#2126): ejecución exclusivamente voluntaria desde el panel Core con rutas WordPress cargadas; nuevas comprobaciones de permisos/callbacks, integridad básica de archivos y versión, lectura MySQL, categorías y roles. Los avisos PHP producidos durante cada chequeo y las pruebas no ejecutadas aparecen en la interfaz y en JSON. Ninguna escritura de datos de tienda ni automatización añadida.
+
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
 
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
