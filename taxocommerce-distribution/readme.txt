@@ -62,6 +62,7 @@ English is the base source and UI language. Future localization should use stand
 == Changelog ==
 
 = 0.1.3 =
+* Cabecera administrativa homogénea con el diseño de Core, versión visible e integración autónoma sin depender de Core.
 * Added visible plugin version to the admin header.
 * Added a five-speed independent sitemap workload regulator, progress and stop controls.
 * Replaced synchronous sitemap generation with restartable 250-item background windows; validated XML is published only after generation, and the main index is replaced last.

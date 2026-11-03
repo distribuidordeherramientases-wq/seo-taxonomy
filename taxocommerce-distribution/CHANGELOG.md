@@ -12,6 +12,8 @@ Sin novedades pendientes documentadas.
 
 ## [0.1.3] — 2026-11-03
 
+- Cabecera de administración con estilo común TaxoCommerce Core, nombre, icono, descripción y versión, sin dependencias entre plugins (#2137 / PR #2138).
+
 - Versión visible en el encabezado de Distribution y actualizada en la cabecera del plugin y en readme.txt.
 - Motor de sitemap sustituido por ventanas incrementales de 250 elementos (consulta por cursor para productos), con progreso, bloqueo de concurrencia, reanudación y botón Detener.
 - Regulador de cinco velocidades compatible con los perfiles de los demás plugins TaxoCommerce; telemetría local de CPU PHP, memoria y duración, con pausas automáticas por presión.

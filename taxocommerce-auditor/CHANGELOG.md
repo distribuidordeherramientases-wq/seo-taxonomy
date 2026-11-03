@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Auditor - Content Quality for WooCommerce
 
+## [0.3.4] — 2026-11-03
+
+- Cabecera común basada en TaxoCommerce Core: identidad, icono, descripción y versión con estilo responsive.
+- Enlaces, pestañas, permisos y lógica interna conservados; implementación autónoma sin requerir Core. Issue #2137.
+
 > Historial de las versiones del plugin **independiente**. Las funciones anteriores a su separación están documentadas en [`changelog.txt`](changelog.txt).
 > Fuente inicial: entradas verificadas del `readme.txt` en GitHub. Solo se atribuye una fecha si la fuente la acredita.
 

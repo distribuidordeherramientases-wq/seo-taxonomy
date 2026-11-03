@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Suppliers
 
+## [0.2.4] — 2026-11-03
+
+- Cabecera visual común basada en Core: nombre, icono, descripción, versión y diseño adaptable.
+- Lógica funcional, pestañas y permisos intactos. Plugin autónomo sin dependencia de Core. Issue #2137.
+
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]
