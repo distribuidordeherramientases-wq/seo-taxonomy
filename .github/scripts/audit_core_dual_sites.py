@@ -264,7 +264,7 @@ def public_navigation(report, site, base):
         if site == "focazul":
             if destination.hostname == "staging.distribuidordeherramientas.es":
                 suspects.append("enlace a STAGING ajeno")
-            if destination.hostname == origin.hostname and not destination.path.startswith("/asociacionfocazul/"):
+            if destination.hostname == origin.hostname and not (destination.path == "/asociacionfocazul" or destination.path.startswith("/asociacionfocazul/")):
                 unexpected_local.append(destination.path[:120])
             if re.search(r"\b(?:makita|beko|becko|vevor|taller mec[aá]nico)\b", link["text"], re.I):
                 suspects.append("marca/categoría ajena")
