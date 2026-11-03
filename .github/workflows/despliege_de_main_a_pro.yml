@@ -132,7 +132,7 @@ jobs:
           )
 
           if [ "${#installed_modules[@]}" -eq 0 ]; then
-            echo "No hay plugins TaxoCommerce instalados para actualizar en PRO. Los ZIP de los no instalados ya se han preparado."
+            echo "No hay plugins TaxoCommerce instalados para actualizar en PRO. No se instalaran plugins ausentes."
             exit 0
           fi
 
@@ -149,7 +149,7 @@ jobs:
             echo "::error::La lista de módulos de STAGING está vacía; comprueba ALL_MODULES_JSON antes de escribir en PRO."
             exit 1
           fi
-          echo "Validación previa: ${#installed_modules[@]} instalados en PRO; ${#allowed_modules[@]} disponibles en MAIN."
+          echo "Validación previa: ${#installed_modules[@]} instalados en PRO; ${#allowed_modules[@]} disponibles en STAGING."
 
           declare -A allowed_lookup=()
           for module in "${allowed_modules[@]}"; do
@@ -224,6 +224,11 @@ jobs:
                 -x '*.bak'
             )
             unzip -t "$package" >/dev/null
+            # Never ship FTP sync-state files, hidden handoff data or Git metadata.
+            if unzip -Z1 "$package" | grep -E '(^|/)(\.ftp-deploy-sync-state\.json|\.taxocommerce-deploy)(/|$)'; then
+              echo "::error::$module contains deployment artifacts"
+              exit 1
+            fi
             unzip -Z1 "$package" | grep -Fx "$module.php" >/dev/null
             unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
 
@@ -346,7 +351,3 @@ jobs:
 
           echo "Despliegue modular terminado: solo se han sobrescrito archivos cuyo contenido cambió."
 
-      # The legacy FTP cleanup assumed that the FTP root and WP_PLUGIN_DIR are identical.
-      # That assumption is false for some PRO modules (Database returned FTP 550).
-      # Do not remove files here. All removals belong to the audited reconciliation,
-      # never to a blind FTP path assembled from plugin names.
