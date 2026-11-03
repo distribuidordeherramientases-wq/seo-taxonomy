@@ -84,17 +84,17 @@ def visible_names(ftp):
 
 
 def candidate_plugin_roots(ftp):
-    """Discover WordPress paths without assuming the FTPS account's login root."""
+    """Use an explicit PRO path when configured; never guess another site.
+
+    A relative path is resolved against the FTP login folder and its parents,
+    because hosting providers can start each FTP account in a subdirectory.
+    This only reads remote directories; it never creates one.
+    """
     origin = ftp.pwd()
     configured = os.environ.get("PRO_FTP_PLUGINS_DIR", "").strip()
-    if configured:
-        if "\\x00" in configured or "\\" in configured or ".." in configured.split("/"):
-            raise RuntimeError("Unsafe PRO_FTP_PLUGINS_DIR")
-        return [configured]
-
     anchors = []
     cursor = origin
-    for _ in range(6):
+    for _ in range(12):
         if cursor in anchors:
             break
         anchors.append(cursor)
@@ -103,6 +103,23 @@ def candidate_plugin_roots(ftp):
             break
         cursor = parent
 
+    if configured:
+        parts = [part for part in configured.split("/") if part not in ("", ".")]
+        if ("\\x00" in configured or "\\" in configured or ".." in parts
+                or parts[-2:] != ["wp-content", "plugins"]):
+            raise RuntimeError(
+                "Unsafe PRO_FTP_PLUGINS_DIR: expected a path ending in "
+                "wp-content/plugins, without .. or hidden traversal."
+            )
+        if posixpath.isabs(configured):
+            return [posixpath.normpath(configured)]
+        return list(dict.fromkeys(
+            posixpath.normpath(posixpath.join(anchor, configured))
+            for anchor in anchors
+        ))
+
+    # Backwards-compatible discovery for read-only diagnostics. Production
+    # always supplies PRO_FTP_PLUGINS_DIR explicitly from the manual workflow.
     candidates = []
     for anchor in anchors:
         candidates.extend([
@@ -111,9 +128,6 @@ def candidate_plugin_roots(ftp):
             posixpath.join(anchor, "plugins"),
             anchor,
         ])
-
-        # A Webempresa FTP account may see multiple domain roots. Resolve
-        # actual site directories rather than trusting the first Core found.
         try:
             ftp.cwd(anchor)
             children = visible_names(ftp)
@@ -125,7 +139,6 @@ def candidate_plugin_roots(ftp):
                 if child.startswith(".") or "/" in child or "\\" in child:
                     continue
                 candidates.append(posixpath.join(anchor, child, "wp-content", "plugins"))
-
     return list(dict.fromkeys(candidates))
 
 
@@ -138,6 +151,7 @@ def enter_wp_plugins_root(ftp, modules=None):
     the full production installation.
     """
     expected = set(modules or {"taxocommerce-core"})
+    origin = ftp.pwd()
     options = []
     candidates = candidate_plugin_roots(ftp)
     for candidate in candidates:
@@ -158,10 +172,19 @@ def enter_wp_plugins_root(ftp, modules=None):
             continue
 
     if not options:
+        configured = os.environ.get("PRO_FTP_PLUGINS_DIR", "").strip()
+        if configured:
+            raise RuntimeError(
+                "The explicitly configured PRO_FTP_PLUGINS_DIR '" + configured +
+                "' is not accessible from FTP login directory '" +
+                origin + "' or does not contain readable TaxoCommerce Core. "
+                "Check the FTP_SERVER/FTP_USERNAME account and the configured "
+                "Webempresa site path. No files uploaded."
+            )
         raise RuntimeError(
             "FTPS cannot locate a WordPress plugins directory containing a "
-            "readable TaxoCommerce Core. No files uploaded. Verify FTP account "
-            "root and permissions, or set PRO_FTP_PLUGINS_DIR."
+            "readable TaxoCommerce Core. No files uploaded. Configure "
+            "PRO_FTP_PLUGINS_DIR."
         )
 
     # This site's PRO WordPress folder was confirmed in the Webempresa
