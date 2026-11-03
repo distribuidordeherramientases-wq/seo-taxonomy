@@ -41,6 +41,9 @@
 			if (statuses) {
 				statuses.style.display = (group === 'products' || group === 'content') ? '' : 'none';
 			}
+			if (wpCategoryFilters) {
+				wpCategoryFilters.style.display = group === 'wp_categories' ? '' : 'none';
+			}
 		}
 
 		function filterChildOptions(select, parentId) {
