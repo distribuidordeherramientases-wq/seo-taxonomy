@@ -68,6 +68,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         }
         global $wpdb;
         $table = self::nodes_table();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time compatibility table check; cannot use a native WP table API or cache a migration precondition.
         if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) !== $table ) {
             update_option( 'taxocommerce_core_roles_native_v1', 1, false );
             return;
@@ -545,13 +546,12 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     public static function role_pages( $role ) {
-        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Native page role selector.
         return get_posts( array(
             'post_type' => 'page',
             'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
             'posts_per_page' => -1,
-            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META,
-            'meta_value' => sanitize_key( $role ),
+            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical native Core hierarchy role, not a legacy table.
+            'meta_value' => sanitize_key( $role ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Exact matching role.
             'orderby' => 'title',
             'order' => 'ASC',
         ) );

@@ -64,13 +64,12 @@ final class TaxoCommerce_Core_Architecture_Report {
      */
     private static function published_roles() {
         // Roles are native WordPress page metadata; no SEO nodes query is needed.
-        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Fixed metadata key for Core's page-role index.
         $pages = get_posts( array(
             'post_type' => 'page',
             'post_status' => 'publish',
             'posts_per_page' => -1,
             'fields' => 'ids',
-            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META,
+            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical native role selection for architecture reporting.
         ) );
         $rows = array();
         foreach ( $pages as $id ) {

@@ -1061,7 +1061,6 @@ final class TaxoCommerce_Core {
 		}
 		TaxoCommerce_Core_Dashboard::render(
 			$this->modules,
-			$this->legacy_detected(),
 			$this->woocommerce_detected(),
 			array( $this, 'render_extension_catalog' )
 		);

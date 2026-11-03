@@ -793,9 +793,10 @@ function taxocommerce_core_anomalies_recount_categories() {
  * True only when the administrator explicitly wants successful audit sections too.
  */
 function taxocommerce_core_anomalies_show_all() {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display preference.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only report display preference; no data is changed.
     $requested = isset( $_GET['tc_anomalies_all'] ) && is_string( $_GET['tc_anomalies_all'] )
         ? sanitize_text_field( wp_unslash( $_GET['tc_anomalies_all'] ) ) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
     return '1' === $requested;
 }
 
