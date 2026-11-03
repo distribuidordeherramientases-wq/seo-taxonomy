@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Manually update ONLY installed TaxoCommerce plugins in PRO.
+"""Manually reconcile the installed TaxoCommerce plugins from STAGING to PRO.
 
-The local Git checkout is for selecting published plugin files; nothing outside
-taxocommerce-*/ is ever sent over FTPS. The remote target is wp-content/plugins,
-never the Git repository, its .git metadata or the legacy seo-taxonomy plugin.
-No REST inventory, deletions or FTP sync-state files.
+The Git checkout is only an inventory source: FTPS receives release files from
+taxocommerce-*/ into the corresponding existing wp-content/plugins/ directory.
+Unavailable plugins are explicitly skipped, not installed and not allowed to
+block updates of independent plugins. No Git metadata, tests, FTP state or
+other repository folders are ever uploaded.
 """
 import ftplib
 import hashlib
@@ -119,24 +120,24 @@ def enter_wp_plugins_root(ftp):
     )
 
 
-def verify_installed_plugins(ftp, plugins_root, modules):
-    """Preflight all release targets BEFORE uploading the first file.
+def probe_installed_plugin(ftp, plugins_root, slug):
+    """Return (available, reason) without writing or creating any directories.
 
-    Prevent accidental installation of an absent plugin or a partial release.
-    Every requested taxocommerce-* folder must contain its own main PHP file.
+    A failed CWD or missing main file means this module cannot be safely
+    updated. Other independent plugins can still be updated normally.
     """
-    for slug in modules:
-        if not SLUG.fullmatch(slug):
-            raise ValueError("Unexpected plugin name: " + slug)
-        ftp.cwd(plugins_root)
-        try:
-            ftp.cwd(slug)
-        except ftplib.error_perm as exc:
-            raise RuntimeError("Plugin is absent on PRO: " + slug) from exc
-        if sha256_remote(ftp, slug + ".php") is None:
-            raise RuntimeError("Main plugin file is absent on PRO: " + slug)
+    if not SLUG.fullmatch(slug):
+        raise ValueError("Unexpected plugin name: " + slug)
     ftp.cwd(plugins_root)
-
+    try:
+        ftp.cwd(slug)
+    except ftplib.error_perm as exc:
+        if str(exc).startswith("550"):
+            return False, "plugin_directory_missing_or_inaccessible"
+        raise
+    if sha256_remote(ftp, slug + ".php") is None:
+        return False, "plugin_entrypoint_missing_or_inaccessible"
+    return True, None
 
 def enter_or_create(ftp, directory):
     try:
@@ -189,21 +190,45 @@ def reconcile_one(ftp, plugins_root, slug, files, report):
     print(slug + ": " + str(rows["updated"]) + " updated, " + str(rows["unchanged"]) + " unchanged", flush=True)
 
 
-def write_report(report, source, error=None):
-    result = {"source_branch": "staging", "source_sha": source,
-              "modules_verified": len(report), "plugins": report, "error": type(error).__name__ if error else None}
-    Path("pro-release-manifest.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+def write_report(report, source, error=None, skipped=None, source_count=None):
+    """Clearly distinguish successful uploads, non-applicable modules and failures."""
+    skipped = [] if skipped is None else skipped
+    release_status = ("failed" if error else
+                      "updated_available_plugins_with_skips" if skipped else "complete")
+    result = {
+        "source_branch": "staging",
+        "source_sha": source,
+        "scope": "existing_taxocommerce_plugins_only",
+        "source_modules": source_count,
+        "modules_verified": len(report),
+        "modules_skipped": len(skipped),
+        "release_status": release_status,
+        "plugins": report,
+        "skipped_plugins": skipped,
+        "error": type(error).__name__ if error else None,
+    }
+    Path("pro-release-manifest.json").write_text(
+        json.dumps(result, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8"
+    )
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
     if summary_path:
         lines = ["## TaxoCommerce STAGING -> PRO", "", "Commit: `" + source + "`",
-                 "", "Modules verified: " + str(len(report)), ""]
+                 "", "Source plugins: " + str(source_count),
+                 "Modules verified: " + str(len(report)),
+                 "Modules not available on PRO: " + str(len(skipped)), ""]
         for row in report:
-            lines.append("- `" + row["slug"] + "`: " + str(row["updated"]) + " updated, " + str(row["unchanged"]) + " unchanged")
+            lines.append("- `" + row["slug"] + "`: " + str(row["updated"]) +
+                         " updated, " + str(row["unchanged"]) + " unchanged")
+        for row in skipped:
+            lines.append("- SKIPPED `" + row["slug"] + "`: " + row["reason"])
+        if skipped:
+            lines.extend(["", "**Partial scope:** only existing accessible plugins were updated. "
+                          "No absent plugin was created."])
         if error:
-            lines.extend(["", "**FAILURE:** " + type(error).__name__ + " (see job log; publication incomplete)"])
+            lines.extend(["", "**FAILURE:** " + type(error).__name__ +
+                          " (see job log; publication incomplete)"])
         with open(summary_path, "a", encoding="utf-8") as out:
-            out.write("\n".join(lines) + "\n")
-
+            out.write("\\n".join(lines) + "\\n")
 
 def main():
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
@@ -222,19 +247,27 @@ def main():
             raise RuntimeError("Missing PRO FTPS configuration: " + key)
     ftp = ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=90)
     report = []
+    skipped = []
     error = None
     try:
         ftp.connect(os.environ["FTP_SERVER"], 21)
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
         root = enter_wp_plugins_root(ftp)
-        verify_installed_plugins(ftp, root, modules)
         for slug, files in modules.items():
+            available, reason = probe_installed_plugin(ftp, root, slug)
+            if not available:
+                skipped.append({"slug": slug, "reason": reason})
+                print("::warning::PRO plugin skipped (absent or inaccessible): " +
+                      slug + " [" + reason + "]", flush=True)
+                continue
             reconcile_one(ftp, root, slug, files, report)
-        if set(row["slug"] for row in report) != set(modules):
-            raise RuntimeError("Some plugins were not verified")
+        covered = {row["slug"] for row in report} | {row["slug"] for row in skipped}
+        if covered != set(modules):
+            raise RuntimeError("Incomplete PRO release inventory")
         ftp.quit()
-        print("All tracked TaxoCommerce release files verified in PRO FTPS", flush=True)
+        print("Verified " + str(len(report)) + " available TaxoCommerce plugins, " +
+              str(len(skipped)) + " skipped; no other folders touched", flush=True)
     except Exception as exc:
         error = exc
         try:
@@ -242,7 +275,7 @@ def main():
         except Exception:
             pass
     finally:
-        write_report(report, source, error)
+        write_report(report, source, error, skipped, len(modules))
     if error:
         raise RuntimeError("PRO transfer incomplete: " + str(error)) from error
 
