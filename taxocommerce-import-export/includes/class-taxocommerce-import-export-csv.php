@@ -730,6 +730,10 @@ final class TaxoCommerce_Import_Export_CSV {
 			);
 		}
 
+		if ( 'product' === $type && ! isset( $data['short_description'] ) && isset( $data['excerpt'] ) ) {
+			// Historical product CSVs use excerpt as an alias for short_description.
+			$data['short_description'] = $data['excerpt'];
+		}
 		if ( in_array( $type, array( 'page', 'post' ), true ) ) {
             if ( ! isset( $data['title'] ) && isset( $data['name'] ) ) { $data['title'] = $data['name']; }
             if ( ! isset( $data['excerpt'] ) && isset( $data['short_description'] ) ) { $data['excerpt'] = $data['short_description']; }
@@ -1490,7 +1494,9 @@ final class TaxoCommerce_Import_Export_CSV {
 			'estado_stock'          => 'stock_status',
 			'gestionar_stock'       => 'manage_stock',
 			'cantidad_stock'        => 'stock_quantity',
-			'excerpt'               => 'short_description',
+			// Keep excerpt as a first-class column for post and term CSVs.
+			// Product imports map this legacy alias in import_row_for_batch().
+			'excerpt'               => 'excerpt',
 			'resumen'               => 'short_description',
 			'categories_json'       => 'categories_json',
 			'etiquetas_json'        => 'tags_json',
