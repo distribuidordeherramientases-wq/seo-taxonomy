@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+# A read-only audit should never open several simultaneous FTPS sessions.
+concurrency:
+  group: core-dual-site-audit-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit:
     name: Verify real Core files and public menus on both WordPress sites
