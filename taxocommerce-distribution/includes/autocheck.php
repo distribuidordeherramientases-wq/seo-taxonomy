@@ -280,7 +280,7 @@ function taxocommerce_distribution_render_autocheck() {
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_distribution_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
