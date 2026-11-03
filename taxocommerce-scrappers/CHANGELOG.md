@@ -12,6 +12,8 @@
 
 ## [Unreleased]
 
+- STAGING (#2096): restauración controlada por FTPS de los cinco catálogos MO de Scrappers que estaban corruptos en el servidor, utilizando copias previamente verificadas del repositorio. Comprobación de tablas binarias y SHA-256 tras cada transferencia, sin alterar las traducciones, el código del plugin ni los datos de WordPress. Sin publicar en Focazul ni PRODUCCIÓN.
+
 - Inicio de internacionalización WordPress mediante gettext (`Domain Path: /languages`), catálogos por idioma y traducción de etiquetas del menú, sin cambios funcionales. Seguimiento: #2040 (plan global #2036). Cobertura restante de interfaz, Autotest y manuales pendiente de revisión por idioma.
 
 
