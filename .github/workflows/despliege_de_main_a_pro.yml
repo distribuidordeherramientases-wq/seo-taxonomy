@@ -216,6 +216,11 @@ jobs:
                 -x '*.md' \
                 -x '*.pot' \
                 -x 'node_modules/*' \
+                -x 'node_modules/' \
+                -x 'tests/' \
+                -x 'uploads/' \
+                -x '.*' \
+                -x '*/.*' \
                 -x '*.bak'
             )
             unzip -t "$package" >/dev/null
