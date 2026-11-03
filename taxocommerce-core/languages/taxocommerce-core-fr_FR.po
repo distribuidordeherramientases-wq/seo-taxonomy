@@ -3842,3 +3842,7 @@ msgstr ""
 #: includes/class-taxocommerce-core.php:1292
 msgid "Instalar ZIP"
 msgstr ""
+
+#: includes/class-taxocommerce-core-country.php includes/class-taxocommerce-core-menu.php
+msgid "Global (sin país)"
+msgstr "Global (sans pays)"
