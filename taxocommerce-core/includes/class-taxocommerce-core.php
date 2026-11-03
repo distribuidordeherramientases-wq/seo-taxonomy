@@ -317,7 +317,7 @@ final class TaxoCommerce_Core {
 		$selectors = array();
 		foreach ( array( 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' ) as $slug ) {
 			$selector = '#toplevel_page_taxocommerce-core .wp-submenu a[href*="page=' . $slug . '"]';
-			$selectors[] = '#toplevel_page_taxocommerce-core .wp-submenu li:has(> ' . $selector . ')';
+			$selectors[] = '#toplevel_page_taxocommerce-core .wp-submenu li:has(> a[href*="page=' . $slug . '"])';
 			$selectors[] = $selector;
 		}
 		$style = implode( ',', $selectors ) . '{display:none!important;}';
