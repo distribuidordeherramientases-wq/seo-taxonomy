@@ -40,15 +40,15 @@ function taxocommerce_core_anomalies_render() {
         wp_die(esc_html__('No tienes permisos para ver Anomalías.', 'taxocommerce-core'));
     }
     echo '<section class="tc-anomalies" aria-label="' . esc_attr__('Anomalías', 'taxocommerce-core') . '">';
-    if (!taxocommerce_core_anomalies_table_exists('seo_nodes') ||
-        !taxocommerce_core_anomalies_table_exists('seo_relations')) {
+    if (!taxocommerce_core_anomalies_table_exists('seo_relations')) {
         echo '<p class="description">' . esc_html__( 'La jerarquía SEO no está disponible o no se ha configurado. No se pueden comprobar anomalías estructurales.', 'taxocommerce-core' ) . '</p></section>';
         return;
     }
     // An unconfigured store does not have a broken SEO hierarchy.
-    global $wpdb;
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only live configuration check.
-    $configured_nodes = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}seo_nodes WHERE status=1 AND seo_role IN ('cluster', 'hub_primary', 'hub_secondary', 'landing')" );
+    $configured_nodes = 0;
+    foreach ( array( 'cluster', 'hub_primary', 'hub_secondary', 'landing' ) as $role ) {
+        $configured_nodes += count( TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role ) );
+    }
     // Existing relationship rows are not proof of a configured hierarchy.
     if ( 0 === $configured_nodes ) {
         echo '<p class="description">' . esc_html__( 'Jerarquía SEO no configurada. No hay anomalías estructurales que comprobar.', 'taxocommerce-core' ) . '</p></section>';
@@ -112,16 +112,16 @@ function taxocommerce_core_anomalies_resolve_secondary_hub($term_id) {
         return new WP_Error('seo_category_delete_invalid_id', 'ID de categoría no válido.');
     }
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
+    // Native metadata determines the source page role.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only hierarchy relation lookup.
     $rows = $wpdb->get_results(
         $wpdb->prepare(
             "SELECT DISTINCT r.source_id AS hub_id, p.post_title, p.post_status
              FROM {$wpdb->prefix}seo_relations r
-             INNER JOIN {$wpdb->prefix}seo_nodes n
-                ON n.object_type='page'
-               AND n.object_id=r.source_id
-               AND n.seo_role='hub_secondary'
-               AND n.status=1
+             INNER JOIN {$wpdb->postmeta} pm
+                ON pm.post_id = r.source_id
+               AND pm.meta_key = %s
+               AND pm.meta_value = 'hub_secondary'
              INNER JOIN {$wpdb->posts} p
                 ON p.ID=r.source_id
                AND p.post_type='page'
@@ -131,6 +131,7 @@ function taxocommerce_core_anomalies_resolve_secondary_hub($term_id) {
                AND r.target_id=%d
                AND r.relation_type='hub_secondary_to_category'
              ORDER BY r.source_id ASC",
+            TaxoCommerce_Core_Hierarchy::ROLE_META,
             $term_id
         ),
         ARRAY_A
@@ -815,12 +816,11 @@ function taxocommerce_core_anomalies_render_report() {
     $show_all = taxocommerce_core_anomalies_show_all();
     $visible_findings = 0;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
-    $nodes = $wpdb->get_results("SELECT object_id, seo_role FROM {$wpdb->prefix}seo_nodes WHERE status=1");
-    
-    $map = [];
-    foreach ($nodes as $n) {
-        $map[$n->object_id] = $n->seo_role;
+    $map = array();
+    foreach ( array( 'cluster', 'hub_primary', 'hub_secondary' ) as $role ) {
+        foreach ( TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role ) as $page ) {
+            $map[ $page->ID ] = $role;
+        }
     }
     
     $clusters = [];
@@ -903,25 +903,25 @@ function taxocommerce_core_anomalies_render_report() {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $secondary_without_categories = $wpdb->get_results("
         SELECT
-            n.object_id AS hub_secondary_id,
+            n.post_id AS hub_secondary_id,
             p.post_title AS hub_secondary_title,
             p.post_status,
             parent_rel.source_id AS hub_primary_id,
             parent_post.post_title AS hub_primary_title
-        FROM {$wpdb->prefix}seo_nodes n
-    
+        FROM {$wpdb->postmeta} n
+
         INNER JOIN {$wpdb->posts} p
-            ON p.ID = n.object_id
+            ON p.ID = n.post_id
            AND p.post_type = 'page'
     
         LEFT JOIN {$wpdb->prefix}seo_relations category_rel
-            ON category_rel.source_id = n.object_id
+            ON category_rel.source_id = n.post_id
            AND category_rel.source_type = 'hub_secondary'
            AND category_rel.target_type = 'product_cat'
            AND category_rel.relation_type = 'hub_secondary_to_category'
     
         LEFT JOIN {$wpdb->prefix}seo_relations parent_rel
-            ON parent_rel.target_id = n.object_id
+            ON parent_rel.target_id = n.post_id
            AND parent_rel.source_type = 'hub_primary'
            AND parent_rel.target_type = 'hub_secondary'
            AND parent_rel.relation_type = 'hub_primary_to_hub_secondary'
@@ -929,13 +929,12 @@ function taxocommerce_core_anomalies_render_report() {
         LEFT JOIN {$wpdb->posts} parent_post
             ON parent_post.ID = parent_rel.source_id
     
-        WHERE n.object_type = 'page'
-          AND n.seo_role = 'hub_secondary'
-          AND n.status = 1
+        WHERE n.meta_key = '_taxocommerce_core_seo_role'
+          AND n.meta_value = 'hub_secondary'
           AND category_rel.id IS NULL
     
         GROUP BY
-            n.object_id,
+            n.post_id,
             p.post_title,
             p.post_status,
             parent_rel.source_id,
@@ -1064,22 +1063,21 @@ function taxocommerce_core_anomalies_render_report() {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Anomalies audit and cleanup preflight must read current canonical tables.
     $landings_without_product_category = $wpdb->get_results("
         SELECT DISTINCT
-            n.object_id AS page_id,
+            n.post_id AS page_id,
             p.post_title,
             p.post_status
-        FROM {$wpdb->prefix}seo_nodes n
+        FROM {$wpdb->postmeta} n
         INNER JOIN {$wpdb->posts} p
-            ON p.ID = n.object_id
+            ON p.ID = n.post_id
            AND p.post_type = 'page'
-        WHERE n.object_type = 'page'
-          AND n.seo_role = 'landing'
-          AND n.status = 1
+        WHERE n.meta_key = '_taxocommerce_core_seo_role'
+          AND n.meta_value = 'landing'
           AND p.post_status IN ('publish', 'future')
           AND NOT EXISTS (
               SELECT 1
               FROM {$wpdb->prefix}seo_relations r
               WHERE r.source_type = 'landing'
-                AND r.source_id = n.object_id
+                AND r.source_id = n.post_id
                 AND r.target_type = 'product_cat'
                 AND r.relation_type = 'landing_to_category'
           )
@@ -1088,7 +1086,7 @@ function taxocommerce_core_anomalies_render_report() {
 
     if (!empty($landings_without_product_category)) {
         echo '<p style="color:#646970;">';
-        echo 'Estas landing pages existen en <code>wp_seo_nodes</code>, pero no tienen ninguna relación <code>landing_to_category</code> hacia <code>product_cat</code>.';
+        echo 'Estas landing pages tienen rol SEO en WordPress, pero no tienen ninguna relación <code>landing_to_category</code> hacia <code>product_cat</code>.';
         echo '</p>';
         echo '<div style="background:#fcf0f1;border-left:4px solid #d63638;padding:10px 12px;margin-bottom:12px;">';
         echo 'Total detectadas: <strong>' . esc_html(number_format_i18n(count($landings_without_product_category))) . '</strong>';
