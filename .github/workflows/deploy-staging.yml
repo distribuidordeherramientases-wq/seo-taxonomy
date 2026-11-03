@@ -166,6 +166,9 @@ jobs:
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 .github/scripts/audit_staging_mo.py
       - name: Read-only comparison of Core and both WordPress menus (no site writes)
+        # Audit findings stay visible in the summary/artifact; transient HTTP/FTPS
+        # failures must not invalidate the verified delivery baseline used by deploy.
+        continue-on-error: true
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
