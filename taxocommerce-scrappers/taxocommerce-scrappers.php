@@ -141,7 +141,7 @@ final class TaxoCommerce_Scrappers {
             'connections' => __( 'Connections', 'taxocommerce-scrappers' ),
             'ojeador'     => __( 'Ojeador', 'taxocommerce-scrappers' ),
             'ingeniero'   => __( 'Ingeniero', 'taxocommerce-scrappers' ),
-            'autotest'   => __( 'Autotest', 'taxocommerce-scrappers' ),
+            'autotest'   => __( 'Autocheck', 'taxocommerce-scrappers' ),
             'manual'     => __( 'Manual', 'taxocommerce-scrappers' ),
         ) as $key => $label ) {
             $url = add_query_arg(
