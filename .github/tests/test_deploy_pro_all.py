@@ -182,10 +182,10 @@ class DeployProTests(unittest.TestCase):
         ftp.close = lambda: None
         commit = "a" * 40
         names = ("taxocommerce-core", "taxocommerce-auditor", "taxocommerce-foo")
-        tracked = b"\\0".join(
+        tracked = b"\0".join(
             (slug + "/" + filename).encode()
             for slug in names for filename in ("readme.txt", slug + ".php")
-        ) + b"\\0"
+        ) + b"\0"
 
         def git_response(args, **kwargs):
             return commit if args[1] == "rev-parse" else tracked
@@ -209,9 +209,9 @@ class DeployProTests(unittest.TestCase):
                     "FTP_PASSWORD": "fake",
                     "GITHUB_STEP_SUMMARY": str(Path(temp) / "summary.txt"),
                 }
-                with patch.dict(os.environ, env, clear=True), \\
-                     patch.object(mod.subprocess, "check_output", side_effect=git_response), \\
-                     patch.object(mod.ftplib, "FTP_TLS", return_value=ftp):
+                with (patch.dict(os.environ, env, clear=True),
+                      patch.object(mod.subprocess, "check_output", side_effect=git_response),
+                      patch.object(mod.ftplib, "FTP_TLS", return_value=ftp)):
                     mod.main()
                 report = __import__("json").loads(Path("pro-release-manifest.json").read_text())
                 self.assertEqual(report["source_modules"], 3)
