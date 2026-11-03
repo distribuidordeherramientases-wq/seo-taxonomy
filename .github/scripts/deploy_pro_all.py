@@ -208,7 +208,7 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
         "error": type(error).__name__ if error else None,
     }
     Path("pro-release-manifest.json").write_text(
-        json.dumps(result, indent=2, ensure_ascii=False) + "\\n", encoding="utf-8"
+        json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
     if summary_path:
@@ -228,7 +228,7 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
             lines.extend(["", "**FAILURE:** " + type(error).__name__ +
                           " (see job log; publication incomplete)"])
         with open(summary_path, "a", encoding="utf-8") as out:
-            out.write("\\n".join(lines) + "\\n")
+            out.write("\n".join(lines) + "\n")
 
 def main():
     source = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
