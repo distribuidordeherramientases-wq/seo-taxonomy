@@ -139,7 +139,8 @@ def enter_wp_plugins_root(ftp, modules=None):
     """
     expected = set(modules or {"taxocommerce-core"})
     options = []
-    for candidate in candidate_plugin_roots(ftp):
+    candidates = candidate_plugin_roots(ftp)
+    for candidate in candidates:
         try:
             ftp.cwd(candidate)
             names = visible_names(ftp)
@@ -162,6 +163,36 @@ def enter_wp_plugins_root(ftp, modules=None):
             "readable TaxoCommerce Core. No files uploaded. Verify FTP account "
             "root and permissions, or set PRO_FTP_PLUGINS_DIR."
         )
+
+    # This site's PRO WordPress folder was confirmed in the Webempresa
+    # file-manager screenshot. If that folder is visible in the FTP account,
+    # never accidentally deploy to another WordPress instance with more
+    # TaxoCommerce modules (for example, STAGING).
+    target_site = os.environ.get(
+        "PRO_FTP_SITE_DIR", "hosting160568eu-279554.webempresa.site"
+    ).strip()
+    if target_site and (
+        "/" in target_site or "\\" in target_site or target_site.startswith(".")
+    ):
+        raise RuntimeError("Unsafe PRO_FTP_SITE_DIR")
+    if target_site and not os.environ.get("PRO_FTP_PLUGINS_DIR"):
+        marker = "/" + target_site + "/"
+        target_was_listed = any(marker in candidate for candidate in candidates)
+        target_options = [option for option in options if marker in option[1]]
+        if target_was_listed and not target_options:
+            raise RuntimeError(
+                "The expected PRO WordPress directory " + target_site
+                + " appears in the FTP directory listing, but cannot be "
+                "accessed. Refusing to deploy to a different installation."
+            )
+        if target_options:
+            options = target_options
+        elif len({option[1] for option in options}) > 1:
+            raise RuntimeError(
+                "Several WordPress installations are reachable by FTP but "
+                "the PRO site was not identified. Set PRO_FTP_PLUGINS_DIR; "
+                "no files uploaded."
+            )
 
     options.sort(key=lambda item: (-item[0], item[1]))
     score, root, names = options[0]
