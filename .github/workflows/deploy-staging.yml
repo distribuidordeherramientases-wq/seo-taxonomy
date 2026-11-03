@@ -62,6 +62,11 @@ jobs:
           php .github/tests/taxocommerce-core/menu-page-countries-smoke.php
           php .github/tests/taxocommerce-core/menu-editor-smoke.php
           php .github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-content-manager.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-editor-ui.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
+          php -l .github/tests/taxocommerce-core/category-hierarchy-native-smoke.php
+          php .github/tests/taxocommerce-core/category-hierarchy-native-smoke.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
