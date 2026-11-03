@@ -145,6 +145,8 @@ class DeployProTests(unittest.TestCase):
                 ftp.tamper = True
                 with self.assertRaisesRegex(RuntimeError, "Final remote SHA-256 mismatch"):
                     mod.reconcile_one(ftp, root, slug, [slug + ".php"], [])
+            finally:
+                os.chdir(cwd)
 
 
 if __name__ == "__main__":
