@@ -127,7 +127,7 @@ PHP;
 								<tr><th scope="row"><?php esc_html_e( 'Content', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-content</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'SEO Hierarchy', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-hierarchy</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'Menu Manager', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-menu</code></td></tr>
-								<tr><th scope="row"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></th><td><code>admin.php?page=taxocommerce-core&amp;tab=auto-test</code></td></tr>
+								<tr><th scope="row"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></th><td><code>admin.php?page=taxocommerce-core&amp;tab=autocheck</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-user-guide</code></td></tr>
 							</tbody>
 						</table>
@@ -160,7 +160,7 @@ PHP;
 					<h2><?php esc_html_e( '8. Caché, logs y diagnóstico', 'taxocommerce-core' ); ?></h2>
 					<h3><?php esc_html_e( 'Informes con caché', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'El inventario de contenidos usa el transient taxocommerce_core_content_inventory_v1 y el informe de arquitectura, taxocommerce_core_architecture_report_v1. Ambos tienen una duración de 15 minutos y un botón de actualización protegido.', 'taxocommerce-core' ); ?></p>
-					<h3><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></h3>
+					<h3><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'Se ejecuta bajo demanda y comprueba lecturas, países, roles, relaciones, menús y módulos. Guarda el último resultado por usuario durante un día en un transient; no publica ni modifica contenidos reales. Una prueba omitida no equivale a una prueba correcta.', 'taxocommerce-core' ); ?></p>
 					<h3><?php esc_html_e( 'Registro técnico', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'TaxoCommerce_Core_Logger guarda entradas de nivel info, warning y error en la opción taxocommerce_core_log_entries. El límite configurable se restringe entre 20 y 500 entradas para evitar un crecimiento indefinido.', 'taxocommerce-core' ); ?></p>
