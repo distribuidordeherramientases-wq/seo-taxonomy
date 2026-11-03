@@ -321,7 +321,7 @@ function taxocommerce_distribution_render_autocheck() {
             echo '</tbody></table>';
         }
         ?>
-        <p class="description"><?php esc_html_e( 'Los resultados no se guardan. La presencia física de un fichero no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado.', 'taxocommerce-distribution' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado.', 'taxocommerce-distribution' ); ?></p>
     </section>
     <?php
 }
