@@ -175,7 +175,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         );
         echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Autocheck · System Check', 'taxocommerce-system-check' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.', 'taxocommerce-system-check' ) . '</p>';
-        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Auto Test</a></p>';
+        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Autocheck</a></p>';
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
         $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] )
             && '1' === sanitize_key( wp_unslash( $_GET['tcs_run'] ) );
