@@ -1,17 +1,19 @@
 <?php
 /**
- * Vocabulary Auto Test: availability, structure and bounded read-only checks.
+ * Vocabulary Autocheck: availability, structure and bounded read-only checks.
  * It never runs a classifier, import, update, migration, export or cleanup.
  */
 defined( 'ABSPATH' ) || exit;
 
 final class TCV_Auto_Test {
+    const JSON_ACTION = 'taxocommerce_vocabulary_autocheck_json';
     const ACTION = 'tcv_run_auto_test';
     const NONCE  = 'tcv_auto_test_run';
     const PREFIX = 'tcv_auto_test_';
 
     public static function boot() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle' ) );
+        add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
     }
 
     public static function cases() {
@@ -123,7 +125,7 @@ final class TCV_Auto_Test {
             if ( ! self::exists( $name ) ) $missing[] = $key . ' (' . $name . ')';
         }
         return $missing
-            ? self::fail( 'Tablas ausentes: ' . implode( ', ', $missing ) . '. No se crean tablas desde Auto Test.' )
+            ? self::fail( 'Tablas ausentes: ' . implode( ', ', $missing ) . '. No se crean tablas desde Autocheck.' )
             : self::pass( 'Las nueve tablas canónicas están disponibles.' );
     }
 
@@ -216,7 +218,7 @@ final class TCV_Auto_Test {
     }
 
     public static function handle() {
-        if ( ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'No tienes permisos para ejecutar Auto Test.', 'taxocommerce-vocabulary' ) );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'No tienes permisos para ejecutar Autocheck.', 'taxocommerce-vocabulary' ) );
         check_admin_referer( self::NONCE, 'tcv_auto_nonce' );
         $key = self::PREFIX . get_current_user_id();
         $history = get_transient( $key );
@@ -227,18 +229,49 @@ final class TCV_Auto_Test {
         exit;
     }
 
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (current_user_can( 'manage_options' )) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-vocabulary' ) );
+        }
+        check_admin_referer( self::NONCE, 'tcv_auto_nonce' );
+        $history = get_transient( self::PREFIX . get_current_user_id() );
+        $report = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-vocabulary' ) );
+        }
+        $report['plugin'] = 'taxocommerce-vocabulary';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-vocabulary' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-vocabulary-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
     public static function render() {
-        if ( ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'No tienes permisos para Auto Test.', 'taxocommerce-vocabulary' ) );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'No tienes permisos para Autocheck.', 'taxocommerce-vocabulary' ) );
         $history = get_transient( self::PREFIX . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
-        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Auto Test de Vocabulary', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Comprobación de solo lectura de servicios, rutas, tablas, columnas, consultas limitadas y disponibilidad de exportación. No corrige datos ni ejecuta procesos. Se conservan los dos últimos informes por usuario durante 30 días.', 'taxocommerce-vocabulary' ) . '</p>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Autocheck de Vocabulary', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Comprobación de solo lectura de servicios, rutas, tablas, columnas, consultas limitadas y disponibilidad de exportación. No corrige datos ni ejecuta procesos. Se conservan los dos últimos informes por usuario durante 30 días.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcv_auto_nonce' );
-        submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
         echo '</form>';
-        if ( ! $current ) { echo '<p>' . esc_html__( 'No hay un informe previo. Ejecuta Auto Test.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>'; return; }
+        if ( ! $current ) { echo '<p>' . esc_html__( 'No hay un informe previo. Ejecuta Autocheck.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>'; return; }
         $totals = $current['totals'];
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::JSON_ACTION ) . '">';
+        wp_nonce_field( self::NONCE, 'tcv_auto_nonce' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-vocabulary' ), 'secondary', 'submit', false );
+        echo '</form>';
+
         echo '<h3>Resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
@@ -259,7 +292,7 @@ final class TCV_Auto_Test {
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $labels[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad del catálogo ni prueba importaciones/restauraciones reales.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Las tablas vacías no son errores técnicos. Autocheck no garantiza la calidad del catálogo ni prueba importaciones/restauraciones reales.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
     }
 }
 TCV_Auto_Test::boot();
