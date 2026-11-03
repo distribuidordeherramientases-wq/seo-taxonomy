@@ -1,5 +1,14 @@
 # Changelog
 
+## STAGING → PRO: continuar con plugins presentes sin bloquear toda la familia — 2026-11-03 (#2119)
+
+- La ejecución manual ya no se cancela porque un directorio `taxocommerce-*` no exista o no sea accesible en PRO (error observado en `taxocommerce-auditor`). Se actualizan los demás plugins existentes, sin crear el ausente ni cambiar la configuración del sitio.
+- Cada plugin omitido se registra con su causa en el log y en `pro-release-manifest.json` (`skipped_plugins` y `modules_skipped`). La síntesis distingue actualización parcial de publicación completa, sin afirmar que todos los plugins están desplegados.
+- Las transferencias continúan limitadas a archivos distribuibles rastreados en Git y al directorio individual de cada plugin bajo `wp-content/plugins`. No se sincroniza el repositorio, el monolítico, `.git`, pruebas ni archivos ocultos.
+- Test de regresión del flujo completo con `taxocommerce-auditor` ausente y otros dos plugins instalados. Las incidencias reales de transferencia (por ejemplo, errores SHA-256) siguen provocando fallo del job.
+- El flujo PRO sigue siendo exclusivamente manual; esta corrección de GitHub no ejecuta ninguna subida real a PRODUCCIÓN.
+
+
 ## Corrección de ruta FTPS de plugins en PRO - 2026-11-03 (Issue #2119)
 
 - El despliegue manual solo actualiza archivos publicables rastreados en Git dentro de carpetas `taxocommerce-*/` bajo `wp-content/plugins/`; nunca se copia `.git`, `.github`, código de pruebas, el monolito `seo-taxonomy` ni el repositorio completo.
