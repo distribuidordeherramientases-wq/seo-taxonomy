@@ -533,8 +533,12 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     public static function country_pages( $role, $country ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country );
         return array_values( array_filter( self::role_pages( $role ), static function ( $p ) use ( $country ) {
-            return TaxoCommerce_Core_Country::post( $p->ID ) === $country;
+            // Legacy ES inference is not a real page country. Unassigned means Global.
+            return TaxoCommerce_Core_Country::normalize(
+                get_post_meta( $p->ID, TaxoCommerce_Core_Country::META, true )
+            ) === $country;
         } ) );
     }
 
@@ -563,8 +567,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
      * The editor keeps the original parent-first checkbox workflow, while
      * collapsed branches prevent large trees from overwhelming the screen.
      */
-    public static function render( $hierarchy, $country = 'ES' ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
+    public static function render( $hierarchy, $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country );
         if ( ! self::available() ) {
             echo '<div class="notice notice-error"><p>' . esc_html__( 'Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.', 'taxocommerce-core' ) . '</p></div>';
             return;
@@ -753,7 +757,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             . ' · ' . esc_html__( 'Plantilla', 'taxocommerce-core' ) . ': ' . esc_html( (string) ( get_page_template_slug( $page->ID ) ?: __( 'predeterminada', 'taxocommerce-core' ) ) ) . '</div>';
     }
 
-    private static function render_group( $parent, $types, $definitions, $country = 'ES' ) {
+    private static function render_group( $parent, $types, $definitions, $country = '' ) {
         echo '<div class="tc-classic-groups">';
         foreach ( $types as $type ) {
             self::render_checkboxes( $parent, $type, $definitions[ $type ], $country );
@@ -777,7 +781,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         echo '<label class="tc-classic-check"><input type="checkbox" name="targets[]" value="' . esc_attr( (string) $id ) . '" ' . checked( $checked, true, false ) . '> ' . esc_html( $name ) . ' <small>#' . esc_html( (string) $id ) . '</small></label>';
     }
 
-    private static function render_checkboxes( $parent, $type, $def, $country = 'ES' ) {
+    private static function render_checkboxes( $parent, $type, $def, $country = '' ) {
         $map = self::map( $type, $country );
         $selected = array_keys( $map[ $parent->ID ] ?? array() );
         $taken = array();
@@ -847,7 +851,7 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             'taxonomy' => 'product_cat', 'hide_empty' => false,
             'search' => $query, 'orderby' => 'name', 'number' => 50,
         ) );
-        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) ) : 'ES';
+        $country = isset( $_GET['tc_country'] ) && is_string( $_GET['tc_country'] ) ? TaxoCommerce_Core_Country::normalize( sanitize_text_field( wp_unslash( $_GET['tc_country'] ) ) ) : '';
         $map = self::map( 'hub_secondary_to_category', $country );
         $taken = array();
         foreach ( $map as $parent => $items ) {
@@ -913,8 +917,8 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
         })();' );
     }
 
-    public static function render_tree( $hierarchy, $country = 'ES' ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
+    public static function render_tree( $hierarchy, $country = '' ) {
+        $country = TaxoCommerce_Core_Country::normalize( $country );
         $maps = array();
         foreach ( array_keys( self::definitions() ) as $type ) {
             $maps[ $type ] = self::map( $type, $country );
