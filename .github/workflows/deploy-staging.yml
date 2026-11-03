@@ -151,7 +151,6 @@ jobs:
           fi
           echo "All applicable deployments completed successfully"
       - uses: actions/checkout@v4
-        if: needs.plan.outputs.core == 'true'
       - name: Verify and repair tracked Core file parity on both installations
         if: needs.plan.outputs.core == 'true'
         env:
