@@ -112,7 +112,7 @@ final class TCSUP_Admin {
 					'images'     => 'External Images',
 					'purchasing' => 'Purchasing',
 					'manual' => 'Manual',
-					'autotest' => 'Autotest',
+					'autotest' => 'Autocheck',
 				);
 				foreach ( $tabs as $key => $label ) {
 					printf(
