@@ -95,7 +95,7 @@ final class TCSUP_Autotest {
 		echo '</form>';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified before executing the diagnostics.
 		if ( ! isset( $_POST['tcsup_run_autotest'] ) ) {
-			echo '<p class="description">' . esc_html__( 'Los resultados solo se muestran cuando se pulsa el botón; no se guardan.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
+			echo '<p class="description">' . esc_html__( 'Los resultados se generan al pulsar el botón. Se conserva el último durante una hora para descargarlo en JSON.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
 			return;
 		}
 		check_admin_referer( 'tcsup_autotest' );
