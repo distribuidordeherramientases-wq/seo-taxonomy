@@ -104,7 +104,7 @@ final class SEO_Facturas_Admin {
             'quotes'    => 'Presupuestos',
             'documents' => 'Documentos',
             'manual'    => 'Manual',
-            'autotest'  => 'Autocheck', 
+            'autotest'  => __( 'Autocheck', 'taxocommerce-facturacion' ), 
         );
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navegacion de pestañas de solo lectura, no requiere nonce.
