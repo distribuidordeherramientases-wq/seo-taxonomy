@@ -81,7 +81,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'assets'           => array( 'startup', 'Recursos JavaScript y CSS disponibles' ),
             'woocommerce'      => array( 'startup', 'WooCommerce y catálogo disponibles' ),
             'db_read'          => array( 'startup', 'Consulta sencilla de MySQL' ),
-            'csv_columns'      => array( 'csv', 'Cabeceras de seis tipos de exportación' ),
+            'csv_columns'      => array( 'csv', __( 'Cabeceras de seis tipos de exportación', 'taxocommerce-import-export' ) ),
             'csv_countries'    => array( 'csv', 'Campo country_code en todos los tipos' ),
             'csv_aliases'      => array( 'csv', 'Cabeceras heredadas y alias de país' ),
             'csv_identify'     => array( 'csv', 'Detección segura del tipo de CSV' ),
@@ -93,7 +93,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'queue_state'      => array( 'batch', 'Estado persistente de la cola' ),
             'queue_progress'   => array( 'batch', 'Porcentaje y bytes de progreso' ),
             'queue_registry'   => array( 'batch', 'Integración con miniimportadores' ),
-            'export_types'     => array( 'export', 'Seis tipos de exportación' ),
+            'export_types'     => array( 'export', __( 'Seis tipos de exportación', 'taxocommerce-import-export' ) ),
             'export_actions'   => array( 'export', 'Inicio, bloque, estado, cancelación y descarga' ),
             'export_state'     => array( 'export', 'Estado de exportación por usuario' ),
             'export_headers'   => array( 'export', 'Contrato completo y reducido de productos' ),
@@ -327,17 +327,17 @@ final class TaxoCommerce_Import_Export_Auto_Test {
                 return self::fail( 'Cabecera inválida: ' . $type );
             }
         }
-        return self::pass( 'Cinco cabeceras válidas y sin columnas duplicadas.' );
+        return self::pass( 'Seis cabeceras válidas y sin columnas duplicadas.' );
     }
 
     private static function check_csv_countries() {
         $csv = self::csv();
-        foreach ( array( 'products', 'products_reduced', 'product_categories', 'posts', 'pages' ) as $type ) {
+        foreach ( array( 'products', 'products_reduced', 'product_categories', 'wp_categories', 'posts', 'pages' ) as $type ) {
             if ( ! in_array( 'country_code', $csv->export_header_for_job( $type ), true ) ) {
                 return self::fail( 'Falta country_code en ' . $type );
             }
         }
-        return self::pass( 'País incluido en productos, inventario reducido, categorías, entradas y páginas; no se presupone ES.' );
+        return self::pass( 'País incluido en productos, ambas taxonomías de categorías, entradas y páginas; no se presupone ES.' );
     }
 
     private static function check_csv_aliases() {
@@ -450,7 +450,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
         $types = TaxoCommerce_Import_Export_Exporter::types();
         $required = array( 'products', 'products_reduced', 'product_categories', 'wp_categories', 'posts', 'pages' );
         return is_array( $types ) && ! array_diff( $required, array_keys( $types ) )
-            ? self::pass( 'Cinco conjuntos exportables registrados, incluido inventario reducido.' )
+            ? self::pass( 'Seis conjuntos exportables registrados, incluidas las categorías nativas de WordPress.' )
             : self::fail( 'Se ha perdido algún tipo exportable.' );
     }
 
