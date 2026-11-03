@@ -1,0 +1,38 @@
+name: TaxoCommerce family admin headers QA
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-*/includes/admin-branding.php'
+      - 'taxocommerce-*/taxocommerce-*.php'
+      - '.github/tests/family-admin-header-smoke.php'
+      - '.github/workflows/family-admin-header-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-headers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: PHP syntax for all 18 headers and entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file"
+          done < <(find taxocommerce-* -path '*/includes/admin-branding.php' -print0)
+          for slug in auditor redirects faqs images social database campaigns suppliers scrappers logistica vocabulary facturacion dependiente google-bing distribution import-export system-check templates; do
+            php -l "taxocommerce-$slug/taxocommerce-$slug.php"
+          done
+      - name: Verify standalone rendering, plugin scope and versions
+        run: php .github/tests/family-admin-header-smoke.php
