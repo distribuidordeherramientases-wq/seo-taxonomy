@@ -33,7 +33,7 @@ tcsup_assert( false !== strpos( $purchasing, "Purchase" ), 'supplier purchasing 
 tcsup_assert( false !== strpos( $main, 'class-tcsup-manual.php' ), 'manual loaded' );
 tcsup_assert( false !== strpos( $main, 'class-tcsup-autotest.php' ), 'autotest loaded' );
 tcsup_assert( false !== strpos( $admin, "'manual' => 'Manual'" ), 'manual tab' );
-tcsup_assert( false !== strpos( $admin, "'autotest' => 'Autotest'" ), 'autotest tab' );
+tcsup_assert( false !== strpos( $admin, "'autotest' => __( 'Autocheck', 'taxocommerce-suppliers' )" ), 'autotest tab' );
 tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-user">Manual de usuario</h1>' ), 'full user manual heading' );
 tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-dev">Manual técnico para futuros desarrolladores</h1>' ), 'full developer manual heading' );
 tcsup_assert( substr_count( $manual, 'class="tcsup-manual-section"' ) >= 16, 'comprehensive indexed manual sections' );
