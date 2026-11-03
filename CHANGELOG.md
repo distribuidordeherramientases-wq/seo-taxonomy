@@ -1,5 +1,13 @@
 # Changelog
 
+## Corrección de ruta FTPS de plugins en PRO - 2026-11-03 (Issue #2119)
+
+- El despliegue manual solo actualiza archivos publicables rastreados en Git dentro de carpetas `taxocommerce-*/` bajo `wp-content/plugins/`; nunca se copia `.git`, `.github`, código de pruebas, el monolito `seo-taxonomy` ni el repositorio completo.
+- Elimina la dependencia FTP del directorio `seo-taxonomy`; localiza el directorio real de plugins mediante la instalación existente de TaxoCommerce Core, con alternativa explícita `PRO_FTP_PLUGINS_DIR` cuando el login FTPS tenga una raíz no convencional.
+- Antes de subir un archivo verifica que **todos** los plugins de la publicación están presentes en PRO. No crea nuevos directorios raíz de plugins ni modifica plugins ausentes; mantiene comprobación SHA-256 e idempotencia.
+- Pruebas sin red para raíces FTP diversas, exclusiones de archivos, ausencia de plugins, rechazo de rutas inseguras e integridad de transferencias. No se ha ejecutado despliegue a PRODUCCIÓN durante esta corrección.
+
+
 ## Despliegue manual de toda la familia a PRO - 2026-11-03 (Issue #2119)
 
 - Sustituida la sincronizacion FTPS del repositorio entero, que escribia en el FTP del monolito, por una rutina centrada exclusivamente en los directorios `taxocommerce-*` de `staging`.

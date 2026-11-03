@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Manually reconcile every tracked TaxoCommerce plugin from STAGING into PRO.
+"""Manually update ONLY installed TaxoCommerce plugins in PRO.
 
-The FTP login is anchored in the existing seo-taxonomy monolith directory;
-independent plugins are siblings under the same wp-content/plugins directory.
-No REST inventory, pre-existing plugin requirement, deletions or FTP state file.
+The local Git checkout is for selecting published plugin files; nothing outside
+taxocommerce-*/ is ever sent over FTPS. The remote target is wp-content/plugins,
+never the Git repository, its .git metadata or the legacy seo-taxonomy plugin.
+No REST inventory, deletions or FTP sync-state files.
 """
 import ftplib
 import hashlib
 import json
 import os
+import posixpath
 from pathlib import Path
 import re
 import ssl
@@ -70,22 +72,70 @@ def sha256_remote(ftp, filename):
 
 
 def enter_wp_plugins_root(ftp):
-    """Fail closed unless FTP login really starts at the monolith plugin directory."""
-    monolith_header = bytearray()
-    try:
-        ftp.retrbinary("RETR seo-taxonomy.php", monolith_header.extend)
-    except ftplib.all_errors as exc:
-        raise RuntimeError("FTP login is not inside the known seo-taxonomy directory") from exc
-    if b"Plugin Name:" not in monolith_header:
-        raise RuntimeError("The expected monolith main plugin file is not present")
-    ftp.cwd("..")
-    plugins_root = ftp.pwd()
-    # Confirm that the parent really contains the login's original plugin.
-    ftp.cwd("seo-taxonomy")
-    if sha256_remote(ftp, "seo-taxonomy.php") is None:
-        raise RuntimeError("FTP parent failed the monolith plugin directory check")
+    """Locate the actual WordPress plugins folder; never depend on seo-taxonomy.
+
+    FTPS accounts can start in the WordPress root, public_html, plugins itself
+    or an individual plugin folder. Fail closed if the installed Core main file
+    is not present. PRO_FTP_PLUGINS_DIR can override ambiguous FTP roots.
+    """
+    origin = ftp.pwd()
+    explicit = os.environ.get("PRO_FTP_PLUGINS_DIR", "").strip()
+    if explicit:
+        if "\\x00" in explicit or "\\" in explicit or ".." in explicit.split("/"):
+            raise RuntimeError("Unsafe PRO_FTP_PLUGINS_DIR")
+        candidates = [explicit]
+    else:
+        parent = posixpath.dirname(origin.rstrip("/")) or "/"
+        candidates = [
+            posixpath.join(origin, "wp-content", "plugins"),
+            posixpath.join(origin, "public_html", "wp-content", "plugins"),
+            posixpath.join(origin, "plugins"),
+            origin,
+            parent,
+            posixpath.join(parent, "wp-content", "plugins"),
+            posixpath.join(parent, "public_html", "wp-content", "plugins"),
+        ]
+
+    visited = set()
+    for candidate in candidates:
+        if candidate in visited:
+            continue
+        visited.add(candidate)
+        try:
+            ftp.cwd(candidate)
+            ftp.cwd("taxocommerce-core")
+            header = bytearray()
+            ftp.retrbinary("RETR taxocommerce-core.php", header.extend)
+            if b"Plugin Name:" not in header or b"TaxoCommerce Core" not in header:
+                continue
+            ftp.cwd(candidate)
+            return ftp.pwd()
+        except ftplib.error_perm:
+            continue
+    raise RuntimeError(
+        "No se localiza el directorio de plugins de PRO con TaxoCommerce Core "
+        "(comprueba el directorio FTP o PRO_FTP_PLUGINS_DIR). "
+        "No se ha subido ningun archivo."
+    )
+
+
+def verify_installed_plugins(ftp, plugins_root, modules):
+    """Preflight all release targets BEFORE uploading the first file.
+
+    Prevent accidental installation of an absent plugin or a partial release.
+    Every requested taxocommerce-* folder must contain its own main PHP file.
+    """
+    for slug in modules:
+        if not SLUG.fullmatch(slug):
+            raise ValueError("Unexpected plugin name: " + slug)
+        ftp.cwd(plugins_root)
+        try:
+            ftp.cwd(slug)
+        except ftplib.error_perm as exc:
+            raise RuntimeError("Plugin is absent on PRO: " + slug) from exc
+        if sha256_remote(ftp, slug + ".php") is None:
+            raise RuntimeError("Main plugin file is absent on PRO: " + slug)
     ftp.cwd(plugins_root)
-    return plugins_root
 
 
 def enter_or_create(ftp, directory):
@@ -99,8 +149,12 @@ def enter_or_create(ftp, directory):
 
 
 def reconcile_one(ftp, plugins_root, slug, files, report):
+    if not SLUG.fullmatch(slug):
+        raise ValueError("Unexpected plugin name: " + slug)
+    if any(distributable(slug + "/" + relative) != (slug, relative) for relative in files):
+        raise ValueError("Refusing to upload a non-release file for " + slug)
     ftp.cwd(plugins_root)
-    enter_or_create(ftp, slug)
+    ftp.cwd(slug)
     plugin_root = ftp.pwd()
     rows = {"slug": slug, "tracked_files": len(files), "updated": 0, "unchanged": 0, "files": []}
     for relative in files:
@@ -174,6 +228,7 @@ def main():
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
         root = enter_wp_plugins_root(ftp)
+        verify_installed_plugins(ftp, root, modules)
         for slug, files in modules.items():
             reconcile_one(ftp, root, slug, files, report)
         if set(row["slug"] for row in report) != set(modules):
