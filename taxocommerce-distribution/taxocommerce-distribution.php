@@ -15,6 +15,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/admin-branding.php';
+
 define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.2' );
 define( 'TAXOCOMMERCE_DISTRIBUTION_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DISTRIBUTION_PATH', plugin_dir_path( __FILE__ ) );
