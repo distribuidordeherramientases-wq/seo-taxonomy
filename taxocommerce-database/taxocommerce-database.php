@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.5
+ * Version: 0.4.6
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,8 +13,10 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.5' );
+
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.6' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
