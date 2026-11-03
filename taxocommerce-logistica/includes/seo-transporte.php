@@ -95,8 +95,8 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             $capability = class_exists('WooCommerce') ? 'manage_woocommerce' : 'manage_options';
             add_submenu_page(
                 null,
-                'Logistics',
-                'Logistics',
+                __( 'Logistics', 'taxocommerce-logistica' ),
+                __( 'Logistics', 'taxocommerce-logistica' ),
                 $capability,
                 self::LEGACY_PAGE,
                 array(__CLASS__, 'redirect_legacy_page')
@@ -643,7 +643,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                 ? sanitize_key(wp_unslash($_GET['tc_logistica_tab'])) : 'shipping';
             // phpcs:enable WordPress.Security.NonceVerification.Recommended
             if ('auto-test' === $tab || 'user-guide' === $tab) {
-                echo '<div class="wrap seo-transporte-wrap"><h1>Logistics — Shipping Weight & Costs</h1>';
+                echo '<div class="wrap seo-transporte-wrap">' . '<h1>' . esc_html__( 'Logistics — Shipping Weight & Costs', 'taxocommerce-logistica' ) . '</h1>';
                 self::render_tabs($tab);
                 if ('auto-test' === $tab) {
                     TaxoCommerce_Logistica_Auto_Test::render();

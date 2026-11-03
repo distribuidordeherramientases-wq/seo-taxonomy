@@ -5,811 +5,194 @@ on:
     branches:
       - staging
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/scripts/deploy_staging_delta.py'
+      - '.github/tests/test_deploy_staging_delta.py'
+      - '.github/scripts/audit_core_dual_sites.py'
+      - '.github/tests/test_audit_core_dual_sites.py'
+      - '.github/workflows/deploy-staging.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: taxocommerce-staging-focazul
+  cancel-in-progress: false
 
 jobs:
-  deploy-staging:
-    name: Deploy plugin to STAGING
-    # A cleanup-only merge must not redeploy the monolith or other modules.
-    if: ${{ !(contains(github.event.head_commit.message, '[staging-clean-three-20261031]') || contains(github.event.head_commit.message, 'fix/trigger-three-module-staging-cleanup') || contains(github.event.head_commit.message, '[insights-tests-cleanup]')) }}
+  validate:
+    name: Validate incremental deployment and Core
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout staging
-        uses: actions/checkout@v4
-
-      - name: Validate Core FTPS cleanup Python syntax
-        run: python3 -m py_compile .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
-
-      - name: Validate Core architecture report before any STAGING FTP upload
+      - uses: actions/checkout@v4
+      - name: Validate delta script and regression tests
         run: |
-          php -l taxocommerce-core/includes/class-taxocommerce-core-architecture-report.php
+          python3 -m py_compile .github/scripts/deploy_staging_delta.py
+          python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
+          python3 -m py_compile .github/scripts/audit_core_dual_sites.py
+          python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
+      - name: Validate all TaxoCommerce binary gettext catalogs
+        run: |
+          python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
+          python3 .github/scripts/verify_mo_catalogs.py --repo
+      - name: Core PHP syntax and regression tests
+        run: |
+          php -l taxocommerce-core/taxocommerce-core.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-country.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-hierarchy.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-hierarchy-classic.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-auto-test.php
+          php -l .github/tests/taxocommerce-core/autocheck-json-smoke.php
+          php .github/tests/taxocommerce-core/auto-test-smoke.php
+          php .github/tests/taxocommerce-core/autocheck-json-smoke.php
+          php .github/tests/taxocommerce-core/autocheck-json-smoke.php download | php .github/tests/taxocommerce-core/autocheck-json-smoke.php validate
+          php .github/tests/taxocommerce-core/autocheck-native-menus-smoke.php
+          php .github/tests/taxocommerce-core/country-scope-smoke.php
+          php .github/tests/taxocommerce-core/menu-page-countries-smoke.php
+          php .github/tests/taxocommerce-core/menu-editor-smoke.php
+          php .github/tests/taxocommerce-core/hierarchy-country-schema-smoke.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
+          php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+          php .github/tests/taxocommerce-core/block-navigation-smoke.php
+          php .github/tests/taxocommerce-core/sidebar-plugins-smoke.php
+          php .github/tests/taxocommerce-core/block-navigation-editor-ui-smoke.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
-
-      - name: Validate independent Database before any STAGING FTP upload
-        run: |
-          find taxocommerce-database -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          php taxocommerce-database/tests/legacy-clean-db-smoke.php
-          php taxocommerce-database/tests/legacy-data-table-smoke.php
-          php taxocommerce-database/tests/menu-smoke.php alone
-          php taxocommerce-database/tests/menu-smoke.php core
-          php taxocommerce-database/tests/auto-test-smoke.php
-          php taxocommerce-database/tests/auto-test-results-smoke.php
-
-      - name: Validate Redirects extension menu compatibility before STAGING FTP
-        run: |
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-before
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php core-after
 
-      - name: Validate Auditor PHP before any STAGING FTP upload
-        run: |
-          find taxocommerce-auditor -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          php taxocommerce-auditor/tests/smoke.php
-
-      - name: Deploy TaxoCommerce SEO to STAGING
-        # Never touch the legacy monolith during the authorised modular-family cleanup.
-        if: ${{ !contains(github.event.head_commit.message, '[family-cleanup-20261031]') }}
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+  plan:
+    name: Select changed deployable plugin files
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.changed.outputs.base }}
+      slugs: ${{ steps.changed.outputs.slugs }}
+      count: ${{ steps.changed.outputs.count }}
+      core: ${{ steps.changed.outputs.core }}
+    steps:
+      - uses: actions/checkout@v4
         with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
-          protocol: ftps
-          port: 21
-
-          local-dir: ./
-          server-dir: ./wp-content/plugins/seo-taxonomy/
-
-          dry-run: false
-          log-level: verbose
-
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            taxocommerce-core/**
-            taxocommerce-connections/**
-            taxocommerce-social/**
-            taxocommerce-campaigns/**
-            taxocommerce-database/**
-            taxocommerce-google-bing/**
-            taxocommerce-images/**
-            taxocommerce-import-export/**
-            taxocommerce-suppliers/**
-            taxocommerce-system-check/**
-            taxocommerce-templates/**
-            taxocommerce-auditor/**
-            taxocommerce-redirects/**
-            taxocommerce-dependiente/**
-            taxocommerce-faqs/**
-            taxocommerce-vocabulary/**
-            taxocommerce-logistica/**
-            taxocommerce-facturacion/**
-            packages/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-
-      - name: Deploy TaxoCommerce Core to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-
-          protocol: ftps
-          port: 21
-
-          local-dir: ./taxocommerce-core/
-          server-dir: ./wp-content/plugins/taxocommerce-core/
-          # Store FTP sync state outside the installed plugin directory.
-          state-name: ../.taxocommerce-core-ftp-state.json
-
-          dry-run: false
-          log-level: verbose
-
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/tests/**
-            .ftp-deploy-sync-state.json
-            **/.ftp-deploy-sync-state.json
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-
-
-      - name: Remove obsolete Core test files and hidden FTP state from STAGING
+          fetch-depth: 0
+      - name: Compare against latest verified successful staging release
+        id: changed
         env:
-          TC_CORE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_CORE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_CORE_FTP_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: python3 .github/scripts/cleanup_taxocommerce_core_ftp_artifacts.py
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/deploy_staging_delta.py plan
 
-      - name: Deploy TaxoCommerce Database to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+  deploy-staging:
+    name: STAGING / ${{ matrix.slug }}
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        slug: ${{ fromJSON(needs.plan.outputs.slugs) }}
+    steps:
+      - uses: actions/checkout@v4
         with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-database/
-          server-dir: ./wp-content/plugins/taxocommerce-database/
-          state-name: ../.taxocommerce-database-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Remove obsolete Database test files and hidden FTP sync state
+          fetch-depth: 0
+      - name: Upload only changed files to STAGING using shared FTPS login
+        # Account root: /home/hosting160568eu/public_html
+        # Target path: ./staging.distribuidordeherramientas.es/wp-content/plugins/<slug>/
         env:
-          TC_DB_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_DB_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_DB_PASS: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import ftplib
-          import os
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          BASE: ${{ needs.plan.outputs.base }}
+          SLUG: ${{ matrix.slug }}
+        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG"
 
-          ftp = ftplib.FTP_TLS(timeout=45)
-          ftp.connect(os.environ["TC_DB_HOST"], 21)
-          ftp.login(os.environ["TC_DB_USER"], os.environ["TC_DB_PASS"])
-          ftp.prot_p()
-          ftp.cwd("./wp-content/plugins/taxocommerce-database/")
-          files = [
-              ".ftp-deploy-sync-state.json",
-              "tests/auto-test-smoke.php",
-              "tests/legacy-clean-db-smoke.php",
-              "tests/legacy-data-table-smoke.php",
-              "tests/menu-smoke.php",
-          ]
-          for path in files:
-              try:
-                  ftp.delete(path)
-                  print("Removed obsolete Database deployment artifact:", path)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-          try:
-              ftp.rmd("tests")
-          except ftplib.error_perm as exc:
-              if not str(exc).startswith("550"):
-                  raise
-          ftp.quit()
-          PY
-
-      - name: Deploy TaxoCommerce Images to STAGING (runtime package only)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+  deploy-focazul:
+    name: Focazul / Core
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-images/
-          server-dir: ./wp-content/plugins/taxocommerce-images/
-          # Keep deployment state OUTSIDE the installed plugin directory.
-          state-name: ../.taxocommerce-images-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Remove previously deployed Images test files and old state file
-        # Cleanup is tightly allowlisted: never remove Media, data, or plugin runtime files.
+          fetch-depth: 0
+      - name: Upload Core changes to Focazul using the shared FTPS login
+        # FTP user root: /home/hosting160568eu/public_html
+        # Target path is restricted in deploy_staging_delta.py to
+        # ./asociacionfocazul/wp-content/plugins/taxocommerce-core/
         env:
-          TC_IMAGES_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_IMAGES_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_IMAGES_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import ftplib
-          import os
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          BASE: ${{ needs.plan.outputs.base }}
+        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug taxocommerce-core
 
-          ftp = ftplib.FTP_TLS(timeout=45)
-          ftp.connect(os.environ["TC_IMAGES_FTP_HOST"], 21)
-          ftp.login(os.environ["TC_IMAGES_FTP_USER"], os.environ["TC_IMAGES_FTP_PASSWORD"])
-          ftp.prot_p()
-          ftp.cwd("./wp-content/plugins/taxocommerce-images/")
-          files = [
-              ".ftp-deploy-sync-state.json",
-              "tests/audit-browser-smoke.js",
-              "tests/audit-load-smoke.php",
-              "tests/auto-test-smoke.php",
-              "tests/early-i18n-smoke.php",
-              "tests/functional-contract.php",
-              "tests/manual-smoke.php",
-          ]
-          for path in files:
-              try:
-                  ftp.delete(path)
-                  print("Removed obsolete Images deploy artifact:", path)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-          try:
-              ftp.rmd("tests")
-          except ftplib.error_perm as exc:
-              if not str(exc).startswith("550"):
-                  raise
-          ftp.quit()
-          PY
-
-      - name: Validate TaxoCommerce Import-Export before STAGING FTP
-        run: |
-          find taxocommerce-import-export -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-import-export/tests/auto-test-smoke.php
-          php taxocommerce-import-export/tests/delete-pending-smoke.php
-
-      - name: Deploy TaxoCommerce Import-Export to STAGING (runtime only)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-import-export/
-          server-dir: ./wp-content/plugins/taxocommerce-import-export/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-import-export-ftp-state.json
-          # FTP synchronization state must never become an installed plugin file.
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Remove obsolete Import-Export tests and FTP state from STAGING
-        # Strictly allowlisted: do not touch runtime, uploaded CSVs or Media.
+  verify:
+    name: Require successful delivery to every applicable site
+    needs: [plan, deploy-staging, deploy-focazul]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results without accepting partial success
         env:
-          TC_IE_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_IE_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_IE_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import ftplib
-          import os
-
-          ftp = ftplib.FTP_TLS(timeout=45)
-          ftp.connect(os.environ["TC_IE_FTP_HOST"], 21)
-          ftp.login(os.environ["TC_IE_FTP_USER"], os.environ["TC_IE_FTP_PASSWORD"])
-          ftp.prot_p()
-          ftp.cwd("./wp-content/plugins/taxocommerce-import-export/")
-          files = [
-              ".ftp-deploy-sync-state.json",
-              "tests/adaptive-import-smoke.php",
-              "tests/auto-test-smoke.php",
-              "tests/batch-queue-smoke.php",
-              "tests/batch-runner-browser-smoke.js",
-              "tests/country-csv-smoke.php",
-              "tests/delete-pending-smoke.php",
-              "tests/product-noop-smoke.php",
-              "tests/progress-smoke.php",
-          ]
-          for path in files:
-              try:
-                  ftp.delete(path)
-                  print("Removed obsolete Import-Export deployment artifact:", path)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-          try:
-              ftp.rmd("tests")
-          except ftplib.error_perm as exc:
-              if not str(exc).startswith("550"):
-                  raise
-          ftp.quit()
-          PY
-
-      - name: Validate TaxoCommerce Suppliers
-        run: |
-          test -f taxocommerce-suppliers/taxocommerce-suppliers.php
-          find taxocommerce-suppliers -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-suppliers/tests/smoke.php
-
-      - name: Deploy TaxoCommerce Suppliers to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-suppliers/
-          server-dir: ./wp-content/plugins/taxocommerce-suppliers/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-suppliers-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce Connections
-        run: |
-          test -f taxocommerce-connections/taxocommerce-connections.php
-          find taxocommerce-connections -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-connections/tests/connections-smoke.php
-
-      - name: Deploy TaxoCommerce Connections to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-connections/
-          server-dir: ./wp-content/plugins/taxocommerce-connections/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-connections-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce Social
-        run: |
-          test -f taxocommerce-social/taxocommerce-social.php
-          find taxocommerce-social -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-
-      - name: Build TaxoCommerce Social local ZIP
-        run: |
-          rm -rf build-social-package
-          mkdir -p build-social-package
-          zip -qr build-social-package/taxocommerce-social.zip taxocommerce-social \
-            -x 'taxocommerce-social/tests/*' \
-               'taxocommerce-social/**/*.bak' \
-               'taxocommerce-social/**/*.md' \
-               'taxocommerce-social/**/*.pot'
-          unzip -t build-social-package/taxocommerce-social.zip
-
-      - name: Deploy TaxoCommerce Social ZIP to Core local repository
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./build-social-package/
-          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
-          dry-run: false
-          log-level: verbose
-
-      - name: Deploy TaxoCommerce Social to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-social/
-          server-dir: ./wp-content/plugins/taxocommerce-social/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-social-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            tests/**
-            **/tests/**
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce Campaigns
-        id: campaigns_validate
-        continue-on-error: true
-        run: |
-          test -f taxocommerce-campaigns/taxocommerce-campaigns.php
-          find taxocommerce-campaigns -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-
-      - name: Build TaxoCommerce Campaigns local ZIP
-        if: steps.campaigns_validate.outcome == 'success'
-        run: |
-          rm -rf build-campaigns-package
-          mkdir -p build-campaigns-package
-          zip -qr build-campaigns-package/taxocommerce-campaigns.zip taxocommerce-campaigns \
-            -x 'taxocommerce-campaigns/tests/*' \
-               'taxocommerce-campaigns/**/*.bak' \
-               'taxocommerce-campaigns/**/*.md' \
-               'taxocommerce-campaigns/**/*.pot'
-          unzip -t build-campaigns-package/taxocommerce-campaigns.zip
-
-      - name: Deploy TaxoCommerce Campaigns ZIP to Core local repository
-        if: steps.campaigns_validate.outcome == 'success'
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./build-campaigns-package/
-          server-dir: ./wp-content/uploads/taxocommerce-core/plugins/
-          dry-run: false
-          log-level: verbose
-
-      - name: Deploy TaxoCommerce Campaigns to STAGING
-        if: steps.campaigns_validate.outcome == 'success'
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-campaigns/
-          server-dir: ./wp-content/plugins/taxocommerce-campaigns/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-campaigns-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            tests/**
-            **/tests/**
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce Distribution
-        run: |
-          test -f taxocommerce-distribution/taxocommerce-distribution.php
-          find taxocommerce-distribution -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-distribution/tests/distribution-smoke.php
-
-      - name: Deploy TaxoCommerce Distribution to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-distribution/
-          server-dir: ./wp-content/plugins/taxocommerce-distribution/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-distribution-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce Logistics
-        run: |
-          test -f taxocommerce-logistica/taxocommerce-logistica.php
-          find taxocommerce-logistica -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-logistica/tests/smoke.php
-
-      - name: Deploy TaxoCommerce Logistics to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-logistica/
-          server-dir: ./wp-content/plugins/taxocommerce-logistica/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-logistica-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Prepare and validate TaxoCommerce Billing
-        run: |
-          test -f taxocommerce-facturacion/taxocommerce-facturacion.php
-          test -f includes/facturas/dompdf/autoload.inc.php
-          rm -rf taxocommerce-facturacion/includes/dompdf
-          cp -a includes/facturas/dompdf taxocommerce-facturacion/includes/dompdf
-          find taxocommerce-facturacion -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-facturacion/tests/smoke.php
-          test -f taxocommerce-facturacion/includes/dompdf/vendor/autoload.php
-
-      - name: Deploy TaxoCommerce Billing to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-facturacion/
-          server-dir: ./wp-content/plugins/taxocommerce-facturacion/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-facturacion-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate TaxoCommerce FAQs
-        run: |
-          find taxocommerce-faqs -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-
-      - name: Deploy TaxoCommerce FAQs to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-faqs/
-          server-dir: ./wp-content/plugins/taxocommerce-faqs/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-faqs-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          # Store sync state outside the installed FAQ plugin.
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.md
-            **/*.bak
-            **/*.pot
-
-      - name: Validate System Check PHP syntax
-        run: find taxocommerce-system-check -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-
-      - name: Deploy TaxoCommerce System Check to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-system-check/
-          server-dir: ./wp-content/plugins/taxocommerce-system-check/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-system-check-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            tests/**
-            **/tests/**
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Validate and package TaxoCommerce Assistant
-        id: dependiente_package
+          PLAN: ${{ needs.plan.result }}
+          COUNT: ${{ needs.plan.outputs.count }}
+          CORE: ${{ needs.plan.outputs.core }}
+          STAGING: ${{ needs.deploy-staging.result }}
+          FOCAZUL: ${{ needs.deploy-focazul.result }}
         run: |
           set -euo pipefail
-          test -s taxocommerce-dependiente/taxocommerce-dependiente.php
-          find taxocommerce-dependiente -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-          php taxocommerce-dependiente/tests/learning-smoke.php
-          php taxocommerce-dependiente/tests/m11-observability-smoke.php
-          php taxocommerce-dependiente/tests/m11-scheduler-smoke.php
-          version="$(sed -n 's/^ \* Version: //p' taxocommerce-dependiente/taxocommerce-dependiente.php | head -n 1)"
-          test -n "$version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          zipfile="taxocommerce-dependiente-${version}.zip"
-          rm -f "$zipfile"
-          # Build a clean distributable; never ship CI fixtures or FTP state.
-          zip -q -r "$zipfile" taxocommerce-dependiente/ -x "*/.git*" "*/tests/*" "*/.*" "*/.ftp-deploy-sync-state.json" "*/.DS_Store"
-          if unzip -Z1 "$zipfile" | grep -E '(^|/)(tests/|[.][^/]+)'; then
-            echo "Assistant package contains tests or hidden files" >&2
-            exit 1
+          echo "Plan: $PLAN; plugin changes: $COUNT; Core changed: $CORE"
+          echo "STAGING: $STAGING; Focazul: $FOCAZUL"
+          test "$PLAN" = "success"
+          if [ "$COUNT" != "0" ]; then
+            test "$STAGING" = "success"
           fi
-          unzip -t "$zipfile"
-          unzip -Z1 "$zipfile" | grep -Fx 'taxocommerce-dependiente/taxocommerce-dependiente.php'
-
-      - name: Publish Assistant installable ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: taxocommerce-dependiente-${{ steps.dependiente_package.outputs.version }}
-          path: taxocommerce-dependiente-${{ steps.dependiente_package.outputs.version }}.zip
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Deploy TaxoCommerce Assistant to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-dependiente/
-          server-dir: ./wp-content/plugins/taxocommerce-dependiente/
-          # Keep the FTP sync marker outside the installed plugin.
-          state-name: ../.taxocommerce-dependiente-ftp-state.json
-          dry-run: false
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/tests
-            **/tests/**
-            **/.ftp-deploy-sync-state.json
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Remove obsolete Assistant test files and FTP state from STAGING
-        # Strictly allowlisted cleanup of old deploy artifacts; leave runtime, uploads, and training data untouched.
+          if [ "$CORE" = "true" ]; then
+            test "$FOCAZUL" = "success"
+          fi
+          echo "All applicable deployments completed successfully"
+      - uses: actions/checkout@v4
+      - name: Verify and repair tracked Core file parity on both installations
+        if: needs.plan.outputs.core == 'true'
         env:
-          TC_ASSISTANT_FTP_HOST: ${{ secrets.STAGING_FTP_SERVER }}
-          TC_ASSISTANT_FTP_USER: ${{ secrets.STAGING_FTP_USERNAME }}
-          TC_ASSISTANT_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import ftplib
-          import os
-
-          ftp = ftplib.FTP_TLS(timeout=45)
-          ftp.connect(os.environ["TC_ASSISTANT_FTP_HOST"], 21)
-          ftp.login(os.environ["TC_ASSISTANT_FTP_USER"], os.environ["TC_ASSISTANT_FTP_PASSWORD"])
-          ftp.prot_p()
-          ftp.cwd("./wp-content/plugins/taxocommerce-dependiente/")
-          obsolete = (
-              ".ftp-deploy-sync-state.json",
-              "tests/auto-test-smoke.php",
-              "tests/faq-source-smoke.php",
-              "tests/l9-query-regression.php",
-              "tests/l10-evaluator-provenance.php",
-              "tests/learning-smoke.php",
-              "tests/load-boost-smoke.php",
-              "tests/m11-observability-smoke.php",
-              "tests/m11-runtime-regression.php",
-              "tests/m11-scheduler-smoke.php",
-              "tests/manual-smoke.php",
-              "tests/original-interpreter-parity.php",
-          )
-          for path in obsolete:
-              try:
-                  ftp.delete(path)
-                  print("Removed obsolete Assistant deployment artifact:", path)
-              except ftplib.error_perm as exc:
-                  if not str(exc).startswith("550"):
-                      raise
-          try:
-              ftp.rmd("tests")
-          except ftplib.error_perm as exc:
-              if not str(exc).startswith("550"):
-                  raise
-          ftp.quit()
-          PY
-
-      - name: Validate TaxoCommerce Vocabulary source
-        run: |
-          test -f taxocommerce-vocabulary/taxocommerce-vocabulary.php
-          find taxocommerce-vocabulary -name '*.php' -print0 | xargs -0 -n1 php -l
-
-      - name: Build TaxoCommerce Vocabulary ZIP
-        run: |
-          rm -f taxocommerce-vocabulary.zip
-          zip -qr taxocommerce-vocabulary.zip taxocommerce-vocabulary \
-            -x 'taxocommerce-vocabulary/tests/*' \
-               'taxocommerce-vocabulary/*.md' \
-               'taxocommerce-vocabulary/node_modules/*' \
-               'taxocommerce-vocabulary/.ftp-deploy-sync-state.json'
-          unzip -t taxocommerce-vocabulary.zip
-          unzip -Z1 taxocommerce-vocabulary.zip | grep -Fx 'taxocommerce-vocabulary/readme.txt'
-          ! unzip -Z1 taxocommerce-vocabulary.zip | grep -E '/(tests/|\\.ftp-deploy-sync-state\\.json)'
-
-      - name: Upload TaxoCommerce Vocabulary package
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/deploy_staging_delta.py reconcile-core
+      - name: Audit WordPress MO catalogues on STAGING after Core delivery
+        if: needs.plan.outputs.core == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/audit_staging_mo.py
+      - name: Read-only comparison of Core and both WordPress menus (no site writes)
+        # Audit findings stay visible in the summary/artifact; transient HTTP/FTPS
+        # failures must not invalidate the verified delivery baseline used by deploy.
+        continue-on-error: true
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          TC_STAGING_WP_USER: ${{ secrets.TC_STAGING_WP_USER }}
+          TC_STAGING_WP_PASSWORD: ${{ secrets.TC_STAGING_WP_PASSWORD }}
+          TC_FOCAZUL_WP_USER: ${{ secrets.TC_FOCAZUL_WP_USER }}
+          TC_FOCAZUL_WP_PASSWORD: ${{ secrets.TC_FOCAZUL_WP_PASSWORD }}
+        run: python3 .github/scripts/audit_core_dual_sites.py --out core-dual-audit/report
+      - name: Preserve cross-site audit report (including failed and unchecked results)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: taxocommerce-vocabulary-staging
-          path: taxocommerce-vocabulary.zip
+          name: core-dual-site-audit-${{ github.run_id }}
+          path: |
+            core-dual-audit/report.json
+            core-dual-audit/report.md
+          if-no-files-found: ignore
           retention-days: 30
-          if-no-files-found: error
 
-      - name: Deploy TaxoCommerce Vocabulary to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-vocabulary/
-          server-dir: ./wp-content/plugins/taxocommerce-vocabulary/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-vocabulary-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            tests/**
-            **/tests/**
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.bak
-            **/*.md
-            **/*.pot
-
-      - name: Deploy TaxoCommerce Auditor to STAGING
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.STAGING_FTP_SERVER }}
-          username: ${{ secrets.STAGING_FTP_USERNAME }}
-          password: ${{ secrets.STAGING_FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./taxocommerce-auditor/
-          server-dir: ./wp-content/plugins/taxocommerce-auditor/
-          # Keep FTP state OUTSIDE the installed standalone module.
-          state-name: ../.taxocommerce-auditor-ftp-state.json
-          dry-run: false
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            tests/**
-            **/*.bak
-            **/*.md
-            **/*.pot

@@ -109,10 +109,10 @@ final class TaxoCommerce_FAQs {
 
     public static function menu() {
         if ( ! function_exists( 'taxocommerce_core' ) ) {
-            add_menu_page( 'TaxoCommerce FAQs', 'TaxoCommerce FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ), 'dashicons-editor-help', 59 );
+            add_menu_page( __( 'TaxoCommerce FAQs', 'taxocommerce-faqs' ), __( 'TaxoCommerce FAQs', 'taxocommerce-faqs' ), 'manage_options', self::PAGE, array( __CLASS__, 'render' ), 'dashicons-editor-help', 59 );
         } else {
             // FAQs remains accessible from Contenidos and as its own Core submenu.
-            add_submenu_page( 'taxocommerce-core', 'TaxoCommerce FAQs', 'FAQs', 'manage_options', self::PAGE, array( __CLASS__, 'render' ) );
+            add_submenu_page( 'taxocommerce-core', __( 'TaxoCommerce FAQs', 'taxocommerce-faqs' ), __( 'FAQs', 'taxocommerce-faqs' ), 'manage_options', self::PAGE, array( __CLASS__, 'render' ) );
         }
     }
 
@@ -605,7 +605,7 @@ final class TaxoCommerce_FAQs {
             ARRAY_A
         );
         $notice = get_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() );
-        echo '<h2>FAQs</h2><p>Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.</p>';
+        echo '<h2>' . esc_html__( 'FAQs', 'taxocommerce-faqs' ) . '</h2>' . '<p>' . esc_html__( 'Preguntas frecuentes asociadas a hubs, categorías o productos. Datos compartidos con TaxoCommerce SEO.', 'taxocommerce-faqs' ) . '</p>';
         if ( $notice ) { delete_transient( 'taxocommerce_faqs_notice_' . get_current_user_id() ); echo '<div class="notice notice-' . ( $notice[1] ? 'error' : 'success' ) . '"><p>' . esc_html( $notice[0] ) . '</p></div>'; }
         echo '<div style="display:flex;gap:10px;flex-wrap:wrap">';
         foreach ( array( 'Total' => $summary['total'], 'Activas' => $summary['active_count'], 'Desactivadas' => $summary['inactive_count'], 'Destinos' => $summary['destinations'], 'Categorías' => $summary['categories'], 'Sin categoría' => $summary['uncategorized'], 'Aperturas' => $summary['opens'] ) as $label => $value ) {
@@ -614,11 +614,11 @@ final class TaxoCommerce_FAQs {
         echo '</div><h2>' . ( $editing ? 'Editar FAQ #' . absint( $id ) : 'Nueva FAQ' ) . '</h2>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_save"><input type="hidden" name="faq_id" value="' . absint( $id ) . '">';
         wp_nonce_field( 'taxocommerce_faqs_save' );
-        echo '<table class="form-table"><tr><th>Categoría de producto *</th><td>';
+        echo '<table class="form-table">' . '<tr>' . '<th>' . esc_html__( 'Categoría de producto *', 'taxocommerce-faqs' ) . '</th>' . '<td>';
         wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'name' => 'product_cat_id',
             'selected' => absint( $editing['product_cat_id'] ?? 0 ), 'show_option_none' => 'Seleccionar categoría',
             'option_none_value' => '0', 'hide_empty' => false, 'hierarchical' => true, 'required' => true ) );
-        echo '<p class="description">Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI correspondiente.</p></td></tr><tr><th>Destino</th><td><select name="object_type">';
+        echo '<p class="description">' . esc_html__( 'Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI correspondiente.', 'taxocommerce-faqs' ) . '</p>' . '</td>' . '</tr>' . '<tr>' . '<th>' . esc_html__( 'Destino', 'taxocommerce-faqs' ) . '</th>' . '<td>' . '<select name="object_type">';
         foreach ( array( 2 => 'Categoría', 1 => 'Hub / Página', 3 => 'Producto' ) as $type => $label ) { echo '<option value="' . absint( $type ) . '" ' . selected( (int) ( $editing['object_type'] ?? 2 ), $type, false ) . '>' . esc_html( $label ) . '</option>'; }
         echo '</select> <label>ID del destino (opcional para categoría) <input type="number" min="1" name="object_id" value="' . esc_attr( (string) ( $editing['object_id'] ?? '' ) ) . '"></label></td></tr>';
         echo '<tr><th>Pregunta</th><td><input class="large-text" maxlength="255" name="question" required value="' . esc_attr( (string) ( $editing['question'] ?? '' ) ) . '"></td></tr>';
@@ -628,7 +628,7 @@ final class TaxoCommerce_FAQs {
         echo '</table>';
         if ( self::tags_available() ) {
             $selected = $editing ? self::tags( $id ) : array();
-            echo '<h3>Etiquetas de Vocabulary</h3><input type="hidden" name="vocab_present" value="1"><p>Selecciona las etiquetas existentes. No se crean etiquetas nuevas.</p>';
+            echo '<h3>' . esc_html__( 'Etiquetas de Vocabulary', 'taxocommerce-faqs' ) . '</h3>' . '<input type="hidden" name="vocab_present" value="1">' . '<p>' . esc_html__( 'Selecciona las etiquetas existentes. No se crean etiquetas nuevas.', 'taxocommerce-faqs' ) . '</p>';
             $voc = self::table( 'seo_vocabulary' );
             foreach ( self::GROUPS as $group ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- FAQ custom-table query; the editor/import/export must see the latest canonical rows and update them directly, so native post APIs and stale caches are inappropriate.
@@ -641,7 +641,7 @@ final class TaxoCommerce_FAQs {
                 echo '</select></label></p>';
             }
         } else {
-            echo '<p class="notice notice-info">Vocabulary no está disponible; se conservarán las etiquetas existentes.</p>';
+            echo '<p class="notice notice-info">' . esc_html__( 'Vocabulary no está disponible; se conservarán las etiquetas existentes.', 'taxocommerce-faqs' ) . '</p>';
         }
         submit_button( $editing ? 'Guardar FAQ' : 'Crear FAQ' );
         echo '</form><hr><h2>Inventario</h2><form method="get"><input type="hidden" name="page" value="' . esc_attr( function_exists( 'taxocommerce_core' ) ? 'taxocommerce-core-content' : self::PAGE ) . '">';
@@ -649,20 +649,20 @@ final class TaxoCommerce_FAQs {
         echo '<input type="search" name="faq_search" value="' . esc_attr( $search ) . '" placeholder="Buscar pregunta"> ';
         wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'name' => 'faq_category', 'selected' => $filter_category,
             'show_option_all' => 'Todas las categorías', 'hide_empty' => false, 'hierarchical' => true ) );
-        echo ' <button class="button">Buscar</button></form>';
-        echo '<table class="widefat striped"><thead><tr><th>ID</th><th>Pregunta</th><th>Destino</th><th>Categoría</th><th>Activa</th><th>Aperturas</th><th>Acciones</th></tr></thead><tbody>';
+        echo ' ' . '<button class="button">' . esc_html__( 'Buscar', 'taxocommerce-faqs' ) . '</button>' . '</form>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . 'ID' . '</th>' . '<th>' . esc_html__( 'Pregunta', 'taxocommerce-faqs' ) . '</th>' . '<th>' . esc_html__( 'Destino', 'taxocommerce-faqs' ) . '</th>' . '<th>' . esc_html__( 'Categoría', 'taxocommerce-faqs' ) . '</th>' . '<th>' . esc_html__( 'Activa', 'taxocommerce-faqs' ) . '</th>' . '<th>' . esc_html__( 'Aperturas', 'taxocommerce-faqs' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-faqs' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( (array) $rows as $row ) {
             echo '<tr><td>' . absint( $row['id'] ) . '</td><td>' . esc_html( $row['question'] ) . '</td><td>' . absint( $row['object_type'] ) . ':' . absint( $row['object_id'] ) . '</td><td>' . esc_html( self::category_name( absint( $row['product_cat_id'] ?? 0 ) ) ) . '</td><td>' . ( $row['active'] ? 'Sí' : 'No' ) . '</td><td>' . absint( $row['open_count'] ) . '</td><td>';
             echo '<a class="button button-small" href="' . esc_url( self::url( array( 'faq_id' => absint( $row['id'] ) ) ) ) . '">Editar</a> ';
             echo '<form style="display:inline" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'¿Eliminar esta FAQ definitivamente?\')"><input type="hidden" name="action" value="taxocommerce_faqs_delete"><input type="hidden" name="faq_id" value="' . absint( $row['id'] ) . '">';
             wp_nonce_field( 'taxocommerce_faqs_delete' );
-            echo '<button class="button button-small">Eliminar</button></form></td></tr>';
+            echo '<button class="button button-small">' . esc_html__( 'Eliminar', 'taxocommerce-faqs' ) . '</button>' . '</form>' . '</td>' . '</tr>';
         }
         echo '</tbody></table>';
         if ( count( (array) $rows ) === 25 || $page > 1 ) {
             echo '<p><a class="button" href="' . esc_url( self::url( array( 'faq_paged' => max( 1, $page - 1 ), 'faq_search' => $search ) ) ) . '">Anterior</a> <a class="button" href="' . esc_url( self::url( array( 'faq_paged' => $page + 1, 'faq_search' => $search ) ) ) . '">Siguiente</a></p>';
         }
-        echo '<hr><h2>Importar / Exportar CSV</h2><p>CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID existente; las nuevas filas reciben ID nuevo.</p>';
+        echo '<hr>' . '<h2>' . esc_html__( 'Importar / Exportar CSV', 'taxocommerce-faqs' ) . '</h2>' . '<p>' . esc_html__( 'CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID existente; las nuevas filas reciben ID nuevo.', 'taxocommerce-faqs' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_export">';
         wp_nonce_field( 'taxocommerce_faqs_export' ); submit_button( 'Exportar FAQs CSV', 'secondary', 'submit', false ); echo '</form><br>';
         echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="taxocommerce_faqs_import">';

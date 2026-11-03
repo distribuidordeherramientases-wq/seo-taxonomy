@@ -1,3 +1,7 @@
+## Unreleased - Familia i18n #2062
+
+- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
+
 # CHANGELOG — TaxoCommerce System Check
 
 > Historial de las versiones independientes del plugin. El origen de los motores de diagnóstico está en el monolito TaxoCommerce SEO; no se asignan versiones retrospectivas a esa etapa.

@@ -110,6 +110,7 @@ final class TaxoCommerce_Core {
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 5 );
 		add_action( 'admin_menu', array( $this, 'normalize_family_submenu_labels' ), 9999 );
+		add_action( 'admin_menu', array( $this, 'hide_core_internal_submenus' ), 10000 );
 		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_old_extensions_page' ) );
@@ -172,8 +173,9 @@ final class TaxoCommerce_Core {
 			58
 		);
 
-		// Keep a single visible entry in the WordPress sidebar. The dashboard
-		// cards are the navigation for Core modules.
+		// Core remains the only visible Core entry in the WordPress sidebar.
+		// Its internal screens are registered for direct links, but hidden from
+		// the sidebar after plugins have registered their own entries.
 		add_submenu_page(
 			'taxocommerce-core',
 			__( 'TaxoCommerce Core', 'taxocommerce-core' ),
@@ -278,6 +280,34 @@ final class TaxoCommerce_Core {
 
 
 	/**
+	 * Keep Core tools inside Core without removing their registered WP pages.
+	 *
+	 * WordPress stores routes and callbacks separately from the visible
+	 * submenu array. Other installed plugins keep their own sidebar entries.
+	 *
+	 * @return void
+	 */
+	public function hide_core_internal_submenus() {
+		global $submenu;
+
+		if ( empty( $submenu['taxocommerce-core'] ) || ! is_array( $submenu['taxocommerce-core'] ) ) {
+			return;
+		}
+
+		$internal_slugs = array(
+			TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
+			'taxocommerce-core-hierarchy',
+			'taxocommerce-core-menu',
+			TaxoCommerce_Core_User_Guide::PAGE_SLUG,
+		);
+		foreach ( $submenu['taxocommerce-core'] as $index => $item ) {
+			if ( is_array( $item ) && isset( $item[2] ) && in_array( (string) $item[2], $internal_slugs, true ) ) {
+				unset( $submenu['taxocommerce-core'][ $index ] );
+			}
+		}
+	}
+
+	/**
 	 * Hides the Core submenu only in the browser.
 	 *
 	 * The submenu remains registered in WordPress so direct links, capability
@@ -286,9 +316,8 @@ final class TaxoCommerce_Core {
 	 * @return void
 	 */
 	public function hide_sidebar_submenu() {
-		// When Core runs alone, keep the compact dashboard navigation.
-		// As soon as an active extension adds a real submenu, reveal the native
-		// WordPress flyout, including Core's own pages and that extension.
+		// With Core alone, the dashboard is sufficient navigation. With any
+		// installed extension adding a submenu, display only plugin entries.
 		global $submenu;
 		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
 		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' );
@@ -1031,7 +1060,7 @@ final class TaxoCommerce_Core {
 		// Auto Test is a Core dashboard tab, never a separate WordPress menu item.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
-		if ( 'auto-test' === $tab ) {
+		if ( in_array( $tab, array( 'auto-test', 'autocheck' ), true ) ) {
 			TaxoCommerce_Core_Auto_Test::render();
 			return;
 		}
@@ -1073,7 +1102,7 @@ final class TaxoCommerce_Core {
 			return;
 		}
 		$this->guard();
-		wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) );
 		exit;
 	}
 

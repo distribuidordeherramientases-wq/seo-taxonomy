@@ -60,8 +60,8 @@ function seo_server_status() {
     $GLOBALS['seo_server_status_current_snapshot'] = $snapshot;
 
     echo '<div class="wrap seo-server-status-wrap">';
-    echo '<h1>Server Status</h1>';
-    echo '<p>Panel de diagnóstico de solo lectura del servidor, WordPress, seguridad, base de datos, WooCommerce, rendimiento y logs.</p>';
+    echo '<h1>' . esc_html__( 'Server Status', 'taxocommerce-system-check' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Panel de diagnóstico de solo lectura del servidor, WordPress, seguridad, base de datos, WooCommerce, rendimiento y logs.', 'taxocommerce-system-check' ) . '</p>';
 
     seo_server_status_render_styles();
     seo_server_status_render_run_button($snapshot);
@@ -128,7 +128,7 @@ function seo_server_status_render_run_button($snapshot) {
     if ($generated > 0) {
         echo '<span class="description">Último chequeo guardado: ' . esc_html(date_i18n('Y-m-d H:i', $generated)) . '</span>';
     } else {
-        echo '<span class="description">Vista rápida sin guardar. Ejecuta el chequeo completo para crear una referencia y calcular tendencia.</span>';
+        echo '<span class="description">' . esc_html__( 'Vista rápida sin guardar. Ejecuta el chequeo completo para crear una referencia y calcular tendencia.', 'taxocommerce-system-check' ) . '</span>';
     }
     echo '</div>';
 }
@@ -288,7 +288,7 @@ function seo_server_status_row($label, $value, $status = 'info', $help = '') {
  * Abre una tabla de diagnóstico.
  */
 function seo_server_status_open_table() {
-    echo '<table class="seo-status-table"><thead><tr><th>Chequeo</th><th>Valor</th><th>Estado</th><th>Observación</th></tr></thead><tbody>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Chequeo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Valor', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Observación', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 }
 
 /**
@@ -954,8 +954,8 @@ function seo_server_status_monitor_setup_box() {
     $endpoint = seo_server_status_monitor_endpoint_url();
 
     echo '<details class="seo-status-card" style="margin:12px 0 16px;">';
-    echo '<summary style="cursor:pointer;font-weight:600;">Configuración del monitor externo de GitHub</summary>';
-    echo '<p class="seo-muted">Guarda estos tres valores como Secrets del repositorio. El secreto solo se muestra a administradores de WordPress.</p>';
+    echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Configuración del monitor externo de GitHub', 'taxocommerce-system-check' ) . '</summary>';
+    echo '<p class="seo-muted">' . esc_html__( 'Guarda estos tres valores como Secrets del repositorio. El secreto solo se muestra a administradores de WordPress.', 'taxocommerce-system-check' ) . '</p>';
     echo '<table class="seo-status-table"><tbody>';
     echo '<tr><td><strong>SEO_MONITOR_TARGET_URL</strong></td><td><code>' . esc_html(home_url('/')) . '</code></td></tr>';
     echo '<tr><td><strong>SEO_MONITOR_INGEST_URL</strong></td><td><code>' . esc_html($endpoint) . '</code></td></tr>';
@@ -1011,7 +1011,7 @@ function seo_server_status_render_response_monitor($snapshot) {
         echo '<a class="' . esc_attr($class) . '" href="' . esc_url(add_query_arg('seo_monitor_range', $key, $base_url)) . '">' . esc_html($label) . '</a>';
     }
     echo '</div>';
-    echo '<span class="seo-status-badge seo-status-info">GitHub externo</span>';
+    echo '<span class="seo-status-badge seo-status-info">' . esc_html__( 'GitHub externo', 'taxocommerce-system-check' ) . '</span>';
     echo '</div></div>';
 
     echo '<div class="seo-response-monitor-kpis">';
@@ -1033,10 +1033,10 @@ function seo_server_status_render_response_monitor($snapshot) {
     );
     echo '<div class="seo-response-monitor-chart">' . wp_kses($monitor_svg, $monitor_svg_allowed) . '</div>';
     echo '<div class="seo-response-monitor-legend">';
-    echo '<span><i style="background:#00a32a"></i>Correcto</span>';
-    echo '<span><i style="background:#dba617"></i>Lento</span>';
-    echo '<span><i style="background:#d97706"></i>Importante</span>';
-    echo '<span><i style="background:#d63638"></i>Error</span>';
+    echo '<span>' . '<i style="background:#00a32a">' . '</i>' . esc_html__( 'Correcto', 'taxocommerce-system-check' ) . '</span>';
+    echo '<span>' . '<i style="background:#dba617">' . '</i>' . esc_html__( 'Lento', 'taxocommerce-system-check' ) . '</span>';
+    echo '<span>' . '<i style="background:#d97706">' . '</i>' . esc_html__( 'Importante', 'taxocommerce-system-check' ) . '</span>';
+    echo '<span>' . '<i style="background:#d63638">' . '</i>' . esc_html__( 'Error', 'taxocommerce-system-check' ) . '</span>';
     echo '<span>GitHub conserva 35 días en la rama <code>monitor-data</code> y reenvía el histórico cuando WordPress vuelve a responder.</span>';
     echo '</div>';
     echo '</section>';
@@ -1941,11 +1941,11 @@ function seo_server_status_render_security_tab() {
         return ($check['category'] ?? '') === 'Seguridad';
     }));
 
-    echo '<h2>Seguridad</h2>';
-    echo '<p>Chequeos de endurecimiento local, actualizaciones, integridad de archivos y superficie publica. Todo es de solo lectura.</p>';
+    echo '<h2>' . esc_html__( 'Seguridad', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Chequeos de endurecimiento local, actualizaciones, integridad de archivos y superficie publica. Todo es de solo lectura.', 'taxocommerce-system-check' ) . '</p>';
 
     if (empty($checks)) {
-        echo '<div class="seo-status-note"><strong>Sin datos de seguridad:</strong> ejecuta el chequeo completo para generar la nueva seccion.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Sin datos de seguridad:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'ejecuta el chequeo completo para generar la nueva seccion.', 'taxocommerce-system-check' ) . '</div>';
         return;
     }
 
@@ -1958,7 +1958,7 @@ function seo_server_status_render_security_tab() {
     echo '</div>';
 
     if (empty($snapshot['deep'])) {
-        echo '<div class="seo-status-note"><strong>Vista rapida:</strong> los sondeos HTTP publicos, checksums del core y recorrido de uploads solo se ejecutan con <em>Ejecutar chequeo completo</em>.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Vista rapida:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'los sondeos HTTP publicos, checksums del core y recorrido de uploads solo se ejecutan con', 'taxocommerce-system-check' ) . ' ' . '<em>' . esc_html__( 'Ejecutar chequeo completo', 'taxocommerce-system-check' ) . '</em>' . '.' . '</div>';
     }
 
     $order = array('error' => 0, 'important' => 1, 'warning' => 2, 'ok' => 3, 'info' => 4);
@@ -1978,7 +1978,7 @@ function seo_server_status_render_security_tab() {
     foreach ($groups as $group => $rows) {
         echo '<div class="seo-status-card">';
         echo '<h2>' . esc_html($group) . '</h2>';
-        echo '<table class="seo-status-table"><thead><tr><th>Chequeo</th><th>Valor</th><th>Estado</th><th>Observacion</th></tr></thead><tbody>';
+        echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Chequeo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Valor', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Observacion', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($rows as $check) {
             echo '<tr>';
             echo '<td><strong>' . esc_html($check['label'] ?? '') . '</strong><br><code>' . esc_html($check['code'] ?? '') . '</code></td>';
@@ -2213,10 +2213,10 @@ function seo_server_status_render_priority_issues($snapshot, $limit = 12) {
     });
     $checks = array_slice($checks, 0, $limit);
     if (empty($checks)) {
-        echo '<div class="seo-status-note"><strong>Sin incidencias prioritarias:</strong> el chequeo actual no contiene errores críticos, importantes ni avisos.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Sin incidencias prioritarias:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'el chequeo actual no contiene errores críticos, importantes ni avisos.', 'taxocommerce-system-check' ) . '</div>';
         return;
     }
-    echo '<h3>Qué requiere atención</h3><div class="seo-server-priority-list">';
+    echo '<h3>' . esc_html__( 'Qué requiere atención', 'taxocommerce-system-check' ) . '</h3>' . '<div class="seo-server-priority-list">';
     foreach ($checks as $check) {
         echo '<div class="seo-server-priority-item">';
         echo wp_kses_post(seo_server_status_badge($check['status']));
@@ -2229,7 +2229,7 @@ function seo_server_status_render_priority_issues($snapshot, $limit = 12) {
 
 function seo_server_status_render_category_overview($snapshot) {
     $categories = array('PHP', 'Base de datos', 'WordPress', 'Seguridad', 'WooCommerce', 'Rendimiento', 'Almacenamiento', 'Logs');
-    echo '<h3>Salud por área</h3><div class="seo-server-category-grid">';
+    echo '<h3>' . esc_html__( 'Salud por área', 'taxocommerce-system-check' ) . '</h3>' . '<div class="seo-server-category-grid">';
     foreach ($categories as $category) {
         $rows = array_values(array_filter((array) ($snapshot['checks'] ?? array()), static function ($check) use ($category) {
             return ($check['category'] ?? '') === $category;
@@ -2265,8 +2265,8 @@ function seo_server_status_get_reporting_snapshot($refresh = false) {
 }
 
 function seo_server_status_render_summary_tab() {
-    echo '<h2>Resumen general</h2>';
-    echo '<p>Vista rápida de los puntos más importantes del entorno. Los errores y avisos aparecen antes del detalle técnico.</p>';
+    echo '<h2>' . esc_html__( 'Resumen general', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Vista rápida de los puntos más importantes del entorno. Los errores y avisos aparecen antes del detalle técnico.', 'taxocommerce-system-check' ) . '</p>';
 
     $snapshot = seo_server_status_get_current_snapshot();
     seo_server_status_render_priority_issues($snapshot, 12);
@@ -2305,7 +2305,7 @@ function seo_server_status_render_summary_tab() {
 
     echo '</div>';
 
-    echo '<div class="seo-status-note"><strong>Sugerencia:</strong> esta pantalla es solo lectura. Las limpiezas reales deberían seguir en Clean Database para evitar mezclar diagnóstico con acciones destructivas.</div>';
+    echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Sugerencia:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'esta pantalla es solo lectura. Las limpiezas reales deberían seguir en Clean Database para evitar mezclar diagnóstico con acciones destructivas.', 'taxocommerce-system-check' ) . '</div>';
 }
 
 /**
@@ -2319,8 +2319,8 @@ function seo_server_status_summary_card($title, $content, $status = 'info') {
  * Renderiza la pestaña PHP con parámetros importantes.
  */
 function seo_server_status_render_php_tab() {
-    echo '<h2>PHP</h2>';
-    echo '<p>Parámetros PHP relevantes para WordPress, WooCommerce, importaciones y llamadas API.</p>';
+    echo '<h2>' . esc_html__( 'PHP', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Parámetros PHP relevantes para WordPress, WooCommerce, importaciones y llamadas API.', 'taxocommerce-system-check' ) . '</p>';
     seo_server_status_open_table();
 
     $php_version = phpversion();
@@ -2559,8 +2559,8 @@ function seo_server_status_render_mysql_resource_charts($metrics) {
     $disk_status = seo_server_status_mysql_metric_status($disk_percent, 80, 90, 95);
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Recursos observables desde WordPress</h2>';
-    echo '<p>Gráficos instantáneos del proceso PHP y del sistema accesible. En hosting compartido la CPU se estima con <em>load average / núcleos visibles</em>; no sustituye las métricas físicas de WePanel.</p>';
+    echo '<h2>' . esc_html__( 'Recursos observables desde WordPress', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Gráficos instantáneos del proceso PHP y del sistema accesible. En hosting compartido la CPU se estima con', 'taxocommerce-system-check' ) . ' ' . '<em>' . esc_html__( 'load average / núcleos visibles', 'taxocommerce-system-check' ) . '</em>' . esc_html__( '; no sustituye las métricas físicas de WePanel.', 'taxocommerce-system-check' ) . '</p>';
     echo '<div class="seo-mysql-live-grid">';
     seo_server_status_render_mysql_meter_card('Carga CPU estimada', $cpu_percent, $cpu_value, $load_detail, $cpu_status);
     seo_server_status_render_mysql_meter_card(
@@ -2602,7 +2602,7 @@ function seo_server_status_render_mysql_query_profile($profile) {
     }
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Rendimiento de consultas MySQL</h2>';
+    echo '<h2>' . esc_html__( 'Rendimiento de consultas MySQL', 'taxocommerce-system-check' ) . '</h2>';
     echo '<p>Micro-batería de SELECTs de solo lectura ejecutada con la misma conexión que usa WordPress. Mide la latencia de este momento; no activa <code>SAVEQUERIES</code>, no guarda el SQL y no modifica datos.</p>';
     echo '<div class="seo-mysql-query-kpis">';
     echo '<div class="seo-mysql-query-kpi"><strong>Tiempo de respuesta</strong><div class="seo-mysql-query-kpi-value">' . ($response_ms === null ? 'N/D' : esc_html(number_format_i18n($response_ms, 2)) . ' ms') . '</div><span class="seo-muted">SELECT 1</span></div>';
@@ -2627,7 +2627,7 @@ function seo_server_status_render_mysql_query_profile($profile) {
     }
 
     if (!empty($profile['error_count'])) {
-        echo '<div class="seo-status-note"><strong>Lectura parcial:</strong> alguna consulta diagnóstica no pudo completarse con los permisos disponibles. El resto de métricas sigue siendo válido.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Lectura parcial:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'alguna consulta diagnóstica no pudo completarse con los permisos disponibles. El resto de métricas sigue siendo válido.', 'taxocommerce-system-check' ) . '</div>';
     }
     echo '</div>';
 }
@@ -2638,8 +2638,8 @@ function seo_server_status_render_mysql_query_profile($profile) {
 function seo_server_status_render_mysql_tab() {
     global $wpdb;
 
-    echo '<h2>MySQL / MariaDB</h2>';
-    echo '<p>Configuracion, estadisticas, recursos observables y rendimiento de consultas de la base de datos actual.</p>';
+    echo '<h2>' . esc_html__( 'MySQL / MariaDB', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Configuracion, estadisticas, recursos observables y rendimiento de consultas de la base de datos actual.', 'taxocommerce-system-check' ) . '</p>';
 
     $resource_metrics = seo_server_status_runtime_resource_metrics();
     $query_profile = seo_server_status_mysql_query_benchmark();
@@ -2650,7 +2650,7 @@ function seo_server_status_render_mysql_tab() {
     $mysql_version = seo_server_status_get_mysql_version();
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Configuracion MySQL / MariaDB</h2>';
+    echo '<h2>' . esc_html__( 'Configuracion MySQL / MariaDB', 'taxocommerce-system-check' ) . '</h2>';
     seo_server_status_open_table();
     seo_server_status_row('Version', $mysql_version ? esc_html($mysql_version) : 'No disponible', $mysql_version ? 'ok' : 'error', 'Version devuelta por SELECT VERSION(). Si no puede consultarse, se considera un error real de conexion/consulta.');
 
@@ -2715,8 +2715,8 @@ function seo_server_status_render_mysql_tab() {
     $myisam_tables = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND ENGINE = 'MyISAM'", $db_name));
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Estadisticas de MySQL / MariaDB</h2>';
-    echo '<p>Datos agregados de la base de datos usada por WordPress. No se muestra el contenido de las filas.</p>';
+    echo '<h2>' . esc_html__( 'Estadisticas de MySQL / MariaDB', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Datos agregados de la base de datos usada por WordPress. No se muestra el contenido de las filas.', 'taxocommerce-system-check' ) . '</p>';
     seo_server_status_open_table();
     seo_server_status_row('Tamano base de datos', seo_server_status_format_bytes($db_size), 'info', 'Suma aproximada de datos e indices de la base actual.');
     seo_server_status_row('Datos', seo_server_status_format_bytes($data_size), 'info', 'Espacio aproximado ocupado por los datos de las tablas.');
@@ -2744,16 +2744,16 @@ function seo_server_status_render_largest_tables_section() {
     $tables = seo_server_status_get_largest_tables(15);
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Tablas más grandes</h2>';
-    echo '<p>Ayuda a detectar crecimiento anormal en options, postmeta, actionscheduler o tablas de plugins.</p>';
+    echo '<h2>' . esc_html__( 'Tablas más grandes', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Ayuda a detectar crecimiento anormal en options, postmeta, actionscheduler o tablas de plugins.', 'taxocommerce-system-check' ) . '</p>';
 
     if (empty($tables)) {
-        echo '<p>No se pudieron leer las tablas grandes.</p>';
+        echo '<p>' . esc_html__( 'No se pudieron leer las tablas grandes.', 'taxocommerce-system-check' ) . '</p>';
         echo '</div>';
         return;
     }
 
-    echo '<table class="seo-status-table"><thead><tr><th>Tabla</th><th>Filas aprox.</th><th>Datos</th><th>Índices</th><th>Total</th><th>Motor</th></tr></thead><tbody>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Filas aprox.', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Datos', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Índices', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Total', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Motor', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($tables as $table) {
         $total = (float) $table->data_length + (float) $table->index_length;
         echo '<tr>';
@@ -2775,7 +2775,7 @@ function seo_server_status_render_largest_tables_section() {
 function seo_server_status_render_wordpress_tab() {
     global $wpdb;
 
-    echo '<h2>WordPress</h2><p>Información general de WordPress, constantes relevantes, cron y residuos core.</p>';
+    echo '<h2>' . esc_html__( 'WordPress', 'taxocommerce-system-check' ) . '</h2>' . '<p>' . esc_html__( 'Información general de WordPress, constantes relevantes, cron y residuos core.', 'taxocommerce-system-check' ) . '</p>';
     seo_server_status_open_table();
     seo_server_status_row('Versión WordPress', esc_html(get_bloginfo('version')), 'ok', 'Versión instalada.');
     seo_server_status_row('URL del sitio', esc_html(home_url()), 'info', 'URL pública configurada.');
@@ -2819,8 +2819,8 @@ function seo_server_status_render_options_autoload_section() {
     $top = seo_server_status_get_top_autoload_options(20);
 
     echo '<div class="seo-status-card">';
-    echo '<h2>wp_options y autoload</h2>';
-    echo '<p>El autoload excesivo suele afectar a todas las cargas de WordPress porque esas opciones se cargan al inicio.</p>';
+    echo '<h2>' . esc_html__( 'wp_options y autoload', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'El autoload excesivo suele afectar a todas las cargas de WordPress porque esas opciones se cargan al inicio.', 'taxocommerce-system-check' ) . '</p>';
 
     seo_server_status_open_table();
     seo_server_status_row('Opciones totales', esc_html(number_format_i18n($stats['total'])), 'info', 'Número de filas en wp_options.');
@@ -2830,8 +2830,8 @@ function seo_server_status_render_options_autoload_section() {
     seo_server_status_close_table();
 
     if (!empty($top)) {
-        echo '<h3>Top opciones autoload más pesadas</h3>';
-        echo '<table class="seo-status-table"><thead><tr><th>Opción</th><th>Tamaño</th><th>Estado</th></tr></thead><tbody>';
+        echo '<h3>' . esc_html__( 'Top opciones autoload más pesadas', 'taxocommerce-system-check' ) . '</h3>';
+        echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Opción', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($top as $row) {
             $size = (float) $row->option_size;
             echo '<tr><td><code>' . esc_html($row->option_name) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($size)) . '</td><td>' . wp_kses_post(seo_server_status_badge($size > 1048576 ? 'warning' : 'info')) . '</td></tr>';
@@ -2846,7 +2846,7 @@ function seo_server_status_render_options_autoload_section() {
  * Renderiza la pestaña Servidor.
  */
 function seo_server_status_render_server_tab() {
-    echo '<h2>Servidor</h2><p>Información básica del entorno de alojamiento, carga y uso de directorios clave.</p>';
+    echo '<h2>' . esc_html__( 'Servidor', 'taxocommerce-system-check' ) . '</h2>' . '<p>' . esc_html__( 'Información básica del entorno de alojamiento, carga y uso de directorios clave.', 'taxocommerce-system-check' ) . '</p>';
     seo_server_status_open_table();
 
     $server_software = isset($_SERVER['SERVER_SOFTWARE']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE'])) : 'No disponible';
@@ -2925,9 +2925,9 @@ function seo_server_status_render_directory_sizes_section() {
     );
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Uso de espacio por directorios</h2>';
-    echo '<p>Lectura aproximada con límite de archivos para no bloquear hostings compartidos.</p>';
-    echo '<table class="seo-status-table"><thead><tr><th>Directorio</th><th>Tamaño</th><th>Archivos revisados</th><th>Estado</th></tr></thead><tbody>';
+    echo '<h2>' . esc_html__( 'Uso de espacio por directorios', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Lectura aproximada con límite de archivos para no bloquear hostings compartidos.', 'taxocommerce-system-check' ) . '</p>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Directorio', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Archivos revisados', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($paths as $label => $path) {
         $data = seo_server_status_dir_size($path);
@@ -2957,16 +2957,16 @@ function seo_server_status_render_large_files_section() {
     $files = seo_server_status_find_large_files($paths, 10485760, 35);
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Archivos grandes detectados</h2>';
-    echo '<p>Busca logs, backups y paquetes grandes dentro de rutas de WordPress. No elimina nada.</p>';
+    echo '<h2>' . esc_html__( 'Archivos grandes detectados', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Busca logs, backups y paquetes grandes dentro de rutas de WordPress. No elimina nada.', 'taxocommerce-system-check' ) . '</p>';
 
     if (empty($files)) {
-        echo '<p>No se han detectado logs, SQL, ZIP, GZ o backups mayores de 10 MB en las rutas revisadas.</p>';
+        echo '<p>' . esc_html__( 'No se han detectado logs, SQL, ZIP, GZ o backups mayores de 10 MB en las rutas revisadas.', 'taxocommerce-system-check' ) . '</p>';
         echo '</div>';
         return;
     }
 
-    echo '<table class="seo-status-table"><thead><tr><th>Archivo</th><th>Tamaño</th><th>Modificado</th><th>Estado</th></tr></thead><tbody>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Archivo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Modificado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($files as $file) {
         $status = $file['size'] > 104857600 ? 'warning' : 'info';
         echo '<tr><td><code>' . esc_html($file['path']) . '</code></td><td>' . esc_html(seo_server_status_format_bytes($file['size'])) . '</td><td>' . esc_html(date_i18n('Y-m-d H:i', $file['modified'])) . '</td><td>' . wp_kses_post(seo_server_status_badge($status)) . '</td></tr>';
@@ -2981,7 +2981,7 @@ function seo_server_status_render_large_files_section() {
 function seo_server_status_render_woocommerce_tab() {
     global $wpdb;
 
-    echo '<h2>WooCommerce</h2><p>Chequeos básicos del catálogo, calidad de producto y colas internas.</p>';
+    echo '<h2>' . esc_html__( 'WooCommerce', 'taxocommerce-system-check' ) . '</h2>' . '<p>' . esc_html__( 'Chequeos básicos del catálogo, calidad de producto y colas internas.', 'taxocommerce-system-check' ) . '</p>';
     seo_server_status_open_table();
 
     $wc_active = class_exists('WooCommerce');
@@ -3188,16 +3188,16 @@ function seo_server_status_render_action_scheduler_detail_section() {
     );
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Detalle Action Scheduler</h2>';
-    echo '<p>Muestra los hooks con más acciones pendientes o fallidas para identificar colas atascadas.</p>';
+    echo '<h2>' . esc_html__( 'Detalle Action Scheduler', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Muestra los hooks con más acciones pendientes o fallidas para identificar colas atascadas.', 'taxocommerce-system-check' ) . '</p>';
 
     if (empty($rows)) {
-        echo '<p>No hay acciones pendientes o fallidas relevantes.</p>';
+        echo '<p>' . esc_html__( 'No hay acciones pendientes o fallidas relevantes.', 'taxocommerce-system-check' ) . '</p>';
         echo '</div>';
         return;
     }
 
-    echo '<table class="seo-status-table"><thead><tr><th>Hook</th><th>Estado</th><th>Total</th><th>Más antigua</th><th>Diagnóstico</th></tr></thead><tbody>';
+    echo '<table class="seo-status-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Hook', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Total', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Más antigua', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($rows as $row) {
         $status = $row->status === 'failed' ? 'warning' : (((int) $row->total > 1000) ? 'warning' : 'info');
         echo '<tr><td><code>' . esc_html($row->hook) . '</code></td><td>' . esc_html($row->status) . '</td><td>' . esc_html(number_format_i18n((int) $row->total)) . '</td><td>' . esc_html($row->oldest_date) . '</td><td>' . wp_kses_post(seo_server_status_badge($status)) . '</td></tr>';
@@ -3210,8 +3210,8 @@ function seo_server_status_render_action_scheduler_detail_section() {
  * Renderiza la pestaña Rendimiento.
  */
 function seo_server_status_render_performance_tab() {
-    echo '<h2>Rendimiento</h2>';
-    echo '<p>Lectura agrupada de los indicadores que suelen explicar lentitud en WordPress y WooCommerce.</p>';
+    echo '<h2>' . esc_html__( 'Rendimiento', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Lectura agrupada de los indicadores que suelen explicar lentitud en WordPress y WooCommerce.', 'taxocommerce-system-check' ) . '</p>';
 
     seo_server_status_render_options_autoload_section();
     seo_server_status_render_largest_tables_section();
@@ -3223,7 +3223,7 @@ function seo_server_status_render_performance_tab() {
  */
 function seo_server_status_render_logs_tab() {
 
-    echo '<h2>Logs</h2>';
+    echo '<h2>' . esc_html__( 'Logs', 'taxocommerce-system-check' ) . '</h2>';
     echo '<p>Cuando el hosting lo permite, TaxoCommerce SEO puede mostrar el <code>error_log</code> de PHP. El archivo no necesita ser publico por HTTP para poder leerse desde WordPress.</p>';
 
     $php_log = seo_server_status_get_php_error_log_info();
@@ -3231,8 +3231,8 @@ function seo_server_status_render_logs_tab() {
     $show_php_log = isset($_GET['seo_show_php_log']) && is_string($_GET['seo_show_php_log']) && sanitize_key(wp_unslash($_GET['seo_show_php_log'])) === '1';
 
     echo '<div class="seo-status-card">';
-    echo '<h2>Log PHP / sistema</h2>';
-    echo '<p class="seo-muted">Este es el destino configurado por PHP para errores del servidor. TaxoCommerce SEO no lo configura ni lo modifica automaticamente: cada hosting puede usar una ruta, permisos o incluso syslog distintos. Si el archivo es legible por el mismo proceso PHP que ejecuta WordPress, puede mostrarse aqui aunque este fuera del directorio publico.</p>';
+    echo '<h2>' . esc_html__( 'Log PHP / sistema', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p class="seo-muted">' . esc_html__( 'Este es el destino configurado por PHP para errores del servidor. TaxoCommerce SEO no lo configura ni lo modifica automaticamente: cada hosting puede usar una ruta, permisos o incluso syslog distintos. Si el archivo es legible por el mismo proceso PHP que ejecuta WordPress, puede mostrarse aqui aunque este fuera del directorio publico.', 'taxocommerce-system-check' ) . '</p>';
 
     seo_server_status_open_table();
 
@@ -3283,7 +3283,7 @@ function seo_server_status_render_logs_tab() {
     seo_server_status_close_table();
 
     echo '<details class="seo-status-note" style="margin-top:14px;">';
-    echo '<summary style="cursor:pointer;font-weight:600;">Como activar o cambiar el log PHP / sistema</summary>';
+    echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Como activar o cambiar el log PHP / sistema', 'taxocommerce-system-check' ) . '</summary>';
     echo '<p>Es opcional y no requiere <code>WP_DEBUG=true</code>. Para capturar errores fatales en produccion basta con mantener <code>log_errors</code> activo y apuntar <code>error_log</code> a una ruta privada y escribible fuera del document root.</p>';
     echo '<pre class="seo-log-box" style="max-height:none;">' . esc_html("@ini_set('log_errors', '1');\n@ini_set('error_log', '/RUTA/PRIVADA/FUERA/DEL/DOCUMENT_ROOT/wp-private-error.log');") . '</pre>';
     echo '<p class="seo-muted">Estas lineas deben ir en <code>wp-config.php</code> antes de cargar <code>wp-settings.php</code>. La ruta exacta depende del hosting; TaxoCommerce SEO no debe inventarla ni forzarla durante la instalacion.</p>';
@@ -3291,21 +3291,21 @@ function seo_server_status_render_logs_tab() {
 
     if (!$php_log['log_errors'] || !$php_log['configured']) {
         echo '<div class="seo-status-note">';
-        echo '<strong>El log PHP es opcional, pero recomendable para diagnosticar errores fatales.</strong> ';
+        echo '<strong>' . esc_html__( 'El log PHP es opcional, pero recomendable para diagnosticar errores fatales.', 'taxocommerce-system-check' ) . '</strong>' . ' ';
         echo 'No requiere activar <code>WP_DEBUG</code>. Si el cliente quiere usarlo, debe configurarlo en <code>wp-config.php</code> antes de cargar <code>wp-settings.php</code>, usando una ruta privada y escribible fuera del document root.';
         echo '<pre class="seo-log-box" style="max-height:none;margin-top:10px;">' . esc_html("@ini_set('log_errors', '1');\n@ini_set('error_log', '/RUTA/PRIVADA/FUERA/DEL/DOCUMENT_ROOT/wp-private-error.log');") . '</pre>';
-        echo '<p class="seo-muted">La ruta exacta depende del hosting. TaxoCommerce SEO no la inventa ni la fuerza durante la instalacion.</p>';
+        echo '<p class="seo-muted">' . esc_html__( 'La ruta exacta depende del hosting. TaxoCommerce SEO no la inventa ni la fuerza durante la instalacion.', 'taxocommerce-system-check' ) . '</p>';
         echo '</div>';
     } elseif ($php_log['type'] === 'file' && $php_log['private_known'] && !$php_log['private']) {
-        echo '<div class="notice notice-warning"><p><strong>Recomendacion:</strong> el error_log de PHP esta dentro del directorio publico. Muevelo a una ruta privada del hosting y vuelve a ejecutar Seguridad.</p></div>';
+        echo '<div class="notice notice-warning">' . '<p>' . '<strong>' . esc_html__( 'Recomendacion:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'el error_log de PHP esta dentro del directorio publico. Muevelo a una ruta privada del hosting y vuelve a ejecutar Seguridad.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['private_known']) {
-        echo '<div class="seo-status-note"><strong>Privacidad de la ruta no concluyente:</strong> TaxoCommerce SEO no puede determinar si el destino queda dentro o fuera del document root. El cliente debe confirmarlo en el panel del hosting.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Privacidad de la ruta no concluyente:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'TaxoCommerce SEO no puede determinar si el destino queda dentro o fuera del document root. El cliente debe confirmarlo en el panel del hosting.', 'taxocommerce-system-check' ) . '</div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['exists']) {
-        echo '<div class="seo-status-note"><strong>Log PHP configurado pero aun sin archivo:</strong> esto puede ser normal si no se ha producido ningun error desde que se cambio la ruta. PHP suele crear el archivo al escribir la primera entrada.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Log PHP configurado pero aun sin archivo:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'esto puede ser normal si no se ha producido ningun error desde que se cambio la ruta. PHP suele crear el archivo al escribir la primera entrada.', 'taxocommerce-system-check' ) . '</div>';
     } elseif ($php_log['type'] === 'file' && !$php_log['readable']) {
-        echo '<div class="seo-status-note"><strong>Log PHP activo pero no legible desde WordPress:</strong> TaxoCommerce SEO no intentara cambiar permisos. El cliente debe consultarlo desde el panel del hosting o pedir acceso al proveedor.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Log PHP activo pero no legible desde WordPress:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'TaxoCommerce SEO no intentara cambiar permisos. El cliente debe consultarlo desde el panel del hosting o pedir acceso al proveedor.', 'taxocommerce-system-check' ) . '</div>';
     } elseif ($php_log['type'] === 'syslog' || $php_log['type'] === 'stream') {
-        echo '<div class="seo-status-note"><strong>Destino gestionado por el sistema:</strong> PHP no esta escribiendo en un archivo local convencional accesible desde WordPress. TaxoCommerce SEO lo deja en modo informativo.</div>';
+        echo '<div class="seo-status-note">' . '<strong>' . esc_html__( 'Destino gestionado por el sistema:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'PHP no esta escribiendo en un archivo local convencional accesible desde WordPress. TaxoCommerce SEO lo deja en modo informativo.', 'taxocommerce-system-check' ) . '</div>';
     }
 
     if ($php_log['type'] === 'file' && $php_log['exists'] && $php_log['readable']) {
@@ -3314,11 +3314,11 @@ function seo_server_status_render_logs_tab() {
             : add_query_arg('seo_show_php_log', '1');
 
         echo '<p><a class="button button-secondary" href="' . esc_url($toggle_url) . '">' . esc_html($show_php_log ? 'Ocultar log PHP / sistema' : 'Mostrar ultimas 120 lineas del log PHP / sistema') . '</a></p>';
-        echo '<p class="seo-muted">La lectura es voluntaria y solo para administradores. Antes de mostrarlo se enmascaran patrones comunes de contrasenas, tokens, claves API y cabeceras Authorization.</p>';
+        echo '<p class="seo-muted">' . esc_html__( 'La lectura es voluntaria y solo para administradores. Antes de mostrarlo se enmascaran patrones comunes de contrasenas, tokens, claves API y cabeceras Authorization.', 'taxocommerce-system-check' ) . '</p>';
 
         if ($show_php_log) {
             $php_tail = seo_server_status_tail_file($php_log['path'], 120);
-            echo '<h3>Ultimas 120 lineas del log PHP / sistema</h3>';
+            echo '<h3>' . esc_html__( 'Ultimas 120 lineas del log PHP / sistema', 'taxocommerce-system-check' ) . '</h3>';
             echo '<div class="seo-log-box">' . esc_html(seo_server_status_redact_log_text($php_tail)) . '</div>';
         }
     }

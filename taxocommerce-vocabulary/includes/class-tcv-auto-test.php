@@ -232,12 +232,12 @@ final class TCV_Auto_Test {
         $history = get_transient( self::PREFIX . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
-        echo '<div class="tcv-panel"><h2>Auto Test de Vocabulary</h2><p>Comprobación de solo lectura de servicios, rutas, tablas, columnas, consultas limitadas y disponibilidad de exportación. No corrige datos ni ejecuta procesos. Se conservan los dos últimos informes por usuario durante 30 días.</p>';
+        echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Auto Test de Vocabulary', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Comprobación de solo lectura de servicios, rutas, tablas, columnas, consultas limitadas y disponibilidad de exportación. No corrige datos ni ejecuta procesos. Se conservan los dos últimos informes por usuario durante 30 días.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcv_auto_nonce' );
         submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
         echo '</form>';
-        if ( ! $current ) { echo '<p>No hay un informe previo. Ejecuta Auto Test.</p></div>'; return; }
+        if ( ! $current ) { echo '<p>' . esc_html__( 'No hay un informe previo. Ejecuta Auto Test.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>'; return; }
         $totals = $current['totals'];
         echo '<h3>Resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
@@ -252,14 +252,14 @@ final class TCV_Auto_Test {
             echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.';
             echo '</p>';
         } else {
-            echo '<p>No hay una ejecución anterior con la que comparar.</p>';
+            echo '<p>' . esc_html__( 'No hay una ejecución anterior con la que comparar.', 'taxocommerce-vocabulary' ) . '</p>';
         }
-        echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Grupo</th><th>Prueba</th><th>Estado</th><th>Diagnóstico</th><th>Tiempo</th></tr></thead><tbody>';
+        echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         $labels = array( 'pass'=>'Correcto', 'fail'=>'Error', 'skip'=>'No ejecutado' );
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $labels[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody></table></div><p class="description">Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad del catálogo ni prueba importaciones/restauraciones reales.</p></div>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad del catálogo ni prueba importaciones/restauraciones reales.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
     }
 }
 TCV_Auto_Test::boot();

@@ -1,0 +1,3936 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-google-bing\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: taxocommerce-google-bing.php taxocommerce-google-bing.php:101
+#: taxocommerce-google-bing.php:111 taxocommerce-google-bing.php:138
+msgid "TaxoCommerce Insights"
+msgstr ""
+
+#. Description of the plugin
+#: taxocommerce-google-bing.php
+msgid ""
+"External connections, provider data downloads, and the restored legacy "
+"Analysis dashboard."
+msgstr ""
+
+#. Author of the plugin
+#: taxocommerce-google-bing.php
+msgid "David Perez"
+msgstr ""
+
+#: includes/analysis/analista-bing.php:379
+#: includes/class-taxocommerce-google-bing-bing-service.php:379
+msgid "Bing Webmaster"
+msgstr ""
+
+#: includes/analysis/analista-bing.php:379
+#: includes/class-taxocommerce-google-bing-bing-service.php:379
+msgid "· conexion complementaria"
+msgstr ""
+
+#: includes/analysis/analista-bing.php:386
+#: includes/class-taxocommerce-google-bing-bing-service.php:386
+#: includes/class-taxocommerce-google-bing-connections.php:287
+msgid "Eliminar la API key guardada"
+msgstr ""
+
+#: includes/analysis/analista-bing.php:387
+#: includes/class-taxocommerce-google-bing-bing-service.php:387
+msgid ""
+"La clave se esta leyendo desde SEO_BING_WEBMASTER_API_KEY y no se guarda en "
+"Analista."
+msgstr ""
+
+#: includes/analysis/analista-bing.php:388
+#: includes/class-taxocommerce-google-bing-bing-service.php:388
+msgid ""
+"IndexNow no se duplica: Cloudflare sigue siendo el responsable de los "
+"envios. Bing se usa aqui solo para lectura y comparacion."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:849
+msgid "No tienes permisos para generar el informe competitivo."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:881
+msgid "No tienes permisos para exportar el informe competitivo."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:887
+msgid "Todavía no existe un informe competitivo guardado."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:926
+msgid "Informe competitivo generado y guardado."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:937
+msgid "Informe competitivo profundo"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:938
+msgid ""
+"Compara dominios con una base homogénea de evidencia pública y añade, sólo "
+"para nuestra web, Search Console, GA4 y Bing. La generación es explícita: "
+"abrir esta pantalla no consume SerpApi/ScraperAPI ni rastrea competidores."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:962
+msgid ""
+"Coste: hasta 12 búsquedas SERP y un muestreo público acotado por dominio. "
+"SerpApi se usa primero y ScraperAPI como fallback, según la conexión "
+"compartida ya configurada."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:965
+msgid "Configura primero los dominios en"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:965
+#: includes/analysis/analista-informe.php:479
+msgid "Competidores"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:965
+msgid ". Las palabras vigiladas son opcionales."
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:971
+msgid "Conclusión ejecutiva"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:984
+#: includes/analysis/analista-informe.php:446
+msgid "Dominio"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:986
+msgid "Índice"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:986
+msgid "Evidencia"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1000
+msgid "Dónde estamos por encima"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1009
+msgid "Dónde estamos por debajo"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1017
+msgid "Plan priorizado"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1018
+#: includes/analysis/analista-informe.php:454
+#: includes/analysis/analista-lazy.php:226
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Prioridad"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1018
+#: includes/google/seo-google-info.php:4285
+msgid "Área"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1018
+msgid "Acción"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1018
+msgid "Impacto"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1018
+msgid "Esfuerzo"
+msgstr ""
+
+#: includes/analysis/analista-competitivo.php:1024
+msgid "Calidad y límites de la evidencia"
+msgstr ""
+
+#: includes/analysis/analista-core.php:220
+msgid "No tienes permisos para configurar Analista."
+msgstr ""
+
+#: includes/analysis/analista-geo-bridge.php:36
+msgid "Plan de acción"
+msgstr ""
+
+#: includes/analysis/analista-geo-bridge.php:36
+msgid ""
+"Cola validada: hacer ahora, hacer después e investigar cuando falta "
+"evidencia."
+msgstr ""
+
+#: includes/analysis/analista-geo.php:419
+msgid "Plan estratégico integrado: ventas, SEO y visibilidad en IA"
+msgstr ""
+
+#: includes/analysis/analista-geo.php:420
+msgid ""
+"Una única selección de actuaciones basada en Analytics, Analista, Auditor, "
+"Merchant y evidencias de datos estructurados, cuando estén disponibles. Se "
+"distingue lo ejecutable de lo que requiere investigación."
+msgstr ""
+
+#: includes/analysis/analista-geo.php:422
+msgid ""
+"No hay recomendaciones con evidencia suficiente en las fuentes disponibles. "
+"El plan de acción completo conserva las tareas para investigar o vigilar, "
+"sin fabricar intervenciones."
+msgstr ""
+
+#: includes/analysis/analista-geo.php:443
+msgid "Sesiones atribuidas a asistentes IA:"
+msgstr ""
+
+#: includes/analysis/analista-geo.php:443
+msgid "N/D (GA4 no disponible)."
+msgstr ""
+
+#: includes/analysis/analista-geo.php:445
+msgid ""
+"Las buenas prácticas SEO/GEO no implican una integración con GPTCore ni "
+"garantizan apariciones en ChatGPT, Gemini o Claude. Las referencias a "
+"autoridad, backlinks o menciones reales se omiten si no hay mediciones "
+"verificables. No se ejecutan acciones automáticamente."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:142
+msgid "Cómo avanzan nuestras posiciones"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:142
+msgid ""
+"No importa solo el Top 10: aquí vemos si las consultas están subiendo desde "
+"las posiciones bajas hacia los primeros resultados."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:143
+msgid "Actual"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:143
+msgid "Periodo anterior"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:159
+msgid "Movimiento de keywords"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:159
+msgid ""
+"Comparación consulta a consulta contra el periodo anterior. Una mejora de al"
+" menos una posición cuenta como subida."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+msgid "Cómo se posiciona el catálogo"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+msgid ""
+"Qué parte de la visibilidad está llegando a categorías, productos, landings "
+"y contenidos."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+msgid "Tipo de URL"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+#: includes/google/seo-google-info.php:4285
+#: includes/google/seo-google-info.php:4293
+msgid "Páginas"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+#: includes/analysis/analista-lazy.php:187
+#: includes/analysis/analista-lazy.php:226
+msgid "Impresiones"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+#: includes/analysis/analista-lazy.php:187
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-info.php:3026
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:3399
+#: includes/google/seo-google-info.php:4126
+#: includes/google/seo-google-info.php:4285
+#: includes/google/seo-google-info.php:4550
+msgid "Clics"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:174
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-info.php:3399
+#: includes/google/seo-google-info.php:4126
+msgid "Consultas"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:235
+msgid "Lectura rápida"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:235
+msgid "Lo importante del periodo sin recorrer todos los informes."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:303
+msgid "Tráfico y conversión"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:303
+msgid ""
+"Analytics complementa Search Console: separa adquisición, mercado objetivo y"
+" pasos del embudo. Los eventos no representan necesariamente usuarios "
+"únicos."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:318
+msgid "Fuente / medio"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:318
+msgid "Canal"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:318
+msgid "Sesiones"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:318
+#: includes/analysis/analista-informe.php:327
+msgid "Usuarios"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:326
+msgid "Rutas 404 vistas en Analytics"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:327
+msgid "Ruta"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:327
+msgid "Vistas"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:341
+#: includes/google/seo-google-info.php:2644
+msgid "Evolución en Google"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:341
+msgid ""
+"Serie histórica para ver si el sitio está avanzando antes de que ese "
+"progreso se convierta en clics."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:353
+msgid "Arquitectura que Analista tiene en cuenta"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:353
+msgid ""
+"La lectura no se limita a keywords: conoce la estructura cluster → hub "
+"primario → hub secundario → categoría y el catálogo publicado."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:393
+#: includes/analysis/analista-informe.php:397
+#: includes/analysis/analista-informe.php:481
+msgid "Palabras clave vigiladas"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:393
+msgid ""
+"Añade las palabras que quieres seguir para ver nuestra posición, evolución y"
+" distancia respecto a los competidores."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:393
+msgid "Todavía no has definido palabras clave de seguimiento."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:397
+msgid ""
+"Seguimiento directo de las palabras que hemos decidido controlar. La "
+"proyección solo aparece cuando existe ritmo propio suficiente y no asume que"
+" el competidor permanezca inmóvil."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+#: includes/analysis/analista-informe.php:454
+msgid "Palabra clave"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+#: includes/analysis/analista-informe.php:454
+msgid "Nosotros"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+#: includes/google/seo-google-info.php:3578
+msgid "Antes"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+msgid "Movimiento"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+#: includes/analysis/analista-informe.php:454
+msgid "Mejor competidor"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+msgid "Distancia"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+#: includes/analysis/analista-lazy.php:226
+msgid "Lectura"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:398
+msgid "Proyección"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:427
+msgid "La comparación externa todavía no tiene posiciones disponibles."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:427
+msgid ""
+"Search Console solo informa de nuestro sitio. Analista seguirá nuestra "
+"evolución y las palabras clave vigiladas; cuando el adaptador automático de "
+"rankings disponga de datos, completará la comparación con los competidores."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Nosotros frente a competidores"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid ""
+"Cuántas palabras controla cada dominio y en qué tramos de posicionamiento."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Visibilidad"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Keywords"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Top 3"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Top 10"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Top 20"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+msgid "Top 50"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:446
+#: includes/class-taxocommerce-google-bing-merchant.php:355
+msgid "Evolución"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:454
+msgid "Palabras clave que debemos disputar"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:454
+msgid ""
+"Brechas con más valor. Si ya aparecemos, muestra cuánto nos separa del mejor"
+" competidor."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:454
+msgid "Volumen"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:454
+msgid "Dificultad"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:454
+msgid "Brecha"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:463
+msgid "Demanda exterior · Google Trends"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:463
+msgid ""
+"Qué interesa fuera de nuestra web para no limitar las decisiones a lo que ya"
+" estamos posicionando."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:465
+msgid "Tema"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:465
+msgid "Score"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:465
+#: includes/google/seo-google-opportunity-engine.php:1642
+msgid "Crecimiento"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:465
+#: includes/analysis/analista-lazy.php:226
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-trends.php:2676
+msgid "Tipo"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:471
+msgid ""
+"No hay señales de Trends suficientemente relevantes almacenadas en este "
+"momento."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:476
+msgid "Configurar comparación"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:476
+msgid ""
+"Define a quién queremos superar y qué palabras queremos vigilar. Analista "
+"usará estos objetivos en cuanto la fuente automática de rankings disponga de"
+" posiciones externas."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:479
+msgid "Un dominio por línea."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:481
+msgid ""
+"Una palabra o intención por línea. Analista seguirá nuestra posición y, "
+"cuando haya posiciones externas automáticas, la distancia con los "
+"competidores."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:484
+msgid "Umbrales de evidencia · Analista 3.8.1"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:485
+msgid ""
+"Son parámetros internos configurables, no reglas SEO universales. Se usan "
+"para decidir cuándo una muestra es demasiado pequeña y cuándo un match puede"
+" ejecutarse."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:528
+msgid "Validación antes de ejecutar"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:559
+msgid "Comprobaciones para desbloquear"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:574
+msgid "Dependencias antes de ejecutar"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:580
+msgid "Qué revisar"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:595
+msgid "Indicador de seguimiento"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:616
+msgid ""
+"No hay directrices suficientes para este bloque con los datos actuales."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:754
+msgid "Google Trends no está entregando señales almacenadas."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:754
+msgid ""
+"Analista muestra aparte la aceleración de Search Console para no confundirla"
+" con demanda exterior."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+msgid "Señales de clientes que no debemos perder"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+msgid ""
+"Búsquedas internas con pocos resultados, útiles para validar el guion de "
+"catálogo."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+#: includes/google/seo-google-opportunity-engine.php:1642
+msgid "Búsqueda"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+msgid "Veces"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+msgid "Resultados medios"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:816
+msgid "Sin resultado"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:828
+msgid "Fuentes y calidad de datos"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:828
+msgid "· una fuente pendiente pesa 0 en la prioridad"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:852
+msgid "Analista"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:852
+msgid ""
+"La página ya no calcula todos los informes al abrirse. Ejecuta únicamente el"
+" bloque que necesites."
+msgstr ""
+
+#: includes/analysis/analista-informe.php:853
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:289
+#: includes/google/seo-google-demand-catalog.php:1562
+#: includes/google/seo-google-trends.php:2678 taxocommerce-google-bing.php:260
+msgid "Periodo"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:855 taxocommerce-google-bing.php:266
+msgid "Cambiar periodo"
+msgstr ""
+
+#: includes/analysis/analista-informe.php:862
+msgid "No se ha cargado el motor de informes parciales de Analista."
+msgstr ""
+
+#: includes/analysis/analista-json.php:255
+msgid "No tienes permisos para exportar Analista."
+msgstr ""
+
+#: includes/analysis/analista-json.php:266
+msgid "No se ha podido generar el JSON de Analista."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:74
+msgid ""
+"Al abrir esta página no se ejecuta ningún informe pesado. Elige un bloque y "
+"Analista calculará únicamente ese informe."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:88 taxocommerce-google-bing.php:288
+msgid "Ningún informe cargado."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:88 taxocommerce-google-bing.php:288
+msgid "Pulsa uno de los botones anteriores para ejecutar solo ese análisis."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:124
+msgid "Qué hacer para vender más"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:124
+msgid ""
+"Directrices basadas en datos disponibles. No confundir visibilidad con "
+"compradores ni compras externas de afiliación con WooCommerce."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:126
+msgid ""
+"Analytics no está disponible. Comprueba la conexión antes de interpretar "
+"ventas o conversión."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:137
+msgid "Comprobar medición."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:137
+msgid "No hay sesiones suficientes para diagnosticar ventas."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:139
+msgid "Revisar el checkout."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:139
+msgid ""
+"Hay más inicios de compra que compras registradas. Realiza una compra de "
+"prueba y comprueba transporte, pagos y eventos GA4; no se puede atribuir el "
+"abandono sin datos por usuario."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:140
+msgid "Revisar carrito y gastos de envío."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:140
+msgid ""
+"Los eventos de carrito superan los inicios de compra. Verifica los costes "
+"finales y los enlaces al checkout."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:141
+msgid "Comprobar intención de compra y precios."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:141
+msgid ""
+"Hay visitas pero ninguna compra registrada. Contrasta productos visitados "
+"con stock, precios y competencia antes de modificar el catálogo."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:142
+msgid "Separar ventas y afiliación."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:142
+msgid ""
+"Analiza España y mercados internacionales por separado. Los clics hacia "
+"proveedores y las comisiones confirmadas requieren su propia medición: no "
+"están representados por las compras WooCommerce."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:143
+msgid "Priorizar oportunidades reales."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:143
+msgid ""
+"Revisa en Plan de acción las tareas con destino validado; no publiques "
+"contenido nuevo solo por aumentar impresiones."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:146
+msgid "Verificar eventos de Analytics."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:146
+msgid ""
+"Se registra información de pago pero no de envío; puede ser una "
+"configuración legítima o una medición incompleta."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:148
+msgid ""
+"Los recuentos del embudo son eventos agregados, no necesariamente los mismos"
+" usuarios. Las directrices son verificaciones, no causas de pérdida "
+"demostradas."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:161
+msgid "Search Console no tiene datos utilizables para este periodo."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:186
+msgid "Consultas principales"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:186
+msgid ""
+"Vista parcial de Search Console. No ejecuta Contenido, Catálogo, Trends ni "
+"Competencia."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:187
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:4550
+msgid "Consulta"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:187
+#: includes/analysis/analista-lazy.php:226
+msgid "Posición"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:187
+msgid "Intento"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:221
+msgid "No hay directrices de catálogo disponibles para este periodo."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:225
+msgid "Catálogo y demanda"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:225
+msgid ""
+"Familias, categorías o huecos de surtido detectados. Este bloque no ejecuta "
+"los informes de contenido, estructura ni competencia."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:226
+msgid "Oportunidad"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:226
+msgid "Decisión"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:226
+#: includes/google/seo-google-demand-catalog.php:1669
+msgid "Productos"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:267
+msgid "No hay datos de proveedores disponibles."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:271
+msgid "Estado de proveedores"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:271
+msgid "Este informe consulta únicamente la fuente local de proveedores."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Proveedor"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Total"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Vinculados"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Pendientes"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Errores"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Última importación"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:272
+msgid "Última sincronización"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:307
+msgid "Frescura operativa · Action Scheduler"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:307
+msgid ""
+"Se revisa por separado porque una cola vencida puede dejar fuentes "
+"desactualizadas sin que el dato parezca erróneo."
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:318
+msgid "Prueba"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:318
+#: includes/google/seo-google-info.php:2500
+#: includes/google/seo-google-info.php:4126
+msgid "Estado"
+msgstr ""
+
+#: includes/analysis/analista-lazy.php:318
+msgid "Regla"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:38
+#: includes/class-taxocommerce-connections-google-bing.php:260
+msgid "You do not have permission to manage connections."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:60
+msgid "Amazon Creators API responded successfully."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:85
+msgid "Pinterest responded successfully and the selected board is accessible."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:108
+msgid "Google settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:109
+msgid "The Google Measurement ID format is invalid."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:110
+msgid "The Google service account JSON is invalid."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:111
+msgid "Google Merchant Center settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:112
+msgid "The Google Merchant Center ID is invalid."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:113
+msgid "Bing Webmaster settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:114
+msgid "Amazon settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:115
+msgid "Amazon settings could not be saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:116
+msgid "Pinterest settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:117
+msgid "Pinterest settings could not be saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:118
+msgid "Pinterest authorized through OAuth."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:119
+msgid "Save the Pinterest App ID and App Secret first."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:120
+msgid "Pinterest Merchant settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:121
+msgid "Pinterest Merchant verification is invalid."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:127
+msgid "Google OAuth settings saved."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:128
+msgid "Google Search Console authorized successfully."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:129
+msgid "Google OAuth authorization removed."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:130
+msgid "Google OAuth connection verified."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:131
+msgid "Google OAuth Client ID or Client Secret is missing."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:132
+msgid "Google OAuth state validation failed."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:133
+msgid "Google did not return an authorization code."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:134
+msgid "Google OAuth authorization could not be completed."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:135
+msgid "Google OAuth test failed."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:136
+msgid "Google denied authorization."
+msgstr ""
+
+#. translators: %d: number of accessible Google Search Console properties.
+#: includes/class-taxocommerce-connections-admin.php:150
+msgid "Accessible properties: %d."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:201
+msgid "Connections"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:202
+msgid ""
+"External data connections used by TaxoCommerce and the download screens. "
+"Credentials and OAuth are stored here for Google Search Console, Google "
+"Analytics, Bing, Google Trends, Amazon, and Pinterest."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:221
+msgid "Save Google"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:226
+msgid "Test Google"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:231
+msgid "Cómo conectar Google Merchant Center"
+msgstr ""
+
+#. translators: %s: URL de acceso a Google Merchant Center.
+#: includes/class-taxocommerce-connections-admin.php:233
+msgid ""
+"Abre <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">Google "
+"Merchant Center</a> con la cuenta que administra tu tienda."
+msgstr ""
+
+#. translators: %s: URL de acceso a Google Merchant Center.
+#: includes/class-taxocommerce-connections-admin.php:234
+msgid ""
+"Selecciona tu cuenta y copia su ID numérico de Merchant Center (no es el ID "
+"de Google Analytics ni el de Google Ads)."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:235
+msgid "Introduce el ID en este campo y pulsa «Save Merchant»."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:236
+msgid ""
+"Comprueba que la identidad de Google utilizada por TaxoCommerce tiene acceso"
+" a esa cuenta de Merchant Center y que Merchant API está habilitada cuando "
+"corresponda."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:237
+msgid ""
+"Pulsa «Test Merchant». Si falla, revisa el acceso de esa identidad; guardar "
+"el ID no concede permisos automáticamente."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:239
+msgid "Ayuda oficial de Merchant Center"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:239
+msgid "Documentación oficial de Merchant API"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:245
+msgid "Save Merchant"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:250
+msgid "Test Merchant"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:273
+msgid "Save Bing"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:278
+msgid "Test Bing"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:300
+msgid "Save Amazon"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:305
+msgid "Test Creators API"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:331
+msgid "Save Pinterest"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:340
+msgid "Test Pinterest"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-admin.php:351
+msgid "Save Pinterest Merchant"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-amazon.php:163
+msgid ""
+"Creators API is not configured. Affiliate links can still work with only a "
+"Partner Tag."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-amazon.php:198
+msgid "Amazon did not return an access_token."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-amazon.php:210
+msgid "Falta el Partner Tag de Amazon Associates."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-amazon.php:242
+msgid "Error de Creators API."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-amazon.php:263
+msgid "Enter a search query for Amazon."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-google-bing.php:68
+msgid ""
+"Google OAuth will be migrated in the next phase. Service account, Search "
+"Console, GA4, Merchant, and Bing settings are already managed by "
+"Connections."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-guide.php:27
+msgid ""
+"Keep the JSON box empty to preserve this key. Give this email access to your"
+" Search Console property if you use service-account authentication."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-guide.php:29
+msgid ""
+"No saved service-account identity found. Google Search Console can also be "
+"connected using OAuth below."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-guide.php:55
+msgid ""
+"Follow the steps here, enter the requested values in the form on the left, "
+"then Save and Test. Existing secrets stay stored when their fields are left "
+"blank."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-guide.php:88
+msgid ""
+"Navigation illustrations are not live screenshots. Provider menus may "
+"change; the linked official pages are the source of truth."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-guide.php:110
+msgid "Illustrated click path (not a live screenshot)."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:147
+msgid "OpenSSL is not available."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:155
+msgid "The secret could not be encrypted."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:213
+msgid "Pinterest did not return an Access Token."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:241
+msgid "Pinterest no tiene Access Token guardado."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:252
+msgid "The Pinterest token has expired; authorize the account again."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:325
+msgid "Select a board before testing Pinterest."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:341
+msgid "You do not have permission to connect Pinterest."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:395
+msgid "The OAuth state is invalid or expired."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:398
+msgid "The OAuth user does not have permission."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-pinterest.php:481
+msgid "Invalid domain verification code."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:136
+msgid "Estado de las conexiones"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:137
+msgid ""
+"Estados de credenciales y verificaciones manuales. Abrir esta pantalla no "
+"llama a proveedores externos."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:153
+msgid "Prueba la conexión para verificarla."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:155
+msgid "Configuración local guardada; sin validación externa."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:163
+msgid "Comprobar"
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:167
+msgid ""
+"«Conectado» significa que el proveedor respondió correctamente en una prueba"
+" manual reciente (máximo 7 días). Cambiar credenciales exige repetirla. Los "
+"enlaces de afiliados y los catálogos configurados no equivalen a una "
+"conexión API validada."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:305
+msgid "Sin permisos para comprobar conexiones."
+msgstr ""
+
+#: includes/class-taxocommerce-connections-status.php:312
+msgid "La conexión no está preparada para comprobarse."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:119
+msgid "No tienes permisos para ejecutar Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:149
+msgid "Sin permisos para descargar el diagnóstico."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:160
+msgid "No existe un informe válido para esta instalación."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:164
+msgid "No se ha podido generar el informe JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:681
+msgid "No tienes permiso para abrir Auto Test."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:695
+msgid "Auto Test — TaxoCommerce Insights"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:696
+msgid ""
+"Diagnóstico por módulos y comparación antes/después de actualizar el plugin."
+" No modifica fuentes, informes, credenciales ni conexiones; solo conserva "
+"dos pequeños resultados por administrador."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:704
+msgid "Referencia anterior al despliegue"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:710
+msgid ""
+"No hay referencia. Ejecuta «Guardar estado ANTES» antes de actualizar el "
+"plugin."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:714
+msgid "Última ejecución"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:720
+msgid "Aún no se ha realizado ningún autochequeo."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:724
+msgid "Resultados del último chequeo"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:732
+msgid "Comparación de regresiones — ANTES / DESPUÉS"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:737
+msgid ""
+"No se detectan nuevas regresiones entre las pruebas comparables. Las "
+"comprobaciones omitidas y las APIs externas requieren revisión manual."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:741
+msgid ""
+"Para comparar, ejecuta «Comprobar DESPUÉS» con el conjunto completo en la "
+"misma instalación. Las pruebas por grupo no sustituyen la comparación "
+"completa."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-auto-test.php:769
+msgid ""
+"Verde: contrato comprobado. Rojo: error detectado. Gris: sin prueba en vivo "
+"o no aplicable. El autochequeo no equivale a probar compras, llamadas API ni"
+" autorizaciones externas en producción. Para validar proveedores utiliza "
+"también las acciones «Comprobar» de Connections."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:191
+msgid "Modo conexión:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:191
+msgid ""
+"este plugin únicamente guarda credenciales, obtiene/renueva tokens y "
+"verifica acceso mediante metadatos. No descarga visitas, búsquedas, "
+"consultas, rankings, ventas, productos ni informes."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:218
+msgid "Google Analytics / Search Console · Cuenta de servicio"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:218
+msgid ""
+"Credencial compartida para APIs Google. La prueba consulta únicamente "
+"metadatos de acceso."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:239
+msgid "Google Merchant Center"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:239
+msgid ""
+"Identificación de la cuenta Merchant. No se consultan benchmarks, productos "
+"ni ventas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:252
+msgid "Google Cloud Run"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:252
+msgid ""
+"Credenciales y referencia del Job. El plugin no ejecuta el Job desde esta "
+"pantalla."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:273
+#: includes/class-taxocommerce-google-bing-reports.php:507
+msgid "Microsoft Bing Webmaster"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:273
+msgid ""
+"API key y sitio verificado. La prueba sólo obtiene la lista de sitios "
+"autorizados."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:296
+msgid "Proveedores de Mercado · YouTube y SerpApi"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:296
+msgid ""
+"Las credenciales se administran aquí; Mercado muestra sus estados y realiza "
+"los análisis."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:297
+msgid "YouTube Data API v3:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:297
+msgid ""
+"API de Google, pero requiere una clave propia habilitada en Google Cloud. La"
+" credencial de Google Analytics / Search Console no la sustituye."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:298
+msgid "SerpApi:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:298
+msgid ""
+"proveedor externo y opcional para búsquedas web y ofertas Shopping. Puede "
+"generar costes y está sujeto a las cuotas del proveedor."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:315
+msgid ""
+"No se muestran las claves guardadas. Esta pantalla no efectúa consultas de "
+"mercado."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-connections.php:805
+#: includes/class-taxocommerce-google-bing-reports.php:174
+#: includes/class-taxocommerce-google-bing-reports.php:230
+#: includes/class-taxocommerce-google-bing-trends.php:154
+msgid "Acceso no autorizado."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:310
+msgid ""
+"Operación Merchant guardada. Revisa los recuentos y el estado de "
+"sincronización."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:311
+msgid "Google Merchant Center · informes de mercado"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:312
+msgid ""
+"Los benchmarks son referencias agregadas de Google, NO precios de comercios "
+"individuales. Los resultados antiguos de Shopping siguen disponibles como "
+"fotografía histórica y nunca se sobrescriben con benchmarks."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:317
+msgid "Fuente de mercado"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:321
+msgid ""
+"Por defecto se bloquean nuevos escaneos Shopping de Ojeador y su radar "
+"Trends/Search; no se borran resultados. La opción tradicional exige una "
+"elección explícita. Ingeniero y otros servicios utilizan sus propias "
+"políticas de API."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:322
+msgid ""
+"Requiere la cuenta de servicio de Google configurada en el plugin y "
+"autorizada como usuario de Merchant Center. Merchant Reports API debe estar "
+"habilitada y Market Insights disponible para la cuenta. No se envían claves "
+"a SerpApi."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:331
+msgid "Reiniciar lectura desde primera página"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:334
+msgid "Comparar con Ojeador PRO"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:335
+msgid ""
+"Exportación reducida de los productos estrella de PRO: no contiene las "
+"27.075 ofertas individuales. También se pueden usar datos locales si no se "
+"importa."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:342
+msgid ""
+"Sin benchmarks reales Merchant no es posible medir ahorro ni diferencias. "
+"Las métricas anteriores no son equivalentes estadísticamente."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:343
+msgid "Producto"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:343
+msgid "Mediana ofertas observadas"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:343
+msgid "Benchmark Merchant"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:343
+msgid "Diferencia"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:343
+msgid "Ofertas históricas"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:350
+msgid "Productos populares ajenos al inventario"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:351
+msgid ""
+"Son candidatos de Merchant, no compras ni nuevas categorías autorizadas. No "
+"equivalen a un catálogo completo de precios de competidores."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:355
+msgid "Producto / marca"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:355
+msgid "Categoría Google"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:355
+msgid "Popularidad"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-merchant.php:355
+msgid "Fecha del informe"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:151
+msgid "Google Search Console · OAuth"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:151
+msgid ""
+"Credentials, authorization, and tokens. It does not download queries, "
+"clicks, impressions, or positions."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:158
+msgid "Legacy OAuth migrated to the modern plugin."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:166
+#: includes/google/seo-google-info.php:2202
+msgid "Client ID"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:168
+msgid "OAuth 2.0 client of type Web application."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:170
+#: includes/google/seo-google-info.php:2207
+msgid "Client Secret"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:172
+msgid "Stored in WordPress and never displayed again."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:174
+msgid "Redirect URI"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:176
+msgid "Must exactly match the authorized URI in Google Cloud."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:178
+msgid "Search Console property"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:180
+msgid ""
+"Opening this screen does not query Search Console. The property is validated"
+" only when you click Test connection."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:208
+msgid "How to obtain these credentials"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:209
+msgid "Google Cloud Console → the corresponding project."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:210
+msgid "Enable the Google Search Console API."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:211
+msgid "Google Auth Platform → Clients."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:212
+msgid "Create or open an OAuth 2.0 client of type Web application."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:213
+msgid "Add exactly the Redirect URI shown above."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:214
+msgid ""
+"Copy the Client ID and Client Secret, save them, then click Connect Google."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:283
+msgid "You do not have permission to complete this connection."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-oauth.php:456
+#: taxocommerce-google-bing.php:123
+msgid "Unauthorized access."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:73
+msgid ""
+"Charts are generated from the latest saved data. Opening the page or "
+"changing the period does not call external APIs."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:89
+msgid "Aplicar fechas (sin actualizar)"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:116
+msgid ""
+"No saved report exists for the requested dates. The latest available "
+"snapshot is shown without downloading new data."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:120
+msgid "Saved reports:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:139
+msgid ""
+"No hay datos guardados todavía. Pulsa “Actualizar datos” para consultar la "
+"API."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:167
+msgid ""
+"GA4 records events and sessions, not HTTP requests. Search Console and Bing "
+"show search-engine traffic, not total site visits. Periods may be incomplete"
+" because each provider has its own processing delay."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:179
+#: includes/class-taxocommerce-google-bing-reports.php:235
+msgid "Invalid report."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:245
+msgid "Report not available. Download it first."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:321
+msgid "Google Search performance"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:322
+msgid "Web results: trends, queries, pages, countries, and devices."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:322
+#: includes/google/seo-google-growth-guidance.php:58
+#: includes/google/seo-google-opportunity-engine.php:1698
+#: includes/google/seo-google-opportunity-engine.php:1710
+#: includes/google/seo-google-trends.php:2641
+msgid "Search Console"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:363
+msgid "No records for this period."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:367
+msgid "Query / page"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:367
+msgid "Clicks"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:367
+msgid "Impressions"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:367
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-info.php:3026
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:4550
+msgid "CTR"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:367
+msgid "Average position"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:392
+msgid "Google Analytics 4"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:392
+msgid "Traffic, users, recurrence, engagement, and geographic origin."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:482
+msgid ""
+"Purchases and key events are shown only when GA4 receives the corresponding "
+"events."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:487
+msgid "Most viewed pages (GA4)"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:489
+msgid "No pages recorded for this period."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:492
+msgid "Path"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:492
+msgid "Current views"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:492
+msgid "Previous views"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:492
+msgid "Change"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:507
+msgid "Organic traffic, search terms, top pages, indexing, and crawl health."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-reports.php:507
+msgid "Bing"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:201
+msgid "Tendencias de clústeres y hubs primarios"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:202
+msgid ""
+"Los gráficos se solicitan automáticamente al abrir esta pestaña. Cada "
+"gráfico compara los nombres actuales de la"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:203
+msgid ""
+"jerarquía española, sin consultar hubs secundarios ni categorías. La carga "
+"es secuencial y puedes detenerla."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:204
+msgid "Google Trends expresa interés relativo (0–100), no volumen absoluto."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:205
+msgid ""
+"Un gráfico vacío o que no se incrusta no demuestra falta de demanda, ni que "
+"el nombre esté mal definido."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:206
+msgid "Revisa las consultas en Google Trends antes de cambiar nombres de SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:214
+msgid ""
+"Este clúster no tiene hubs primarios españoles publicados y relacionados."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:217
+msgid "Pendiente de consultar"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:218
+msgid "Abrir esta comparación en Google Trends"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:224
+msgid ""
+"Se han dividido los clústeres en varios gráficos por el límite de cinco "
+"términos de Google Trends."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:225
+msgid ""
+"Las escalas 0–100 de gráficos distintos no son directamente comparables."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:231
+msgid "Sin consultar"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:274
+msgid "Radar de tendencias · jerarquía SEO (España)"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:275
+msgid ""
+"Informe automático de clústeres y hubs primarios españoles. Debajo "
+"encontrarás la exploración opcional"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:276
+msgid ""
+"de hubs secundarios y categorías, sin consultas automáticas de esos niveles."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
+msgid "Límite de la fuente:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:277
+msgid "Google facilita gráficos visuales, pero esta integración"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:278
+msgid ""
+"no dispone de series numéricas verificables. Por tanto no calcula "
+"crecimientos porcentuales ni clasifica oportunidades automáticamente."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:279
+msgid ""
+"Que cargue un gráfico no prueba que Google haya devuelto datos válidos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:282
+msgid ""
+"No se han encontrado clústeres españoles publicados en la jerarquía de Core."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:283
+msgid ""
+"Comprueba que TaxoCommerce Core esté activo y que existan relaciones "
+"canónicas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:300
+msgid "Región: España"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:307
+msgid "Gestor de carga · velocidad"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:309
+msgid ""
+"Los gráficos se solicitan por orden, a un ritmo controlado. Las cinco "
+"velocidades regulan las pausas entre consultas del navegador;"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:310
+msgid "no son una medición del porcentaje real de CPU del servidor."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:312
+msgid "Actualizar gráficos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:313
+msgid "Pausar"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:314
+msgid "Reanudar"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:315
+msgid "Detener"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:318
+msgid "Preparando comparaciones automáticas…"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:319
+msgid "Registro del proceso"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:324
+msgid "Exploración detallada opcional · hubs secundarios y categorías"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:342
+msgid "Selecciona una categoría"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:348
+msgid "Consultar categoría"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:351
+msgid "Sin categorías españolas asignadas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:362
+msgid "Selecciona una tendencia"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:363
+msgid ""
+"El gráfico de Google se carga únicamente al consultar un elemento o iniciar "
+"el análisis."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:364
+msgid "Abrir en Google Trends"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:366
+msgid "Si Google impide insertar el gráfico, utiliza el enlace oficial."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends-hierarchy.php:367
+msgid ""
+"El estado «consultado» significa únicamente que se solicitó una "
+"visualización, no que exista un crecimiento confirmado."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:187
+#: includes/class-taxocommerce-google-bing-trends.php:236
+msgid "Google Trends"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:188
+msgid ""
+"Consulta las tendencias de clústeres y hubs españoles. Las categorías se "
+"consultan únicamente bajo demanda."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:192
+msgid "Búsqueda manual de términos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:199
+msgid "Words or phrases to explore"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:201
+msgid ""
+"Enter one word or phrase per line, up to five. Results are shown only for "
+"those searches."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:204
+msgid "Región:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:204
+msgid "España"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:207
+msgid "Period:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:222
+msgid "Search trends"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:223
+msgid "Open in Google Trends ↗"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:231
+msgid "No results for this query yet."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:232
+msgid ""
+"Esta búsqueda manual solo se ejecuta al pulsar el botón. Los gráficos "
+"comparativos de clústeres y hubs primarios se solicitan automáticamente "
+"arriba."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:236
+msgid "Source:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:236
+msgid ""
+". Embedded charts show relative interest indexes (0–100), not absolute "
+"volumes or store visits. Google may limit embedding for some charts. The"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:236
+msgid "official API for downloadable series"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:236
+msgid "remains in restricted alpha access."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:355
+msgid "You do not have permission to download reports."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:388
+msgid "You do not have permission to export reports."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-trends.php:396
+msgid "There are no saved data to export."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:89
+msgid "No tienes permisos para consultar esta documentación."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:102
+msgid "User Guide"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:103
+msgid ""
+"Manual de uso y documentación técnica del plugin TaxoCommerce Insights."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:105
+msgid "Tipo de manual"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:109
+msgid "User Manual"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:114
+msgid "Technical Manual"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:118
+msgid "Índice del manual"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:119
+msgid "Contenido"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:141
+msgid "1. ¿Para qué sirve Insights?"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:142
+msgid ""
+"TaxoCommerce Insights reúne conexiones externas, datos de buscadores, "
+"visitas de la web y un apartado de análisis para ayudar a entender la "
+"evolución de una tienda online. Consulta Google Search Console, Google "
+"Analytics 4 y Bing; también permite explorar Google Trends."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:143
+msgid ""
+"No publica productos ni modifica el SEO de la tienda. Las métricas externas "
+"necesitan permisos de acceso y una descarga solicitada por un administrador."
+" Si no hay datos guardados, el informe puede aparecer vacío."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:146
+msgid "2. Primeros pasos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:148
+msgid "Abre Insights y entra en Connections."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:149
+msgid ""
+"Configura cada servicio que quieras consultar. Las instrucciones y los "
+"enlaces oficiales están junto a los campos de conexión."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:150
+msgid ""
+"Guarda y utiliza el botón de prueba de cada conexión. Tener una credencial "
+"almacenada no confirma que tenga acceso a la cuenta o propiedad."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:151
+msgid ""
+"Abre Google Search, Google Analytics o Bing, selecciona las fechas y pulsa "
+"Actualizar datos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:152
+msgid ""
+"Consulta las gráficas y, si necesitas una copia, exporta el JSON del informe"
+" disponible."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:153
+msgid ""
+"En Analysis solicita de forma individual el informe que necesites; contrasta"
+" sus conclusiones con las fuentes y la fecha de los datos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:157
+msgid "3. Connections: conectar servicios"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:158
+msgid ""
+"La pantalla presenta los campos de conexión a la izquierda y una guía de "
+"configuración con enlaces oficiales a la derecha. Incluye indicadores de "
+"salud de las conexiones y pruebas manuales."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:159
+msgid "Servicios disponibles"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:161
+msgid ""
+"propiedad verificada; acceso por cuenta de servicio o autorización OAuth."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:162
+msgid "ID de propiedad y permisos adecuados de la identidad configurada."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:163
+msgid ""
+"ID numérico de Merchant Center y permisos de la cuenta; no es el ID de "
+"Analytics."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:164
+msgid "sitio verificado y clave API."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:165
+msgid ""
+"Partner Tag para enlaces de afiliación y, opcionalmente, credenciales para "
+"enriquecer datos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:166
+msgid ""
+"OAuth, tablero de destino y configuración de verificación del dominio y "
+"catálogo."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:168
+msgid "Si una conexión falla"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:169
+msgid ""
+"Comprueba el identificador de propiedad, los permisos de la cuenta, la "
+"activación de la API correspondiente y el resultado de Test. Una conexión "
+"GA4 correcta no concede por sí misma acceso a Search Console."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:170
+msgid "Abrir Connections"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:173
+msgid "4. Google Search: rendimiento orgánico"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:174
+msgid ""
+"Presenta clics, impresiones, CTR, posición media y desgloses por consultas, "
+"páginas, países o dispositivos, según los datos descargados. Permite "
+"comparar periodos equivalentes."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:175
+msgid "Cómo interpretar los resultados"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:176
+msgid ""
+"Las impresiones indican apariciones en Google y no visitas. El CTR relaciona"
+" clics e impresiones; la posición es una media que requiere contexto. "
+"Comprueba qué páginas y consultas cambian antes de decidir una modificación "
+"SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:177
+msgid "Abrir Google Search"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:180
+msgid "5. Google Analytics: visitas y comportamiento"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:181
+msgid ""
+"Muestra sesiones, usuarios, interacción, canales, páginas, países, "
+"dispositivos y eventos de comercio electrónico cuando están medidos. Puede "
+"ayudar a detectar diferencias entre visitas, uso del catálogo y compras "
+"registradas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:182
+msgid "Lectura de las conversiones"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:183
+msgid ""
+"Las compras de WooCommerce y sus eventos GA4 no representan automáticamente "
+"ventas realizadas en una tienda externa mediante afiliación. Para conocer "
+"comisiones necesitas la atribución confirmada por el proveedor y la medición"
+" específica de clics o conversiones externas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:184
+msgid "Abrir Google Analytics"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:187
+msgid "6. Bing: búsqueda e indexación"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:188
+msgid ""
+"Consulta datos de Bing Webmaster sobre impresiones, clics, consultas, "
+"páginas y señales de rastreo e indexación, cuando los devuelve el servicio. "
+"Es una fuente complementaria: las métricas no deben confundirse con las de "
+"Google."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:189
+msgid "Abrir Bing"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:192
+msgid "7. Google Trends: explorar la demanda"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:193
+msgid ""
+"La pestaña compara gráficamente los clústeres y los hubs primarios españoles"
+" de la jerarquía SEO. Los hubs secundarios y las categorías se consultan "
+"manualmente. También puedes abrir Búsqueda manual de términos y comparar "
+"hasta cinco expresiones."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:194
+msgid "Gestor de carga y límites"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:195
+msgid ""
+"Dispone de velocidades 1–5, pausa, reanudación y detención de las "
+"comparaciones. La velocidad regula intervalos entre gráficos solicitados por"
+" el navegador; no representa la carga real de CPU del servidor."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:196
+msgid ""
+"Los gráficos incrustados de Google muestran interés relativo de 0 a 100, no "
+"número absoluto de búsquedas. No proporcionan automáticamente una serie "
+"numérica exportable ni acreditan que una palabra signifique exactamente lo "
+"mismo que tu categoría."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:197
+msgid "Abrir Google Trends"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:200
+msgid "8. Analysis: informes de Analista"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:201
+msgid ""
+"Analysis integra el motor de Analista recuperado. No ejecuta los once "
+"informes al abrir la pestaña: eliges el bloque y se calcula bajo demanda. La"
+" disponibilidad de resultados depende de los datos y módulos instalados."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:202
+msgid "Los once informes disponibles"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:208
+msgid ""
+"Elige el periodo admitido de 28, 60 o 90 días y solicita un informe "
+"concreto. Cuando está habilitada, la exportación JSON reúne el análisis. Las"
+" recomendaciones son apoyo a la decisión: una señal de tendencia no "
+"demuestra por sí sola una oportunidad comercial rentable."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:209
+msgid "Abrir Analysis"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:212
+msgid "9. Fechas, actualizaciones y exportación"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:213
+msgid "Datos descargados"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:214
+msgid ""
+"Google Search, Google Analytics y Bing admiten periodos de 7, 30 y 90 días o"
+" un intervalo personalizado de hasta 90 días completos. El día actual y los "
+"días futuros no son válidos como fecha final. Se compara con el periodo "
+"anterior de igual duración."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:215
+msgid ""
+"Cambiar la selección no llama a la API. Pulsa Actualizar datos si necesitas "
+"una nueva descarga; el resultado se almacena localmente. Si no existe una "
+"copia para esas fechas, puede mostrarse el último informe guardado con un "
+"aviso."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:216
+msgid "Exportar el resultado"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:217
+msgid ""
+"Cuando haya datos guardados, utiliza Export JSON copy en la pantalla del "
+"proveedor correspondiente. El fichero representa una foto de los datos "
+"descargados y lleva sus fechas; no garantiza datos actuales si la descarga "
+"es antigua."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:226
+msgid "10. Preguntas habituales"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:227
+msgid "¿Abrir Insights inicia descargas?"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:228
+msgid ""
+"Abrir Connections o los informes guardados no ejecuta descargas de "
+"Google/Bing. Los gráficos de Google Trends son una excepción visual: algunas"
+" comparaciones se solicitan automáticamente al navegador cuando se abre esa "
+"pestaña."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:229
+msgid "¿Por qué falta información?"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:230
+msgid ""
+"Puede faltar una conexión, permisos, histórico descargado o datos publicados"
+" por el proveedor para las fechas elegidas. Una cifra no disponible no debe "
+"interpretarse como cero."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:231
+msgid "¿Analysis sustituye el informe de mercado?"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:232
+msgid ""
+"No. La versión actual presenta los once informes de Analista dentro de "
+"Analysis. Las antiguas pestañas independientes Market y Executive Reports ya"
+" no forman parte de la interfaz activa."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:240
+msgid "1. Alcance y requisitos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:241
+msgid ""
+"Insights es el módulo independiente de conexiones y análisis de "
+"TaxoCommerce. La carpeta y el slug siguen siendo taxocommerce-google-bing "
+"por compatibilidad. WordPress 5.8+ y PHP 7.4+ son los mínimos declarados; "
+"Core y WooCommerce son opcionales para el arranque, aunque algunos informes "
+"necesitan sus datos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:242
+msgid "Versión cargada:"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:243
+msgid ""
+"Superficie administrativa activa: Connections, Analysis, Google Search, "
+"Google Analytics, Bing, Google Trends y esta documentación. Market, Analyst "
+"y Executive Reports independientes fueron retirados de la navegación en la "
+"línea 1.1.4."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:246
+msgid "2. Arquitectura y ciclo de arranque"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:247
+msgid ""
+"taxocommerce-google-bing.php carga componentes en includes/ y registra los "
+"servicios en plugins_loaded con prioridad 100. Se integra de manera opcional"
+" en el registro de Core mediante taxocommerce_core_register_modules y crea "
+"una pantalla propia o un submenú según exista Core."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:248
+msgid "Componentes relevantes"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:251
+msgid "Clase o archivo"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:251
+msgid "Responsabilidad"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:253
+msgid ""
+"Registro de ajustes, migración de credenciales, autenticación y "
+"comprobaciones."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:254
+msgid "Autorización y tokens OAuth de Search Console."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:255
+msgid "Formulario de conexiones y acciones de guardar/probar."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:256
+msgid "Estados de salud, comprobaciones explícitas y avisos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:257
+msgid ""
+"Descarga, almacenamiento, renderizado y exportación de GA4, Search y Bing."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:258
+msgid "Consultas a Search Console y comparación de periodos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:259
+msgid "Consultas manuales y visualización de Google Trends."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:260
+msgid "Comparaciones españolas basadas en clústeres y hubs SEO."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:261
+msgid ""
+"Motor de Analista 3.9.0 recuperado, incluyendo los once informes y el "
+"controlador AJAX."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:262
+msgid "Compatibilidad y conexión de Amazon, Pinterest y servicios heredados."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:268
+msgid "3. Conexiones, credenciales y OAuth"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:269
+msgid ""
+"El registro de conexiones conserva claves históricas y recupera opciones "
+"anteriores cuando las modernas están vacías. Los valores ya configurados "
+"tienen prioridad: instalar Insights no debería obligar a reconectar todas "
+"las fuentes."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:270
+msgid "Flujos de autenticación"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:271
+msgid ""
+"Search Console admite OAuth con el scope webmasters.readonly y accesos por "
+"cuenta de servicio configurada. GA4 usa la propiedad y credenciales "
+"correspondientes. Bing utiliza la URL verificada y una clave API. Merchant, "
+"Amazon y Pinterest gestionan sus credenciales y acciones dentro de "
+"Connections."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:272
+msgid ""
+"Las credenciales se conservan en opciones de WordPress; el manual no lee ni "
+"muestra sus contenidos. Las pruebas de conexión comprueban permisos o "
+"acceso, pero no sustituyen una descarga real ni demuestran que todas las "
+"métricas estén disponibles."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:273
+msgid "Contrato de administración"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:274
+msgid ""
+"Las operaciones de configuración, conexión, test y descarga usan acciones "
+"admin_post_* protegidas. El callback OAuth mantiene su ruta histórica para "
+"evitar perder compatibilidad con autorizaciones previas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:277
+msgid "4. Informes: flujo de datos y almacenamiento"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:278
+msgid ""
+"Los informes de Google Search, Analytics y Bing tienen un contrato local de "
+"lectura mediante TaxoCommerce_Google_Bing_Reports::saved_reports() y "
+"get_saved_snapshot(). La visualización GET lee opciones guardadas; las "
+"llamadas externas ocurren al utilizar admin_post_tgb_download_report."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:279
+msgid ""
+"Conexión autorizada → Descarga solicitada → API del proveedor → Snapshot en "
+"options → Visualización / JSON"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:280
+msgid "Selección de fechas y comparación"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:281
+msgid ""
+"Admite 7, 30, 90 o un rango personalizado de 1–90 días cerrados, excluido el"
+" día actual. El comparador usa el periodo anterior de igual duración. La "
+"descarga guarda el snapshot en la opción tgb_manual_report_v1_{source} con "
+"autoload deshabilitado."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:282
+msgid ""
+"Por cada proveedor se conservan hasta diez snapshots recientes identificados"
+" por fechas. La opción no se reemplaza por la mera apertura de una pantalla."
+" Un bloqueo transient por fuente evita descargas simultáneas durante una "
+"ventana de dos minutos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:283
+msgid ""
+"El contrato de notificación tgb_manual_report_saved permite que otros "
+"módulos reaccionen a una nueva descarga. El exportador de informes utiliza "
+"admin_post_tgb_export_report y genera una copia JSON sin repetir la consulta"
+" externa."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:286
+msgid "5. Motor Analysis y once informes"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:287
+msgid ""
+"includes/analysis/analista-bootstrap.php carga el motor Analista 3.9.0 "
+"recuperado. La vista Analysis usa seo_analista_render_report() y los "
+"informes parciales definidos en seo_analista_lazy_reports(). Las peticiones "
+"de cálculo se atienden por wp_ajax_seo_analista_partial_report con nonce y "
+"permisos de administración."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:288
+msgid "Ejecución bajo demanda"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:289
+msgid ""
+"Abrir la pestaña construye la interfaz, no ejecuta de golpe los once "
+"diagnósticos. Cada botón solicita el informe elegido. Algunas fuentes "
+"internas y compatibilidades pueden faltar: cuando no hay evidencia "
+"disponible, el resultado debe indicarlo y no inventar valores."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:290
+msgid ""
+"Los once bloques son: Qué hacer, Resumen, Search Console, Contenido, "
+"Estructura, Catálogo, Tendencias, Plan de acción, Competencia, Proveedores y"
+" Fuentes. Los periodos usados por Analista son 28, 60 y 90 días, distintos "
+"de los de los informes directos de proveedor."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:291
+msgid ""
+"El análisis reutiliza datos y APIs internos disponibles, por lo que deben "
+"verificarse las dependencias de la instalación real. No debe interpretarse "
+"como un sistema independiente de captación de datos de mercado ni como "
+"contabilidad de ventas de afiliación."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:294
+msgid "6. Google Trends: fuente, jerarquía y límites"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:295
+msgid ""
+"La pestaña integra gráficos incrustados de Google Trends. La comparación "
+"jerárquica toma clústeres y hubs primarios españoles del árbol SEO y "
+"solicita visualizaciones por el navegador, con controles de ritmo 1–5, pausa"
+" y detención."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:296
+msgid ""
+"La búsqueda manual recibe hasta cinco términos y periodos entre siete días y"
+" cinco años, con región ES. Los hubs secundarios y categorías se mantienen "
+"como exploración manual. No se deben tratar los índices relativos 0–100 como"
+" volumen absoluto."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:297
+msgid ""
+"El antiguo soporte RSS Trending Now sigue presente por compatibilidad, pero "
+"no es la fuente de los gráficos Explore actuales. La API oficial de Trends "
+"no se utiliza aquí como API pública de series numéricas; su acceso está "
+"restringido."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:300
+msgid "7. Opciones y compatibilidad de datos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:301
+msgid ""
+"La configuración y las copias de informes se guardan principalmente en "
+"wp_options mediante la API de opciones de WordPress (el prefijo wp_ es solo "
+"un ejemplo). No se debe asumir una nueva tabla SQL propia para cada "
+"proveedor."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:304
+msgid "Clave o prefijo"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:304
+msgid "Uso"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:306
+msgid "Propiedad Search Console, GA4 y cuenta de servicio."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:307
+msgid "Sitio Bing y API key."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:308
+msgid "Identificador de Merchant Center."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:309
+msgid "Configuración del cliente OAuth."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:310
+msgid "Tokens OAuth; dato sensible."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:311
+msgid "Snapshots locales de analytics, search o bing."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:312
+msgid "Resultados de comprobaciones de conexiones."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:313
+msgid "Snapshots RSS históricos para compatibilidad, no series Explore."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:317
+msgid ""
+"Las clases históricas TaxoCommerce_Connections_* y el plugin puente "
+"TaxoCommerce Connections conservan contratos de migración. No renombres "
+"slugs, callbacks ni claves de opciones sin plan de compatibilidad y pruebas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:320
+msgid "8. Seguridad, permisos y privacidad"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:321
+msgid ""
+"El acceso a la pantalla Insights requiere manage_options. Las operaciones "
+"que guardan credenciales, prueban conexiones y descargan datos validan "
+"capacidades y nonces. El manual no contiene acciones de escritura ni "
+"consulta credenciales almacenadas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:322
+msgid ""
+"Algunos servicios externos implican transferir peticiones y metadatos al "
+"proveedor elegido. Verifica sus permisos, límites de API y condiciones. No "
+"incluyas tokens OAuth, JSON de cuentas de servicio o claves API en "
+"incidencias, informes compartidos ni repositorios."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:323
+msgid ""
+"Las métricas agregadas no constituyen una relación individual demostrada "
+"entre comprador, pedido y comisión de afiliado. Las conclusiones de ventas "
+"fuera de WooCommerce necesitan otra fuente de atribución."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:326
+msgid "9. Recursos, caché y procesos"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:327
+msgid ""
+"Las descargas de Search, GA4 y Bing son acciones explícitas de "
+"administración. El módulo de informes define una ventana CACHE_TTL de 900 "
+"segundos para su contrato de caché, y usa un bloqueo transient por proveedor"
+" de dos minutos para evitar solapamientos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:328
+msgid ""
+"Analysis separa cada informe pesado por petición AJAX. Los gráficos "
+"jerárquicos de Trends se cargan secuencialmente en el navegador; su "
+"velocidad no es un regulador del uso global de CPU. No se programan "
+"descargas periódicas nuevas desde el simple hecho de abrir la documentación."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:329
+msgid ""
+"Si se produce un fallo, comprueba primero la fecha de la última copia "
+"guardada, la conexión probada, la cuota del proveedor y el resultado HTTP "
+"antes de repetir solicitudes. Reintentos innecesarios pueden agotar las "
+"cuotas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:332
+msgid "10. Pruebas, versiones y despliegue"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:333
+msgid ""
+"El workflow .github/workflows/taxocommerce-google-bing.yml valida sintaxis "
+"PHP, funcionamiento local de informes, compatibilidad de Connections, Search"
+" Console, Google Trends y el estado de las conexiones. También comprueba "
+"JavaScript de Trends y genera el ZIP del plugin."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:335
+msgid ""
+"Trabaja en una rama y actualiza la versión del archivo principal y el Stable"
+" tag del readme.txt."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:336
+msgid ""
+"Ejecuta pruebas sin red para garantizar que abrir pantallas documentales o "
+"informes guardados no dispara peticiones externas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:337
+msgid ""
+"Crea una pull request a staging, revisa los resultados y fusiona únicamente "
+"cuando las comprobaciones estén correctas."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:338
+msgid ""
+"En staging se usa un workflow con FTPS para desplegar la carpeta "
+"taxocommerce-google-bing. Verifica el resultado real en WordPress; un merge "
+"no demuestra por sí mismo que el FTP haya terminado."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:339
+msgid ""
+"Para producción utiliza el procedimiento independiente autorizado, con copia"
+" recuperable y comprobación de conexiones y credenciales."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:349
+msgid "11. Diagnóstico y mantenimiento"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:350
+msgid "Search Console devuelve error de permiso"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:351
+msgid ""
+"Comprueba que la propiedad exacta esté verificada y compartida con la "
+"identidad usada. Diferencia la cuenta de servicio, OAuth moderno y "
+"autorización heredada. GA4 no hereda permisos de Search Console."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:352
+msgid "No aparecen métricas o Analysis está incompleto"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:353
+msgid ""
+"Comprueba qué fuentes guardadas existen, la fecha de descarga y los módulos "
+"que aportan cada dato. Un informe sin fuente fiable debe marcar información "
+"no disponible en lugar de presentar ceros como hechos."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:354
+msgid "Google Trends no muestra un gráfico"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:355
+msgid ""
+"Las inserciones dependen de Google y del navegador: algunas pueden quedar "
+"limitadas. Abre el enlace oficial Explore y compara los términos "
+"manualmente. Una gráfica vacía no demuestra ausencia de demanda."
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:356
+msgid "Migraciones y credenciales"
+msgstr ""
+
+#: includes/class-taxocommerce-google-bing-user-guide.php:357
+msgid ""
+"Las claves de opciones y los callbacks históricos son parte de la "
+"compatibilidad. Antes de cualquier migración de producción haz backup de "
+"WordPress/MySQL y verifica que los accesos OAuth no se invalidan. El manual "
+"no instala, modifica ni reconecta servicios."
+msgstr ""
+
+#: includes/google/google-python-runner.php:226
+#: includes/google/google-search.php:317
+msgid "No tienes permisos para guardar esta conexion."
+msgstr ""
+
+#: includes/google/google-python-runner.php:429
+msgid "No tienes permisos para iniciar el scraper Python."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1486
+msgid "No se pudo calcular el periodo de analisis."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1529
+msgid "Demanda × Catalogo"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1530
+msgid ""
+"Relaciona consultas reales de Search Console con las categorias y productos "
+"actuales de WooCommerce."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1530
+msgid "No mide todo el mercado"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1530
+msgid ""
+": mide la demanda en la que Google ya relaciona alguna URL de la web. Las "
+"consultas genericas reciben menos peso para que volumen no sea igual a "
+"prioridad."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1552
+msgid "Como leerlo:"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1552
+msgid ""
+"“Demanda util” = impresiones ponderadas por accionabilidad de la consulta. "
+"Search Console sirve para priorizar oportunidades, pero"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1552
+msgid "no autoriza por si solo a reducir o eliminar catalogo"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1552
+msgid ""
+". La baja senal se muestra como demanda insuficiente o sin senal reciente "
+"hasta incorporar mas historico y datos comerciales."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1570
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+msgid "Decision"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1571
+msgid "Todas"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1586
+msgid "Diagnostico de datos almacenados:"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1600
+msgid "Que potenciar y en que sentido"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1603
+msgid "No hay oportunidades suficientes con los filtros actuales."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+msgid "Que potenciar"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+msgid "Estrategia"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+msgid "Direccion detectada"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-info.php:3026
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:3399
+#: includes/google/seo-google-info.php:4126
+#: includes/google/seo-google-info.php:4285
+#: includes/google/seo-google-info.php:4550
+msgid "Imp."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-demand-catalog.php:1758
+msgid "Demanda util"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-info.php:3026
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:3399
+#: includes/google/seo-google-info.php:4126
+#: includes/google/seo-google-info.php:4285
+#: includes/google/seo-google-info.php:4550
+msgid "Pos."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-opportunity-engine.php:1630
+msgid "Tendencia"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+msgid "Catalogo / pista"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1606
+msgid "Por que"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1627
+msgid "Sin atributo concreto suficiente; revisar subintenciones."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1640
+msgid "Sin categoria clara"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1645
+msgid "Apta para automatizacion:"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1645
+msgid "si, con validacion de cobertura."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1647
+msgid "Consultas que lo justifican"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1660
+msgid "Prioridad por categoria"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1663
+msgid "No hay categorias que cumplan los filtros."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1669
+msgid "Categoria"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-demand-catalog.php:1724
+#: includes/google/seo-google-demand-catalog.php:1758
+msgid "Precision"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1669
+msgid "Consultas / landings"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1669
+#: includes/google/seo-google-info.php:3366
+#: includes/google/seo-google-info.php:3399
+msgid "Evidencias"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1697
+msgid "Ver consultas principales"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1717
+msgid "Intenciones sin representar claramente"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1718
+msgid ""
+"Agrupa variantes de consultas no mapeadas para responder a una pregunta mas "
+"util:"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1718
+msgid ""
+"que familias o necesidades esta insinuando Google aunque hoy no tengan una "
+"categoria claramente asociada"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1718
+msgid ""
+". La agrupacion es heuristica; siempre se muestran las consultas originales."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1721
+msgid "No hay intenciones no mapeadas con los filtros actuales."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1724
+msgid "Intencion"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1724
+msgid "Posible categoria"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1750
+msgid "Ver consultas individuales sin mapear"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1752
+msgid "Detalle sin agrupar"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1755
+msgid "No hay demanda sin mapear con los filtros actuales."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1758
+#: includes/google/seo-google-opportunity-engine.php:1694
+msgid "Landings"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1790
+msgid "Limites de esta version"
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1792
+msgid ""
+"Search Console solo revela demanda donde Google ya relaciona el dominio con "
+"una consulta; no representa todo lo que busca el mercado."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1793
+msgid ""
+"La atribucion se hace a la categoria mas profunda de la landing de producto,"
+" o directamente a la categoria cuando Google muestra su URL."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1794
+msgid ""
+"Las consultas no mapeadas se agrupan por similitud lexical para descubrir "
+"intenciones. La agrupacion es orientativa y conserva siempre la evidencia "
+"original."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1795
+msgid ""
+"La baja senal organica no se interpreta como orden de reducir catalogo. Para"
+" eso necesitaremos mas historico y ventas, margen, stock y estacionalidad."
+msgstr ""
+
+#: includes/google/seo-google-demand-catalog.php:1796
+msgid ""
+"Keyword Planner se incorporara despues como fuente separada para descubrir "
+"demanda de mercado donde el dominio aun no aparece."
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Lista priorizada"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Nivel / área"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Qué hacer"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Trends"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Catálogo"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Dirección"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:58
+msgid "Confianza"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:59
+msgid "Sin señal importada"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:61
+msgid "Regla de lectura"
+msgstr ""
+
+#: includes/google/seo-google-growth-guidance.php:61
+msgid ""
+"Demanda externa fuerte + Search Console acercándose + poco catálogo → "
+"ampliar. Demanda fuerte + catálogo profundo + posición mala → SEO. Demanda "
+"externa fuerte sin categoría → estudiar nueva categoría; varias categorías "
+"coherentes bajo el mismo tema pueden justificar un nuevo hub "
+"secundario/primario, pero esa promoción jerárquica debe exigir varias "
+"señales antes de automatizarse."
+msgstr ""
+
+#: includes/google/seo-google-info.php:239
+msgid "No tienes permisos para configurar Google Intelligence."
+msgstr ""
+
+#: includes/google/seo-google-info.php:291
+msgid "No tienes permisos para conectar Google."
+msgstr ""
+
+#: includes/google/seo-google-info.php:353
+msgid "No tienes permisos para completar esta conexión."
+msgstr ""
+
+#: includes/google/seo-google-info.php:609
+msgid "No tienes permisos para probar esta conexión."
+msgstr ""
+
+#: includes/google/seo-google-info.php:645
+msgid "No tienes permisos para desconectar Google."
+msgstr ""
+
+#: includes/google/seo-google-info.php:937
+msgid "No tienes permisos para reparar las tablas."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2026
+msgid "Google Intelligence"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2028
+msgid ""
+"Google descubre y mide la demanda; WordPress y el catálogo comprueban "
+"cobertura; el sistema recomienda qué mejorar."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2055
+msgid ""
+"Si la reparación vuelve a fallar, copia el mensaje completo de MySQL "
+"mostrado en esta pantalla."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2193
+msgid "Conexión con Google Search Console"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2204
+msgid "Identificador del cliente OAuth 2.0 de tipo “Aplicación web”."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2209
+msgid "Se guarda en WordPress y nunca se muestra completo de nuevo."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2212
+msgid "URI de redirección"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2214
+msgid "URI única del módulo."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2214
+msgid ""
+"Cópiala exactamente en “URI de redireccionamiento autorizados” de Google "
+"Cloud. La misma dirección se usa al autorizar y al intercambiar el código "
+"por tokens."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2217
+msgid "Propiedad de Search Console"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2224
+msgid "Selecciona una propiedad"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2237
+msgid "La lista aparecerá automáticamente después de autorizar Google."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2242
+msgid "Frecuencia"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2248
+msgid ""
+"La sincronización manual ya está disponible. La ejecución automática diaria "
+"o semanal se incorporará en la siguiente fase."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2292
+msgid "Cómo obtener las credenciales"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2294
+msgid "Entra en Google Cloud Console y crea o selecciona un proyecto."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2295
+msgid "Activa la"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2295
+msgid "Google Search Console API"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2296
+msgid "Configura Google Auth Platform y la pantalla de consentimiento OAuth."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2297
+msgid "Crea credenciales OAuth 2.0 de tipo"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2297
+msgid "Aplicación web"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2298
+msgid "URIs de redireccionamiento autorizados"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2298
+msgid ""
+", añade exactamente la dirección mostrada en este formulario. No la pongas "
+"solo en “Orígenes autorizados de JavaScript”."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2299
+msgid "Copia aquí el Client ID y el Client Secret y guarda."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2300
+msgid "Si la aplicación está en modo Pruebas, añade tu cuenta en"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2300
+msgid "Usuarios de prueba"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2300
+msgid "; si está en producción, completa los requisitos que Google solicite."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2301
+msgid "Pulsa"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2301
+msgid "Conectar con Google"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2301
+msgid "y acepta el permiso de lectura."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2302
+msgid ""
+"Después de autorizar, selecciona la propiedad de Search Console y vuelve a "
+"guardar."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2306
+msgid "Problemas frecuentes y solución"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2308
+msgid "Error 400: redirect_uri_mismatch"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2308
+msgid ""
+"La URI enviada por TaxoCommerce SEO no coincide exactamente con Google "
+"Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en "
+"“URIs de redireccionamiento autorizados”."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2309
+msgid "Error 403: access_denied / solo testers"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2309
+msgid ""
+"La aplicación está en modo Pruebas y la cuenta no figura como usuario de "
+"prueba. Añádela en Google Auth Platform → Público/Audiencia → Usuarios de "
+"prueba, o publica la aplicación si corresponde."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2311
+msgid "Credenciales guardadas; falta autorizar Google"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2311
+msgid ""
+"Las claves existen, pero todavía no hay tokens. Pulsa “Conectar con Google”."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2317
+msgid "Permiso solicitado"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2319
+msgid ""
+"Es un permiso de solo lectura. TaxoCommerce SEO no podrá añadir ni eliminar "
+"propiedades o sitemaps."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2322
+msgid "Abrir credenciales de Google Cloud"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2323
+msgid "Activar Search Console API"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2340
+msgid "Sincronización"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2352
+msgid "No se consultará el historial hasta que todas las tablas indiquen"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2358
+msgid "Completa la conexión y selecciona una propiedad antes de sincronizar."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2372
+msgid "Primera sincronización o migración:"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2372
+msgid ""
+"descarga 90 días de totales de propiedad, páginas y consultas finalizados."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2373
+msgid "Sincronizaciones posteriores:"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2373
+msgid ""
+"actualizan los últimos 7 días con solapamiento para recoger correcciones de "
+"Google."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2376
+msgid "Sincronizar ahora"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2381
+msgid ""
+"Mantén esta pestaña abierta durante la primera importación. Si se "
+"interrumpe, vuelve a pulsar el botón para reanudar."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2494
+msgid "Historial reciente"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2497
+msgid "No hay sincronizaciones registradas."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2500
+msgid "Inicio"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2500
+#: includes/google/seo-google-info.php:3346
+msgid "Período"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2500
+msgid "Días"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2500
+msgid "Filas"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2500
+msgid "Detalle"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2645
+msgid ""
+"Mismos datos almacenados por Search Console, vistos como tendencia. En "
+"posición,"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2645
+msgid "menos es mejor"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2648
+msgid "Diario"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2649
+msgid "Semanal"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2650
+msgid "Mensual"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2674
+msgid ""
+"· La posición sigue ponderada por impresiones, igual que en las tarjetas "
+"superiores."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2961
+#: includes/google/seo-google-info.php:3084
+msgid "Google Search Console todavía no está conectado completamente."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2969
+msgid "La conexión está preparada, pero aún no hay datos almacenados."
+msgstr ""
+
+#: includes/google/seo-google-info.php:2984
+msgid "Últimos 28 días disponibles"
+msgstr ""
+
+#: includes/google/seo-google-info.php:2998
+msgid ""
+"Clics, impresiones, CTR y posición proceden del total de propiedad de Search"
+" Console cuando la cobertura está completa. Consultas y páginas son una "
+"muestra diagnóstica; no suman necesariamente el total."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3022
+msgid "No hay datos para este período."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3026
+#: includes/google/seo-google-info.php:3578
+msgid "Elemento"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3090
+msgid "Primero debes ejecutar la sincronización."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3320
+msgid "No se pudo calcular el período de análisis."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3342
+msgid "Señales observadas por Google"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3343
+msgid ""
+"Esta vista agrupa consultas y páginas, pero no decide por ti si una señal es"
+" una oportunidad, un error histórico, una búsqueda comercial o una "
+"coincidencia accidental."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3357
+msgid ""
+"Páginas parciales: faltan días sincronizados por URL. Las consultas visibles"
+" tampoco representan todas las búsquedas."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3362
+msgid "Consultas y páginas asociadas"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3364
+msgid "No hay consultas que cumplan los filtros."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3366
+msgid "URLs"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3377
+msgid "Ver URLs relacionadas"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3395
+msgid "Páginas y consultas asociadas"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3397
+msgid "No hay páginas que cumplan los filtros."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3399
+#: includes/google/seo-google-info.php:4550
+msgid "URL"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3407
+msgid "Ver consultas"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3524
+msgid "No se pudo calcular el período de comparación."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3532
+msgid "Cambios entre períodos equivalentes"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3533
+msgid ""
+"Esta vista señala aumentos, descensos, apariciones y desapariciones. Un "
+"cambio no implica por sí solo que exista un problema o una oportunidad."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3536
+msgid "Duración de cada período"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3548
+msgid ""
+"Los cambios por página proceden de consultas visibles y son parciales hasta "
+"completar la sincronización de ambos períodos."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3575
+msgid "No hay elementos con los filtros actuales."
+msgstr ""
+
+#: includes/google/seo-google-info.php:3578
+msgid "Ahora"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3578
+msgid "Pos. antes"
+msgstr ""
+
+#: includes/google/seo-google-info.php:3578
+msgid "Pos. ahora"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4116
+msgid "Google vs. catálogo"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4117
+msgid ""
+"Relaciona las URLs vistas por Google con entidades locales de "
+"WordPress/WooCommerce. Cuando una URL no existe directamente, se comprueba "
+"su cadena HTTP y se intenta relacionar el destino final."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4126
+msgid "URL de Google / destino"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4126
+msgid "Entidad local"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4154
+msgid "Relacionada por redirección"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4275
+msgid "Cobertura observada"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4276
+msgid ""
+"Distribución de las páginas que Google ha mostrado. Esta cobertura describe "
+"visibilidad; todavía no mide si el catálogo es suficiente o correcto."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4279
+msgid ""
+"Cobertura parcial basada en consultas visibles hasta completar la "
+"sincronización diaria de páginas."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4284
+msgid "Áreas URL"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4292
+msgid "Páginas por rango de posición"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4293
+msgid "Rango"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4297
+msgid "Cada página se sitúa según su posición media ponderada del período."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4416
+#: includes/google/seo-google-info.php:4457
+msgid "No tienes permisos para exportar estos datos."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4422
+msgid "Google Search Console no está conectado."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4466
+msgid "El motor de decisiones de Google Intelligence no está disponible."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4502
+msgid "Laboratorio de datos"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4503
+msgid ""
+"Consulta los datos con tus propios filtros. El sistema agrupa y resume, pero"
+" conserva visibles la consulta, la URL y las métricas utilizadas."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4506
+msgid "Agrupar por"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4516
+msgid "Orden"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4521
+msgid "Límite"
+msgstr ""
+
+#: includes/google/seo-google-info.php:4547
+msgid "No hay filas que cumplan los filtros."
+msgstr ""
+
+#: includes/google/seo-google-info.php:4550
+msgid "Fecha"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1517
+msgid "Destino actual:"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1604
+msgid "Decisiones recomendadas"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1604
+msgid ""
+"Una señal de Trends sin cobertura se marca como investigación o vigilancia; "
+"nunca crea automáticamente una landing, un post, una categoría ni un "
+"producto."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1626
+#: includes/google/seo-google-trends.php:2597
+msgid "Radar emergente"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1626
+msgid ""
+"Temas que están creciendo ahora y que el filtro ha relacionado con el "
+"perímetro comercial."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1628
+msgid ""
+"No hay tendencias actuales relevantes almacenadas. Esto puede significar que"
+" el radar funciona pero hoy no hay coincidencias comerciales."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1630
+msgid "Relevancia"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1630
+msgid "Volumen agrupado"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1630
+#: includes/google/seo-google-trends.php:2687
+msgid "Área relacionada"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1630
+#: includes/google/seo-google-trends.php:2687
+msgid "Observada"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1638
+msgid "Exploración de mercado"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1638
+msgid ""
+"Búsquedas relacionadas, principales o en aumento incorporadas desde CSV o "
+"proveedor autorizado."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1640
+msgid ""
+"No hay datos de Explore almacenados. El radar de actualidad puede seguir "
+"operativo de forma independiente."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1642
+msgid "Puntuación"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1642
+msgid "Semilla"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1642
+#: includes/google/seo-google-trends.php:2687
+msgid "Fuente"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1696
+msgid "No hay métricas disponibles para landings publicadas."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1698
+msgid "Landing"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1698
+#: includes/google/seo-google-opportunity-engine.php:1710
+msgid "Diagnóstico"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1706
+msgid "Posts"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1708
+msgid "No hay métricas disponibles para posts publicados."
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1710
+msgid "Post"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1739
+msgid "Informes técnicos conservados"
+msgstr ""
+
+#: includes/google/seo-google-opportunity-engine.php:1739
+msgid ""
+"Estas pantallas siguen disponibles como evidencia y diagnóstico; ya no "
+"tienen que interpretarse una a una para saber qué hacer."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:178
+msgid "No tienes permisos para configurar Google Trends."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:1946
+msgid "No tienes permisos para actualizar Google Trends."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2099
+msgid "No tienes permisos para importar Google Trends."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2203
+msgid "No tienes permisos para borrar Google Trends."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2571
+msgid "Mercado Google · Trends"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2572
+msgid "Objetivo:"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2572
+msgid ""
+"descubrir demanda externa y temas emergentes del entorno comercial. El "
+"catálogo, las categorías y los hubs solo delimitan el negocio; las páginas, "
+"landings y posts se consultan después para medir cobertura y decidir qué "
+"mejorar."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2584
+msgid "Se han eliminado las señales almacenadas de Trends."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2586
+msgid "Configuración del radar guardada."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2611
+msgid "Exploración de mercado · web pública"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2629
+msgid "Ultimo diagnostico tecnico:"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2643
+msgid ""
+"Se usa para saber dónde ya aparece vuestra web y con qué consultas. No "
+"alimenta el radar ni sustituye la demanda externa."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2650
+msgid "Perímetro comercial del radar"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2651
+msgid ""
+"Se genera con áreas manuales, clusters, hubs, categorías y atributos de "
+"producto."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2651
+msgid "No se escanean landings ni posts para decidir qué busca el mercado."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2671
+msgid "Importación CSV · respaldo manual"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2672
+msgid ""
+"La exploración pública automática es la vía principal. Si Google limita "
+"temporalmente las consultas desde el servidor, puedes seguir importando un "
+"CSV de"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2672
+#: includes/google/seo-google-trends.php:2676
+msgid "En aumento"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2672
+#: includes/google/seo-google-trends.php:2676
+msgid "Principales"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2672
+#: includes/google/seo-google-trends.php:2676
+msgid "Relacionadas"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2672
+msgid "sin perder el motor de decisiones."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2675
+msgid "Semilla analizada"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2679
+msgid "CSV"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2683
+msgid "Señales externas almacenadas"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2685
+msgid ""
+"Todavía no hay señales almacenadas. Actualiza el radar o importa un CSV de "
+"Explore."
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2687
+msgid "Señal"
+msgstr ""
+
+#: includes/google/seo-google-trends.php:2687
+msgid "Indicador"
+msgstr ""
+
+#: taxocommerce-google-bing.php:102 taxocommerce-google-bing.php:112
+msgid "Insights"
+msgstr ""
+
+#: taxocommerce-google-bing.php:219
+msgid ""
+"Analysis requiere el motor de informes del antiguo TaxoCommerce SEO, que no "
+"está cargado. Las conexiones de Insights siguen funcionando; todavía no hay "
+"un motor independiente que reproduzca estos once informes."
+msgstr ""
+
+#: taxocommerce-google-bing.php:255
+msgid "Analysis"
+msgstr ""
+
+#: taxocommerce-google-bing.php:256
+msgid ""
+"Qué hacer y Plan de acción se presentan juntos; el resto de informes sigue "
+"bajo demanda."
+msgstr ""

@@ -1,9 +1,85 @@
+## Unreleased - Familia i18n #2062
+
+- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
+
 # CHANGELOG — TaxoCommerce Core - Catalog & Content Management for WooCommerce
 
 > Historial de las versiones del plugin **independiente**. Las funciones anteriores a su separación están documentadas en [`changelog.txt`](changelog.txt).
 > Fuente inicial: entradas verificadas del `readme.txt` en GitHub. Solo se atribuye una fecha si la fuente la acredita.
 
 ## [Unreleased]
+
+- Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
+
+- Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
+
+- Infraestructura de actualizaciones (#2086): STAGING y Focazul reciben únicamente los archivos de plugin modificados desde el último release satisfactorio. Solo se actualizan plugins ya instalados; Focazul únicamente Core. Sin FTP cuando no hay cambios y sin copiar plugins ajenos. Verificación SHA-256 por fichero y fallo conjunto de Core si uno de sus dos destinos falla. Sin cambios de lógica funcional en Core.
+
+- Despliegue (#2084): Core se transfiere a STAGING y Asociación Focazul en trabajos independientes; el resultado conjunto exige éxito en ambos sitios. Fallos de System Check u otros plugins no bloquean Core en Focazul. Sin modificar el código funcional del plugin.
+
+- Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
+
+## [0.4.53]
+
+- Autocheck (#2113): el botón «Descargar resultados (JSON)» permite obtener el **último informe real del usuario** sin volver a ejecutar el chequeo. El archivo incluye sitio e idioma WordPress, versión de Core con la que se ejecutó, fecha, duración, resultados y mensajes detallados de todas las pruebas (pass/fail/skip). Los casos omitidos cuentan como incompletos, nunca como UAT superadas.
+- Descarga autenticada desde admin-post.php, con permiso y nonce independientes, informe por usuario, caducidad y formato JSON versionado. Nombre de archivo con dominio de instalación, sin escritura en páginas, categorías ni menús. Tests offline de permisos, validez del informe, coincidencia con pantalla y JSON parseable, y ejecución en CI.
+- No se confunde la exportación con ejecución de pruebas funcionales E2E de escritura: se requiere instrumentar por separado la automatización de clics y de persistencia de cambios en STAGING y Focazul. Mismo plugin en ambas instalaciones.
+
+## [0.4.51]
+
+- Gestor de menús (#2081, #2069): se unifica la **presentación** del editor de menús clásicos y de navegaciones de bloques de WordPress. Ambos usan la misma pantalla y CSS: cargar/crear, nombre, controles de publicación arriba y abajo, panel izquierdo de páginas/entradas/enlaces/categorías y panel derecho con estructura desplegable y jerarquía visible. La interfaz se adapta al idioma de WordPress y al tipo real de menú, no a clientes concretos.
+- En temas de bloques, el panel izquierdo añade ahora páginas, entradas y categorías mediante bloques nativos core/navigation-link con IDs y URLs de esta instalación. El editor guarda el nombre y los textos/URLs, permite eliminar enlaces de hoja (incluidos los anidados) sin borrar submenús completos ni bloques desconocidos; los menús de bloques no referenciados en cabeceras pueden eliminarse tras confirmación expresa; comprueba permisos, nonces, hash de edición concurrente, tipos y límites, y conserva la activación explícita en cabeceras. Los menús clásicos y las propuestas SEO conservan sus rutas de datos y funciones existentes.
+- Tests específicos nuevos de interfaz para tema de bloques con las clases reales del plugin; pruebas de objetos, enlaces anidados y borrado seguro. Mantener #2081 abierto para funciones estructurales avanzadas de navegación por bloques y validación visual autenticada en STAGING y Focazul.
+- Core se distribuye desde una fuente GitHub idéntica a ambos entornos de prueba mediante el workflow dual con verificación de checksums; PRODUCCIÓN no se modifica.
+
+## [0.4.50]
+
+- Gestor de menús portable (#2069): la selección automática de un menú clásico utiliza únicamente las ubicaciones declaradas por el tema activo y los menús realmente existentes. Se elimina la lista de identificadores de ubicación supuestos (`primary`, `menu-1`, `header`). Cuando hay varios menús publicados distintos, el editor exige seleccionar uno; no edita el primero arbitrariamente. La navegación de bloques se mantiene independiente y sin cambios. Pruebas para temas con ubicaciones arbitrarias, menús ambiguos y selección explícita.
+- Igualdad de instalaciones (#2065): después de cada despliegue de Core, se comparan todos los archivos distribuibles versionados del mismo commit con los dos WordPress de prueba. Solo se transfieren los que no coincidan, atómicamente y con lectura SHA-256 remota. No se editan sitios por separado ni se copian datos; Focazul no recibe otros plugins y PRODUCCIÓN no se modifica.
+
+## [0.4.49]
+
+- Traducciones (#2094): recompilados desde los ficheros PO originales los cinco catálogos binarios MO (es_ES, en_US, fr_FR, de_DE, nl_NL), que tenían índices de tablas incompatibles con el lector gettext de WordPress y provocaban avisos repetitivos de `unpack()` y `Undefined array key`.
+- Se verifican de forma estructural los 100 catálogos binarios de la familia antes de transferir Core a STAGING y Focazul. No se cambian textos traducidos ni el código del núcleo de WordPress.
+
+## [0.4.48]
+
+- Países (#2092): se utiliza la misma lista dinámica de países de páginas en menús y formularios de Core; Global es el país vacío por defecto, sin asignación a ES y sin países ficticios. La edición de páginas admite códigos de dos letras sin catálogo predefinido; las categorías pueden volver a Global eliminando su metadato en lugar de generar un error.
+- Los filtros de asignación de páginas en Jerarquía SEO respetan Global como metadato ausente; la vista de jerarquía no asume España. Sin borrar ni renombrar menús, contenidos o relaciones existentes.
+
+## [0.4.47]
+
+- Menús (#2090): solo se ofrecen países con páginas asignadas explícitamente en `_seo_pais_origen`; Global (`''`) es la opción sin país, nunca una sustitución de ES. Se respetan menús creados anteriormente y los menús nativos de WordPress. Los árboles de jerarquía de menús se aíslan por asignaciones explícitas de páginas y categorías; se descartan enlaces entre países distintos.
+- Edición de páginas: Global es la selección inicial si no hay país almacenado y permite desasignarlo. Los códigos de país importados de dos letras se preservan aunque no pertenezcan al antiguo conjunto de cinco mercados. Catálogos PO/MO/POT actualizados y pruebas de regresión independientes.
+
+## [0.4.46]
+
+- Anomalías (#2071): se muestran por defecto solo incidencias reales de jerarquías configuradas. El botón «Mostrar todas las comprobaciones» permite consultar resultados correctos. FAQs/Vocabulary opcionales sin configurar no se presentan como errores; las relaciones históricas no activan una jerarquía vacía.
+- Pruebas de regresión para el filtro, jerarquías no configuradas y relaciones heredadas; se conserva el despliegue dual independiente del PR #2085.
+
+## [0.4.45]
+
+- Gestor de menús: búsqueda de navegaciones de bloques en todas las plantillas y cabeceras del tema, no solo en front-page/home/index. Las navegaciones existentes de WordPress sin referencia de cabecera verificable también se muestran como opciones, sin declararlas activas ni seleccionarlas automáticamente.
+- Gestor unificado sin pestaña independiente de menús clásicos. En temas de bloques se carga el listado de navegaciones nativas (`wp_navigation`), se pueden crear nuevas, editar enlaces y añadir enlaces de primer nivel. Los menús clásicos de temas clásicos mantienen sus herramientas anteriores.
+- Activación de una navegación de bloques en cabeceras del tema (ficheros o plantillas personalizadas) cuando hay una sola navegación identificable; se guarda la personalización mediante `wp_template_part` de WordPress sin modificar ficheros físicos. No se tocan cabeceras ambiguas.
+- La opción de generar/sincronizar desde jerarquía SEO solo aparece con un árbol real; la ejecución rechaza una jerarquía vacía antes de borrar elementos generados. Issue #2069.
+- Acceso directo al Editor del sitio para la navegación seleccionada y aviso desde la pestaña SEO en temas de bloques, evitando confundir el menú clásico cargado con el menú publicado en la cabecera.
+- La selección es solo lectura; el guardado mantiene verificaciones de nonce, permisos y contenido concurrente. No se modifica automáticamente el menú publicado. Issue #2069.
+- Anomalías (#2071): un sitio sin jerarquía SEO ni relaciones configuradas muestra un estado neutro en lugar de una auditoría vacía. Los informes de Vocabulary y FAQ no anuncian errores por ausencia de tablas de módulos opcionales. La categoría predeterminada de WooCommerce se excluye de las alertas de falta de asignación y de categorías vacías. Se conservan las comprobaciones cuando existen definiciones y datos.
+
+## [0.4.44]
+
+- Gestor Menús WordPress: edición explícita de las entradas `wp_navigation` referenciadas desde plantillas de cabecera de temas de bloques. Guarda los atributos de los enlaces sin alterar bloques no compatibles, comprueba nonce/permisos y rechaza cambios concurrentes. Los menús clásicos siguen siendo independientes; se evita afirmar que su guardado actualiza la cabecera. Menús embebidos y situaciones ambiguas se derivan al Editor del sitio. Issue #2060.
+
+- Gestor de menús WordPress: aviso explícito en temas de bloques cuando el menú clásico editado no es necesariamente el que se muestra en la cabecera, con acceso al Editor del sitio. En temas clásicos informa de las ubicaciones asignadas al menú seleccionado. Sin modificación automática de menús o navegación publicada. Issue #2058.
+
+## [0.4.43]
+
+- Botones visibles «Guardar menú» (superior/inferior) en la pestaña Menús WordPress: guardan de forma explícita nombre, títulos, URLs, orden y jerarquía; aviso de cambios pendientes y mensaje de resultado.
+- Nuevo «Eliminar menú» para un menú nativo seleccionado, con casilla y diálogo de confirmación. Protege todos los menús SEO por país y menús con elementos automáticos; informa si está asignado al tema. La eliminación usa la API nativa WordPress.
+- Validación previa de todos los elementos, pertenencia y ausencia de ciclos, nonces y capacidades, sin guardar al abrir un menú. Se conserva el comportamiento anterior de «Menús SEO / WooCommerce», y los botones de añadir/quitar elementos siguen guardando inmediatamente.
+- Pruebas de regresión, manuales actualizados, Issue #2056. No se toca el monolito ni se publica en producción.
+
 
 ## [0.4.42]
 

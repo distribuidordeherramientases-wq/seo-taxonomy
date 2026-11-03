@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-system-check
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -115,21 +116,21 @@ function taxocommerce_system_check_register_with_core( $core ) {
 function taxocommerce_system_check_register_menu() {
     $in_core = function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' );
     if ( ! $in_core ) {
-        add_menu_page( 'TaxoCommerce System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home', 'dashicons-shield-alt', 62 );
+        add_menu_page( __( 'TaxoCommerce System Check', 'taxocommerce-system-check' ), __( 'System Check', 'taxocommerce-system-check' ), 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home', 'dashicons-shield-alt', 62 );
     } else {
-        add_submenu_page( 'taxocommerce-core', 'System Check', 'System Check', 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home' );
+        add_submenu_page( 'taxocommerce-core', __( 'System Check', 'taxocommerce-system-check' ), __( 'System Check', 'taxocommerce-system-check' ), 'manage_options', 'taxocommerce-system-check', 'taxocommerce_system_check_home' );
     }
-    add_submenu_page( null, 'PHP independiente', 'PHP independiente', 'manage_options', 'tcs-native-php', array( 'TaxoCommerce_System_Check_PHP', 'render' ) );
+    add_submenu_page( null, __( 'PHP independiente', 'taxocommerce-system-check' ), __( 'PHP independiente', 'taxocommerce-system-check' ), 'manage_options', 'tcs-native-php', array( 'TaxoCommerce_System_Check_PHP', 'render' ) );
     // Previously published routes remain available without visible menu entries.
-    add_submenu_page( null, 'Estado del sistema', 'Estado del sistema', 'manage_options', 'tcs-system-status', 'taxocommerce_system_check_server_screen' );
-    add_submenu_page( null, 'Plugin Validation', 'Plugin Validation', 'manage_options', 'tcs-plugin-validation', 'taxocommerce_system_check_validation_screen' );
-    add_submenu_page( null, 'Chequeos HTTP', 'Chequeos HTTP', 'manage_options', 'tcs-url-audit', 'taxocommerce_system_check_url_audit_screen' );
+    add_submenu_page( null, __( 'Estado del sistema', 'taxocommerce-system-check' ), __( 'Estado del sistema', 'taxocommerce-system-check' ), 'manage_options', 'tcs-system-status', 'taxocommerce_system_check_server_screen' );
+    add_submenu_page( null, __( 'Plugin Validation', 'taxocommerce-system-check' ), __( 'Plugin Validation', 'taxocommerce-system-check' ), 'manage_options', 'tcs-plugin-validation', 'taxocommerce_system_check_validation_screen' );
+    add_submenu_page( null, __( 'Chequeos HTTP', 'taxocommerce-system-check' ), __( 'Chequeos HTTP', 'taxocommerce-system-check' ), 'manage_options', 'tcs-url-audit', 'taxocommerce_system_check_url_audit_screen' );
 }
 
 /** The original plugin also uses these historic admin route names. */
 function taxocommerce_system_check_register_legacy_routes() {
-    add_submenu_page( null, 'Plugin Validation', 'Plugin Validation', 'manage_options', 'seo-core-system-test', 'taxocommerce_system_check_validation_screen' );
-    add_submenu_page( null, 'Estado del sistema', 'Estado del sistema', 'manage_options', 'seo_server_status', 'taxocommerce_system_check_server_screen' );
+    add_submenu_page( null, __( 'Plugin Validation', 'taxocommerce-system-check' ), __( 'Plugin Validation', 'taxocommerce-system-check' ), 'manage_options', 'seo-core-system-test', 'taxocommerce_system_check_validation_screen' );
+    add_submenu_page( null, __( 'Estado del sistema', 'taxocommerce-system-check' ), __( 'Estado del sistema', 'taxocommerce-system-check' ), 'manage_options', 'seo_server_status', 'taxocommerce_system_check_server_screen' );
 }
 
 /** Exactly one parent screen owns all feature tabs. */
@@ -287,7 +288,7 @@ function taxocommerce_system_check_server_screen() {
         seo_server_status();
         return;
     }
-    echo '<div class="wrap"><h1>Estado del sistema</h1><div class="notice notice-error"><p>Motor original no disponible.</p></div></div>';
+    echo '<div class="wrap">' . '<h1>' . esc_html__( 'Estado del sistema', 'taxocommerce-system-check' ) . '</h1>' . '<div class="notice notice-error">' . '<p>' . esc_html__( 'Motor original no disponible.', 'taxocommerce-system-check' ) . '</p>' . '</div>' . '</div>';
 }
 
 function taxocommerce_system_check_registered_modules() {
@@ -372,9 +373,9 @@ function taxocommerce_system_check_validation_screen() {
     }
     $modules = taxocommerce_system_check_module_results();
 
-    echo '<div class="wrap"><h2>Plugin Validation · módulos activos</h2>';
-    echo '<p>Sin Core solo se comprueba System Check. Con Core se usan sus módulos activos; no hay una lista duplicada.</p>';
-    echo '<table class="widefat striped"><thead><tr><th>Plugin</th><th>Versión</th><th>Comprobación básica</th></tr></thead><tbody>';
+    echo '<div class="wrap">' . '<h2>' . esc_html__( 'Plugin Validation · módulos activos', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Sin Core solo se comprueba System Check. Con Core se usan sus módulos activos; no hay una lista duplicada.', 'taxocommerce-system-check' ) . '</p>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Plugin', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Versión', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Comprobación básica', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ( $modules as $module ) {
         $messages = array();
         foreach ( $module['checks'] as $check ) {
@@ -385,7 +386,7 @@ function taxocommerce_system_check_validation_screen() {
         echo '<td>' . esc_html( implode( ' · ', $messages ) ) . '</td></tr>';
     }
     echo '</tbody></table>';
-    echo '<p class="description">Comprobación de carga y servicios básicos de System Check. No sustituye todavía los chequeos profundos, que se adaptarán por módulo.</p>';
+    echo '<p class="description">' . esc_html__( 'Comprobación de carga y servicios básicos de System Check. No sustituye todavía los chequeos profundos, que se adaptarán por módulo.', 'taxocommerce-system-check' ) . '</p>';
     echo '</div>';
 }
 
@@ -397,7 +398,7 @@ function taxocommerce_system_check_url_audit_screen() {
         TaxoCommerce_System_Check_URL_Audit::render();
         return;
     }
-    echo '<div class="wrap"><h1>Chequeos HTTP</h1><div class="notice notice-error"><p>El módulo de auditoría HTTP no se ha cargado.</p></div></div>';
+    echo '<div class="wrap">' . '<h1>' . esc_html__( 'Chequeos HTTP', 'taxocommerce-system-check' ) . '</h1>' . '<div class="notice notice-error">' . '<p>' . esc_html__( 'El módulo de auditoría HTTP no se ha cargado.', 'taxocommerce-system-check' ) . '</p>' . '</div>' . '</div>';
 }
 
 function taxocommerce_system_check_deactivate() {
@@ -411,3 +412,20 @@ function taxocommerce_system_check_deactivate() {
     wp_clear_scheduled_hook( 'seo_system_diagnostics_after_update_report' );
 }
 register_deactivation_hook( __FILE__, 'taxocommerce_system_check_deactivate' );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-system-check';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

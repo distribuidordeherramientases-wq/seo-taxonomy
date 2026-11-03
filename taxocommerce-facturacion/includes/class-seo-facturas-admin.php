@@ -29,8 +29,8 @@ final class SEO_Facturas_Admin {
     public static function register_page() {
         add_submenu_page(
             null,
-            'Facturas y presupuestos',
-            'Facturas y presupuestos',
+            __( 'Facturas y presupuestos', 'taxocommerce-facturacion' ),
+            __( 'Facturas y presupuestos', 'taxocommerce-facturacion' ),
             'manage_options',
             'seo-facturas',
             array(__CLASS__, 'render_page')
@@ -188,13 +188,13 @@ final class SEO_Facturas_Admin {
 
     public static function render_order_meta_box($post_or_order) {
         if (!current_user_can('manage_woocommerce') && !current_user_can('manage_options')) {
-            echo '<p>Sin permisos.</p>';
+            echo '<p>' . esc_html__( 'Sin permisos.', 'taxocommerce-facturacion' ) . '</p>';
             return;
         }
 
         $order = self::resolve_order_from_screen($post_or_order);
         if (!$order) {
-            echo '<p>No se ha podido cargar el pedido.</p>';
+            echo '<p>' . esc_html__( 'No se ha podido cargar el pedido.', 'taxocommerce-facturacion' ) . '</p>';
             return;
         }
 
@@ -211,7 +211,7 @@ final class SEO_Facturas_Admin {
         }
 
         if (!SEO_Facturas_Settings::get('enabled', 0)) {
-            echo '<p class="description">El sistema documental esta desactivado en Datos empresa.</p>';
+            echo '<p class="description">' . esc_html__( 'El sistema documental esta desactivado en Datos empresa.', 'taxocommerce-facturacion' ) . '</p>';
         }
     }
 

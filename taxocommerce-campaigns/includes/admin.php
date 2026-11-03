@@ -4,9 +4,9 @@ defined('ABSPATH') || exit;
 function tccampaigns_admin_menu(){
     $parent=(function_exists('taxocommerce_core')||defined('TAXOCOMMERCE_CORE_VERSION'))?'taxocommerce-core':'';
     if($parent){
-        add_submenu_page($parent,'TaxoCommerce Campaigns','Campaigns','manage_options','taxocommerce-campaigns','tccampaigns_admin_render');
+        add_submenu_page($parent,__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),__( 'Campaigns', 'taxocommerce-campaigns' ),'manage_options','taxocommerce-campaigns','tccampaigns_admin_render');
     }else{
-        add_menu_page('TaxoCommerce Campaigns','TaxoCommerce Campaigns','manage_options','taxocommerce-campaigns','tccampaigns_admin_render','dashicons-megaphone',58);
+        add_menu_page(__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),'manage_options','taxocommerce-campaigns','tccampaigns_admin_render','dashicons-megaphone',58);
     }
 }
 add_action('admin_menu','tccampaigns_admin_menu');
@@ -48,17 +48,17 @@ add_action('admin_post_tccampaigns_settings','tccampaigns_handle_settings');
 
 function tccampaigns_render_banners(){
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Informational redirect notice; settings POST requires a valid nonce.
-    if(isset($_GET['saved'])) echo '<div class="notice notice-success inline"><p>Configuración guardada.</p></div>';
+    if(isset($_GET['saved'])) echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Configuración guardada.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
     $providers=function_exists('tcsocial_network_get_providers')?tcsocial_network_get_providers():array(
         'facebook'=>array('label'=>'Facebook'),'instagram'=>array('label'=>'Instagram'),'linkedin'=>array('label'=>'LinkedIn'),'pinterest'=>array('label'=>'Pinterest'),'x'=>array('label'=>'X')
     );
-    echo '<section class="tcc-card"><h2>Banners públicos</h2>';
+    echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Banners públicos', 'taxocommerce-campaigns' ) . '</h2>';
     echo '<p>Las campañas activas siguen pudiendo mostrarse automáticamente mediante la plantilla <code>template-campaign.php</code> de TaxoCommerce Templates. No se crean posts.</p>';
     echo '<p>También puedes insertar una campaña en cualquier contenido con <code>[taxocommerce_campaign]</code>, una concreta con <code>[taxocommerce_campaign key="mi-campana"]</code> o usar el alias corto <code>[oferta]</code>. El shortcode usa la campaña activa y sus productos; no registra shortcodes dinámicos como <code>[oferta01]</code>.</p>';
     echo '</section>';
 
-    echo '<section class="tcc-card"><h2>Publicación de ofertas en redes</h2>';
-    echo '<p>Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las conexiones y los publicadores, pero su calendario editorial permanece separado.</p>';
+    echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Publicación de ofertas en redes', 'taxocommerce-campaigns' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las conexiones y los publicadores, pero su calendario editorial permanece separado.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="tccampaigns_settings">';
     wp_nonce_field('tccampaigns_settings');
     echo '<p><label><strong>Hora comercial</strong><br><input type="time" name="publication_time" value="'.esc_attr(tccampaigns_social_fixed_publication_time()).'"></label></p>';
@@ -69,7 +69,7 @@ function tccampaigns_render_banners(){
         $value=is_array($saved)&&isset($saved[$key])?(string)$saved[$key]:tccampaigns_social_template($key);
         echo '<div><label><strong>'.esc_html($label).'</strong></label><textarea style="width:100%;min-height:140px" name="social_templates['.esc_attr($key).']">'.esc_textarea($value).'</textarea></div>';
     }
-    echo '</div><p class="description">Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}.</p>';
+    echo '</div>' . '<p class="description">' . esc_html__( 'Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}.', 'taxocommerce-campaigns' ) . '</p>';
     submit_button('Guardar publicación de ofertas');
     echo '</form></section>';
 }
@@ -83,7 +83,7 @@ function tccampaigns_admin_render(){
         tccampaigns_register_public_template();
     }
     tccampaigns_calendar_styles();
-    echo '<div class="wrap"><h1>TaxoCommerce Campaigns</h1><p class="description">Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.</p>';
+    echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h1>' . '<p class="description">' . esc_html__( 'Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
     foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación','autotest'=>'Autotest','manual'=>'Manual') as $key=>$label){
         echo '<a class="nav-tab '.($tab===$key?'nav-tab-active':'').'" href="'.esc_url(tccampaigns_admin_tab_url($key)).'">'.esc_html($label).'</a>';
@@ -96,7 +96,7 @@ function tccampaigns_admin_render(){
             if(function_exists('tcsocial_network_render_styles')) tcsocial_network_render_styles();
             tccampaigns_social_render_scheduler_panel();
         }else{
-            echo '<div class="notice notice-info inline"><p>TaxoCommerce Social no está activo. El calendario comercial funciona igualmente; la programación de ofertas en redes se habilitará cuando Social esté disponible.</p></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'TaxoCommerce Social no está activo. El calendario comercial funciona igualmente; la programación de ofertas en redes se habilitará cuando Social esté disponible.', 'taxocommerce-campaigns' ) . '</p>' . '</div>';
         }
         tccampaigns_calendar_render();
     }elseif('banners'===$tab){

@@ -359,7 +359,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_core_refresh_architecture">';
         wp_nonce_field( 'taxocommerce_core_architecture_refresh', 'tc_arch_nonce' );
-        echo '<button class="button" type="submit">Actualizar informe</button>';
+        echo '<button class="button" type="submit">' . esc_html__( 'Actualizar informe', 'taxocommerce-core' ) . '</button>';
         echo '</form></div></div>';
 
         if ( is_wp_error( $report ) ) {
@@ -402,7 +402,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '</section>';
 
         if ( empty( $report['clusters'] ) ) {
-            echo '<div class="notice notice-info inline"><p>No existen clusters publicados con los que construir el informe.</p></div></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'No existen clusters publicados con los que construir el informe.', 'taxocommerce-core' ) . '</p>' . '</div>' . '</div>';
             return;
         }
 
@@ -419,7 +419,7 @@ final class TaxoCommerce_Core_Architecture_Report {
         echo '<section class="tc-architecture-section"><div class="tc-architecture-section-heading"><div>';
         echo '<span>' . esc_html__( 'Visión global', 'taxocommerce-core' ) . '</span><h3>' . esc_html__( 'Cómo se reparte la arquitectura', 'taxocommerce-core' ) . '</h3></div>';
         echo '<p>' . esc_html__( 'Clusters ordenados por número de productos, con recuentos únicos en cada nivel.', 'taxocommerce-core' ) . '</p></div>';
-        echo '<div class="tc-architecture-panel"><h4>Resumen por cluster</h4><div class="tc-architecture-table-wrap">';
+        echo '<div class="tc-architecture-panel">' . '<h4>' . esc_html__( 'Resumen por cluster', 'taxocommerce-core' ) . '</h4>' . '<div class="tc-architecture-table-wrap">';
         echo '<table class="widefat striped"><thead><tr><th>Cluster</th><th>' . esc_html__( 'Hubs primarios', 'taxocommerce-core' ) . '</th><th>' . esc_html__( 'Hubs secundarios', 'taxocommerce-core' ) . '</th><th>' . esc_html__( 'Categorías', 'taxocommerce-core' ) . '</th><th>' . esc_html__( 'Productos', 'taxocommerce-core' ) . '</th><th>' . esc_html__( 'Prod./categoría', 'taxocommerce-core' ) . '</th></tr></thead><tbody>';
         foreach ( $report['clusters'] as $cluster ) {
             echo '<tr><th scope="row">' . esc_html( $cluster['title'] ) . '</th>';
@@ -432,7 +432,7 @@ final class TaxoCommerce_Core_Architecture_Report {
 
         echo '<section class="tc-architecture-section"><div class="tc-architecture-section-heading"><div>';
         echo '<span>' . esc_html__( 'Anatomía interna', 'taxocommerce-core' ) . '</span><h3>' . esc_html__( 'Detalle por cluster', 'taxocommerce-core' ) . '</h3></div>';
-        echo '<p>Cada barra indica el peso de un hub primario dentro del cluster; los productos presentes en varios hubs pueden repetirse entre filas.</p></div>';
+        echo '<p>' . esc_html__( 'Cada barra indica el peso de un hub primario dentro del cluster; los productos presentes en varios hubs pueden repetirse entre filas.', 'taxocommerce-core' ) . '</p>' . '</div>';
 
         foreach ( $report['clusters'] as $cluster ) {
             echo '<article class="tc-architecture-cluster">';
@@ -451,7 +451,7 @@ final class TaxoCommerce_Core_Architecture_Report {
 
             if ( ! empty( $cluster['primaryRows'] ) ) {
                 echo '<div class="tc-architecture-cluster-detail">';
-                echo '<div class="tc-architecture-bars"><h5>Reparto por hub primario</h5>';
+                echo '<div class="tc-architecture-bars">' . '<h5>' . esc_html__( 'Reparto por hub primario', 'taxocommerce-core' ) . '</h5>';
                 foreach ( $cluster['primaryRows'] as $row ) {
                     echo '<div class="tc-architecture-bar"><div><span>' . esc_html( $row['label'] ) . '</span><strong>' . esc_html( self::amount( $row['products'] ) ) . '</strong></div>';
                     echo '<progress max="' . esc_attr( (string) max( 1, (int) $cluster['products'] ) ) . '" value="' . esc_attr( (string) $row['products'] ) . '"></progress></div>';
@@ -463,7 +463,7 @@ final class TaxoCommerce_Core_Architecture_Report {
                 }
                 echo '</tbody></table></div></div>';
             } else {
-                echo '<p class="tc-architecture-no-data">Este cluster no tiene hubs primarios vinculados.</p>';
+                echo '<p class="tc-architecture-no-data">' . esc_html__( 'Este cluster no tiene hubs primarios vinculados.', 'taxocommerce-core' ) . '</p>';
             }
             echo '</article>';
         }

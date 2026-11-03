@@ -571,7 +571,7 @@ function seo_core_visual_render_controls() {
     $message = isset($_GET['seo_visual_msg']) && is_string($_GET['seo_visual_msg']) ? sanitize_key(wp_unslash($_GET['seo_visual_msg'])) : '';
 
     if ($message === 'started') {
-        echo '<div class="notice notice-success inline"><p>Chequeo visual enviado a GitHub Actions. El resultado llegara automaticamente a esta seccion.</p></div>';
+        echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Chequeo visual enviado a GitHub Actions. El resultado llegara automaticamente a esta seccion.', 'taxocommerce-system-check' ) . '</p>' . '</div>';
     } elseif ($message === 'error') {
         $notice = get_transient('seo_core_visual_notice_' . get_current_user_id());
         delete_transient('seo_core_visual_notice_' . get_current_user_id());
@@ -579,8 +579,8 @@ function seo_core_visual_render_controls() {
     }
 
     echo '<div class="seo-core-test-note">';
-    echo '<strong>Renderizado real:</strong> este bloque usa Chromium/Playwright en GitHub Actions. WordPress no ejecuta un navegador dentro del hosting. '; 
-    echo 'Workflow: <code>' . esc_html($settings['workflow_id']) . '</code>. '; 
+    echo '<strong>' . esc_html__( 'Renderizado real:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'este bloque usa Chromium/Playwright en GitHub Actions. WordPress no ejecuta un navegador dentro del hosting.', 'taxocommerce-system-check' ) . ' ';
+    echo 'Workflow: <code>' . esc_html($settings['workflow_id']) . '</code>. ';
     echo 'Estado: <strong>' . esc_html((string) ($state['status'] ?? 'sin ejecutar')) . '</strong>.';
     echo '</div>';
 
@@ -590,9 +590,9 @@ function seo_core_visual_render_controls() {
     $button_attributes = seo_core_visual_is_configured() ? array() : array('disabled' => 'disabled');
     submit_button('Ejecutar chequeo responsive ahora', 'secondary', 'submit', false, $button_attributes);
     if (!seo_core_visual_is_configured()) {
-        echo '<p class="description">Configura primero la conexion GitHub Actions que ya utiliza TaxoCommerce SEO. El workflow visual debe existir en el mismo repositorio.</p>';
+        echo '<p class="description">' . esc_html__( 'Configura primero la conexion GitHub Actions que ya utiliza TaxoCommerce SEO. El workflow visual debe existir en el mismo repositorio.', 'taxocommerce-system-check' ) . '</p>';
     } else {
-        echo '<p class="description">Se prueban hasta 7 URLs representativas en movil, tablet y escritorio. Las capturas completas quedan como artefacto del workflow.</p>';
+        echo '<p class="description">' . esc_html__( 'Se prueban hasta 7 URLs representativas en movil, tablet y escritorio. Las capturas completas quedan como artefacto del workflow.', 'taxocommerce-system-check' ) . '</p>';
     }
     echo '</form>';
 }

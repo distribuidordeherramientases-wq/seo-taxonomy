@@ -432,7 +432,7 @@ function tcsocial_instagram_render_connection($config)
         }
     }
 
-    echo '<div class="seo-social-actions"><button type="submit" class="button">Guardar</button><button type="submit" class="button button-primary" name="test_after_save" value="1">Guardar y probar conexion</button></div>';
+    echo '<div class="seo-social-actions">' . '<button type="submit" class="button">' . esc_html__( 'Guardar', 'taxocommerce-social' ) . '</button>' . '<button type="submit" class="button button-primary" name="test_after_save" value="1">' . esc_html__( 'Guardar y probar conexion', 'taxocommerce-social' ) . '</button>' . '</div>';
     echo '</form>';
 
     if ($has_token || !empty($config['enabled']) || !empty($config['ig_user_id'])) {

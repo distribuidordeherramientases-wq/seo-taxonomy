@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.42
+Stable tag: 0.4.53
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,12 +17,15 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Editorial management for products, product categories, posts and pages using native WordPress editing.
 * Cached read-only inventory dashboard for products, posts, pages, categories, media, statuses and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
-* Native WordPress navigation menu generation with optional manual entries and safe regeneration.
+* Native WordPress navigation menu generation with optional manual entries and safe regeneration. SEO menu countries come only from explicitly assigned page countries; Global denotes no country, with no preset menu countries.
+* Unified WordPress menu manager: the same two-column loading, publication, object picker and hierarchical structure UI works in classic and block themes. Classic menus retain native WordPress nav_menu storage; block themes use wp_navigation posts. In block themes, add pages, posts, categories, product categories and custom links; rename and edit links, remove safe leaf links, delete an unreferenced navigation only after confirmation, and explicitly activate a header template part when unambiguous. Theme files are never changed; unsupported advanced navigation blocks still use the Site Editor.
+* Optional SEO hierarchy menus are only proposed for populated hierarchies. No stored menu is overwritten by viewing the manager. Inline template navigation remains editable in the native Site Editor.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
 * Optional extension discovery for the other TaxoCommerce modules.
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
+* Read-only Autocheck with authenticated JSON download of the last user-specific report, including site URL, Core version, pass/fail/skipped results and detailed messages for independent comparison between installations.
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.
 
@@ -53,6 +56,40 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.53 =
+* Export the last authenticated Core Autocheck report as UTF-8 JSON, including installation identity, detailed test results and explicit skipped cases, without re-running or changing store data.
+* Add regression tests and versioned export schema.
+
+= 0.4.52 =
+* Make the built-in Autocheck discoverable from the menu manager without adding a WordPress sidebar submenu; preserve existing Auto Test URLs.
+* Check native classic-theme menu loading and referenced block navigation in the actual theme, plus menu controller registration, without altering site content.
+* Remove predefined shop markets from the menu Autocheck and report optional SEO tables as not applicable on fresh installations.
+
+= 0.4.51 =
+* Use the same menu manager layout for classic and block themes, including loading, publication, object pickers, and nested structure.
+* Extend block-navigation editing with native WordPress page/post/taxonomy links, menu renaming and safe leaf-link removal. Preserve theme files and existing navigation blocks; add security and regression tests.
+
+= 0.4.50 =
+* Resolve the active classic WordPress menu from the current theme's registered locations, regardless of their names. When several distinct menus are assigned, require explicit selection rather than guessing.
+* Keep the same distributable Core source on staging and the independent association WordPress through checksum-based reconciliation, transferring only files that differ. No production deployment.
+
+= 0.4.47 =
+* Generate available SEO menu countries from actual page assignments; unassigned pages use Global with no country code. Existing WordPress menus and country menus are retained. Add independent language catalogs and regression tests.
+
+= 0.4.46 =
+* Contextual anomalies: display only verified findings by default, retain an opt-in detailed view, and suppress unconfigured hierarchy or optional FAQ/Vocabulary warnings.
+
+
+= 0.4.44 =
+
+* Separate editable block navigation from classic nav menus; locate published wp_navigation references used by header templates, edit link labels/URLs, save safely with a revision check. Inline or ambiguous navigation uses the WordPress Site Editor.
+
+= 0.4.43 =
+* Add explicit Save Menu buttons for batch editing of native WordPress menu name and items, with a clear saved confirmation and unsaved-changes indicator.
+* Add Delete Menu for regular WordPress menus with checkbox and dialog confirmation, preventing deletion of SEO/country-managed menus.
+* Preserve separate add/remove actions, safe parent validation, current theme menu locations and WooCommerce independence.
+
 
 = 0.4.42 =
 * A new WordPress-only menu tab edits native menus using posts, pages, normal categories and links without WooCommerce.

@@ -1514,7 +1514,7 @@ function seo_google_opportunity_render_rows(array $rows, $empty_message, $limit 
             echo '<div class="seo-opp-meta">' . esc_html($metric_text) . '</div>';
         }
         if (!empty($target['title'])) {
-            echo '<div class="seo-opp-meta"><strong>Destino actual:</strong> ';
+            echo '<div class="seo-opp-meta">' . '<strong>' . esc_html__( 'Destino actual:', 'taxocommerce-google-bing' ) . '</strong>' . ' ';
             if (!empty($target['url'])) {
                 echo '<a href="' . esc_url($target['url']) . '" target="_blank" rel="noopener">' . esc_html($target['title']) . '</a>';
             } else {
@@ -1601,7 +1601,7 @@ function seo_google_opportunity_render_actions(array $payload, $days) {
 
     seo_google_opportunity_render_source_cards($payload['sources']);
     echo '<div class="seo-opp-card"><h3>JSON para compartir</h3><p>Exporta únicamente los <strong>resultados de Google y las decisiones derivadas</strong>. No incluye credenciales, tokens ni configuración técnica.</p><p style="margin-bottom:0;"><a class="button button-primary" href="' . esc_url(seo_google_opportunity_json_export_url($days)) . '">Descargar JSON de decisiones</a></p></div>';
-    echo '<div class="seo-opp-card"><h3>Decisiones recomendadas</h3><p class="seo-opp-meta">Una señal de Trends sin cobertura se marca como investigación o vigilancia; nunca crea automáticamente una landing, un post, una categoría ni un producto.</p>';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Decisiones recomendadas', 'taxocommerce-google-bing' ) . '</h3>' . '<p class="seo-opp-meta">' . esc_html__( 'Una señal de Trends sin cobertura se marca como investigación o vigilancia; nunca crea automáticamente una landing, un post, una categoría ni un producto.', 'taxocommerce-google-bing' ) . '</p>';
     seo_google_opportunity_render_rows($payload['rows'], 'Todavía no hay evidencia suficiente para generar decisiones.', 40);
     echo '</div>';
 }
@@ -1623,11 +1623,11 @@ function seo_google_opportunity_render_market(array $payload, $days) {
     }));
 
     echo '<div class="seo-opp-two">';
-    echo '<div class="seo-opp-card"><h3>Radar emergente</h3><p class="seo-opp-meta">Temas que están creciendo ahora y que el filtro ha relacionado con el perímetro comercial.</p>';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Radar emergente', 'taxocommerce-google-bing' ) . '</h3>' . '<p class="seo-opp-meta">' . esc_html__( 'Temas que están creciendo ahora y que el filtro ha relacionado con el perímetro comercial.', 'taxocommerce-google-bing' ) . '</p>';
     if (!$emerging) {
-        echo '<p>No hay tendencias actuales relevantes almacenadas. Esto puede significar que el radar funciona pero hoy no hay coincidencias comerciales.</p>';
+        echo '<p>' . esc_html__( 'No hay tendencias actuales relevantes almacenadas. Esto puede significar que el radar funciona pero hoy no hay coincidencias comerciales.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Tendencia</th><th>Relevancia</th><th>Volumen agrupado</th><th>Área relacionada</th><th>Observada</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tendencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Relevancia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Volumen agrupado', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Área relacionada', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Observada', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($emerging, 0, 80) as $row) {
             echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . esc_html(number_format_i18n((float) $row['relevance_score'], 0)) . '/100</td><td>' . esc_html($row['traffic_label'] ?: esc_html(number_format_i18n((float) $row['traffic'], 0))) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html($row['observed_at']) . '</td></tr>';
         }
@@ -1635,11 +1635,11 @@ function seo_google_opportunity_render_market(array $payload, $days) {
     }
     echo '</div>';
 
-    echo '<div class="seo-opp-card"><h3>Exploración de mercado</h3><p class="seo-opp-meta">Búsquedas relacionadas, principales o en aumento incorporadas desde CSV o proveedor autorizado.</p>';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Exploración de mercado', 'taxocommerce-google-bing' ) . '</h3>' . '<p class="seo-opp-meta">' . esc_html__( 'Búsquedas relacionadas, principales o en aumento incorporadas desde CSV o proveedor autorizado.', 'taxocommerce-google-bing' ) . '</p>';
     if (!$market) {
-        echo '<p>No hay datos de Explore almacenados. El radar de actualidad puede seguir operativo de forma independiente.</p>';
+        echo '<p>' . esc_html__( 'No hay datos de Explore almacenados. El radar de actualidad puede seguir operativo de forma independiente.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Búsqueda</th><th>Puntuación</th><th>Crecimiento</th><th>Semilla</th><th>Fuente</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Búsqueda', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Puntuación', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Crecimiento', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Semilla', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Fuente', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($market, 0, 100) as $row) {
             echo '<tr><td><strong>' . esc_html($row['query']) . '</strong></td><td>' . esc_html(number_format_i18n((float) $row['score'], 0)) . '/100</td><td>' . (!empty($row['breakout']) ? '<strong>BREAKOUT</strong>' : esc_html(number_format_i18n((float) $row['max_growth'], 0) . '%')) . '</td><td>' . esc_html(implode(', ', array_slice((array) $row['seeds'], 0, 3))) . '</td><td>' . esc_html(implode(', ', (array) $row['providers'])) . '</td></tr>';
         }
@@ -1691,11 +1691,11 @@ function seo_google_opportunity_render_results(array $payload, $days) {
 
     $results = (array) ($payload['results'] ?? array());
     echo '<div class="seo-opp-two">';
-    echo '<div class="seo-opp-card"><h3>Landings</h3>';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Landings', 'taxocommerce-google-bing' ) . '</h3>';
     if (empty($results['landings'])) {
-        echo '<p>No hay métricas disponibles para landings publicadas.</p>';
+        echo '<p>' . esc_html__( 'No hay métricas disponibles para landings publicadas.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Landing</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Landing', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . 'GA4' . '</th>' . '<th>' . esc_html__( 'Search Console', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($results['landings'], 0, 80) as $row) {
             echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . ($row['position'] ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
@@ -1703,11 +1703,11 @@ function seo_google_opportunity_render_results(array $payload, $days) {
     }
     echo '</div>';
 
-    echo '<div class="seo-opp-card"><h3>Posts</h3>';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Posts', 'taxocommerce-google-bing' ) . '</h3>';
     if (empty($results['posts'])) {
-        echo '<p>No hay métricas disponibles para posts publicados.</p>';
+        echo '<p>' . esc_html__( 'No hay métricas disponibles para posts publicados.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Post</th><th>Diagnóstico</th><th>GA4</th><th>Search Console</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Post', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . 'GA4' . '</th>' . '<th>' . esc_html__( 'Search Console', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach (array_slice($results['posts'], 0, 80) as $row) {
             echo '<tr><td><a href="' . esc_url($row['url']) . '" target="_blank" rel="noopener"><strong>' . esc_html($row['title']) . '</strong></a></td><td>' . wp_kses_post(seo_google_opportunity_badge($row['assessment'], 'gray')) . '</td><td>' . esc_html(number_format_i18n((int) $row['pageviews'])) . ' vistas · ' . esc_html(number_format_i18n((int) $row['sessions'])) . ' sesiones</td><td>' . esc_html(number_format_i18n((int) $row['clicks'])) . ' clics · ' . esc_html(number_format_i18n((int) $row['impressions'])) . ' impresiones · pos. ' . (!empty($row['position']) ? esc_html(number_format_i18n((float) $row['position'], 1)) : '—') . '</td></tr>';
         }
@@ -1736,7 +1736,7 @@ function seo_google_opportunity_render_sources(array $payload, $days) {
         'Cobertura'                  => 'coverage',
         'Laboratorio'                => 'laboratory',
     );
-    echo '<div class="seo-opp-card"><h3>Informes técnicos conservados</h3><p>Estas pantallas siguen disponibles como evidencia y diagnóstico; ya no tienen que interpretarse una a una para saber qué hacer.</p><div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    echo '<div class="seo-opp-card">' . '<h3>' . esc_html__( 'Informes técnicos conservados', 'taxocommerce-google-bing' ) . '</h3>' . '<p>' . esc_html__( 'Estas pantallas siguen disponibles como evidencia y diagnóstico; ya no tienen que interpretarse una a una para saber qué hacer.', 'taxocommerce-google-bing' ) . '</p>' . '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
     foreach ($links as $label => $view) {
         echo '<a class="button" href="' . esc_url(seo_google_admin_url($view)) . '">' . esc_html($label) . '</a>';
     }

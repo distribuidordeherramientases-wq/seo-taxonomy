@@ -74,6 +74,7 @@ PHP;
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-hierarchy*.php</code></th><td><?php esc_html_e( 'Roles SEO, edición de relaciones y esquema SQL.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-menu*.php</code></th><td><?php esc_html_e( 'Menús nativos: gestor WordPress estándar y sincronización SEO por país en pestañas separadas.', 'taxocommerce-core' ); ?></td></tr>
                                 <tr><th scope="row"><code>tc_tab=wordpress</code></th><td><?php esc_html_e( 'Modo independiente de WooCommerce: entradas, páginas y categorías habituales, sin filtro de país ni product_cat. Requiere seleccionar un menú nativo explícito antes de escribir.', 'taxocommerce-core' ); ?></td></tr>
+                                <tr><th scope="row"><code>save_menu / delete_menu</code></th><td><?php esc_html_e( 'Guardado explícito y validado por lotes de los elementos de un menú nativo, con formulario HTML asociado. Eliminación únicamente de menús básicos no protegidos y con confirmación. Ambas acciones usan el controlador admin_post de menús con permisos y nonce. La sincronización SEO permanece separada.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-country.php</code></th><td><?php esc_html_e( 'Normalización y lectura del país de cada contenido.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>includes/class-taxocommerce-core-auto-test.php</code></th><td><?php esc_html_e( 'Comprobaciones funcionales no destructivas.', 'taxocommerce-core' ); ?></td></tr>
 								<tr><th scope="row"><code>assets/</code></th><td><?php esc_html_e( 'Estilos y scripts administrativos; las pruebas de regresión se ejecutan en GitHub Actions, fuera del plugin instalable.', 'taxocommerce-core' ); ?></td></tr>
@@ -126,7 +127,7 @@ PHP;
 								<tr><th scope="row"><?php esc_html_e( 'Content', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-content</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'SEO Hierarchy', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-hierarchy</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'Menu Manager', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-menu</code></td></tr>
-								<tr><th scope="row"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></th><td><code>admin.php?page=taxocommerce-core&amp;tab=auto-test</code></td></tr>
+								<tr><th scope="row"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></th><td><code>admin.php?page=taxocommerce-core&amp;tab=autocheck</code></td></tr>
 								<tr><th scope="row"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></th><td><code>taxocommerce-core-user-guide</code></td></tr>
 							</tbody>
 						</table>
@@ -159,7 +160,7 @@ PHP;
 					<h2><?php esc_html_e( '8. Caché, logs y diagnóstico', 'taxocommerce-core' ); ?></h2>
 					<h3><?php esc_html_e( 'Informes con caché', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'El inventario de contenidos usa el transient taxocommerce_core_content_inventory_v1 y el informe de arquitectura, taxocommerce_core_architecture_report_v1. Ambos tienen una duración de 15 minutos y un botón de actualización protegido.', 'taxocommerce-core' ); ?></p>
-					<h3><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></h3>
+					<h3><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'Se ejecuta bajo demanda y comprueba lecturas, países, roles, relaciones, menús y módulos. Guarda el último resultado por usuario durante un día en un transient; no publica ni modifica contenidos reales. Una prueba omitida no equivale a una prueba correcta.', 'taxocommerce-core' ); ?></p>
 					<h3><?php esc_html_e( 'Registro técnico', 'taxocommerce-core' ); ?></h3>
 					<p><?php esc_html_e( 'TaxoCommerce_Core_Logger guarda entradas de nivel info, warning y error en la opción taxocommerce_core_log_entries. El límite configurable se restringe entre 20 y 500 entradas para evitar un crecimiento indefinido.', 'taxocommerce-core' ); ?></p>

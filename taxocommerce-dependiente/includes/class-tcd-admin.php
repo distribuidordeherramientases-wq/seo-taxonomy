@@ -8,10 +8,10 @@ final class TCD_Admin {
 
     public static function menu(){
         if (function_exists('taxocommerce_core')) {
-            add_submenu_page('taxocommerce-core','TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
+            add_submenu_page('taxocommerce-core',__( 'TaxoCommerce Sales Assistant', 'taxocommerce-dependiente' ),__( 'Sales Assistant', 'taxocommerce-dependiente' ),'manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'));
         } else {
-            add_menu_page('TaxoCommerce Sales Assistant','Sales Assistant','manage_woocommerce',
+            add_menu_page(__( 'TaxoCommerce Sales Assistant', 'taxocommerce-dependiente' ),__( 'Sales Assistant', 'taxocommerce-dependiente' ),'manage_woocommerce',
                 'taxocommerce-dependiente',array(__CLASS__,'render'),'dashicons-store',59);
         }
     }
@@ -70,7 +70,7 @@ final class TCD_Admin {
         $processed=absint($snapshot['learned_count']??0)+absint($snapshot['unlearned_count']??0);
         $total=absint($snapshot['source_count']??0);
 
-        echo '<p>Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB.</p>';
+        echo '<p>' . esc_html__( 'Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB.', 'taxocommerce-dependiente' ) . '</p>';
 
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:12px 0 16px">';
         self::log_card('Estado',(string)($state['status']??'—'),'L'.absint($state['lesson']??0).' · '.(string)($state['phase']??''));
@@ -83,7 +83,7 @@ final class TCD_Admin {
 
         $sample=TCD_Load::last_sample();
         if($sample){
-            echo '<div class="notice notice-info inline"><p><strong>Último lote:</strong> ';
+            echo '<div class="notice notice-info inline">' . '<p>' . '<strong>' . esc_html__( 'Último lote:', 'taxocommerce-dependiente' ) . '</strong>' . ' ';
             echo esc_html(number_format_i18n(absint($sample['items']??0))).' elementos · ';
             echo esc_html(number_format_i18n((float)($sample['elapsed']??0),3)).' s · ';
             echo 'CPU petición '.esc_html(null===($sample['cpu_percent']??null)?'n/d':number_format_i18n((float)$sample['cpu_percent'],1).'%').' · ';
@@ -105,36 +105,36 @@ final class TCD_Admin {
                     . ' · inactivos: ' . esc_html( null === $faq['inactive'] ? 'N/D' : number_format_i18n( $faq['inactive'] ) )
                     . ' · campo opcional product_cat_id: ' . ( null === $faq['has_product_cat_id'] ? 'no comprobado' : ( $faq['has_product_cat_id'] ? 'presente' : 'ausente (compatible)' ) ) . '.</p>';
             }
-            echo '<p class="description">Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje.</p></div>';
+            echo '<p class="description">' . esc_html__( 'Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje.', 'taxocommerce-dependiente' ) . '</p>' . '</div>';
         }
 
         if(11===absint($state['lesson']??0)){
             $ling=TCD_Original_Linguista::state();
             $heartbeat=absint($ling['heartbeat_at']??0);
             $age=$heartbeat?max(0,time()-$heartbeat):0;
-            echo '<h2>Diagnóstico M11 · Intérprete</h2>';
+            echo '<h2>' . esc_html__( 'Diagnóstico M11 · Intérprete', 'taxocommerce-dependiente' ) . '</h2>';
             echo '<p><strong>Estado Lingüista:</strong> '.esc_html((string)($ling['status']??'sin estado')).' · <strong>Lección:</strong> '.esc_html((string)($ling['current_lesson']??'—')).' · <strong>Cursor:</strong> '.esc_html((string)absint($ling['cursor']??0)).' · <strong>Progreso:</strong> '.esc_html((string)TCD_Original_Linguista::course_progress()).'%</p>';
             echo '<p><strong>Último latido:</strong> '.esc_html($heartbeat?gmdate('Y-m-d H:i:s',$heartbeat).' UTC (hace '.$age.' s)':'Sin latido').' · <strong>Próximo lote permitido:</strong> '.esc_html(!empty($ling['not_before'])?gmdate('Y-m-d H:i:s',absint($ling['not_before'])).' UTC':'Inmediato').'</p>';
-            if('running'===(string)($state['status']??'') && (!$heartbeat || $age>180))echo '<div class="notice notice-warning inline"><p>Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola de procesos y el último error; no reinicies las lecciones L1–L10.</p></div>';
+            if('running'===(string)($state['status']??'') && (!$heartbeat || $age>180))echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola de procesos y el último error; no reinicies las lecciones L1–L10.', 'taxocommerce-dependiente' ) . '</p>' . '</div>';
             if(!empty($ling['last_error']))echo '<div class="notice notice-error inline"><p><strong>Error del Intérprete:</strong> '.esc_html((string)$ling['last_error']).'</p></div>';
-            echo '<h3>Log independiente del Intérprete</h3>';
+            echo '<h3>' . esc_html__( 'Log independiente del Intérprete', 'taxocommerce-dependiente' ) . '</h3>';
             echo '<textarea readonly spellcheck="false" style="width:100%;height:260px;font:12px/1.4 monospace;background:#111;color:#eee">'.esc_textarea(TCD_Learning_Log::interpreter_read()).'</textarea>';
         }
-        echo '<h2>Eventos recientes del proceso</h2>';
-        echo '<p class="description">Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.</p>';
-        echo '<table class="widefat striped" style="margin-bottom:18px"><thead><tr><th>Fecha (UTC)</th><th>Evento</th><th>Detalles</th></tr></thead><tbody>';
+        echo '<h2>' . esc_html__( 'Eventos recientes del proceso', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<p class="description">' . esc_html__( 'Resumen estructurado de los últimos eventos de Academia. Se mantiene aquí, junto al log bruto, para que toda la trazabilidad técnica de Dependiente esté centralizada en una sola pestaña.', 'taxocommerce-dependiente' ) . '</p>';
+        echo '<table class="widefat striped" style="margin-bottom:18px">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fecha (UTC)', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Evento', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Detalles', 'taxocommerce-dependiente' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         $academy_logs=array_reverse(array_slice(TCD_Academy::logs(),-40));
         if($academy_logs){
             foreach($academy_logs as $entry){
                 echo '<tr><td>'.esc_html((string)($entry['at']??'')).'</td><td>'.esc_html((string)($entry['event']??'')).'</td><td><code>'.esc_html(wp_json_encode((array)($entry['context']??array()),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'</code></td></tr>';
             }
         }else{
-            echo '<tr><td colspan="3">Aún no hay eventos de Academia registrados.</td></tr>';
+            echo '<tr>' . '<td colspan="3">' . esc_html__( 'Aún no hay eventos de Academia registrados.', 'taxocommerce-dependiente' ) . '</td>' . '</tr>';
         }
         echo '</tbody></table>';
 
-        echo '<h2>Log bruto para diagnóstico</h2>';
-        echo '<p class="description">Traza completa orientada a diagnóstico técnico y análisis por IA. Incluye más detalle que el resumen anterior: lecturas, escrituras, locks, reprogramaciones, consumo y errores.</p>';
+        echo '<h2>' . esc_html__( 'Log bruto para diagnóstico', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<p class="description">' . esc_html__( 'Traza completa orientada a diagnóstico técnico y análisis por IA. Incluye más detalle que el resumen anterior: lecturas, escrituras, locks, reprogramaciones, consumo y errores.', 'taxocommerce-dependiente' ) . '</p>';
 
         $auto_url=add_query_arg('auto','1',self::tab_url('learning-log'));
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
@@ -145,7 +145,7 @@ final class TCD_Admin {
         echo '</p>';
 
         echo '<textarea id="tcd-learning-log" readonly spellcheck="false" style="width:100%;height:68vh;min-height:480px;background:#111;color:#e6e6e6;font:12px/1.45 Consolas,Monaco,monospace;white-space:pre;overflow:auto;padding:12px">'.esc_textarea($log).'</textarea>';
-        echo '<p class="description">El log es diagnóstico, no una copia del conocimiento. Los materiales completos y las fotos fijas siguen estando en los exports JSON de auditoría.</p>';
+        echo '<p class="description">' . esc_html__( 'El log es diagnóstico, no una copia del conocimiento. Los materiales completos y las fotos fijas siguen estando en los exports JSON de auditoría.', 'taxocommerce-dependiente' ) . '</p>';
         echo '<script>(function(){var e=document.getElementById("tcd-learning-log");if(e)e.scrollTop=e.scrollHeight;'.($auto?'window.setTimeout(function(){window.location.reload();},10000);':''). '})();</script>';
     }
 
@@ -172,7 +172,7 @@ final class TCD_Admin {
 
         echo '<div style="background:#fff;border:1px solid #d63638;border-left-width:4px;padding:14px;margin:18px 0">';
         echo '<h2 style="margin-top:0">Diagnóstico de L'.esc_html((string)$lesson).'</h2>';
-        echo '<p><strong>La fuente sí se aprendió.</strong> El fallo corresponde al examen de recuperación/interpretación. ';
+        echo '<p>' . '<strong>' . esc_html__( 'La fuente sí se aprendió.', 'taxocommerce-dependiente' ) . '</strong>' . ' ' . esc_html__( 'El fallo corresponde al examen de recuperación/interpretación.', 'taxocommerce-dependiente' ) . ' ';
         echo 'Se evaluaron '.esc_html(number_format_i18n(absint($report['evaluated']??0))).' casos y ';
         echo esc_html(number_format_i18n(absint($report['failed']??0))).' quedaron fuera del Top-8.</p>';
 
@@ -182,13 +182,13 @@ final class TCD_Admin {
             echo '<p><strong>Versión del motor que realizó el examen:</strong> '.esc_html($evaluated_version);
             echo ' · <strong>Plugin PHP cargado:</strong> '.esc_html($current_version).'.</p>';
             if(TCD_Intelligence::quality_report_is_stale($lesson,$report)){
-                echo '<p><strong>Auditoría antigua o sin versión verificable:</strong> este resultado no acredita el ranking actual.';
-                echo ' Actualiza el plugin en STAGING si procede y utiliza «Revisar correcciones y reevaluar».';
-                echo ' No reinicies las diez lecciones.</p>';
+                echo '<p>' . '<strong>' . esc_html__( 'Auditoría antigua o sin versión verificable:', 'taxocommerce-dependiente' ) . '</strong>' . ' ' . esc_html__( 'este resultado no acredita el ranking actual.', 'taxocommerce-dependiente' );
+                echo ' ' . esc_html__( 'Actualiza el plugin en STAGING si procede y utiliza «Revisar correcciones y reevaluar».', 'taxocommerce-dependiente' );
+                echo ' ' . esc_html__( 'No reinicies las diez lecciones.', 'taxocommerce-dependiente' ) . '</p>';
             }
             if(10===absint($lesson)){
                 $query_origins=(array)($report['query_origins']??array());
-                echo '<p><strong>Regresiones L9 examinadas con preguntas reconstruidas:</strong> ';
+                echo '<p>' . '<strong>' . esc_html__( 'Regresiones L9 examinadas con preguntas reconstruidas:', 'taxocommerce-dependiente' ) . '</strong>' . ' ';
                 echo esc_html(number_format_i18n(absint($query_origins['snapshot_facts']??0)));
                 echo ' · <strong>legacy sin hechos:</strong> '.esc_html(number_format_i18n(absint($query_origins['legacy_missing_facts']??0))).'.</p>';
             }
@@ -200,7 +200,7 @@ final class TCD_Admin {
             $legacy=absint($origin_counts['legacy_missing_facts']??0);
             echo '<p><strong>Preguntas de examen regeneradas desde la foto fija:</strong> '.esc_html(number_format_i18n($rebuilt));
             echo ' · <strong>sin hechos suficientes (legacy):</strong> '.esc_html(number_format_i18n($legacy)).'.</p>';
-            echo '<p class="description">Se mantienen los datos aprendidos y el umbral del 88 %. Una pregunta genérica evalúa la familia; las necesidades con medidas o modelo evalúan la referencia concreta.</p>';
+            echo '<p class="description">' . esc_html__( 'Se mantienen los datos aprendidos y el umbral del 88 %. Una pregunta genérica evalúa la familia; las necesidades con medidas o modelo evalúan la referencia concreta.', 'taxocommerce-dependiente' ) . '</p>';
         }
 
         echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">';
@@ -217,17 +217,17 @@ final class TCD_Admin {
         echo '<p><a class="button button-primary" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($lesson)).'">JSON · auditoría y corrección</a> ';
         echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_csv_url($lesson)).'">CSV · fallos del examen</a> ';
         echo '<a class="button" href="'.esc_url(TCD_Intelligence::quality_data_csv_url($lesson)).'">CSV · datos a revisar</a></p>';
-        echo '<p class="description">El JSON separa lo que debes corregir en WordPress, las ambigüedades y los fallos internos de Dependiente, e incluye la deuda de datos detectada en toda la lección. Los CSV son vistas tabulares para revisión o corrección masiva.</p>';
+        echo '<p class="description">' . esc_html__( 'El JSON separa lo que debes corregir en WordPress, las ambigüedades y los fallos internos de Dependiente, e incluye la deuda de datos detectada en toda la lección. Los CSV son vistas tabulares para revisión o corrección masiva.', 'taxocommerce-dependiente' ) . '</p>';
 
         if($recommendations){
-            echo '<h3>Qué hacer</h3><ul style="list-style:disc;padding-left:22px">';
+            echo '<h3>' . esc_html__( 'Qué hacer', 'taxocommerce-dependiente' ) . '</h3>' . '<ul style="list-style:disc;padding-left:22px">';
             foreach($recommendations as $recommendation)echo '<li>'.esc_html((string)$recommendation).'</li>';
             echo '</ul>';
         }
 
         if($failures){
-            echo '<h3>Primeros casos que fallaron</h3>';
-            echo '<table class="widefat striped"><thead><tr><th>Tipo / ID</th><th>Esperado</th><th>Posición</th><th>Origen</th><th>Por qué</th><th>Qué hacer</th></tr></thead><tbody>';
+            echo '<h3>' . esc_html__( 'Primeros casos que fallaron', 'taxocommerce-dependiente' ) . '</h3>';
+            echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tipo / ID', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Esperado', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Posición', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Por qué', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Qué hacer', 'taxocommerce-dependiente' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach(array_slice($failures,0,12) as $failure){
                 $diagnosis=(array)($failure['diagnosis']??array());
                 echo '<tr>';
@@ -251,15 +251,15 @@ final class TCD_Admin {
         $stats=TCD_Original_Interprete_DB::stats();
         $progress=TCD_Original_Linguista::course_progress();
         $status=(string)($state['status']??'stopped');
-        echo '<h2>Intérprete original v1.2.0 · formación lingüística</h2>';
-        echo '<p>Motor original: gramática, verbos, erratas, variantes, sinónimos, contexto, ambigüedad y evidencia validada. El Intérprete no busca productos ni pregunta: entrega una petición clara al Dependiente.</p>';
+        echo '<h2>' . esc_html__( 'Intérprete original v1.2.0 · formación lingüística', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Motor original: gramática, verbos, erratas, variantes, sinónimos, contexto, ambigüedad y evidencia validada. El Intérprete no busca productos ni pregunta: entrega una petición clara al Dependiente.', 'taxocommerce-dependiente' ) . '</p>';
         echo '<p><strong>Estado:</strong> '.esc_html($status).' · <strong>Progreso:</strong> '.esc_html((string)$progress).'%';
         echo ' · <strong>Memoria activa:</strong> '.esc_html(number_format_i18n(absint($stats['active']??0)));
         echo ' · <strong>Evidencias:</strong> '.esc_html(number_format_i18n(absint($stats['evidence']??0))).'</p>';
         echo '<progress max="100" value="'.esc_attr((string)$progress).'" style="width:min(100%,700px);height:22px"></progress>';
         echo '<p>'.esc_html((string)($state['last_message']??'')).'</p>';
         if(!empty($state['last_error']))echo '<div class="notice notice-error"><p>'.esc_html((string)$state['last_error']).'</p></div>';
-        echo '<p>Formación única con las fases internas y las reglas reales del Lingüista original. Trabajo por lotes en segundo plano, con avance y memoria persistente.</p>';
+        echo '<p>' . esc_html__( 'Formación única con las fases internas y las reglas reales del Lingüista original. Trabajo por lotes en segundo plano, con avance y memoria persistente.', 'taxocommerce-dependiente' ) . '</p>';
         foreach(array('start'=>'Iniciar / reanudar','pause'=>'Pausar','stop'=>'Detener','restart_course'=>'Reentrenar sin borrar memoria') as $cmd=>$label){
             echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="display:inline-block;margin:0 8px 10px 0">';
             wp_nonce_field('tcd_original_linguista_control');
@@ -268,7 +268,7 @@ final class TCD_Admin {
             echo '<button class="button '.esc_attr('start'===$cmd?'button-primary':'').'" type="submit">'.esc_html($label).'</button></form>';
         }
         echo '<p><a class="button" href="'.esc_url(TCD_Original_Linguista::export_url('course')).'">Exportar evolución y evidencias JSON</a></p>';
-        echo '<p><strong>M11:</strong> forma y comprueba comprensión lingüística; no suspende por no encontrar un ID de producto que el comprador nunca especificó.</p>';
+        echo '<p>' . '<strong>' . 'M11:' . '</strong>' . ' ' . esc_html__( 'forma y comprueba comprensión lingüística; no suspende por no encontrar un ID de producto que el comprador nunca especificó.', 'taxocommerce-dependiente' ) . '</p>';
     }
 
     public static function render(){
@@ -278,7 +278,7 @@ final class TCD_Admin {
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
         if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test','user-guide'),true))$tab='overview';
 
-        echo '<div class="wrap"><h1>TaxoCommerce Dependiente</h1>';
+        echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Dependiente', 'taxocommerce-dependiente' ) . '</h1>';
         self::tabs($tab);
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only feedback after an admin-post action validated with a nonce.
@@ -327,28 +327,28 @@ final class TCD_Admin {
             $counts[absint($row['lesson'])][sanitize_key((string)$row['status'])]=absint($row['total']);
         }
 
-        echo '<p>Dependiente utiliza un único flujo interno: <strong>L1-L10</strong> para aprender y evaluar el catálogo, <strong>M11</strong> para construir y validar el Intérprete y <strong>M12</strong> para mantener el conocimiento actualizado. Cada L1-L10 conserva una <strong>foto fija auditable</strong>; toda la formación queda integrada en Dependiente, sin servicios auxiliares separados.</p>';
+        echo '<p>' . esc_html__( 'Dependiente utiliza un único flujo interno:', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . 'L1-L10' . '</strong>' . ' ' . esc_html__( 'para aprender y evaluar el catálogo,', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . 'M11' . '</strong>' . ' ' . esc_html__( 'para construir y validar el Intérprete y', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . 'M12' . '</strong>' . ' ' . esc_html__( 'para mantener el conocimiento actualizado. Cada L1-L10 conserva una', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . esc_html__( 'foto fija auditable', 'taxocommerce-dependiente' ) . '</strong>' . esc_html__( '; toda la formación queda integrada en Dependiente, sin servicios auxiliares separados.', 'taxocommerce-dependiente' ) . '</p>';
 
         echo '<p style="display:flex;gap:8px;flex-wrap:wrap">';
         echo '<a class="button button-secondary" href="'.esc_url(TCD_Academy::export_url(0)).'">Exportar auditoría L1–L10 · JSON</a>';
         echo '</p>';
-        echo '<p class="description">Este JSON sirve para auditar el aprendizaje de las diez lecciones. El conocimiento portable y el backup se gestionan únicamente desde sus pestañas específicas para evitar accesos duplicados.</p>';
+        echo '<p class="description">' . esc_html__( 'Este JSON sirve para auditar el aprendizaje de las diez lecciones. El conocimiento portable y el backup se gestionan únicamente desde sus pestañas específicas para evitar accesos duplicados.', 'taxocommerce-dependiente' ) . '</p>';
 
         $thresholds=TCD_Intelligence::quality_thresholds();
         echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="background:#fff;border:1px solid #c3c4c7;padding:14px;margin:12px 0 20px">';
         wp_nonce_field('tcd_academy_control');
         echo '<input type="hidden" name="action" value="tcd_academy_control">';
         echo '<input type="hidden" name="tcd_action" value="thresholds">';
-        echo '<h2 style="margin-top:0">Umbrales de calidad por lección</h2>';
-        echo '<p>El responsable del catálogo decide el porcentaje mínimo de aciertos Top-8 de cada lección (0–100 %). Se mantienen los valores actuales si no se cambian.</p>';
+        echo '<h2 style="margin-top:0">' . esc_html__( 'Umbrales de calidad por lección', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<p>' . esc_html__( 'El responsable del catálogo decide el porcentaje mínimo de aciertos Top-8 de cada lección (0–100 %). Se mantienen los valores actuales si no se cambian.', 'taxocommerce-dependiente' ) . '</p>';
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">';
         foreach($thresholds as $no=>$percent){
             $title=(string)($syllabus[$no]['name']??'');
             echo '<label for="tcd-threshold-'.esc_attr((string)$no).'"><strong>L'.esc_html((string)$no).' · '.esc_html($title).'</strong><br>';
             echo '<input id="tcd-threshold-'.esc_attr((string)$no).'" type="number" name="thresholds['.esc_attr((string)$no).']" min="0" max="100" step="0.1" required value="'.esc_attr(number_format((float)$percent,1,'.','')).'" style="width:90px"> %</label>';
         }
-        echo '</div><button type="submit" class="button button-primary">Guardar umbrales</button>';
-        echo '<p class="description">Guardar no aprueba automáticamente las lecciones suspendidas ni altera los exámenes. Para continuar una lección ya suspendida, revisa sus fallos y acepta expresamente el resultado cuando alcance el nuevo mínimo.</p>';
+        echo '</div>' . '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar umbrales', 'taxocommerce-dependiente' ) . '</button>';
+        echo '<p class="description">' . esc_html__( 'Guardar no aprueba automáticamente las lecciones suspendidas ni altera los exámenes. Para continuar una lección ya suspendida, revisa sus fallos y acepta expresamente el resultado cuando alcance el nuevo mínimo.', 'taxocommerce-dependiente' ) . '</p>';
         echo '</form>';
 
         $priority=TCD_Load::priority();
@@ -356,15 +356,15 @@ final class TCD_Admin {
         echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="padding:14px;background:#fff;border:1px solid #c3c4c7;margin:12px 0 20px">';
         wp_nonce_field('tcd_academy_control');
         echo '<input type="hidden" name="action" value="tcd_academy_control"><input type="hidden" name="tcd_action" value="priority">';
-        echo '<label for="tcd-priority"><strong>Prioridad de Dependiente</strong></label>';
+        echo '<label for="tcd-priority">' . '<strong>' . esc_html__( 'Prioridad de Dependiente', 'taxocommerce-dependiente' ) . '</strong>' . '</label>';
         echo '<div style="display:flex;align-items:center;gap:12px;max-width:620px;margin-top:8px">';
-        echo '<span>1 · Suave</span>';
+        echo '<span>' . esc_html__( '1 · Suave', 'taxocommerce-dependiente' ) . '</span>';
         echo '<input id="tcd-priority" name="priority" type="range" min="1" max="5" step="1" value="'.esc_attr((string)$priority).'" style="flex:1" aria-describedby="tcd-priority-help tcd-priority-value">';
-        echo '<span>5 · Máxima</span>';
+        echo '<span>' . esc_html__( '5 · Máxima', 'taxocommerce-dependiente' ) . '</span>';
         echo '<output id="tcd-priority-value" for="tcd-priority"><strong>'.esc_html((string)$priority).' · '.esc_html(TCD_Load::label($priority)).'</strong></output>';
         echo '</div>';
-        echo '<p id="tcd-priority-help" class="description">1 trabaja suavemente a largo plazo; 3 es el equilibrio recomendado; 5 prioriza terminar cuanto antes. Dependiente ajusta automáticamente el tamaño del lote según el coste real de sus peticiones.</p>';
-        echo '<button type="submit" class="button button-primary">Guardar prioridad</button>';
+        echo '<p id="tcd-priority-help" class="description">' . esc_html__( '1 trabaja suavemente a largo plazo; 3 es el equilibrio recomendado; 5 prioriza terminar cuanto antes. Dependiente ajusta automáticamente el tamaño del lote según el coste real de sus peticiones.', 'taxocommerce-dependiente' ) . '</p>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__( 'Guardar prioridad', 'taxocommerce-dependiente' ) . '</button>';
         if($sample){
             $cpu=null!==($sample['cpu_percent']??null) ? number_format_i18n((float)$sample['cpu_percent'],1).' % CPU petición' : 'CPU petición no disponible';
             $memory=isset($sample['memory_peak']) ? size_format(absint($sample['memory_peak'])) : '—';
@@ -422,11 +422,11 @@ final class TCD_Admin {
         }
         self::control_button('stop','Detener aprendizaje');
         if('running'!==(string)$state['status'])self::control_button('restart','Reiniciar aprendizaje completo');
-        echo '<p class="description"><strong>Detener</strong> conserva la foto fija y el progreso. Si una lección falla calidad, <strong>Revisar correcciones y reevaluar</strong> vuelve a leer únicamente los casos fallidos y repite el examen, sin reiniciar L1-L10. <strong>Reiniciar</strong> borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.</p>';
+        echo '<p class="description">' . '<strong>' . esc_html__( 'Detener', 'taxocommerce-dependiente' ) . '</strong>' . ' ' . esc_html__( 'conserva la foto fija y el progreso. Si una lección falla calidad,', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . esc_html__( 'Revisar correcciones y reevaluar', 'taxocommerce-dependiente' ) . '</strong>' . ' ' . esc_html__( 'vuelve a leer únicamente los casos fallidos y repite el examen, sin reiniciar L1-L10.', 'taxocommerce-dependiente' ) . ' ' . '<strong>' . esc_html__( 'Reiniciar', 'taxocommerce-dependiente' ) . '</strong>' . ' ' . esc_html__( 'borra únicamente las tablas de aprendizaje propias de Dependiente y crea un run nuevo; nunca modifica productos, categorías, FAQs o Vocabulary.', 'taxocommerce-dependiente' ) . '</p>';
         echo '</div>';
 
-        echo '<h2>Las diez lecciones</h2>';
-        echo '<table class="widefat striped"><thead><tr><th>Lección</th><th>Qué aprende</th><th>Foto fija / progreso</th><th>Aprendidos</th><th>No aprendidos</th><th>Calidad</th><th>Auditoría</th></tr></thead><tbody>';
+        echo '<h2>' . esc_html__( 'Las diez lecciones', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Lección', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Qué aprende', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Foto fija / progreso', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Aprendidos', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'No aprendidos', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Calidad', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Auditoría', 'taxocommerce-dependiente' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach($syllabus as $no=>$lesson){
             $snapshot=TCD_Academy::snapshot_for_lesson($no);
             $status=$snapshot?(string)$snapshot['status']:'Pendiente';
@@ -479,10 +479,10 @@ final class TCD_Admin {
                 if($identity_backfill_in_progress){
                     $identity_percent=$identity_backfill_total>0 ? (100*$identity_backfill_done/$identity_backfill_total) : 0;
                     echo '<strong>PREPARANDO IDENTIDAD · '.esc_html(number_format_i18n($identity_percent,1)).'%</strong>';
-                    echo '<div class="description">Completando la memoria de identidad de la foto fija antes de repetir el examen.</div>';
+                    echo '<div class="description">' . esc_html__( 'Completando la memoria de identidad de la foto fija antes de repetir el examen.', 'taxocommerce-dependiente' ) . '</div>';
                 }elseif($quality_in_progress){
                     echo '<strong>REEVALUANDO · '.esc_html(number_format_i18n((float)($quality_progress['percent']??0),1)).'%</strong>';
-                    echo '<div class="description">Resultado anterior debajo; se sustituirá al completar 180/180.</div>';
+                    echo '<div class="description">' . esc_html__( 'Resultado anterior debajo; se sustituirá al completar 180/180.', 'taxocommerce-dependiente' ) . '</div>';
                 }
                 $owner_acceptance=(array)($quality_report['owner_acceptance']??array());
                 echo '<strong>'.esc_html($passed?($owner_acceptance?'ACEPTADA':'OK'):'NO').'</strong>';
@@ -517,7 +517,7 @@ final class TCD_Admin {
                     echo '<input type="hidden" name="snapshot_id" value="'.esc_attr((string)absint($snapshot['id']??0)).'">';
                     echo '<button type="submit" class="button button-secondary">Aceptar L'.esc_html((string)$no).' con este umbral y continuar</button>';
                     echo '</form>';
-                    echo '<div class="description">Aceptación manual: conserva la nota y los fallos; activa el aprendizaje y avanza a la siguiente lección.</div>';
+                    echo '<div class="description">' . esc_html__( 'Aceptación manual: conserva la nota y los fallos; activa el aprendizaje y avanza a la siguiente lección.', 'taxocommerce-dependiente' ) . '</div>';
                 }
                 echo '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">';
                 echo '<a class="button button-small" href="'.esc_url(TCD_Intelligence::quality_audit_json_url($no)).'">JSON auditoría</a>';
@@ -545,17 +545,17 @@ final class TCD_Admin {
         $feedback=class_exists('TCD_Feedback',false)?TCD_Feedback::stats():array();
         $linguista=TCD_Original_Linguista::state();
         $lexicon=TCD_Original_Interprete_DB::stats();
-        echo '<h2>M11 · Intérprete original y M12 · Actualización</h2>';
-        echo '<table class="widefat striped"><thead><tr><th>Módulo</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>';
-        echo '<tr><td><strong>M11 · Lingüista original v1.2.0</strong></td>';
+        echo '<h2>' . esc_html__( 'M11 · Intérprete original y M12 · Actualización', 'taxocommerce-dependiente' ) . '</h2>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Módulo', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-dependiente' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
+        echo '<tr>' . '<td>' . '<strong>' . esc_html__( 'M11 · Lingüista original v1.2.0', 'taxocommerce-dependiente' ) . '</strong>' . '</td>';
         echo '<td>'.esc_html((string)($linguista['status']??'Pendiente')).'</td><td>';
         echo esc_html((string)TCD_Original_Linguista::course_progress()).'% curso lingüístico · ';
         echo esc_html(number_format_i18n(absint($lexicon['active']??0))).' expresiones activas · ';
         echo esc_html(number_format_i18n(absint($lexicon['evidence']??0))).' evidencias';
-        echo '<p class="description">El examen antiguo de 180 IDs era una prueba de búsqueda, no de interpretación lingüística, y ya no bloquea el curso.</p></td></tr>';
-        echo '<tr><td colspan="3"><details><summary><strong>L11 · Fases de comprensión lingüística y evolución</strong></summary>';
-        echo '<p>Formación lingüística dentro de Dependiente. Prioridad de CPU compartida con L1–L10.</p>';
-        echo '<table class="widefat striped"><thead><tr><th>Fase</th><th>Estado</th><th>Progreso</th><th>Aprendidas</th><th>Rechazadas</th></tr></thead><tbody>';
+        echo '<p class="description">' . esc_html__( 'El examen antiguo de 180 IDs era una prueba de búsqueda, no de interpretación lingüística, y ya no bloquea el curso.', 'taxocommerce-dependiente' ) . '</p>' . '</td>' . '</tr>';
+        echo '<tr>' . '<td colspan="3">' . '<details>' . '<summary>' . '<strong>' . esc_html__( 'L11 · Fases de comprensión lingüística y evolución', 'taxocommerce-dependiente' ) . '</strong>' . '</summary>';
+        echo '<p>' . esc_html__( 'Formación lingüística dentro de Dependiente. Prioridad de CPU compartida con L1–L10.', 'taxocommerce-dependiente' ) . '</p>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fase', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Progreso', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Aprendidas', 'taxocommerce-dependiente' ) . '</th>' . '<th>' . esc_html__( 'Rechazadas', 'taxocommerce-dependiente' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach(TCD_Original_Linguista::lesson_statuses() as $phase){
             echo '<tr><td>'.esc_html((string)($phase['title']??$phase['key']??'')).'</td><td>'.esc_html((string)($phase['status']??'')).'</td><td>'.esc_html((string)absint($phase['progress']??0)).'%</td><td>'.esc_html(number_format_i18n(absint($phase['learned']??0))).'</td><td>'.esc_html(number_format_i18n(absint($phase['rejected']??0))).'</td></tr>';
         }
@@ -569,7 +569,7 @@ final class TCD_Admin {
         if(!empty($maintenance['last_run']))echo '<div class="description">Última revisión: '.esc_html((string)$maintenance['last_run']).'</div>';
         echo '</td></tr>';
 
-        echo '<tr><td><strong>M12 · Feedback de clientes</strong></td><td>';
+        echo '<tr>' . '<td>' . '<strong>' . esc_html__( 'M12 · Feedback de clientes', 'taxocommerce-dependiente' ) . '</strong>' . '</td>' . '<td>';
         echo esc_html(number_format_i18n(absint($feedback['active']??0))).' asociaciones activas';
         echo '</td><td>';
         echo 'Consultas: '.esc_html(number_format_i18n(absint($feedback['searches']??0))).' · ';
@@ -579,14 +579,14 @@ final class TCD_Admin {
         echo 'validadas: '.esc_html(number_format_i18n(absint($feedback['validated']??0))).' · ';
         echo 'activas producto: '.esc_html(number_format_i18n(absint($feedback['active_products']??0))).' · ';
         echo 'activas semánticas: '.esc_html(number_format_i18n(absint($feedback['active_semantic']??0)));
-        echo '<div class="description">Un clic aislado no enseña una regla. Las aclaraciones pesan más, pero también necesitan repetición antes de activarse.</div>';
+        echo '<div class="description">' . esc_html__( 'Un clic aislado no enseña una regla. Las aclaraciones pesan más, pero también necesitan repetición antes de activarse.', 'taxocommerce-dependiente' ) . '</div>';
         echo '</td></tr></tbody></table>';
 
-        echo '<h2>Asistente e integración</h2>';
+        echo '<h2>' . esc_html__( 'Asistente e integración', 'taxocommerce-dependiente' ) . '</h2>';
         echo '<p>El shortcode canónico del plugin moderno es <code>[taxocommerce_dependiente_moderno]</code>. En STAGING, <code>[taxocommerce_dependiente]</code> también apunta al moderno para facilitar pruebas; en PRO, si el Dependiente antiguo está cargado, ese alias queda reservado al plugin antiguo.</p>';
-        echo '<p><strong>PHP para una plantilla:</strong></p>';
+        echo '<p>' . '<strong>' . esc_html__( 'PHP para una plantilla:', 'taxocommerce-dependiente' ) . '</strong>' . '</p>';
         echo '<pre style="background:#fff;border:1px solid #c3c4c7;padding:12px;overflow:auto"><code>'.esc_html("<?php\nif ( shortcode_exists( 'taxocommerce_dependiente_moderno' ) ) {\n    echo do_shortcode( '[taxocommerce_dependiente_moderno]' );\n}\n?>").'</code></pre>';
-        echo '<p>El Intérprete moderno usa reglas semánticas, Vocabulary, memoria L9 ponderada, feedback validado de clics y aclaraciones, y catálogo publicado. Cuando la confianza es insuficiente puede hacer hasta dos preguntas cerradas antes de recomendar.</p>';
+        echo '<p>' . esc_html__( 'El Intérprete moderno usa reglas semánticas, Vocabulary, memoria L9 ponderada, feedback validado de clics y aclaraciones, y catálogo publicado. Cuando la confianza es insuficiente puede hacer hasta dos preguntas cerradas antes de recomendar.', 'taxocommerce-dependiente' ) . '</p>';
         echo '<p>L6 utiliza directamente las FAQs canónicas de TaxoCommerce FAQs (<code>seo_faq</code>) y su categoría/propietario; no exige un CPT FAQ artificial.</p>';
         echo '</div>';
     }

@@ -132,7 +132,7 @@ function taxocommerce_distribution_render_compatibility_notice() {
     $legacy_sitemap = defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) && TCDIST_LEGACY_SITEMAP_ACTIVE;
 
     if ( $legacy_feed || $legacy_sitemap ) {
-        echo '<div class="notice notice-info inline" style="margin-top:18px"><p><strong>Safe migration:</strong> the legacy plugin was detected. Distribution uses its own state and worker while preserving the same public files. While both plugins coexist, the legacy scheduled automation keeps priority to avoid duplicate execution; manual regeneration can be tested from this plugin.</p></div>';
+        echo '<div class="notice notice-info inline" style="margin-top:18px">' . '<p>' . '<strong>' . esc_html__( 'Safe migration:', 'taxocommerce-distribution' ) . '</strong>' . ' ' . esc_html__( 'the legacy plugin was detected. Distribution uses its own state and worker while preserving the same public files. While both plugins coexist, the legacy scheduled automation keeps priority to avoid duplicate execution; manual regeneration can be tested from this plugin.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
 }
 

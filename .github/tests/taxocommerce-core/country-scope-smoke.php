@@ -28,5 +28,7 @@ check( TaxoCommerce_Core_Country::relation( array( 'source_type'=>'hub_secondary
 check( TaxoCommerce_Core_Country::relation( array( 'source_type'=>'hub_secondary','source_id'=>1,'target_type'=>'product_cat','target_id'=>13 ) ) === 'ES', 'Legacy Spanish relation' );
 check( TaxoCommerce_Core_Country::relation( array( 'source_type'=>'hub_secondary','source_id'=>1,'target_type'=>'product_cat','target_id'=>11 ) ) === '', 'Mixed-country relation excluded' );
 check( TaxoCommerce_Core_Country::relation( array( 'source_type'=>'hub_secondary','source_id'=>2,'target_type'=>'product_cat','target_id'=>11,'country_code'=>'ES' ) ) === '', 'Contradictory explicit country excluded' );
-check( ! TaxoCommerce_Core_Country::valid( 'GB' ), 'Unknown country rejected' );
+check( TaxoCommerce_Core_Country::valid( 'GB' ), 'Page country codes are not limited to five preset markets' );
+check( ! TaxoCommerce_Core_Country::valid( 'GBR' ), 'Invalid three-letter country rejected' );
+check( ! TaxoCommerce_Core_Country::valid( '' ), 'Empty country is Global, not a country code' );
 echo "PASS: TaxoCommerce countries and cross-market relation checks.\n";

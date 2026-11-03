@@ -173,15 +173,15 @@ final class TaxoCommerce_System_Check_Auto_Test {
             taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_run' => '1' ) ),
             'tcs_auto_test_run'
         );
-        echo '<section class="wrap tcs-auto-test"><h2>Auto Test · System Check</h2>';
-        echo '<p>Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.</p>';
+        echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Auto Test · System Check', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.', 'taxocommerce-system-check' ) . '</p>';
         echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Auto Test</a></p>';
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
         $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] )
             && '1' === sanitize_key( wp_unslash( $_GET['tcs_run'] ) );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( ! $requested ) {
-            echo '<p class="description">Las pruebas no se ejecutan al abrir esta pestaña. Pulsa el botón para obtener un resultado actual.</p></section>';
+            echo '<p class="description">' . esc_html__( 'Las pruebas no se ejecutan al abrir esta pestaña. Pulsa el botón para obtener un resultado actual.', 'taxocommerce-system-check' ) . '</p>' . '</section>';
             return;
         }
         check_admin_referer( 'tcs_auto_test_run' );
@@ -192,7 +192,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
             . esc_html( (string) $report['duration_ms'] ) . ' ms.</p>';
         foreach ( self::groups() as $group => $label ) {
             echo '<h3>' . esc_html( $label ) . '</h3>';
-            echo '<table class="widefat striped"><thead><tr><th scope="col">Comprobación</th><th scope="col">Estado</th><th scope="col">Evidencia</th></tr></thead><tbody>';
+            echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th scope="col">' . esc_html__( 'Comprobación', 'taxocommerce-system-check' ) . '</th>' . '<th scope="col">' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th scope="col">' . esc_html__( 'Evidencia', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach ( $report['rows'] as $row ) {
                 if ( $group !== $row['group'] ) {
                     continue;
@@ -204,6 +204,6 @@ final class TaxoCommerce_System_Check_Auto_Test {
             }
             echo '</tbody></table>';
         }
-        echo '<p class="description">Un resultado correcto indica que el componente está accesible, no que un escaneo real haya funcionado. Las pruebas omitidas nunca cuentan como superadas. No equivale al Plugin Check de WordPress.org.</p></section>';
+        echo '<p class="description">' . esc_html__( 'Un resultado correcto indica que el componente está accesible, no que un escaneo real haya funcionado. Las pruebas omitidas nunca cuentan como superadas. No equivale al Plugin Check de WordPress.org.', 'taxocommerce-system-check' ) . '</p>' . '</section>';
     }
 }

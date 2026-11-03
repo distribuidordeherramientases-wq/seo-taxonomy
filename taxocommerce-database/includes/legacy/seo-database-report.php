@@ -53,8 +53,8 @@ function seo_data_table_page(): void
     $base_url = admin_url('admin.php?page=taxocommerce-database&tcdb_screen=table');
 
     echo '<div class="wrap">';
-    echo '<h1>SEO Data Table</h1>';
-    echo '<p>Explorador y sistema de exportación de todas las tablas internas de TaxoCommerce SEO. Las tablas se detectan automáticamente, incluidas las que se añadan en futuras versiones.</p>';
+    echo '<h1>' . esc_html__( 'SEO Data Table', 'taxocommerce-database' ) . '</h1>';
+    echo '<p>' . esc_html__( 'Explorador y sistema de exportación de todas las tablas internas de TaxoCommerce SEO. Las tablas se detectan automáticamente, incluidas las que se añadan en futuras versiones.', 'taxocommerce-database' ) . '</p>';
 
     seo_data_render_styles();
 
@@ -198,12 +198,12 @@ function seo_data_render_overview(array $tables): void
     echo '</div>';
 
     echo '<div class="seo-data-panel">';
-    echo '<h2>Inventario de tablas SEO</h2>';
+    echo '<h2>' . esc_html__( 'Inventario de tablas SEO', 'taxocommerce-database' ) . '</h2>';
     echo '<table class="widefat striped seo-data-table">';
-    echo '<thead><tr><th>Tabla</th><th>Nombre físico</th><th>Descripción</th><th>Filas aprox.</th><th>Tamaño</th><th>Motor</th><th>Acciones</th></tr></thead><tbody>';
+    echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Nombre físico', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Descripción', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Filas aprox.', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Tamaño', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Motor', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Acciones', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     if (!$tables) {
-        echo '<tr><td colspan="7">No se han detectado tablas con el prefijo SEO.</td></tr>';
+        echo '<tr>' . '<td colspan="7">' . esc_html__( 'No se han detectado tablas con el prefijo SEO.', 'taxocommerce-database' ) . '</td>' . '</tr>';
     }
 
     foreach ($tables as $table) {
@@ -240,7 +240,7 @@ function seo_data_render_explorer(array $tables): void
     global $wpdb;
 
     if (!$tables) {
-        echo '<div class="notice notice-warning"><p>No se han detectado tablas SEO.</p></div>';
+        echo '<div class="notice notice-warning">' . '<p>' . esc_html__( 'No se han detectado tablas SEO.', 'taxocommerce-database' ) . '</p>' . '</div>';
         return;
     }
 
@@ -249,7 +249,7 @@ function seo_data_render_explorer(array $tables): void
 
     $columns = seo_data_get_columns($table_name);
     if (!$columns) {
-        echo '<div class="notice notice-error"><p>No se pudo leer la estructura de la tabla.</p></div>';
+        echo '<div class="notice notice-error">' . '<p>' . esc_html__( 'No se pudo leer la estructura de la tabla.', 'taxocommerce-database' ) . '</p>' . '</div>';
         return;
     }
 
@@ -324,7 +324,7 @@ function seo_data_render_explorer(array $tables): void
     echo '<input type="hidden" name="tcdb_screen" value="table">';
     echo '<input type="hidden" name="section" value="explorer">';
 
-    echo '<label><strong>Tabla</strong><select name="table">';
+    echo '<label>' . '<strong>' . esc_html__( 'Tabla', 'taxocommerce-database' ) . '</strong>' . '<select name="table">';
     foreach ($tables as $table) {
         echo '<option value="' . esc_attr($table['name']) . '" ' . selected($table_name, $table['name'], false) . '>' . esc_html($table['label'] . ' — ' . $table['name']) . '</option>';
     }
@@ -332,7 +332,7 @@ function seo_data_render_explorer(array $tables): void
 
     echo '<label><strong>Buscar en toda la tabla</strong><input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Texto, ID, URL..."></label>';
 
-    echo '<label><strong>Columna</strong><select name="filter_column"><option value="">Todas</option>';
+    echo '<label>' . '<strong>' . esc_html__( 'Columna', 'taxocommerce-database' ) . '</strong>' . '<select name="filter_column">' . '<option value="">' . esc_html__( 'Todas', 'taxocommerce-database' ) . '</option>';
     foreach ($column_names as $column_name) {
         echo '<option value="' . esc_attr($column_name) . '" ' . selected($filter_column, $column_name, false) . '>' . esc_html($column_name) . '</option>';
     }
@@ -340,13 +340,13 @@ function seo_data_render_explorer(array $tables): void
 
     echo '<label><strong>Valor</strong><input type="text" name="filter_value" value="' . esc_attr($filter_value) . '"></label>';
 
-    echo '<label><strong>Filas</strong><select name="per_page">';
+    echo '<label>' . '<strong>' . esc_html__( 'Filas', 'taxocommerce-database' ) . '</strong>' . '<select name="per_page">';
     foreach ([25, 50, 100, 250, 500] as $option) {
         echo '<option value="' . esc_attr((string) $option) . '" ' . selected($per_page, $option, false) . '>' . esc_html((string) $option) . '</option>';
     }
     echo '</select></label>';
 
-    echo '<button class="button button-primary">Aplicar</button>';
+    echo '<button class="button button-primary">' . esc_html__( 'Aplicar', 'taxocommerce-database' ) . '</button>';
     echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=taxocommerce-database&tcdb_screen=table&section=explorer&table=' . rawurlencode($table_name))) . '">Limpiar</a>';
     echo '</form>';
 
@@ -422,15 +422,15 @@ function seo_data_render_explorer(array $tables): void
 function seo_data_render_export(array $tables): void
 {
     if (!$tables) {
-        echo '<div class="notice notice-warning"><p>No se han detectado tablas SEO.</p></div>';
+        echo '<div class="notice notice-warning">' . '<p>' . esc_html__( 'No se han detectado tablas SEO.', 'taxocommerce-database' ) . '</p>' . '</div>';
         return;
     }
 
     echo '<div class="seo-data-panel">';
-    echo '<h2>Exportación individual</h2>';
-    echo '<p>Cada tabla puede descargarse en CSV para análisis humano o en SQL para restauración técnica.</p>';
+    echo '<h2>' . esc_html__( 'Exportación individual', 'taxocommerce-database' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Cada tabla puede descargarse en CSV para análisis humano o en SQL para restauración técnica.', 'taxocommerce-database' ) . '</p>';
     echo '<table class="widefat striped seo-data-table">';
-    echo '<thead><tr><th>Tabla</th><th>Nombre físico</th><th>Descripción</th><th>Filas aprox.</th><th>CSV</th><th>SQL</th></tr></thead><tbody>';
+    echo '<thead>' . '<tr>' . '<th>' . esc_html__( 'Tabla', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Nombre físico', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Descripción', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Filas aprox.', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'CSV', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'SQL', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($tables as $table) {
         $csv_url = seo_data_export_url('tcdb_legacy_data_export_table_csv', $table['name']);
@@ -450,8 +450,8 @@ function seo_data_render_export(array $tables): void
     echo '</div>';
 
     echo '<div class="seo-data-panel">';
-    echo '<h2>Backup completo</h2>';
-    echo '<p>Genera un ZIP con todas las tablas detectadas. El paquete incluye un manifiesto JSON con versión, fecha, sitio y lista de tablas.</p>';
+    echo '<h2>' . esc_html__( 'Backup completo', 'taxocommerce-database' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Genera un ZIP con todas las tablas detectadas. El paquete incluye un manifiesto JSON con versión, fecha, sitio y lista de tablas.', 'taxocommerce-database' ) . '</p>';
 
     foreach (['csv' => 'Todas en CSV', 'sql' => 'Todas en SQL', 'both' => 'CSV + SQL'] as $format => $label) {
         $url = wp_nonce_url(
@@ -468,7 +468,7 @@ function seo_data_render_export(array $tables): void
         echo '<a class="button button-primary" style="margin-right:8px;" href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
     }
 
-    echo '<p class="description" style="margin-top:12px;">El backup de tablas SEO no sustituye una copia completa de WordPress, archivos y base de datos, pero permite trasladar y analizar el estado interno del plugin.</p>';
+    echo '<p class="description" style="margin-top:12px;">' . esc_html__( 'El backup de tablas SEO no sustituye una copia completa de WordPress, archivos y base de datos, pero permite trasladar y analizar el estado interno del plugin.', 'taxocommerce-database' ) . '</p>';
     echo '</div>';
 }
 

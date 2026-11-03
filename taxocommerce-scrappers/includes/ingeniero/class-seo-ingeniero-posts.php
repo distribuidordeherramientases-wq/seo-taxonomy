@@ -397,13 +397,13 @@ final class SEO_Ingeniero_Posts {
         $state = isset($_GET['ingeniero_update']) ? sanitize_key(wp_unslash($_GET['ingeniero_update'])) : '';
 
         echo '<div style="background:#fff;border:1px solid ' . ($count ? '#dba617' : '#c3c4c7') . ';border-left:4px solid ' . ($count ? '#dba617' : '#2271b1') . ';border-radius:6px;padding:16px 18px;margin:14px 0 18px">';
-        echo '<h2 style="margin:0 0 6px">Ingeniero · novedades técnicas</h2>';
+        echo '<h2 style="margin:0 0 6px">' . esc_html__( 'Ingeniero · novedades técnicas', 'taxocommerce-scrappers' ) . '</h2>';
         if ($state === 'error') {
             $msg = get_transient('seo_ingeniero_update_notice_' . get_current_user_id());
             delete_transient('seo_ingeniero_update_notice_' . get_current_user_id());
             echo '<div class="notice notice-error inline"><p>' . esc_html($msg ?: 'No se pudo actualizar la revisión de Ingeniero.') . '</p></div>';
         } elseif ($state === 'reviewed') {
-            echo '<div class="notice notice-success inline"><p>Novedades de Ingeniero marcadas como revisadas.</p></div>';
+            echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Novedades de Ingeniero marcadas como revisadas.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
         }
 
         if ($count) {
@@ -430,7 +430,7 @@ final class SEO_Ingeniero_Posts {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin:0">';
             echo '<input type="hidden" name="action" value="seo_ingeniero_post_update_action"><input type="hidden" name="post_id" value="' . esc_attr($post_id) . '"><input type="hidden" name="update_action" value="mark_reviewed">';
             wp_nonce_field('seo_ingeniero_post_update_' . $post_id);
-            echo '<button class="button" type="submit">Marcar novedades como revisadas</button></form>';
+            echo '<button class="button" type="submit">' . esc_html__( 'Marcar novedades como revisadas', 'taxocommerce-scrappers' ) . '</button>' . '</form>';
             echo '</div>';
 
             $changes=self::pending_changes($post_id);
@@ -450,17 +450,17 @@ final class SEO_Ingeniero_Posts {
                 echo '<div style="padding:10px 0;border-top:1px solid #f0f0f1">';
                 echo '<strong>RETIRADO · ' . esc_html((string)($row['question'] ?? $row['concept'] ?? 'Conocimiento técnico')) . '</strong>';
                 if (!empty($row['answer'])) echo '<div style="margin-top:5px">' . esc_html((string)$row['answer']) . '</div>';
-                echo '<div class="description" style="margin-top:5px">Este bloque ya no está activo en la fuente. El contenido del post no se modifica automáticamente.</div></div>';
+                echo '<div class="description" style="margin-top:5px">' . esc_html__( 'Este bloque ya no está activo en la fuente. El contenido del post no se modifica automáticamente.', 'taxocommerce-scrappers' ) . '</div>' . '</div>';
             }
         } else {
-            echo '<p>No hay novedades técnicas pendientes.</p>';
+            echo '<p>' . esc_html__( 'No hay novedades técnicas pendientes.', 'taxocommerce-scrappers' ) . '</p>';
         }
 
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:10px">';
         echo '<input type="hidden" name="action" value="seo_ingeniero_post_update_action"><input type="hidden" name="post_id" value="' . esc_attr($post_id) . '"><input type="hidden" name="update_action" value="rescan">';
         wp_nonce_field('seo_ingeniero_post_update_' . $post_id);
-        echo '<button class="button" type="submit">Reescanear novedades</button></form>';
-        echo '<p class="description">Incorporar sólo modifica el editor abierto; guarda el post únicamente cuando la Editora termine la revisión.</p>';
+        echo '<button class="button" type="submit">' . esc_html__( 'Reescanear novedades', 'taxocommerce-scrappers' ) . '</button>' . '</form>';
+        echo '<p class="description">' . esc_html__( 'Incorporar sólo modifica el editor abierto; guarda el post únicamente cuando la Editora termine la revisión.', 'taxocommerce-scrappers' ) . '</p>';
         echo '</div>';
     }
 

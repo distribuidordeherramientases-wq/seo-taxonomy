@@ -1,0 +1,62 @@
+name: Diagnose WordPress MO catalogs in STAGING (#2094)
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - '.github/workflows/audit-staging-mo.yml'
+      - '.github/scripts/repair_staging_mo_2094.py'
+      - '.github/tests/test_repair_staging_mo_2094.py'
+      - '.github/scripts/audit_staging_mo.py'
+  pull_request:
+    paths:
+      - '.github/scripts/verify_mo_catalogs.py'
+      - '.github/scripts/audit_staging_mo.py'
+      - '.github/tests/test_verify_mo_catalogs.py'
+      - '.github/workflows/audit-staging-mo.yml'
+      - '.github/scripts/repair_staging_mo_2094.py'
+      - '.github/tests/test_repair_staging_mo_2094.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-mo-repository:
+    name: Validate WordPress-compatible MO catalogs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests for corrupt/truncated MO tables
+        run: python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
+      - name: Targeted repair safety tests (without FTPS)
+        run: python3 -m unittest discover -s .github/tests -p test_repair_staging_mo_2094.py -v
+      - name: Structural verification of all TaxoCommerce MO catalogs
+        run: python3 .github/scripts/verify_mo_catalogs.py --repo
+      - name: Python syntax
+        run: |
+          python3 -m py_compile .github/scripts/verify_mo_catalogs.py
+          python3 -m py_compile .github/scripts/audit_staging_mo.py
+          python3 -m py_compile .github/scripts/repair_staging_mo_2094.py
+
+  inspect-staging:
+    name: Read-only FTPS inspection of installed MO catalogs
+    needs: verify-mo-repository
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore five confirmed malformed Scrappers MO files only (issue 2094)
+        if: github.event_name == 'push'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/repair_staging_mo_2094.py --repair-staging
+      - name: Find malformed catalogues actually installed on STAGING
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/audit_staging_mo.py

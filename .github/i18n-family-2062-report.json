@@ -1,0 +1,1422 @@
+{
+  "auditor": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 85,
+    "locales": {
+      "es_ES": {
+        "strings": 93,
+        "translated": 0,
+        "missing": 93,
+        "examples_missing": [
+          "TaxoCommerce Auditor - Content Quality for WooCommerce",
+          "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.",
+          "David Perez",
+          "No tienes permisos para consultar Auditor.",
+          "Auditor de contenidos",
+          "Auditor"
+        ]
+      },
+      "en_US": {
+        "strings": 93,
+        "translated": 0,
+        "missing": 93,
+        "examples_missing": [
+          "TaxoCommerce Auditor - Content Quality for WooCommerce",
+          "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.",
+          "David Perez",
+          "No tienes permisos para consultar Auditor.",
+          "Auditor de contenidos",
+          "Auditor"
+        ]
+      },
+      "fr_FR": {
+        "strings": 93,
+        "translated": 0,
+        "missing": 93,
+        "examples_missing": [
+          "TaxoCommerce Auditor - Content Quality for WooCommerce",
+          "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.",
+          "David Perez",
+          "No tienes permisos para consultar Auditor.",
+          "Auditor de contenidos",
+          "Auditor"
+        ]
+      },
+      "de_DE": {
+        "strings": 93,
+        "translated": 0,
+        "missing": 93,
+        "examples_missing": [
+          "TaxoCommerce Auditor - Content Quality for WooCommerce",
+          "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.",
+          "David Perez",
+          "No tienes permisos para consultar Auditor.",
+          "Auditor de contenidos",
+          "Auditor"
+        ]
+      },
+      "nl_NL": {
+        "strings": 93,
+        "translated": 0,
+        "missing": 93,
+        "examples_missing": [
+          "TaxoCommerce Auditor - Content Quality for WooCommerce",
+          "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports.",
+          "David Perez",
+          "No tienes permisos para consultar Auditor.",
+          "Auditor de contenidos",
+          "Auditor"
+        ]
+      }
+    }
+  },
+  "campaigns": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 81,
+    "locales": {
+      "es_ES": {
+        "strings": 79,
+        "translated": 0,
+        "missing": 79,
+        "examples_missing": [
+          "TaxoCommerce Campaigns",
+          "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.",
+          "David Perez",
+          "Campaigns",
+          "Configuración guardada.",
+          "Banners públicos"
+        ]
+      },
+      "en_US": {
+        "strings": 79,
+        "translated": 0,
+        "missing": 79,
+        "examples_missing": [
+          "TaxoCommerce Campaigns",
+          "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.",
+          "David Perez",
+          "Campaigns",
+          "Configuración guardada.",
+          "Banners públicos"
+        ]
+      },
+      "fr_FR": {
+        "strings": 79,
+        "translated": 0,
+        "missing": 79,
+        "examples_missing": [
+          "TaxoCommerce Campaigns",
+          "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.",
+          "David Perez",
+          "Campaigns",
+          "Configuración guardada.",
+          "Banners públicos"
+        ]
+      },
+      "de_DE": {
+        "strings": 79,
+        "translated": 0,
+        "missing": 79,
+        "examples_missing": [
+          "TaxoCommerce Campaigns",
+          "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.",
+          "David Perez",
+          "Campaigns",
+          "Configuración guardada.",
+          "Banners públicos"
+        ]
+      },
+      "nl_NL": {
+        "strings": 79,
+        "translated": 0,
+        "missing": 79,
+        "examples_missing": [
+          "TaxoCommerce Campaigns",
+          "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.",
+          "David Perez",
+          "Campaigns",
+          "Configuración guardada.",
+          "Banners públicos"
+        ]
+      }
+    }
+  },
+  "connections": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 1,
+    "locales": {
+      "es_ES": {
+        "strings": 61,
+        "translated": 0,
+        "missing": 61,
+        "examples_missing": [
+          "TaxoCommerce Connections (Compatibility Bridge)",
+          "Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.",
+          "David Perez",
+          "Connections",
+          "TaxoCommerce Connections",
+          "You do not have permission to manage connections."
+        ]
+      },
+      "en_US": {
+        "strings": 61,
+        "translated": 0,
+        "missing": 61,
+        "examples_missing": [
+          "TaxoCommerce Connections (Compatibility Bridge)",
+          "Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.",
+          "David Perez",
+          "Connections",
+          "TaxoCommerce Connections",
+          "You do not have permission to manage connections."
+        ]
+      },
+      "fr_FR": {
+        "strings": 61,
+        "translated": 0,
+        "missing": 61,
+        "examples_missing": [
+          "TaxoCommerce Connections (Compatibility Bridge)",
+          "Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.",
+          "David Perez",
+          "Connections",
+          "TaxoCommerce Connections",
+          "You do not have permission to manage connections."
+        ]
+      },
+      "de_DE": {
+        "strings": 61,
+        "translated": 0,
+        "missing": 61,
+        "examples_missing": [
+          "TaxoCommerce Connections (Compatibility Bridge)",
+          "Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.",
+          "David Perez",
+          "Connections",
+          "TaxoCommerce Connections",
+          "You do not have permission to manage connections."
+        ]
+      },
+      "nl_NL": {
+        "strings": 61,
+        "translated": 0,
+        "missing": 61,
+        "examples_missing": [
+          "TaxoCommerce Connections (Compatibility Bridge)",
+          "Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.",
+          "David Perez",
+          "Connections",
+          "TaxoCommerce Connections",
+          "You do not have permission to manage connections."
+        ]
+      }
+    }
+  },
+  "core": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 117,
+    "locales": {
+      "es_ES": {
+        "strings": 786,
+        "translated": 66,
+        "missing": 720,
+        "examples_missing": [
+          "TaxoCommerce Core - Catalog & Content Management for WooCommerce",
+          "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.",
+          "David Perez",
+          "No tienes permisos para exportar contenidos de anomalías.",
+          "Falta una tabla SEO del esquema original. No se puede exportar.",
+          "Exportación JSON de anomalías editoriales"
+        ]
+      },
+      "en_US": {
+        "strings": 786,
+        "translated": 518,
+        "missing": 268,
+        "examples_missing": [
+          "TaxoCommerce Core - Catalog & Content Management for WooCommerce",
+          "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.",
+          "David Perez",
+          "No existen las tablas originales seo_nodes / seo_relations. No es posible realizar los chequeos estructurales.",
+          "🧩 FAQs sin elemento relacionado",
+          "Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera categorías, productos o páginas/hubs."
+        ]
+      },
+      "fr_FR": {
+        "strings": 786,
+        "translated": 100,
+        "missing": 686,
+        "examples_missing": [
+          "TaxoCommerce Core - Catalog & Content Management for WooCommerce",
+          "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.",
+          "David Perez",
+          "No tienes permisos para exportar contenidos de anomalías.",
+          "Falta una tabla SEO del esquema original. No se puede exportar.",
+          "Exportación JSON de anomalías editoriales"
+        ]
+      },
+      "de_DE": {
+        "strings": 786,
+        "translated": 99,
+        "missing": 687,
+        "examples_missing": [
+          "TaxoCommerce Core - Catalog & Content Management for WooCommerce",
+          "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.",
+          "David Perez",
+          "No tienes permisos para exportar contenidos de anomalías.",
+          "Falta una tabla SEO del esquema original. No se puede exportar.",
+          "Exportación JSON de anomalías editoriales"
+        ]
+      },
+      "nl_NL": {
+        "strings": 786,
+        "translated": 99,
+        "missing": 687,
+        "examples_missing": [
+          "TaxoCommerce Core - Catalog & Content Management for WooCommerce",
+          "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores.",
+          "David Perez",
+          "No tienes permisos para exportar contenidos de anomalías.",
+          "Falta una tabla SEO del esquema original. No se puede exportar.",
+          "Exportación JSON de anomalías editoriales"
+        ]
+      }
+    }
+  },
+  "database": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 109,
+    "locales": {
+      "es_ES": {
+        "strings": 106,
+        "translated": 3,
+        "missing": 103,
+        "examples_missing": [
+          "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.",
+          "David Perez",
+          "Sin permisos para Auto Test.",
+          "Auto Test de Database",
+          "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.",
+          "No existen resultados todavía. Pulsa Ejecutar Auto Test."
+        ]
+      },
+      "en_US": {
+        "strings": 106,
+        "translated": 6,
+        "missing": 100,
+        "examples_missing": [
+          "TaxoCommerce Database",
+          "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.",
+          "David Perez",
+          "Auto Test de Database",
+          "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.",
+          "No existen resultados todavía. Pulsa Ejecutar Auto Test."
+        ]
+      },
+      "fr_FR": {
+        "strings": 106,
+        "translated": 9,
+        "missing": 97,
+        "examples_missing": [
+          "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.",
+          "David Perez",
+          "Auto Test de Database",
+          "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.",
+          "No existen resultados todavía. Pulsa Ejecutar Auto Test.",
+          "No hay informe anterior para comparar. Conserva esta ejecución como referencia antes de actualizar."
+        ]
+      },
+      "de_DE": {
+        "strings": 106,
+        "translated": 9,
+        "missing": 97,
+        "examples_missing": [
+          "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.",
+          "David Perez",
+          "Auto Test de Database",
+          "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.",
+          "No existen resultados todavía. Pulsa Ejecutar Auto Test.",
+          "No hay informe anterior para comparar. Conserva esta ejecución como referencia antes de actualizar."
+        ]
+      },
+      "nl_NL": {
+        "strings": 106,
+        "translated": 9,
+        "missing": 97,
+        "examples_missing": [
+          "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.",
+          "David Perez",
+          "Auto Test de Database",
+          "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.",
+          "No existen resultados todavía. Pulsa Ejecutar Auto Test.",
+          "No hay informe anterior para comparar. Conserva esta ejecución como referencia antes de actualizar."
+        ]
+      }
+    }
+  },
+  "dependiente": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 88,
+    "locales": {
+      "es_ES": {
+        "strings": 366,
+        "translated": 0,
+        "missing": 366,
+        "examples_missing": [
+          "TaxoCommerce Assistant",
+          "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.",
+          "David Perez",
+          "TaxoCommerce Sales Assistant",
+          "Sales Assistant",
+          "Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB."
+        ]
+      },
+      "en_US": {
+        "strings": 366,
+        "translated": 0,
+        "missing": 366,
+        "examples_missing": [
+          "TaxoCommerce Assistant",
+          "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.",
+          "David Perez",
+          "TaxoCommerce Sales Assistant",
+          "Sales Assistant",
+          "Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB."
+        ]
+      },
+      "fr_FR": {
+        "strings": 366,
+        "translated": 0,
+        "missing": 366,
+        "examples_missing": [
+          "TaxoCommerce Assistant",
+          "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.",
+          "David Perez",
+          "TaxoCommerce Sales Assistant",
+          "Sales Assistant",
+          "Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB."
+        ]
+      },
+      "de_DE": {
+        "strings": 366,
+        "translated": 0,
+        "missing": 366,
+        "examples_missing": [
+          "TaxoCommerce Assistant",
+          "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.",
+          "David Perez",
+          "TaxoCommerce Sales Assistant",
+          "Sales Assistant",
+          "Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB."
+        ]
+      },
+      "nl_NL": {
+        "strings": 366,
+        "translated": 0,
+        "missing": 366,
+        "examples_missing": [
+          "TaxoCommerce Assistant",
+          "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.",
+          "David Perez",
+          "TaxoCommerce Sales Assistant",
+          "Sales Assistant",
+          "Traza detallada del aprendizaje. Registra lecturas de fuentes, creación de foto fija, validación, escrituras en conocimiento, llamadas al motor semántico, locks, reprogramaciones, métricas y errores. El fichero activo rota automáticamente y nunca debe superar 1 MiB."
+        ]
+      }
+    }
+  },
+  "distribution": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 10,
+    "locales": {
+      "es_ES": {
+        "strings": 193,
+        "translated": 0,
+        "missing": 193,
+        "examples_missing": [
+          "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce",
+          "Publishes commercial feeds and professional XML sitemaps through independent bounded processes.",
+          "David Perez",
+          "You do not have permission to manage TaxoCommerce Distribution.",
+          "Distribution",
+          "TaxoCommerce Distribution"
+        ]
+      },
+      "en_US": {
+        "strings": 193,
+        "translated": 0,
+        "missing": 193,
+        "examples_missing": [
+          "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce",
+          "Publishes commercial feeds and professional XML sitemaps through independent bounded processes.",
+          "David Perez",
+          "You do not have permission to manage TaxoCommerce Distribution.",
+          "Distribution",
+          "TaxoCommerce Distribution"
+        ]
+      },
+      "fr_FR": {
+        "strings": 193,
+        "translated": 0,
+        "missing": 193,
+        "examples_missing": [
+          "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce",
+          "Publishes commercial feeds and professional XML sitemaps through independent bounded processes.",
+          "David Perez",
+          "You do not have permission to manage TaxoCommerce Distribution.",
+          "Distribution",
+          "TaxoCommerce Distribution"
+        ]
+      },
+      "de_DE": {
+        "strings": 193,
+        "translated": 0,
+        "missing": 193,
+        "examples_missing": [
+          "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce",
+          "Publishes commercial feeds and professional XML sitemaps through independent bounded processes.",
+          "David Perez",
+          "You do not have permission to manage TaxoCommerce Distribution.",
+          "Distribution",
+          "TaxoCommerce Distribution"
+        ]
+      },
+      "nl_NL": {
+        "strings": 193,
+        "translated": 0,
+        "missing": 193,
+        "examples_missing": [
+          "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce",
+          "Publishes commercial feeds and professional XML sitemaps through independent bounded processes.",
+          "David Perez",
+          "You do not have permission to manage TaxoCommerce Distribution.",
+          "Distribution",
+          "TaxoCommerce Distribution"
+        ]
+      }
+    }
+  },
+  "facturacion": {
+    "menu_labels_newly_internationalized": 3,
+    "echo_texts_newly_internationalized": 63,
+    "locales": {
+      "es_ES": {
+        "strings": 68,
+        "translated": 1,
+        "missing": 67,
+        "examples_missing": [
+          "TaxoCommerce Billing",
+          "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.",
+          "David Pérez",
+          "Facturas y presupuestos",
+          "No tienes permisos para acceder a esta pagina.",
+          "Sin permisos."
+        ]
+      },
+      "en_US": {
+        "strings": 68,
+        "translated": 5,
+        "missing": 63,
+        "examples_missing": [
+          "TaxoCommerce Billing",
+          "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.",
+          "David Pérez",
+          "Sin permisos.",
+          "No se ha podido cargar el pedido.",
+          "El sistema documental esta desactivado en Datos empresa."
+        ]
+      },
+      "fr_FR": {
+        "strings": 68,
+        "translated": 6,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Billing",
+          "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.",
+          "David Pérez",
+          "Sin permisos.",
+          "No se ha podido cargar el pedido.",
+          "El sistema documental esta desactivado en Datos empresa."
+        ]
+      },
+      "de_DE": {
+        "strings": 68,
+        "translated": 6,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Billing",
+          "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.",
+          "David Pérez",
+          "Sin permisos.",
+          "No se ha podido cargar el pedido.",
+          "El sistema documental esta desactivado en Datos empresa."
+        ]
+      },
+      "nl_NL": {
+        "strings": 68,
+        "translated": 6,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Billing",
+          "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.",
+          "David Pérez",
+          "Sin permisos.",
+          "No se ha podido cargar el pedido.",
+          "El sistema documental esta desactivado en Datos empresa."
+        ]
+      }
+    }
+  },
+  "faqs": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 18,
+    "locales": {
+      "es_ES": {
+        "strings": 115,
+        "translated": 0,
+        "missing": 115,
+        "examples_missing": [
+          "TaxoCommerce FAQs",
+          "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay informe válido para este sitio."
+        ]
+      },
+      "en_US": {
+        "strings": 115,
+        "translated": 0,
+        "missing": 115,
+        "examples_missing": [
+          "TaxoCommerce FAQs",
+          "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay informe válido para este sitio."
+        ]
+      },
+      "fr_FR": {
+        "strings": 115,
+        "translated": 0,
+        "missing": 115,
+        "examples_missing": [
+          "TaxoCommerce FAQs",
+          "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay informe válido para este sitio."
+        ]
+      },
+      "de_DE": {
+        "strings": 115,
+        "translated": 0,
+        "missing": 115,
+        "examples_missing": [
+          "TaxoCommerce FAQs",
+          "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay informe válido para este sitio."
+        ]
+      },
+      "nl_NL": {
+        "strings": 115,
+        "translated": 0,
+        "missing": 115,
+        "examples_missing": [
+          "TaxoCommerce FAQs",
+          "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic labels. Uninstalling deletes stored FAQ data.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay informe válido para este sitio."
+        ]
+      }
+    }
+  },
+  "google-bing": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 661,
+    "locales": {
+      "es_ES": {
+        "strings": 806,
+        "translated": 0,
+        "missing": 806,
+        "examples_missing": [
+          "TaxoCommerce Insights",
+          "External connections, provider data downloads, and the restored legacy Analysis dashboard.",
+          "David Perez",
+          "Bing Webmaster",
+          "· conexion complementaria",
+          "Eliminar la API key guardada"
+        ]
+      },
+      "en_US": {
+        "strings": 806,
+        "translated": 0,
+        "missing": 806,
+        "examples_missing": [
+          "TaxoCommerce Insights",
+          "External connections, provider data downloads, and the restored legacy Analysis dashboard.",
+          "David Perez",
+          "Bing Webmaster",
+          "· conexion complementaria",
+          "Eliminar la API key guardada"
+        ]
+      },
+      "fr_FR": {
+        "strings": 806,
+        "translated": 0,
+        "missing": 806,
+        "examples_missing": [
+          "TaxoCommerce Insights",
+          "External connections, provider data downloads, and the restored legacy Analysis dashboard.",
+          "David Perez",
+          "Bing Webmaster",
+          "· conexion complementaria",
+          "Eliminar la API key guardada"
+        ]
+      },
+      "de_DE": {
+        "strings": 806,
+        "translated": 0,
+        "missing": 806,
+        "examples_missing": [
+          "TaxoCommerce Insights",
+          "External connections, provider data downloads, and the restored legacy Analysis dashboard.",
+          "David Perez",
+          "Bing Webmaster",
+          "· conexion complementaria",
+          "Eliminar la API key guardada"
+        ]
+      },
+      "nl_NL": {
+        "strings": 806,
+        "translated": 0,
+        "missing": 806,
+        "examples_missing": [
+          "TaxoCommerce Insights",
+          "External connections, provider data downloads, and the restored legacy Analysis dashboard.",
+          "David Perez",
+          "Bing Webmaster",
+          "· conexion complementaria",
+          "Eliminar la API key guardada"
+        ]
+      }
+    }
+  },
+  "images": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 3,
+    "locales": {
+      "es_ES": {
+        "strings": 257,
+        "translated": 0,
+        "missing": 257,
+        "examples_missing": [
+          "TaxoCommerce Images - Image Management for WooCommerce",
+          "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.",
+          "David Perez",
+          "La imagen indicada no se puede editar.",
+          "El título de la imagen no puede quedar vacío.",
+          "Metadatos de imagen actualizados."
+        ]
+      },
+      "en_US": {
+        "strings": 257,
+        "translated": 0,
+        "missing": 257,
+        "examples_missing": [
+          "TaxoCommerce Images - Image Management for WooCommerce",
+          "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.",
+          "David Perez",
+          "La imagen indicada no se puede editar.",
+          "El título de la imagen no puede quedar vacío.",
+          "Metadatos de imagen actualizados."
+        ]
+      },
+      "fr_FR": {
+        "strings": 257,
+        "translated": 0,
+        "missing": 257,
+        "examples_missing": [
+          "TaxoCommerce Images - Image Management for WooCommerce",
+          "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.",
+          "David Perez",
+          "La imagen indicada no se puede editar.",
+          "El título de la imagen no puede quedar vacío.",
+          "Metadatos de imagen actualizados."
+        ]
+      },
+      "de_DE": {
+        "strings": 257,
+        "translated": 0,
+        "missing": 257,
+        "examples_missing": [
+          "TaxoCommerce Images - Image Management for WooCommerce",
+          "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.",
+          "David Perez",
+          "La imagen indicada no se puede editar.",
+          "El título de la imagen no puede quedar vacío.",
+          "Metadatos de imagen actualizados."
+        ]
+      },
+      "nl_NL": {
+        "strings": 257,
+        "translated": 0,
+        "missing": 257,
+        "examples_missing": [
+          "TaxoCommerce Images - Image Management for WooCommerce",
+          "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo Media como fuente de verdad.",
+          "David Perez",
+          "La imagen indicada no se puede editar.",
+          "El título de la imagen no puede quedar vacío.",
+          "Metadatos de imagen actualizados."
+        ]
+      }
+    }
+  },
+  "import-export": {
+    "menu_labels_newly_internationalized": 0,
+    "echo_texts_newly_internationalized": 0,
+    "locales": {
+      "es_ES": {
+        "strings": 325,
+        "translated": 0,
+        "missing": 325,
+        "examples_missing": [
+          "TaxoCommerce Import-Export - Import & Export for WooCommerce",
+          "Importa y exporta productos, categorías, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar el autochequeo.",
+          "No existe un informe válido para este sitio."
+        ]
+      },
+      "en_US": {
+        "strings": 325,
+        "translated": 0,
+        "missing": 325,
+        "examples_missing": [
+          "TaxoCommerce Import-Export - Import & Export for WooCommerce",
+          "Importa y exporta productos, categorías, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar el autochequeo.",
+          "No existe un informe válido para este sitio."
+        ]
+      },
+      "fr_FR": {
+        "strings": 325,
+        "translated": 0,
+        "missing": 325,
+        "examples_missing": [
+          "TaxoCommerce Import-Export - Import & Export for WooCommerce",
+          "Importa y exporta productos, categorías, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar el autochequeo.",
+          "No existe un informe válido para este sitio."
+        ]
+      },
+      "de_DE": {
+        "strings": 325,
+        "translated": 0,
+        "missing": 325,
+        "examples_missing": [
+          "TaxoCommerce Import-Export - Import & Export for WooCommerce",
+          "Importa y exporta productos, categorías, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar el autochequeo.",
+          "No existe un informe válido para este sitio."
+        ]
+      },
+      "nl_NL": {
+        "strings": 325,
+        "translated": 0,
+        "missing": 325,
+        "examples_missing": [
+          "TaxoCommerce Import-Export - Import & Export for WooCommerce",
+          "Importa y exporta productos, categorías, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.",
+          "David Perez",
+          "Sin permisos para ejecutar Auto Test.",
+          "Sin permisos para descargar el autochequeo.",
+          "No existe un informe válido para este sitio."
+        ]
+      }
+    }
+  },
+  "logistica": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 1,
+    "locales": {
+      "es_ES": {
+        "strings": 141,
+        "translated": 2,
+        "missing": 139,
+        "examples_missing": [
+          "TaxoCommerce Logistics",
+          "WooCommerce shipping weight, dimensions, and delivery-cost management.",
+          "David Pérez",
+          "Sin permisos para Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay un informe de Auto Test disponible."
+        ]
+      },
+      "en_US": {
+        "strings": 141,
+        "translated": 14,
+        "missing": 127,
+        "examples_missing": [
+          "TaxoCommerce Logistics",
+          "WooCommerce shipping weight, dimensions, and delivery-cost management.",
+          "David Pérez",
+          "Auto Test — Logistics",
+          "Chequeo no destructivo de tarifas, reglas, pesos, destinos y seguridad. No realiza envíos, cambia pedidos, recalcula carritos ni importa configuraciones. Solo guarda sus propios informes.",
+          "Todavía no hay referencia guardada."
+        ]
+      },
+      "fr_FR": {
+        "strings": 141,
+        "translated": 3,
+        "missing": 138,
+        "examples_missing": [
+          "TaxoCommerce Logistics",
+          "WooCommerce shipping weight, dimensions, and delivery-cost management.",
+          "David Pérez",
+          "Sin permisos para Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay un informe de Auto Test disponible."
+        ]
+      },
+      "de_DE": {
+        "strings": 141,
+        "translated": 3,
+        "missing": 138,
+        "examples_missing": [
+          "TaxoCommerce Logistics",
+          "WooCommerce shipping weight, dimensions, and delivery-cost management.",
+          "David Pérez",
+          "Sin permisos para Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay un informe de Auto Test disponible."
+        ]
+      },
+      "nl_NL": {
+        "strings": 141,
+        "translated": 3,
+        "missing": 138,
+        "examples_missing": [
+          "TaxoCommerce Logistics",
+          "WooCommerce shipping weight, dimensions, and delivery-cost management.",
+          "David Pérez",
+          "Sin permisos para Auto Test.",
+          "Sin permisos para descargar Auto Test.",
+          "No hay un informe de Auto Test disponible."
+        ]
+      }
+    }
+  },
+  "redirects": {
+    "menu_labels_newly_internationalized": 6,
+    "echo_texts_newly_internationalized": 1,
+    "locales": {
+      "es_ES": {
+        "strings": 144,
+        "translated": 0,
+        "missing": 144,
+        "examples_missing": [
+          "TaxoCommerce Redirects - SEO Redirect Manager",
+          "https://www.distribuidordeherramientas.es/",
+          "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.",
+          "David Perez",
+          "TaxoCommerce Redirects",
+          "Redirects"
+        ]
+      },
+      "en_US": {
+        "strings": 144,
+        "translated": 0,
+        "missing": 144,
+        "examples_missing": [
+          "TaxoCommerce Redirects - SEO Redirect Manager",
+          "https://www.distribuidordeherramientas.es/",
+          "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.",
+          "David Perez",
+          "TaxoCommerce Redirects",
+          "Redirects"
+        ]
+      },
+      "fr_FR": {
+        "strings": 144,
+        "translated": 0,
+        "missing": 144,
+        "examples_missing": [
+          "TaxoCommerce Redirects - SEO Redirect Manager",
+          "https://www.distribuidordeherramientas.es/",
+          "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.",
+          "David Perez",
+          "TaxoCommerce Redirects",
+          "Redirects"
+        ]
+      },
+      "de_DE": {
+        "strings": 144,
+        "translated": 0,
+        "missing": 144,
+        "examples_missing": [
+          "TaxoCommerce Redirects - SEO Redirect Manager",
+          "https://www.distribuidordeherramientas.es/",
+          "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.",
+          "David Perez",
+          "TaxoCommerce Redirects",
+          "Redirects"
+        ]
+      },
+      "nl_NL": {
+        "strings": 144,
+        "translated": 0,
+        "missing": 144,
+        "examples_missing": [
+          "TaxoCommerce Redirects - SEO Redirect Manager",
+          "https://www.distribuidordeherramientas.es/",
+          "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.",
+          "David Perez",
+          "TaxoCommerce Redirects",
+          "Redirects"
+        ]
+      }
+    }
+  },
+  "scrappers": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 241,
+    "locales": {
+      "es_ES": {
+        "strings": 233,
+        "translated": 2,
+        "missing": 231,
+        "examples_missing": [
+          "TaxoCommerce Scrappers",
+          "External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.",
+          "David Perez",
+          "No tienes permisos para ejecutar el autotest.",
+          "Autotest de Scrappers",
+          "Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa."
+        ]
+      },
+      "en_US": {
+        "strings": 233,
+        "translated": 2,
+        "missing": 231,
+        "examples_missing": [
+          "TaxoCommerce Scrappers",
+          "External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.",
+          "David Perez",
+          "Autotest de Scrappers",
+          "Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.",
+          "El autotest aún no se ha ejecutado en esta visita."
+        ]
+      },
+      "fr_FR": {
+        "strings": 233,
+        "translated": 4,
+        "missing": 229,
+        "examples_missing": [
+          "TaxoCommerce Scrappers",
+          "External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.",
+          "David Perez",
+          "Autotest de Scrappers",
+          "Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.",
+          "El autotest aún no se ha ejecutado en esta visita."
+        ]
+      },
+      "de_DE": {
+        "strings": 233,
+        "translated": 4,
+        "missing": 229,
+        "examples_missing": [
+          "TaxoCommerce Scrappers",
+          "External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.",
+          "David Perez",
+          "Autotest de Scrappers",
+          "Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.",
+          "El autotest aún no se ha ejecutado en esta visita."
+        ]
+      },
+      "nl_NL": {
+        "strings": 233,
+        "translated": 4,
+        "missing": 229,
+        "examples_missing": [
+          "TaxoCommerce Scrappers",
+          "External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.",
+          "David Perez",
+          "Autotest de Scrappers",
+          "Comprueba disponibilidad de componentes, conexiones y tablas. No realiza búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una credencial sin configurar es un aviso de preparación, no un fallo del programa.",
+          "El autotest aún no se ha ejecutado en esta visita."
+        ]
+      }
+    }
+  },
+  "social": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 139,
+    "locales": {
+      "es_ES": {
+        "strings": 143,
+        "translated": 0,
+        "missing": 143,
+        "examples_missing": [
+          "TaxoCommerce Social",
+          "Social network connections, publishing templates and calendar for the TaxoCommerce family.",
+          "David Perez",
+          "Social",
+          "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.",
+          "Redes sociales"
+        ]
+      },
+      "en_US": {
+        "strings": 143,
+        "translated": 0,
+        "missing": 143,
+        "examples_missing": [
+          "TaxoCommerce Social",
+          "Social network connections, publishing templates and calendar for the TaxoCommerce family.",
+          "David Perez",
+          "Social",
+          "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.",
+          "Redes sociales"
+        ]
+      },
+      "fr_FR": {
+        "strings": 143,
+        "translated": 0,
+        "missing": 143,
+        "examples_missing": [
+          "TaxoCommerce Social",
+          "Social network connections, publishing templates and calendar for the TaxoCommerce family.",
+          "David Perez",
+          "Social",
+          "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.",
+          "Redes sociales"
+        ]
+      },
+      "de_DE": {
+        "strings": 143,
+        "translated": 0,
+        "missing": 143,
+        "examples_missing": [
+          "TaxoCommerce Social",
+          "Social network connections, publishing templates and calendar for the TaxoCommerce family.",
+          "David Perez",
+          "Social",
+          "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.",
+          "Redes sociales"
+        ]
+      },
+      "nl_NL": {
+        "strings": 143,
+        "translated": 0,
+        "missing": 143,
+        "examples_missing": [
+          "TaxoCommerce Social",
+          "Social network connections, publishing templates and calendar for the TaxoCommerce family.",
+          "David Perez",
+          "Social",
+          "Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.",
+          "Redes sociales"
+        ]
+      }
+    }
+  },
+  "suppliers": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 8,
+    "locales": {
+      "es_ES": {
+        "strings": 17,
+        "translated": 0,
+        "missing": 17,
+        "examples_missing": [
+          "TaxoCommerce Suppliers",
+          "Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.",
+          "David Perez",
+          "Suppliers",
+          "You do not have permission to manage TaxoCommerce Suppliers.",
+          "CSV mapping template saved."
+        ]
+      },
+      "en_US": {
+        "strings": 17,
+        "translated": 0,
+        "missing": 17,
+        "examples_missing": [
+          "TaxoCommerce Suppliers",
+          "Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.",
+          "David Perez",
+          "Suppliers",
+          "You do not have permission to manage TaxoCommerce Suppliers.",
+          "CSV mapping template saved."
+        ]
+      },
+      "fr_FR": {
+        "strings": 17,
+        "translated": 0,
+        "missing": 17,
+        "examples_missing": [
+          "TaxoCommerce Suppliers",
+          "Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.",
+          "David Perez",
+          "Suppliers",
+          "You do not have permission to manage TaxoCommerce Suppliers.",
+          "CSV mapping template saved."
+        ]
+      },
+      "de_DE": {
+        "strings": 17,
+        "translated": 0,
+        "missing": 17,
+        "examples_missing": [
+          "TaxoCommerce Suppliers",
+          "Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.",
+          "David Perez",
+          "Suppliers",
+          "You do not have permission to manage TaxoCommerce Suppliers.",
+          "CSV mapping template saved."
+        ]
+      },
+      "nl_NL": {
+        "strings": 17,
+        "translated": 0,
+        "missing": 17,
+        "examples_missing": [
+          "TaxoCommerce Suppliers",
+          "Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.",
+          "David Perez",
+          "Suppliers",
+          "You do not have permission to manage TaxoCommerce Suppliers.",
+          "CSV mapping template saved."
+        ]
+      }
+    }
+  },
+  "system-check": {
+    "menu_labels_newly_internationalized": 16,
+    "echo_texts_newly_internationalized": 354,
+    "locales": {
+      "es_ES": {
+        "strings": 307,
+        "translated": 0,
+        "missing": 307,
+        "examples_missing": [
+          "TaxoCommerce System Check",
+          "Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.",
+          "David Perez",
+          "Acceso no autorizado.",
+          "Auto Test · System Check",
+          "Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+        ]
+      },
+      "en_US": {
+        "strings": 307,
+        "translated": 0,
+        "missing": 307,
+        "examples_missing": [
+          "TaxoCommerce System Check",
+          "Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.",
+          "David Perez",
+          "Acceso no autorizado.",
+          "Auto Test · System Check",
+          "Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+        ]
+      },
+      "fr_FR": {
+        "strings": 307,
+        "translated": 0,
+        "missing": 307,
+        "examples_missing": [
+          "TaxoCommerce System Check",
+          "Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.",
+          "David Perez",
+          "Acceso no autorizado.",
+          "Auto Test · System Check",
+          "Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+        ]
+      },
+      "de_DE": {
+        "strings": 307,
+        "translated": 0,
+        "missing": 307,
+        "examples_missing": [
+          "TaxoCommerce System Check",
+          "Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.",
+          "David Perez",
+          "Acceso no autorizado.",
+          "Auto Test · System Check",
+          "Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+        ]
+      },
+      "nl_NL": {
+        "strings": 307,
+        "translated": 0,
+        "missing": 307,
+        "examples_missing": [
+          "TaxoCommerce System Check",
+          "Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.",
+          "David Perez",
+          "Acceso no autorizado.",
+          "Auto Test · System Check",
+          "Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
+        ]
+      }
+    }
+  },
+  "templates": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 147,
+    "locales": {
+      "es_ES": {
+        "strings": 159,
+        "translated": 0,
+        "missing": 159,
+        "examples_missing": [
+          "TaxoCommerce Templates",
+          "Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.",
+          "David Perez",
+          "Auditoria de asociaciones antiguas y modernas",
+          "Tablas de asociaciones no disponibles.",
+          "No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
+        ]
+      },
+      "en_US": {
+        "strings": 159,
+        "translated": 0,
+        "missing": 159,
+        "examples_missing": [
+          "TaxoCommerce Templates",
+          "Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.",
+          "David Perez",
+          "Auditoria de asociaciones antiguas y modernas",
+          "Tablas de asociaciones no disponibles.",
+          "No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
+        ]
+      },
+      "fr_FR": {
+        "strings": 159,
+        "translated": 0,
+        "missing": 159,
+        "examples_missing": [
+          "TaxoCommerce Templates",
+          "Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.",
+          "David Perez",
+          "Auditoria de asociaciones antiguas y modernas",
+          "Tablas de asociaciones no disponibles.",
+          "No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
+        ]
+      },
+      "de_DE": {
+        "strings": 159,
+        "translated": 0,
+        "missing": 159,
+        "examples_missing": [
+          "TaxoCommerce Templates",
+          "Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.",
+          "David Perez",
+          "Auditoria de asociaciones antiguas y modernas",
+          "Tablas de asociaciones no disponibles.",
+          "No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
+        ]
+      },
+      "nl_NL": {
+        "strings": 159,
+        "translated": 0,
+        "missing": 159,
+        "examples_missing": [
+          "TaxoCommerce Templates",
+          "Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.",
+          "David Perez",
+          "Auditoria de asociaciones antiguas y modernas",
+          "Tablas de asociaciones no disponibles.",
+          "No se cambian los roles ni los objetos ya asignados. Esta auditoria comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
+        ]
+      }
+    }
+  },
+  "vocabulary": {
+    "menu_labels_newly_internationalized": 4,
+    "echo_texts_newly_internationalized": 66,
+    "locales": {
+      "es_ES": {
+        "strings": 62,
+        "translated": 0,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Vocabulary",
+          "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.",
+          "David Perez",
+          "Vocabulary",
+          "Dar de alta",
+          "Diccionario"
+        ]
+      },
+      "en_US": {
+        "strings": 62,
+        "translated": 0,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Vocabulary",
+          "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.",
+          "David Perez",
+          "Vocabulary",
+          "Dar de alta",
+          "Diccionario"
+        ]
+      },
+      "fr_FR": {
+        "strings": 62,
+        "translated": 0,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Vocabulary",
+          "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.",
+          "David Perez",
+          "Vocabulary",
+          "Dar de alta",
+          "Diccionario"
+        ]
+      },
+      "de_DE": {
+        "strings": 62,
+        "translated": 0,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Vocabulary",
+          "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.",
+          "David Perez",
+          "Vocabulary",
+          "Dar de alta",
+          "Diccionario"
+        ]
+      },
+      "nl_NL": {
+        "strings": 62,
+        "translated": 0,
+        "missing": 62,
+        "examples_missing": [
+          "TaxoCommerce Vocabulary",
+          "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.",
+          "David Perez",
+          "Vocabulary",
+          "Dar de alta",
+          "Diccionario"
+        ]
+      }
+    }
+  }
+}

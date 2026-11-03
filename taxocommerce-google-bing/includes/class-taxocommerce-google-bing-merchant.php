@@ -307,19 +307,19 @@ final class TaxoCommerce_Google_Bing_Merchant {
         $error=sanitize_text_field((string)wp_unslash($_GET['merchant_error']??''));
         if ($error!=='')echo '<div class="notice notice-error inline"><p>'.esc_html($error).'</p></div>';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter, no state modification.
-        if (isset($_GET['merchant_notice']))echo '<div class="notice notice-success inline"><p>Operación Merchant guardada. Revisa los recuentos y el estado de sincronización.</p></div>';
-        echo '<h2>Google Merchant Center · informes de mercado</h2>';
-        echo '<p>Los benchmarks son referencias agregadas de Google, NO precios de comercios individuales. Los resultados antiguos de Shopping siguen disponibles como fotografía histórica y nunca se sobrescriben con benchmarks.</p>';
+        if (isset($_GET['merchant_notice']))echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Operación Merchant guardada. Revisa los recuentos y el estado de sincronización.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
+        echo '<h2>' . esc_html__( 'Google Merchant Center · informes de mercado', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Los benchmarks son referencias agregadas de Google, NO precios de comercios individuales. Los resultados antiguos de Shopping siguen disponibles como fotografía histórica y nunca se sobrescriben con benchmarks.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<form action="'.esc_url(admin_url('admin-post.php')).'" method="post">';
         wp_nonce_field('seo_ojeador_merchant_settings');
         echo '<input type="hidden" name="action" value="tgb_google_merchant_settings">';
         echo '<p><label><strong>ID de Merchant Center</strong> <input type="text" name="merchant_account" value="'.esc_attr(self::account()).'" placeholder="ID numérico" pattern="[0-9]{5,20}" size="22"></label></p>';
-        echo '<p><label><strong>Fuente de mercado</strong> <select name="market_mode">';
+        echo '<p>' . '<label>' . '<strong>' . esc_html__( 'Fuente de mercado', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . '<select name="market_mode">';
         echo '<option value="merchant_only" '.selected(self::mode(),'merchant_only',false).'>Merchant solamente · 0 consultas de pago Ojeador</option>';
         echo '<option value="legacy" '.selected(self::mode(),'legacy',false).'>Shopping tradicional · admite consultas de pago</option>';
         echo '</select></label></p>';
-        echo '<p class="description">Por defecto se bloquean nuevos escaneos Shopping de Ojeador y su radar Trends/Search; no se borran resultados. La opción tradicional exige una elección explícita. Ingeniero y otros servicios utilizan sus propias políticas de API.</p>';
-        echo '<p class="description">Requiere la cuenta de servicio de Google configurada en el plugin y autorizada como usuario de Merchant Center. Merchant Reports API debe estar habilitada y Market Insights disponible para la cuenta. No se envían claves a SerpApi.</p>';
+        echo '<p class="description">' . esc_html__( 'Por defecto se bloquean nuevos escaneos Shopping de Ojeador y su radar Trends/Search; no se borran resultados. La opción tradicional exige una elección explícita. Ingeniero y otros servicios utilizan sus propias políticas de API.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Requiere la cuenta de servicio de Google configurada en el plugin y autorizada como usuario de Merchant Center. Merchant Reports API debe estar habilitada y Market Insights disponible para la cuenta. No se envían claves a SerpApi.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button('Guardar fuente y cuenta','primary','submit',false);echo '</form>';
         foreach(array('prices'=>'Precios competitivos','popular'=>'Productos populares')as$view=>$label) {
             $info=(array)($snapshot[$view]??array());
@@ -328,31 +328,31 @@ final class TaxoCommerce_Google_Bing_Merchant {
             echo '<form action="'.esc_url(admin_url('admin-post.php')).'" method="post">';
             wp_nonce_field('seo_ojeador_merchant_sync');echo '<input type="hidden" name="action" value="tgb_google_merchant_sync"><input type="hidden" name="view" value="'.esc_attr($view).'">';
             submit_button('Consultar siguiente lote Merchant (máx. 500)','secondary','submit',false,array('disabled'=>!self::account()||!empty($info['complete'])));
-            echo ' <label><input type="checkbox" name="restart" value="1"> Reiniciar lectura desde primera página</label>';
+            echo ' ' . '<label>' . '<input type="checkbox" name="restart" value="1">' . ' ' . esc_html__( 'Reiniciar lectura desde primera página', 'taxocommerce-google-bing' ) . '</label>';
             echo '</form></div>';
         }
-        echo '<div class="postbox" style="padding:12px"><h3>Comparar con Ojeador PRO</h3>';
-        echo '<p>Exportación reducida de los productos estrella de PRO: no contiene las 27.075 ofertas individuales. También se pueden usar datos locales si no se importa.</p>';
+        echo '<div class="postbox" style="padding:12px">' . '<h3>' . esc_html__( 'Comparar con Ojeador PRO', 'taxocommerce-google-bing' ) . '</h3>';
+        echo '<p>' . esc_html__( 'Exportación reducida de los productos estrella de PRO: no contiene las 27.075 ofertas individuales. También se pueden usar datos locales si no se importa.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<form action="'.esc_url(admin_url('admin-post.php')).'" method="post" enctype="multipart/form-data">';
         wp_nonce_field('seo_ojeador_merchant_baseline');echo '<input type="hidden" name="action" value="tgb_google_merchant_baseline">';
         echo '<input type="file" name="baseline_file" accept=".json,application/json" required> ';
         submit_button('Importar línea base PRO','secondary','submit',false);echo '</form>';
         if (!empty($base['generated_at']))echo '<p>Referencia PRO: '.esc_html((string)$base['generated_at']).'</p>';
         echo '<p><strong>Productos de referencia:</strong> '.esc_html($c['baseline']).' · <strong>Con benchmark Merchant:</strong> '.esc_html($c['covered']).' · <strong>Comparables:</strong> '.esc_html($c['comparable']).' · <strong>Desviación ≤10%:</strong> '.esc_html($c['agree_10_pct']).'</p>';
-        echo '<p class="description">Sin benchmarks reales Merchant no es posible medir ahorro ni diferencias. Las métricas anteriores no son equivalentes estadísticamente.</p>';
-        echo '<div style="overflow:auto"><table class="widefat striped"><thead><tr><th>Producto</th><th>Mediana ofertas observadas</th><th>Benchmark Merchant</th><th>Diferencia</th><th>Ofertas históricas</th></tr></thead><tbody>';
+        echo '<p class="description">' . esc_html__( 'Sin benchmarks reales Merchant no es posible medir ahorro ni diferencias. Las métricas anteriores no son equivalentes estadísticamente.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<div style="overflow:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Mediana ofertas observadas', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Benchmark Merchant', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Diferencia', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Ofertas históricas', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach(array_slice($c['rows'],0,80)as $row) {
             echo '<tr><td>'.esc_html($row['name']).' (#'.absint($row['product_id']).')</td>';
             foreach(array('legacy_median','merchant_benchmark')as$k)echo '<td>'.($row[$k]!==null?esc_html(number_format_i18n((float)$row[$k],2)).' €':'—').'</td>';
             echo '<td>'.($row['delta_pct']!==null?esc_html(number_format_i18n((float)$row['delta_pct'],1)).'%':'—').'</td><td>'.absint($row['offers']).'</td></tr>';
         }
         echo '</tbody></table></div></div>';
-        echo '<div class="postbox" style="padding:12px"><h3>Productos populares ajenos al inventario</h3>';
-        echo '<p>Son candidatos de Merchant, no compras ni nuevas categorías autorizadas. No equivalen a un catálogo completo de precios de competidores.</p>';
+        echo '<div class="postbox" style="padding:12px">' . '<h3>' . esc_html__( 'Productos populares ajenos al inventario', 'taxocommerce-google-bing' ) . '</h3>';
+        echo '<p>' . esc_html__( 'Son candidatos de Merchant, no compras ni nuevas categorías autorizadas. No equivalen a un catálogo completo de precios de competidores.', 'taxocommerce-google-bing' ) . '</p>';
         $missing=array_filter($popular,static function($r){return ($r['inventory_status']??'')==='not_in_inventory';});
         uasort($missing,static function($a,$b){return absint($a['rank']??999999)<=>absint($b['rank']??999999);});
         echo '<p>'.esc_html(count($missing)).' candidatos no presentes en el feed de Merchant.</p>';
-        echo '<div style="overflow:auto"><table class="widefat striped"><thead><tr><th>Producto / marca</th><th>Categoría Google</th><th>Popularidad</th><th>Evolución</th><th>Fecha del informe</th></tr></thead><tbody>';
+        echo '<div style="overflow:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto / marca', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Categoría Google', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Popularidad', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Evolución', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Fecha del informe', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach(array_slice($missing,0,40)as$r){
             echo '<tr><td>'.esc_html($r['title']).' · '.esc_html($r['brand']).'</td><td>'.esc_html($r['category']).'</td><td>'.absint($r['rank']).'</td><td>'.esc_html($r['demand_change']).'</td><td>'.esc_html($r['report_date']).'</td></tr>';
         }

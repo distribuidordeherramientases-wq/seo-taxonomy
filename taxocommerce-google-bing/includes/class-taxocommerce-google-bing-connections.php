@@ -188,7 +188,7 @@ final class TaxoCommerce_Google_Bing_Connections {
     public static function render() {
         self::render_notice();
 
-        echo '<div class="tgb-note"><strong>Modo conexión:</strong> este plugin únicamente guarda credenciales, obtiene/renueva tokens y verifica acceso mediante metadatos. No descarga visitas, búsquedas, consultas, rankings, ventas, productos ni informes.</div>';
+        echo '<div class="tgb-note">' . '<strong>' . esc_html__( 'Modo conexión:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'este plugin únicamente guarda credenciales, obtiene/renueva tokens y verifica acceso mediante metadatos. No descarga visitas, búsquedas, consultas, rankings, ventas, productos ni informes.', 'taxocommerce-google-bing' ) . '</div>';
         $migration = get_option( self::MIGRATION_OPTION, array() );
         if ( is_array( $migration ) && ! empty( $migration['copied'] ) ) {
             echo '<div class="notice notice-success inline"><p><strong>Credenciales antiguas migradas al plugin moderno.</strong> Conexiones copiadas: ' . esc_html( implode( ', ', array_map( 'sanitize_text_field', (array) $migration['copied'] ) ) ) . '.</p></div>';
@@ -215,7 +215,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '<div class="tgb-grid">';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Analytics / Search Console · Cuenta de servicio</h2><p>Credencial compartida para APIs Google. La prueba consulta únicamente metadatos de acceso.</p></div>';
+        echo '<div class="tgb-card-head">' . '<div>' . '<h2>' . esc_html__( 'Google Analytics / Search Console · Cuenta de servicio', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Credencial compartida para APIs Google. La prueba consulta únicamente metadatos de acceso.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo self::badge( $google_ready ? 'Configurado' : 'Sin configurar', $google_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
         if ( $google_ready ) {
@@ -236,7 +236,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Merchant Center</h2><p>Identificación de la cuenta Merchant. No se consultan benchmarks, productos ni ventas.</p></div>';
+        echo '<div class="tgb-card-head">' . '<div>' . '<h2>' . esc_html__( 'Google Merchant Center', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Identificación de la cuenta Merchant. No se consultan benchmarks, productos ni ventas.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo self::badge( $merchant_account ? 'Configurado' : 'Sin configurar', $merchant_account ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -249,7 +249,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Google Cloud Run</h2><p>Credenciales y referencia del Job. El plugin no ejecuta el Job desde esta pantalla.</p></div>';
+        echo '<div class="tgb-card-head">' . '<div>' . '<h2>' . esc_html__( 'Google Cloud Run', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Credenciales y referencia del Job. El plugin no ejecuta el Job desde esta pantalla.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo self::badge( $python_ready ? 'Configurado' : 'Sin configurar', $python_ready ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
         if ( ! is_wp_error( $python_account ) && ! empty( $python_account['client_email'] ) ) {
@@ -270,7 +270,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</section>';
 
         echo '<section class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Microsoft Bing Webmaster</h2><p>API key y sitio verificado. La prueba sólo obtiene la lista de sitios autorizados.</p></div>';
+        echo '<div class="tgb-card-head">' . '<div>' . '<h2>' . esc_html__( 'Microsoft Bing Webmaster', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'API key y sitio verificado. La prueba sólo obtiene la lista de sitios autorizados.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo self::badge( '' !== $bing_key ? 'Configurado' : 'Sin configurar', '' !== $bing_key ? 'ok' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
         if ( defined( 'SEO_BING_WEBMASTER_API_KEY' ) && '' !== trim( (string) SEO_BING_WEBMASTER_API_KEY ) ) {
@@ -284,7 +284,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '<tr><th><label for="tgb_bing_site">Sitio Bing Webmaster</label></th><td><input id="tgb_bing_site" class="regular-text code" type="url" name="site_url" value="' . esc_attr( (string) $bing['site_url'] ) . '" placeholder="https://www.ejemplo.es/"></td></tr>';
         echo '<tr><th><label for="tgb_bing_key">API key</label></th><td><input id="tgb_bing_key" class="regular-text" type="password" autocomplete="new-password" name="api_key" value="" placeholder="' . esc_attr( '' !== $bing_key ? 'Clave ya configurada. Déjala vacía para conservarla.' : 'API key de Bing Webmaster' ) . '">';
         if ( '' !== $bing_key && ! defined( 'SEO_BING_WEBMASTER_API_KEY' ) ) {
-            echo '<p><label><input type="checkbox" name="clear_api_key" value="1"> Eliminar la API key guardada</label></p>';
+            echo '<p>' . '<label>' . '<input type="checkbox" name="clear_api_key" value="1">' . ' ' . esc_html__( 'Eliminar la API key guardada', 'taxocommerce-google-bing' ) . '</label>' . '</p>';
         }
         echo '</td></tr></table>';
         submit_button( 'Guardar Bing', 'primary', 'submit', false );
@@ -293,9 +293,9 @@ final class TaxoCommerce_Google_Bing_Connections {
         echo '</section>';
 
         echo '<section id="tgb-market-providers" class="tgb-card">';
-        echo '<div class="tgb-card-head"><div><h2>Proveedores de Mercado · YouTube y SerpApi</h2><p>Las credenciales se administran aquí; Mercado muestra sus estados y realiza los análisis.</p></div></div>';
-        echo '<p><strong>YouTube Data API v3:</strong> API de Google, pero requiere una clave propia habilitada en Google Cloud. La credencial de Google Analytics / Search Console no la sustituye.</p>';
-        echo '<p><strong>SerpApi:</strong> proveedor externo y opcional para búsquedas web y ofertas Shopping. Puede generar costes y está sujeto a las cuotas del proveedor.</p>';
+        echo '<div class="tgb-card-head">' . '<div>' . '<h2>' . esc_html__( 'Proveedores de Mercado · YouTube y SerpApi', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Las credenciales se administran aquí; Mercado muestra sus estados y realiza los análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '</div>';
+        echo '<p>' . '<strong>' . esc_html__( 'YouTube Data API v3:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'API de Google, pero requiere una clave propia habilitada en Google Cloud. La credencial de Google Analytics / Search Console no la sustituye.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p>' . '<strong>' . esc_html__( 'SerpApi:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'proveedor externo y opcional para búsquedas web y ofertas Shopping. Puede generar costes y está sujeto a las cuotas del proveedor.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_save_market_providers">';
         wp_nonce_field( 'tgb_save_market_providers' );
@@ -312,7 +312,7 @@ final class TaxoCommerce_Google_Bing_Connections {
         }
         echo '</table>';
         submit_button( 'Guardar conexiones de Mercado', 'primary', 'submit', false );
-        echo '</form><p class="description">No se muestran las claves guardadas. Esta pantalla no efectúa consultas de mercado.</p>';
+        echo '</form>' . '<p class="description">' . esc_html__( 'No se muestran las claves guardadas. Esta pantalla no efectúa consultas de mercado.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</section>';
 
         echo '</div>';

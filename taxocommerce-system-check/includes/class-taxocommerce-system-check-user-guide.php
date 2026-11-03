@@ -156,8 +156,8 @@ final class TaxoCommerce_System_Check_User_Guide {
         $sections = self::sections( $technical );
         $manual_id = $technical ? 'technical' : 'user';
 
-        echo '<section class="wrap tcs-guide"><h2>Manual de System Check</h2>';
-        echo '<p>Documentación de usuario y técnica de las funciones disponibles en este plugin.</p>';
+        echo '<section class="wrap tcs-guide">' . '<h2>' . esc_html__( 'Manual de System Check', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Documentación de usuario y técnica de las funciones disponibles en este plugin.', 'taxocommerce-system-check' ) . '</p>';
         echo '<nav aria-label="Tipo de manual"><p>';
         foreach ( array( 'user' => 'Manual de usuario', 'technical' => 'Manual técnico' ) as $id => $label ) {
             $link = taxocommerce_system_check_tab_url( 'manual', array( 'tcs_manual' => $id ) );
@@ -166,7 +166,7 @@ final class TaxoCommerce_System_Check_User_Guide {
                 . esc_html( $label ) . '</a> ';
         }
         echo '</p></nav>';
-        echo '<h3>Índice</h3><ol>';
+        echo '<h3>' . esc_html__( 'Índice', 'taxocommerce-system-check' ) . '</h3>' . '<ol>';
         foreach ( $sections as $id => $section ) {
             echo '<li><a href="#' . esc_attr( 'tcs-guide-' . $manual_id . '-' . $id ) . '">'
                 . esc_html( $section['title'] ) . '</a></li>';

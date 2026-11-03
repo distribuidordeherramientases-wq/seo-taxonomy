@@ -8,6 +8,7 @@
  * Author: David Perez
  * License: GPLv2 or later
  * Text Domain: taxocommerce-google-bing
+ * Domain Path: /languages
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -97,8 +98,8 @@ function taxocommerce_google_bing_register_menu() {
     if ( $in_core ) {
         add_submenu_page(
             'taxocommerce-core',
-            'TaxoCommerce Insights',
-            'Insights',
+            __( 'TaxoCommerce Insights', 'taxocommerce-google-bing' ),
+            __( 'Insights', 'taxocommerce-google-bing' ),
             'manage_options',
             'taxocommerce-google-bing',
             'taxocommerce_google_bing_screen'
@@ -107,8 +108,8 @@ function taxocommerce_google_bing_register_menu() {
     }
 
     add_menu_page(
-        'TaxoCommerce Insights',
-        'Insights',
+        __( 'TaxoCommerce Insights', 'taxocommerce-google-bing' ),
+        __( 'Insights', 'taxocommerce-google-bing' ),
         'manage_options',
         'taxocommerce-google-bing',
         'taxocommerce_google_bing_screen',
@@ -134,7 +135,7 @@ function taxocommerce_google_bing_screen() {
     }
 
     echo '<div class="wrap tgb-wrap">';
-    echo '<h1>TaxoCommerce Insights</h1>';
+    echo '<h1>' . esc_html__( 'TaxoCommerce Insights', 'taxocommerce-google-bing' ) . '</h1>';
     echo '<nav class="nav-tab-wrapper" aria-label="TaxoCommerce Insights">';
     foreach (
         array(
@@ -251,18 +252,18 @@ function taxocommerce_google_bing_analysis_screen() {
 
     echo '<div class="seo-analista-wrap">';
     echo '<div class="seo-analista-toolbar">';
-    echo '<div><h2 style="margin:0 0 4px">Analysis</h2>';
-    echo '<p style="margin:0;color:#646970">Qué hacer y Plan de acción se presentan juntos; el resto de informes sigue bajo demanda.</p></div>';
+    echo '<div>' . '<h2 style="margin:0 0 4px">' . esc_html__( 'Analysis', 'taxocommerce-google-bing' ) . '</h2>';
+    echo '<p style="margin:0;color:#646970">' . esc_html__( 'Qué hacer y Plan de acción se presentan juntos; el resto de informes sigue bajo demanda.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '">';
     echo '<input type="hidden" name="page" value="taxocommerce-google-bing">';
     echo '<input type="hidden" name="tgb_tab" value="analysis">';
-    echo '<label for="tgb-analysis-days"><strong>Periodo</strong></label>';
+    echo '<label for="tgb-analysis-days">' . '<strong>' . esc_html__( 'Periodo', 'taxocommerce-google-bing' ) . '</strong>' . '</label>';
     echo '<select id="tgb-analysis-days" name="analysis_days">';
     foreach ( array( 28, 60, 90 ) as $option ) {
         echo '<option value="' . esc_attr( (string) $option ) . '" ' . selected( $days, $option, false ) . '>'
             . esc_html( (string) $option ) . ' días</option>';
     }
-    echo '</select><button type="submit" class="button">Cambiar periodo</button>';
+    echo '</select>' . '<button type="submit" class="button">' . esc_html__( 'Cambiar periodo', 'taxocommerce-google-bing' ) . '</button>';
     if ( function_exists( 'seo_analista_export_json_url' ) ) {
         echo ' <a class="button" href="' . esc_url( seo_analista_export_json_url( $days ) ) . '">Generar JSON completo</a>';
     }
@@ -284,6 +285,23 @@ function taxocommerce_google_bing_analysis_screen() {
     echo '</div>';
     echo '<div id="seo-analista-lazy-status" class="seo-analista-lazy-status" aria-live="polite"></div>';
     echo '<div id="seo-analista-lazy-result" class="seo-analista-lazy-result">';
-    echo '<div class="seo-analista-lazy-empty"><strong>Ningún informe cargado.</strong><p>Pulsa uno de los botones anteriores para ejecutar solo ese análisis.</p></div>';
+    echo '<div class="seo-analista-lazy-empty">' . '<strong>' . esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ) . '</strong>' . '<p>' . esc_html__( 'Pulsa uno de los botones anteriores para ejecutar solo ese análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     echo '</div></div>';
 }
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-google-bing';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

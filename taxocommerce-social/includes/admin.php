@@ -6,8 +6,8 @@ function tcsocial_admin_menu() {
     if ( function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
         add_submenu_page(
             'taxocommerce-core',
-            'TaxoCommerce Social',
-            'Social',
+            __( 'TaxoCommerce Social', 'taxocommerce-social' ),
+            __( 'Social', 'taxocommerce-social' ),
             'manage_options',
             'taxocommerce-social',
             'tcsocial_admin_render'
@@ -16,8 +16,8 @@ function tcsocial_admin_menu() {
     }
 
     add_menu_page(
-        'TaxoCommerce Social',
-        'TaxoCommerce Social',
+        __( 'TaxoCommerce Social', 'taxocommerce-social' ),
+        __( 'TaxoCommerce Social', 'taxocommerce-social' ),
         'manage_options',
         'taxocommerce-social',
         'tcsocial_admin_render',
@@ -71,10 +71,10 @@ function tcsocial_admin_render() {
     tcsocial_network_render_notice();
 
     echo '<div class="wrap"><h1>TaxoCommerce Social <small>v' . esc_html( TAXOCOMMERCE_SOCIAL_VERSION ) . '</small></h1>';
-    echo '<p class="description">Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.</p>';
+    echo '<p class="description">' . esc_html__( 'Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.', 'taxocommerce-social' ) . '</p>';
 
     $settings = tcsocial_network_get_settings();
-    echo '<div class="seo-social-header"><div><h2>Redes sociales</h2><p>El calendario es la única agenda de este módulo. Las publicaciones se programan aquí y utilizan las plantillas de cada red.</p></div><div class="seo-social-provider-strip">';
+    echo '<div class="seo-social-header">' . '<div>' . '<h2>' . esc_html__( 'Redes sociales', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'El calendario es la única agenda de este módulo. Las publicaciones se programan aquí y utilizan las plantillas de cada red.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<div class="seo-social-provider-strip">';
     foreach ( tcsocial_network_get_providers() as $provider_key => $provider ) {
         $connected = ! empty( $settings['providers'][ $provider_key ]['enabled'] );
         echo '<span class="seo-social-provider-pill ' . ( $connected ? 'is-connected' : '' ) . '">';
@@ -106,7 +106,7 @@ function tcsocial_admin_render() {
     } elseif ( 'manual' === $tab ) {
         tcsocial_manual_render();
     } else {
-        echo '<section class="seo-social-card"><div class="seo-social-intro"><div><h2>Agenda social</h2><p>Programa publicaciones manualmente o por CSV y revisa el resultado en el calendario mensual. No se incorporan campañas de Marketing ni se reserva ninguna franja para Noticias.</p></div><span class="seo-social-state is-scheduled">Solo redes sociales</span></div></section>';
+        echo '<section class="seo-social-card">' . '<div class="seo-social-intro">' . '<div>' . '<h2>' . esc_html__( 'Agenda social', 'taxocommerce-social' ) . '</h2>' . '<p>' . esc_html__( 'Programa publicaciones manualmente o por CSV y revisa el resultado en el calendario mensual. No se incorporan campañas de Marketing ni se reserva ninguna franja para Noticias.', 'taxocommerce-social' ) . '</p>' . '</div>' . '<span class="seo-social-state is-scheduled">' . esc_html__( 'Solo redes sociales', 'taxocommerce-social' ) . '</span>' . '</div>' . '</section>';
         tcsocial_programador_render_admin();
         tcsocial_calendar_render_admin();
     }

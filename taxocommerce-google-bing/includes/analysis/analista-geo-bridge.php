@@ -33,7 +33,7 @@ function taxocommerce_google_bing_analysis_reports() {
  * @return void
  */
 function taxocommerce_google_bing_analysis_render_work( $days, array $plan ) {
-    echo '<section class="seo-analista-section"><h2>Plan de acción</h2><p>Cola validada: hacer ahora, hacer después e investigar cuando falta evidencia.</p></section>';
+    echo '<section class="seo-analista-section">' . '<h2>' . esc_html__( 'Plan de acción', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Cola validada: hacer ahora, hacer después e investigar cuando falta evidencia.', 'taxocommerce-google-bing' ) . '</p>' . '</section>';
     $consistency = function_exists( 'seo_analista_plan_consistency_report' )
         ? seo_analista_plan_consistency_report( $plan )
         : array( 'ok' => true, 'issues' => array() );

@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-faqs
+ * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
 define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.6' );
@@ -22,3 +23,20 @@ add_action( 'admin_notices', array( 'TaxoCommerce_FAQs_Lifecycle', 'removal_noti
 add_action( 'plugins_loaded', array( 'TaxoCommerce_FAQs', 'boot' ), 25 );
 add_action( 'taxocommerce_core_register_modules', array( 'TaxoCommerce_FAQs', 'register_core' ) );
 TaxoCommerce_FAQs_Auto_Test::register();
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-faqs';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

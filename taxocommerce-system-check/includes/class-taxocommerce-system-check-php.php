@@ -145,10 +145,10 @@ final class TaxoCommerce_System_Check_PHP {
             admin_url( 'admin.php' )
         );
         echo '<div class="wrap tcc-family-screen">';
-        echo '<h2>PHP · TaxoCommerce System Check</h2>';
-        echo '<p>Diagnóstico PHP autónomo y de solo lectura. No depende del antiguo TaxoCommerce SEO.</p>';
+        echo '<h2>' . esc_html__( 'PHP · TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Diagnóstico PHP autónomo y de solo lectura. No depende del antiguo TaxoCommerce SEO.', 'taxocommerce-system-check' ) . '</p>';
         echo '<p><a href="' . esc_url( $back ) . '">Volver al resumen del sistema</a></p>';
-        echo '<table class="widefat striped"><thead><tr><th>Comprobación</th><th>Valor</th><th>Estado</th><th>Información</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Comprobación', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Valor', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Información', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( self::collect() as $check ) {
             echo '<tr><th scope="row">' . esc_html( $check['label'] ) . '</th><td>'
                 . esc_html( $check['value'] ) . '</td><td>'

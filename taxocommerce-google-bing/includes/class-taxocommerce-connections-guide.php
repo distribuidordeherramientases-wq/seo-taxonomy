@@ -24,9 +24,9 @@ final class TaxoCommerce_Connections_Guide {
 
 		if ( $email ) {
 			echo '<p class="tgb-connection-hint"><strong>Saved service account:</strong> <code>' . esc_html( $email ) . '</code>';
-			echo '<br>Keep the JSON box empty to preserve this key. Give this email access to your Search Console property if you use service-account authentication.</p>';
+			echo '<br>' . esc_html__( 'Keep the JSON box empty to preserve this key. Give this email access to your Search Console property if you use service-account authentication.', 'taxocommerce-google-bing' ) . '</p>';
 		} else {
-			echo '<p class="tgb-connection-hint">No saved service-account identity found. Google Search Console can also be connected using OAuth below.</p>';
+			echo '<p class="tgb-connection-hint">' . esc_html__( 'No saved service-account identity found. Google Search Console can also be connected using OAuth below.', 'taxocommerce-google-bing' ) . '</p>';
 		}
 	}
 
@@ -52,7 +52,7 @@ final class TaxoCommerce_Connections_Guide {
 		echo '<div class="tgb-guide-header">';
 		echo '<span class="dashicons dashicons-editor-help" aria-hidden="true"></span>';
 		echo '<div><h2>' . esc_html( $titles[ $provider ] ?? 'Connection guide' ) . '</h2>';
-		echo '<p>Follow the steps here, enter the requested values in the form on the left, then Save and Test. Existing secrets stay stored when their fields are left blank.</p></div>';
+		echo '<p>' . esc_html__( 'Follow the steps here, enter the requested values in the form on the left, then Save and Test. Existing secrets stay stored when their fields are left blank.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
 		echo '</div>';
 
 		foreach ( $sections as $topic ) {
@@ -85,7 +85,7 @@ final class TaxoCommerce_Connections_Guide {
 			}
 			echo '</div></details>';
 		}
-		echo '<p class="tgb-guide-disclaimer">Navigation illustrations are not live screenshots. Provider menus may change; the linked official pages are the source of truth.</p>';
+		echo '<p class="tgb-guide-disclaimer">' . esc_html__( 'Navigation illustrations are not live screenshots. Provider menus may change; the linked official pages are the source of truth.', 'taxocommerce-google-bing' ) . '</p>';
 	}
 
 	/**
@@ -107,7 +107,7 @@ final class TaxoCommerce_Connections_Guide {
 			}
 			echo '<span class="tgb-guide-click-target">' . esc_html( $target ) . '</span>';
 		}
-		echo '</div><figcaption>Illustrated click path (not a live screenshot).</figcaption></figure>';
+		echo '</div>' . '<figcaption>' . esc_html__( 'Illustrated click path (not a live screenshot).', 'taxocommerce-google-bing' ) . '</figcaption>' . '</figure>';
 	}
 
 	/**

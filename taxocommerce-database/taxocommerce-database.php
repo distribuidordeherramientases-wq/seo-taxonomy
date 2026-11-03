@@ -71,7 +71,7 @@ final class TaxoCommerce_Database {
             $active = 'table' === $screen ? 'table:overview' : 'clean:data_errors';
         }
         $base = admin_url( 'admin.php?page=taxocommerce-database' );
-        echo '<div class="wrap"><h1>TaxoCommerce Database</h1>';
+        echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Database', 'taxocommerce-database' ) . '</h1>';
         echo '<style>.tcdb-flat-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;white-space:nowrap;gap:2px;max-width:100%;scrollbar-width:thin}.tcdb-flat-tabs .nav-tab{flex:0 0 auto;margin-left:0}@media(max-width:782px){.tcdb-flat-tabs{padding-bottom:4px}.tcdb-flat-tabs .nav-tab{font-size:13px;padding:9px 11px}}</style>';
         echo '<nav class="nav-tab-wrapper tcdb-flat-tabs" aria-label="Herramientas de base de datos">';
         foreach ( $tabs as $key => $tab ) {
@@ -118,3 +118,20 @@ final class TaxoCommerce_Database {
     }
 }
 add_action( 'plugins_loaded', array( 'TaxoCommerce_Database', 'boot' ), 40 );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-database';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

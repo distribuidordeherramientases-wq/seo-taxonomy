@@ -229,14 +229,14 @@ final class Auto_Test {
         $history = get_transient( self::TRANSIENT . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
-        echo '<section class="card" style="max-width:1200px"><h2>Auto Test de Auditor</h2>';
-        echo '<p>Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y disponibilidad de exportación. Es de solo lectura: no inicia procesos ni modifica contenidos. Se guardan dos resultados por usuario durante 30 días.</p>';
+        echo '<section class="card" style="max-width:1200px">' . '<h2>' . esc_html__( 'Auto Test de Auditor', 'taxocommerce-auditor' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y disponibilidad de exportación. Es de solo lectura: no inicia procesos ni modifica contenidos. Se guardan dos resultados por usuario durante 30 días.', 'taxocommerce-auditor' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
         submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
-            echo '<p>Todavía no hay resultados. Pulsa Ejecutar Auto Test.</p></section>';
+            echo '<p>' . esc_html__( 'Todavía no hay resultados. Pulsa Ejecutar Auto Test.', 'taxocommerce-auditor' ) . '</p>' . '</section>';
             return;
         }
         $totals = $current['totals'];
@@ -253,13 +253,13 @@ final class Auto_Test {
             echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.';
             echo '</p>';
         } else {
-            echo '<p>No hay una ejecución anterior para comparar.</p>';
+            echo '<p>' . esc_html__( 'No hay una ejecución anterior para comparar.', 'taxocommerce-auditor' ) . '</p>';
         }
-        echo '<div style="overflow-x:auto"><table class="widefat striped"><thead><tr><th>Grupo</th><th>Prueba</th><th>Estado</th><th>Resultado</th><th>Tiempo</th></tr></thead><tbody>';
+        echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-auditor' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         $names = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $names[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody></table></div><p class="description">No demuestra por sí mismo que una auditoría completa o la exportación JSONL funcionen con un catálogo real.</p></section>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'No demuestra por sí mismo que una auditoría completa o la exportación JSONL funcionen con un catálogo real.', 'taxocommerce-auditor' ) . '</p>' . '</section>';
     }
 }

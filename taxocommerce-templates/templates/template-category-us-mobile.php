@@ -38,7 +38,7 @@ if (
     $term->taxonomy !== 'product_cat'
 ) {
     dht_template_render_header();
-    echo '<main class="dht-page dht-status-page"><section class="dht-section"><div class="dht-content dht-status-card"><h1>Category unavailable</h1></div></section></main>';
+    echo '<main class="dht-page dht-status-page">' . '<section class="dht-section">' . '<div class="dht-content dht-status-card">' . '<h1>' . esc_html__( 'Category unavailable', 'taxocommerce-templates' ) . '</h1>' . '</div>' . '</section>' . '</main>';
     dht_template_render_footer();
     return;
 }

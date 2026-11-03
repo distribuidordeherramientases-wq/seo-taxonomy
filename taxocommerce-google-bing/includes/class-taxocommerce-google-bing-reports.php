@@ -70,7 +70,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         );
 
         echo '<div class="tgb-report-toolbar"><div><h2>' . esc_html( $names[ $source ] ) . '</h2>';
-        echo '<p>Charts are generated from the latest saved data. Opening the page or changing the period does not call external APIs.</p></div>';
+        echo '<p>' . esc_html__( 'Charts are generated from the latest saved data. Opening the page or changing the period does not call external APIs.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo '<div class="tgb-periods">';
         foreach ( array( 7 => '7 days', 30 => '30 days', 90 => '90 days' ) as $period => $label ) {
             $url = add_query_arg(
@@ -86,7 +86,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         echo '<input type="hidden" name="period" value="custom">';
         echo '<label>Desde <input type="date" name="start" value="' . esc_attr( $ranges['current']['start'] ) . '" required></label>';
         echo '<label>Hasta <input type="date" name="end" value="' . esc_attr( $ranges['current']['end'] ) . '" required></label>';
-        echo '<button type="submit" class="button">Aplicar fechas (sin actualizar)</button>';
+        echo '<button type="submit" class="button">' . esc_html__( 'Aplicar fechas (sin actualizar)', 'taxocommerce-google-bing' ) . '</button>';
         echo '</form>';
         echo '<p class="description tgb-report-range">Period: ' . esc_html( $ranges['current']['label'] ) . ' · Comparison: ' . esc_html( $ranges['previous']['label'] ) . '. Full calendar days; the comparison period has the same duration.</p>';
 
@@ -113,11 +113,11 @@ final class TaxoCommerce_Google_Bing_Reports {
         $snapshot = self::get_saved_snapshot( $source, $ranges['current']['start'], $ranges['current']['end'] );
         if ( null === $snapshot && ! empty( $snapshots ) ) {
             $snapshot = end( $snapshots );
-            echo '<div class="notice notice-info inline"><p>No saved report exists for the requested dates. The latest available snapshot is shown without downloading new data.</p></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'No saved report exists for the requested dates. The latest available snapshot is shown without downloading new data.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         }
 
         if ( ! empty( $snapshots ) ) {
-            echo '<div class="tgb-history"><strong>Saved reports:</strong> ';
+            echo '<div class="tgb-history">' . '<strong>' . esc_html__( 'Saved reports:', 'taxocommerce-google-bing' ) . '</strong>' . ' ';
             foreach ( array_reverse( $snapshots, true ) as $saved ) {
                 $saved_current = (array) $saved['current'];
                 $link = add_query_arg(
@@ -136,7 +136,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         }
 
         if ( null === $snapshot ) {
-            echo '<div class="notice notice-info inline"><p>No hay datos guardados todavía. Pulsa “Actualizar datos” para consultar la API.</p></div>';
+            echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'No hay datos guardados todavía. Pulsa “Actualizar datos” para consultar la API.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             self::styles();
             echo '</div>';
             return;
@@ -164,7 +164,7 @@ final class TaxoCommerce_Google_Bing_Reports {
         } else {
             self::render_bing( $data );
         }
-        echo '<p class="description tgb-report-note">GA4 records events and sessions, not HTTP requests. Search Console and Bing show search-engine traffic, not total site visits. Periods may be incomplete because each provider has its own processing delay.</p>';
+        echo '<p class="description tgb-report-note">' . esc_html__( 'GA4 records events and sessions, not HTTP requests. Search Console and Bing show search-engine traffic, not total site visits. Periods may be incomplete because each provider has its own processing delay.', 'taxocommerce-google-bing' ) . '</p>';
         self::styles();
         echo '</div>';
     }
@@ -318,8 +318,8 @@ final class TaxoCommerce_Google_Bing_Reports {
         $current = (array) ( $data['summary']['current'] ?? array() );
         $previous = (array) ( $data['summary']['previous'] ?? array() );
         echo '<section class="tgb-report-section">';
-        echo '<div class="tgb-section-head"><div><h2>Google Search performance</h2>';
-        echo '<p>Web results: trends, queries, pages, countries, and devices.</p></div><span class="tgb-source-badge">Search Console</span></div>';
+        echo '<div class="tgb-section-head">' . '<div>' . '<h2>' . esc_html__( 'Google Search performance', 'taxocommerce-google-bing' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Web results: trends, queries, pages, countries, and devices.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '<span class="tgb-source-badge">' . esc_html__( 'Search Console', 'taxocommerce-google-bing' ) . '</span>' . '</div>';
         echo '<div class="tgb-kpi-grid">';
         self::kpi( 'Clicks', $current['clicks'], $previous['clicks'] );
         self::kpi( 'Impressions', $current['impressions'], $previous['impressions'] );
@@ -360,11 +360,11 @@ final class TaxoCommerce_Google_Bing_Reports {
     private static function render_rank_table( $title, $rows, $is_url = false ) {
         echo '<div class="tgb-rank-card"><h3>' . esc_html( $title ) . '</h3>';
         if ( empty( $rows ) ) {
-            echo '<p>No records for this period.</p></div>';
+            echo '<p>' . esc_html__( 'No records for this period.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             return;
         }
         echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr>';
-        echo '<th>Query / page</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Average position</th>';
+        echo '<th>' . esc_html__( 'Query / page', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clicks', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Impressions', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Average position', 'taxocommerce-google-bing' ) . '</th>';
         echo '</tr></thead><tbody>';
         foreach ( array_slice( $rows, 0, 30 ) as $item ) {
             $label = (string) ( $item['name'] ?? '' );
@@ -389,7 +389,7 @@ final class TaxoCommerce_Google_Bing_Reports {
 
     private static function render_ga4( $data ) {
         echo '<section class="tgb-report-section">';
-        echo '<div class="tgb-section-head"><div><h2>Google Analytics 4</h2><p>Traffic, users, recurrence, engagement, and geographic origin.</p></div><span class="tgb-source-badge">GA4</span></div>';
+        echo '<div class="tgb-section-head">' . '<div>' . '<h2>' . esc_html__( 'Google Analytics 4', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Traffic, users, recurrence, engagement, and geographic origin.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '<span class="tgb-source-badge">' . 'GA4' . '</span>' . '</div>';
 
         if ( is_wp_error( $data ) ) {
             echo '<div class="notice notice-warning inline"><p>' . esc_html( $data->get_error_message() ) . '</p></div>';
@@ -479,17 +479,17 @@ final class TaxoCommerce_Google_Bing_Reports {
         );
         echo '</div>';
         self::render_ga4_pages( $data['pages'] );
-        echo '<p class="description">Purchases and key events are shown only when GA4 receives the corresponding events.</p>';
+        echo '<p class="description">' . esc_html__( 'Purchases and key events are shown only when GA4 receives the corresponding events.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</section>';
     }
 
     private static function render_ga4_pages( $pages ) {
-        echo '<div class="tgb-rank-card"><h3>Most viewed pages (GA4)</h3>';
+        echo '<div class="tgb-rank-card">' . '<h3>' . esc_html__( 'Most viewed pages (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
         if ( empty( $pages ) ) {
-            echo '<p>No pages recorded for this period.</p></div>';
+            echo '<p>' . esc_html__( 'No pages recorded for this period.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             return;
         }
-        echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr><th>Path</th><th>Current views</th><th>Previous views</th><th>Change</th></tr></thead><tbody>';
+        echo '<div class="tgb-table-scroll">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Path', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Current views', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Previous views', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Change', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( array_slice( $pages, 0, 30 ) as $item ) {
             $current = (int) $item['views'];
             $previous = (int) $item['previous_views'];
@@ -504,7 +504,7 @@ final class TaxoCommerce_Google_Bing_Reports {
 
     private static function render_bing( $data ) {
         echo '<section class="tgb-report-section">';
-        echo '<div class="tgb-section-head"><div><h2>Microsoft Bing Webmaster</h2><p>Organic traffic, search terms, top pages, indexing, and crawl health.</p></div><span class="tgb-source-badge">Bing</span></div>';
+        echo '<div class="tgb-section-head">' . '<div>' . '<h2>' . esc_html__( 'Microsoft Bing Webmaster', 'taxocommerce-google-bing' ) . '</h2>' . '<p>' . esc_html__( 'Organic traffic, search terms, top pages, indexing, and crawl health.', 'taxocommerce-google-bing' ) . '</p>' . '</div>' . '<span class="tgb-source-badge">' . esc_html__( 'Bing', 'taxocommerce-google-bing' ) . '</span>' . '</div>';
 
         if ( is_wp_error( $data ) ) {
             echo '<div class="notice notice-warning inline"><p>' . esc_html( $data->get_error_message() ) . '</p></div>';

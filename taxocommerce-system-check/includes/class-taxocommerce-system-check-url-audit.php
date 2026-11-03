@@ -802,10 +802,10 @@ final class TaxoCommerce_System_Check_URL_Audit {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );
         }
-        echo '<div class="wrap tcs-url-audit"><h2>Chequeos HTTP de recursos</h2>';
-        echo '<p>Comprueba las URL públicas desde este servidor mediante peticiones HTTP reales. No necesita GitHub. No equivale a un monitor externo de disponibilidad.</p>';
+        echo '<div class="wrap tcs-url-audit">' . '<h2>' . esc_html__( 'Chequeos HTTP de recursos', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Comprueba las URL públicas desde este servidor mediante peticiones HTTP reales. No necesita GitHub. No equivale a un monitor externo de disponibilidad.', 'taxocommerce-system-check' ) . '</p>';
         if ( ! self::supported() ) {
-            echo '<div class="notice notice-error"><p>No se ha cargado el motor del inventario. Revisa la instalación de System Check.</p></div></div>';
+            echo '<div class="notice notice-error">' . '<p>' . esc_html__( 'No se ha cargado el motor del inventario. Revisa la instalación de System Check.', 'taxocommerce-system-check' ) . '</p>' . '</div>' . '</div>';
             return;
         }
         seo_health_scan_maybe_upgrade();
@@ -981,7 +981,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
-        echo '<h2>Detalle por URL</h2><div class="tcs-filter">';
+        echo '<h2>' . esc_html__( 'Detalle por URL', 'taxocommerce-system-check' ) . '</h2>' . '<div class="tcs-filter">';
         foreach ( array( 'error' => 'Errores', 'warning' => 'Avisos', 'pending' => 'Pendientes', 'ok' => 'Correctas', 'all' => 'Todas' ) as $code => $label ) {
             echo '<a class="button' . ( $filter === $code ? ' button-primary' : '' ) . '" href="' . esc_url( self::url( $scope, array( 'tcs_filter' => $code ) ) ) . '">' . esc_html( $label ) . '</a>';
         }
@@ -989,10 +989,10 @@ final class TaxoCommerce_System_Check_URL_Audit {
         echo '<input type="hidden" name="page" value="taxocommerce-system-check"><input type="hidden" name="tcs_tab" value="http"><input type="hidden" name="tcs_scope" value="' . esc_attr( $scope ) . '">';
         echo '<input type="hidden" name="tcs_filter" value="' . esc_attr( $filter ) . '">';
         echo '<input type="search" name="tcs_search" value="' . esc_attr( $search ) . '" placeholder="Buscar URL o error">';
-        echo '<button class="button">Buscar</button></form>';
-        echo '<table class="widefat striped"><thead><tr><th>Recurso</th><th>Estado</th><th>HTTP</th><th>Tiempo</th><th>Último chequeo</th><th>Detalle</th></tr></thead><tbody>';
+        echo '<button class="button">' . esc_html__( 'Buscar', 'taxocommerce-system-check' ) . '</button>' . '</form>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Recurso', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'HTTP', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Último chequeo', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         if ( ! $rows ) {
-            echo '<tr><td colspan="6">No hay URLs para este filtro.</td></tr>';
+            echo '<tr>' . '<td colspan="6">' . esc_html__( 'No hay URLs para este filtro.', 'taxocommerce-system-check' ) . '</td>' . '</tr>';
         }
         foreach ( (array) $rows as $row ) {
             $state = empty( $row['last_checked_at'] ) ? 'pending' : (string) $row['status_bucket'];

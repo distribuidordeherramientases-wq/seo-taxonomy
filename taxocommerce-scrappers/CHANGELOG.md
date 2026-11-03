@@ -1,8 +1,18 @@
+## Unreleased - Familia i18n #2062
+
+- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
+
+## Unreleased
+
+- [i18n #2062] Los menús de administración, las pestañas y los textos principales de Scrappers utilizan gettext con el dominio `taxocommerce-scrappers`, sin modificar sus identificadores internos. Pendiente: completar catálogos y auditar el resto de pantallas heredadas.
+
 # CHANGELOG — TaxoCommerce Scrappers
 
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]
+
+- STAGING (#2096): restauración controlada por FTPS de los cinco catálogos MO de Scrappers que estaban corruptos en el servidor, utilizando copias previamente verificadas del repositorio. Comprobación de tablas binarias y SHA-256 tras cada transferencia, sin alterar las traducciones, el código del plugin ni los datos de WordPress. Sin publicar en Focazul ni PRODUCCIÓN.
 
 - Inicio de internacionalización WordPress mediante gettext (`Domain Path: /languages`), catálogos por idioma y traducción de etiquetas del menú, sin cambios funcionales. Seguimiento: #2040 (plan global #2036). Cobertura restante de interfaz, Autotest y manuales pendiente de revisión por idioma.
 

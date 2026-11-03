@@ -236,13 +236,13 @@ function tcdist_feed_render_admin() {
     $manager_enabled = ! empty( $supervisor_settings['enabled'] ) && ! empty( $supervisor_settings['commercial_feeds'] );
 
     if ( isset( $_GET['cf_saved'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
-        echo '<div class="notice notice-success inline"><p>Settings saved.</p></div>';
+        echo '<div class="notice notice-success inline">' . '<p>' . esc_html__( 'Settings saved.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
     if ( isset( $_GET['cf_started'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
-        echo '<div class="notice notice-info inline"><p>Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load.</p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . esc_html__( 'Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
     if ( isset( $_GET['cf_stopped'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status notice after nonce-protected action.
-        echo '<div class="notice notice-warning inline"><p>Generation stopped by the user. No partial file was published.</p></div>';
+        echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Generation stopped by the user. No partial file was published.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
     if ( isset( $_GET['cf_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect notice.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only message displayed after nonce-protected action.
@@ -251,9 +251,9 @@ function tcdist_feed_render_admin() {
     }
 
     if ( $is_staging ) {
-        echo '<div class="notice notice-warning inline"><p><strong>STAGING:</strong> this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest.</p></div>';
+        echo '<div class="notice notice-warning inline">' . '<p>' . '<strong>' . esc_html__( 'STAGING:', 'taxocommerce-distribution' ) . '</strong>' . ' ' . esc_html__( 'this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     } else {
-        echo '<div class="notice notice-success inline"><p><strong>PRODUCTION:</strong> this environment generates the live commercial feeds. Platforms download from these URLs; WordPress does not push the feed directly.</p></div>';
+        echo '<div class="notice notice-success inline">' . '<p>' . '<strong>' . esc_html__( 'PRODUCTION:', 'taxocommerce-distribution' ) . '</strong>' . ' ' . esc_html__( 'this environment generates the live commercial feeds. Platforms download from these URLs; WordPress does not push the feed directly.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
 
     if ( ! empty( $environment['mismatch'] ) ) {
@@ -265,7 +265,7 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline"><p><strong>Distribution worker:</strong> Commercial feeds are not enabled in Processes &gt; Distribution worker. You can start a generation, but it will not progress until that process is enabled.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . '<strong>' . esc_html__( 'Distribution worker:', 'taxocommerce-distribution' ) . '</strong>' . ' Commercial feeds are not enabled in Processes &gt; Distribution worker. You can start a generation, but it will not progress until that process is enabled.' . '</p>' . '</div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );

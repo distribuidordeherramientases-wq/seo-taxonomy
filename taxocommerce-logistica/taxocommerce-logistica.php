@@ -45,8 +45,8 @@ function taxocommerce_logistica_register_menu() {
 
     // Standalone fallback when the family Core plugin is not active.
     add_menu_page(
-        'TaxoCommerce Logistics',
-        'TaxoCommerce Logistics',
+        __( 'TaxoCommerce Logistics', 'taxocommerce-logistica' ),
+        __( 'TaxoCommerce Logistics', 'taxocommerce-logistica' ),
         $capability,
         'taxocommerce-logistica',
         array( 'TaxoCommerce_Logistica_Transporte_Costes', 'render_page' ),
@@ -92,3 +92,20 @@ function taxocommerce_logistica_family_catalog( $extensions ) {
     return $extensions;
 }
 add_filter( 'taxocommerce_core_family_extensions', 'taxocommerce_logistica_family_catalog' );
+
+/* Native local gettext catalog fallback (#2062). */
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-logistica';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    // Prefer official WordPress language packs when installed.
+    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );

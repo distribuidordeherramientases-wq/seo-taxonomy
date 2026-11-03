@@ -1,3 +1,7 @@
+## Unreleased - Familia i18n #2062
+
+- Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
+
 # CHANGELOG — TaxoCommerce Templates
 
 ## 0.4.8 — 2026-11-01

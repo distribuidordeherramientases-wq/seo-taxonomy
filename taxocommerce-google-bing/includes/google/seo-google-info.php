@@ -2023,9 +2023,9 @@ function seo_google_intelligence_page() {
     );
 
     echo '<div class="seo-google-intelligence">';
-    echo '<h2>Google Intelligence</h2>';
+    echo '<h2>' . esc_html__( 'Google Intelligence', 'taxocommerce-google-bing' ) . '</h2>';
     echo '<p style="margin-top:-6px;color:#646970;">Módulo de decisión <strong>V' . esc_html(SEO_GOOGLE_MODULE_VERSION) . '</strong></p>';
-    echo '<p>Google descubre y mide la demanda; WordPress y el catálogo comprueban cobertura; el sistema recomienda qué mejorar.</p>';
+    echo '<p>' . esc_html__( 'Google descubre y mide la demanda; WordPress y el catálogo comprueban cobertura; el sistema recomienda qué mejorar.', 'taxocommerce-google-bing' ) . '</p>';
 
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:20px;">';
     foreach ($tabs as $tab_key => $tab_label) {
@@ -2052,7 +2052,7 @@ function seo_google_intelligence_page() {
         wp_nonce_field('seo_google_repair_tables', 'seo_google_repair_nonce');
         submit_button('Crear o reparar tablas', 'primary', 'submit', false);
         echo '</form>';
-        echo '<p>Si la reparación vuelve a fallar, copia el mensaje completo de MySQL mostrado en esta pantalla.</p>';
+        echo '<p>' . esc_html__( 'Si la reparación vuelve a fallar, copia el mensaje completo de MySQL mostrado en esta pantalla.', 'taxocommerce-google-bing' ) . '</p>';
         echo '</div>';
         return;
     }
@@ -2190,7 +2190,7 @@ function seo_google_render_settings() {
 
     echo '<div>';
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
-    echo '<h3 style="margin-top:0;">Conexión con Google Search Console</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Conexión con Google Search Console', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<p><strong>Estado:</strong> <span style="color:' . esc_attr($status_data[1]) . ';font-weight:700;">' . esc_html($status_data[0]) . '</span></p>';
 
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -2199,29 +2199,29 @@ function seo_google_render_settings() {
 
     echo '<table class="form-table" role="presentation"><tbody>';
 
-    echo '<tr><th scope="row"><label for="seo-google-client-id">Client ID</label></th><td>';
+    echo '<tr>' . '<th scope="row">' . '<label for="seo-google-client-id">' . esc_html__( 'Client ID', 'taxocommerce-google-bing' ) . '</label>' . '</th>' . '<td>';
     echo '<input type="text" id="seo-google-client-id" name="client_id" value="' . esc_attr($settings['client_id']) . '" class="regular-text" autocomplete="off">';
-    echo '<p class="description">Identificador del cliente OAuth 2.0 de tipo “Aplicación web”.</p>';
+    echo '<p class="description">' . esc_html__( 'Identificador del cliente OAuth 2.0 de tipo “Aplicación web”.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</td></tr>';
 
-    echo '<tr><th scope="row"><label for="seo-google-client-secret">Client Secret</label></th><td>';
+    echo '<tr>' . '<th scope="row">' . '<label for="seo-google-client-secret">' . esc_html__( 'Client Secret', 'taxocommerce-google-bing' ) . '</label>' . '</th>' . '<td>';
     echo '<input type="password" id="seo-google-client-secret" name="client_secret" value="" class="regular-text" autocomplete="new-password" placeholder="' . (!empty($settings['client_secret']) ? 'Guardado; déjalo vacío para conservarlo' : '') . '">';
-    echo '<p class="description">Se guarda en WordPress y nunca se muestra completo de nuevo.</p>';
+    echo '<p class="description">' . esc_html__( 'Se guarda en WordPress y nunca se muestra completo de nuevo.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</td></tr>';
 
-    echo '<tr><th scope="row">URI de redirección</th><td>';
+    echo '<tr>' . '<th scope="row">' . esc_html__( 'URI de redirección', 'taxocommerce-google-bing' ) . '</th>' . '<td>';
     echo '<input type="text" readonly value="' . esc_attr(seo_google_redirect_uri()) . '" class="large-text code" onclick="this.select();">';
-    echo '<p class="description"><strong>URI única del módulo.</strong> Cópiala exactamente en “URI de redireccionamiento autorizados” de Google Cloud. La misma dirección se usa al autorizar y al intercambiar el código por tokens.</p>';
+    echo '<p class="description">' . '<strong>' . esc_html__( 'URI única del módulo.', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'Cópiala exactamente en “URI de redireccionamiento autorizados” de Google Cloud. La misma dirección se usa al autorizar y al intercambiar el código por tokens.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</td></tr>';
 
-    echo '<tr><th scope="row"><label for="seo-google-property">Propiedad de Search Console</label></th><td>';
+    echo '<tr>' . '<th scope="row">' . '<label for="seo-google-property">' . esc_html__( 'Propiedad de Search Console', 'taxocommerce-google-bing' ) . '</label>' . '</th>' . '<td>';
 
     if (is_wp_error($properties)) {
         echo '<input type="text" id="seo-google-property" name="property_id" value="' . esc_attr($settings['property_id']) . '" class="regular-text">';
         echo '<p class="description" style="color:#b32d2e;">No se pudo cargar la lista: ' . esc_html($properties->get_error_message()) . '</p>';
     } elseif (!empty($properties)) {
         echo '<select id="seo-google-property" name="property_id" style="min-width:420px;max-width:100%;">';
-        echo '<option value="">Selecciona una propiedad</option>';
+        echo '<option value="">' . esc_html__( 'Selecciona una propiedad', 'taxocommerce-google-bing' ) . '</option>';
         foreach ($properties as $property) {
             $label = $property['site_url'];
             if (!empty($property['permission_level'])) {
@@ -2234,18 +2234,18 @@ function seo_google_render_settings() {
         echo '</select>';
     } else {
         echo '<input type="text" id="seo-google-property" name="property_id" value="' . esc_attr($settings['property_id']) . '" class="regular-text" placeholder="sc-domain:ejemplo.com">';
-        echo '<p class="description">La lista aparecerá automáticamente después de autorizar Google.</p>';
+        echo '<p class="description">' . esc_html__( 'La lista aparecerá automáticamente después de autorizar Google.', 'taxocommerce-google-bing' ) . '</p>';
     }
 
     echo '</td></tr>';
 
-    echo '<tr><th scope="row"><label for="seo-google-frequency">Frecuencia</label></th><td>';
+    echo '<tr>' . '<th scope="row">' . '<label for="seo-google-frequency">' . esc_html__( 'Frecuencia', 'taxocommerce-google-bing' ) . '</label>' . '</th>' . '<td>';
     echo '<select id="seo-google-frequency" name="sync_frequency">';
     foreach (array('manual' => 'Manual', 'daily' => 'Diaria', 'weekly' => 'Semanal') as $value => $label) {
         echo '<option value="' . esc_attr($value) . '" ' . selected($settings['sync_frequency'], $value, false) . '>' . esc_html($label) . '</option>';
     }
     echo '</select>';
-    echo '<p class="description">La sincronización manual ya está disponible. La ejecución automática diaria o semanal se incorporará en la siguiente fase.</p>';
+    echo '<p class="description">' . esc_html__( 'La sincronización manual ya está disponible. La ejecución automática diaria o semanal se incorporará en la siguiente fase.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</td></tr>';
 
     echo '</tbody></table>';
@@ -2289,38 +2289,38 @@ function seo_google_render_settings() {
     echo '</div>';
 
     echo '<aside style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
-    echo '<h3 style="margin-top:0;">Cómo obtener las credenciales</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Cómo obtener las credenciales', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<ol style="padding-left:20px;line-height:1.65;">';
-    echo '<li>Entra en Google Cloud Console y crea o selecciona un proyecto.</li>';
-    echo '<li>Activa la <strong>Google Search Console API</strong>.</li>';
-    echo '<li>Configura Google Auth Platform y la pantalla de consentimiento OAuth.</li>';
-    echo '<li>Crea credenciales OAuth 2.0 de tipo <strong>Aplicación web</strong>.</li>';
-    echo '<li>En <strong>URIs de redireccionamiento autorizados</strong>, añade exactamente la dirección mostrada en este formulario. No la pongas solo en “Orígenes autorizados de JavaScript”.</li>';
-    echo '<li>Copia aquí el Client ID y el Client Secret y guarda.</li>';
-    echo '<li>Si la aplicación está en modo Pruebas, añade tu cuenta en <strong>Usuarios de prueba</strong>; si está en producción, completa los requisitos que Google solicite.</li>';
-    echo '<li>Pulsa <strong>Conectar con Google</strong> y acepta el permiso de lectura.</li>';
-    echo '<li>Después de autorizar, selecciona la propiedad de Search Console y vuelve a guardar.</li>';
+    echo '<li>' . esc_html__( 'Entra en Google Cloud Console y crea o selecciona un proyecto.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Activa la', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'Google Search Console API', 'taxocommerce-google-bing' ) . '</strong>' . '.' . '</li>';
+    echo '<li>' . esc_html__( 'Configura Google Auth Platform y la pantalla de consentimiento OAuth.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Crea credenciales OAuth 2.0 de tipo', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'Aplicación web', 'taxocommerce-google-bing' ) . '</strong>' . '.' . '</li>';
+    echo '<li>' . 'En ' . '<strong>' . esc_html__( 'URIs de redireccionamiento autorizados', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( ', añade exactamente la dirección mostrada en este formulario. No la pongas solo en “Orígenes autorizados de JavaScript”.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Copia aquí el Client ID y el Client Secret y guarda.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Si la aplicación está en modo Pruebas, añade tu cuenta en', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'Usuarios de prueba', 'taxocommerce-google-bing' ) . '</strong>' . esc_html__( '; si está en producción, completa los requisitos que Google solicite.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Pulsa', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'Conectar con Google', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'y acepta el permiso de lectura.', 'taxocommerce-google-bing' ) . '</li>';
+    echo '<li>' . esc_html__( 'Después de autorizar, selecciona la propiedad de Search Console y vuelve a guardar.', 'taxocommerce-google-bing' ) . '</li>';
     echo '</ol>';
 
     echo '<details style="margin-top:18px;border-top:1px solid #dcdcde;padding-top:14px;">';
-    echo '<summary style="cursor:pointer;font-weight:700;">Problemas frecuentes y solución</summary>';
+    echo '<summary style="cursor:pointer;font-weight:700;">' . esc_html__( 'Problemas frecuentes y solución', 'taxocommerce-google-bing' ) . '</summary>';
     echo '<div style="line-height:1.65;margin-top:12px;">';
-    echo '<p><strong>Error 400: redirect_uri_mismatch</strong><br>La URI enviada por TaxoCommerce SEO no coincide exactamente con Google Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en “URIs de redireccionamiento autorizados”.</p>';
-    echo '<p><strong>Error 403: access_denied / solo testers</strong><br>La aplicación está en modo Pruebas y la cuenta no figura como usuario de prueba. Añádela en Google Auth Platform → Público/Audiencia → Usuarios de prueba, o publica la aplicación si corresponde.</p>';
+    echo '<p>' . '<strong>' . esc_html__( 'Error 400: redirect_uri_mismatch', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . esc_html__( 'La URI enviada por TaxoCommerce SEO no coincide exactamente con Google Cloud. Copia la URI mostrada arriba y regístrala, carácter por carácter, en “URIs de redireccionamiento autorizados”.', 'taxocommerce-google-bing' ) . '</p>';
+    echo '<p>' . '<strong>' . esc_html__( 'Error 403: access_denied / solo testers', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . esc_html__( 'La aplicación está en modo Pruebas y la cuenta no figura como usuario de prueba. Añádela en Google Auth Platform → Público/Audiencia → Usuarios de prueba, o publica la aplicación si corresponde.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<p><strong>Forbidden al volver desde Google</strong><br>La versión actual usa <code>wp-admin/admin-post.php</code> como callback dedicado. Si el hosting sigue bloqueándolo, revisa ModSecurity o el firewall y permite la acción <code>seo_google_oauth_callback</code>.</p>';
-    echo '<p><strong>Credenciales guardadas; falta autorizar Google</strong><br>Las claves existen, pero todavía no hay tokens. Pulsa “Conectar con Google”.</p>';
+    echo '<p>' . '<strong>' . esc_html__( 'Credenciales guardadas; falta autorizar Google', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . esc_html__( 'Las claves existen, pero todavía no hay tokens. Pulsa “Conectar con Google”.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<p><strong>Google conectado; falta seleccionar propiedad</strong><br>Elige una propiedad de la lista y guarda. Para una propiedad de dominio el formato habitual es <code>sc-domain:dominio.com</code>.</p>';
     echo '</div>';
     echo '</details>';
 
     echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px;margin-top:16px;">';
-    echo '<strong>Permiso solicitado</strong><br>';
+    echo '<strong>' . esc_html__( 'Permiso solicitado', 'taxocommerce-google-bing' ) . '</strong>' . '<br>';
     echo '<code style="word-break:break-all;">' . esc_html(SEO_GOOGLE_SCOPE_SEARCH_CONSOLE) . '</code>';
-    echo '<p style="margin-bottom:0;">Es un permiso de solo lectura. TaxoCommerce SEO no podrá añadir ni eliminar propiedades o sitemaps.</p>';
+    echo '<p style="margin-bottom:0;">' . esc_html__( 'Es un permiso de solo lectura. TaxoCommerce SEO no podrá añadir ni eliminar propiedades o sitemaps.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</div>';
 
-    echo '<p style="margin-top:16px;"><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Abrir credenciales de Google Cloud</a></p>';
-    echo '<p><a href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com" target="_blank" rel="noopener noreferrer">Activar Search Console API</a></p>';
+    echo '<p style="margin-top:16px;">' . '<a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Abrir credenciales de Google Cloud', 'taxocommerce-google-bing' ) . '</a>' . '</p>';
+    echo '<p>' . '<a href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Activar Search Console API', 'taxocommerce-google-bing' ) . '</a>' . '</p>';
     echo '</aside>';
 
     echo '</div>';
@@ -2337,7 +2337,7 @@ function seo_google_render_sync_status() {
     $install_result = seo_google_install_tables(false);
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
-    echo '<h3 style="margin-top:0;">Sincronización</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Sincronización', 'taxocommerce-google-bing' ) . '</h3>';
 
     $table_status = seo_google_tables_status();
     echo '<p style="color:#646970;"><strong>Versión:</strong> ' . esc_html(SEO_GOOGLE_MODULE_VERSION)
@@ -2349,13 +2349,13 @@ function seo_google_render_sync_status() {
     if (is_wp_error($install_result)) {
         echo '<div class="notice notice-error inline"><p><strong>No se pudieron preparar las tablas:</strong> '
             . esc_html($install_result->get_error_message()) . '</p></div>';
-        echo '<p>No se consultará el historial hasta que todas las tablas indiquen <strong>OK</strong>.</p>';
+        echo '<p>' . esc_html__( 'No se consultará el historial hasta que todas las tablas indiquen', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . 'OK' . '</strong>' . '.' . '</p>';
         echo '</div>';
         return;
     }
 
     if ('connected' !== $status) {
-        echo '<div class="notice notice-warning inline"><p>Completa la conexión y selecciona una propiedad antes de sincronizar.</p></div>';
+        echo '<div class="notice notice-warning inline">' . '<p>' . esc_html__( 'Completa la conexión y selecciona una propiedad antes de sincronizar.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Ir a configuración</a></p>';
         echo '</div>';
         return;
@@ -2369,16 +2369,16 @@ function seo_google_render_sync_status() {
     echo '<p><strong>Último día almacenado:</strong> ' . ($latest ? esc_html($latest) : 'Sin datos todavía') . '</p>';
 
     echo '<div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;margin:16px 0;">';
-    echo '<p style="margin:0 0 6px;"><strong>Primera sincronización o migración:</strong> descarga 90 días de totales de propiedad, páginas y consultas finalizados.</p>';
-    echo '<p style="margin:0;"><strong>Sincronizaciones posteriores:</strong> actualizan los últimos 7 días con solapamiento para recoger correcciones de Google.</p>';
+    echo '<p style="margin:0 0 6px;">' . '<strong>' . esc_html__( 'Primera sincronización o migración:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'descarga 90 días de totales de propiedad, páginas y consultas finalizados.', 'taxocommerce-google-bing' ) . '</p>';
+    echo '<p style="margin:0;">' . '<strong>' . esc_html__( 'Sincronizaciones posteriores:', 'taxocommerce-google-bing' ) . '</strong>' . ' ' . esc_html__( 'actualizan los últimos 7 días con solapamiento para recoger correcciones de Google.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</div>';
 
-    echo '<button type="button" id="seo-google-sync-button" class="button button-primary button-hero">Sincronizar ahora</button>';
+    echo '<button type="button" id="seo-google-sync-button" class="button button-primary button-hero">' . esc_html__( 'Sincronizar ahora', 'taxocommerce-google-bing' ) . '</button>';
     echo '<p id="seo-google-sync-message" style="margin-top:14px;"></p>';
     echo '<div id="seo-google-sync-progress-wrap" style="display:none;max-width:720px;background:#dcdcde;border-radius:999px;overflow:hidden;height:18px;">';
     echo '<div id="seo-google-sync-progress" style="width:0%;height:18px;background:#2271b1;transition:width .2s;"></div>';
     echo '</div>';
-    echo '<p class="description">Mantén esta pestaña abierta durante la primera importación. Si se interrumpe, vuelve a pulsar el botón para reanudar.</p>';
+    echo '<p class="description">' . esc_html__( 'Mantén esta pestaña abierta durante la primera importación. Si se interrumpe, vuelve a pulsar el botón para reanudar.', 'taxocommerce-google-bing' ) . '</p>';
 
     $config = array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -2491,13 +2491,13 @@ JS;
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;margin-top:20px;">';
-    echo '<h3 style="margin-top:0;">Historial reciente</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Historial reciente', 'taxocommerce-google-bing' ) . '</h3>';
 
     if (!$history) {
-        echo '<p>No hay sincronizaciones registradas.</p>';
+        echo '<p>' . esc_html__( 'No hay sincronizaciones registradas.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
         echo '<div style="overflow:auto;"><table class="widefat striped"><thead><tr>';
-        echo '<th>Inicio</th><th>Período</th><th>Estado</th><th>Días</th><th>Filas</th><th>Detalle</th>';
+        echo '<th>' . esc_html__( 'Inicio', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Período', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Días', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Filas', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-google-bing' ) . '</th>';
         echo '</tr></thead><tbody>';
 
         foreach ($history as $run) {
@@ -2641,13 +2641,13 @@ function seo_google_render_summary_charts(array $daily_rows) {
     echo '<section id="' . esc_attr($chart_id) . '" class="seo-google-trends" style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;margin-top:20px;">';
     echo '<div style="display:flex;gap:14px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;">';
     echo '<div>';
-    echo '<h3 style="margin:0 0 6px;">Evolución en Google</h3>';
-    echo '<p style="margin:0;color:#646970;">Mismos datos almacenados por Search Console, vistos como tendencia. En posición, <strong>menos es mejor</strong>.</p>';
+    echo '<h3 style="margin:0 0 6px;">' . esc_html__( 'Evolución en Google', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p style="margin:0;color:#646970;">' . esc_html__( 'Mismos datos almacenados por Search Console, vistos como tendencia. En posición,', 'taxocommerce-google-bing' ) . ' ' . '<strong>' . esc_html__( 'menos es mejor', 'taxocommerce-google-bing' ) . '</strong>' . '.' . '</p>';
     echo '</div>';
     echo '<div class="seo-google-trend-switch" style="display:flex;gap:6px;flex-wrap:wrap;">';
-    echo '<button type="button" class="button button-primary" data-granularity="day">Diario</button>';
-    echo '<button type="button" class="button" data-granularity="week">Semanal</button>';
-    echo '<button type="button" class="button" data-granularity="month">Mensual</button>';
+    echo '<button type="button" class="button button-primary" data-granularity="day">' . esc_html__( 'Diario', 'taxocommerce-google-bing' ) . '</button>';
+    echo '<button type="button" class="button" data-granularity="week">' . esc_html__( 'Semanal', 'taxocommerce-google-bing' ) . '</button>';
+    echo '<button type="button" class="button" data-granularity="month">' . esc_html__( 'Mensual', 'taxocommerce-google-bing' ) . '</button>';
     echo '</div>';
     echo '</div>';
 
@@ -2671,7 +2671,7 @@ function seo_google_render_summary_charts(array $daily_rows) {
     }
 
     echo '</div>';
-    echo '<p class="description" style="margin:14px 0 0;"><span data-period-count></span> · La posición sigue ponderada por impresiones, igual que en las tarjetas superiores.</p>';
+    echo '<p class="description" style="margin:14px 0 0;">' . '<span data-period-count>' . '</span>' . ' ' . esc_html__( '· La posición sigue ponderada por impresiones, igual que en las tarjetas superiores.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</section>';
 
     ob_start();
@@ -2958,7 +2958,7 @@ function seo_google_render_summary() {
     $status   = seo_google_connection_status();
 
     if ('connected' !== $status) {
-        echo '<div class="notice notice-info inline"><p><strong>Google Search Console todavía no está conectado completamente.</strong></p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . '<strong>' . esc_html__( 'Google Search Console todavía no está conectado completamente.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>' . '</div>';
         echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Configurar conexión</a></p>';
         return;
     }
@@ -2966,7 +2966,7 @@ function seo_google_render_summary() {
     $metrics = seo_google_get_summary_metrics($settings['property_id'], 28);
 
     if (!$metrics) {
-        echo '<div class="notice notice-info inline"><p><strong>La conexión está preparada, pero aún no hay datos almacenados.</strong></p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . '<strong>' . esc_html__( 'La conexión está preparada, pero aún no hay datos almacenados.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>' . '</div>';
         echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('sync')) . '">Ejecutar primera sincronización</a></p>';
         return;
     }
@@ -2981,7 +2981,7 @@ function seo_google_render_summary() {
     );
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:20px;border-radius:6px;">';
-    echo '<h3 style="margin-top:0;">Últimos 28 días disponibles</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Últimos 28 días disponibles', 'taxocommerce-google-bing' ) . '</h3>';
     echo '<p><code>' . esc_html($metrics['date_from']) . '</code> → <code>' . esc_html($metrics['date_to']) . '</code></p>';
     $coverage_notice = seo_google_metrics_coverage_notice($metrics);
     if ($coverage_notice) echo '<div class="notice notice-warning inline"><p>' . esc_html($coverage_notice) . '</p></div>';
@@ -2995,7 +2995,7 @@ function seo_google_render_summary() {
     }
 
     echo '</div>';
-    echo '<p class="description" style="margin-top:14px;">Clics, impresiones, CTR y posición proceden del total de propiedad de Search Console cuando la cobertura está completa. Consultas y páginas son una muestra diagnóstica; no suman necesariamente el total.</p>';
+    echo '<p class="description" style="margin-top:14px;">' . esc_html__( 'Clics, impresiones, CTR y posición proceden del total de propiedad de Search Console cuando la cobertura está completa. Consultas y páginas son una muestra diagnóstica; no suman necesariamente el total.', 'taxocommerce-google-bing' ) . '</p>';
     echo '</div>';
 
     $trend_rows = seo_google_get_summary_trend_data($settings['property_id'], 365);
@@ -3019,11 +3019,11 @@ function seo_google_render_top_table($title, array $rows, $is_url = false) {
     echo '<h3 style="margin-top:0;">' . esc_html($title) . '</h3>';
 
     if (!$rows) {
-        echo '<p>No hay datos para este período.</p></div>';
+        echo '<p>' . esc_html__( 'No hay datos para este período.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
 
-    echo '<table class="widefat striped"><thead><tr><th>Elemento</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th></tr></thead><tbody>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Elemento', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($rows as $row) {
         $label = (string) $row['label'];
@@ -3081,13 +3081,13 @@ function seo_google_analysis_ready() {
     $settings = seo_google_get_settings();
 
     if ('connected' !== seo_google_connection_status()) {
-        echo '<div class="notice notice-info inline"><p><strong>Google Search Console todavía no está conectado completamente.</strong></p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . '<strong>' . esc_html__( 'Google Search Console todavía no está conectado completamente.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>' . '</div>';
         echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('settings')) . '">Configurar conexión</a></p>';
         return false;
     }
 
     if (!seo_google_latest_data_date($settings['property_id'])) {
-        echo '<div class="notice notice-info inline"><p><strong>Primero debes ejecutar la sincronización.</strong></p></div>';
+        echo '<div class="notice notice-info inline">' . '<p>' . '<strong>' . esc_html__( 'Primero debes ejecutar la sincronización.', 'taxocommerce-google-bing' ) . '</strong>' . '</p>' . '</div>';
         echo '<p><a class="button button-primary" href="' . esc_url(seo_google_admin_url('sync')) . '">Sincronizar Search Console</a></p>';
         return false;
     }
@@ -3317,7 +3317,7 @@ function seo_google_render_signals() {
     $period          = seo_google_get_analysis_period($settings['property_id'], $days);
 
     if (!$period) {
-        echo '<div class="notice notice-error inline"><p>No se pudo calcular el período de análisis.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No se pudo calcular el período de análisis.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
 
@@ -3339,11 +3339,11 @@ function seo_google_render_signals() {
     );
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
-    echo '<h3 style="margin-top:0;">Señales observadas por Google</h3>';
-    echo '<p>Esta vista agrupa consultas y páginas, pero no decide por ti si una señal es una oportunidad, un error histórico, una búsqueda comercial o una coincidencia accidental.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Señales observadas por Google', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Esta vista agrupa consultas y páginas, pero no decide por ti si una señal es una oportunidad, un error histórico, una búsqueda comercial o una coincidencia accidental.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">';
     echo '<input type="hidden" name="page" value="taxocommerce-google-bing"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="signals">';
-    echo '<label><strong>Período</strong><br><select name="signal_days">';
+    echo '<label>' . '<strong>' . esc_html__( 'Período', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="signal_days">';
     foreach (array(7, 14, 28, 60, 90) as $option_days) {
         echo '<option value="' . absint($option_days) . '" ' . selected($days, $option_days, false) . '>' . absint($option_days) . ' días</option>';
     }
@@ -3354,16 +3354,16 @@ function seo_google_render_signals() {
     echo '</form>';
     echo '<p class="description"><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
     if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
-        echo '<p class="notice notice-warning inline">Páginas parciales: faltan días sincronizados por URL. Las consultas visibles tampoco representan todas las búsquedas.</p>';
+        echo '<p class="notice notice-warning inline">' . esc_html__( 'Páginas parciales: faltan días sincronizados por URL. Las consultas visibles tampoco representan todas las búsquedas.', 'taxocommerce-google-bing' ) . '</p>';
     }
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
-    echo '<h3 style="margin-top:0;">Consultas y páginas asociadas</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Consultas y páginas asociadas', 'taxocommerce-google-bing' ) . '</h3>';
     if (!$queries) {
-        echo '<p>No hay consultas que cumplan los filtros.</p>';
+        echo '<p>' . esc_html__( 'No hay consultas que cumplan los filtros.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>Consulta</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th><th>URLs</th><th>Evidencias</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Consulta', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'URLs', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Evidencias', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($queries as $row) {
             echo '<tr>';
             echo '<td><strong>' . esc_html($row['label']) . '</strong></td>';
@@ -3374,7 +3374,7 @@ function seo_google_render_signals() {
             echo '<td>' . esc_html(number_format_i18n(absint($row['pages']))) . '</td>';
             echo '<td style="min-width:360px;">';
             if (!empty($row['evidence'])) {
-                echo '<details><summary>Ver URLs relacionadas</summary><ul style="margin:8px 0 0 18px;">';
+                echo '<details>' . '<summary>' . esc_html__( 'Ver URLs relacionadas', 'taxocommerce-google-bing' ) . '</summary>' . '<ul style="margin:8px 0 0 18px;">';
                 foreach ($row['evidence'] as $evidence) {
                     echo '<li style="margin-bottom:7px;"><a href="' . esc_url($evidence['page_url']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($evidence['page_url']) . '</a><br><small>';
                     echo esc_html(number_format_i18n((float) $evidence['impressions'], 0)) . ' imp. · ';
@@ -3392,11 +3392,11 @@ function seo_google_render_signals() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;margin-top:20px;">';
-    echo '<h3 style="margin-top:0;">Páginas y consultas asociadas</h3>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Páginas y consultas asociadas', 'taxocommerce-google-bing' ) . '</h3>';
     if (!$pages) {
-        echo '<p>No hay páginas que cumplan los filtros.</p>';
+        echo '<p>' . esc_html__( 'No hay páginas que cumplan los filtros.', 'taxocommerce-google-bing' ) . '</p>';
     } else {
-        echo '<table class="widefat striped"><thead><tr><th>URL</th><th>Imp.</th><th>Clics</th><th>Pos.</th><th>Consultas</th><th>Evidencias</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'URL', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Consultas', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Evidencias', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($pages as $row) {
             echo '<tr><td style="max-width:420px;word-break:break-word;"><a href="' . esc_url($row['label']) . '" target="_blank" rel="noopener noreferrer">' . esc_html($row['label']) . '</a></td>';
             echo '<td>' . esc_html(number_format_i18n((float) $row['impressions'], 0)) . '</td>';
@@ -3404,7 +3404,7 @@ function seo_google_render_signals() {
             echo '<td>' . esc_html(number_format_i18n((float) $row['position'], 1)) . '</td>';
             echo '<td>' . esc_html(number_format_i18n(absint($row['queries']))) . '</td><td style="min-width:280px;">';
             if (!empty($row['evidence'])) {
-                echo '<details><summary>Ver consultas</summary><ul style="margin:8px 0 0 18px;">';
+                echo '<details>' . '<summary>' . esc_html__( 'Ver consultas', 'taxocommerce-google-bing' ) . '</summary>' . '<ul style="margin:8px 0 0 18px;">';
                 foreach ($row['evidence'] as $evidence) {
                     echo '<li><strong>' . esc_html($evidence['query_text']) . '</strong> — ' . esc_html(number_format_i18n((float) $evidence['impressions'], 0)) . ' imp. · pos. ' . esc_html(number_format_i18n((float) $evidence['position'], 1)) . '</li>';
                 }
@@ -3521,7 +3521,7 @@ function seo_google_render_changes() {
     $period = seo_google_get_analysis_period($settings['property_id'], $days);
 
     if (!$period) {
-        echo '<div class="notice notice-error inline"><p>No se pudo calcular el período de comparación.</p></div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'No se pudo calcular el período de comparación.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
 
@@ -3529,11 +3529,11 @@ function seo_google_render_changes() {
     $page_changes  = seo_google_get_dimension_changes($settings['property_id'], 'page', $period, $min, 20);
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
-    echo '<h3 style="margin-top:0;">Cambios entre períodos equivalentes</h3>';
-    echo '<p>Esta vista señala aumentos, descensos, apariciones y desapariciones. Un cambio no implica por sí solo que exista un problema o una oportunidad.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Cambios entre períodos equivalentes', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Esta vista señala aumentos, descensos, apariciones y desapariciones. Un cambio no implica por sí solo que exista un problema o una oportunidad.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">';
     echo '<input type="hidden" name="page" value="taxocommerce-google-bing"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="changes">';
-    echo '<label><strong>Duración de cada período</strong><br><select name="change_days">';
+    echo '<label>' . '<strong>' . esc_html__( 'Duración de cada período', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="change_days">';
     foreach (array(7, 14, 28) as $option_days) {
         echo '<option value="' . absint($option_days) . '" ' . selected($days, $option_days, false) . '>' . absint($option_days) . ' días</option>';
     }
@@ -3545,7 +3545,7 @@ function seo_google_render_changes() {
     echo '<strong>Anterior:</strong> <code>' . esc_html($period['previous_from']) . '</code> → <code>' . esc_html($period['previous_to']) . '</code></p>';
     if (!seo_google_pages_period_complete($settings['property_id'], $period['previous_from'], $period['previous_to'])
         || !seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
-        echo '<p class="notice notice-warning inline">Los cambios por página proceden de consultas visibles y son parciales hasta completar la sincronización de ambos períodos.</p>';
+        echo '<p class="notice notice-warning inline">' . esc_html__( 'Los cambios por página proceden de consultas visibles y son parciales hasta completar la sincronización de ambos períodos.', 'taxocommerce-google-bing' ) . '</p>';
     }
     echo '</div>';
 
@@ -3572,10 +3572,10 @@ function seo_google_render_change_sections($title, array $groups, $is_url) {
         echo '<div style="background:#fff;border:1px solid #dcdcde;padding:16px;border-radius:6px;overflow:auto;">';
         echo '<h4 style="margin-top:0;">' . esc_html($label) . '</h4>';
         if (empty($groups[$key])) {
-            echo '<p>No hay elementos con los filtros actuales.</p></div>';
+            echo '<p>' . esc_html__( 'No hay elementos con los filtros actuales.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
             continue;
         }
-        echo '<table class="widefat striped"><thead><tr><th>Elemento</th><th>Antes</th><th>Ahora</th><th>Δ</th><th>Pos. antes</th><th>Pos. ahora</th></tr></thead><tbody>';
+        echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Elemento', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Antes', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Ahora', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . 'Δ' . '</th>' . '<th>' . esc_html__( 'Pos. antes', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos. ahora', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($groups[$key] as $row) {
             $label_text = (string) $row['label'];
             echo '<tr><td style="max-width:360px;word-break:break-word;">';
@@ -4113,8 +4113,8 @@ function seo_google_render_comparison() {
     unset($page);
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
-    echo '<h3 style="margin-top:0;">Google vs. catálogo</h3>';
-    echo '<p>Relaciona las URLs vistas por Google con entidades locales de WordPress/WooCommerce. Cuando una URL no existe directamente, se comprueba su cadena HTTP y se intenta relacionar el destino final.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Google vs. catálogo', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Relaciona las URLs vistas por Google con entidades locales de WordPress/WooCommerce. Cuando una URL no existe directamente, se comprueba su cadena HTTP y se intenta relacionar el destino final.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<div style="display:flex;gap:14px;flex-wrap:wrap;">';
     echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Reconocidas</small><br><strong style="font-size:24px;">' . esc_html(number_format_i18n($recognized)) . '</strong></div>';
     echo '<div style="border:1px solid #dcdcde;padding:12px 18px;border-radius:6px;"><small>Vía redirect</small><br><strong style="font-size:24px;">' . esc_html(number_format_i18n($redirected)) . '</strong></div>';
@@ -4123,7 +4123,7 @@ function seo_google_render_comparison() {
     echo '</div>';
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
-    echo '<table class="widefat striped"><thead><tr><th>URL de Google / destino</th><th>Imp.</th><th>Clics</th><th>Pos.</th><th>Entidad local</th><th>Estado</th><th>Consultas</th></tr></thead><tbody>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'URL de Google / destino', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Entidad local', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Consultas', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
     foreach ($pages as $page) {
         $entity = $page['entity'];
@@ -4151,7 +4151,7 @@ function seo_google_render_comparison() {
         echo '<td><strong>' . esc_html($entity['type']) . '</strong>';
 
         if (!empty($entity['redirected']) && !empty($entity['recognized'])) {
-            echo '<br><small>Relacionada por redirección</small>';
+            echo '<br>' . '<small>' . esc_html__( 'Relacionada por redirección', 'taxocommerce-google-bing' ) . '</small>';
         }
 
         if ($entity['title']) {
@@ -4272,29 +4272,29 @@ function seo_google_render_coverage() {
     uasort($areas, function ($a, $b) { return $b['impressions'] <=> $a['impressions']; });
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
-    echo '<h3 style="margin-top:0;">Cobertura observada</h3>';
-    echo '<p>Distribución de las páginas que Google ha mostrado. Esta cobertura describe visibilidad; todavía no mide si el catálogo es suficiente o correcto.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Cobertura observada', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Distribución de las páginas que Google ha mostrado. Esta cobertura describe visibilidad; todavía no mide si el catálogo es suficiente o correcto.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<p><code>' . esc_html($period['current_from']) . '</code> → <code>' . esc_html($period['current_to']) . '</code></p>';
     if (!seo_google_pages_period_complete($settings['property_id'], $period['current_from'], $period['current_to'])) {
-        echo '<p class="notice notice-warning inline">Cobertura parcial basada en consultas visibles hasta completar la sincronización diaria de páginas.</p>';
+        echo '<p class="notice notice-warning inline">' . esc_html__( 'Cobertura parcial basada en consultas visibles hasta completar la sincronización diaria de páginas.', 'taxocommerce-google-bing' ) . '</p>';
     }
     echo '</div>';
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px;">';
-    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;"><h3 style="margin-top:0;">Áreas URL</h3>';
-    echo '<table class="widefat striped"><thead><tr><th>Área</th><th>Páginas</th><th>Imp.</th><th>Clics</th><th>Pos.</th></tr></thead><tbody>';
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">' . '<h3 style="margin-top:0;">' . esc_html__( 'Áreas URL', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Área', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Páginas', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach (array_slice($areas, 0, 50, true) as $area => $values) {
         $position = $values['impressions'] > 0 ? $values['weighted_position'] / $values['impressions'] : 0;
         echo '<tr><td><code>' . esc_html($area) . '</code></td><td>' . esc_html(number_format_i18n($values['pages'])) . '</td><td>' . esc_html(number_format_i18n($values['impressions'], 0)) . '</td><td>' . esc_html(number_format_i18n($values['clicks'], 0)) . '</td><td>' . esc_html(number_format_i18n($position, 1)) . '</td></tr>';
     }
     echo '</tbody></table></div>';
 
-    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;"><h3 style="margin-top:0;">Páginas por rango de posición</h3>';
-    echo '<table class="widefat striped"><thead><tr><th>Rango</th><th>Páginas</th></tr></thead><tbody>';
+    echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;">' . '<h3 style="margin-top:0;">' . esc_html__( 'Páginas por rango de posición', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Rango', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Páginas', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($ranges as $range => $count) {
         echo '<tr><td>' . esc_html($range) . '</td><td>' . esc_html(number_format_i18n($count)) . '</td></tr>';
     }
-    echo '</tbody></table><p class="description">Cada página se sitúa según su posición media ponderada del período.</p></div>';
+    echo '</tbody>' . '</table>' . '<p class="description">' . esc_html__( 'Cada página se sitúa según su posición media ponderada del período.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
     echo '</div>';
 }
 
@@ -4499,11 +4499,11 @@ function seo_google_render_laboratory() {
     $rows     = seo_google_get_lab_rows($settings['property_id'], $filters);
 
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;margin-bottom:20px;">';
-    echo '<h3 style="margin-top:0;">Laboratorio de datos</h3>';
-    echo '<p>Consulta los datos con tus propios filtros. El sistema agrupa y resume, pero conserva visibles la consulta, la URL y las métricas utilizadas.</p>';
+    echo '<h3 style="margin-top:0;">' . esc_html__( 'Laboratorio de datos', 'taxocommerce-google-bing' ) . '</h3>';
+    echo '<p>' . esc_html__( 'Consulta los datos con tus propios filtros. El sistema agrupa y resume, pero conserva visibles la consulta, la URL y las métricas utilizadas.', 'taxocommerce-google-bing' ) . '</p>';
     echo '<form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">';
     echo '<input type="hidden" name="page" value="taxocommerce-google-bing"><input type="hidden" name="tab" value="google_intelligence"><input type="hidden" name="google_view" value="laboratory">';
-    echo '<label><strong>Agrupar por</strong><br><select name="lab_group" style="width:100%;">';
+    echo '<label>' . '<strong>' . esc_html__( 'Agrupar por', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="lab_group" style="width:100%;">';
     foreach (array('query_page' => 'Consulta + URL', 'query' => 'Consulta', 'page' => 'URL', 'date' => 'Fecha') as $value => $label) {
         echo '<option value="' . esc_attr($value) . '" ' . selected($filters['group'], $value, false) . '>' . esc_html($label) . '</option>';
     }
@@ -4513,12 +4513,12 @@ function seo_google_render_laboratory() {
     echo '<label><strong>Consulta contiene</strong><br><input type="search" name="lab_query" value="' . esc_attr($filters['query']) . '" style="width:100%;"></label>';
     echo '<label><strong>URL contiene</strong><br><input type="search" name="lab_url" value="' . esc_attr($filters['url']) . '" style="width:100%;"></label>';
     echo '<label><strong>Impresiones mín.</strong><br><input type="number" min="0" step="1" name="lab_min" value="' . esc_attr($filters['min_impressions']) . '" style="width:100%;"></label>';
-    echo '<label><strong>Orden</strong><br><select name="lab_order" style="width:100%;">';
+    echo '<label>' . '<strong>' . esc_html__( 'Orden', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="lab_order" style="width:100%;">';
     foreach (array('impressions' => 'Más impresiones', 'clicks' => 'Más clics', 'ctr' => 'Mayor CTR', 'position' => 'Mejor posición') as $value => $label) {
         echo '<option value="' . esc_attr($value) . '" ' . selected($filters['order'], $value, false) . '>' . esc_html($label) . '</option>';
     }
     echo '</select></label>';
-    echo '<label><strong>Límite</strong><br><select name="lab_limit" style="width:100%;">';
+    echo '<label>' . '<strong>' . esc_html__( 'Límite', 'taxocommerce-google-bing' ) . '</strong>' . '<br>' . '<select name="lab_limit" style="width:100%;">';
     foreach (array(50, 100, 250, 500, 1000) as $limit) {
         echo '<option value="' . absint($limit) . '" ' . selected($filters['limit'], $limit, false) . '>' . absint($limit) . '</option>';
     }
@@ -4544,10 +4544,10 @@ function seo_google_render_laboratory() {
     echo '<div style="background:#fff;border:1px solid #dcdcde;padding:18px;border-radius:6px;overflow:auto;">';
     echo '<p><strong>Resultados:</strong> ' . esc_html(number_format_i18n(count($rows))) . '</p>';
     if (!$rows) {
-        echo '<p>No hay filas que cumplan los filtros.</p></div>';
+        echo '<p>' . esc_html__( 'No hay filas que cumplan los filtros.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
         return;
     }
-    echo '<table class="widefat striped"><thead><tr><th>Fecha</th><th>Consulta</th><th>URL</th><th>Imp.</th><th>Clics</th><th>CTR</th><th>Pos.</th></tr></thead><tbody>';
+    echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Fecha', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Consulta', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'URL', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Imp.', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Clics', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'CTR', 'taxocommerce-google-bing' ) . '</th>' . '<th>' . esc_html__( 'Pos.', 'taxocommerce-google-bing' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($rows as $row) {
         echo '<tr><td>' . ($row['data_date'] ? esc_html($row['data_date']) : '—') . '</td>';
         echo '<td style="max-width:300px;word-break:break-word;">' . ($row['query_text'] ? esc_html($row['query_text']) : '—') . '</td>';

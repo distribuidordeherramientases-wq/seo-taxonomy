@@ -1,0 +1,50 @@
+name: Core cross-site audit (read-only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - qa/core-dual-site-automatic-audit-2107
+    paths:
+      - '.github/scripts/audit_core_dual_sites.py'
+      - '.github/tests/test_audit_core_dual_sites.py'
+      - '.github/workflows/audit-core-dual-sites.yml'
+
+permissions:
+  contents: read
+
+# A read-only audit should never open several simultaneous FTPS sessions.
+concurrency:
+  group: core-dual-site-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Verify real Core files and public menus on both WordPress sites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check auditor safety and offline regressions
+        run: |
+          python3 -m py_compile .github/scripts/audit_core_dual_sites.py
+          python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
+      - name: Run remote read-only audit
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          TC_STAGING_WP_USER: ${{ secrets.TC_STAGING_WP_USER }}
+          TC_STAGING_WP_PASSWORD: ${{ secrets.TC_STAGING_WP_PASSWORD }}
+          TC_FOCAZUL_WP_USER: ${{ secrets.TC_FOCAZUL_WP_USER }}
+          TC_FOCAZUL_WP_PASSWORD: ${{ secrets.TC_FOCAZUL_WP_PASSWORD }}
+        run: python3 .github/scripts/audit_core_dual_sites.py --out core-dual-audit/report
+      - name: Retain the findings including partial and failed runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-dual-audit-${{ github.run_id }}
+          path: |
+            core-dual-audit/report.md
+            core-dual-audit/report.json
+          retention-days: 30
+          if-no-files-found: ignore

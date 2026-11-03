@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/class-taxocommerce-core-menu-editor.php';
+require_once __DIR__ . '/class-taxocommerce-core-block-navigation.php';
 
 /**
  * Builds a native WordPress menu from the TaxoCommerce SEO hierarchy.
@@ -28,22 +29,57 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	private $logger;
 
+    /**
+     * Market identity for a menu. Empty string is Global, never the country ES.
+     * Page values are explicit two-letter country codes, not preset markets.
+     */
+    public static function normalize_code( $country ) {
+        $country = strtoupper( trim( (string) $country ) );
+        return preg_match( '/^[A-Z]{2}$/D', $country ) ? $country : '';
+    }
+
+    public static function page_country( $post_id ) {
+        return self::normalize_code( get_post_meta( absint( $post_id ), TaxoCommerce_Core_Country::META, true ) );
+    }
+
+    /** Product categories can inherit a declared country from their ancestors. */
+    public static function term_country( $term_id ) {
+        $term_id = absint( $term_id );
+        if ( ! $term_id ) { return ''; }
+        $ids = array_merge( array( $term_id ), (array) get_ancestors( $term_id, 'product_cat', 'taxonomy' ) );
+        foreach ( $ids as $id ) {
+            $country = self::normalize_code( get_term_meta( absint( $id ), TaxoCommerce_Core_Country::META, true ) );
+            if ( '' !== $country ) { return $country; }
+        }
+        return '';
+    }
+
+    /**
+     * Only actual country assignments on pages may introduce menu countries.
+     * A new installation has exactly one choice: Global (empty country).
+     */
+    public static function available_countries() {
+        // One source of truth for both the menu proposal and Core country fields.
+        return TaxoCommerce_Core_Country::page_countries();
+    }
+
     public static function country( $write = false ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
         $params = $write ? $_POST : $_GET;
-        $value = isset( $params['tc_country'] ) && is_string( $params['tc_country'] ) ? sanitize_text_field( wp_unslash( $params['tc_country'] ) ) : 'ES';
-        return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
+        $value = isset( $params['tc_country'] ) && is_string( $params['tc_country'] ) ? sanitize_text_field( wp_unslash( $params['tc_country'] ) ) : '';
+        return self::normalize_code( $value );
     }
 
     public static function menu_option( $country = '' ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country();
+        $country = self::normalize_code( $country );
+        if ( '' === $country ) { return self::MENU_ID_OPTION . '_global'; }
         return 'ES' === $country ? self::MENU_ID_OPTION : self::MENU_ID_OPTION . '_' . strtolower( $country );
     }
 
-    /** Name shown in native WordPress menus; one distinct name per market. */
-    public static function menu_name( $country = 'ES' ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: 'ES';
-        return 'TaxoCommerce - ' . $country;
+    /** Name shown in native WordPress menus; Global is not a synthetic country. */
+    public static function menu_name( $country = '' ) {
+        $country = self::normalize_code( $country );
+        return 'TaxoCommerce - ' . ( $country ?: 'Global' );
     }
 
     /**
@@ -57,7 +93,7 @@ final class TaxoCommerce_Core_Menu {
      * @return int|WP_Error Menu ID or zero if missing in read-only mode.
      */
     public static function managed_menu_id( $country = '', $create = false ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: self::country( $create );
+        $country = self::normalize_code( $country );
         $name = self::menu_name( $country );
         $stored_id = absint( get_option( self::menu_option( $country ), 0 ) );
         $menu = $stored_id ? wp_get_nav_menu_object( $stored_id ) : false;
@@ -141,16 +177,16 @@ final class TaxoCommerce_Core_Menu {
         $assigned = absint( is_array( $registered ) ? ( $registered[ $location ] ?? 0 ) : 0 );
         if ( ! $assigned ) { return $args; }
         $managed = array();
-        foreach ( array_keys( TaxoCommerce_Core_Country::countries() ) as $market ) {
+        foreach ( array_keys( self::available_countries() ) as $market ) {
             $id = $this->get_menu_id( $market );
             if ( $id ) { $managed[ $market ] = $id; }
         }
         if ( ! in_array( $assigned, $managed, true ) ) { return $args; }
-        $country = 'ES';
+        $country = '';
         if ( is_singular( array( 'page', 'post', 'product' ) ) ) {
-            $country = TaxoCommerce_Core_Country::post( get_queried_object_id() );
+            $country = self::page_country( get_queried_object_id() );
         } elseif ( is_tax( 'product_cat' ) ) {
-            $country = TaxoCommerce_Core_Country::term( get_queried_object_id() );
+            $country = self::term_country( get_queried_object_id() );
         }
         $args['menu'] = $managed[ $country ] ?? $assigned;
         return $args;
@@ -166,6 +202,7 @@ final class TaxoCommerce_Core_Menu {
 		add_action( 'admin_post_taxocommerce_core_activate_menu', array( $this, 'handle_activate_menu' ) );
 		add_action( 'admin_post_taxocommerce_core_restore_menu', array( $this, 'handle_restore_menu' ) );
 		TaxoCommerce_Core_Menu_Editor::register_hooks();
+        TaxoCommerce_Core_Block_Navigation::register_hooks();
         add_filter( 'wp_nav_menu_args', array( $this, 'route_country_menu' ), 20 );
 	}
 
@@ -176,85 +213,60 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	public function render() {
 		$this->guard();
-        if ( TaxoCommerce_Core_Menu_Editor::is_wordpress_tab() ) {
-            TaxoCommerce_Core_Menu_Editor::render_wordpress_screen();
-            return;
-        }
+		// Native WordPress menus are the sole editing interface. Both block
+		// navigation and classic theme locations are handled within that screen.
+		TaxoCommerce_Core_Menu_Editor::render_wordpress_screen();
+	}
 
-		$country    = self::country();
-		$tree       = $this->build_tree( $country );
-		$menu_id    = self::selected_menu_id();
-		$result     = isset( $_GET['tc_result'] ) ? sanitize_key( wp_unslash( $_GET['tc_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
-		$message    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
+	/**
+	 * Show SEO-driven menu generation only for sites with a populated Core
+	 * hierarchy. Never assume that an installed plugin implies a hierarchy.
+	 * Existing native menus and theme assignments remain untouched until the
+	 * administrator explicitly clicks the synchronization button.
+	 */
+	public function render_hierarchy_proposal() {
+		$trees = array();
+        $available = self::available_countries();
+		foreach ( array_keys( $available ) as $market ) {
+			$tree = $this->build_tree( $market );
+			if ( $tree ) {
+				$trees[ $market ] = $tree;
+			}
+		}
+		if ( ! $trees ) {
+			return;
+		}
+		$country = self::country();
+		if ( ! isset( $trees[ $country ] ) ) {
+			$country = (string) key( $trees );
+		}
+		$menu_id = $this->get_menu_id( $country );
+		$tree = $trees[ $country ];
 		?>
-		<div class="wrap tcc-family-screen">
-            <header class="tcc-page-header">
-                <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-menu-alt3"></span></span>
-                <div class="tcc-page-header__content">
-                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
-                    <h1><?php echo esc_html__( 'Gestor de menús', 'taxocommerce-core' ); ?></h1>
-                    <p><?php echo esc_html__( 'Propone un menú a partir de la Jerarquía SEO y lo convierte en un menú nativo de WordPress. Los elementos manuales se conservan al sincronizar.', 'taxocommerce-core' ); ?></p>
-                </div>
-            </header>
-
-			<?php if ( 'ok' === $result && $message ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php echo esc_html( $message ); ?></p></div>
-			<?php elseif ( 'error' === $result && $message ) : ?>
-				<div class="notice notice-error"><p><?php echo esc_html( $message ); ?></p></div>
-			<?php endif; ?>
-
-            <?php TaxoCommerce_Core_Menu_Editor::tabs( 'seo' ); ?>
-            <?php
-            $native_menu = $menu_id ? wp_get_nav_menu_object( $menu_id ) : false;
-            $managed_id = $this->get_menu_id( $country );
-            $external = $native_menu && ! is_wp_error( $native_menu ) && absint( $menu_id ) !== absint( $managed_id );
-            $menu_name = $external ? (string) $native_menu->name : self::menu_name( $country );
-            $countries = TaxoCommerce_Core_Country::countries();
-            $country_label = isset( $countries[ $country ] ) ? $countries[ $country ] : $country;
-            ?>
-            <form method="get" class="tc-menu-country-picker" data-tc-menu-country-form>
-                <input type="hidden" name="page" value="taxocommerce-core-menu">
-                <label for="tc-menu-country"><strong><?php esc_html_e( 'País del menú', 'taxocommerce-core' ); ?></strong></label>
-                <select id="tc-menu-country" name="tc_country"><?php TaxoCommerce_Core_Country::options( $country ); ?></select>
-                <button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
-            </form>
-            <?php TaxoCommerce_Core_Menu_Editor::load_controls( $country, $menu_id ); ?>
-            <section class="tc-menu-identity" aria-labelledby="tc-menu-identity-title">
-                <p class="tc-menu-identity__label"><?php esc_html_e( 'MENÚ QUE ESTÁS EDITANDO O CREANDO', 'taxocommerce-core' ); ?></p>
-                <h2 id="tc-menu-identity-title"><?php echo esc_html( $menu_name ); ?></h2>
-                <p><strong><?php esc_html_e( 'País:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html( $country_label . ' (' . $country . ')' ); ?></p>
-                <?php if ( $external ) : ?>
-                    <p class="tc-menu-identity__notice"><?php esc_html_e( 'Menú de WordPress cargado. Puedes modificar sus elementos manuales aquí. No se ha sustituido el menú gestionado del país ni se ha cambiado su ubicación en el tema.', 'taxocommerce-core' ); ?></p>
-                <?php endif; ?>
-                <p><strong><?php esc_html_e( 'Identificador para llamar al menú desde una plantilla:', 'taxocommerce-core' ); ?></strong>
-                    <code><?php echo esc_html( "'menu' => '" . $menu_name . "'" ); ?></code>
-                </p>
-                <?php if ( $menu_id ) : ?>
-                    <p><strong><?php esc_html_e( 'ID del menú en WordPress:', 'taxocommerce-core' ); ?></strong> <code><?php echo esc_html( (string) absint( $menu_id ) ); ?></code>
-                    <?php if ( ! $external && $native_menu && ! is_wp_error( $native_menu ) && (string) $native_menu->name !== $menu_name ) : ?>
-                        <span class="tc-menu-identity__notice"><?php echo esc_html( sprintf(
-                            /* translators: %s: current legacy WordPress menu name. */
-                            __( '(Nombre actual en WordPress: %s; se actualizará al sincronizar.)', 'taxocommerce-core' ),
-                            $native_menu->name
-                        ) ); ?></span>
-                    <?php endif; ?></p>
-                <?php else : ?>
-                    <p class="tc-menu-identity__notice"><?php esc_html_e( 'Este menú todavía no existe. Se creará con este nombre al sincronizar la propuesta.', 'taxocommerce-core' ); ?></p>
-                <?php endif; ?>
-            </section>
-            <?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'top' ); ?>
-			<div class="notice notice-info inline"><p><strong><?php echo esc_html__( 'Fuente:', 'taxocommerce-core' ); ?></strong> <?php echo esc_html__( 'Cluster → Hub primario → Hub secundario → Categoría de producto. La jerarquía sigue siendo la fuente de la propuesta; WordPress conserva el menú publicado.', 'taxocommerce-core' ); ?></p></div>
-
+		<details class="tc-menu-proposal">
+			<summary><?php esc_html_e( 'Propuesta automática', 'taxocommerce-core' ); ?></summary>
+			<p><?php esc_html_e( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core' ); ?></p>
+			<form method="get">
+				<input type="hidden" name="page" value="taxocommerce-core-menu">
+				<label for="tc-seo-country"><?php esc_html_e( 'País del menú', 'taxocommerce-core' ); ?></label>
+				<select id="tc-seo-country" name="tc_country">
+					<?php foreach ( $trees as $market => $unused_tree ) : ?>
+						<option value="<?php echo esc_attr( $market ); ?>"<?php selected( $market, $country ); ?>><?php echo esc_html( $available[ $market ] ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
+			</form>
 			<?php $this->render_kpis( $tree, $menu_id ); ?>
-			<?php TaxoCommerce_Core_Menu_Editor::render( $menu_id ); ?>
-
-			<details class="tc-menu-proposal">
-				<summary><?php echo esc_html__( 'Propuesta automática', 'taxocommerce-core' ); ?></summary>
-				<p><?php echo esc_html__( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core' ); ?></p>
-				<?php $this->render_tree( $tree ); ?>
-			</details>
-			<?php TaxoCommerce_Core_Menu_Editor::controls( $menu_id, 'bottom' ); ?>
-		</div>
+			<?php $this->render_tree( $tree ); ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="taxocommerce_core_sync_menu">
+				<input type="hidden" name="tc_country" value="<?php echo esc_attr( $country ); ?>">
+				<?php wp_nonce_field( 'taxocommerce_core_sync_menu', 'taxocommerce_core_nonce' ); ?>
+				<button type="submit" class="button button-primary"><?php
+					echo esc_html( $menu_id ? __( 'Sincronizar propuesta', 'taxocommerce-core' ) : __( 'Crear menú desde la jerarquía', 'taxocommerce-core' ) );
+				?></button>
+			</form>
+		</details>
 		<?php
 	}
 
@@ -268,13 +280,24 @@ final class TaxoCommerce_Core_Menu {
 		check_admin_referer( 'taxocommerce_core_sync_menu', 'taxocommerce_core_nonce' );
 
 		$country = self::country( true );
+        // Reject a country which is not actually assigned to any page.
+        // Never silently turn a forged country value into a Global write.
+        $submitted = isset( $_POST['tc_country'] ) && is_string( $_POST['tc_country'] )
+            ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['tc_country'] ) ) ) ) : '';
+        if ( $submitted !== $country || ! array_key_exists( $country, self::available_countries() ) ) {
+            $this->redirect( 'error', __( 'País no válido.', 'taxocommerce-core' ) );
+        }
+		$tree = $this->build_tree( $country );
+		if ( ! $tree ) {
+			$this->redirect( 'error', __( 'No hay elementos disponibles.', 'taxocommerce-core' ) );
+		}
         $menu_id = $this->get_or_create_menu( $country );
 		if ( is_wp_error( $menu_id ) ) {
 			$this->redirect( 'error', $menu_id->get_error_message() );
 		}
 
 		$this->delete_generated_items( $menu_id );
-		$result = $this->write_tree_to_menu( $this->build_tree( $country ), $menu_id );
+		$result = $this->write_tree_to_menu( $tree, $menu_id );
 
 		if ( is_wp_error( $result ) ) {
 			$this->redirect( 'error', $result->get_error_message() );
@@ -350,18 +373,24 @@ final class TaxoCommerce_Core_Menu {
 	 *
 	 * @return array
 	 */
-	private function build_tree( $country = 'ES' ) {
-		$clusters    = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'cluster', $country );
-		$primaries   = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'hub_primary', $country );
-		$secondaries = TaxoCommerce_Core_Hierarchy_Classic::country_pages( 'hub_secondary', $country );
+	private function build_tree( $country = '' ) {
+        $country = self::normalize_code( $country );
+        $by_country = static function ( $page ) use ( $country ) {
+            return self::page_country( $page->ID ) === $country;
+        };
+		$clusters    = array_values( array_filter( TaxoCommerce_Core_Hierarchy_Classic::role_pages( 'cluster' ), $by_country ) );
+		$primaries   = array_values( array_filter( TaxoCommerce_Core_Hierarchy_Classic::role_pages( 'hub_primary' ), $by_country ) );
+		$secondaries = array_values( array_filter( TaxoCommerce_Core_Hierarchy_Classic::role_pages( 'hub_secondary' ), $by_country ) );
 		$categories  = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC' ) );
 		$categories  = is_wp_error( $categories ) ? array() : $categories;
 
 		// seo_relations is now authoritative. Older post/term metadata is
 		// retained for compatibility, but does not drive generated menus.
-		$cluster_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'cluster_to_primary', $country );
-		$primary_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_primary_to_hub_secondary', $country );
-		$secondary_map = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_secondary_to_category', $country );
+		// Filter endpoints by their page/term membership below, not by legacy
+        // relation.country_code (which may still contain implicit ES).
+		$cluster_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'cluster_to_primary' );
+		$primary_map   = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_primary_to_hub_secondary' );
+		$secondary_map = TaxoCommerce_Core_Hierarchy_Classic::map( 'hub_secondary_to_category' );
 		$primaries_by_id = array();
 		$secondaries_by_id = array();
 		$categories_by_id = array();
@@ -372,7 +401,7 @@ final class TaxoCommerce_Core_Menu {
 			$secondaries_by_id[ (int) $page->ID ] = $page;
 		}
 		foreach ( $categories as $term ) {
-            if ( TaxoCommerce_Core_Country::term( $term->term_id ) !== $country ) { continue; }
+            if ( self::term_country( $term->term_id ) !== $country ) { continue; }
 			$categories_by_id[ (int) $term->term_id ] = $term;
 		}
 
@@ -582,7 +611,7 @@ final class TaxoCommerce_Core_Menu {
 	 *
 	 * @return int|WP_Error
 	 */
-	private function get_or_create_menu( $country = 'ES' ) {
+	private function get_or_create_menu( $country = '' ) {
         return self::managed_menu_id( $country, true );
     }
 

@@ -27,8 +27,8 @@ function tccampaigns_autotest_results() {
 }
 function tccampaigns_render_autotest() {
     if (!current_user_can('manage_options')) return;
-    echo '<section class="tcc-card"><h2>Autotest de TaxoCommerce Campaigns</h2>';
-    echo '<p>Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos.</p>';
+    echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Autotest de TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<form method="post" action="' . esc_url(tccampaigns_admin_tab_url('autotest')) . '">';
     wp_nonce_field('tccampaigns_autotest');
     echo '<input type="hidden" name="tccampaigns_run_autotest" value="1">';
@@ -37,7 +37,7 @@ function tccampaigns_render_autotest() {
     if (!isset($_POST['tccampaigns_run_autotest'])) { echo '</section>'; return; }
     check_admin_referer('tccampaigns_autotest');
     $checks = tccampaigns_autotest_results();
-    echo '<table class="widefat striped" style="margin-top:16px"><thead><tr><th>Grupo</th><th>Comprobación</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
+    echo '<table class="widefat striped" style="margin-top:16px">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Comprobación', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($checks as $check) {
         echo '<tr><td>' . esc_html($check['group']) . '</td><td><code>' . esc_html($check['name']) . '</code></td><td><strong>' . esc_html($check['status']) . '</strong></td><td>' . esc_html($check['detail']) . '</td></tr>';
     }

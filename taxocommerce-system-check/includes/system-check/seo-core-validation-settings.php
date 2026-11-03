@@ -352,7 +352,7 @@ function seo_core_validation_render_remediation_details($label, $evidence = arra
         return;
     }
 
-    echo '<details class="seo-core-remediation-details"><summary>Sugerencia de corrección</summary><div class="seo-core-remediation-body">';
+    echo '<details class="seo-core-remediation-details">' . '<summary>' . esc_html__( 'Sugerencia de corrección', 'taxocommerce-system-check' ) . '</summary>' . '<div class="seo-core-remediation-body">';
     echo '<p><strong>' . esc_html($remediation['kind']) . ':</strong> ' . esc_html($remediation['summary']) . '</p>';
     if (!empty($remediation['steps'])) {
         echo '<ol>';
@@ -394,8 +394,8 @@ function seo_core_validation_render_remediation_center($results) {
         : array();
     $catalog = seo_core_validation_remediation_catalog();
 
-    echo '<section class="seo-core-remediation-center"><h2>Centro de corrección asistida</h2>';
-    echo '<p>Las sugerencias distinguen entre configuración del test, diagnóstico, edición de archivos y corrección de datos. No se aplican cambios automáticos al catálogo ni a las tablas SEO.</p>';
+    echo '<section class="seo-core-remediation-center">' . '<h2>' . esc_html__( 'Centro de corrección asistida', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<p>' . esc_html__( 'Las sugerencias distinguen entre configuración del test, diagnóstico, edición de archivos y corrección de datos. No se aplican cambios automáticos al catálogo ni a las tablas SEO.', 'taxocommerce-system-check' ) . '</p>';
 
     $shown = 0;
     foreach ($incidents as $incident) {
@@ -413,14 +413,14 @@ function seo_core_validation_render_remediation_center($results) {
     }
 
     if ($shown === 0) {
-        echo '<div class="seo-core-test-note">No hay incidencias con una guía específica en el último resultado. Ejecuta la validación completa después de guardar los ajustes.</div>';
+        echo '<div class="seo-core-test-note">' . esc_html__( 'No hay incidencias con una guía específica en el último resultado. Ejecuta la validación completa después de guardar los ajustes.', 'taxocommerce-system-check' ) . '</div>';
     }
 
     if (function_exists('seo_core_system_test_get_semantic_snapshot')) {
         $snapshot = seo_core_system_test_get_semantic_snapshot();
         $actions = isset($snapshot['actions']) && is_array($snapshot['actions']) ? $snapshot['actions'] : array();
         if (!empty($actions)) {
-            echo '<h3>Plan semántico sugerido</h3><table class="widefat striped"><thead><tr><th>Prioridad</th><th>Acción</th><th>Afectados</th><th>Sugerencia</th></tr></thead><tbody>';
+            echo '<h3>' . esc_html__( 'Plan semántico sugerido', 'taxocommerce-system-check' ) . '</h3>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Prioridad', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Acción', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Afectados', 'taxocommerce-system-check' ) . '</th>' . '<th>' . esc_html__( 'Sugerencia', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
             foreach (array_slice($actions, 0, 20) as $action) {
                 echo '<tr><td>' . esc_html((string) ($action['priority'] ?? '')) . '</td><td><code>' . esc_html((string) ($action['code'] ?? '')) . '</code></td><td>' . esc_html(number_format_i18n((int) ($action['count'] ?? 0))) . '</td><td>' . esc_html((string) ($action['recommendation'] ?? '')) . '</td></tr>';
             }
@@ -432,28 +432,28 @@ function seo_core_validation_render_remediation_center($results) {
 
 function seo_core_validation_render_settings_page($results = array()) {
     $settings = seo_core_validation_get_settings();
-    echo '<h2>Configuración de Plugin Validation</h2>';
-    echo '<div class="seo-core-test-note"><strong>Criterio:</strong> los límites son tolerancias operativas. No corrigen datos ni convierten un fallo real en correcto; permiten reflejar migraciones, excepciones conocidas y el volumen pendiente aceptado.</div>';
+    echo '<h2>' . esc_html__( 'Configuración de Plugin Validation', 'taxocommerce-system-check' ) . '</h2>';
+    echo '<div class="seo-core-test-note">' . '<strong>' . esc_html__( 'Criterio:', 'taxocommerce-system-check' ) . '</strong>' . ' ' . esc_html__( 'los límites son tolerancias operativas. No corrigen datos ni convierten un fallo real en correcto; permiten reflejar migraciones, excepciones conocidas y el volumen pendiente aceptado.', 'taxocommerce-system-check' ) . '</div>';
 
     echo '<form method="post" class="seo-core-settings-form">';
     wp_nonce_field('seo_core_validation_settings', 'seo_core_validation_settings_nonce');
 
-    echo '<h3>Producto y búsqueda representativos</h3><table class="form-table" role="presentation">';
+    echo '<h3>' . esc_html__( 'Producto y búsqueda representativos', 'taxocommerce-system-check' ) . '</h3>' . '<table class="form-table" role="presentation">';
     seo_core_validation_render_number_field($settings, 'representative_product_id', 'ID de producto fijo', '0 selecciona automáticamente el mejor candidato. Un ID fijo permite repetir siempre la misma ficha.', 0, PHP_INT_MAX);
     seo_core_validation_render_number_field($settings, 'representative_scan_limit', 'Candidatos a revisar', 'Número máximo de productos publicados que se inspeccionan para encontrar uno visible, comprable, con precio y stock.', 20, 2000);
     seo_core_validation_render_checkbox_field($settings, 'representative_require_visible', 'Selección automática', 'Exigir que el producto sea visible en el catálogo.');
     seo_core_validation_render_checkbox_field($settings, 'representative_require_purchasable', 'Compra', 'Exigir que WooCommerce lo considere comprable.');
     seo_core_validation_render_checkbox_field($settings, 'representative_require_in_stock', 'Inventario', 'Excluir productos agotados de la muestra automática.');
-    echo '<tr><th scope="row"><label for="seo-core-search-mode">Modo de búsqueda</label></th><td><select id="seo-core-search-mode" name="seo_core_validation_settings[search_mode]">';
+    echo '<tr>' . '<th scope="row">' . '<label for="seo-core-search-mode">' . esc_html__( 'Modo de búsqueda', 'taxocommerce-system-check' ) . '</label>' . '</th>' . '<td>' . '<select id="seo-core-search-mode" name="seo_core_validation_settings[search_mode]">';
     foreach (array('adaptive' => 'Adaptativo: título completo y compacto', 'full' => 'Solo título completo', 'compact' => 'Solo término compacto') as $value => $label) {
         echo '<option value="' . esc_attr($value) . '" ' . selected($settings['search_mode'], $value, false) . '>' . esc_html($label) . '</option>';
     }
-    echo '</select><p class="description">El modo adaptativo evita falsos fallos con títulos largos, signos y motores de búsqueda que exigen demasiados términos.</p></td></tr>';
+    echo '</select>' . '<p class="description">' . esc_html__( 'El modo adaptativo evita falsos fallos con títulos largos, signos y motores de búsqueda que exigen demasiados términos.', 'taxocommerce-system-check' ) . '</p>' . '</td>' . '</tr>';
     seo_core_validation_render_number_field($settings, 'search_max_words', 'Máximo de palabras', 'Palabras usadas en la variante compacta.', 2, 15);
     seo_core_validation_render_number_field($settings, 'search_max_length', 'Máximo de caracteres', 'Longitud máxima de la variante compacta.', 20, 180);
     echo '</table>';
 
-    echo '<h3>HTTP, plantillas y SEO técnico</h3><table class="form-table" role="presentation">';
+    echo '<h3>' . esc_html__( 'HTTP, plantillas y SEO técnico', 'taxocommerce-system-check' ) . '</h3>' . '<table class="form-table" role="presentation">';
     seo_core_validation_render_number_field($settings, 'content_match_percent', 'Coincidencia de contenido (%)', 'Porcentaje mínimo de palabras significativas del título que debe aparecer en la ficha.', 40, 100);
     seo_core_validation_render_number_field($settings, 'h1_match_percent', 'Coincidencia del H1 (%)', 'Permite prefijos de marca o sufijos de referencia sin aceptar un H1 genérico.', 40, 100);
     seo_core_validation_render_number_field($settings, 'http_timeout', 'Timeout HTTP (segundos)', 'Rango aplicado a las comprobaciones internas de páginas.', 2, 30);
@@ -464,7 +464,7 @@ function seo_core_validation_render_settings_page($results = array()) {
     seo_core_validation_render_checkbox_field($settings, 'require_schema_site', 'Identidad del sitio', 'Exigir Organization o WebSite en la portada.');
     echo '</table>';
 
-    echo '<h3>Rangos de salud semántica</h3><table class="form-table" role="presentation">';
+    echo '<h3>' . esc_html__( 'Rangos de salud semántica', 'taxocommerce-system-check' ) . '</h3>' . '<table class="form-table" role="presentation">';
     seo_core_validation_render_number_field($settings, 'semantic_category_without_excerpt_limit', 'Categorías sin excerpt en seo_nodes', 'Cantidad tolerada temporalmente.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_product_without_excerpt_limit', 'Productos sin descripción corta', 'Cantidad de productos publicados con wp_posts.post_excerpt vacío tolerada temporalmente. Recomendado: 0.', 0, 1000000);
     seo_core_validation_render_number_field($settings, 'semantic_suspicious_attribute_limit', 'Productos para revisión heurística', 'Umbral a partir del cual se muestra warning. Estas señales no se convierten en fallo ni penalizan la puntuación.', 0, 1000000);
@@ -475,22 +475,22 @@ function seo_core_validation_render_settings_page($results = array()) {
     seo_core_validation_render_number_field($settings, 'semantic_template_description_percent_limit', 'Descripciones de plantilla (%)', 'Porcentaje máximo tolerado sobre productos publicados.', 0, 100, 0.1);
     echo '</table>';
 
-    echo '<h3>Diagnóstico</h3><table class="form-table" role="presentation">';
+    echo '<h3>' . esc_html__( 'Diagnóstico', 'taxocommerce-system-check' ) . '</h3>' . '<table class="form-table" role="presentation">';
     seo_core_validation_render_checkbox_field($settings, 'debug_mode', 'Modo debug', 'Mostrar evidencias, términos probados, porcentajes de coincidencia y ejemplos. No activa WP_DEBUG ni modifica archivos.');
     echo '</table>';
 
-    echo '<p class="submit"><button type="submit" class="button button-primary" name="seo_core_validation_settings_action" value="save">Guardar configuración</button> ';
+    echo '<p class="submit">' . '<button type="submit" class="button button-primary" name="seo_core_validation_settings_action" value="save">' . esc_html__( 'Guardar configuración', 'taxocommerce-system-check' ) . '</button>' . ' ';
     echo '<button type="submit" class="button" name="seo_core_validation_settings_action" value="reset" onclick="return confirm(\'¿Restaurar los valores recomendados?\');">Restaurar valores</button></p>';
     echo '</form>';
 
     if (function_exists('seo_core_system_test_get_representative_product')) {
         $product = seo_core_system_test_get_representative_product();
-        echo '<div class="seo-core-test-card"><h3>Muestra que se usará</h3>';
+        echo '<div class="seo-core-test-card">' . '<h3>' . esc_html__( 'Muestra que se usará', 'taxocommerce-system-check' ) . '</h3>';
         if (!empty($product['id'])) {
             echo '<p><strong>ID ' . esc_html((int) $product['id']) . ':</strong> ' . esc_html((string) ($product['title'] ?? '')) . '</p>';
             echo '<p class="seo-core-test-muted">Selección: ' . esc_html((string) ($product['selection_reason'] ?? 'automática')) . '.</p>';
         } else {
-            echo '<p>No se ha podido resolver un producto publicado representativo.</p>';
+            echo '<p>' . esc_html__( 'No se ha podido resolver un producto publicado representativo.', 'taxocommerce-system-check' ) . '</p>';
         }
         echo '</div>';
     }
