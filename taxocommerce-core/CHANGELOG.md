@@ -19,6 +19,12 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.53]
+
+- Autocheck (#2113): botón «Descargar JSON» para exportar los resultados reales de la última ejecución del usuario conectado. Incluye identificador de Core, versión de formato, nombre/URL/idioma de la instalación, versión del plugin, fecha, duración, resumen y todas las pruebas (correctas, fallidas y no ejecutadas) con sus mensajes y tiempos. No vuelve a ejecutar los tests ni altera datos de la tienda.
+- Descarga autenticada exclusivamente para usuarios autorizados mediante admin-post, capacidad y nonce; informe aislado por usuario, disponible mientras el transient del Autocheck siga vigente. El botón no aparece sin resultados. Cabeceras JSON/adjunto sin caché y nombre de archivo identificable.
+- Tests automatizados de permisos, CSRF, caducidad, separación de informes, botón e identidad íntegra del JSON descargado; ejecutar los mismos tests en CI antes del despliegue incremental de Core idéntico a STAGING y Focazul. Las pruebas UAT con escrituras reales siguen siendo independientes y no se dan por superadas.
+
 ## [0.4.51]
 
 - Gestor de menús (#2081, #2069): se unifica la **presentación** del editor de menús clásicos y de navegaciones de bloques de WordPress. Ambos usan la misma pantalla y CSS: cargar/crear, nombre, controles de publicación arriba y abajo, panel izquierdo de páginas/entradas/enlaces/categorías y panel derecho con estructura desplegable y jerarquía visible. La interfaz se adapta al idioma de WordPress y al tipo real de menú, no a clientes concretos.
