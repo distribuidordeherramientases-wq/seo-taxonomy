@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.54
+Stable tag: 0.4.55
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.55 =
+* Fix the read-only SEO Relations Autocheck: validate editorial post_to_category/landing_to_category, structural relations and category translations using their proper WordPress endpoint types.
+* Report unknown relation types as not verified instead of treating them as corrupt or falsely correct; validate country compatibility except for explicit category translations.
+* Add regression tests for legitimate, missing and mismatched endpoints. No live relations or content are modified.
+
 
 = 0.4.54 =
 * Resolve two Plugin Check errors in native block navigation: remove explicit suppress_filters and escape the numeric depth attribute.
