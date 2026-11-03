@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
  * Description: Publishes commercial feeds and professional XML sitemaps through independent bounded processes.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.3' );
+define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.4' );
 define( 'TAXOCOMMERCE_DISTRIBUTION_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DISTRIBUTION_PATH', plugin_dir_path( __FILE__ ) );
 
