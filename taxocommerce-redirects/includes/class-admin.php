@@ -261,7 +261,7 @@ final class Admin {
 
     private static function tabs( $active ) {
         echo '<nav class="nav-tab-wrapper" aria-label="Secciones de Redirects">';
-        foreach ( array( 'redirects' => 'Redirects', 'auto-test' => 'Autocheck', 'user-guide' => 'User Guide' ) as $tab => $label ) {
+        foreach ( array( 'redirects' => 'Redirects', 'auto-test' => __( 'Autocheck', 'taxocommerce-redirects' ), 'user-guide' => 'User Guide' ) as $tab => $label ) {
             $url = 'redirects' === $tab ? self::url() : self::url( array( 'tc_rd_tab' => $tab ) );
             echo '<a class="nav-tab ' . ( $active === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
         }
