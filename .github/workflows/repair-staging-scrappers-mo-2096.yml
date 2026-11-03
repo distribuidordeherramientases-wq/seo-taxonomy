@@ -1,0 +1,47 @@
+name: STAGING Scrappers MO integrity recovery (#2096)
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - '.github/workflows/repair-staging-scrappers-mo-2096.yml'
+  pull_request:
+    paths:
+      - '.github/scripts/repair_staging_scrappers_mo.py'
+      - '.github/workflows/repair-staging-scrappers-mo-2096.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate source catalogs and repair script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all 100 MO and repair script syntax
+        run: |
+          python3 .github/scripts/verify_mo_catalogs.py --repo
+          python3 -m py_compile .github/scripts/repair_staging_scrappers_mo.py
+          python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
+
+  recover:
+    name: Restore five Scrappers catalogs only on STAGING
+    needs: validate
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Atomic FTPS restore and readback SHA-256 of five MO
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/repair_staging_scrappers_mo.py
+      - name: Read-only audit of all installed STAGING MO after restoration
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/audit_staging_mo.py
