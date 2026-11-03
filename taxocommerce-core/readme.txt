@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.51
+Stable tag: 0.4.52
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.52 =
+* Make the built-in Autocheck discoverable from the menu manager without adding a WordPress sidebar submenu; preserve existing Auto Test URLs.
+* Check native classic-theme menu loading and referenced block navigation in the actual theme, plus menu controller registration, without altering site content.
+* Remove predefined shop markets from the menu Autocheck and report optional SEO tables as not applicable on fresh installations.
 
 = 0.4.51 =
 * Use the same menu manager layout for classic and block themes, including loading, publication, object pickers, and nested structure.

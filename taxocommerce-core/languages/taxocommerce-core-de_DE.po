@@ -3845,3 +3845,19 @@ msgstr ""
 #: includes/class-taxocommerce-core-country.php includes/class-taxocommerce-core-menu.php
 msgid "Global (sin país)"
 msgstr "Global (kein Land)"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Autocheck"
+msgstr "Selbsttest"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Ejecutar autocheck"
+msgstr "Selbsttest ausführen"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Acceso denegado a Autocheck."
+msgstr "Zugriff auf den Selbsttest verweigert."
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Sin permisos para ejecutar autocheck."
+msgstr "Keine Berechtigung, den Selbsttest auszuführen."

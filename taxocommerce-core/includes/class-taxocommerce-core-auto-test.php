@@ -23,11 +23,11 @@ final class TaxoCommerce_Core_Auto_Test {
 
     public static function handle_run() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'Sin permisos para ejecutar Auto Test.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'Sin permisos para ejecutar autocheck.', 'taxocommerce-core' ) );
         }
         check_admin_referer( self::NONCE, 'tc_autotest_nonce' );
         set_transient( self::REPORT_PREFIX . get_current_user_id(), self::run_suite(), DAY_IN_SECONDS );
-        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) );
+        wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) );
         exit;
     }
 
@@ -46,7 +46,10 @@ final class TaxoCommerce_Core_Auto_Test {
             'role_read'    => array( 'SEO Nodes', 'Lectura de un rol guardado' ),
             'relations'    => array( 'SEO Relations', 'Tabla y lectura de relaciones' ),
             'edges'        => array( 'SEO Relations', 'Integridad de extremos y países (muestra)' ),
-            'menus'        => array( 'Menús', 'Menús separados por país y lectura de sus elementos' ),
+            'menus'        => array( 'Menús', 'Lectura de menús SEO por país cuando están configurados' ),
+            'menu_actions' => array( 'Menús', 'Controles de creación, carga, guardado y eliminación' ),
+            'native_classic' => array( 'Menús', 'Menú activo del tema clásico y lectura de elementos' ),
+            'native_blocks'  => array( 'Menús', 'Navegación de bloques utilizada en la cabecera' ),
             'extensions'   => array( 'Extensiones', 'Registro de módulos' ),
             'vocabulary'   => array( 'Editor', 'Tipos y vocabulario semántico' ),
             'report'       => array( 'Informes', 'Cálculo del resumen de arquitectura' ),
@@ -174,14 +177,15 @@ final class TaxoCommerce_Core_Auto_Test {
     }
 
     private static function check_countries() {
-        foreach ( array( 'ES', 'US', 'FR', 'DE', 'NL' ) as $code ) {
-            if ( TaxoCommerce_Core_Country::normalize( strtolower( $code ) ) !== $code ) {
+        foreach ( array( 'es', 'pt', 'jp' ) as $country ) {
+            $code = strtoupper( $country );
+            if ( TaxoCommerce_Core_Country::normalize( $country ) !== $code ) {
                 return self::bad( 'Normalización incorrecta: ' . $code );
             }
         }
         return '' === TaxoCommerce_Core_Country::normalize( 'NOT-A-COUNTRY' )
-            ? self::ok( 'ES, US, FR, DE y NL válidos; valores desconocidos rechazados.' )
-            : self::bad( 'Se aceptan códigos de país desconocidos.' );
+            ? self::ok( 'Códigos ISO de dos letras normalizados; entradas inválidas rechazadas.' )
+            : self::bad( 'Se aceptan códigos de país de longitud inválida.' );
     }
 
     private static function check_post_country() {
@@ -244,7 +248,7 @@ final class TaxoCommerce_Core_Auto_Test {
         global $wpdb;
         $table = self::table( 'seo_nodes' );
         if ( ! self::exists( $table ) ) {
-            return self::bad( 'No existe ' . $table . '.' );
+            return self::skip( 'La tabla de nodos SEO no existe en esta instalación.' );
         }
         $missing = self::missing( $table, array( 'id', 'object_type', 'object_id', 'seo_role', 'status' ) );
         if ( $missing ) {
@@ -261,7 +265,7 @@ final class TaxoCommerce_Core_Auto_Test {
         global $wpdb;
         $table = self::table( 'seo_nodes' );
         if ( ! self::exists( $table ) ) {
-            return self::bad( 'No existe seo_nodes.' );
+            return self::skip( 'La tabla de nodos SEO todavía no está instalada.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Verified Core table, fixed predicate.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
@@ -280,7 +284,7 @@ final class TaxoCommerce_Core_Auto_Test {
         global $wpdb;
         $table = self::table( 'seo_relations' );
         if ( ! self::exists( $table ) ) {
-            return self::bad( 'No existe ' . $table . '.' );
+            return self::skip( 'La tabla de relaciones SEO no existe en esta instalación.' );
         }
         $missing = self::missing( $table, array( 'id', 'source_type', 'source_id', 'target_type', 'target_id', 'relation_type' ) );
         if ( $missing ) {
@@ -300,7 +304,7 @@ final class TaxoCommerce_Core_Auto_Test {
         global $wpdb;
         $table = self::table( 'seo_relations' );
         if ( ! self::exists( $table ) ) {
-            return self::bad( 'No existe seo_relations.' );
+            return self::skip( 'La tabla de relaciones SEO todavía no está instalada.' );
         }
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed, bounded read of Core table.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
@@ -338,39 +342,160 @@ final class TaxoCommerce_Core_Auto_Test {
         return self::ok( count( $rows ) . ' relaciones comprobadas; muestra limitada, no auditoría integral.' );
     }
 
+    /** Read only the markets on this WordPress installation, never a fixed store preset. */
     private static function check_menus() {
+        $countries = TaxoCommerce_Core_Menu::available_countries();
+        if ( ! is_array( $countries ) ) {
+            return self::bad( 'No se puede consultar la lista de países de los menús.' );
+        }
         $stored_ids = array();
         $checked = 0;
-        foreach ( array( 'ES', 'US', 'FR', 'DE', 'NL' ) as $country ) {
-            $id = absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) );
+        foreach ( array_keys( $countries ) as $country ) {
+            $code = TaxoCommerce_Core_Menu::normalize_code( $country );
+            $name = $code ? $code : 'Global';
+            $id = absint( get_option( TaxoCommerce_Core_Menu::menu_option( $code ), 0 ) );
             if ( $id && isset( $stored_ids[ $id ] ) ) {
-                return self::bad( 'Menús ' . $stored_ids[ $id ] . ' y ' . $country . ' comparten ID ' . $id . '.' );
+                return self::bad( 'Menús ' . $stored_ids[ $id ] . ' y ' . $name . ' comparten ID ' . $id . '.' );
             }
             if ( $id ) {
-                $stored_ids[ $id ] = $country;
+                $stored_ids[ $id ] = $name;
             }
-            $resolved = TaxoCommerce_Core_Menu::managed_menu_id( $country, false );
+            $resolved = TaxoCommerce_Core_Menu::managed_menu_id( $code, false );
             if ( is_wp_error( $resolved ) ) {
-                return self::bad( 'Menú ' . $country . ': ' . $resolved->get_error_message() );
+                return self::bad( 'Menú ' . $name . ': ' . $resolved->get_error_message() );
             }
             if ( ! $resolved ) {
+                if ( $id ) {
+                    return self::bad( 'Menú ' . $name . ': ID guardado ' . $id . ' sin un menú nativo válido.' );
+                }
                 continue;
             }
+            if ( $id && (int) $resolved !== $id ) {
+                return self::bad( 'Menú ' . $name . ': ID guardado ' . $id . ' distinto del menú nativo localizado #' . absint( $resolved ) . '.' );
+            }
             $menu = wp_get_nav_menu_object( $resolved );
-            if ( ! $menu || is_wp_error( $menu ) || (
-                $menu->name !== TaxoCommerce_Core_Menu::menu_name( $country ) &&
-                ! ( 'ES' === $country && 'TaxoCommerce' === $menu->name )
-            ) ) {
-                return self::bad( 'Menú ' . $country . ': ID o nombre nativo incoherente.' );
+            if ( ! $menu || is_wp_error( $menu ) ||
+                 ( (string) $menu->name !== TaxoCommerce_Core_Menu::menu_name( $code ) &&
+                   ! ( 'ES' === $code && 'TaxoCommerce' === (string) $menu->name ) ) ) {
+                return self::bad( 'Menú ' . $name . ': identidad del menú nativo incoherente.' );
             }
             $items = wp_get_nav_menu_items( $resolved );
-            if ( false === $items || is_wp_error( $items ) ) {
-                return self::bad( 'Menú ' . $country . ': no se pueden recuperar los elementos.' );
+            // An existing but empty menu is not a broken menu.
+            if ( false !== $items && ( is_wp_error( $items ) || ! is_array( $items ) ) ) {
+                return self::bad( 'Menú ' . $name . ': sus elementos no se pueden recuperar.' );
             }
-            $checked++;
+            ++$checked;
         }
-        return $checked ? self::ok( $checked . ' menús leídos con identidad de país diferenciada.' ) :
-            self::skip( 'Aún no existen menús TaxoCommerce para verificar.' );
+        return $checked ? self::ok( $checked . ' menús SEO configurados y leídos correctamente.' ) :
+            self::skip( 'No hay menús SEO gestionados por Core; los menús nativos se comprueban por separado.' );
+    }
+
+    /** Check that the real native/block editor endpoints are registered, without calling them. */
+    private static function check_menu_actions() {
+        $native = array(
+            TaxoCommerce_Core_Menu_Editor::ACTION,
+            TaxoCommerce_Core_Block_Navigation::ACTION,
+            TaxoCommerce_Core_Block_Navigation::CREATE,
+            TaxoCommerce_Core_Block_Navigation::ACTIVATE,
+            TaxoCommerce_Core_Block_Navigation::ADD_LINK,
+            TaxoCommerce_Core_Block_Navigation::ADD_OBJECTS,
+            TaxoCommerce_Core_Block_Navigation::REMOVE,
+            TaxoCommerce_Core_Block_Navigation::DELETE,
+        );
+        foreach ( $native as $action ) {
+            if ( false === has_action( 'admin_post_' . $action ) ) {
+                return self::bad( 'Falta el controlador de menús: ' . $action );
+            }
+        }
+        if ( false === has_action( 'wp_ajax_' . TaxoCommerce_Core_Menu_Editor::SEARCH ) ) {
+            return self::bad( 'No está disponible el buscador de elementos del gestor de menús.' );
+        }
+        foreach ( array(
+            array( 'TaxoCommerce_Core_Menu_Editor', 'render_wordpress_screen' ),
+            array( 'TaxoCommerce_Core_Menu_Editor', 'wordpress_menu_id' ),
+            array( 'TaxoCommerce_Core_Block_Navigation', 'header_references' ),
+        ) as $method ) {
+            if ( ! is_callable( $method ) ) {
+                return self::bad( 'No se puede usar ' . implode( '::', $method ) . '().' );
+            }
+        }
+        return self::ok( count( $native ) . ' controladores de escritura y buscador disponibles; no se ejecutan.' );
+    }
+
+    /** Load active classic menus via the theme's own locations, without assuming location slugs. */
+    private static function check_native_classic() {
+        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+            return self::skip( 'El tema utiliza navegación por bloques; se comprueba por separado.' );
+        }
+        $locations = get_registered_nav_menus();
+        if ( ! is_array( $locations ) || ! $locations ) {
+            return self::skip( 'El tema no registra ubicaciones de menú clásico.' );
+        }
+        $assigned = (array) get_theme_mod( 'nav_menu_locations', array() );
+        $ids = array();
+        $count = 0;
+        foreach ( $locations as $location => $label ) {
+            $id = absint( $assigned[ $location ] ?? 0 );
+            if ( ! $id ) {
+                continue;
+            }
+            $menu = wp_get_nav_menu_object( $id );
+            if ( ! $menu || is_wp_error( $menu ) ) {
+                return self::bad( 'Ubicación ' . $location . ': el menú activo #' . $id . ' no existe.' );
+            }
+            $items = wp_get_nav_menu_items( $id, array( 'post_status' => 'publish,draft' ) );
+            // WordPress may return false for a valid, empty menu.
+            if ( false === $items ) {
+                $items = array();
+            }
+            if ( is_wp_error( $items ) || ! is_array( $items ) ) {
+                return self::bad( 'Ubicación ' . $location . ': no se pueden cargar los elementos del menú #' . $id . '.' );
+            }
+            $ids[ $id ] = true;
+            ++$count;
+        }
+        if ( ! $ids ) {
+            return self::skip( 'El tema no tiene un menú asignado a ninguna ubicación clásica.' );
+        }
+        $selected = TaxoCommerce_Core_Menu_Editor::wordpress_menu_id();
+        // Single-menu sites load automatically. Multiple distinct menus require selection.
+        $expected = 1 === count( $ids ) ? (int) key( $ids ) : 0;
+        if ( $selected !== $expected ) {
+            return self::bad( 'El gestor carga #' . $selected . ', pero el tema requiere #' . $expected . '.' );
+        }
+        return self::ok( $count . ' ubicaciones leídas; ' . count( $ids ) . ' menú(s) válido(s). ' .
+            ( $expected ? 'El gestor carga automáticamente el menú #' . $expected . '.' :
+              'El gestor permite seleccionar entre varios menús.' ) );
+    }
+
+    /** Validate actual wp_navigation posts used in block-theme headers. */
+    private static function check_native_blocks() {
+        if ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() ) {
+            return self::skip( 'El tema es clásico; la navegación de bloques no corresponde.' );
+        }
+        if ( ! post_type_exists( 'wp_navigation' ) || ! function_exists( 'parse_blocks' ) ) {
+            return self::bad( 'WordPress no dispone de wp_navigation o parse_blocks().' );
+        }
+        $found = TaxoCommerce_Core_Block_Navigation::header_references();
+        if ( ! is_array( $found ) || ! isset( $found['menus'], $found['inline'] ) || ! is_array( $found['menus'] ) ) {
+            return self::bad( 'No se puede interpretar la navegación de cabecera del tema.' );
+        }
+        if ( ! $found['menus'] ) {
+            return ! empty( $found['inline'] )
+                ? self::ok( 'La cabecera utiliza navegación integrada; no hay un wp_navigation independiente que cargar.' )
+                : self::skip( 'No se encontró referencia publicada en la cabecera; puede existir una alternativa del tema.' );
+        }
+        foreach ( $found['menus'] as $id => $source ) {
+            $nav = get_post( absint( $id ) );
+            if ( ! $nav || 'wp_navigation' !== $nav->post_type || 'publish' !== $nav->post_status ) {
+                return self::bad( 'La navegación #' . absint( $id ) . ' de la cabecera no está publicada.' );
+            }
+            $blocks = parse_blocks( (string) $nav->post_content );
+            if ( ! is_array( $blocks ) ) {
+                return self::bad( 'No se pueden leer los bloques de navegación #' . absint( $id ) . '.' );
+            }
+        }
+        return self::ok( count( $found['menus'] ) . ' navegación(es) de cabecera localizada(s) y legible(s).' );
     }
 
     private static function check_extensions() {
@@ -410,20 +535,20 @@ final class TaxoCommerce_Core_Auto_Test {
 
     public static function render() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'Acceso denegado a Auto Test.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-core' ) );
         }
         $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
         $totals = is_array( $report ) && isset( $report['totals'], $report['rows'] ) ? $report['totals'] : null;
         ?>
         <div class="wrap tcc-family-screen" id="tc-core-autotest">
             <header class="tcc-page-header"><div class="tcc-page-header__content">
-                <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></h1>
+                <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></h1>
                 <p><?php esc_html_e( 'Comprueba las funciones principales de esta instalación después de actualizar Core.', 'taxocommerce-core' ); ?></p>
             </div></header>
             <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
-                <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></a>
+                <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
             </nav>
             <style>
             #tc-core-autotest .tc-at-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}

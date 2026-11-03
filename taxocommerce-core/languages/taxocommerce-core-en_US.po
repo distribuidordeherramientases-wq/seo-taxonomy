@@ -4132,3 +4132,19 @@ msgstr "Install ZIP"
 #: includes/class-taxocommerce-core-country.php includes/class-taxocommerce-core-menu.php
 msgid "Global (sin país)"
 msgstr "Global (no country)"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Autocheck"
+msgstr "Autocheck"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Ejecutar autocheck"
+msgstr "Run autocheck"
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Acceso denegado a Autocheck."
+msgstr "Access denied to Autocheck."
+
+#: includes/class-taxocommerce-core-auto-test.php
+msgid "Sin permisos para ejecutar autocheck."
+msgstr "No permission to run autocheck."

@@ -68,9 +68,17 @@ final class TaxoCommerce_Core_Menu_Editor {
         return $menu && ! is_wp_error( $menu ) ? $id : 0;
     }
 
-    /** Retained as a no-op for older extensions: there is only one menu screen. */
+    /** Internal tabs: no extra item in the main WordPress sidebar. */
     public static function tabs( $active = 'wordpress' ) {
-        // The native WordPress navigation editor and optional SEO proposal share one screen.
+        $menu_url = admin_url( 'admin.php?page=taxocommerce-core-menu' );
+        $check_url = admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' );
+        echo '<nav class="nav-tab-wrapper" aria-label="' .
+            esc_attr( __( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ) ) . '">';
+        echo '<a class="nav-tab nav-tab-active" aria-current="page" href="' . esc_url( $menu_url ) . '">' .
+            esc_html__( 'Menu Manager', 'taxocommerce-core' ) . '</a>';
+        echo '<a class="nav-tab" href="' . esc_url( $check_url ) . '">' .
+            esc_html__( 'Autocheck', 'taxocommerce-core' ) . '</a>';
+        echo '</nav>';
     }
 
     /** Independent WordPress menu screen: no hierarchy, country lookup or WooCommerce API. */

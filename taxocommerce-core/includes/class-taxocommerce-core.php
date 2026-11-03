@@ -1060,7 +1060,7 @@ final class TaxoCommerce_Core {
 		// Auto Test is a Core dashboard tab, never a separate WordPress menu item.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
-		if ( 'auto-test' === $tab ) {
+		if ( in_array( $tab, array( 'auto-test', 'autocheck' ), true ) ) {
 			TaxoCommerce_Core_Auto_Test::render();
 			return;
 		}
@@ -1102,7 +1102,7 @@ final class TaxoCommerce_Core {
 			return;
 		}
 		$this->guard();
-		wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) );
+		wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) );
 		exit;
 	}
 
