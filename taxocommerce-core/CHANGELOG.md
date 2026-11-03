@@ -17,6 +17,13 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.51]
+
+- Gestor de menús (#2081, #2069): se unifica la **presentación** del editor de menús clásicos y de navegaciones de bloques de WordPress. Ambos usan la misma pantalla y CSS: cargar/crear, nombre, controles de publicación arriba y abajo, panel izquierdo de páginas/entradas/enlaces/categorías y panel derecho con estructura desplegable y jerarquía visible. La interfaz se adapta al idioma de WordPress y al tipo real de menú, no a clientes concretos.
+- En temas de bloques, el panel izquierdo añade ahora páginas, entradas y categorías mediante bloques nativos core/navigation-link con IDs y URLs de esta instalación. El editor guarda el nombre y los textos/URLs, permite eliminar enlaces de hoja (incluidos los anidados) sin borrar submenús completos ni bloques desconocidos; los menús de bloques no referenciados en cabeceras pueden eliminarse tras confirmación expresa; comprueba permisos, nonces, hash de edición concurrente, tipos y límites, y conserva la activación explícita en cabeceras. Los menús clásicos y las propuestas SEO conservan sus rutas de datos y funciones existentes.
+- Tests específicos nuevos de interfaz para tema de bloques con las clases reales del plugin; pruebas de objetos, enlaces anidados y borrado seguro. Mantener #2081 abierto para funciones estructurales avanzadas de navegación por bloques y validación visual autenticada en STAGING y Focazul.
+- Core se distribuye desde una fuente GitHub idéntica a ambos entornos de prueba mediante el workflow dual con verificación de checksums; PRODUCCIÓN no se modifica.
+
 ## [0.4.50]
 
 - Gestor de menús portable (#2069): la selección automática de un menú clásico utiliza únicamente las ubicaciones declaradas por el tema activo y los menús realmente existentes. Se elimina la lista de identificadores de ubicación supuestos (`primary`, `menu-1`, `header`). Cuando hay varios menús publicados distintos, el editor exige seleccionar uno; no edita el primero arbitrariamente. La navegación de bloques se mantiene independiente y sin cambios. Pruebas para temas con ubicaciones arbitrarias, menús ambiguos y selección explícita.

@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.50
+Stable tag: 0.4.51
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Cached read-only inventory dashboard for products, posts, pages, categories, media, statuses and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
 * Native WordPress navigation menu generation with optional manual entries and safe regeneration. SEO menu countries come only from explicitly assigned page countries; Global denotes no country, with no preset menu countries.
-* Unified WordPress menu manager: classic-theme menus use their native locations; block-theme menus use wp_navigation posts with loading, safe link editing, creation and activation in a header template part containing exactly one navigation block, including a WordPress database override of a theme-file header. Theme files are never modified; ambiguous headers and advanced inline navigation use the Site Editor.
+* Unified WordPress menu manager: the same two-column loading, publication, object picker and hierarchical structure UI works in classic and block themes. Classic menus retain native WordPress nav_menu storage; block themes use wp_navigation posts. In block themes, add pages, posts, categories, product categories and custom links; rename and edit links, remove safe leaf links, delete an unreferenced navigation only after confirmation, and explicitly activate a header template part when unambiguous. Theme files are never changed; unsupported advanced navigation blocks still use the Site Editor.
 * Optional SEO hierarchy menus are only proposed for populated hierarchies. No stored menu is overwritten by viewing the manager. Inline template navigation remains editable in the native Site Editor.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
@@ -55,6 +55,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.51 =
+* Use the same menu manager layout for classic and block themes, including loading, publication, object pickers, and nested structure.
+* Extend block-navigation editing with native WordPress page/post/taxonomy links, menu renaming and safe leaf-link removal. Preserve theme files and existing navigation blocks; add security and regression tests.
 
 = 0.4.50 =
 * Resolve the active classic WordPress menu from the current theme's registered locations, regardless of their names. When several distinct menus are assigned, require explicit selection rather than guessing.
