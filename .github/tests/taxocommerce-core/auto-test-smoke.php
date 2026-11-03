@@ -6,7 +6,7 @@ define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.34' );
 class TaxoCommerce_Core_Country {
     public static function normalize( $value ) {
         $value = strtoupper( $value );
-        return in_array( $value, array( 'ES', 'US', 'FR', 'DE', 'NL' ), true ) ? $value : '';
+        return (bool) preg_match( '/^[A-Z]{2}$/D', $value ) ? $value : '';
     }
 }
 class Fake_Core {
