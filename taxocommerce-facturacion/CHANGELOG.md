@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Billing
 
+## [0.1.3] — 2026-11-03
+
+- Cabecera visual común basada en Core: nombre, icono, descripción, versión y diseño adaptable.
+- Lógica funcional, pestañas y permisos intactos; sin dependencia de Core. Issue #2137.
+
 > Historial de las versiones del plugin **independiente**. Las funciones anteriores a su separación están documentadas en [`changelog.txt`](changelog.txt).
 > Fuente inicial: entradas verificadas del `readme.txt` en GitHub. Solo se atribuye una fecha si la fuente la acredita.
 
