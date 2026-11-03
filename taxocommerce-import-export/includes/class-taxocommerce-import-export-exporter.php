@@ -67,8 +67,13 @@ final class TaxoCommerce_Import_Export_Exporter {
 			),
 			'product_categories' => array(
 				'label'       => __( 'Categorías de producto', 'taxocommerce-import-export' ),
-				'description' => __( 'ID, nombre, slug, padre, descripción e imagen de categoría.', 'taxocommerce-import-export' ),
+				'description' => __( 'ID, nombre, slug, padre, extracto adicional, descripción e imagen de categoría.', 'taxocommerce-import-export' ),
 				'filters'     => 'categories',
+			),
+			'wp_categories' => array(
+				'label'       => __( 'Categorías de WordPress · entradas', 'taxocommerce-import-export' ),
+				'description' => __( 'Categorías nativas de entradas: nombre, slug, padre, extracto adicional y descripción.', 'taxocommerce-import-export' ),
+				'filters'     => 'wp_categories',
 			),
 			'posts' => array(
 				'label'       => __( 'Entradas', 'taxocommerce-import-export' ),
@@ -102,6 +107,10 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( is_wp_error( $categories ) ) {
 			$categories = array();
 		}
+		$wp_categories = get_terms( array(
+			'taxonomy' => 'category', 'hide_empty' => false, 'orderby' => 'name', 'order' => 'ASC',
+		) );
+		if ( is_wp_error( $wp_categories ) ) { $wp_categories = array(); }
 		?>
 		<section class="card" style="max-width:none;padding:20px;">
 			<h2 style="margin-top:0"><?php esc_html_e( 'Exportación por bloques', 'taxocommerce-import-export' ); ?></h2>
@@ -183,6 +192,15 @@ final class TaxoCommerce_Import_Export_Exporter {
 							<?php endforeach; ?>
 						</select>
 						<p class="description"><?php esc_html_e( 'Ctrl/Cmd permite seleccionar varias. Si eliges una rama jerárquica y categorías concretas, se exporta la intersección.', 'taxocommerce-import-export' ); ?></p>
+					</div>
+					<div id="tc-ie-export-wp-category-filters" style="display:none;">
+						<h3><?php esc_html_e( 'Categorías nativas de WordPress', 'taxocommerce-import-export' ); ?></h3>
+						<label for="tc-ie-export-wp-categories"><?php esc_html_e( 'Selecciona una o varias categorías, o ninguna para exportar todas.', 'taxocommerce-import-export' ); ?></label><br>
+						<select id="tc-ie-export-wp-categories" name="wp_category_ids[]" multiple size="9" style="width:100%;max-width:760px;margin-top:6px;">
+							<?php foreach ( $wp_categories as $term ) : ?>
+								<option value="<?php echo esc_attr( (string) $term->term_id ); ?>"><?php echo esc_html( $term->name ); ?></option>
+							<?php endforeach; ?>
+						</select>
 					</div>
 				</div>
 
@@ -267,7 +285,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$this->delete_current_job();
 
 		$filters = $this->filters_from_request( $type );
-		$scope   = $this->resolve_category_scope( $filters );
+		$scope   = 'wp_categories' === $type
+			? array( 'active' => false, 'ids' => array() )
+			: $this->resolve_category_scope( $filters );
 		if ( is_wp_error( $scope ) ) {
 			wp_send_json_error( array( 'message' => $scope->get_error_message() ), 400 );
 		}
@@ -526,18 +546,21 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 * @return array|WP_Error
 	 */
 	private function next_ids( $type, $cursor, $limit, $filters ) {
-		if ( 'product_categories' === $type ) {
-			if ( ! empty( $filters['category_scope_active'] ) && empty( $filters['category_scope'] ) ) {
+		if ( in_array( $type, array( 'product_categories', 'wp_categories' ), true ) ) {
+			$native = 'wp_categories' === $type;
+			$selected = $native ? (array) ( $filters['wp_category_ids'] ?? array() ) : (array) ( $filters['category_scope'] ?? array() );
+			$active = $native ? ! empty( $selected ) : ! empty( $filters['category_scope_active'] );
+			if ( $active && empty( $selected ) ) {
 				return array();
 			}
 			$ids = get_terms(
 				array(
-					'taxonomy'   => 'product_cat',
+					'taxonomy'   => $native ? 'category' : 'product_cat',
 					'hide_empty' => false,
 					'fields'     => 'ids',
 					'orderby'    => 'id',
 					'order'      => 'ASC',
-					'include'    => ! empty( $filters['category_scope_active'] ) ? (array) $filters['category_scope'] : array(),
+					'include'    => $active ? $selected : array(),
 				)
 			);
 			if ( is_wp_error( $ids ) ) {
@@ -604,11 +627,15 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 * @return int|WP_Error
 	 */
 	private function count_total( $type, $filters ) {
-		if ( 'product_categories' === $type ) {
-			if ( ! empty( $filters['category_scope_active'] ) ) {
-				return count( array_values( array_filter( array_map( 'absint', (array) $filters['category_scope'] ) ) ) );
+		if ( in_array( $type, array( 'product_categories', 'wp_categories' ), true ) ) {
+			$native = 'wp_categories' === $type;
+			$selected = $native ? (array) ( $filters['wp_category_ids'] ?? array() ) : (array) ( $filters['category_scope'] ?? array() );
+			if ( ( $native && $selected ) || ( ! $native && ! empty( $filters['category_scope_active'] ) ) ) {
+				$taxonomy = $native ? 'category' : 'product_cat';
+				$terms = get_terms( array( 'taxonomy' => $taxonomy, 'fields' => 'ids', 'hide_empty' => false, 'include' => $selected ) );
+				return is_wp_error( $terms ) ? $terms : count( $terms );
 			}
-			$count = wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+			$count = wp_count_terms( array( 'taxonomy' => $native ? 'category' : 'product_cat', 'hide_empty' => false ) );
 			return is_wp_error( $count ) ? $count : absint( $count );
 		}
 
@@ -667,6 +694,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$raw_categories = isset( $_POST['category_ids'] ) && is_array( $_POST['category_ids'] ) ? wp_unslash( $_POST['category_ids'] ) : array();
 		$raw_categories = array_map( 'absint', array_filter( $raw_categories, 'is_scalar' ) );
 
+		// Native WP category IDs are isolated from product_cat/hierarchy filters.
+		$raw_wp_categories = isset( $_POST['wp_category_ids'] ) && is_array( $_POST['wp_category_ids'] )
+			? wp_unslash( $_POST['wp_category_ids'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Scalar-filtered and absint-normalized immediately below.
+		$raw_wp_categories = array_map( 'absint', array_filter( $raw_wp_categories, 'is_scalar' ) );
+
 		$cluster = isset( $_POST['cluster_id'] ) && is_scalar( $_POST['cluster_id'] ) ? absint( wp_unslash( $_POST['cluster_id'] ) ) : 0;
 		$primary = isset( $_POST['hub_primary_id'] ) && is_scalar( $_POST['hub_primary_id'] ) ? absint( wp_unslash( $_POST['hub_primary_id'] ) ) : 0;
 		$secondary = isset( $_POST['hub_secondary_id'] ) && is_scalar( $_POST['hub_secondary_id'] ) ? absint( wp_unslash( $_POST['hub_secondary_id'] ) ) : 0;
@@ -677,6 +709,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'hub_primary_id'   => $primary,
 			'hub_secondary_id' => $secondary,
 			'category_ids'     => array_values( array_unique( array_filter( $raw_categories ) ) ),
+			'wp_category_ids'  => array_values( array_unique( array_filter( $raw_wp_categories ) ) ),
 		);
 	}
 

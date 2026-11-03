@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.11
+Stable tag: 0.4.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,8 +26,8 @@ Version 0.4.1 includes:
 * Safe partial correction CSV imports: only present columns are updated.
 * Automatic delimiter detection and safe product-type inference for correction CSVs.
 * Brand/provider round-trip fields for products.
-* Product categories CSV import/export.
-* Posts CSV import/export.
+* Product categories CSV import/export, including the optional seo_excerpt term metadata and portable parent_slug.
+* Native WordPress post categories (taxonomy category) CSV import/export, with name, slug, parent, portable parent_slug, optional additional excerpt (seo_excerpt termmeta), native term description, and country_code. Works for one-row individual CSVs and multi-file batch queues; categories are independent of product_cat.\n* Posts CSV import/export.
 * Pages CSV import/export.
 * Media image ZIP export with original files, metadata and relationships.
 * Media image ZIP import into real WordPress attachments.
@@ -50,6 +50,12 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.12 =
+* Add native WordPress post-category CSV export and import (single CSV and multi-file batch), separately from WooCommerce product categories.
+* Include additional term excerpt, native HTML description and portable parent slug; resolve target terms by slug before IDs to avoid collisions between stores.
+* Extend WooCommerce category exports with backward-compatible appended excerpt and parent_slug columns, preserving historic CSV schemas and existing imports.
+* Add independent WordPress-category filters, Auto Test coverage and regression tests. No activation, deletion or production deployment.
 
 = 0.4.11 =
 * Correct two internationalized diagnostic strings with translator guidance and sanitize the failed-file name before nonce/path validation.

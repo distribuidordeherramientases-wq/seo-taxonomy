@@ -393,6 +393,7 @@ function taxocommerce_core_anomalies_render_faq_orphans() {
 
     $faq_findings = $category_total + $product_orphans + $product_not_published + $hub_orphans + $hub_trash + $unknown_type;
     if ( 0 === $faq_findings && ! taxocommerce_core_anomalies_show_all()
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- These read-only notice flags do not change data.
         && ! isset( $_GET['faq_category_orphans_deleted'] ) && ! isset( $_GET['faq_product_orphans_deleted'] ) ) {
         ob_end_clean();
         return;
@@ -793,8 +794,9 @@ function taxocommerce_core_anomalies_recount_categories() {
  */
 function taxocommerce_core_anomalies_show_all() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display preference.
-    return isset( $_GET['tc_anomalies_all'] ) && is_string( $_GET['tc_anomalies_all'] )
-        && '1' === wp_unslash( $_GET['tc_anomalies_all'] );
+    $requested = isset( $_GET['tc_anomalies_all'] ) && is_string( $_GET['tc_anomalies_all'] )
+        ? sanitize_text_field( wp_unslash( $_GET['tc_anomalies_all'] ) ) : '';
+    return '1' === $requested;
 }
 
 /**

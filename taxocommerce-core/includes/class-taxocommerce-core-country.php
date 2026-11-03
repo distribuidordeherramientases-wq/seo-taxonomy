@@ -38,7 +38,7 @@ final class TaxoCommerce_Core_Country {
 			'post_status' => array( 'publish', 'future', 'draft', 'pending', 'private' ),
 			'posts_per_page' => -1,
 			'fields' => 'ids',
-			'meta_key' => self::META,
+			'meta_key' => self::META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Admin selector requires explicit assigned page countries.
 			'no_found_rows' => true,
 		) );
 		$found = array();

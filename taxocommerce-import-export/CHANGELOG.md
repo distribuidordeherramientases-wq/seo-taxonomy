@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+## [0.4.12] - 2026-11-03 (#2127)
+
+- Incorporado el CSV independiente `wp_categories` / `wp_category` para taxonomía WordPress `category`, junto a `product_categories` / `product_category` de WooCommerce. Importación individual y cola CSV multiarchivo; exportación directa y progresiva con filtro propio de categorías nativas.
+- Se transportan nombre, slug, padre, descripción HTML nativa y extracto adicional `seo_excerpt` (lectura de `excerpt` como respaldo); `parent_slug` conserva la jerarquía entre sitios con IDs diferentes. No se crean tablas ni se requiere Core.
+- Se anexan `excerpt` y `parent_slug` al final de los CSV WooCommerce para mantener el orden de las ocho columnas anteriores, incluidos país e imagen. Los CSV existentes que no traen campos adicionales siguen siendo admitidos.
+- Se busca primero por slug dentro de la taxonomía seleccionada y se evita sobrescribir términos ajenos cuando hay colisiones de identificadores; el padre ausente da error explícito. Las columnas omitidas preservan descripción y extracto existentes.
+- Añadidas pruebas sin base de datos para ida/vuelta, jerarquía, colisiones, extractos, campos omitidos y ambos tipos; CI y Auto Test extendidos. STAGING únicamente; no se despliega a Focazul ni a producción.
+
 - Corregidos dos avisos de internacionalización de mensajes de errores CSV y saneada la entrada de descarga de registros, conservando nonce y validaciones de ruta.
 - Justificadas las consultas existentes a taxonomías y metadatos para filtros de exportación: no se alteran consultas, cursores, rendimiento real ni datos.
 - Auditoría global de Plugin Check y seguimiento en el issue #1925.
