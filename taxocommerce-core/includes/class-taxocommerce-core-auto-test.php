@@ -16,6 +16,10 @@ final class TaxoCommerce_Core_Auto_Test {
     const REPORT_PREFIX = 'taxocommerce_core_autotest_';
 
     public static function register_hooks() {
+        // The suite runs only after a deliberate POST from the Core dashboard.
+        // The dashboard load hook runs after WordPress has registered admin menus,
+        // allowing access tests to inspect the real route registry.
+        add_action( 'load-toplevel_page_taxocommerce-core', array( __CLASS__, 'handle_dashboard_run' ) );
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) );
         add_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'handle_export_json' ) );
     }
@@ -24,6 +28,18 @@ final class TaxoCommerce_Core_Auto_Test {
         return current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) );
     }
 
+    /**
+     * The new manual execution path has a fully initialized WordPress admin menu.
+     * GET requests, activations, updates and deployments never run the suite.
+     */
+    public static function handle_dashboard_run() {
+        if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['tc_autotest_manual_run'] ) ) {
+            return;
+        }
+        self::handle_run();
+    }
+
+    /** Keep the historical manual admin-post endpoint for bookmarked forms. */
     public static function handle_run() {
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'Sin permisos para ejecutar autocheck.', 'taxocommerce-core' ) );
@@ -135,9 +151,14 @@ final class TaxoCommerce_Core_Auto_Test {
     public static function cases() {
         return array(
             'runtime'      => array( 'Core', 'Arranque y servicios' ),
+            'plugin_files' => array( 'Core', 'Versión y archivos esenciales del plugin' ),
+            'database'     => array( 'WordPress', 'Consulta de base de datos' ),
+            'admin_routes' => array( 'WordPress', 'Acceso a pantallas internas de Core' ),
             'actions'      => array( 'Core', 'Acciones administrativas registradas' ),
             'content'      => array( 'Contenidos', 'Consulta de páginas y entradas' ),
             'catalog'      => array( 'Contenidos', 'Consulta de productos y categorías' ),
+            'category_fields' => array( 'Contenidos', 'Descripción y extracto nativos de categorías' ),
+            'native_roles' => array( 'Jerarquía', 'Lectura de roles SEO desde WordPress' ),
             'inventory'    => array( 'Contenidos', 'Inventario de contenidos' ),
             'countries'    => array( 'Países', 'Códigos de país disponibles' ),
             'post_country' => array( 'Países', 'País de páginas internacionales' ),
@@ -662,8 +683,8 @@ final class TaxoCommerce_Core_Auto_Test {
             #tc-core-autotest .tc-at-row--fail p{color:#b32d2e;font-weight:600}
             #tc-core-autotest .tc-at-small{font-size:12px;color:#50575e}
             </style>
-            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
-                <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
+            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
+                <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
                 <?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
                 <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
