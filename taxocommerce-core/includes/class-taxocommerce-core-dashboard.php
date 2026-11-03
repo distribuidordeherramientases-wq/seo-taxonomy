@@ -20,13 +20,11 @@ final class TaxoCommerce_Core_Dashboard {
 	 * Render the Core dashboard with live module/service counts.
 	 *
 	 * @param array $modules     Registered modules.
-	 * @param bool  $legacy      Whether TaxoCommerce SEO is loaded.
-	 * @param bool  $woocommerce Whether WooCommerce is loaded.
+		 * @param bool  $woocommerce Whether WooCommerce is loaded.
 	 * @return void
 	 */
-	public static function render( $modules, $legacy, $woocommerce, $extensions_renderer = null ) {
+	public static function render( $modules, $woocommerce, $extensions_renderer = null ) {
 		$modules     = is_array( $modules ) ? $modules : array();
-		$legacy      = (bool) $legacy;
 		$woocommerce = (bool) $woocommerce;
 
 		$metrics = array(
@@ -41,12 +39,6 @@ final class TaxoCommerce_Core_Dashboard {
 				'label' => __( 'WooCommerce', 'taxocommerce-core' ),
 				'value' => $woocommerce ? __( 'Detectado', 'taxocommerce-core' ) : __( 'No detectado', 'taxocommerce-core' ),
 				'tone'  => $woocommerce ? 'success' : 'warning',
-			),
-			array(
-				'icon'  => 'dashicons-chart-bar',
-				'label' => __( 'TaxoCommerce SEO actual', 'taxocommerce-core' ),
-				'value' => $legacy ? __( 'Detectado · convivencia', 'taxocommerce-core' ) : __( 'No detectado', 'taxocommerce-core' ),
-				'tone'  => $legacy ? 'info' : 'muted',
 			),
 			array(
 				'icon'  => 'dashicons-admin-plugins',
@@ -101,7 +93,6 @@ final class TaxoCommerce_Core_Dashboard {
 						<p class="tcc-eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 						<h1 id="tcc-dashboard-title"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
-						<p class="tcc-hero__sub"><?php esc_html_e( 'Diseñado para convivir con TaxoCommerce SEO mientras migras cada función de forma controlada.', 'taxocommerce-core' ); ?></p>
 					</div>
 				</div>
 				<div class="tcc-hero__art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
