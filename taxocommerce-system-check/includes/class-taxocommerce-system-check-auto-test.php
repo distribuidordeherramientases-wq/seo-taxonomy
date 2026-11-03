@@ -189,7 +189,9 @@ final class TaxoCommerce_System_Check_Auto_Test {
         $autocheck_report = $report;
         $autocheck_report['plugin'] = 'taxocommerce-system-check';
         $autocheck_report['schema'] = 1;
-        set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_system_check_autocheck_json">';
         wp_nonce_field( 'taxocommerce_system_check_autocheck_json' );
@@ -243,4 +245,6 @@ function taxocommerce_system_check_autocheck_export_json() {
     echo $json;
     exit;
 }
-add_action( 'admin_post_taxocommerce_system_check_autocheck_json', 'taxocommerce_system_check_autocheck_export_json' );
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'admin_post_taxocommerce_system_check_autocheck_json', 'taxocommerce_system_check_autocheck_export_json' );
+}
