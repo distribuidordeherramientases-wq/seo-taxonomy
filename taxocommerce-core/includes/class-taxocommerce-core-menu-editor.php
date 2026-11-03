@@ -399,10 +399,37 @@ final class TaxoCommerce_Core_Menu_Editor {
         if ( self::is_wordpress_tab() ) { echo '<input type="hidden" name="tc_tab" value="wordpress">'; }
     }
 
-    private static function box( $type, $open = false ) {
+    /**
+     * Reuse the exact same WordPress object picker panels for wp_navigation.
+     * Only the authenticated save operation differs from classic nav_menu.
+     */
+    public static function render_block_pickers( $nav_id, $content_hash ) {
+        $nav_id = absint( $nav_id );
+        if ( ! $nav_id ) { return; }
+        self::box( 'page', true, $nav_id, $content_hash );
+        self::box( 'post', false, $nav_id, $content_hash );
+        self::custom_box( $nav_id, $content_hash );
+        self::box( 'category', false, $nav_id, $content_hash );
+        if ( taxonomy_exists( 'product_cat' ) ) {
+            self::box( 'product_cat', false, $nav_id, $content_hash );
+        }
+    }
+
+    private static function block_picker_fields( $nav_id, $hash, $action ) {
+        echo '<input type="hidden" name="action" value="' . esc_attr( $action ) . '">';
+        echo '<input type="hidden" name="tc_nav_id" value="' . absint( $nav_id ) . '">';
+        echo '<input type="hidden" name="content_hash" value="' . esc_attr( $hash ) . '">';
+        wp_nonce_field( $action . '_' . absint( $nav_id ) );
+    }
+
+    private static function box( $type, $open = false, $nav_id = 0, $hash = '' ) {
         $types = self::types( self::is_wordpress_tab() ); $list = self::objects( $type, 'recent', 1, '', '', self::is_wordpress_tab() );
         echo '<details class="tc-menu-box"' . ( $open ? ' open' : '' ) . '><summary>' . esc_html( $types[ $type ] ) . '</summary><form class="tc-menu-picker" data-type="' . esc_attr( $type ) . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        self::manual_fields( 'add' );
+        if ( $nav_id ) {
+            self::block_picker_fields( $nav_id, $hash, TaxoCommerce_Core_Block_Navigation::ADD_OBJECTS );
+        } else {
+            self::manual_fields( 'add' );
+        }
         echo '<input type="hidden" name="object_type" value="' . esc_attr( $type ) . '"><div class="tc-menu-tabs">';
         foreach ( array( 'recent' => in_array( $type, array( 'page', 'post' ), true ) ? __( 'Más reciente', 'taxocommerce-core' ) : __( 'Más utilizadas', 'taxocommerce-core' ), 'all' => __( 'Ver todo', 'taxocommerce-core' ), 'search' => __( 'Buscar', 'taxocommerce-core' ) ) as $mode => $label ) {
             echo '<button type="button" data-mode="' . esc_attr( $mode ) . '" aria-pressed="' . ( 'recent' === $mode ? 'true' : 'false' ) . '">' . esc_html( $label ) . '</button>';
@@ -414,10 +441,14 @@ final class TaxoCommerce_Core_Menu_Editor {
         echo '<div class="tc-menu-box-actions"><label><input type="checkbox" data-select-all> ' . esc_html__( 'Seleccionar todo', 'taxocommerce-core' ) . '</label><button class="button" type="submit">' . esc_html__( 'Añadir al menú', 'taxocommerce-core' ) . '</button></div></form></details>';
     }
 
-    private static function custom_box() {
+    private static function custom_box( $nav_id = 0, $hash = '' ) {
         echo '<details class="tc-menu-box"><summary>' . esc_html__( 'Enlaces personalizados', 'taxocommerce-core' ) . '</summary><form class="tc-menu-custom" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        self::manual_fields( 'custom' );
-        echo '<p><label>URL<input type="text" name="custom_url" placeholder="https://" required></label></p><p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . '<input type="text" name="custom_title" maxlength="200" required></label></p><button type="submit" class="button">' . esc_html__( 'Añadir al menú', 'taxocommerce-core' ) . '</button></form></details>';
+        if ( $nav_id ) {
+            self::block_picker_fields( $nav_id, $hash, TaxoCommerce_Core_Block_Navigation::ADD_LINK );
+        } else {
+            self::manual_fields( 'custom' );
+        }
+        echo '<p><label>URL<input type="text" name="' . ( $nav_id ? 'item_url' : 'custom_url' ) . '" placeholder="https://" required></label></p><p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . '<input type="text" name="' . ( $nav_id ? 'item_title' : 'custom_title' ) . '" maxlength="200" required></label></p><button type="submit" class="button">' . esc_html__( 'Añadir al menú', 'taxocommerce-core' ) . '</button></form></details>';
     }
 
     public static function generated( $item_id ) {
