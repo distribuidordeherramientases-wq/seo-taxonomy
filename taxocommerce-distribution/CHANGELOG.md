@@ -4,15 +4,22 @@
 
 # CHANGELOG — TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
 
-## [Unreleased] — Cabecera común
-
-- Cabecera visual común basada en Core, con nombre, icono, descripción y versión desde la cabecera real.
-- Rutas, pestañas, permisos y funciones conservados, sin dependencia obligatoria entre plugins. Issue #2137.
-- No se incrementa la versión en esta rama porque el PR #2135 de sitemaps ya prepara una nueva versión; coordinar la fusión.
-
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]
+
+Sin novedades pendientes documentadas.
+
+## [0.1.3] — 2026-11-03
+
+- Cabecera de administración con estilo común TaxoCommerce Core, nombre, icono, descripción y versión, sin dependencias entre plugins (#2137 / PR #2138).
+
+- Versión visible en el encabezado de Distribution y actualizada en la cabecera del plugin y en readme.txt.
+- Motor de sitemap sustituido por ventanas incrementales de 250 elementos (consulta por cursor para productos), con progreso, bloqueo de concurrencia, reanudación y botón Detener.
+- Regulador de cinco velocidades compatible con los perfiles de los demás plugins TaxoCommerce; telemetría local de CPU PHP, memoria y duración, con pausas automáticas por presión.
+- Mantiene los grupos y la validación XML del motor anterior, los sitemaps publicados durante el procesamiento y la sustitución final del índice; sin modificar el motor de feeds ni la versión monolítica.
+- Seguimiento: #2134; pendiente QA funcional en STAGING.
+
 
 - Revisados los 24 avisos de Plugin Check: mensajes de estado sin mutaciones, sanitización de avisos de sitemap y justificación localizada de consultas SQL de inventario y metadatos para evitar caché obsoleta.
 - Seguimiento: #1545. Validación de Plugin Check y STAGING pendiente.
