@@ -316,7 +316,7 @@ def reconcile_one(ftp, plugins_root, slug, files, report):
     print(slug + ": " + str(rows["updated"]) + " updated, " + str(rows["unchanged"]) + " unchanged", flush=True)
 
 
-def write_report(report, source, error=None, skipped=None, source_count=None):
+def write_report(report, source, error=None, skipped=None, source_count=None, root=None, visible=None):
     """Clearly distinguish successful uploads, non-applicable modules and failures."""
     skipped = [] if skipped is None else skipped
     release_status = ("failed" if error else
@@ -325,6 +325,8 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
         "source_branch": "staging",
         "source_sha": source,
         "scope": "existing_taxocommerce_plugins_only",
+        "remote_plugins_root": root,
+        "remote_visible_taxocommerce": sorted(name for name in (visible or []) if SLUG.fullmatch(name)),
         "source_modules": source_count,
         "modules_verified": len(report),
         "modules_skipped": len(skipped),
@@ -332,6 +334,7 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
         "plugins": report,
         "skipped_plugins": skipped,
         "error": type(error).__name__ if error else None,
+        "error_detail": str(error) if error else None,
     }
     Path("pro-release-manifest.json").write_text(
         json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -341,7 +344,10 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
         lines = ["## TaxoCommerce STAGING -> PRO", "", "Commit: `" + source + "`",
                  "", "Source plugins: " + str(source_count),
                  "Modules verified: " + str(len(report)),
-                 "Modules not available on PRO: " + str(len(skipped)), ""]
+                 "Modules not available on PRO: " + str(len(skipped)),
+                 "FTPS plugin root: " + str(root or "NOT VERIFIED"),
+                 "FTPS visible TaxoCommerce folders: " +
+                 str(sum(bool(SLUG.fullmatch(s)) for s in (visible or []))), ""]
         for row in report:
             lines.append("- `" + row["slug"] + "`: " + str(row["updated"]) +
                          " updated, " + str(row["unchanged"]) + " unchanged")
@@ -352,7 +358,7 @@ def write_report(report, source, error=None, skipped=None, source_count=None):
                           "No absent plugin was created."])
         if error:
             lines.extend(["", "**FAILURE:** " + type(error).__name__ +
-                          " (see job log; publication incomplete)"])
+                          ": " + str(error) + " (publication incomplete)"])
         with open(summary_path, "a", encoding="utf-8") as out:
             out.write("\n".join(lines) + "\n")
 
@@ -375,6 +381,8 @@ def main():
     report = []
     skipped = []
     error = None
+    root = None
+    visible = set()
     try:
         ftp.connect(os.environ["FTP_SERVER"], 21)
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
@@ -401,7 +409,7 @@ def main():
         except Exception:
             pass
     finally:
-        write_report(report, source, error, skipped, len(modules))
+        write_report(report, source, error, skipped, len(modules), root, visible)
     if error:
         raise RuntimeError("PRO transfer incomplete: " + str(error)) from error
 
