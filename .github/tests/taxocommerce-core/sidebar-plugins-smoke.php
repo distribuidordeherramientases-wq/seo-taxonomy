@@ -55,9 +55,10 @@ foreach ( $internal as $slug ) {
     check( isset( $GLOBALS['tc_registered_pages'][ $slug ] ), 'WordPress callback missing: ' . $slug );
 }
 
-// Only Core installed: no internal item is visible in WordPress's sidebar.
+// Preserve all registered submenu entries: WordPress needs them to route
+// admin.php?page=... links and validate user capabilities.
 $core->hide_core_internal_submenus();
-check( array( 'taxocommerce-core' ) === array_values( menu_slugs() ), 'Core-only sidebar must contain only Core' );
+check( $initial === menu_slugs(), 'Core submenu registry must remain intact' );
 ob_start();
 $core->hide_sidebar_submenu();
 $style = ob_get_clean();
@@ -71,15 +72,16 @@ foreach ( array( 'taxocommerce-images', 'taxocommerce-vocabulary', 'seo-facturas
 $core->normalize_family_submenu_labels();
 $core->hide_core_internal_submenus();
 $core->hide_core_internal_submenus(); // Idempotent on repeated hook runs.
-$expected = array( 'taxocommerce-core', 'taxocommerce-images', 'taxocommerce-vocabulary', 'seo-facturas' );
-check( $expected === array_values( menu_slugs() ), 'Only plugin names should remain in the sidebar' );
+$expected = array_merge( $initial, array( 'taxocommerce-images', 'taxocommerce-vocabulary', 'seo-facturas' ) );
+check( $expected === array_values( menu_slugs() ), 'WordPress route registry retains plugins and internal Core pages' );
 foreach ( $internal as $slug ) {
     check( isset( $GLOBALS['tc_registered_pages'][ $slug ] ), 'Hiding sidebar must not unregister Core routes: ' . $slug );
 }
 ob_start();
 $core->hide_sidebar_submenu();
 $style = ob_get_clean();
-check( '' === $style, 'Installed plugins must remain visible in WordPress sidebar' );
+check( false !== strpos( $style, 'page=taxocommerce-core-content' ), 'Core internal pages are hidden visually, not unregistered' );
+check( false === strpos( $style, '> ul.wp-submenu{display:none' ), 'Other plugin entries must remain visible' );
 
 $dashboard = file_get_contents( dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-dashboard.php' );
 foreach ( array(
