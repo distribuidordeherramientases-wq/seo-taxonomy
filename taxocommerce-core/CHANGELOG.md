@@ -17,6 +17,11 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.50]
+
+- Gestor de menús portable (#2069): la selección automática de un menú clásico utiliza únicamente las ubicaciones declaradas por el tema activo y los menús realmente existentes. Se elimina la lista de identificadores de ubicación supuestos (`primary`, `menu-1`, `header`). Cuando hay varios menús publicados distintos, el editor exige seleccionar uno; no edita el primero arbitrariamente. La navegación de bloques se mantiene independiente y sin cambios. Pruebas para temas con ubicaciones arbitrarias, menús ambiguos y selección explícita.
+- Igualdad de instalaciones (#2065): después de cada despliegue de Core, se comparan todos los archivos distribuibles versionados del mismo commit con los dos WordPress de prueba. Solo se transfieren los que no coincidan, atómicamente y con lectura SHA-256 remota. No se editan sitios por separado ni se copian datos; Focazul no recibe otros plugins y PRODUCCIÓN no se modifica.
+
 ## [0.4.49]
 
 - Traducciones (#2094): recompilados desde los ficheros PO originales los cinco catálogos binarios MO (es_ES, en_US, fr_FR, de_DE, nl_NL), que tenían índices de tablas incompatibles con el lector gettext de WordPress y provocaban avisos repetitivos de `unpack()` y `Undefined array key`.

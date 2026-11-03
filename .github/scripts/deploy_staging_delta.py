@@ -183,6 +183,58 @@ def upload_plugin(ftp, target, slug, files, required):
                 pass
 
 
+def core_source_files():
+    """All tracked, installable Core files from this one shared source tree.
+
+    Only a checksum mismatch triggers an upload. This also heals an old
+    installation missing a file that a previous incremental run did not touch.
+    """
+    names = git("ls-files", "-z", "--", "taxocommerce-core").decode("utf-8").split("\0")
+    files = set()
+    for name in names:
+        parsed = distributable(name)
+        if not parsed or parsed[0] != "taxocommerce-core":
+            continue
+        source = Path(name)
+        if not source.is_file() or source.is_symlink():
+            raise ValueError(f"Missing or unsafe tracked Core source: {name}")
+        files.add(parsed[1])
+    if "taxocommerce-core.php" not in files:
+        raise ValueError("Tracked Core entrypoint missing; refusing cross-site reconciliation")
+    return sorted(files)
+
+
+def reconcile_core():
+    """Enforce identical tracked Core bytes on STAGING and Focazul only.
+
+    Both sites are sourced from this checkout, never copied from one live
+    WordPress to another. The existing uploader skips identical files and
+    atomically transfers only the differing bytes with SHA-256 readback.
+    """
+    files = core_source_files()
+    server = os.environ["STAGING_FTP_SERVER"]
+    user = os.environ["STAGING_FTP_USERNAME"]
+    password = os.environ["STAGING_FTP_PASSWORD"]
+    if not server or not user or not password:
+        raise ValueError("Missing existing shared FTPS credentials")
+    ftp = ftplib.FTP_TLS(timeout=50)
+    try:
+        ftp.connect(server, 21)
+        ftp.login(user, password)
+        ftp.prot_p()
+        home = ftp.pwd()
+        for target in ("staging", "focazul"):
+            ftp.cwd(home)
+            upload_plugin(ftp, target, "taxocommerce-core", files, required=True)
+            print(f"{target}: all {len(files)} tracked installable Core files match the same Git commit")
+        ftp.quit()
+    finally:
+        try:
+            ftp.close()
+        except OSError:
+            pass
+
+
 def deploy(base, target, slug):
     head = git("rev-parse", "HEAD").decode().strip()
     changes = changed_files(base, head, selected_slug=slug)
@@ -222,13 +274,15 @@ def deploy(base, target, slug):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["plan", "deploy"])
+    parser.add_argument("command", choices=["plan", "deploy", "reconcile-core"])
     parser.add_argument("--base")
     parser.add_argument("--target", choices=["staging", "focazul"])
     parser.add_argument("--slug")
     args = parser.parse_args()
     if args.command == "plan":
         plan()
+    elif args.command == "reconcile-core":
+        reconcile_core()
     elif not args.base or not args.target or not args.slug:
         parser.error("deploy requires --base, --target and --slug")
     else:

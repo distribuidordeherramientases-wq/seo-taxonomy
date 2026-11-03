@@ -18,7 +18,8 @@ function add_query_arg($args,$url=''){return $url.'?'.http_build_query($args);}
 function selected($a,$b=true,$echo=true){$s=(string)$a===(string)$b?' selected="selected"':'';if($echo)echo $s;return $s;}
 function taxonomy_exists($x){return in_array($x,array('category','product_cat'),true) && ('product_cat'!==$x || !empty($GLOBALS['woo_enabled']));} function admin_url($x=''){return 'https://example.test/wp-admin/'.$x;} function wp_create_nonce($a){return 'nonce-'.$a;}
 function get_option($k,$d=false){return $GLOBALS['options'][$k]??$d;} function update_option($k,$v,$autoload=false){$GLOBALS['writes']++;$GLOBALS['options'][$k]=$v;return true;}
-function get_theme_mod($k,$d=array()){return array('primary'=>99);} function get_registered_nav_menus(){return array('primary'=>'Menu principal','footer'=>'Pie');}
+$GLOBALS['theme_nav_locations'] = array('primary'=>99); $GLOBALS['registered_nav_locations'] = array('primary'=>'Menu principal','footer'=>'Pie');
+function get_theme_mod($k,$d=array()){return $GLOBALS['theme_nav_locations'];} function get_registered_nav_menus(){return $GLOBALS['registered_nav_locations'];}
 function wp_get_nav_menu_object($id){if(is_numeric($id))return $GLOBALS['menus'][(int)$id]??false;foreach($GLOBALS['menus'] as $m){if($m->name===$id)return $m;}return false;}
 function wp_get_nav_menus($args=array()){return array_values($GLOBALS['menus']);}
 function wp_create_nav_menu($name){$GLOBALS['writes']++;$id=max(array_keys($GLOBALS['menus']) ?: array(98))+1;$GLOBALS['menus'][$id]=(object)array('term_id'=>$id,'name'=>$name);return $id;}
@@ -235,5 +236,22 @@ $before=$GLOBALS['writes'];ob_start();$core->render();$protected_html=ob_get_cle
 verify(strpos($protected_html,'>Eliminar menú<')===false,'SEO managed menu never exposes delete button');
 verify($before===$GLOBALS['writes'],'protected menu view does not mutate SEO');
 $_GET=array();$_POST=array();
-
+// Cross-installation regression: location slugs are owned by each site's theme.
+$GLOBALS['menus'][777]=(object)array('term_id'=>777,'name'=>'Real header menu');
+$GLOBALS['menus'][778]=(object)array('term_id'=>778,'name'=>'Other location menu');
+$GLOBALS['registered_nav_locations']=array('shopfront_main'=>'Cabecera','shopfront_footer'=>'Pie');
+$GLOBALS['theme_nav_locations']=array('shopfront_main'=>777,'shopfront_footer'=>0);
+$before=$GLOBALS['writes'];
+verify(TaxoCommerce_Core_Menu_Editor::wordpress_menu_id()===777,'an arbitrary theme-defined location selects its only active menu');
+verify($before===$GLOBALS['writes'],'portable location lookup is read-only');
+$GLOBALS['theme_nav_locations']=array('shopfront_main'=>777,'shopfront_footer'=>778);
+verify(TaxoCommerce_Core_Menu_Editor::wordpress_menu_id()===0,'multiple different assigned menus require explicit selection');
+$_GET['tc_menu_id']='778';
+verify(TaxoCommerce_Core_Menu_Editor::wordpress_menu_id()===778,'explicit menu selection overrides ambiguous theme locations');
+$_GET=array(); $GLOBALS['theme_nav_locations']=array('shopfront_main'=>777,'shopfront_footer'=>777);
+verify(TaxoCommerce_Core_Menu_Editor::wordpress_menu_id()===777,'one menu assigned to two locations remains unambiguous');
+$GLOBALS['theme_nav_locations']=array('shopfront_main'=>999999);
+verify(TaxoCommerce_Core_Menu_Editor::wordpress_menu_id()===0,'missing menu is never auto-loaded');
+$GLOBALS['registered_nav_locations']=array('primary'=>'Menu principal','footer'=>'Pie');
+$GLOBALS['theme_nav_locations']=array('primary'=>99);
 echo 'PASS: '.$GLOBALS['checks']." menu checks. Isolated WP stubs; not a live WordPress test.\n";

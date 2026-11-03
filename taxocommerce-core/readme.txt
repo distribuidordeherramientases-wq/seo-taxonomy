@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.49
+Stable tag: 0.4.50
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.50 =
+* Resolve the active classic WordPress menu from the current theme's registered locations, regardless of their names. When several distinct menus are assigned, require explicit selection rather than guessing.
+* Keep the same distributable Core source on staging and the independent association WordPress through checksum-based reconciliation, transferring only files that differ. No production deployment.
 
 = 0.4.47 =
 * Generate available SEO menu countries from actual page assignments; unassigned pages use Global with no country code. Existing WordPress menus and country menus are retained. Add independent language catalogs and regression tests.
