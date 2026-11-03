@@ -196,7 +196,7 @@ final class TaxoCommerce_Core_Menu {
         $assigned = absint( is_array( $registered ) ? ( $registered[ $location ] ?? 0 ) : 0 );
         if ( ! $assigned ) { return $args; }
         $managed = array();
-        foreach ( array_unique( array_merge( array_keys( self::available_countries() ), array_keys( TaxoCommerce_Core_Country::countries() ) ) ) as $market ) {
+        foreach ( array_keys( self::available_countries() ) as $market ) {
             $id = $this->get_menu_id( $market );
             if ( $id ) { $managed[ $market ] = $id; }
         }
@@ -245,7 +245,8 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	public function render_hierarchy_proposal() {
 		$trees = array();
-		foreach ( array_keys( self::available_countries() ) as $market ) {
+        $available = self::available_countries();
+		foreach ( array_keys( $available ) as $market ) {
 			$tree = $this->build_tree( $market );
 			if ( $tree ) {
 				$trees[ $market ] = $tree;
@@ -269,7 +270,7 @@ final class TaxoCommerce_Core_Menu {
 				<label for="tc-seo-country"><?php esc_html_e( 'País del menú', 'taxocommerce-core' ); ?></label>
 				<select id="tc-seo-country" name="tc_country">
 					<?php foreach ( $trees as $market => $unused_tree ) : ?>
-						<option value="<?php echo esc_attr( $market ); ?>"<?php selected( $market, $country ); ?>><?php echo esc_html( self::available_countries()[ $market ] ); ?></option>
+						<option value="<?php echo esc_attr( $market ); ?>"<?php selected( $market, $country ); ?>><?php echo esc_html( $available[ $market ] ); ?></option>
 					<?php endforeach; ?>
 				</select>
 				<button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
