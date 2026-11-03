@@ -1110,7 +1110,12 @@ final class TaxoCommerce_Import_Export_CSV {
 		$by_id = $id ? get_term( $id, $taxonomy ) : null;
 		if ( $by_id && ! is_wp_error( $by_id ) ) {
 			// A mismatched ID belongs to another category on this installation.
-			if ( '' !== $slug && (string) $by_id->slug !== $slug ) { return null; }
+			if ( '' !== $slug && (string) $by_id->slug !== $slug ) {
+				// Legacy WooCommerce CSVs lack parent_slug and historically target ID;
+				// preserve their editing semantics. New portable CSVs never trust
+				// a foreign ID when it disagrees with the term slug.
+				return 'product_cat' === $taxonomy && ! array_key_exists( 'parent_slug', $data ) ? $by_id : null;
+			}
 			return $by_id;
 		}
 		return null;
