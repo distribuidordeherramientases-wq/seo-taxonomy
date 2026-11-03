@@ -50,6 +50,51 @@ class DeltaTests(unittest.TestCase):
         )
         ftp.storbinary.assert_not_called()
 
+    def test_reconcile_core_uses_one_source_tree_for_both_sites(self):
+        ftp = mock.Mock()
+        ftp.pwd.return_value = "/"
+        files = ["taxocommerce-core.php", "includes/menu.php", "languages/core.mo"]
+        with mock.patch.dict("os.environ", {
+            "STAGING_FTP_SERVER": "ftps.example.test",
+            "STAGING_FTP_USERNAME": "test-user",
+            "STAGING_FTP_PASSWORD": "test-password",
+        }):
+            with mock.patch.object(module, "core_source_files", return_value=files):
+                with mock.patch.object(module.ftplib, "FTP_TLS", return_value=ftp):
+                    with mock.patch.object(module, "upload_plugin") as upload:
+                        module.reconcile_core()
+        self.assertEqual([x.args[1:] for x in upload.call_args_list], [
+            ("staging", "taxocommerce-core", files),
+            ("focazul", "taxocommerce-core", files),
+        ])
+        self.assertTrue(all(x.kwargs["required"] for x in upload.call_args_list))
+        self.assertEqual(ftp.cwd.call_args_list, [mock.call("/"), mock.call("/")])
+        ftp.prot_p.assert_called_once()
+
+    def test_core_source_manifest_excludes_tests_and_hidden_files(self):
+        with tempfile.TemporaryDirectory() as root:
+            import os
+            old = os.getcwd()
+            os.chdir(root)
+            try:
+                Path("taxocommerce-core/includes").mkdir(parents=True)
+                Path("taxocommerce-core/tests").mkdir()
+                Path("taxocommerce-core/taxocommerce-core.php").write_text("<?php")
+                Path("taxocommerce-core/includes/menu.php").write_text("<?php")
+                Path("taxocommerce-core/CHANGELOG.md").write_text("# note")
+                Path("taxocommerce-core/tests/test.php").write_text("<?php")
+                with mock.patch.object(module, "git", return_value=(
+                    b"taxocommerce-core/taxocommerce-core.php\\0"
+                    b"taxocommerce-core/includes/menu.php\\0"
+                    b"taxocommerce-core/tests/test.php\\0"
+                    b"taxocommerce-core/CHANGELOG.md\\0"
+                ).replace(b"\\0", b"\x00")):
+                    self.assertEqual(module.core_source_files(), [
+                        "includes/menu.php", "taxocommerce-core.php"
+                    ])
+            finally:
+                os.chdir(old)
+
     def test_changes_include_only_real_changed_runtime_files(self):
         with tempfile.TemporaryDirectory() as temp:
             import os
