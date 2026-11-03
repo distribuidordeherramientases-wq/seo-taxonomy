@@ -5,9 +5,10 @@ $amazon = file_get_contents( $root . '/includes/class-taxocommerce-connections-a
 $pinterest = file_get_contents( $root . '/includes/class-taxocommerce-connections-pinterest.php' );
 $google_bing = file_get_contents( $root . '/includes/class-taxocommerce-connections-google-bing.php' );
 $admin = file_get_contents( $root . '/includes/class-taxocommerce-connections-admin.php' );
+$autocheck = file_get_contents( $root . '/includes/class-taxocommerce-connections-autocheck.php' );
 
 $checks = array(
-    strpos( $main, 'Version: 0.3.0' ) !== false,
+    preg_match( '/Version:\\s*0\\.3\\.1/', $main ) === 1,
     strpos( $main, 'Compatibility Bridge' ) !== false,
     strpos( $main, 'taxocommerce_connections_insights_url' ) !== false,
     strpos( $main, "defined( 'TAXOCOMMERCE_GOOGLE_BING_VERSION' )" ) !== false,
@@ -21,6 +22,10 @@ $checks = array(
     strpos( $google_bing, "const BING_OPTION             = 'taxocommerce_google_bing_bing_settings'" ) !== false,
     strpos( $admin, 'Pinterest Business' ) !== false,
     strpos( $admin, 'Amazon Affiliates' ) !== false,
+    strpos( $main, 'TaxoCommerce_Connections_Autocheck::boot()' ) !== false,
+    strpos( $autocheck, 'admin_post_' ) !== false,
+    strpos( $autocheck, 'wp_json_encode' ) !== false,
+    strpos( $autocheck, 'check_admin_referer' ) !== false,
 );
 
 foreach ( $checks as $i => $ok ) {
