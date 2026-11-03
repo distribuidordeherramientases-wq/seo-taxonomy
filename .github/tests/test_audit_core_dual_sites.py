@@ -166,6 +166,13 @@ class DualAuditTests(unittest.TestCase):
         self.assertEqual([x["status"] for x in self.report["checks"]], ["PASS", "WARNING"])
         self.assertIn("referencias cruzadas=1", self.report["checks"][1]["detail"])
 
+    def test_focazul_root_without_trailing_slash_is_not_a_foreign_link(self):
+        base = audit.SITES["focazul"]["url"]
+        html = '<nav><a href="/asociacionfocazul">Inicio</a><a href="/asociacionfocazul/quienes-somos/">Quiénes somos</a></nav>'
+        with patch.object(audit, "read_html", return_value=(base, html, 200)):
+            audit.public_navigation(self.report, "focazul", base)
+        self.assertEqual(self.report["checks"][-1]["status"], "PASS")
+
     def test_public_php_warnings_are_a_real_failure(self):
         base = audit.SITES["staging"]["url"]
         with patch.object(audit, "read_html", return_value=(base, '<nav><a href="/">Home</a></nav>Warning: errors wp-includes/test.php', 200)):
