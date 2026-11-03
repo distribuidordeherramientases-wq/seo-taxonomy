@@ -119,7 +119,7 @@ verify(strpos($loaded,'Menú cabecera existente')!==false,'native menu name show
 verify(strpos($loaded,'Portada WP')!==false,'existing native item appears in editor');
 verify(strpos($loaded,'value="taxocommerce_core_sync_menu"')===false,'country hierarchy cannot accidentally overwrite loaded native menu');
 verify(strpos($loaded,'name="tc_menu_id" value="'.$existing_id.'"')!==false,'menu editor persists selected native menu ID');
-verify(strpos($loaded,'name="item_title"')!==false,'loaded native menu item editable');
+verify(strpos($loaded,'name="tc_items[')!==false,'loaded native menu item editable via batch Save form');
 verify($GLOBALS['options']['taxocommerce_core_menu_id']===$es_id,'country managed mapping unchanged after loading foreign menu');
 $_POST=array('tc_country'=>'ES','tc_menu_id'=>(string)$existing_id);
 $managed_item_count=count(wp_get_nav_menu_items($es_id));
