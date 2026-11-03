@@ -218,7 +218,7 @@ final class TaxoCommerce_Core_Auto_Test {
                 if ( count( $warnings ) < 10 ) {
                     $warnings[] = array(
                         'severity' => (int) $severity,
-                        'message' => sanitize_text_field( (string) $message ),
+                        'message' => sanitize_text_field( str_replace( ABSPATH, '', (string) $message ) ),
                         'file' => basename( (string) $file ),
                         'line' => (int) $line,
                     );
@@ -877,6 +877,13 @@ final class TaxoCommerce_Core_Auto_Test {
                         <span class="tc-at-dot tc-at-dot--<?php echo esc_attr( $row['status'] ); ?>" aria-hidden="true"></span>
                         <div><strong><?php echo esc_html( $row['group'] . ' · ' . $row['label'] ); ?> <span class="tc-at-small"><?php echo esc_html( $row['id'] ); ?></span></strong>
                             <p><?php echo esc_html( $row['message'] ); ?></p>
+                            <?php if ( ! empty( $row['php_errors'] ) ) : ?>
+                                <ul class="tc-at-small">
+                                <?php foreach ( $row['php_errors'] as $php_error ) : ?>
+                                    <li><?php echo esc_html( (string) $php_error['message'] . ' (' . $php_error['file'] . ':' . (int) $php_error['line'] . ')' ); ?></li>
+                                <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                             <span class="tc-at-small"><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></span></div>
                     </div>
                 <?php endforeach; ?>
