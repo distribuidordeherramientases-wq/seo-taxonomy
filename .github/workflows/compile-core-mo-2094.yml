@@ -1,0 +1,37 @@
+name: One-time recompilation of Core MO files (#2094)
+
+on:
+  push:
+    branches:
+      - diagnose/mo-reader-staging-2094
+    paths:
+      - '.github/scripts/compile_mo_catalogs.py'
+      - '.github/workflows/compile-core-mo-2094.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Install pinned gettext PO compiler
+        run: python3 -m pip install --disable-pip-version-check polib==1.2.0
+      - name: Regenerate 5 Core catalogs, preserve PO translations
+        run: |
+          python3 .github/scripts/compile_mo_catalogs.py --plugin core
+          python3 .github/scripts/verify_mo_catalogs.py --repo
+      - name: Commit only validated generated MO blobs to the existing PR branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add taxocommerce-core/languages/*.mo
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(core): regenerate five WordPress-compatible binary MO catalogs (#2094)"
+            git push origin HEAD:diagnose/mo-reader-staging-2094
+          fi
