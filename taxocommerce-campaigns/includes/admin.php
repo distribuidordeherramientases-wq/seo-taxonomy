@@ -85,7 +85,7 @@ function tccampaigns_admin_render(){
     tccampaigns_calendar_styles();
     echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h1>' . '<p class="description">' . esc_html__( 'Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
-    foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación','autotest'=>'Autotest','manual'=>'Manual') as $key=>$label){
+    foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación','autotest'=>'Autocheck','manual'=>'Manual') as $key=>$label){
         echo '<a class="nav-tab '.($tab===$key?'nav-tab-active':'').'" href="'.esc_url(tccampaigns_admin_tab_url($key)).'">'.esc_html($label).'</a>';
     }
     echo '</nav>';
