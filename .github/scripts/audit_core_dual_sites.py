@@ -207,19 +207,23 @@ def ftps_parity(report, paths):
                 else:
                     check(report, site, "Mismo Core instalado (SHA-256)", "PASS",
                           f"{len(paths)}/{len(paths)} archivos instalables iguales al mismo commit; ninguna escritura")
-            except (OSError, *ftplib.all_errors) as exc:
+            except (OSError, AttributeError, *ftplib.all_errors) as exc:
                 check(report, site, "Mismo Core instalado (SHA-256)", "FAIL",
                       "No se pudo verificar la instalación por FTPS: " + type(exc).__name__)
-    except (OSError, EOFError, *ftplib.all_errors) as exc:
+    except (OSError, EOFError, AttributeError, *ftplib.all_errors) as exc:
         for site in SITES:
             if not any(c["site"] == site and c["name"] == "Mismo Core instalado (SHA-256)" for c in report["checks"]):
                 check(report, site, "Mismo Core instalado (SHA-256)", "FAIL",
                       "Conexión FTPS no disponible: " + type(exc).__name__)
     finally:
-        try:
-            ftp.quit()
-        except (OSError, *ftplib.all_errors):
-            ftp.close()
+        # FTP_TLS.close() nulls sock. A second quit() on a disconnected FTP
+        # session raises AttributeError on Python 3.14; never mask audit results.
+        if getattr(ftp, "sock", None) is not None:
+            try:
+                ftp.quit()
+            except (OSError, AttributeError, *ftplib.all_errors):
+                pass
+        ftp.close()
 
 
 def public_navigation(report, site, base):
