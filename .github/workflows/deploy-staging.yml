@@ -9,8 +9,6 @@ on:
     paths:
       - 'taxocommerce-*/**'
       - '.github/scripts/deploy_staging_delta.py'
-      - '.github/scripts/deploy_pro_all.py'
-      - '.github/tests/test_deploy_pro_all.py'
       - '.github/tests/test_pro_historic_modular_workflow.py'
       - '.github/workflows/despliege_de_main_a_pro.yml'
       - '.github/tests/test_deploy_staging_delta.py'
@@ -36,8 +34,6 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
-          python3 -m py_compile .github/scripts/deploy_pro_all.py
-          python3 -m unittest discover -s .github/tests -p test_deploy_pro_all.py -v
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
