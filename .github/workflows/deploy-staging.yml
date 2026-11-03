@@ -54,6 +54,7 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
+          php .github/tests/taxocommerce-core/sidebar-plugins-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-editor-ui-smoke.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
