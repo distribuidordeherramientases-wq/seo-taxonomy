@@ -4,7 +4,7 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
@@ -38,6 +38,9 @@ It does not create a parallel document database and does not include a destructi
 5. Confirm PDF generation and permitted customer downloads in a staging environment before live billing.
 
 == Changelog ==
+
+= 0.1.4 =
+* Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.
 
 = 0.1.3 =
 * Cabecera administrativa uniforme de TaxoCommerce con nombre, icono y versión visible.
