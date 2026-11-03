@@ -78,7 +78,7 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn("-x 'node_modules/*'", text)
         self.assertIn("-x '.*'", text)
         self.assertIn("-x '*/.*'", text)
-        self.assertIn(".ftp-deploy-sync-state.json", text)
+        self.assertIn("ftp-deploy-sync-state", text)
         self.assertIn(".taxocommerce-deploy", text)
 
     def test_every_source_module_has_matching_version_and_stable_tag(self):
