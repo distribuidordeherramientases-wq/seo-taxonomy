@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Templates
 
+## [0.4.9] — 2026-11-03
+
+- Cabecera visual común basada en Core, con nombre, icono, descripción y versión desde la cabecera real.
+- Rutas, pestañas, permisos y funciones conservados, sin dependencia obligatoria entre plugins. Issue #2137.
+
 ## 0.4.8 — 2026-11-01
 - Protección de **consentimiento explícito tras actualización**: la opción `taxocommerce_templates_review_consent_v1` permanece a cero al instalar una versión nueva, por lo que las políticas públicas no se activan aunque el interruptor heredado `taxocommerce_templates_render_enabled` estuviera activado.
 - La casilla visible **Aplicación de políticas** sigue siendo el único control de administración. Al guardar marcada establece el consentimiento y habilita las reglas; desmarcada retira primero el consentimiento de forma segura. No se pierden diseños, países, archivos, relaciones ni borradores.
