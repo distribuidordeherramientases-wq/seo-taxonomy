@@ -11,10 +11,13 @@ final class TaxoCommerce_Core_Auto_Test {
     const PAGE_SLUG = 'taxocommerce-core-auto-test';
     const ACTION = 'taxocommerce_core_run_auto_test';
     const NONCE = 'taxocommerce_core_auto_test_run';
+    const EXPORT_ACTION = 'taxocommerce_core_export_auto_test_json';
+    const EXPORT_NONCE = 'taxocommerce_core_auto_test_export';
     const REPORT_PREFIX = 'taxocommerce_core_autotest_';
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) );
+        add_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'handle_export_json' ) );
     }
 
     private static function allowed() {
@@ -28,6 +31,103 @@ final class TaxoCommerce_Core_Auto_Test {
         check_admin_referer( self::NONCE, 'tc_autotest_nonce' );
         set_transient( self::REPORT_PREFIX . get_current_user_id(), self::run_suite(), DAY_IN_SECONDS );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) );
+        exit;
+    }
+
+    /**
+     * Check that this transient belongs to a completed run, rather than
+     * treating stale or partial data as a successful test.
+     */
+    private static function valid_report( $report ) {
+        if ( ! is_array( $report ) || ! isset(
+            $report['version'], $report['date'], $report['ms'], $report['totals'], $report['rows']
+        ) || ! is_array( $report['totals'] ) || ! is_array( $report['rows'] ) ) {
+            return false;
+        }
+        $total = 0;
+        foreach ( array( 'pass', 'fail', 'skip' ) as $status ) {
+            if ( ! isset( $report['totals'][ $status ] )
+                || ! is_numeric( $report['totals'][ $status ] )
+                || (int) $report['totals'][ $status ] < 0 ) {
+                return false;
+            }
+            $total += (int) $report['totals'][ $status ];
+        }
+        if ( 0 === $total || $total !== count( $report['rows'] ) ) {
+            return false;
+        }
+        foreach ( $report['rows'] as $row ) {
+            if ( ! is_array( $row )
+                || ! isset( $row['id'], $row['group'], $row['label'], $row['status'], $row['message'], $row['ms'] )
+                || ! in_array( $row['status'], array( 'pass', 'fail', 'skip' ), true ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Stable JSON contract: the underlying tests and their statuses come from
+     * the saved report, not from a new run or an assumption of UAT success.
+     */
+    public static function export_payload( $report ) {
+        if ( ! self::valid_report( $report ) ) {
+            return null;
+        }
+        $totals = $report['totals'];
+        return array(
+            'schema_version' => 1,
+            'plugin' => array(
+                'slug' => 'taxocommerce-core',
+                'version' => (string) $report['version'],
+            ),
+            'installation' => array(
+                'url' => home_url( '/' ),
+                'locale' => get_locale(),
+            ),
+            'autocheck' => array(
+                'executed_at' => (string) $report['date'],
+                'duration_ms' => (int) $report['ms'],
+                'mode' => 'read_only',
+                'overall_status' => (int) $totals['fail'] > 0 ? 'fail'
+                    : ( (int) $totals['skip'] > 0 ? 'incomplete' : 'pass' ),
+                'totals' => array(
+                    'pass' => (int) $totals['pass'],
+                    'fail' => (int) $totals['fail'],
+                    'skip' => (int) $totals['skip'],
+                ),
+                'tests' => $report['rows'],
+            ),
+        );
+    }
+
+    /** Download only the signed-in user's last stored report, without rerunning the suite. */
+    public static function handle_export_json() {
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-core' ) );
+        }
+        check_admin_referer( self::EXPORT_NONCE, 'tc_autotest_export_nonce' );
+        $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
+        $payload = self::export_payload( $report );
+        if ( null === $payload ) {
+            wp_die( esc_html__( 'No hay un informe de Autocheck válido. Ejecuta el chequeo primero.', 'taxocommerce-core' ) );
+        }
+        $json = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el archivo JSON.', 'taxocommerce-core' ) );
+        }
+        $host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+        $host = sanitize_file_name( $host );
+        if ( '' === $host ) {
+            $host = 'wordpress';
+        }
+        $filename = 'taxocommerce-core-autocheck-' . $host . '-' . gmdate( 'Ymd-His' ) . '.json';
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'X-Content-Type-Options: nosniff' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON encoded, not HTML.
+        echo $json;
         exit;
     }
 
@@ -568,6 +668,13 @@ final class TaxoCommerce_Core_Auto_Test {
                 <?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
                 <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
             </form>
+            <?php if ( null !== $totals ) : ?>
+                <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( self::EXPORT_ACTION ); ?>">
+                    <?php wp_nonce_field( self::EXPORT_NONCE, 'tc_autotest_export_nonce' ); ?>
+                    <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-core' ), 'secondary', 'submit', false ); ?>
+                </form>
+            <?php endif; ?>
             <?php if ( null === $totals ) : ?>
                 <p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core.', 'taxocommerce-core' ); ?></p>
             <?php else : ?>

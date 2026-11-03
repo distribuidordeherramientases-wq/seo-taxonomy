@@ -19,6 +19,12 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.53]
+
+- Autocheck (#2113): el botón «Descargar resultados (JSON)» permite obtener el **último informe real del usuario** sin volver a ejecutar el chequeo. El archivo incluye sitio e idioma WordPress, versión de Core con la que se ejecutó, fecha, duración, resultados y mensajes detallados de todas las pruebas (pass/fail/skip). Los casos omitidos cuentan como incompletos, nunca como UAT superadas.
+- Descarga autenticada desde admin-post.php, con permiso y nonce independientes, informe por usuario, caducidad y formato JSON versionado. Nombre de archivo con dominio de instalación, sin escritura en páginas, categorías ni menús. Tests offline de permisos, validez del informe, coincidencia con pantalla y JSON parseable, y ejecución en CI.
+- No se confunde la exportación con ejecución de pruebas funcionales E2E de escritura: se requiere instrumentar por separado la automatización de clics y de persistencia de cambios en STAGING y Focazul. Mismo plugin en ambas instalaciones.
+
 ## [0.4.51]
 
 - Gestor de menús (#2081, #2069): se unifica la **presentación** del editor de menús clásicos y de navegaciones de bloques de WordPress. Ambos usan la misma pantalla y CSS: cargar/crear, nombre, controles de publicación arriba y abajo, panel izquierdo de páginas/entradas/enlaces/categorías y panel derecho con estructura desplegable y jerarquía visible. La interfaz se adapta al idioma de WordPress y al tipo real de menú, no a clientes concretos.
