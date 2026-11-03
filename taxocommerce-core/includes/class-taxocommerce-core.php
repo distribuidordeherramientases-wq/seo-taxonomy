@@ -110,7 +110,6 @@ final class TaxoCommerce_Core {
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 5 );
 		add_action( 'admin_menu', array( $this, 'normalize_family_submenu_labels' ), 9999 );
-		add_action( 'admin_menu', array( $this, 'hide_core_internal_submenus' ), 10000 );
 		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_old_extensions_page' ) );
@@ -278,33 +277,16 @@ final class TaxoCommerce_Core {
 		unset( $item );
 	}
 
-
+ 
 	/**
-	 * Keep Core tools inside Core without removing their registered WP pages.
+	 * Compatibility shim: never remove native WordPress submenu registrations.
 	 *
-	 * WordPress stores routes and callbacks separately from the visible
-	 * submenu array. Other installed plugins keep their own sidebar entries.
-	 *
-	 * @return void
+	 * WordPress uses $submenu to resolve admin.php?page=... route parents.
+	 * Unsetting those entries can make valid Core pages return HTTP 403.
+	 * Visibility is controlled only by hide_sidebar_submenu() CSS instead.
 	 */
 	public function hide_core_internal_submenus() {
-		global $submenu;
-
-		if ( empty( $submenu['taxocommerce-core'] ) || ! is_array( $submenu['taxocommerce-core'] ) ) {
-			return;
-		}
-
-		$internal_slugs = array(
-			TaxoCommerce_Core_Content_Manager::PAGE_SLUG,
-			'taxocommerce-core-hierarchy',
-			'taxocommerce-core-menu',
-			TaxoCommerce_Core_User_Guide::PAGE_SLUG,
-		);
-		foreach ( $submenu['taxocommerce-core'] as $index => $item ) {
-			if ( is_array( $item ) && isset( $item[2] ) && in_array( (string) $item[2], $internal_slugs, true ) ) {
-				unset( $submenu['taxocommerce-core'][ $index ] );
-			}
-		}
+		// Intentionally leave the WordPress submenu registry unchanged.
 	}
 
 	/**
@@ -316,20 +298,33 @@ final class TaxoCommerce_Core {
 	 * @return void
 	 */
 	public function hide_sidebar_submenu() {
-		// With Core alone, the dashboard is sufficient navigation. With any
-		// installed extension adding a submenu, display only plugin entries.
+		// Never remove entries from $submenu: WordPress needs them to resolve
+		// route parents for Content, SEO Hierarchy, Menu Manager and Manual.
 		global $submenu;
 		$items = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
 		$core_pages = array( 'taxocommerce-core', 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' );
+		$has_extensions = false;
 		foreach ( $items as $item ) {
-			if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
-				continue;
-			}
-			if ( ! in_array( (string) $item[2], $core_pages, true ) ) {
-				return;
+			if ( is_array( $item ) && isset( $item[2] ) && ! in_array( (string) $item[2], $core_pages, true ) ) {
+				$has_extensions = true;
+				break;
 			}
 		}
-		echo '<style id="taxocommerce-core-sidebar">#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}</style>';
+
+		// Always hide internal pages visually, while keeping WordPress' registered
+		// submenu entries, callbacks and capability checks completely intact.
+		// :has() hides entire rows; the a[href] rule is a browser fallback.
+		$selectors = array();
+		foreach ( array( 'taxocommerce-core-content', 'taxocommerce-core-hierarchy', 'taxocommerce-core-menu', 'taxocommerce-core-user-guide' ) as $slug ) {
+			$selector = '#toplevel_page_taxocommerce-core .wp-submenu a[href*="page=' . $slug . '"]';
+			$selectors[] = '#toplevel_page_taxocommerce-core .wp-submenu li:has(> ' . $selector . ')';
+			$selectors[] = $selector;
+		}
+		$style = implode( ',', $selectors ) . '{display:none!important;}';
+		if ( ! $has_extensions ) {
+			$style .= '#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}';
+		}
+		echo '<style id="taxocommerce-core-sidebar">' . $style . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated from fixed internal slug constants.
 	}
 
 	/**
