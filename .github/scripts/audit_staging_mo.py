@@ -34,9 +34,11 @@ def audit(ftp: ftplib.FTP_TLS) -> int:
     broken = 0
     differences = 0
     unavailable = 0
+    login_root = ftp.pwd()
 
     for relative_dir in directories:
         try:
+            ftp.cwd(login_root)
             ftp.cwd(REMOTE_ROOT + "/" + relative_dir)
             candidates = ftp.nlst()
         except ftplib.error_perm as exc:
@@ -106,13 +108,13 @@ def main() -> int:
         ftp.login(os.environ["STAGING_FTP_USERNAME"], os.environ["STAGING_FTP_PASSWORD"])
         ftp.prot_p()
         return audit(ftp)
-    except (ftplib.all_errors, OSError) as exc:
+    except (*ftplib.all_errors, OSError) as exc:
         print(f"::error::Read-only FTPS MO inspection failed: {type(exc).__name__}")
         return 2
     finally:
         try:
             ftp.quit()
-        except (ftplib.all_errors, OSError):
+        except (*ftplib.all_errors, OSError):
             ftp.close()
 
 
