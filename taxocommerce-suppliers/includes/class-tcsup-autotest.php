@@ -95,7 +95,7 @@ final class TCSUP_Autotest {
 		echo '</form>';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified before executing the diagnostics.
 		if ( ! isset( $_POST['tcsup_run_autotest'] ) ) {
-			echo '<p class="description">' . esc_html__( 'Los resultados solo se muestran cuando se pulsa el botón; no se guardan.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
+			echo '<p class="description">' . esc_html__( 'Los resultados se generan al pulsar el botón. Se conserva el último durante una hora para descargarlo en JSON.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
 			return;
 		}
 		check_admin_referer( 'tcsup_autotest' );
@@ -113,7 +113,7 @@ final class TCSUP_Autotest {
             'totals' => $autocheck_totals,
             'rows' => $rows,
         );
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_suppliers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';

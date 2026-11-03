@@ -2,6 +2,7 @@
 /** Offline contract and comparison smoke for the Import Export Auto Test. */
 define('ABSPATH', __DIR__);
 define('TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.10');
+function __( $text, $domain = '' ) { return $text; }
 function home_url($p='/'){return 'https://example.test'.$p;}
 function current_time($format){return '2026-10-29 12:00:00';}
 function get_current_blog_id(){return 1;}

@@ -139,7 +139,7 @@ final class TaxoCommerce_Billing_Autotest {
 
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para el Autotest.', 'taxocommerce-facturacion' ) );
+            wp_die( esc_html__( 'Sin permisos para el Autocheck.', 'taxocommerce-facturacion' ) );
         }
         echo '<h2>' . esc_html__( 'Autocheck de Billing', 'taxocommerce-facturacion' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y configuración. No se crean facturas, proformas ni presupuestos, no se generan PDF, no se envían correos y no se modifica ningún pedido.', 'taxocommerce-facturacion' ) . '</p>';
@@ -151,7 +151,7 @@ final class TaxoCommerce_Billing_Autotest {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately before any diagnostics.
         if ( ! isset( $_POST['taxocommerce_billing_run'] ) ) {
-            echo '<p class="description">' . esc_html__( 'Pulsa el botón para realizar las comprobaciones. El resultado no se guarda.', 'taxocommerce-facturacion' ) . '</p>';
+            echo '<p class="description">' . esc_html__( 'Pulsa el botón para realizar las comprobaciones. El último resultado se conserva una hora para descargar el JSON.', 'taxocommerce-facturacion' ) . '</p>';
             return;
         }
         check_admin_referer( 'taxocommerce_billing_autotest' );
@@ -169,7 +169,7 @@ final class TaxoCommerce_Billing_Autotest {
             'totals' => $autocheck_totals,
             'rows' => $rows,
         );
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_facturacion_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';

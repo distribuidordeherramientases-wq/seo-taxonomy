@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+## [0.4.58] — 2026-11-03
+
+- Botón de ejecución de Core uniformado a «Ejecutar autocheck», reutilizando la traducción ya compilada. Conserva las rutas, resultados, descarga JSON y pruebas del Autocheck anterior; issue #2150 / PR #2153.
+
+
 - Plugin Check (#2149): corregido el indicador de Stable tag para Core 0.4.57; retirada la lectura de error_reporting() dentro del Autocheck manual (sin cambiar la configuración PHP); comprobaciones de nonce conservadas en acciones, consultas SQL y filtros de metadatos documentados y revisados. Verificación del paquete y regresiones previstas.
 
 - Core 0.4.57 (#2147): eliminada del panel la tarjeta «TaxoCommerce SEO actual / No detectado» y el texto de convivencia con el monolito; se conservan versión, estado de WooCommerce y extensiones registradas, sin cambiar integraciones de migración.

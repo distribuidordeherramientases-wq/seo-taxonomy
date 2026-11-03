@@ -907,7 +907,7 @@ final class TaxoCommerce_Core_Auto_Test {
             <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
                 <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
-                <?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
+                <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
                 <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
             </form>
             <?php if ( null !== $totals ) : ?>
