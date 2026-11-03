@@ -62,6 +62,11 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-auto-test.php
           php -l .github/tests/taxocommerce-core/autocheck-json-smoke.php
+          php -l taxocommerce-distribution/includes/sitemaps/batch-worker.php
+          php -l taxocommerce-distribution/includes/sitemaps/engine.php
+          php -l taxocommerce-distribution/includes/admin.php
+          php -l taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
+          php taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
           php .github/tests/taxocommerce-core/auto-test-smoke.php
           php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-functional-smoke.php
