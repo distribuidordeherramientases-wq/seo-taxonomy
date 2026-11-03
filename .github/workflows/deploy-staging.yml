@@ -45,6 +45,7 @@ jobs:
           find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
             php -l "$file" > /dev/null
           done
+          php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
