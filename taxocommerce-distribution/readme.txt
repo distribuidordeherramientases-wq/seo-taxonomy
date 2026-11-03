@@ -60,6 +60,11 @@ English is the base source and UI language. Future localization should use stand
 
 == Changelog ==
 
+= Próxima versión (pendiente de #2135) =
+* Cabecera común de administración basada en TaxoCommerce Core, sin dependencia de Core.
+* Se conservan pestañas, permisos y procesos existentes.
+
+
 = 0.1.2 =
 * Expanded the integrated Manual into two clearly separate, indexed and responsive documents: User Manual and Developer Technical Manual.
 * Added a developer file/function responsibility matrix, generation lifecycle, WordPress options and hook references, coexistence, security and maintenance checklist.
