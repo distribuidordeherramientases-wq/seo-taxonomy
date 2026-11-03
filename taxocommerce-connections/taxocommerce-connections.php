@@ -24,6 +24,9 @@ if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_PATH' ) ) {
 	define( 'TAXOCOMMERCE_CONNECTIONS_PATH', plugin_dir_path( __FILE__ ) );
 }
 
+require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-autocheck.php';
+TaxoCommerce_Connections_Autocheck::boot();
+
 /**
  * Returns the new canonical Connections screen.
  *
