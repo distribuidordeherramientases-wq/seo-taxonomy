@@ -56,6 +56,8 @@ preg_match_all('/\bid="([^"]+)"/',$html,$matches);verify(count($matches[1])===co
 verify(substr_count($html,'class="tc-menu-box"')===5,'four original panels plus product categories');
 verify(strpos($html,'Manual &lt;safe&gt;')!==false,'escaped titles');
 if(getenv('TC_MENU_HTML')){file_put_contents(getenv('TC_MENU_HTML'),$html);}
+// Native WordPress edits require an explicit menu ID on every write.
+$_POST['tc_menu_id']='99'; $_POST['tc_tab']='wordpress';
 $before=$GLOBALS['writes'];verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::add_objects('page',array(131))),'draft rejected');verify($before===$GLOBALS['writes'],'invalid add has no writes');
 verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::add_objects('attachment',array(1))),'type whitelist');
 verify(is_wp_error(TaxoCommerce_Core_Menu_Editor::add_objects('page',range(1,51))),'selection limit');
