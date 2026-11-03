@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,8 @@ Distribution retains the proven production behavior of the previous TaxoCommerce
 * Adaptive, cursor-based feed generation in bounded worker windows.
 * Atomic feed publication: partial files never replace the last valid feed.
 * Product, product-category, post, page, cluster and hub XML sitemaps.
-* Product sitemap files split into bounded groups.
+* All sitemap groups are generated asynchronously in bounded 250-item windows (products use an ID cursor). 
+* Independent five-speed load controller (Suave/Baja/Normal/Alta/Máxima) with PHP CPU/memory/time back-pressure, progress, stop and recovery.
 * XML validation before publication.
 * Atomic sitemap publication and stable root-domain URLs.
 * Automatic sitemap regeneration after catalog/content changes when Distribution owns the endpoint.
@@ -59,6 +60,12 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.3 =
+* Added visible plugin version to the admin header.
+* Added a five-speed independent sitemap workload regulator, progress and stop controls.
+* Replaced synchronous sitemap generation with restartable 250-item background windows; validated XML is published only after generation, and the main index is replaced last.
+* Preserved public sitemap routes and legacy coexistence. No production deployment included.
 
 = 0.1.2 =
 * Expanded the integrated Manual into two clearly separate, indexed and responsive documents: User Manual and Developer Technical Manual.

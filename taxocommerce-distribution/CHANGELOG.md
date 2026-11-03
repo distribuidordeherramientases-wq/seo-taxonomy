@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+Sin novedades pendientes documentadas.
+
+## [0.1.3] — 2026-11-03
+
+- Versión visible en el encabezado de Distribution y actualizada en la cabecera del plugin y en readme.txt.
+- Motor de sitemap sustituido por ventanas incrementales de 250 elementos (consulta por cursor para productos), con progreso, bloqueo de concurrencia, reanudación y botón Detener.
+- Regulador de cinco velocidades compatible con los perfiles de los demás plugins TaxoCommerce; telemetría local de CPU PHP, memoria y duración, con pausas automáticas por presión.
+- Mantiene los grupos y la validación XML del motor anterior, los sitemaps publicados durante el procesamiento y la sustitución final del índice; sin modificar el motor de feeds ni la versión monolítica.
+- Seguimiento: #2134; pendiente QA funcional en STAGING.
+
+
 - Revisados los 24 avisos de Plugin Check: mensajes de estado sin mutaciones, sanitización de avisos de sitemap y justificación localizada de consultas SQL de inventario y metadatos para evitar caché obsoleta.
 - Seguimiento: #1545. Validación de Plugin Check y STAGING pendiente.
 
