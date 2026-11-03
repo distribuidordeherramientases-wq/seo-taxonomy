@@ -3,9 +3,10 @@
 
 The Git checkout is only an inventory source: FTPS receives release files from
 taxocommerce-*/ into the corresponding existing wp-content/plugins/ directory.
-Unavailable plugins are explicitly skipped, not installed and not allowed to
-block updates of independent plugins. No Git metadata, tests, FTP state or
-other repository folders are ever uploaded.
+Only plugins proven absent from the verified PRO installation may be
+skipped. Listed but inaccessible plugins and ambiguous roots are blocking
+preflight errors BEFORE the first upload. No Git metadata, tests, FTP state
+or other repository folders are ever uploaded.
 """
 import ftplib
 import hashlib
@@ -72,72 +73,166 @@ def sha256_remote(ftp, filename):
     return digest.hexdigest()
 
 
-def enter_wp_plugins_root(ftp):
-    """Locate the actual WordPress plugins folder; never depend on seo-taxonomy.
+def visible_names(ftp):
+    """Read a directory listing and normalize bare or absolute NLST entries."""
+    names = set()
+    for entry in ftp.nlst():
+        name = posixpath.basename(str(entry).rstrip("/"))
+        if name not in ("", ".", ".."):
+            names.add(name)
+    return names
 
-    FTPS accounts can start in the WordPress root, public_html, plugins itself
-    or an individual plugin folder. Fail closed if the installed Core main file
-    is not present. PRO_FTP_PLUGINS_DIR can override ambiguous FTP roots.
-    """
+
+def candidate_plugin_roots(ftp):
+    """Discover WordPress paths without assuming the FTPS account's login root."""
     origin = ftp.pwd()
-    explicit = os.environ.get("PRO_FTP_PLUGINS_DIR", "").strip()
-    if explicit:
-        if "\\x00" in explicit or "\\" in explicit or ".." in explicit.split("/"):
+    configured = os.environ.get("PRO_FTP_PLUGINS_DIR", "").strip()
+    if configured:
+        if "\\x00" in configured or "\\" in configured or ".." in configured.split("/"):
             raise RuntimeError("Unsafe PRO_FTP_PLUGINS_DIR")
-        candidates = [explicit]
-    else:
-        parent = posixpath.dirname(origin.rstrip("/")) or "/"
-        candidates = [
-            posixpath.join(origin, "wp-content", "plugins"),
-            posixpath.join(origin, "public_html", "wp-content", "plugins"),
-            posixpath.join(origin, "plugins"),
-            origin,
-            parent,
-            posixpath.join(parent, "wp-content", "plugins"),
-            posixpath.join(parent, "public_html", "wp-content", "plugins"),
-        ]
+        return [configured]
 
-    visited = set()
-    for candidate in candidates:
-        if candidate in visited:
+    anchors = []
+    cursor = origin
+    for _ in range(6):
+        if cursor in anchors:
+            break
+        anchors.append(cursor)
+        parent = posixpath.dirname(cursor.rstrip("/")) or "/"
+        if parent == cursor:
+            break
+        cursor = parent
+
+    candidates = []
+    for anchor in anchors:
+        candidates.extend([
+            posixpath.join(anchor, "wp-content", "plugins"),
+            posixpath.join(anchor, "public_html", "wp-content", "plugins"),
+            posixpath.join(anchor, "plugins"),
+            anchor,
+        ])
+
+        # A Webempresa FTP account may see multiple domain roots. Resolve
+        # actual site directories rather than trusting the first Core found.
+        try:
+            ftp.cwd(anchor)
+            children = visible_names(ftp)
+        except ftplib.all_errors:
             continue
-        visited.add(candidate)
+        for child in sorted(children):
+            if (child == "public_html" or child.startswith("hosting")
+                    or any(child.endswith(suffix) for suffix in (".es", ".com", ".site", ".net"))):
+                if child.startswith(".") or "/" in child or "\\" in child:
+                    continue
+                candidates.append(posixpath.join(anchor, child, "wp-content", "plugins"))
+
+    return list(dict.fromkeys(candidates))
+
+
+def enter_wp_plugins_root(ftp, modules=None):
+    """Select a root only after listing remote directories and verifying Core.
+
+    Return (root, visible plugin directory names). When multiple WordPress
+    installations are reachable choose the one with the most matching
+    TaxoCommerce directories. Never mistake a three-plugin installation for
+    the full production installation.
+    """
+    expected = set(modules or {"taxocommerce-core"})
+    options = []
+    for candidate in candidate_plugin_roots(ftp):
         try:
             ftp.cwd(candidate)
+            names = visible_names(ftp)
+            if "taxocommerce-core" not in names:
+                continue
             ftp.cwd("taxocommerce-core")
             header = bytearray()
             ftp.retrbinary("RETR taxocommerce-core.php", header.extend)
             if b"Plugin Name:" not in header or b"TaxoCommerce Core" not in header:
                 continue
             ftp.cwd(candidate)
-            return ftp.pwd()
-        except ftplib.error_perm:
+            actual = ftp.pwd()
+            options.append((len(expected & names), actual, names))
+        except ftplib.all_errors:
             continue
-    raise RuntimeError(
-        "No se localiza el directorio de plugins de PRO con TaxoCommerce Core "
-        "(comprueba el directorio FTP o PRO_FTP_PLUGINS_DIR). "
-        "No se ha subido ningun archivo."
-    )
+
+    if not options:
+        raise RuntimeError(
+            "FTPS cannot locate a WordPress plugins directory containing a "
+            "readable TaxoCommerce Core. No files uploaded. Verify FTP account "
+            "root and permissions, or set PRO_FTP_PLUGINS_DIR."
+        )
+
+    options.sort(key=lambda item: (-item[0], item[1]))
+    score, root, names = options[0]
+    if len(expected) >= 10 and score < (len(expected) * 4 + 4) // 5:
+        raise RuntimeError(
+            "PRO FTPS root mismatch or insufficient FTP visibility: "
+            + root + " lists " + str(score) + "/" + str(len(expected))
+            + " requested TaxoCommerce directories. Visible: "
+            + ", ".join(sorted(expected & names))
+            + ". No files uploaded. Compare with the Webempresa PRO site root "
+            "or configure PRO_FTP_PLUGINS_DIR."
+        )
+    ties = {path for matched, path, _ in options if matched == score}
+    if len(ties) > 1:
+        raise RuntimeError(
+            "Several WordPress plugin directories match equally: "
+            + ", ".join(sorted(ties))
+            + ". Set PRO_FTP_PLUGINS_DIR to the correct PRO location; "
+            "no files uploaded."
+        )
+    print("PRO FTPS selected root: " + root + " ("
+          + str(score) + "/" + str(len(expected))
+          + " TaxoCommerce plugin folders visible)", flush=True)
+    return root, names
 
 
-def probe_installed_plugin(ftp, plugins_root, slug):
-    """Return (available, reason) without writing or creating any directories.
-
-    A failed CWD or missing main file means this module cannot be safely
-    updated. Other independent plugins can still be updated normally.
-    """
+def probe_installed_plugin(ftp, plugins_root, slug, visible):
+    """Distinguish an absent plugin from a listed-but-inaccessible directory."""
     if not SLUG.fullmatch(slug):
         raise ValueError("Unexpected plugin name: " + slug)
+    if slug not in visible:
+        return False, "plugin_not_present_in_selected_root"
+
     ftp.cwd(plugins_root)
     try:
         ftp.cwd(slug)
     except ftplib.error_perm as exc:
-        if str(exc).startswith("550"):
-            return False, "plugin_directory_missing_or_inaccessible"
-        raise
+        raise RuntimeError(
+            "FTP permission/path failure: " + slug + " is listed in "
+            + plugins_root + " but CWD returned " + str(exc)
+            + ". No plugin transfer should start."
+        ) from exc
     if sha256_remote(ftp, slug + ".php") is None:
-        return False, "plugin_entrypoint_missing_or_inaccessible"
+        raise RuntimeError(
+            "FTP cannot read existing plugin entrypoint " + slug + "/"
+            + slug + ".php in " + plugins_root
+        )
     return True, None
+
+
+def preflight_plugins(ftp, plugins_root, visible, modules):
+    """Complete read-only preflight before uploading the first plugin."""
+    ready, skipped = [], []
+    for slug in modules:
+        available, reason = probe_installed_plugin(ftp, plugins_root, slug, visible)
+        if available:
+            ready.append(slug)
+        else:
+            skipped.append({"slug": slug, "reason": reason})
+    if len(modules) >= 10 and len(ready) < (len(modules) * 4 + 4) // 5:
+        raise RuntimeError(
+            "Cannot access enough PRO TaxoCommerce plugins (" + str(len(ready))
+            + "/" + str(len(modules))
+            + "); wrong FTP account, directory or permissions. "
+            "No files uploaded."
+        )
+    print("PRO FTPS preflight: " + str(len(ready)) + " accessible, "
+          + str(len(skipped)) + " genuinely absent", flush=True)
+    return ready, skipped
+
+
 
 def enter_or_create(ftp, directory):
     try:
@@ -253,15 +348,15 @@ def main():
         ftp.connect(os.environ["FTP_SERVER"], 21)
         ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
         ftp.prot_p()
-        root = enter_wp_plugins_root(ftp)
-        for slug, files in modules.items():
-            available, reason = probe_installed_plugin(ftp, root, slug)
-            if not available:
-                skipped.append({"slug": slug, "reason": reason})
-                print("::warning::PRO plugin skipped (absent or inaccessible): " +
-                      slug + " [" + reason + "]", flush=True)
-                continue
-            reconcile_one(ftp, root, slug, files, report)
+        root, visible = enter_wp_plugins_root(ftp, modules)
+        ready, skipped = preflight_plugins(ftp, root, visible, modules)
+        # All checks above are read-only. Only begin uploads once the PRO
+        # destination and every visible plugin have been verified.
+        for item in skipped:
+            print("::warning::PRO plugin not installed in selected root: "
+                  + item["slug"], flush=True)
+        for slug in ready:
+            reconcile_one(ftp, root, slug, modules[slug], report)
         covered = {row["slug"] for row in report} | {row["slug"] for row in skipped}
         if covered != set(modules):
             raise RuntimeError("Incomplete PRO release inventory")
