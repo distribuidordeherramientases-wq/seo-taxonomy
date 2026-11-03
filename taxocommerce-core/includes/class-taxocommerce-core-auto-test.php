@@ -400,46 +400,128 @@ final class TaxoCommerce_Core_Auto_Test {
             self::ok( absint( $count ) . ' relaciones en tabla; lector cargado.' );
     }
 
+    /**
+     * Endpoint rules for the relations that Core can independently verify.
+     * SEO hierarchy roles are stored on WordPress pages, not custom post types.
+     * Editorial relations are shared by other plugins and must not be rejected
+     * merely because they do not belong to the hierarchy editor.
+     *
+     * @return array<string,array<string,string>>
+     */
+    public static function relation_endpoint_rules() {
+        $rules = array();
+        foreach ( TaxoCommerce_Core_Hierarchy_Classic::definitions() as $type => $definition ) {
+            $rules[ $type ] = array(
+                'source_type' => $definition['source_type'],
+                'target_type' => $definition['target_type'],
+            );
+        }
+
+        $rules['post_to_category'] = array(
+            'source_type' => 'post', 'target_type' => 'product_cat',
+        );
+        $rules['landing_to_category'] = array(
+            'source_type' => 'landing', 'target_type' => 'product_cat',
+        );
+        $rules['cluster_to_category'] = array(
+            'source_type' => 'cluster', 'target_type' => 'product_cat',
+        );
+        $rules['hub_primary_to_category'] = array(
+            'source_type' => 'hub_primary', 'target_type' => 'product_cat',
+        );
+        $rules['cluster_to_hub_primary'] = array(
+            'source_type' => 'cluster', 'target_type' => 'hub_primary',
+        );
+        $rules['hub_primary_to_secondary'] = array(
+            'source_type' => 'hub_primary', 'target_type' => 'hub_secondary',
+        );
+        $rules['category_translation'] = array(
+            'source_type' => 'product_cat', 'target_type' => 'product_cat',
+        );
+        return $rules;
+    }
+
+    /**
+     * Inspect an existing relation without modifying WordPress data.
+     * Unknown relation types are reported as not checked, never declared valid.
+     *
+     * @param array $row Canonical seo_relations row.
+     * @return array{status:string,message:string}
+     */
+    public static function inspect_relation( $row ) {
+        $id = absint( $row['id'] ?? 0 );
+        $type = (string) ( $row['relation_type'] ?? '' );
+        $rules = self::relation_endpoint_rules();
+        if ( ! isset( $rules[ $type ] ) ) {
+            return self::skip( 'Relación #' . $id . ': tipo no cubierto por el Autocheck: "' . $type . '".' );
+        }
+        $expected = $rules[ $type ];
+        $source_type = (string) ( $row['source_type'] ?? '' );
+        $target_type = (string) ( $row['target_type'] ?? '' );
+        if ( $source_type !== $expected['source_type'] || $target_type !== $expected['target_type'] ) {
+            return self::bad( 'Relación #' . $id . ': tipos de extremos incorrectos para "' . $type . '".' );
+        }
+        foreach ( array( 'source' => $source_type, 'target' => $target_type ) as $side => $endpoint_type ) {
+            $object_id = absint( $row[ $side . '_id' ] ?? 0 );
+            if ( ! $object_id ) {
+                return self::bad( 'Relación #' . $id . ': identificador de ' . $side . ' inválido.' );
+            }
+            if ( 'product_cat' === $endpoint_type ) {
+                $object = get_term( $object_id, 'product_cat' );
+                if ( ! $object || is_wp_error( $object ) || 'product_cat' !== $object->taxonomy ) {
+                    return self::bad( 'Relación #' . $id . ': categoría de ' . $side . ' inexistente.' );
+                }
+            } else {
+                $object = get_post( $object_id );
+                $post_type = 'post' === $endpoint_type ? 'post' : 'page';
+                if ( ! $object || is_wp_error( $object ) || $post_type !== $object->post_type ) {
+                    return self::bad( 'Relación #' . $id . ': contenido de ' . $side . ' inexistente o de otro tipo.' );
+                }
+            }
+        }
+        // Translations explicitly connect different markets, unlike hierarchy
+        // and editorial relationships that must remain within a single market.
+        if ( 'category_translation' !== $type && '' === TaxoCommerce_Core_Country::relation( $row ) ) {
+            return self::bad( 'Relación #' . $id . ': países de origen/destino incompatibles.' );
+        }
+        return self::ok( 'Relación #' . $id . ': extremos, objetos y países coherentes (' . $type . ').' );
+    }
+
     private static function check_edges() {
         global $wpdb;
         $table = self::table( 'seo_relations' );
         if ( ! self::exists( $table ) ) {
             return self::skip( 'La tabla de relaciones SEO todavía no está instalada.' );
         }
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed, bounded read of Core table.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Auto Test requires uncached diagnostic reads.
-        $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id,source_type,source_id,target_type,target_id,relation_type FROM %i ORDER BY id DESC LIMIT 60', $table ), ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only bounded diagnostic.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT id,source_type,source_id,target_type,target_id,relation_type,country_code FROM %i ORDER BY id DESC LIMIT 60',
+            $table
+        ), ARRAY_A );
         if ( ! is_array( $rows ) ) {
             return self::bad( 'Error leyendo relaciones: ' . $wpdb->last_error );
         }
         if ( ! $rows ) {
             return self::skip( 'No hay relaciones para comprobar.' );
         }
-        $def = TaxoCommerce_Core_Hierarchy_Classic::definitions();
+        $checked = 0;
+        $unknown = array();
         foreach ( $rows as $row ) {
-            $id = absint( $row['id'] );
-            $type = (string) $row['relation_type'];
-            if ( ! isset( $def[ $type ] ) || $row['source_type'] !== $def[ $type ]['source_type'] ||
-                $row['target_type'] !== $def[ $type ]['target_type'] ) {
-                return self::bad( 'Relación #' . $id . ': tipos de extremos incorrectos para "' . $type . '".' );
+            $result = self::inspect_relation( $row );
+            if ( 'fail' === $result['status'] ) {
+                return $result;
             }
-            $source = get_post( absint( $row['source_id'] ) );
-            if ( ! $source || 'page' !== $source->post_type ) {
-                return self::bad( 'Relación #' . $id . ': página de origen inexistente.' );
+            if ( 'skip' === $result['status'] ) {
+                $unknown[ (string) $row['relation_type'] ] = true;
+                continue;
             }
-            if ( 'product_cat' === $row['target_type'] ) {
-                $target = get_term( absint( $row['target_id'] ), 'product_cat' );
-            } else {
-                $target = get_post( absint( $row['target_id'] ) );
-            }
-            if ( ! $target || is_wp_error( $target ) ) {
-                return self::bad( 'Relación #' . $id . ': destino inexistente.' );
-            }
-            if ( '' === TaxoCommerce_Core_Country::relation( $row ) ) {
-                return self::bad( 'Relación #' . $id . ': países de origen/destino incompatibles.' );
-            }
+            ++$checked;
         }
-        return self::ok( count( $rows ) . ' relaciones comprobadas; muestra limitada, no auditoría integral.' );
+        if ( $unknown ) {
+            return self::skip( $checked . ' relaciones verificadas de ' . count( $rows ) .
+                '; sin validar tipos: ' . implode( ', ', array_keys( $unknown ) ) . '.' );
+        }
+        return self::ok( $checked . ' relaciones verificadas; muestra limitada a 60, no auditoría integral.' );
     }
 
     /** Read only the markets on this WordPress installation, never a fixed store preset. */
