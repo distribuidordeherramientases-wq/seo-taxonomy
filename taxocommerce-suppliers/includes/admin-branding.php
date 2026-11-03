@@ -5,6 +5,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
+( static function () {
+
 $tc_brand_slug = basename( dirname( __DIR__ ) );
 $tc_brand_main = dirname( __DIR__ ) . '/' . $tc_brand_slug . '.php';
 $tc_brand_on_screen = static function () use ( $tc_brand_slug ) {
@@ -50,3 +52,4 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
     </header>
     <?php
 }, 5 );
+} )();
