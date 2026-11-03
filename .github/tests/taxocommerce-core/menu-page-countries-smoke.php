@@ -56,6 +56,9 @@ function get_post_type( $id ) { return 'page'; }
 function get_post( $id ) { return $GLOBALS['pages'][ $id ] ?? null; }
 function get_post_meta( $id, $key, $single = true ) { return $GLOBALS['post_meta'][ $id ][ $key ] ?? ''; }
 function get_term_meta( $id, $key, $single = true ) { return $GLOBALS['term_meta'][ $id ][ $key ] ?? ''; }
+function get_taxonomy( $name ) { return 'product_cat' === $name ? (object) array( 'cap' => (object) array( 'edit_terms' => 'manage_categories' ) ) : false; }
+function update_term_meta( $id, $key, $value ) { $GLOBALS['term_meta'][ $id ][ $key ] = $value; return true; }
+function delete_term_meta( $id, $key ) { unset( $GLOBALS['term_meta'][ $id ][ $key ] ); return true; }
 function get_ancestors( $id, $taxonomy, $type = 'taxonomy' ) { return $id === 201 ? array( 200 ) : array(); }
 function get_posts( $query ) {
     $ids = array();
@@ -151,8 +154,14 @@ verify( $GLOBALS['options']['taxocommerce_core_menu_id_global'] === $global_id, 
 ob_start();
 TaxoCommerce_Core_Country::native_post_box( $GLOBALS['pages'][10] );
 $global_field = ob_get_clean();
-verify( false !== strpos( $global_field, '<option value="" selected="selected">' ), 'unassigned page shows Global selected' );
-verify( false === strpos( $global_field, '<option value="ES" selected="selected">' ), 'ES is not automatically selected' );
+verify( false !== strpos( $global_field, 'value="" list="tc-country-page-options"' ), 'unassigned page country is empty (Global)' );
+verify( false !== strpos( $global_field, 'placeholder="Global (sin país)"' ), 'field labels an absent country as Global' );
+verify( false === strpos( $global_field, '<option value="ES"' ), 'page field never proposes implicit ES' );
+ob_start();
+TaxoCommerce_Core_Country::options( '', true );
+$empty_country_options = ob_get_clean();
+verify( 1 === substr_count( $empty_country_options, '<option' ), 'empty page countries have only Global as a choice' );
+verify( false !== strpos( $empty_country_options, '<option value="" selected="selected">' ), 'category country defaults to Global' );
 
 foreach ( array( 20, 21, 22 ) as $id ) { $GLOBALS['post_meta'][ $id ]['_seo_pais_origen'] = 'FR'; }
 foreach ( array( 30, 31, 32 ) as $id ) { $GLOBALS['post_meta'][ $id ]['_seo_pais_origen'] = 'DE'; }
@@ -161,6 +170,14 @@ $GLOBALS['term_meta'][300] = array( '_seo_pais_origen' => 'DE' );
 verify( array_keys( TaxoCommerce_Core_Menu::available_countries() ) === array( '', 'DE', 'FR' ), 'only explicitly assigned page countries appear' );
 verify( ! array_key_exists( 'ES', TaxoCommerce_Core_Menu::available_countries() ), 'implicit Spain never appears' );
 verify( ! array_key_exists( 'US', TaxoCommerce_Core_Menu::available_countries() ), 'trashed pages do not introduce a market' );
+verify( array_keys( TaxoCommerce_Core_Country::page_countries() ) === array( '', 'DE', 'FR' ), 'all Core form lists share page-derived countries' );
+ob_start();
+TaxoCommerce_Core_Country::options( '', true );
+$dynamic_options = ob_get_clean();
+verify( false !== strpos( $dynamic_options, '<option value="FR"' ), 'form offers FR assigned on pages' );
+verify( false !== strpos( $dynamic_options, '<option value="DE"' ), 'form offers DE assigned on pages' );
+verify( false === strpos( $dynamic_options, '<option value="ES"' ), 'form does not offer unused ES' );
+verify( false === strpos( $dynamic_options, '<option value="US"' ), 'form does not offer unused US' );
 $menus_before_assigned_proposal = count( $GLOBALS['menus'] );
 ob_start();
 $proposal->render_hierarchy_proposal();
@@ -199,5 +216,16 @@ verify( array_key_exists( 'GB', TaxoCommerce_Core_Menu::available_countries() ),
 verify( TaxoCommerce_Core_Country::set_post( 40, '' ) === true, 'choosing Global removes country meta' );
 verify( ! array_key_exists( '_seo_pais_origen', $GLOBALS['post_meta'][40] ?? array() ), 'Global is stored as no country meta' );
 verify( ! array_key_exists( 'GB', TaxoCommerce_Core_Menu::available_countries() ), 'removed page country disappears from menu selector' );
+$GLOBALS['term_meta'][ 201 ] = array( '_seo_pais_origen' => 'FR' );
+verify( TaxoCommerce_Core_Country::set_term( 201, '' ) === true, 'Global accepted for product categories' );
+verify( ! array_key_exists( '_seo_pais_origen', $GLOBALS['term_meta'][201] ), 'Global deletes category country metadata' );
+verify( TaxoCommerce_Core_Country::set_term( 201, '??' ) instanceof WP_Error, 'invalid country is rejected, not treated as Global' );
+verify( TaxoCommerce_Core_Country::set_term( 201, 'DE' ) === true, 'category accepts a page country' );
+ob_start();
+TaxoCommerce_Core_Country::edit_category_field( $GLOBALS['terms'][201] );
+$category_field = ob_get_clean();
+verify( false !== strpos( $category_field, '<option value="DE" selected="selected">' ), 'category editor reflects explicit country' );
+verify( false === strpos( $category_field, '<option value="ES"' ), 'category editor has no static ES option' );
+
 
 echo 'Core menu countries from pages / Global smoke OK' . PHP_EOL;
