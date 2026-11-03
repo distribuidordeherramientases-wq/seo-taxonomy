@@ -36,7 +36,7 @@ final class TaxoCommerce_Core_User_Guide {
 			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
-				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></a>
+				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
 			</nav>
 			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core' ); ?>">
 				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core' ); ?></a>
@@ -54,7 +54,7 @@ final class TaxoCommerce_Core_User_Guide {
 						<li><a href="#tc-guide-content"><?php esc_html_e( 'Contenidos', 'taxocommerce-core' ); ?></a></li>
 						<li><a href="#tc-guide-hierarchy"><?php esc_html_e( 'Jerarquía SEO', 'taxocommerce-core' ); ?></a></li>
 						<li><a href="#tc-guide-menus"><?php esc_html_e( 'Gestor de menús', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-test"><?php esc_html_e( 'Auto Test', 'taxocommerce-core' ); ?></a></li>
+						<li><a href="#tc-guide-test"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a></li>
 						<li><a href="#tc-guide-extensions"><?php esc_html_e( 'Extensiones', 'taxocommerce-core' ); ?></a></li>
 						<li><a href="#tc-guide-help"><?php esc_html_e( 'Preguntas habituales', 'taxocommerce-core' ); ?></a></li>
 					</ol>
