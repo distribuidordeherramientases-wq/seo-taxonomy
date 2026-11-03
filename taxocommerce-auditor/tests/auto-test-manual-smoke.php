@@ -11,6 +11,7 @@ $GLOBALS['tca_hooks'] = array();
 $GLOBALS['tca_options'] = array();
 $GLOBALS['tca_written'] = 0;
 
+function add_filter( $hook, $callback, $priority = 10, $args = 1 ) { return true; }
 function add_action( $hook, $callback, $priority = 10, $args = 1 ) {
     $GLOBALS['tca_hooks'][ $hook ][] = $callback;
 }
