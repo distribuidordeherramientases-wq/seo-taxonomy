@@ -249,6 +249,134 @@ final class TaxoCommerce_Core_Auto_Test {
         return self::ok( 'Core ' . TAXOCOMMERCE_CORE_VERSION . '; servicios accesibles.' );
     }
 
+    /**
+     * Validate only the installed Core files. This does not claim to perform
+     * PHP lint or verify the files against GitHub.
+     */
+    private static function check_plugin_files() {
+        if ( ! defined( 'TAXOCOMMERCE_CORE_PATH' ) || ! defined( 'TAXOCOMMERCE_CORE_FILE' ) ) {
+            return self::bad( 'No están definidas las rutas del plugin Core.' );
+        }
+        $required = array(
+            TAXOCOMMERCE_CORE_FILE,
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-auto-test.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-menu.php',
+        );
+        foreach ( $required as $file ) {
+            if ( ! is_file( $file ) || ! is_readable( $file ) ) {
+                return self::bad( 'No existe o no se puede leer el archivo de Core: ' . basename( $file ) );
+            }
+        }
+        if ( function_exists( 'get_file_data' ) ) {
+            $data = get_file_data( TAXOCOMMERCE_CORE_FILE, array( 'Version' => 'Version' ), 'plugin' );
+            if ( empty( $data['Version'] ) || $data['Version'] !== TAXOCOMMERCE_CORE_VERSION ) {
+                return self::bad( 'La cabecera de versión no coincide con TAXOCOMMERCE_CORE_VERSION.' );
+            }
+        }
+        return self::ok( count( $required ) . ' archivos esenciales legibles y versión coherente.' );
+    }
+
+    private static function check_database() {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Requested manual diagnostic.
+        $answer = $wpdb->get_var( 'SELECT 1' );
+        return '1' === (string) $answer
+            ? self::ok( 'WordPress puede consultar su base de datos.' )
+            : self::bad( 'No se ha podido ejecutar una consulta de lectura a MySQL.' );
+    }
+
+    /**
+     * A removed submenu registration may cause "Sorry, you are not allowed to
+     * access this page", even when a callable callback still exists.
+     */
+    private static function check_admin_routes() {
+        global $submenu;
+        if ( ! function_exists( 'get_plugin_page_hook' ) || ! function_exists( 'get_current_screen' ) ) {
+            return self::skip( 'La ejecución no dispone de un contexto de administración completo.' );
+        }
+        $screen = get_current_screen();
+        if ( ! $screen || 'toplevel_page_taxocommerce-core' !== $screen->id ) {
+            return self::skip( 'Ejecuta el AutoCheck desde la pantalla principal de Core para comprobar las rutas.' );
+        }
+        $permission = apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' );
+        if ( ! current_user_can( $permission ) ) {
+            return self::bad( 'El usuario actual no dispone del permiso de administración requerido.' );
+        }
+        $pages = array(
+            'taxocommerce-core-content',
+            'taxocommerce-core-hierarchy',
+            'taxocommerce-core-menu',
+            TaxoCommerce_Core_User_Guide::PAGE_SLUG,
+        );
+        $registered = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
+        foreach ( $pages as $slug ) {
+            $found = false;
+            foreach ( $registered as $item ) {
+                if ( isset( $item[2] ) && $slug === (string) $item[2] ) {
+                    $found = true;
+                    if ( ! current_user_can( $item[1] ) ) {
+                        return self::bad( 'El usuario no puede acceder a la pantalla ' . $slug . ' (' . $item[1] . ').' );
+                    }
+                    break;
+                }
+            }
+            if ( ! $found ) {
+                return self::bad( 'Ruta administrativa ausente del registro WordPress: ' . $slug . '. Puede causar acceso denegado.' );
+            }
+            $hook = get_plugin_page_hook( $slug, 'taxocommerce-core' );
+            if ( ! $hook || false === has_action( $hook ) ) {
+                return self::bad( 'Pantalla administrativa sin controlador ejecutable: ' . $slug . '.' );
+            }
+        }
+        return self::ok( count( $pages ) . ' pantallas de Core registradas con permisos y controladores.' );
+    }
+
+    /** Read a real WooCommerce category using WordPress taxonomy and termmeta. */
+    private static function check_category_fields() {
+        if ( ! taxonomy_exists( 'product_cat' ) ) {
+            return self::skip( 'WooCommerce no tiene activa la taxonomía product_cat.' );
+        }
+        $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 1 ) );
+        if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
+            return self::bad( 'WordPress no puede recuperar una categoría de productos.' );
+        }
+        if ( ! $terms ) {
+            return self::skip( 'Esta tienda todavía no tiene categorías para comprobar.' );
+        }
+        $term = get_term( $terms[0]->term_id, 'product_cat' );
+        if ( ! $term || is_wp_error( $term ) || ! isset( $term->description ) ) {
+            return self::bad( 'No se puede leer la descripción nativa de la categoría.' );
+        }
+        $excerpt = get_term_meta( $term->term_id, 'seo_excerpt', true );
+        if ( ! is_string( $excerpt ) ) {
+            return self::bad( 'No se puede leer el extracto nativo (termmeta.seo_excerpt).' );
+        }
+        return self::ok( 'Categoría #' . absint( $term->term_id ) . ': descripción y extracto accesibles con las APIs de WordPress.' );
+    }
+
+    private static function check_native_roles() {
+        if ( ! is_callable( array( 'TaxoCommerce_Core_Hierarchy_Classic', 'role_pages' ) ) ) {
+            return self::bad( 'No está disponible el lector de roles de páginas.' );
+        }
+        $hierarchy = taxocommerce_core()->hierarchy();
+        foreach ( array( 'cluster', 'hub_primary', 'hub_secondary', 'landing' ) as $role ) {
+            $pages = TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role );
+            if ( ! is_array( $pages ) ) {
+                return self::bad( 'Error al consultar las páginas del rol ' . $role . '.' );
+            }
+            foreach ( array_slice( $pages, 0, 1 ) as $page ) {
+                if ( ! isset( $page->ID ) || $hierarchy->get_page_role( $page->ID ) !== $role ) {
+                    return self::bad( 'Discrepancia del rol nativo ' . $role . ' en página #' . absint( $page->ID ?? 0 ) . '.' );
+                }
+                return self::ok( 'Rol ' . $role . ' recuperado correctamente para la página #' . absint( $page->ID ) . '.' );
+            }
+        }
+        return self::skip( 'No hay páginas clasificadas para comprobar la lectura de roles.' );
+    }
+
     private static function check_actions() {
         $names = array(
             'taxocommerce_core_save_content', 'taxocommerce_core_save_page_role',
