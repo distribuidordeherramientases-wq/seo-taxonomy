@@ -36,6 +36,27 @@ function tcdist_sitemap_job_state() {
     return is_array( $state ) ? $state : array();
 }
 
+/**
+ * Read the timestamp of the last *published* valid index, never job start.
+ * The manifest is updated at the successful finish; fall back to the live
+ * main index for installations upgraded from older Distribution versions.
+ */
+function tcdist_sitemap_publication_time() {
+    $storage = tcdist_sitemap_sitemap_storage();
+    if ( is_wp_error( $storage ) ) {
+        return 0;
+    }
+    $index = $storage['dir'] . 'sitemap.xml';
+    if ( ! is_file( $index ) ) {
+        return 0;
+    }
+    $manifest = tcdist_sitemap_get_sitemap_manifest();
+    $time = ! empty( $manifest['generated_at_utc'] )
+        ? strtotime( (string) $manifest['generated_at_utc'] )
+        : false;
+    return $time ? (int) $time : (int) filemtime( $index );
+}
+
 function tcdist_sitemap_save_job_state( $state ) {
     update_option( TCDIST_SITEMAP_JOB_OPTION, $state, false );
 }
