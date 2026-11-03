@@ -1,0 +1,43 @@
+name: Diagnose Focazul WordPress PHP fatal (#2099)
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/diagnose_focazul_errors_2099.py'
+      - '.github/tests/test_diagnose_focazul_errors_2099.py'
+      - '.github/workflows/diagnose-focazul-errors-2099.yml'
+  push:
+    branches: [staging]
+    paths:
+      - '.github/scripts/diagnose_focazul_errors_2099.py'
+      - '.github/tests/test_diagnose_focazul_errors_2099.py'
+      - '.github/workflows/diagnose-focazul-errors-2099.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Validate redacted PHP fatal classification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax and classifier regressions
+        run: |
+          python3 -m py_compile .github/scripts/diagnose_focazul_errors_2099.py
+          python3 -m unittest discover -s .github/tests -p test_diagnose_focazul_errors_2099.py -v
+
+  inspect-focazul:
+    name: Read-only FTP PHP error log inspection
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect whitelisted PHP logs without remote writes
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/diagnose_focazul_errors_2099.py
