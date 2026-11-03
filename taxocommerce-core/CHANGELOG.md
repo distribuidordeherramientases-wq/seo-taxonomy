@@ -19,6 +19,12 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.54] - 2026-11-03
+
+- Plugin Check (#2121): se corrigen los dos errores de navegación de bloques (eliminación de `suppress_filters=true` redundante y escape de profundidad en HTML) y se sanea el POST de confirmación/bloques de objetos.
+- Se justifican específicamente los parámetros GET de solo lectura de Anomalías y el filtro `meta_key` del selector administrativo de países, sin cambiar datos, consultas ni validación de permisos.
+- Igualdad del plugin genérico para STAGING y Focazul; quedan pendientes de comprobación externa la ejecución de Plugin Check y la prueba visual de la navegación real. No se despliega automáticamente a PRO.
+
 ## [0.4.53]
 
 - Autocheck (#2113): el botón «Descargar resultados (JSON)» permite obtener el **último informe real del usuario** sin volver a ejecutar el chequeo. El archivo incluye sitio e idioma WordPress, versión de Core con la que se ejecutó, fecha, duración, resultados y mensajes detallados de todas las pruebas (pass/fail/skip). Los casos omitidos cuentan como incompletos, nunca como UAT superadas.
