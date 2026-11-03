@@ -12,6 +12,7 @@
 		var description = document.getElementById('tc-ie-export-type-description');
 		var productFilters = document.getElementById('tc-ie-export-product-filters');
 		var statuses = document.getElementById('tc-ie-export-statuses');
+		var wpCategoryFilters = document.getElementById('tc-ie-export-wp-category-filters');
 		var cluster = document.getElementById('tc-ie-export-cluster');
 		var primary = document.getElementById('tc-ie-export-primary');
 		var secondary = document.getElementById('tc-ie-export-secondary');
