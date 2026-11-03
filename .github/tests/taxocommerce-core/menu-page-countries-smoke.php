@@ -161,6 +161,7 @@ $GLOBALS['term_meta'][300] = array( '_seo_pais_origen' => 'DE' );
 verify( array_keys( TaxoCommerce_Core_Menu::available_countries() ) === array( '', 'DE', 'FR' ), 'only explicitly assigned page countries appear' );
 verify( ! array_key_exists( 'ES', TaxoCommerce_Core_Menu::available_countries() ), 'implicit Spain never appears' );
 verify( ! array_key_exists( 'US', TaxoCommerce_Core_Menu::available_countries() ), 'trashed pages do not introduce a market' );
+$menus_before_assigned_proposal = count( $GLOBALS['menus'] );
 ob_start();
 $proposal->render_hierarchy_proposal();
 $assigned_country_proposal = ob_get_clean();
@@ -168,7 +169,7 @@ verify( false !== strpos( $assigned_country_proposal, '<option value="FR"' ), 'p
 verify( false !== strpos( $assigned_country_proposal, '<option value="DE"' ), 'propose menu includes another page country' );
 verify( false === strpos( $assigned_country_proposal, '<option value="ES"' ), 'propose menu excludes unused ES' );
 verify( false === strpos( $assigned_country_proposal, '<option value="US"' ), 'propose menu excludes trashed-only US' );
-verify( $before_menus === count( $GLOBALS['menus'] ), 'rendering a proposal does not modify existing native menus' );
+verify( $menus_before_assigned_proposal === count( $GLOBALS['menus'] ), 'rendering a proposal does not modify existing native menus' );
 verify( TaxoCommerce_Core_Menu::term_country( 201 ) === 'FR', 'category inherits explicit country' );
 
 $menu = new TaxoCommerce_Core_Menu( new TaxoCommerce_Core_Logger() );
