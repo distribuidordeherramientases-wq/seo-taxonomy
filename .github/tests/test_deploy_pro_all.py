@@ -262,8 +262,13 @@ class DeployProTests(unittest.TestCase):
                 b"<?php /* Plugin Name: TaxoCommerce Core */" if slug == "taxocommerce-core"
                 else b"<?php /* Plugin Name: Example */"
             )
-        ftp.here = "/site"
-        selected, names = mod.enter_wp_plugins_root(ftp, expected)
+        ftp.here = "/site/wp-content/plugins"
+        # This FTP login points to a different WordPress. Resolve the
+        # specified PRO domain folder against its parent directories.
+        with patch.dict(os.environ, {
+            "PRO_FTP_PLUGINS_DIR": "hosting160568eu-279554.webempresa.site/wp-content/plugins"
+        }):
+            selected, names = mod.enter_wp_plugins_root(ftp, expected)
         self.assertEqual(selected, correct)
         self.assertEqual(len(expected & names), 19)
         ready, skipped = mod.preflight_plugins(ftp, selected, names, sorted(expected))
@@ -271,6 +276,43 @@ class DeployProTests(unittest.TestCase):
         self.assertEqual(len(skipped), 1)
         self.assertEqual(skipped[0]["slug"], "taxocommerce-module-17")
         self.assertFalse(ftp.transfers)
+
+    def test_multiple_wordpress_sites_without_explicit_root_must_abort(self):
+        ftp = FakeFTP()
+        second = "/site/hosting160568eu-279554.webempresa.site/wp-content/plugins"
+        ftp.dirs.update({
+            "/site/hosting160568eu-279554.webempresa.site",
+            "/site/hosting160568eu-279554.webempresa.site/wp-content",
+            second,
+            second + "/taxocommerce-core",
+        })
+        ftp.files[second + "/taxocommerce-core/taxocommerce-core.php"] = (
+            b"<?php /* Plugin Name: TaxoCommerce Core */"
+        )
+        ftp.here = "/site"
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "PRO_FTP_PLUGINS_DIR"):
+                mod.enter_wp_plugins_root(ftp)
+        self.assertEqual(ftp.transfers, [])
+
+    def test_wrong_explicit_root_aborts_without_guessing_other_wordpress(self):
+        ftp = FakeFTP()
+        ftp.here = "/site"
+        with patch.dict(os.environ, {
+            "PRO_FTP_PLUGINS_DIR": "wrong-wordpress/wp-content/plugins"
+        }):
+            with self.assertRaisesRegex(RuntimeError, "explicitly configured PRO_FTP_PLUGINS_DIR"):
+                mod.enter_wp_plugins_root(ftp)
+        self.assertEqual(ftp.transfers, [])
+
+    def test_pro_workflow_passes_target_path_to_script(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    "workflows" / "despliege_de_main_a_pro.yml").read_text()
+        self.assertIn("PRO_FTP_PLUGINS_DIR: ${{ inputs.pro_plugins_dir }}", workflow)
+        self.assertIn(
+            "hosting160568eu-279554.webempresa.site/wp-content/plugins", workflow
+        )
+        self.assertIn("workflow_dispatch:", workflow)
 
     def test_only_three_of_twenty_blocks_before_upload(self):
         ftp = FakeFTP()
