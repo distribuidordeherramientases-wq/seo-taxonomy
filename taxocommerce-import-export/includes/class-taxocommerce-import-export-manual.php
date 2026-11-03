@@ -52,14 +52,14 @@ final class TaxoCommerce_Import_Export_Manual {
 				'body' => array(
 					__( 'La exportación completa incluye los campos comerciales y editoriales del producto (identidad, tipo, SKU, precios, inventario, contenido, categorías, atributos y datos de proveedor disponibles).', 'taxocommerce-import-export' ),
 					__( 'La exportación reducida transporta identificación, estructura, categorías, etiquetas, marca, atributos y datos semánticos. Excluye textos largos, precios, stock e imágenes; no sustituye una copia de seguridad completa.', 'taxocommerce-import-export' ),
-					__( 'Categorías, entradas y páginas disponen de sus propios contratos CSV. Comprueba siempre la cabecera antes de reutilizar un fichero como plantilla de importación.', 'taxocommerce-import-export' ),
+					__( 'Categorías de productos y categorías de entradas WordPress disponen de contratos CSV independientes: las categorías incluyen descripción nativa, extracto adicional y parent_slug para reconstruir la jerarquía. Entradas y páginas también disponen de sus propios contratos CSV. Comprueba siempre la cabecera antes de reutilizar un fichero como plantilla de importación.', 'taxocommerce-import-export' ),
 				),
 			),
 			array(
 				'id' => 'tc-ie-manual-individual', 'group' => 'user',
 				'title' => __( '5. Importación individual', 'taxocommerce-import-export' ),
 				'body' => array(
-					__( 'Abre Importación individual, elige el CSV generado por el plugin y pulsa Importar CSV. El trabajo se procesa mediante la cola y el limitador de carga.', 'taxocommerce-import-export' ),
+					__( 'Abre Importación individual, elige el CSV generado por el plugin (incluido wp_category para categorías nativas WordPress) y pulsa Importar CSV. El trabajo se procesa mediante la cola y el limitador de carga.', 'taxocommerce-import-export' ),
 					__( 'El monitor muestra el fichero, filas procesadas, errores y mensajes. Las importaciones parciales de corrección solo aplican los campos presentes; valida el ID o SKU y las columnas antes de enviar un fichero masivo.', 'taxocommerce-import-export' ),
 					__( 'Ante un error, consulta el detalle de las filas fallidas antes de repetir el fichero. No reimportes a ciegas un archivo que ya haya procesado parte de sus filas.', 'taxocommerce-import-export' ),
 				),
