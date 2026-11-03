@@ -5,6 +5,7 @@
  */
 if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
 define( 'ABSPATH', __DIR__ );
+define( 'ARRAY_A', 'ARRAY_A' );
 function absint( $v ) { return abs( (int) $v ); }
 function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $v ) ); }
 function sanitize_title( $v ) { return sanitize_key( $v ); }
