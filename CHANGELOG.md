@@ -1,5 +1,13 @@
 # Changelog
 
+## Corrección de destino FTPS de PRODUCCIÓN - 03/11/2026 (#2119)
+
+- El workflow manual `despliege_de_main_a_pro.yml` ahora **transmite al script** el directorio FTP de PRODUCCIÓN que antes faltaba en su entorno. Su campo de ejecución `pro_plugins_dir` viene preconfigurado con `hosting160568eu-279554.webempresa.site/wp-content/plugins`, observado en WePanel; permite ajustar el directorio si la cuenta FTP tiene una raíz distinta.
+- El publicador resuelve el directorio explícito de forma segura desde la carpeta de conexión FTP o sus directorios superiores. Nunca elige silenciosamente otra instalación WordPress; si la ruta configurada es inaccesible, aborta antes de subir archivos e informa de la ruta y de la raíz FTP inicial.
+- Eliminada del script genérico la suposición sobre un sitio concreto. Se mantiene la prevalidación de carpetas y accesos, la selección de ficheros publicables por plugin, la comparación SHA-256 y la exclusión de `.git`, pruebas, monolítico y otros directorios ajenos.
+- Añadidas pruebas para múltiples WordPress accesibles, selección explícita desde otra instalación, ruta incorrecta y conexión efectiva entre el input de GitHub Actions y el script. No se ha ejecutado una nueva subida a PRODUCCIÓN durante esta corrección.
+
+
 ## PRO: verificar el directorio FTP antes de copiar cualquier plugin — 03/11/2026 (#2119)
 
 - Corregido el falso diagnóstico de «plugin ausente»: el directorio real de PRODUCCIÓN muestra carpetas que el login FTPS no encontraba. Se listan ahora las carpetas por NLST, se buscan posibles raíces WordPress y se verifica la coincidencia con los plugins de la revisión antes de elegir una instalación.
