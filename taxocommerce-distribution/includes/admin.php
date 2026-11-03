@@ -7,6 +7,10 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'taxocommerce_distribution_register_menu', 42 );
 add_action( 'admin_post_tcdist_sitemap_regenerate', 'taxocommerce_distribution_handle_sitemap_regenerate' );
+add_action( 'admin_post_tcdist_sitemap_speed', 'taxocommerce_distribution_save_sitemap_speed' );
+add_action( 'admin_post_tcdist_sitemap_stop', 'taxocommerce_distribution_stop_sitemap' );
+add_action( 'wp_ajax_tcdist_sitemap_pulse', 'taxocommerce_distribution_sitemap_ajax_pulse' );
+add_action( 'admin_enqueue_scripts', 'taxocommerce_distribution_sitemap_enqueue' );
 
 function taxocommerce_distribution_capability() {
     return (string) apply_filters( 'taxocommerce_distribution_capability', 'manage_woocommerce' );
@@ -76,6 +80,80 @@ function taxocommerce_distribution_handle_sitemap_regenerate() {
     exit;
 }
 
+
+/**
+ * Schedule-safe priority controls; no changes to other TaxoCommerce plugins.
+ */
+function taxocommerce_distribution_save_sitemap_speed() {
+    taxocommerce_distribution_guard();
+    check_admin_referer( 'tcdist_sitemap_speed' );
+    $raw = isset( $_POST['tcdist_sitemap_speed'] ) ? wp_unslash( $_POST['tcdist_sitemap_speed'] ) : '';
+    if ( ! is_scalar( $raw ) || ! preg_match( '/^[1-5]$/', (string) $raw ) ) {
+        wp_die( esc_html__( 'Selecciona una velocidad entre 1 y 5.', 'taxocommerce-distribution' ) );
+    }
+    update_option( TCDIST_SITEMAP_SPEED_OPTION, (int) $raw, false );
+    wp_safe_redirect( taxocommerce_distribution_url( 'sitemaps' ) );
+    exit;
+}
+
+function taxocommerce_distribution_stop_sitemap() {
+    taxocommerce_distribution_guard();
+    check_admin_referer( 'tcdist_sitemap_stop' );
+    $result = tcdist_sitemap_stop_background_build();
+    $message = is_wp_error( $result )
+        ? $result->get_error_message()
+        : __( 'La generación se ha detenido.', 'taxocommerce-distribution' );
+    wp_safe_redirect( taxocommerce_distribution_url( 'sitemaps', array(
+        'tcdist_sitemap_result' => is_wp_error( $result ) ? 'error' : 'ok',
+        'tcdist_sitemap_message' => rawurlencode( $message ),
+    ) ) );
+    exit;
+}
+
+function taxocommerce_distribution_sitemap_ajax_pulse() {
+    if ( ! current_user_can( taxocommerce_distribution_capability() ) && ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( array( 'message' => __( 'Sin permisos.', 'taxocommerce-distribution' ) ), 403 );
+    }
+    check_ajax_referer( 'tcdist_sitemap_pulse', 'nonce' );
+    $state = tcdist_sitemap_job_state();
+    if ( 'running' === ( $state['status'] ?? '' ) ) {
+        $state = tcdist_sitemap_background_worker_tick();
+    }
+    // Never expose local filesystem paths or unpublished filename lists.
+    wp_send_json_success( array(
+        'status' => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
+        'phase' => sanitize_key( (string) ( $state['phase'] ?? 'idle' ) ),
+        'processed' => absint( $state['processed'] ?? 0 ),
+        'urls' => absint( $state['urls'] ?? 0 ),
+        'message' => sanitize_text_field( (string) ( $state['message'] ?? '' ) ),
+        'sample' => (array) ( $state['last_sample'] ?? array() ),
+    ) );
+}
+
+function taxocommerce_distribution_sitemap_enqueue() {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WordPress menu selection.
+    $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation.
+    $tab = isset( $_GET['tcdist_tab'] ) && is_string( $_GET['tcdist_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_tab'] ) ) : '';
+    if ( 'taxocommerce-distribution' !== $page || 'sitemaps' !== $tab ) {
+        return;
+    }
+    wp_enqueue_script(
+        'tcdist-sitemap-progress',
+        plugins_url( 'assets/sitemap-progress.js', TAXOCOMMERCE_DISTRIBUTION_FILE ),
+        array(),
+        TAXOCOMMERCE_DISTRIBUTION_VERSION,
+        true
+    );
+    wp_localize_script( 'tcdist-sitemap-progress', 'tcdistSitemapProgress', array(
+        'url' => admin_url( 'admin-ajax.php' ),
+        'nonce' => wp_create_nonce( 'tcdist_sitemap_pulse' ),
+        'working' => __( 'Generando sitemaps por bloques de 250…', 'taxocommerce-distribution' ),
+        'finished' => __( 'Finalizado. Actualizando el informe…', 'taxocommerce-distribution' ),
+        'failed' => __( 'El trabajador ha detectado un error.', 'taxocommerce-distribution' ),
+    ) );
+}
+
 function taxocommerce_distribution_render_page() {
     taxocommerce_distribution_guard();
     $tab = isset( $_GET['tcdist_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_tab'] ) ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -84,7 +162,7 @@ function taxocommerce_distribution_render_page() {
     }
     ?>
     <div class="wrap">
-        <h1><?php esc_html_e( 'TaxoCommerce Distribution', 'taxocommerce-distribution' ); ?></h1>
+        <h1><?php esc_html_e( 'TaxoCommerce Distribution', 'taxocommerce-distribution' ); ?> <small style="font-size:13px;font-weight:400;color:#50575e;vertical-align:middle;">v<?php echo esc_html( TAXOCOMMERCE_DISTRIBUTION_VERSION ); ?></small></h1>
         <p><?php esc_html_e( 'Technical catalog publishing: commercial feeds and XML sitemaps through safe bounded processes.', 'taxocommerce-distribution' ); ?></p>
 
         <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Secciones de Distribution', 'taxocommerce-distribution' ); ?>">
@@ -235,6 +313,10 @@ function taxocommerce_distribution_render_sitemaps() {
     $report = tcdist_sitemap_get_sitemap_report();
     $main_url = tcdist_sitemap_sitemap_public_url( 'sitemap.xml' );
     $audit = taxocommerce_distribution_sitemap_audit_stats();
+    $job = tcdist_sitemap_job_state();
+    $running = 'running' === ( $job['status'] ?? '' );
+    $speed = tcdist_sitemap_speed();
+    $speeds = tcdist_sitemap_speed_labels();
 
     $result = isset( $_GET['tcdist_sitemap_result'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_sitemap_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     $message = isset( $_GET['tcdist_sitemap_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tcdist_sitemap_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -257,11 +339,51 @@ function taxocommerce_distribution_render_sitemaps() {
             <div class="notice notice-warning inline"><p><strong><?php esc_html_e( 'The main index does not exist or is invalid.', 'taxocommerce-distribution' ); ?></strong></p></div>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:18px 0;">
-            <input type="hidden" name="action" value="tcdist_sitemap_regenerate">
-            <?php wp_nonce_field( 'tcdist_sitemap_regenerate' ); ?>
-            <?php submit_button( __( 'Regenerate and validate sitemaps', 'taxocommerce-distribution' ), 'primary', 'submit', false ); ?>
-        </form>
+
+        <div class="card" style="max-width:none;padding:14px;margin:12px 0;">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action" value="tcdist_sitemap_speed">
+                <?php wp_nonce_field( 'tcdist_sitemap_speed' ); ?>
+                <label for="tcdist-sitemap-speed"><strong><?php esc_html_e( 'Control de carga del generador XML', 'taxocommerce-distribution' ); ?></strong></label>
+                <select name="tcdist_sitemap_speed" id="tcdist-sitemap-speed">
+                    <?php foreach ( $speeds as $value => $label ) : ?>
+                        <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $speed, $value ); ?>><?php echo esc_html( $value . ' · ' . $label ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php submit_button( __( 'Guardar velocidad', 'taxocommerce-distribution' ), 'secondary', 'submit', false ); ?>
+                <p class="description"><?php esc_html_e( 'Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor.', 'taxocommerce-distribution' ); ?></p>
+            </form>
+            <div id="tcdist-sitemap-progress" data-running="<?php echo esc_attr( $running ? '1' : '0' ); ?>" aria-live="polite" style="margin-top:10px;">
+                <strong><?php esc_html_e( 'Estado de generación:', 'taxocommerce-distribution' ); ?></strong>
+                <span id="tcdist-sitemap-status"><?php echo esc_html( (string) ( $job['status'] ?? 'idle' ) ); ?></span>.
+                <span id="tcdist-sitemap-counts"><?php echo esc_html( sprintf( __( '%1$d elementos revisados; %2$d URL preparadas.', 'taxocommerce-distribution' ), absint( $job['processed'] ?? 0 ), absint( $job['urls'] ?? 0 ) ) ); ?></span>
+                <span id="tcdist-sitemap-phase"><?php echo esc_html( (string) ( $job['phase'] ?? '' ) ); ?></span>
+                <span id="tcdist-sitemap-message"><?php echo esc_html( (string) ( $job['message'] ?? '' ) ); ?></span>
+                <p class="description" id="tcdist-sitemap-load"><?php
+                $sample = (array) ( $job['last_sample'] ?? array() );
+                echo esc_html( sprintf(
+                    /* translators: %1$s: worker seconds; %2$s: PHP CPU; %3$s: PHP memory. */
+                    __( 'Último bloque: %1$s s · CPU PHP: %2$s%% · Memoria PHP: %3$s%%', 'taxocommerce-distribution' ),
+                    (string) ( $sample['seconds'] ?? '—' ),
+                    (string) ( $sample['cpu_percent'] ?? '—' ),
+                    (string) ( $sample['memory_percent'] ?? '—' )
+                ) ); ?></p>
+            </div>
+        </div>
+
+        <?php if ( ! $running ) : ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:18px 0;">
+                <input type="hidden" name="action" value="tcdist_sitemap_regenerate">
+                <?php wp_nonce_field( 'tcdist_sitemap_regenerate' ); ?>
+                <?php submit_button( __( 'Generar sitemaps en bloques de 250', 'taxocommerce-distribution' ), 'primary', 'submit', false ); ?>
+            </form>
+        <?php else : ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:18px 0;">
+                <input type="hidden" name="action" value="tcdist_sitemap_stop">
+                <?php wp_nonce_field( 'tcdist_sitemap_stop' ); ?>
+                <?php submit_button( __( 'Detener generación', 'taxocommerce-distribution' ), 'secondary', 'submit', false ); ?>
+            </form>
+        <?php endif; ?>
 
         <details style="margin:16px 0;">
             <summary><strong><?php esc_html_e( 'What this generation does', 'taxocommerce-distribution' ); ?></strong></summary>
