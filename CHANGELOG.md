@@ -1,5 +1,14 @@
 # Changelog
 
+## Despliegue manual de toda la familia a PRO - 2026-11-03 (Issue #2119)
+
+- Sustituida la sincronizacion FTPS del repositorio entero, que escribia en el FTP del monolito, por una rutina centrada exclusivamente en los directorios `taxocommerce-*` de `staging`.
+- Se incluyen los 20 modulos del repositorio sin consultar instalacion, activacion, inventarios REST ni versiones; las carpetas de modulos ausentes se crean exclusivamente bajo el directorio de plugins de WordPress.
+- El FTP debe iniciar en el directorio del monolito existente y la ruta padre debe validarse antes de cualquier escritura. El codigo del monolito queda intacto.
+- Solo se usan archivos versionados y distribuibles; quedan excluidos tests, ocultos, datos, logs y temporales. Sin eliminaciones remotas ni cambios en configuraciones de WordPress.
+- Se evita retransferir archivos identicos, se valida SHA-256 antes y despues de cada sustitucion y se guarda un manifiesto de lo realmente comprobado. Un despliegue parcial termina como fallo.
+- Workflow solo manual (`workflow_dispatch`) y seleccion obligatoria de la rama `staging`, con pruebas offline de rutas, integridad, idempotencia y descubrimiento de modulos. Esta correccion no ejecuta por si sola un despliegue en PRO.
+
 ## Corrección de infraestructura FTPS - 2026-11-01 (Issue #1993)
 
 - El despliegue incremental a PRO tolera carpetas temporales FTPS ya existentes (error 550 de `mkdir -p`) y verifica el acceso real mediante `cd` antes de transferir archivos.
