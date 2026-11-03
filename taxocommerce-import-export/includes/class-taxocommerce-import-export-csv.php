@@ -31,7 +31,7 @@ final class TaxoCommerce_Import_Export_CSV {
 		check_admin_referer( 'taxocommerce_import_export_export', 'taxocommerce_import_export_nonce' );
 
 		$type = isset( $_POST['content_type'] ) ? sanitize_key( wp_unslash( $_POST['content_type'] ) ) : '';
-		if ( ! in_array( $type, array( 'products', 'product_categories', 'posts', 'pages' ), true ) ) {
+		if ( ! in_array( $type, array( 'products', 'product_categories', 'wp_categories', 'posts', 'pages' ), true ) ) {
 			wp_die( esc_html__( 'Tipo de contenido no válido.', 'taxocommerce-import-export' ) );
 		}
 
@@ -51,6 +51,8 @@ final class TaxoCommerce_Import_Export_CSV {
 			$this->export_products( $output );
 		} elseif ( 'product_categories' === $type ) {
 			$this->export_product_categories( $output );
+		} elseif ( 'wp_categories' === $type ) {
+			$this->export_native_categories( $output );
 		} else {
 			$this->export_posts( $output, 'pages' === $type ? 'page' : 'post' );
 		}
@@ -266,7 +268,7 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return void
 	 */
 	private function export_product_categories( $output ) {
-		fputcsv( $output, array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id', 'country_code' ), ',', '"', '' );
+		fputcsv( $output, $this->export_header_for_job( 'product_categories' ), ',', '"', '' );
 
 		$terms = get_terms(
 			array(
@@ -292,8 +294,43 @@ final class TaxoCommerce_Import_Export_CSV {
 					$term->description,
 					absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ),
 					$this->country_for_export( $term->term_id, true ),
+					$this->category_excerpt( $term->term_id ),
+					$this->category_parent_slug( $term, 'product_cat' ),
 				)
 			);
+		}
+	}
+
+	/**
+	 * Category excerpt is not a native term field; use the public termmeta
+	 * convention used by existing site templates, then the legacy excerpt key.
+	 */
+	private function category_excerpt( $term_id ) {
+		$value = get_term_meta( absint( $term_id ), 'seo_excerpt', true );
+		if ( ! is_scalar( $value ) || '' === (string) $value ) {
+			$value = get_term_meta( absint( $term_id ), 'excerpt', true );
+		}
+		return is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/** Portable parent slug; numeric IDs are retained only for same-site CSVs. */
+	private function category_parent_slug( $term, $taxonomy ) {
+		$parent_id = absint( $term->parent );
+		if ( ! $parent_id ) { return ''; }
+		$parent = get_term( $parent_id, $taxonomy );
+		return $parent && ! is_wp_error( $parent ) ? (string) $parent->slug : '';
+	}
+
+	/** Export WordPress' native post categories independently of product_cat. */
+	private function export_native_categories( $output ) {
+		fputcsv( $output, $this->export_header_for_job( 'wp_categories' ), ',', '"', '' );
+		$terms = get_terms( array(
+			'taxonomy' => 'category', 'hide_empty' => false,
+			'orderby' => 'term_id', 'order' => 'ASC',
+		) );
+		if ( is_wp_error( $terms ) ) { return; }
+		foreach ( (array) $terms as $term ) {
+			fputcsv( $output, $this->export_row_for_job( 'wp_categories', $term->term_id ), ',', '"', '' );
 		}
 	}
 
@@ -374,7 +411,10 @@ final class TaxoCommerce_Import_Export_CSV {
 			);
 		}
 		if ( 'product_categories' === $type ) {
-			return array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id', 'country_code' );
+			return array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'image_id', 'country_code', 'excerpt', 'parent_slug' );
+		}
+		if ( 'wp_categories' === $type ) {
+			return array( 'record_type', 'id', 'name', 'slug', 'parent_id', 'description', 'excerpt', 'parent_slug', 'country_code' );
 		}
 		return array( 'record_type', 'id', 'status', 'title', 'slug', 'excerpt', 'content', 'date_gmt', 'author_id', 'categories_json', 'tags_json', 'country_code' );
 	}
@@ -473,6 +513,19 @@ final class TaxoCommerce_Import_Export_CSV {
 				$term->parent,
 				$term->description,
 				absint( get_term_meta( $term->term_id, 'thumbnail_id', true ) ),
+				$this->country_for_export( $term->term_id, true ),
+				$this->category_excerpt( $term->term_id ),
+				$this->category_parent_slug( $term, 'product_cat' ),
+			);
+		}
+
+		if ( 'wp_categories' === $type ) {
+			$term = get_term( $id, 'category' );
+			if ( ! $term || is_wp_error( $term ) ) { return null; }
+			return array(
+				'wp_category', $term->term_id, $term->name, $term->slug, $term->parent,
+				$term->description, $this->category_excerpt( $term->term_id ),
+				$this->category_parent_slug( $term, 'category' ),
 				$this->country_for_export( $term->term_id, true ),
 			);
 		}
@@ -677,6 +730,10 @@ final class TaxoCommerce_Import_Export_CSV {
 			);
 		}
 
+		if ( 'product' === $type && ! isset( $data['short_description'] ) && isset( $data['excerpt'] ) ) {
+			// Historical product CSVs use excerpt as an alias for short_description.
+			$data['short_description'] = $data['excerpt'];
+		}
 		if ( in_array( $type, array( 'page', 'post' ), true ) ) {
             if ( ! isset( $data['title'] ) && isset( $data['name'] ) ) { $data['title'] = $data['name']; }
             if ( ! isset( $data['excerpt'] ) && isset( $data['short_description'] ) ) { $data['excerpt'] = $data['short_description']; }
@@ -708,6 +765,9 @@ final class TaxoCommerce_Import_Export_CSV {
 		}
 		if ( 'product_category' === $type ) {
 			return $this->import_product_category( $data );
+		}
+		if ( 'wp_category' === $type ) {
+			return $this->import_native_category( $data );
 		}
 		if ( in_array( $type, array( 'post', 'page' ), true ) ) {
 			return $this->import_post( $data, $type );
@@ -1039,6 +1099,103 @@ final class TaxoCommerce_Import_Export_CSV {
 		return $ids;
 	}
 
+	/** Resolve an existing term by canonical slug before foreign CSV IDs. */
+	private function category_target( $data, $taxonomy ) {
+		$slug = sanitize_title( (string) ( $data['slug'] ?? '' ) );
+		$id = absint( $data['id'] ?? 0 );
+		if ( '' !== $slug ) {
+			$match = get_term_by( 'slug', $slug, $taxonomy );
+			if ( $match && ! is_wp_error( $match ) ) { return $match; }
+		}
+		$by_id = $id ? get_term( $id, $taxonomy ) : null;
+		if ( $by_id && ! is_wp_error( $by_id ) ) {
+			// A mismatched ID belongs to another category on this installation.
+			if ( '' !== $slug && (string) $by_id->slug !== $slug ) {
+				// Legacy WooCommerce CSVs lack parent_slug and historically target ID;
+				// preserve their editing semantics. New portable CSVs never trust
+				// a foreign ID when it disagrees with the term slug.
+				return 'product_cat' === $taxonomy && ! array_key_exists( 'parent_slug', $data ) ? $by_id : null;
+			}
+			return $by_id;
+		}
+		return null;
+	}
+
+	/** A portable parent_slug takes precedence over numeric source-site IDs. */
+	private function category_parent_for_import( $data, $taxonomy, $existing_id ) {
+		if ( array_key_exists( 'parent_slug', $data ) ) {
+			$slug = sanitize_title( (string) $data['parent_slug'] );
+			if ( '' === $slug ) { return 0; }
+			$parent = get_term_by( 'slug', $slug, $taxonomy );
+			if ( ! $parent || is_wp_error( $parent ) ) {
+				return new WP_Error( 'tc_ie_parent_missing', __( 'No existe la categoría superior indicada por parent_slug. Importa primero el padre.', 'taxocommerce-import-export' ) );
+			}
+			$parent_id = absint( $parent->term_id );
+		} elseif ( array_key_exists( 'parent_id', $data ) ) {
+			$parent_id = absint( $data['parent_id'] );
+			if ( $parent_id ) {
+				$parent = get_term( $parent_id, $taxonomy );
+				if ( ! $parent || is_wp_error( $parent ) ) {
+					return new WP_Error( 'tc_ie_parent_id_missing', __( 'No existe el parent_id de esta categoría.', 'taxocommerce-import-export' ) );
+				}
+			}
+		} else {
+			return $existing_id ? null : 0;
+		}
+		if ( $existing_id && $existing_id === $parent_id ) {
+			return new WP_Error( 'tc_ie_parent_cycle', __( 'Una categoría no puede ser su propio padre.', 'taxocommerce-import-export' ) );
+		}
+		return $parent_id;
+	}
+
+	/** Additional excerpt is optional; absent CSV columns preserve stored data. */
+	private function save_category_excerpt( $term_id, $data ) {
+		if ( ! array_key_exists( 'excerpt', $data ) ) { return; }
+		$excerpt = wp_kses_post( (string) $data['excerpt'] );
+		if ( '' === $excerpt ) {
+			delete_term_meta( $term_id, 'seo_excerpt' );
+			delete_term_meta( $term_id, 'excerpt' );
+		} else {
+			update_term_meta( $term_id, 'seo_excerpt', $excerpt );
+		}
+	}
+
+	/** Shared native term API; never depend on Core or the SEO monolith. */
+	private function import_category_term( $data, $taxonomy ) {
+		$name = sanitize_text_field( (string) ( $data['name'] ?? '' ) );
+		$slug = sanitize_title( (string) ( $data['slug'] ?? '' ) );
+		if ( '' === $name ) {
+			return new WP_Error( 'tc_ie_category_name', __( 'La categoría necesita nombre.', 'taxocommerce-import-export' ) );
+		}
+		$country = $this->country_from_row( $data );
+		if ( is_wp_error( $country ) ) { return $country; }
+		$target = $this->category_target( $data, $taxonomy );
+		$id = $target ? absint( $target->term_id ) : 0;
+		$parent = $this->category_parent_for_import( $data, $taxonomy, $id );
+		if ( is_wp_error( $parent ) ) { return $parent; }
+		$args = array( 'name' => $name );
+		if ( '' !== $slug ) { $args['slug'] = $slug; }
+		if ( null !== $parent ) { $args['parent'] = $parent; }
+		if ( array_key_exists( 'description', $data ) ) {
+			$args['description'] = wp_kses_post( (string) $data['description'] );
+		}
+		$result = $id ? wp_update_term( $id, $taxonomy, $args ) : wp_insert_term( $name, $taxonomy, $args );
+		if ( is_wp_error( $result ) ) { return $result; }
+		$term_id = $id ? $id : absint( $result['term_id'] ?? 0 );
+		if ( ! $term_id ) {
+			return new WP_Error( 'tc_ie_category_save', __( 'No se pudo guardar la categoría.', 'taxocommerce-import-export' ) );
+		}
+		$this->save_category_excerpt( $term_id, $data );
+		$this->save_country( $term_id, $country, true );
+		return $term_id;
+	}
+
+	/** Native WordPress categories for posts, independent of product categories. */
+	private function import_native_category( $data ) {
+		$result = $this->import_category_term( $data, 'category' );
+		return is_wp_error( $result ) ? $result : true;
+	}
+
 	/**
 	 * Product category import.
 	 *
@@ -1046,34 +1203,12 @@ final class TaxoCommerce_Import_Export_CSV {
 	 * @return true|WP_Error
 	 */
 	private function import_product_category( $data ) {
-		$id          = absint( isset( $data['id'] ) ? $data['id'] : 0 );
-		$name        = sanitize_text_field( (string) ( isset( $data['name'] ) ? $data['name'] : '' ) );
-		$slug        = sanitize_title( (string) ( isset( $data['slug'] ) ? $data['slug'] : '' ) );
-		$parent_id   = absint( isset( $data['parent_id'] ) ? $data['parent_id'] : 0 );
-		$description = wp_kses_post( (string) ( isset( $data['description'] ) ? $data['description'] : '' ) );
-		$image_id    = absint( isset( $data['image_id'] ) ? $data['image_id'] : 0 );
-        $country = $this->country_from_row( $data );
-        if ( is_wp_error( $country ) ) { return $country; }
-
-		if ( ! $name ) {
-			return new WP_Error( 'taxocommerce_ie_category_name', __( 'La categoría necesita nombre.', 'taxocommerce-import-export' ) );
-		}
-
-		$term = $id ? get_term( $id, 'product_cat' ) : null;
-		if ( $term && ! is_wp_error( $term ) ) {
-			$result  = wp_update_term( $id, 'product_cat', array( 'name' => $name, 'slug' => $slug, 'parent' => $parent_id, 'description' => $description ) );
-			$term_id = $id;
-		} else {
-			$result  = wp_insert_term( $name, 'product_cat', array( 'slug' => $slug, 'parent' => $parent_id, 'description' => $description ) );
-			$term_id = is_wp_error( $result ) ? 0 : absint( $result['term_id'] );
-		}
-
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		$this->save_country( $term_id, $country, true );
-        if ( $term_id && $image_id ) {
-			update_term_meta( $term_id, 'thumbnail_id', $image_id );
+		$result = $this->import_category_term( $data, 'product_cat' );
+		if ( is_wp_error( $result ) ) { return $result; }
+		// Historical image_id remains optional, never cleared by a missing column.
+		if ( array_key_exists( 'image_id', $data ) ) {
+			$image_id = absint( $data['image_id'] );
+			if ( $image_id ) { update_term_meta( $result, 'thumbnail_id', $image_id ); }
 		}
 		return true;
 	}
@@ -1364,7 +1499,9 @@ final class TaxoCommerce_Import_Export_CSV {
 			'estado_stock'          => 'stock_status',
 			'gestionar_stock'       => 'manage_stock',
 			'cantidad_stock'        => 'stock_quantity',
-			'excerpt'               => 'short_description',
+			// Keep excerpt as a first-class column for post and term CSVs.
+			// Product imports map this legacy alias in import_row_for_batch().
+			'excerpt'               => 'excerpt',
 			'resumen'               => 'short_description',
 			'categories_json'       => 'categories_json',
 			'etiquetas_json'        => 'tags_json',

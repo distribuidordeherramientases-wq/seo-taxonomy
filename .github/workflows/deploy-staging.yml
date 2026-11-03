@@ -22,7 +22,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: taxocommerce-staging-focazul
+  group: taxocommerce-staging-focazul-${{ github.event_name == 'pull_request' && github.head_ref || 'deploy' }}
   cancel-in-progress: false
 
 jobs:
@@ -39,6 +39,16 @@ jobs:
           python3 -m unittest discover -s .github/tests -p test_deploy_pro_all.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
+      - name: Import-Export native category CSV contracts and PHP syntax
+        run: |
+          php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-csv.php
+          php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
+          php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-batch.php
+          php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-auto-test.php
+          php taxocommerce-import-export/tests/native-category-csv-smoke.php
+          php taxocommerce-import-export/tests/country-csv-smoke.php
+          php taxocommerce-import-export/tests/batch-queue-smoke.php
+          node --check taxocommerce-import-export/assets/exporter.js
       - name: Validate all TaxoCommerce binary gettext catalogs
         run: |
           python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
