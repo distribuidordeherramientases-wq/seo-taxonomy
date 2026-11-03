@@ -139,7 +139,7 @@ final class TaxoCommerce_Billing_Autotest {
 
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para el Autotest.', 'taxocommerce-facturacion' ) );
+            wp_die( esc_html__( 'Sin permisos para el Autocheck.', 'taxocommerce-facturacion' ) );
         }
         echo '<h2>' . esc_html__( 'Autocheck de Billing', 'taxocommerce-facturacion' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y configuración. No se crean facturas, proformas ni presupuestos, no se generan PDF, no se envían correos y no se modifica ningún pedido.', 'taxocommerce-facturacion' ) . '</p>';
