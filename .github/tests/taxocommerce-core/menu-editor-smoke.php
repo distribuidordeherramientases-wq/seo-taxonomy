@@ -43,7 +43,7 @@ $manual=wp_update_nav_menu_item(99,0,array('menu-item-title'=>'Manual <safe>','m
 $before=$GLOBALS['writes'];ob_start();$core->render();$html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'view never mutates menu');
 verify(strpos($html,'Gestor de menús')!==false,'unified native menu heading visible');
-verify(strpos($html,'name="tc_country"')===false,'native menu editor does not invent country selectors');
+verify(strpos($html,'id="tc-seo-country"')===false,'native menu editor does not invent country selectors');
 verify(strpos($html,'<h2>TaxoCommerce</h2>')!==false,'real WordPress menu name disclosed');
 
 verify(substr_count($html,'value="taxocommerce_core_sync_menu"')===0,'native menu must not synchronize country hierarchy');
@@ -87,7 +87,7 @@ $_GET['tc_country']='US';
 $before=$GLOBALS['writes'];ob_start();$core->render();$us_html=ob_get_clean();
 verify($GLOBALS['writes']===$before,'US menu identity view does not write');
 verify(strpos($us_html,'<h2>TaxoCommerce</h2>')!==false,'native screen keeps the assigned WordPress menu');
-verify(strpos($us_html,'name="tc_country"')===false,'native screen does not activate US SEO menu');
+verify(strpos($us_html,'id="tc-seo-country"')===false,'native screen does not activate US SEO menu');
 verify(strpos($us_html,'TaxoCommerce - ES')===false,'US identity does not claim ES menu');
 unset($_GET['tc_country']);
 
