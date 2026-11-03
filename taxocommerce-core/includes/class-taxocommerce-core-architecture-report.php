@@ -63,34 +63,22 @@ final class TaxoCommerce_Core_Architecture_Report {
      * Published role sets, excluding draft/private/trashed hierarchy pages.
      */
     private static function published_roles() {
-        global $wpdb;
-        $table = $wpdb->prefix . 'seo_nodes';
-
-        // The table is maintained by Core; it can be absent on a new install.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
-        $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
-        if ( $exists !== $table ) {
-            return new WP_Error( 'tc_arch_no_nodes', 'Todavía no está disponible la tabla de roles SEO del Core.' );
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh Core architecture report must reflect current hierarchy data.
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT DISTINCT n.object_id AS id, n.seo_role AS role
-               FROM %i n
-               INNER JOIN %i p ON p.ID = n.object_id
-              WHERE n.object_type = 'page'
-                AND n.status = 1
-                AND p.post_type = 'page'
-                AND p.post_status = 'publish'
-                AND n.seo_role IN ('cluster','hub_primary','hub_secondary')",
-                $table,
-                $wpdb->posts
-            ),
-            ARRAY_A
-        );
-        if ( ! is_array( $rows ) ) {
-            return new WP_Error( 'tc_arch_query_nodes', 'No se han podido consultar los roles de las páginas SEO.' );
+        // Roles are native WordPress page metadata; no SEO nodes query is needed.
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Fixed metadata key for Core's page-role index.
+        $pages = get_posts( array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META,
+        ) );
+        $rows = array();
+        foreach ( $pages as $id ) {
+            $id = absint( $id );
+            $role = sanitize_key( (string) get_post_meta( $id, TaxoCommerce_Core_Hierarchy::ROLE_META, true ) );
+            if ( in_array( $role, array( 'cluster', 'hub_primary', 'hub_secondary' ), true ) ) {
+                $rows[] = array( 'id' => $id, 'role' => $role );
+            }
         }
         return $rows;
     }
