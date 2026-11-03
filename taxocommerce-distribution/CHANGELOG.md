@@ -10,6 +10,14 @@
 
 Sin novedades pendientes documentadas.
 
+## [0.1.4] — 2026-11-03
+
+- Corrige el informe de fecha: separa inicio de ejecución, actividad de los lotes y última publicación completada; el XML antiguo no se presenta como publicación nueva.
+- Los nuevos archivos hijos llevan identificador de generación único. El índice anterior y sus archivos siguen intactos hasta que el nuevo índice validado se publica al final; reanuda trabajos iniciados con nombres antiguos migrándolos dentro del directorio temporal.
+- Detecta fallos de programación de WP-Cron y de almacenamiento, muestra errores explícitos y conserva los sitemaps publicados.
+- El informe durante el proceso no suma archivos todavía ausentes del índice anterior; regresaión aislada de publicación, programación fallida y continuidad tras la actualización.
+
+
 ## [0.1.3] — 2026-11-03
 
 - Cabecera de administración con estilo común TaxoCommerce Core, nombre, icono, descripción y versión, sin dependencias entre plugins (#2137 / PR #2138).

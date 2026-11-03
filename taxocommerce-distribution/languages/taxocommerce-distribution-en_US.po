@@ -1043,3 +1043,63 @@ msgid ""
 "de archivo. Distribución manual y automática tienen propietarios distintos "
 "durante la migración."
 msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
+msgstr "WordPress could not schedule sitemap generation. Check WP-Cron."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "No se puede reprogramar la generación de sitemaps."
+msgstr "Sitemap generation could not be rescheduled."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no ha podido programar el siguiente bloque; los XML publicados no se han sustituido."
+msgstr "WP-Cron could not schedule the next batch; published XML files have not been replaced."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no puede recuperar la generación interrumpida."
+msgstr "WP-Cron cannot resume the interrupted generation."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso."
+msgstr "No recent activity. Check WP-Cron; this browser will attempt to resume the process."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Inicio de esta generación:"
+msgstr "Current generation started:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última publicación completada:"
+msgstr "Last completed publication:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última actividad:"
+msgstr "Last activity:"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "En ejecución"
+msgstr "Running"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Completado"
+msgstr "Completed"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Detenido"
+msgstr "Stopped"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin iniciar"
+msgstr "Not started"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Todavía no publicado"
+msgstr "Not yet published"
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La fecha de los archivos XML corresponde a la última publicación, no al inicio del trabajo."
+msgstr "XML file dates show the last publication, not the job start."
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La generación está en curso. El índice visible todavía pertenece a la publicación anterior."
+msgstr "Generation is in progress. The visible index still belongs to the previous publication."

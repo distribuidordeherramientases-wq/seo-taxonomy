@@ -798,3 +798,63 @@ msgstr ""
 #: includes/manual.php:175
 msgid "Con monolito activo: evita duplicar tareas que publican los mismos nombres de archivo. Distribución manual y automática tienen propietarios distintos durante la migración."
 msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "No se puede reprogramar la generación de sitemaps."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no ha podido programar el siguiente bloque; los XML publicados no se han sustituido."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "WP-Cron no puede recuperar la generación interrumpida."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Inicio de esta generación:"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última publicación completada:"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Última actividad:"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "En ejecución"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Completado"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Detenido"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Sin iniciar"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "Todavía no publicado"
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La fecha de los archivos XML corresponde a la última publicación, no al inicio del trabajo."
+msgstr ""
+
+#: includes/admin.php includes/sitemaps/batch-worker.php
+msgid "La generación está en curso. El índice visible todavía pertenece a la publicación anterior."
+msgstr ""

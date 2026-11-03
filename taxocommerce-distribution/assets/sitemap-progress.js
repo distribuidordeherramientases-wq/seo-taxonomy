@@ -11,6 +11,10 @@
     const phase = document.getElementById( 'tcdist-sitemap-phase' );
     const message = document.getElementById( 'tcdist-sitemap-message' );
     const load = document.getElementById( 'tcdist-sitemap-load' );
+    const published = document.getElementById( 'tcdist-sitemap-published-at' );
+    const started = document.getElementById( 'tcdist-sitemap-started-at' );
+    const updated = document.getElementById( 'tcdist-sitemap-updated-at' );
+    const stalled = document.getElementById( 'tcdist-sitemap-stalled' );
     let active = true;
 
     async function tick() {
@@ -33,7 +37,19 @@
             }
 
             const data = json.data;
-            status.textContent = data.status;
+            status.textContent = cfg.statusLabels?.[ data.status ] || data.status;
+            if ( published && data.published ) {
+                published.textContent = data.published;
+            }
+            if ( started && data.started ) {
+                started.textContent = data.started;
+            }
+            if ( updated && data.heartbeat ) {
+                updated.textContent = data.heartbeat;
+            }
+            if ( stalled ) {
+                stalled.textContent = data.stalled ? cfg.stalled : '';
+            }
             counts.textContent = data.processed + ' elementos revisados; ' + data.urls + ' URL preparadas.';
             phase.textContent = data.phase;
             message.textContent = data.message || '';
@@ -57,7 +73,10 @@
             const delay = Math.max( 1000, Math.min( 60000, Number( sample.delay_seconds || 5 ) * 1000 ) );
             window.setTimeout( tick, delay );
         } catch ( error ) {
-            // A transient AJAX or hosting failure must never cause a busy loop.
+            // Keep the last published index, report heartbeat failures visibly.
+            if ( stalled ) {
+                stalled.textContent = cfg.stalled;
+            }
             window.setTimeout( tick, 15000 );
         }
     }
