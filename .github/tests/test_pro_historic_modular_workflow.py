@@ -81,6 +81,25 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn(".ftp-deploy-sync-state.json", text)
         self.assertIn(".taxocommerce-deploy", text)
 
+    def test_every_source_module_has_matching_version_and_stable_tag(self):
+        modules = sorted(
+            d for d in ROOT.glob("taxocommerce-*")
+            if d.is_dir() and MODULE.fullmatch(d.name)
+        )
+        errors = []
+        for module in modules:
+            main = (module / (module.name + ".php")).read_text(
+                encoding="utf-8", errors="replace"
+            )
+            readme = (module / "readme.txt").read_text(
+                encoding="utf-8", errors="replace"
+            )
+            version = re.search(r"(?mi)^\\s*\\*\\s*Version:\\s*(\\S+)", main)
+            stable = re.search(r"(?mi)^Stable tag:\\s*(\\S+)", readme)
+            if not version or not stable or version.group(1) != stable.group(1):
+                errors.append(module.name + ": Version != Stable tag")
+        self.assertEqual(errors, [])
+
     def test_source_inventory_is_a_valid_modular_family(self):
         modules = sorted(
             d for d in ROOT.glob("taxocommerce-*")
