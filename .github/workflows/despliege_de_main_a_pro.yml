@@ -2,6 +2,12 @@ name: STAGING a PRODUCCION - toda la familia TaxoCommerce
 
 on:
   workflow_dispatch:
+    inputs:
+      pro_plugins_dir:
+        description: 'Directorio FTP del WordPress de PRODUCCION (wp-content/plugins)'
+        required: true
+        type: string
+        default: 'hosting160568eu-279554.webempresa.site/wp-content/plugins'
 
 permissions:
   contents: read
@@ -33,6 +39,7 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          PRO_FTP_PLUGINS_DIR: ${{ inputs.pro_plugins_dir }}
         run: python3 .github/scripts/deploy_pro_all.py
 
       - name: Guardar inventario y comprobaciones, incluso tras un fallo parcial
