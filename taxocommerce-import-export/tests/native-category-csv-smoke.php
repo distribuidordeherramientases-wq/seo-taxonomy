@@ -39,6 +39,7 @@ function get_terms( $args ) {
     }
     return $terms;
 }
+function wp_count_terms( $args ) { return count( $GLOBALS['terms'][ $args['taxonomy'] ] ?? array() ); }
 function wp_insert_term( $name, $taxonomy, $args = array() ) {
     $slug = $args['slug'] ?? sanitize_title( $name );
     $old = get_term_by( 'slug', $slug, $taxonomy );
@@ -78,6 +79,16 @@ require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-csv.php
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-exporter.php';
 $csv = new TaxoCommerce_Import_Export_CSV();
 assert_ie( array_key_exists( 'wp_categories', TaxoCommerce_Import_Export_Exporter::types() ), 'Native dataset in UI registry' );
+$exporter = new TaxoCommerce_Import_Export_Exporter( $csv );
+$next_ids = new ReflectionMethod( $exporter, 'next_ids' );
+$filtered = $next_ids->invoke( $exporter, 'wp_categories', 0, 15, array( 'wp_category_ids' => array( 30 ) ) );
+assert_ie( $filtered === array( 30 ), 'WordPress-category selection is independent of WooCommerce term IDs' );
+$all = $next_ids->invoke( $exporter, 'wp_categories', 0, 15, array() );
+assert_ie( $all === array( 10, 30 ), 'Empty selection exports all native categories' );
+$count = new ReflectionMethod( $exporter, 'count_total' );
+assert_ie( $count->invoke( $exporter, 'wp_categories', array( 'wp_category_ids' => array( 30 ) ) ) === 1, 'Native filtered total' );
+assert_ie( $count->invoke( $exporter, 'wp_categories', array() ) === 2, 'Native all total' );
+
 $native_header = $csv->export_header_for_job( 'wp_categories' );
 $product_header = $csv->export_header_for_job( 'product_categories' );
 assert_ie( in_array( 'excerpt', $native_header, true ) && in_array( 'description', $native_header, true ), 'Native excerpt and body' );
@@ -89,6 +100,13 @@ assert_ie( $row[0] === 'wp_category' && $row[1] === 10 && $row[5] === '<p>Descri
 assert_ie( $row[6] === '<em>Extracto</em>', 'Additional excerpt from seo_excerpt' );
 $old = $csv->export_row_for_job( 'product_categories', 10 );
 assert_ie( $old[0] === 'product_category' && $old[5] === '<p>Catálogo</p>', 'WooCommerce taxonomy remains independent' );
+$legacy_product_cat = array(
+    'record_type' => 'product_category', 'id' => 10, 'name' => 'Ropa',
+    'slug' => 'ropa-nueva', 'description' => '<p>Catálogo actualizado</p>',
+);
+assert_ie( true === $csv->import_row_for_batch( $legacy_product_cat, array( 'type' => 'product_category' ) ), 'Legacy Woo category ID update remains supported' );
+assert_ie( get_term( 10, 'product_cat' )->slug === 'ropa-nueva', 'Legacy product category slug editing preserved' );
+
 $native = array_combine( $native_header, $row );
 $native['name'] = 'Noticias renovadas';
 assert_ie( true === $csv->import_row_for_batch( $native, array( 'type' => 'wp_category' ) ), 'Native import updates existing slug' );
@@ -127,4 +145,8 @@ assert_ie( true === $csv->import_row_for_batch( $old_format, array( 'type' => 'w
 assert_ie( get_term_meta( 10, 'seo_excerpt' ) === '', 'Empty excerpt clears additional metadata' );
 $native_row = $csv->export_row_for_job( 'wp_categories', $created->term_id );
 assert_ie( $native_row[7] === 'noticias', 'Export parent slug for portable import' );
+$GLOBALS['term_meta'][ $created->term_id ]['seo_excerpt'] = '';
+$GLOBALS['term_meta'][ $created->term_id ]['excerpt'] = 'Extracto antiguo';
+assert_ie( $csv->export_row_for_job( 'wp_categories', $created->term_id )[6] === 'Extracto antiguo', 'Legacy excerpt termmeta fallback works' );
+
 echo "PASS: native WP and WooCommerce category CSV roundtrip, identity, hierarchy and excerpts.\n";
