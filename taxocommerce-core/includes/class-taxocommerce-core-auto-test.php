@@ -16,6 +16,10 @@ final class TaxoCommerce_Core_Auto_Test {
     const REPORT_PREFIX = 'taxocommerce_core_autotest_';
 
     public static function register_hooks() {
+        // The suite runs only after a deliberate POST from the Core dashboard.
+        // The dashboard load hook runs after WordPress has registered admin menus,
+        // allowing access tests to inspect the real route registry.
+        add_action( 'load-toplevel_page_taxocommerce-core', array( __CLASS__, 'handle_dashboard_run' ) );
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) );
         add_action( 'admin_post_' . self::EXPORT_ACTION, array( __CLASS__, 'handle_export_json' ) );
     }
@@ -24,6 +28,18 @@ final class TaxoCommerce_Core_Auto_Test {
         return current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) );
     }
 
+    /**
+     * The new manual execution path has a fully initialized WordPress admin menu.
+     * GET requests, activations, updates and deployments never run the suite.
+     */
+    public static function handle_dashboard_run() {
+        if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['tc_autotest_manual_run'] ) ) {
+            return;
+        }
+        self::handle_run();
+    }
+
+    /** Keep the historical manual admin-post endpoint for bookmarked forms. */
     public static function handle_run() {
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'Sin permisos para ejecutar autocheck.', 'taxocommerce-core' ) );
@@ -97,6 +113,21 @@ final class TaxoCommerce_Core_Auto_Test {
                     'skip' => (int) $totals['skip'],
                 ),
                 'tests' => $report['rows'],
+                'errors' => array_values( array_map( static function( $row ) {
+                    return array(
+                        'id' => $row['id'],
+                        'group' => $row['group'],
+                        'message' => $row['message'],
+                        'php_errors' => $row['php_errors'] ?? array(),
+                    );
+                }, array_filter( $report['rows'], static function( $row ) {
+                    return 'fail' === $row['status'];
+                } ) ) ),
+                'not_executed' => array_values( array_map( static function( $row ) {
+                    return array( 'id' => $row['id'], 'message' => $row['message'] );
+                }, array_filter( $report['rows'], static function( $row ) {
+                    return 'skip' === $row['status'];
+                } ) ) ),
             ),
         );
     }
@@ -135,9 +166,14 @@ final class TaxoCommerce_Core_Auto_Test {
     public static function cases() {
         return array(
             'runtime'      => array( 'Core', 'Arranque y servicios' ),
+            'plugin_files' => array( 'Core', 'Versión y archivos esenciales del plugin' ),
+            'database'     => array( 'WordPress', 'Consulta de base de datos' ),
+            'admin_routes' => array( 'WordPress', 'Acceso a pantallas internas de Core' ),
             'actions'      => array( 'Core', 'Acciones administrativas registradas' ),
             'content'      => array( 'Contenidos', 'Consulta de páginas y entradas' ),
             'catalog'      => array( 'Contenidos', 'Consulta de productos y categorías' ),
+            'category_fields' => array( 'Contenidos', 'Descripción y extracto nativos de categorías' ),
+            'native_roles' => array( 'Jerarquía', 'Lectura de roles SEO desde WordPress' ),
             'inventory'    => array( 'Contenidos', 'Inventario de contenidos' ),
             'countries'    => array( 'Países', 'Códigos de país disponibles' ),
             'post_country' => array( 'Países', 'País de páginas internacionales' ),
@@ -172,6 +208,23 @@ final class TaxoCommerce_Core_Auto_Test {
         $totals = array( 'pass' => 0, 'fail' => 0, 'skip' => 0 );
         foreach ( $cases as $id => $labels ) {
             $began = microtime( true );
+            $warnings = array();
+            // The temporary error handler captures only PHP errors raised inside
+            // this particular manual check, never all site errors or unrelated logs.
+            set_error_handler( static function( $severity, $message, $file, $line ) use ( &$warnings ) {
+                if ( 0 === ( error_reporting() & $severity ) ) {
+                    return false;
+                }
+                if ( count( $warnings ) < 10 ) {
+                    $warnings[] = array(
+                        'severity' => (int) $severity,
+                        'message' => sanitize_text_field( str_replace( ABSPATH, '', (string) $message ) ),
+                        'file' => basename( (string) $file ),
+                        'line' => (int) $line,
+                    );
+                }
+                return true;
+            } );
             try {
                 $method = array( __CLASS__, 'check_' . $id );
                 $result = is_callable( $method ) ? call_user_func( $method ) : self::bad( 'Test sin implementación: ' . $id );
@@ -181,6 +234,13 @@ final class TaxoCommerce_Core_Auto_Test {
                 }
             } catch ( Throwable $error ) {
                 $result = self::bad( get_class( $error ) . ': ' . $error->getMessage() );
+            } finally {
+                restore_error_handler();
+            }
+            if ( $warnings ) {
+                $result['status'] = 'fail';
+                $result['message'] .= ' Se produjeron ' . count( $warnings ) . ' avisos/errores PHP durante la prueba.';
+                $result['php_errors'] = $warnings;
             }
             $result['id'] = $id;
             $result['group'] = $labels[0];
@@ -226,6 +286,130 @@ final class TaxoCommerce_Core_Auto_Test {
             return self::bad( 'Faltan los servicios de contenido, jerarquía o menús.' );
         }
         return self::ok( 'Core ' . TAXOCOMMERCE_CORE_VERSION . '; servicios accesibles.' );
+    }
+
+    private static function check_plugin_files() {
+        if ( ! defined( 'TAXOCOMMERCE_CORE_PATH' ) || ! defined( 'TAXOCOMMERCE_CORE_FILE' ) ) {
+            return self::bad( 'No están definidas las rutas del plugin Core.' );
+        }
+        $required = array(
+            TAXOCOMMERCE_CORE_FILE,
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-auto-test.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-content-manager.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-hierarchy.php',
+            TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-menu.php',
+        );
+        foreach ( $required as $file ) {
+            if ( ! is_file( $file ) || ! is_readable( $file ) ) {
+                return self::bad( 'No existe o no se puede leer el archivo de Core: ' . basename( $file ) );
+            }
+        }
+        if ( function_exists( 'get_file_data' ) ) {
+            $data = get_file_data( TAXOCOMMERCE_CORE_FILE, array( 'Version' => 'Version' ), 'plugin' );
+            if ( empty( $data['Version'] ) || $data['Version'] !== TAXOCOMMERCE_CORE_VERSION ) {
+                return self::bad( 'La cabecera de versión no coincide con TAXOCOMMERCE_CORE_VERSION.' );
+            }
+        }
+        return self::ok( count( $required ) . ' archivos esenciales legibles y versión coherente.' );
+    }
+
+    private static function check_database() {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Requested manual diagnostic.
+        $answer = $wpdb->get_var( 'SELECT 1' );
+        return '1' === (string) $answer
+            ? self::ok( 'WordPress puede consultar su base de datos.' )
+            : self::bad( 'No se ha podido ejecutar una consulta de lectura a MySQL.' );
+    }
+
+    /**
+     * A removed submenu registration may cause "Sorry, you are not allowed to
+     * access this page", even when a callable callback still exists.
+     */
+    private static function check_admin_routes() {
+        global $submenu;
+        if ( ! function_exists( 'get_plugin_page_hook' ) || ! function_exists( 'get_current_screen' ) ) {
+            return self::skip( 'La ejecución no dispone de un contexto de administración completo.' );
+        }
+        $screen = get_current_screen();
+        if ( ! $screen || 'toplevel_page_taxocommerce-core' !== $screen->id ) {
+            return self::skip( 'Ejecuta el AutoCheck desde la pantalla principal de Core para comprobar las rutas.' );
+        }
+        $permission = apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' );
+        if ( ! current_user_can( $permission ) ) {
+            return self::bad( 'El usuario actual no dispone del permiso de administración requerido.' );
+        }
+        $pages = array(
+            'taxocommerce-core-content',
+            'taxocommerce-core-hierarchy',
+            'taxocommerce-core-menu',
+            TaxoCommerce_Core_User_Guide::PAGE_SLUG,
+        );
+        $registered = isset( $submenu['taxocommerce-core'] ) ? (array) $submenu['taxocommerce-core'] : array();
+        foreach ( $pages as $slug ) {
+            $found = false;
+            foreach ( $registered as $item ) {
+                if ( isset( $item[2] ) && $slug === (string) $item[2] ) {
+                    $found = true;
+                    if ( ! current_user_can( $item[1] ) ) {
+                        return self::bad( 'El usuario no puede acceder a la pantalla ' . $slug . ' (' . $item[1] . ').' );
+                    }
+                    break;
+                }
+            }
+            if ( ! $found ) {
+                return self::bad( 'Ruta administrativa ausente del registro WordPress: ' . $slug . '. Puede causar acceso denegado.' );
+            }
+            $hook = get_plugin_page_hook( $slug, 'taxocommerce-core' );
+            if ( ! $hook || false === has_action( $hook ) ) {
+                return self::bad( 'Pantalla administrativa sin controlador ejecutable: ' . $slug . '.' );
+            }
+        }
+        return self::ok( count( $pages ) . ' pantallas de Core registradas con permisos y controladores.' );
+    }
+
+    /** Read a real WooCommerce category using WordPress taxonomy and termmeta. */
+    private static function check_category_fields() {
+        if ( ! taxonomy_exists( 'product_cat' ) ) {
+            return self::skip( 'WooCommerce no tiene activa la taxonomía product_cat.' );
+        }
+        $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'number' => 1 ) );
+        if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
+            return self::bad( 'WordPress no puede recuperar una categoría de productos.' );
+        }
+        if ( ! $terms ) {
+            return self::skip( 'Esta tienda todavía no tiene categorías para comprobar.' );
+        }
+        $term = get_term( $terms[0]->term_id, 'product_cat' );
+        if ( ! $term || is_wp_error( $term ) || ! isset( $term->description ) ) {
+            return self::bad( 'No se puede leer la descripción nativa de la categoría.' );
+        }
+        $excerpt = get_term_meta( $term->term_id, 'seo_excerpt', true );
+        if ( ! is_string( $excerpt ) ) {
+            return self::bad( 'No se puede leer el extracto nativo (termmeta.seo_excerpt).' );
+        }
+        return self::ok( 'Categoría #' . absint( $term->term_id ) . ': descripción y extracto accesibles con las APIs de WordPress.' );
+    }
+
+    private static function check_native_roles() {
+        if ( ! is_callable( array( 'TaxoCommerce_Core_Hierarchy_Classic', 'role_pages' ) ) ) {
+            return self::bad( 'No está disponible el lector de roles de páginas.' );
+        }
+        $hierarchy = taxocommerce_core()->hierarchy();
+        foreach ( array( 'cluster', 'hub_primary', 'hub_secondary', 'landing' ) as $role ) {
+            $pages = TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role );
+            if ( ! is_array( $pages ) ) {
+                return self::bad( 'Error al consultar las páginas del rol ' . $role . '.' );
+            }
+            foreach ( array_slice( $pages, 0, 1 ) as $page ) {
+                if ( ! isset( $page->ID ) || $hierarchy->get_page_role( $page->ID ) !== $role ) {
+                    return self::bad( 'Discrepancia del rol nativo ' . $role . ' en página #' . absint( $page->ID ?? 0 ) . '.' );
+                }
+                return self::ok( 'Rol ' . $role . ' recuperado correctamente para la página #' . absint( $page->ID ) . '.' );
+            }
+        }
+        return self::skip( 'No hay páginas clasificadas para comprobar la lectura de roles.' );
     }
 
     private static function check_actions() {
@@ -721,8 +905,8 @@ final class TaxoCommerce_Core_Auto_Test {
             #tc-core-autotest .tc-at-row--fail p{color:#b32d2e;font-weight:600}
             #tc-core-autotest .tc-at-small{font-size:12px;color:#50575e}
             </style>
-            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
-                <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
+            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
+                <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
                 <?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
                 <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
@@ -748,6 +932,13 @@ final class TaxoCommerce_Core_Auto_Test {
                         <span class="tc-at-dot tc-at-dot--<?php echo esc_attr( $row['status'] ); ?>" aria-hidden="true"></span>
                         <div><strong><?php echo esc_html( $row['group'] . ' · ' . $row['label'] ); ?> <span class="tc-at-small"><?php echo esc_html( $row['id'] ); ?></span></strong>
                             <p><?php echo esc_html( $row['message'] ); ?></p>
+                            <?php if ( ! empty( $row['php_errors'] ) ) : ?>
+                                <ul class="tc-at-small">
+                                <?php foreach ( $row['php_errors'] as $php_error ) : ?>
+                                    <li><?php echo esc_html( (string) $php_error['message'] . ' (' . $php_error['file'] . ':' . (int) $php_error['line'] . ')' ); ?></li>
+                                <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                             <span class="tc-at-small"><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></span></div>
                     </div>
                 <?php endforeach; ?>
