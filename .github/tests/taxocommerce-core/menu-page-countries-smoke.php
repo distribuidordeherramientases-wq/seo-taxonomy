@@ -37,6 +37,11 @@ class TaxoCommerce_Core_Hierarchy_Classic {
 }
 function __( $text, $domain = '' ) { return $text; }
 function esc_html__( $text, $domain = '' ) { return $text; }
+function esc_html_e( $text, $domain = '' ) { echo esc_html__( $text, $domain ); }
+function esc_url( $url ) { return $url; }
+function admin_url( $path ) { return '/wp-admin/' . $path; }
+function get_the_title( $page ) { return 'Page ' . $page->ID; }
+function wp_get_nav_menu_items( $id ) { return array(); }
 function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 function selected( $current, $expected, $echo = true ) {
@@ -123,6 +128,15 @@ require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-
 require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-menu.php';
 
 verify( array_keys( TaxoCommerce_Core_Menu::available_countries() ) === array( '' ), 'fresh site only has Global (no configured country)' );
+$proposal = new TaxoCommerce_Core_Menu( new TaxoCommerce_Core_Logger() );
+$before_menus = count( $GLOBALS['menus'] );
+ob_start();
+$proposal->render_hierarchy_proposal();
+$empty_country_proposal = ob_get_clean();
+verify( false !== strpos( $empty_country_proposal, '<option value=""' ), 'propose menu renders Global with empty country' );
+verify( false === strpos( $empty_country_proposal, '<option value="ES"' ), 'propose menu never includes implicit ES' );
+verify( false === strpos( $empty_country_proposal, '<option value="US"' ), 'propose menu never includes implicit US' );
+verify( $before_menus === count( $GLOBALS['menus'] ), 'view proposal never creates menus' );
 verify( TaxoCommerce_Core_Menu::country() === '', 'menu selection without a country remains Global' );
 verify( TaxoCommerce_Core_Menu::page_country( 10 ) === '', 'page without country is Global despite legacy ES fallback' );
 verify( TaxoCommerce_Core_Country::post( 10 ) === 'ES', 'legacy Core country inference is left intact' );
@@ -147,6 +161,14 @@ $GLOBALS['term_meta'][300] = array( '_seo_pais_origen' => 'DE' );
 verify( array_keys( TaxoCommerce_Core_Menu::available_countries() ) === array( '', 'DE', 'FR' ), 'only explicitly assigned page countries appear' );
 verify( ! array_key_exists( 'ES', TaxoCommerce_Core_Menu::available_countries() ), 'implicit Spain never appears' );
 verify( ! array_key_exists( 'US', TaxoCommerce_Core_Menu::available_countries() ), 'trashed pages do not introduce a market' );
+ob_start();
+$proposal->render_hierarchy_proposal();
+$assigned_country_proposal = ob_get_clean();
+verify( false !== strpos( $assigned_country_proposal, '<option value="FR"' ), 'propose menu includes country used on pages' );
+verify( false !== strpos( $assigned_country_proposal, '<option value="DE"' ), 'propose menu includes another page country' );
+verify( false === strpos( $assigned_country_proposal, '<option value="ES"' ), 'propose menu excludes unused ES' );
+verify( false === strpos( $assigned_country_proposal, '<option value="US"' ), 'propose menu excludes trashed-only US' );
+verify( $before_menus === count( $GLOBALS['menus'] ), 'rendering a proposal does not modify existing native menus' );
 verify( TaxoCommerce_Core_Menu::term_country( 201 ) === 'FR', 'category inherits explicit country' );
 
 $menu = new TaxoCommerce_Core_Menu( new TaxoCommerce_Core_Logger() );
