@@ -495,7 +495,7 @@ final class TaxoCommerce_Core_Auto_Test {
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only bounded diagnostic.
         $rows = $wpdb->get_results( $wpdb->prepare(
-            'SELECT id,source_type,source_id,target_type,target_id,relation_type,country_code FROM %i ORDER BY id DESC LIMIT 60',
+            'SELECT id,source_type,source_id,target_type,target_id,relation_type FROM %i ORDER BY id DESC LIMIT 60',
             $table
         ), ARRAY_A );
         if ( ! is_array( $rows ) ) {
