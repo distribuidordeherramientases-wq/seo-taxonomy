@@ -40,10 +40,10 @@ DETAIL_PATTERNS = (
     (r"Cannot redeclare\s+([\w\\:]+)", "Duplicate declaration"),
     (r"Too few arguments to function\s+([\w\\:]+)", "Insufficient arguments"),
     (r"syntax error,?\s+unexpected\s+([A-Za-z0-9_]+)", "Parse error"),
+    (r"Failed opening required", "Required file missing"),
     (r"Uncaught\s+([\w\\]+)", "Uncaught exception"),
     (r"Allowed memory size of", "Memory limit exceeded"),
     (r"Maximum execution time of", "Execution time exceeded"),
-    (r"Failed opening required", "Required file missing"),
 )
 ERROR_MARKERS = (
     "PHP Fatal error", "PHP Parse error", "PHP Compile Error",
@@ -145,6 +145,21 @@ def inspect(ftp: ftplib.FTP_TLS) -> int:
             print("LOG " + rel + ": " + str(len(events)) + " PHP fatal/parse events in tail")
             for item in events[-MAX_EVENTS:]:
                 print("  " + item)
+    if safe_cwd(ftp, origin, "wp-content/plugins/taxocommerce-core/includes"):
+        try:
+            filenames = {
+                posixpath.basename(name.rstrip("/"))
+                for name in ftp.nlst()
+            }
+            for required in (
+                "class-taxocommerce-core-menu.php",
+                "class-taxocommerce-core-menu-editor.php",
+                "class-taxocommerce-core-block-navigation.php",
+            ):
+                print("CORE_INCLUDED_FILE " + required + ": " +
+                      ("PRESENT" if required in filenames else "ABSENT"))
+        except ftplib.error_perm:
+            print("CORE_INCLUDED_FILES: DIRECTORY LISTING NOT ALLOWED")
     if safe_cwd(ftp, origin, "wp-content/plugins/taxocommerce-core"):
         content = fetch_tail(ftp, "taxocommerce-core.php")
         # The main plugin file is small; only the plugin version is output.
