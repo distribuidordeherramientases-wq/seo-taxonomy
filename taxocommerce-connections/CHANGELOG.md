@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.3.1] — 2026-11-03
+
+- Nuevo Autocheck independiente del puente de compatibilidad y del modo de respaldo, con JSON descargable protegido; no expone credenciales.
+- Issue #2150; PR #2151. Mantiene las rutas internas existentes y la ejecución no destructiva.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce Connections Compatibility Bridge

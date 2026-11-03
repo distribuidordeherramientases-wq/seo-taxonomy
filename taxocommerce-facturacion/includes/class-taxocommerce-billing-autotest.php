@@ -141,12 +141,12 @@ final class TaxoCommerce_Billing_Autotest {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Sin permisos para el Autotest.', 'taxocommerce-facturacion' ) );
         }
-        echo '<h2>' . esc_html__( 'Autotest de Billing', 'taxocommerce-facturacion' ) . '</h2>';
+        echo '<h2>' . esc_html__( 'Autocheck de Billing', 'taxocommerce-facturacion' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y configuración. No se crean facturas, proformas ni presupuestos, no se generan PDF, no se envían correos y no se modifica ningún pedido.', 'taxocommerce-facturacion' ) . '</p>';
         echo '<form method="post">';
         wp_nonce_field( 'taxocommerce_billing_autotest' );
         echo '<input type="hidden" name="taxocommerce_billing_run" value="1">';
-        submit_button( 'Ejecutar autotest', 'secondary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'secondary', 'submit', false );
         echo '</form>';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is checked immediately before any diagnostics.
@@ -156,6 +156,27 @@ final class TaxoCommerce_Billing_Autotest {
         }
         check_admin_referer( 'taxocommerce_billing_autotest' );
         $rows = self::run();
+        $autocheck_totals = array();
+        foreach ( $rows as $autocheck_item ) {
+            $autocheck_status = (string) ( $autocheck_item['status'] ?? 'unknown' );
+            $autocheck_totals[ $autocheck_status ] = ( $autocheck_totals[ $autocheck_status ] ?? 0 ) + 1;
+        }
+        $autocheck_report = array(
+            'schema' => 1,
+            'plugin' => 'taxocommerce-facturacion',
+            'version' => defined( 'TAXOCOMMERCE_FACTURACION_VERSION' ) ? constant( 'TAXOCOMMERCE_FACTURACION_VERSION' ) : '',
+            'generated_at' => gmdate( 'c' ),
+            'totals' => $autocheck_totals,
+            'rows' => $rows,
+        );
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( 'taxocommerce_facturacion_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_facturacion_autocheck_json">';
+        wp_nonce_field( 'taxocommerce_facturacion_autocheck_json' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-facturacion' ), 'secondary', 'submit', false );
+        echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $rows as $row ) {
             $counts[ $row['status'] ]++;
@@ -183,4 +204,34 @@ final class TaxoCommerce_Billing_Autotest {
         }
         echo '<p class="description">' . esc_html__( 'Es un diagnóstico de disponibilidad: no valida cálculos fiscales, PDF emitidos, entrega de emails ni permisos efectivos de clientes.', 'taxocommerce-facturacion' ) . '</p>';
     }
+}
+
+
+/**
+ * Download the current user's most recent explicit diagnostic run.
+ * Never execute an import, export, connection or worker during download.
+ */
+function taxocommerce_facturacion_autocheck_export_json() {
+    if ( ! ( current_user_can( 'manage_options' ) ) ) {
+        wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-facturacion' ) );
+    }
+    check_admin_referer( 'taxocommerce_facturacion_autocheck_json' );
+    $report = get_transient( 'taxocommerce_facturacion_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id() );
+    if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+        wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-facturacion' ) );
+    }
+    $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-facturacion' ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-facturacion-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is a JSON attachment.
+    echo $json;
+    exit;
+}
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'admin_post_taxocommerce_facturacion_autocheck_json', 'taxocommerce_facturacion_autocheck_export_json' );
 }

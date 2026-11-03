@@ -256,7 +256,7 @@ function taxocommerce_distribution_render_autocheck() {
         <form method="post">
             <?php wp_nonce_field( 'taxocommerce_distribution_autocheck' ); ?>
             <input type="hidden" name="tcdist_run_autocheck" value="1">
-            <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-distribution' ), 'secondary', 'submit', false ); ?>
+            <?php submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-distribution' ), 'secondary', 'submit', false ); ?>
         </form>
         <?php
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified before calling the diagnostic.
@@ -267,6 +267,27 @@ function taxocommerce_distribution_render_autocheck() {
         }
         check_admin_referer( 'taxocommerce_distribution_autocheck' );
         $checks = taxocommerce_distribution_autocheck_run();
+        $autocheck_totals = array();
+        foreach ( $checks as $autocheck_item ) {
+            $autocheck_status = (string) ( $autocheck_item['status'] ?? 'unknown' );
+            $autocheck_totals[ $autocheck_status ] = ( $autocheck_totals[ $autocheck_status ] ?? 0 ) + 1;
+        }
+        $autocheck_report = array(
+            'schema' => 1,
+            'plugin' => 'taxocommerce-distribution',
+            'version' => defined( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) ? constant( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) : '',
+            'generated_at' => gmdate( 'c' ),
+            'totals' => $autocheck_totals,
+            'rows' => $checks,
+        );
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( 'taxocommerce_distribution_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_distribution_autocheck_json">';
+        wp_nonce_field( 'taxocommerce_distribution_autocheck_json' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-distribution' ), 'secondary', 'submit', false );
+        echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $checks as $check ) {
             ++$counts[ $check['status'] ];
@@ -303,4 +324,34 @@ function taxocommerce_distribution_render_autocheck() {
         <p class="description"><?php esc_html_e( 'Los resultados no se guardan. La presencia física de un fichero no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado.', 'taxocommerce-distribution' ); ?></p>
     </section>
     <?php
+}
+
+
+/**
+ * Download the current user's most recent explicit diagnostic run.
+ * Never execute an import, export, connection or worker during download.
+ */
+function taxocommerce_distribution_autocheck_export_json() {
+    if ( ! ( current_user_can( 'manage_options' ) ) ) {
+        wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-distribution' ) );
+    }
+    check_admin_referer( 'taxocommerce_distribution_autocheck_json' );
+    $report = get_transient( 'taxocommerce_distribution_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id() );
+    if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+        wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-distribution' ) );
+    }
+    $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-distribution' ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-distribution-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is a JSON attachment.
+    echo $json;
+    exit;
+}
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'admin_post_taxocommerce_distribution_autocheck_json', 'taxocommerce_distribution_autocheck_export_json' );
 }

@@ -66,7 +66,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 			'csv_methods' => array( 'csv', 'Controladores CSV disponibles' ),
 			'csv_parser' => array( 'csv', 'Analizador CSV de comillas y líneas' ),
 			'csv_routes' => array( 'csv', 'Rutas de importación y exportación registradas' ),
-			'access' => array( 'security', 'Permisos administrativos de Auto Test' ),
+			'access' => array( 'security', 'Permisos administrativos de Autocheck' ),
 			'diagnostic_routes' => array( 'security', 'Acciones protegidas para informe y descarga' ),
 			'storage' => array( 'security', 'Informes separados por usuario y sitio' ),
 			'uninstall' => array( 'security', 'Control de desinstalación presente' ),
@@ -192,7 +192,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	}
 
 	public static function handle_run() {
-		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Auto Test.', 'taxocommerce-faqs' ) ); }
+		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-faqs' ) ); }
 		check_admin_referer( self::NONCE, 'taxocommerce_faqs_at_nonce' );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified immediately above.
 		$group = isset( $_POST['test_group'] ) && is_string( $_POST['test_group'] )
@@ -213,7 +213,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	}
 
 	public static function handle_download() {
-		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar Auto Test.', 'taxocommerce-faqs' ) ); }
+		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar Autocheck.', 'taxocommerce-faqs' ) ); }
 		check_admin_referer( self::NONCE, 'taxocommerce_faqs_at_nonce' );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified immediately above.
 		$which = isset( $_POST['report'] ) && is_string( $_POST['report'] )
@@ -227,7 +227,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 		nocache_headers();
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'X-Content-Type-Options: nosniff' );
-		header( 'Content-Disposition: attachment; filename="taxocommerce-faqs-auto-test-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+		header( 'Content-Disposition: attachment; filename="taxocommerce-faqs-autocheck-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional JSON download (not HTML).
 		echo $json;
 		exit;
@@ -236,7 +236,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	/** Bounded read-only checks. */
 	private static function check_classes() {
 		return class_exists( 'TaxoCommerce_FAQs' ) && class_exists( 'TaxoCommerce_FAQs_Lifecycle' )
-			&& class_exists( __CLASS__ ) ? self::pass( 'Editor, ciclo de vida y Auto Test cargados.' )
+			&& class_exists( __CLASS__ ) ? self::pass( 'Editor, ciclo de vida y Autocheck cargados.' )
 			: self::fail( 'Falta un componente PHP requerido.' );
 	}
 
@@ -288,7 +288,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	private static function check_table() {
 		return self::table_exists( 'seo_faq' )
 			? self::pass( 'Tabla canónica de preguntas disponible, sin modificarla.' )
-			: self::fail( 'Falta la tabla seo_faq. No se crean tablas desde Auto Test.' );
+			: self::fail( 'Falta la tabla seo_faq. No se crean tablas desde Autocheck.' );
 	}
 
 	private static function check_columns() {
@@ -368,7 +368,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 		return has_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) )
 			&& has_action( 'admin_post_' . self::DOWNLOAD_ACTION, array( __CLASS__, 'handle_download' ) )
 			? self::pass( 'Informe y descarga protegidos por permisos y nonce.' )
-			: self::fail( 'Falta alguna ruta de Auto Test.' );
+			: self::fail( 'Falta alguna ruta de Autocheck.' );
 	}
 
 	private static function check_storage() {
@@ -421,10 +421,10 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	}
 
 	/**
-	 * Same workflow and labels as the Auto Test tab in other TaxoCommerce plugins.
+	 * Same workflow and labels as the Autocheck tab in other TaxoCommerce plugins.
 	 */
 	public static function render() {
-		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Auto Test.', 'taxocommerce-faqs' ) ); }
+		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-faqs' ) ); }
 		$before = self::get_saved( 'before' );
 		$last = self::get_saved( 'latest' );
 		$cases = self::cases();
@@ -454,7 +454,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 			.tc-faq-at__alert{color:#a02020;font-weight:600}
 			@media(max-width:782px){.tc-faq-at__panel,.tc-faq-at__group{padding:14px}}
 			</style>
-			<h2 id="tc-faq-at-title"><?php esc_html_e( 'Auto Test — FAQs', 'taxocommerce-faqs' ); ?></h2>
+			<h2 id="tc-faq-at-title"><?php esc_html_e( 'Autocheck — FAQs', 'taxocommerce-faqs' ); ?></h2>
 			<p><?php esc_html_e( 'Chequeo seguro y no destructivo para comparar la disponibilidad del plugin antes y después de actualizarlo. No crea, edita, elimina ni importa preguntas. Solo guarda sus informes por usuario y sitio.', 'taxocommerce-faqs' ); ?></p>
 			<div class="tc-faq-at__actions">
 				<?php self::button( 'all', 'before', '1. Guardar estado ANTES', true ); ?>

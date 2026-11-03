@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.1.5] — 2026-11-03
+
+- Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.
+- Issue #2150, PR #2151; rutas de pestaña y acciones previas conservadas.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
@@ -9,6 +15,14 @@
 ## [Unreleased]
 
 Sin novedades pendientes documentadas.
+
+## [0.1.4] — 2026-11-03
+
+- Corrige el informe de fecha: separa inicio de ejecución, actividad de los lotes y última publicación completada; el XML antiguo no se presenta como publicación nueva.
+- Los nuevos archivos hijos llevan identificador de generación único. El índice anterior y sus archivos siguen intactos hasta que el nuevo índice validado se publica al final; reanuda trabajos iniciados con nombres antiguos migrándolos dentro del directorio temporal.
+- Detecta fallos de programación de WP-Cron y de almacenamiento, muestra errores explícitos y conserva los sitemaps publicados.
+- El informe durante el proceso no suma archivos todavía ausentes del índice anterior; regresaión aislada de publicación, programación fallida y continuidad tras la actualización.
+
 
 ## [0.1.3] — 2026-11-03
 

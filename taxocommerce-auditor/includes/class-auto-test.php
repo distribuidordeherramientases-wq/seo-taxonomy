@@ -8,12 +8,14 @@ namespace TaxoCommerce\Auditor;
 defined( 'ABSPATH' ) || exit;
 
 final class Auto_Test {
+    const JSON_ACTION = 'taxocommerce_auditor_autocheck_json';
     const ACTION = 'taxocommerce_auditor_auto_test';
     const NONCE = 'taxocommerce_auditor_auto_test_run';
     const TRANSIENT = 'taxocommerce_auditor_auto_test_';
 
     public static function register() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle' ) );
+        add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
     }
 
     private static function result( $status, $message ) {
@@ -93,7 +95,7 @@ final class Auto_Test {
                 return self::fail( 'No está registrado: ' . $hook . '.' );
             }
         }
-        return self::pass( 'Formularios, descargas, Auto Test y callback de lotes registrados, sin invocarlos.' );
+        return self::pass( 'Formularios, descargas, Autocheck y callback de lotes registrados, sin invocarlos.' );
     }
 
     private static function test_scopes() {
@@ -210,7 +212,7 @@ final class Auto_Test {
 
     public static function handle() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-auditor' ) );
+            wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-auditor' ) );
         }
         check_admin_referer( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
         $key = self::TRANSIENT . get_current_user_id();
@@ -222,24 +224,55 @@ final class Auto_Test {
         exit;
     }
 
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (current_user_can( 'manage_options' )) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-auditor' ) );
+        }
+        check_admin_referer( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
+        $history = get_transient( self::TRANSIENT . get_current_user_id() );
+        $report = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-auditor' ) );
+        }
+        $report['plugin'] = 'taxocommerce-auditor';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-auditor' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-auditor-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-auditor' ) );
+            wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-auditor' ) );
         }
         $history = get_transient( self::TRANSIENT . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
-        echo '<section class="card" style="max-width:1200px">' . '<h2>' . esc_html__( 'Auto Test de Auditor', 'taxocommerce-auditor' ) . '</h2>';
+        echo '<section class="card" style="max-width:1200px">' . '<h2>' . esc_html__( 'Autocheck de Auditor', 'taxocommerce-auditor' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y disponibilidad de exportación. Es de solo lectura: no inicia procesos ni modifica contenidos. Se guardan dos resultados por usuario durante 30 días.', 'taxocommerce-auditor' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
-        submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
-            echo '<p>' . esc_html__( 'Todavía no hay resultados. Pulsa Ejecutar Auto Test.', 'taxocommerce-auditor' ) . '</p>' . '</section>';
+            echo '<p>' . esc_html__( 'Todavía no hay resultados. Pulsa Ejecutar Autocheck.', 'taxocommerce-auditor' ) . '</p>' . '</section>';
             return;
         }
         $totals = $current['totals'];
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::JSON_ACTION ) . '">';
+        wp_nonce_field( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-auditor' ), 'secondary', 'submit', false );
+        echo '</form>';
+
         echo '<h3>Último informe · v' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {

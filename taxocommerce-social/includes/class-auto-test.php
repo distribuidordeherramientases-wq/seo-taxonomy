@@ -1,6 +1,6 @@
 <?php
 /**
- * Read-only, local Auto Test for TaxoCommerce Social.
+ * Read-only, local Autocheck for TaxoCommerce Social.
  *
  * Never invokes provider connection tests, token decryption, scheduled jobs,
  * remote APIs, publishing, import or export handlers.
@@ -8,12 +8,14 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCSocial_Auto_Test {
+    const JSON_ACTION = 'taxocommerce_social_autocheck_json';
     const ACTION = 'tcsocial_run_auto_test';
     const NONCE = 'tcsocial_auto_test_run';
     const PREFIX = 'tcsocial_auto_test_';
 
     public static function register() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle' ) );
+        add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
     }
 
     private static function result( $status, $message ) {
@@ -158,7 +160,7 @@ final class TCSocial_Auto_Test {
         $tables = array( tcsocial_network_publications_table(), tcsocial_programador_table() );
         foreach ( $tables as $table ) {
             if ( ! self::table_exists( $table ) ) {
-                return self::fail( 'Falta la tabla ' . $table . '. Auto Test no la crea.' );
+                return self::fail( 'Falta la tabla ' . $table . '. Autocheck no la crea.' );
             }
         }
         return self::pass( 'Conexión MySQL y tablas de publicaciones/programador disponibles.' );
@@ -241,7 +243,7 @@ final class TCSocial_Auto_Test {
 
     public static function handle() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-social' ) );
+            wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-social' ) );
         }
         check_admin_referer( self::NONCE, 'tcsocial_auto_nonce' );
         $key = self::PREFIX . get_current_user_id();
@@ -253,25 +255,56 @@ final class TCSocial_Auto_Test {
         exit;
     }
 
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (current_user_can( 'manage_options' )) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-social' ) );
+        }
+        check_admin_referer( self::NONCE, 'tcsocial_auto_nonce' );
+        $history = get_transient( self::PREFIX . get_current_user_id() );
+        $report = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-social' ) );
+        }
+        $report['plugin'] = 'taxocommerce-social';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-social' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-social-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-social' ) );
+            wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-social' ) );
         }
         $history = get_transient( self::PREFIX . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;
         $previous = is_array( $history ) && isset( $history[1]['rows'] ) ? $history[1] : null;
 
-        echo '<section class="seo-social-card">' . '<h2>' . esc_html__( 'Auto Test de TaxoCommerce Social', 'taxocommerce-social' ) . '</h2>';
+        echo '<section class="seo-social-card">' . '<h2>' . esc_html__( 'Autocheck de TaxoCommerce Social', 'taxocommerce-social' ) . '</h2>';
         echo '<p>' . esc_html__( 'Chequeo local de solo lectura de conexiones registradas, plantillas, tablas, calendario y programador. No conecta cuentas ni publica. Se guardan los dos últimos resultados por administrador durante 30 días.', 'taxocommerce-social' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcsocial_auto_nonce' );
-        submit_button( 'Ejecutar Auto Test', 'primary', 'submit', false );
+        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
-            echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Auto Test.', 'taxocommerce-social' ) . '</p>' . '</section>';
+            echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Autocheck.', 'taxocommerce-social' ) . '</p>' . '</section>';
             return;
         }
         $totals = $current['totals'];
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::JSON_ACTION ) . '">';
+        wp_nonce_field( self::NONCE, 'tcsocial_auto_nonce' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-social' ), 'secondary', 'submit', false );
+        echo '</form>';
+
         echo '<h3>Último resultado · v' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
@@ -292,7 +325,7 @@ final class TCSocial_Auto_Test {
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $names[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
-        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Un Auto Test correcto confirma los componentes disponibles; no garantiza la autorización de las cuentas ni una publicación externa satisfactoria.', 'taxocommerce-social' ) . '</p>' . '</section>';
+        echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Un Autocheck correcto confirma los componentes disponibles; no garantiza la autorización de las cuentas ni una publicación externa satisfactoria.', 'taxocommerce-social' ) . '</p>' . '</section>';
     }
 }
 TCSocial_Auto_Test::register();

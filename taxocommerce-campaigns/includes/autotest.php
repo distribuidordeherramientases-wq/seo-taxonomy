@@ -27,19 +27,70 @@ function tccampaigns_autotest_results() {
 }
 function tccampaigns_render_autotest() {
     if (!current_user_can('manage_options')) return;
-    echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Autotest de TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h2>';
+    echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Autocheck de TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h2>';
     echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<form method="post" action="' . esc_url(tccampaigns_admin_tab_url('autotest')) . '">';
     wp_nonce_field('tccampaigns_autotest');
     echo '<input type="hidden" name="tccampaigns_run_autotest" value="1">';
-    submit_button('Ejecutar comprobación','primary','submit',false);
+    submit_button('Ejecutar Autocheck','primary','submit',false);
     echo '</form>';
     if (!isset($_POST['tccampaigns_run_autotest'])) { echo '</section>'; return; }
     check_admin_referer('tccampaigns_autotest');
     $checks = tccampaigns_autotest_results();
+        $autocheck_totals = array();
+        foreach ( $checks as $autocheck_item ) {
+            $autocheck_status = (string) ( $autocheck_item['status'] ?? 'unknown' );
+            $autocheck_totals[ $autocheck_status ] = ( $autocheck_totals[ $autocheck_status ] ?? 0 ) + 1;
+        }
+        $autocheck_report = array(
+            'schema' => 1,
+            'plugin' => 'taxocommerce-campaigns',
+            'version' => defined( 'TAXOCOMMERCE_CAMPAIGNS_VERSION' ) ? constant( 'TAXOCOMMERCE_CAMPAIGNS_VERSION' ) : '',
+            'generated_at' => gmdate( 'c' ),
+            'totals' => $autocheck_totals,
+            'rows' => $checks,
+        );
+        if ( function_exists( 'set_transient' ) ) {
+            set_transient( 'taxocommerce_campaigns_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
+        }
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="taxocommerce_campaigns_autocheck_json">';
+        wp_nonce_field( 'taxocommerce_campaigns_autocheck_json' );
+        submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-campaigns' ), 'secondary', 'submit', false );
+        echo '</form>';
     echo '<table class="widefat striped" style="margin-top:16px">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Comprobación', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($checks as $check) {
         echo '<tr><td>' . esc_html($check['group']) . '</td><td><code>' . esc_html($check['name']) . '</code></td><td><strong>' . esc_html($check['status']) . '</strong></td><td>' . esc_html($check['detail']) . '</td></tr>';
     }
     echo '</tbody></table></section>';
+}
+
+
+/**
+ * Download the current user's most recent explicit diagnostic run.
+ * Never execute an import, export, connection or worker during download.
+ */
+function taxocommerce_campaigns_autocheck_export_json() {
+    if ( ! ( current_user_can( 'manage_options' ) ) ) {
+        wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-campaigns' ) );
+    }
+    check_admin_referer( 'taxocommerce_campaigns_autocheck_json' );
+    $report = get_transient( 'taxocommerce_campaigns_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id() );
+    if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+        wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-campaigns' ) );
+    }
+    $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-campaigns' ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-campaigns-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The response is a JSON attachment.
+    echo $json;
+    exit;
+}
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'admin_post_taxocommerce_campaigns_autocheck_json', 'taxocommerce_campaigns_autocheck_export_json' );
 }

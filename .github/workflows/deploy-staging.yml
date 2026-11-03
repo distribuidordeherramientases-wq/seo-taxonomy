@@ -9,8 +9,7 @@ on:
     paths:
       - 'taxocommerce-*/**'
       - '.github/scripts/deploy_staging_delta.py'
-      - '.github/scripts/deploy_pro_all.py'
-      - '.github/tests/test_deploy_pro_all.py'
+      - '.github/tests/test_pro_historic_modular_workflow.py'
       - '.github/workflows/despliege_de_main_a_pro.yml'
       - '.github/tests/test_deploy_staging_delta.py'
       - '.github/scripts/audit_core_dual_sites.py'
@@ -35,10 +34,34 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
-          python3 -m py_compile .github/scripts/deploy_pro_all.py
-          python3 -m unittest discover -s .github/tests -p test_deploy_pro_all.py -v
+          python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
+      - name: Verify all 20 Autocheck JSON contracts and PHP syntax
+        run: |
+          set -euo pipefail
+          php -l .github/tests/taxocommerce-autocheck-family.php
+          php .github/tests/taxocommerce-autocheck-family.php
+          find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
+            php -l "$file" > /dev/null
+          done
+          php taxocommerce-auditor/tests/auto-test-manual-smoke.php
+          php taxocommerce-database/tests/auto-test-smoke.php
+          php taxocommerce-dependiente/tests/auto-test-smoke.php
+          php taxocommerce-distribution/tests/manual-autocheck-smoke.php
+          php taxocommerce-facturacion/tests/manual-autotest-smoke.php
+          php taxocommerce-faqs/tests/auto-test-smoke.php
+          php taxocommerce-google-bing/tests/auto-test-smoke.php
+          php taxocommerce-images/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-logistica/tests/auto-test-smoke.php
+          php taxocommerce-redirects/tests/auto-test-smoke.php
+          php taxocommerce-scrappers/tests/manual-autotest-smoke.php
+          php taxocommerce-social/tests/auto-test-manual-smoke.php
+          php taxocommerce-suppliers/tests/smoke.php
+          php taxocommerce-system-check/tests/auto-test-guide-smoke.php
+          php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-vocabulary/tests/auto-test-manual-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
         run: |
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-csv.php
@@ -64,6 +87,11 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-auto-test.php
           php -l .github/tests/taxocommerce-core/autocheck-json-smoke.php
+          php -l taxocommerce-distribution/includes/sitemaps/batch-worker.php
+          php -l taxocommerce-distribution/includes/sitemaps/engine.php
+          php -l taxocommerce-distribution/includes/admin.php
+          php -l taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
+          php taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
           php .github/tests/taxocommerce-core/auto-test-smoke.php
           php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-functional-smoke.php

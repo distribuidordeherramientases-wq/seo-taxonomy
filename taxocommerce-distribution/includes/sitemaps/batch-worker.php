@@ -36,14 +36,50 @@ function tcdist_sitemap_job_state() {
     return is_array( $state ) ? $state : array();
 }
 
+/**
+ * Read the timestamp of the last *published* valid index, never job start.
+ * The manifest is updated at the successful finish; fall back to the live
+ * main index for installations upgraded from older Distribution versions.
+ */
+function tcdist_sitemap_publication_time() {
+    $storage = tcdist_sitemap_sitemap_storage();
+    if ( is_wp_error( $storage ) ) {
+        return 0;
+    }
+    $index = $storage['dir'] . 'sitemap.xml';
+    if ( ! is_file( $index ) ) {
+        return 0;
+    }
+    $manifest = tcdist_sitemap_get_sitemap_manifest();
+    $time = ! empty( $manifest['generated_at_utc'] )
+        ? strtotime( (string) $manifest['generated_at_utc'] )
+        : false;
+    return $time ? (int) $time : (int) filemtime( $index );
+}
+
 function tcdist_sitemap_save_job_state( $state ) {
     update_option( TCDIST_SITEMAP_JOB_OPTION, $state, false );
 }
 
 function tcdist_sitemap_schedule_window( $delay = 1 ) {
-    if ( ! wp_next_scheduled( TCDIST_SITEMAP_WORKER_HOOK ) ) {
-        wp_schedule_single_event( time() + max( 1, absint( $delay ) ), TCDIST_SITEMAP_WORKER_HOOK );
+    if ( wp_next_scheduled( TCDIST_SITEMAP_WORKER_HOOK ) ) {
+        return true;
     }
+    $scheduled = wp_schedule_single_event( time() + max( 1, absint( $delay ) ), TCDIST_SITEMAP_WORKER_HOOK );
+    return ! is_wp_error( $scheduled ) && false !== $scheduled;
+}
+
+/**
+ * Stable, unique child file names for one generation. Existing public child
+ * files stay untouched until the new validated main index is committed.
+ */
+function tcdist_sitemap_scoped_filename( $state, $phase, $number ) {
+    $folder = (string) ( $state['folder'] ?? '' );
+    if ( ! preg_match( '/^\\.build-([0-9a-f-]{36})$/', $folder, $matches ) ) {
+        throw new RuntimeException( 'Invalid sitemap generation identifier.' );
+    }
+    $token = substr( str_replace( '-', '', $matches[1] ), 0, 12 );
+    return 'sitemap-' . sanitize_key( $phase ) . '-' . $token . '-' . absint( $number ) . '.xml';
 }
 
 /**
@@ -106,7 +142,13 @@ function tcdist_sitemap_start_background_build() {
     }
 
     tcdist_sitemap_save_job_state( $state );
-    tcdist_sitemap_schedule_window( 1 );
+    if ( ! tcdist_sitemap_schedule_window( 1 ) ) {
+        $state['status'] = 'error';
+        $state['message'] = __( 'WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron.', 'taxocommerce-distribution' );
+        tcdist_sitemap_save_job_state( $state );
+        tcdist_sitemap_remove_directory( $build_dir );
+        return array( 'type' => 'error', 'message' => $state['message'] );
+    }
     return array( 'type' => 'success', 'message' => __( 'Generación iniciada en segundo plano: lotes de 250 URL. El índice actual permanece publicado.', 'taxocommerce-distribution' ) );
 }
 
@@ -190,7 +232,7 @@ function tcdist_sitemap_write_window( &$state, $build_dir ) {
     }
 
     $state['file_number']++;
-    $filename = 'sitemap-' . $phase . '-' . $state['file_number'] . '.xml';
+    $filename = tcdist_sitemap_scoped_filename( $state, $phase, $state['file_number'] );
     $written = tcdist_sitemap_write_validated_xml(
         $build_dir . $filename,
         tcdist_sitemap_build_urlset_xml( $entries ),
@@ -223,6 +265,21 @@ function tcdist_sitemap_publish_window( &$state, $build_dir, $public_dir ) {
     $done = 0;
     while ( $done < $limit && isset( $state['files'][ $state['publish_cursor'] ] ) ) {
         $filename = $state['files'][ $state['publish_cursor'] ]['filename'];
+        // Upgrade an unfinished job created before generation-scoped names:
+        // rename inside the private build directory before any public write.
+        if ( ! preg_match( '/^sitemap-[a-z0-9-]+-[a-f0-9]{12}-[0-9]+\\.xml$/', $filename ) ) {
+            $replacement = tcdist_sitemap_scoped_filename(
+                $state,
+                (string) $state['files'][ $state['publish_cursor'] ]['group'],
+                $state['publish_cursor'] + 1
+            );
+            if ( ! is_file( $build_dir . $filename ) ||
+                 ! tcdist_sitemap_atomic_rename( $build_dir . $filename, $build_dir . $replacement ) ) {
+                throw new RuntimeException( 'Cannot upgrade the pending sitemap child filename.' );
+            }
+            $filename = $replacement;
+            $state['files'][ $state['publish_cursor'] ]['filename'] = $filename;
+        }
         if ( ! tcdist_sitemap_publish_sitemap_file( $build_dir . $filename, $public_dir . $filename ) ) {
             throw new RuntimeException( 'Cannot publish validated sitemap: ' . $filename );
         }
@@ -323,6 +380,10 @@ function tcdist_sitemap_background_worker_tick() {
 
     $storage = tcdist_sitemap_sitemap_storage();
     if ( is_wp_error( $storage ) ) {
+        $state['status'] = 'error';
+        $state['message'] = $storage->get_error_message();
+        $state['updated_at'] = time();
+        tcdist_sitemap_save_job_state( $state );
         return $state;
     }
     $lock = tcdist_sitemap_lock_stream_open( $storage['dir'] . '.generation.lock', 'c' );
@@ -330,7 +391,12 @@ function tcdist_sitemap_background_worker_tick() {
         if ( is_resource( $lock ) ) {
             tcdist_sitemap_lock_stream_close( $lock );
         }
-        tcdist_sitemap_schedule_window( 15 );
+        if ( ! tcdist_sitemap_schedule_window( 15 ) ) {
+            $state['status'] = 'error';
+            $state['message'] = __( 'No se puede reprogramar la generación de sitemaps.', 'taxocommerce-distribution' );
+            $state['updated_at'] = time();
+            tcdist_sitemap_save_job_state( $state );
+        }
         return $state;
     }
 
@@ -381,7 +447,12 @@ function tcdist_sitemap_background_worker_tick() {
         $state['not_before'] = time() + $delay;
         tcdist_sitemap_save_job_state( $state );
         if ( 'running' === $state['status'] ) {
-            tcdist_sitemap_schedule_window( $delay );
+            if ( ! tcdist_sitemap_schedule_window( $delay ) ) {
+                $state['status'] = 'error';
+                $state['message'] = __( 'WP-Cron no ha podido programar el siguiente bloque; los XML publicados no se han sustituido.', 'taxocommerce-distribution' );
+                $state['updated_at'] = time();
+                tcdist_sitemap_save_job_state( $state );
+            }
         } elseif ( ! empty( $state['rerun_required'] ) ) {
             // A content change requested a fresh pass during the previous run.
             wp_schedule_single_event( time() + 5, 'tcdist_sitemap_regenerate_sitemaps_event' );
@@ -411,7 +482,12 @@ function tcdist_sitemap_recover_background_worker() {
     $state = tcdist_sitemap_job_state();
     if ( 'running' === ( $state['status'] ?? '' ) && ! wp_next_scheduled( TCDIST_SITEMAP_WORKER_HOOK ) ) {
         $delay = max( 1, absint( $state['not_before'] ?? 0 ) - time() );
-        tcdist_sitemap_schedule_window( $delay );
+        if ( ! tcdist_sitemap_schedule_window( $delay ) ) {
+            $state['status'] = 'error';
+            $state['message'] = __( 'WP-Cron no puede recuperar la generación interrumpida.', 'taxocommerce-distribution' );
+            $state['updated_at'] = time();
+            tcdist_sitemap_save_job_state( $state );
+        }
     }
 }
 add_action( 'init', 'tcdist_sitemap_recover_background_worker', 40 );

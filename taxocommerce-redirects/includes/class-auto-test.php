@@ -54,7 +54,7 @@ final class Auto_Test {
     public static function cases() {
         return array(
             'classes' => array( 'startup', 'Componentes del plugin cargados' ),
-            'menu' => array( 'startup', 'Menú, pestaña y acciones de Auto Test' ),
+            'menu' => array( 'startup', 'Menú, pestaña y acciones de Autocheck' ),
             'assets' => array( 'startup', 'Recursos administrativos y editores' ),
             'core' => array( 'startup', 'Integración opcional con Core' ),
             'table' => array( 'storage', 'Tabla compartida seo_redirects' ),
@@ -199,7 +199,7 @@ final class Auto_Test {
         $required = array( 'admin_menu', 'admin_post_' . self::RUN_ACTION, 'admin_post_' . self::EXPORT_ACTION );
         return ! self::missing_actions( $required )
             && false !== has_action( 'admin_menu', array( __NAMESPACE__ . '\\Admin', 'menu' ) )
-            ? self::pass( 'Menú y rutas protegidas de Auto Test registrados.' )
+            ? self::pass( 'Menú y rutas protegidas de Autocheck registrados.' )
             : self::fail( 'Falta la navegación o algún controlador del autochequeo.' );
     }
 
@@ -341,8 +341,8 @@ final class Auto_Test {
     private static function check_permission() {
         return current_user_can( 'manage_options' )
             && ! self::missing_actions( array( 'admin_post_' . self::RUN_ACTION, 'admin_post_' . self::EXPORT_ACTION ) )
-            ? self::pass( 'Auto Test requiere administrador y nonces en ambas operaciones.' )
-            : self::fail( 'Rutas Auto Test o permisos no válidos.' );
+            ? self::pass( 'Autocheck requiere administrador y nonces en ambas operaciones.' )
+            : self::fail( 'Rutas Autocheck o permisos no válidos.' );
     }
 
     private static function check_lifecycle() {
@@ -376,7 +376,7 @@ final class Auto_Test {
 
     public static function handle_run() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Sin permiso para ejecutar Auto Test.', 'taxocommerce-redirects' ) );
+            wp_die( esc_html__( 'Sin permiso para ejecutar Autocheck.', 'taxocommerce-redirects' ) );
         }
         check_admin_referer( self::NONCE, 'tc_rd_test_nonce' );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above.
@@ -452,7 +452,7 @@ final class Auto_Test {
     }
 
     public static function render() {
-        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permiso para abrir Auto Test.', 'taxocommerce-redirects' ) ); }
+        if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permiso para abrir Autocheck.', 'taxocommerce-redirects' ) ); }
         $before = self::stored( true );
         $last = self::stored( false );
         $groups = self::groups();
@@ -465,7 +465,7 @@ final class Auto_Test {
         $comparison = $before && $last ? self::compare( $before, $last ) : null;
         ?>
         <div class="tc-rd-at" aria-labelledby="tc-rd-auto-title">
-            <h2 id="tc-rd-auto-title"><?php esc_html_e( 'Auto Test — TaxoCommerce Redirects', 'taxocommerce-redirects' ); ?></h2>
+            <h2 id="tc-rd-auto-title"><?php esc_html_e( 'Autocheck — TaxoCommerce Redirects', 'taxocommerce-redirects' ); ?></h2>
             <p><?php esc_html_e( 'Pruebas de solo lectura de tablas, reglas, motor, borrado asistido y transferencias. No se generan redirecciones, visitas ni eliminaciones. Solo se almacenan los resultados del diagnóstico.', 'taxocommerce-redirects' ); ?></p>
             <div class="tc-rd-at-actions">
                 <?php self::run_button( 'all', 'before', '1. Guardar estado ANTES', true ); ?>

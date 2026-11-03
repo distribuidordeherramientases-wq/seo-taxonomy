@@ -10,12 +10,14 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TaxoCommerce_Images_Auto_Test {
+	const JSON_ACTION = 'taxocommerce_images_autocheck_json';
 	const ACTION = 'taxocommerce_images_run_auto_test';
 	const NONCE = 'taxocommerce_images_auto_test_run';
 	const REPORT_PREFIX = 'taxocommerce_images_autotest_';
 
 	public static function register_hooks() {
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_run' ) );
+		add_action( 'admin_post_' . self::JSON_ACTION, array( __CLASS__, 'handle_download_json' ) );
 	}
 
 	private static function allowed() {
@@ -24,7 +26,7 @@ final class TaxoCommerce_Images_Auto_Test {
 
 	public static function handle_run() {
 		if ( ! self::allowed() ) {
-			wp_die( esc_html__( 'Sin permisos para ejecutar Auto Test.', 'taxocommerce-images' ) );
+			wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-images' ) );
 		}
 		check_admin_referer( self::NONCE, 'tci_autotest_nonce' );
 		set_transient( self::REPORT_PREFIX . get_current_user_id(), self::run_suite(), DAY_IN_SECONDS );
@@ -315,15 +317,40 @@ final class TaxoCommerce_Images_Auto_Test {
 		return self::skip( 'No se escriben archivos, metadatos, asignaciones ni colas en este chequeo. Probar operaciones destructivas o conversiones reales en staging.' );
 	}
 
+    /** Download only the authenticated user's saved read-only diagnostics. */
+    public static function handle_download_json() {
+        if ( ! (self::allowed()) ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-images' ) );
+        }
+        check_admin_referer( self::NONCE, 'tci_autotest_nonce' );
+        $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
+        if ( ! is_array( $report ) || ! isset( $report['rows'], $report['totals'] ) ) {
+            wp_die( esc_html__( 'Ejecuta el autocheck antes de descargar el JSON.', 'taxocommerce-images' ) );
+        }
+        $report['plugin'] = 'taxocommerce-images';
+        $report['schema'] = 1;
+        $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se pudo generar el informe JSON.', 'taxocommerce-images' ) );
+        }
+        nocache_headers();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-images-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download JSON, not HTML.
+        echo $json;
+        exit;
+    }
+
 	public static function render() {
 		if ( ! self::allowed() ) {
-			wp_die( esc_html__( 'Acceso denegado a Auto Test.', 'taxocommerce-images' ) );
+			wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-images' ) );
 		}
 		$report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
 		$totals = is_array( $report ) && isset( $report['totals'], $report['rows'] ) ? $report['totals'] : null;
 		?>
 		<section id="tci-auto-test">
-			<h2><?php esc_html_e( 'Auto Test', 'taxocommerce-images' ); ?></h2>
+			<h2><?php esc_html_e( 'Autocheck', 'taxocommerce-images' ); ?></h2>
 			<p><?php esc_html_e( 'Comprueba las funciones principales de Images tras cada actualización. Solo lee datos y guarda temporalmente el resultado de este usuario.', 'taxocommerce-images' ); ?></p>
 			<style>
 			#tci-auto-test .tc-at-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}
@@ -340,12 +367,17 @@ final class TaxoCommerce_Images_Auto_Test {
 			<form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
 				<?php wp_nonce_field( self::NONCE, 'tci_autotest_nonce' ); ?>
-				<?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-images' ), 'primary', 'submit', false ); ?>
+				<?php submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-images' ), 'primary', 'submit', false ); ?>
 				<span><?php esc_html_e( 'Sin cambios en archivos, catálogo, metadatos o colas de imágenes.', 'taxocommerce-images' ); ?></span>
 			</form>
 			<?php if ( null === $totals ) : ?>
 				<p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Images.', 'taxocommerce-images' ); ?></p>
 			<?php else : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( self::JSON_ACTION ); ?>">
+                    <?php wp_nonce_field( self::NONCE, 'tci_autotest_nonce' ); ?>
+                    <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-images' ), 'secondary', 'submit', false ); ?>
+                </form>
 				<p><strong><?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
 				<div class="tc-at-summary">
 					<span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-images' ); ?></span>

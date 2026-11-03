@@ -67,7 +67,7 @@ require dirname( __DIR__ ) . '/taxocommerce-social.php';
 function social_assert( $condition, $message ) {
     if ( ! $condition ) { fwrite( STDERR, 'FAIL: ' . $message . "\n" ); exit( 1 ); }
 }
-social_assert( TAXOCOMMERCE_SOCIAL_VERSION === '0.1.3', 'Social version 0.1.3' );
+social_assert( TAXOCOMMERCE_SOCIAL_VERSION === '0.1.5', 'Social version 0.1.3' );
 social_assert( has_action( 'admin_post_tcsocial_run_auto_test' ), 'Auto Test action registered' );
 social_assert( count( TCSocial_Auto_Test::cases() ) === 16, 'Exactly sixteen checks' );
 
@@ -91,7 +91,7 @@ $wpdb->missing = '';
 
 ob_start(); TCSocial_Auto_Test::render(); $autotest = ob_get_clean();
 social_assert( strpos( $autotest, 'tcsocial_auto_nonce' ) !== false, 'Auto Test nonce rendered' );
-social_assert( strpos( $autotest, 'Ejecutar Auto Test' ) !== false, 'run button rendered' );
+social_assert( strpos( $autotest, 'Ejecutar Autocheck' ) !== false, 'run button rendered' );
 ob_start(); tcsocial_manual_render(); $manual = ob_get_clean();
 foreach ( array( 'Manual de usuario', 'Manual técnico', 'Facebook', 'Instagram', 'LinkedIn', 'Pinterest', 'WP-Cron', 'CSV', 'Auto Test' ) as $value ) {
     social_assert( strpos( $manual, $value ) !== false, 'manual topic ' . $value );

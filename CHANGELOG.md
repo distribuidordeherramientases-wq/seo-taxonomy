@@ -1,5 +1,14 @@
 # Changelog
 
+## Restauración del despliegue modular STAGING → PRO — 03/11/2026 (#2119)
+
+- Se recupera el procedimiento de paquetes ZIP individuales y aplicación/verificación desde WordPress de la versión histórica comprobada en la acción GitHub #41243555528 (origen 03cb678b, 31/10/2026). Aquella ejecución verificó por SHA-256 10 plugins instalados, y la nueva versión conserva la detección dinámica de todos los módulos instalados, estén activos o no.
+- Se omiten deliberadamente los pasos históricos de sincronización del monolítico `seo-taxonomy`, los instaladores de plugins ausentes y cualquier limpieza o eliminación de archivos. No se publica ningún archivo fuente del monolítico.
+- La cuenta FTPS existente solo se utiliza para entregar paquetes y un testigo temporal al receptor instalado (directorio `.taxocommerce-deploy`); el receptor WordPress aplica los cambios en los `WP_PLUGIN_DIR` reales. No se intenta buscar los directorios de cada plugin a través del FTP restringido.
+- Se conservan los paquetes por plugin, exclusión de `tests`, ocultos, ficheros de desarrollo y rutas externas, prueba de integridad de los ZIP, comparación SHA-256 remota, versiones, y fallo bloqueante de la ejecución si la comprobación no coincide.
+- Solo se ejecuta manualmente desde la rama `staging`. Pruebas nuevas en CI para impedir futuros despliegues del repositorio completo o del monolítico, sin ejecutar una subida automática a PRODUCCIÓN. El éxito histórico no sustituye una nueva validación real de producción.
+
+
 ## Corrección de destino FTPS de PRODUCCIÓN - 03/11/2026 (#2119)
 
 - El workflow manual `despliege_de_main_a_pro.yml` ahora **transmite al script** el directorio FTP de PRODUCCIÓN que antes faltaba en su entorno. Su campo de ejecución `pro_plugins_dir` viene preconfigurado con `hosting160568eu-279554.webempresa.site/wp-content/plugins`, observado en WePanel; permite ajustar el directorio si la cuenta FTP tiene una raíz distinta.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Billing
  * Description: WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from TaxoCommerce SEO.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 
 
-define( 'TAXOCOMMERCE_FACTURACION_VERSION', '0.1.3' );
+define( 'TAXOCOMMERCE_FACTURACION_VERSION', '0.1.4' );
 define( 'TAXOCOMMERCE_FACTURACION_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_FACTURACION_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_FACTURACION_URL', plugin_dir_url( __FILE__ ) );

@@ -33,7 +33,8 @@ final class TaxoCommerce_Core_Auto_Test {
      * GET requests, activations, updates and deployments never run the suite.
      */
     public static function handle_dashboard_run() {
-        if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['tc_autotest_manual_run'] ) ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only trigger guard; handle_run() immediately verifies capability and nonce.
+        if ( ! isset( $_POST['tc_autotest_manual_run'] ) ) {
             return;
         }
         self::handle_run();
@@ -211,10 +212,8 @@ final class TaxoCommerce_Core_Auto_Test {
             $warnings = array();
             // The temporary error handler captures only PHP errors raised inside
             // this particular manual check, never all site errors or unrelated logs.
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Isolated manual Autocheck; handler is restored in finally, no production-wide configuration change.
             set_error_handler( static function( $severity, $message, $file, $line ) use ( &$warnings ) {
-                if ( 0 === ( error_reporting() & $severity ) ) {
-                    return false;
-                }
                 if ( count( $warnings ) < 10 ) {
                     $warnings[] = array(
                         'severity' => (int) $severity,

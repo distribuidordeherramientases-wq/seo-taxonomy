@@ -8,6 +8,11 @@
 define( 'ABSPATH', __DIR__ );
 define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.1' );
 define( 'TCDIST_WORKER_HOOK', 'taxocommerce_distribution_feed_worker' );
+define( 'TCDIST_SITEMAP_WORKER_HOOK', 'tcdist_sitemap_background_worker' );
+define( 'TCDIST_SITEMAP_SPEED_OPTION', 'tcdist_sitemap_speed_v1' );
+define( 'TCDIST_SITEMAP_ITEMS_PER_WINDOW', 250 );
+function absint( $value ) { return abs( (int) $value ); }
+function tcdist_sitemap_background_worker_tick() { throw new RuntimeException( 'Autocheck must not run a worker' ); }
 define( 'TCDIST_LEGACY_FEED_ACTIVE', false );
 define( 'TCDIST_LEGACY_SITEMAP_ACTIVE', false );
 
@@ -48,6 +53,7 @@ function has_action( $name, $callback = false ) {
         'admin_post_tcdist_feed_stop',
         'admin_post_tcdist_sitemap_regenerate',
         'tcdist_sitemap_regenerate_sitemaps_event',
+        'tcdist_sitemap_background_worker',
     );
     return in_array( $name, $hooks, true ) ? 10 : false;
 }

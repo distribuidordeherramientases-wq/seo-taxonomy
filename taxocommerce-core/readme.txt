@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.55
+Stable tag: 0.4.57
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.57 =
+* Retirada la tarjeta de detección del antiguo TaxoCommerce SEO y el mensaje de convivencia obsoleto del panel Core.
+* Se mantienen los indicadores de versión, WooCommerce y extensiones, además de las funciones de migración internas.
+
 
 = 0.4.55 =
 * Correct the read-only SEO Relations Autocheck: recognize valid editorial post-to-category and landing-to-category edges alongside Core hierarchy relations and category translations.

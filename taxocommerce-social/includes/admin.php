@@ -88,7 +88,7 @@ function tcsocial_admin_render() {
         'connections' => 'Conexiones',
         'templates'   => 'Plantillas',
         'calendar'    => 'Calendario',
-        'auto-test'   => 'Auto Test',
+        'auto-test'   => __( 'Autocheck', 'taxocommerce-social' ),
         'manual'      => 'Manual',
     );
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';

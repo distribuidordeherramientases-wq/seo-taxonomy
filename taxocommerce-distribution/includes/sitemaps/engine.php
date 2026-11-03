@@ -1235,8 +1235,24 @@ function tcdist_sitemap_get_sitemap_report()
     }
 
     $files = array();
+    // While publishing a new run, hide new child files from this report until
+    // the replacement index and manifest are committed. They are not yet public
+    // entries of the current sitemap.xml.
+    $manifest = tcdist_sitemap_get_sitemap_manifest();
+    $published_names = array();
+    $job = function_exists( 'tcdist_sitemap_job_state' ) ? tcdist_sitemap_job_state() : array();
+    if ( 'running' === ( $job['status'] ?? '' ) && ! empty( $manifest['files'] ) ) {
+        foreach ( (array) $manifest['files'] as $entry ) {
+            if ( ! empty( $entry['filename'] ) ) {
+                $published_names[ basename( (string) $entry['filename'] ) ] = true;
+            }
+        }
+    }
     foreach ((array) glob($storage['dir'] . '*.xml') as $file_path) {
         $filename = basename($file_path);
+        if ( $published_names && 'sitemap.xml' !== $filename && ! isset( $published_names[ $filename ] ) ) {
+            continue;
+        }
 
         if (in_array($filename, array('sitemap-index.xml', 'sitemap_index.xml'), true)) {
             continue;
@@ -1284,7 +1300,7 @@ function tcdist_sitemap_get_sitemap_report()
         'main_valid' => $main_valid,
         'total_urls' => $total_urls,
         'files'      => $files,
-        'manifest'   => tcdist_sitemap_get_sitemap_manifest(),
+        'manifest'   => $manifest,
     );
 }
 
