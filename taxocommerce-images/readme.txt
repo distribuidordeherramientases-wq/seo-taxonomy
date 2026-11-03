@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.16
+Stable tag: 0.2.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,9 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.17 =
+* Nombre uniforme «Autocheck» y exportación JSON autenticada del último diagnóstico, sin ejecutar operaciones de escritura o procesos comerciales.
 
 = 0.2.16 =
 * Cabecera administrativa común de TaxoCommerce con icono, descripción, versión visible y pestañas originales conservadas.

@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.1.9] — 2026-11-03
+
+- Pestaña «Autocheck» con descarga JSON ya existente, conservación de controles de seguridad y de comparaciones de regresiones.
+- Issue #2150, PR #2151; rutas internas y ejecuciones existentes conservadas.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce Redirects - SEO Redirect Manager
