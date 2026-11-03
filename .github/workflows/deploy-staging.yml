@@ -36,6 +36,7 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-country.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-hierarchy.php
+          php -l taxocommerce-core/includes/class-taxocommerce-core-hierarchy-classic.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php .github/tests/taxocommerce-core/country-scope-smoke.php

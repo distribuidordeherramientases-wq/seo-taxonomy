@@ -455,13 +455,14 @@ final class TaxoCommerce_Core_Hierarchy {
 		}
 
 		$country = $this->country_request();
-        if ( 'ES' !== $country ) {
-            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Admin hierarchy selector is limited to 50 pages; both country fields are indexed postmeta keys.
-            $args['meta_query'] = array( 'relation' => 'OR',
-                array( 'key' => '_seo_pais_origen', 'value' => $country ),
-                array( 'key' => 'dht_pilot_market', 'value' => $country ),
-            );
-        }
+        // Explicit page assignments are authoritative: absent metadata means Global.
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The admin pages list is bounded to 50 rows.
+        $args['meta_query'] = '' === $country
+            ? array( 'relation' => 'OR',
+                array( 'key' => TaxoCommerce_Core_Country::META, 'compare' => 'NOT EXISTS' ),
+                array( 'key' => TaxoCommerce_Core_Country::META, 'value' => '' ),
+            )
+            : array( array( 'key' => TaxoCommerce_Core_Country::META, 'value' => $country ) );
         $query = new WP_Query( $args );
 		?>
 		<form class="tc-hierarchy-roles-filter" method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
@@ -721,8 +722,8 @@ final class TaxoCommerce_Core_Hierarchy {
 	private function country_request( $write = false ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Navigation GET is read-only; write handlers already verified action nonces.
         $source = $write ? $_POST : $_GET;
-        $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : 'ES';
-        return TaxoCommerce_Core_Country::normalize( $value ) ?: 'ES';
+        $value = isset( $source['tc_country'] ) && is_string( $source['tc_country'] ) ? sanitize_text_field( wp_unslash( $source['tc_country'] ) ) : '';
+        return TaxoCommerce_Core_Country::normalize( $value );
     }
 
 	private function redirect_with_result( $result, $context ) {

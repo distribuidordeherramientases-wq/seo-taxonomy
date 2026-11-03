@@ -59,27 +59,8 @@ final class TaxoCommerce_Core_Menu {
      * A new installation has exactly one choice: Global (empty country).
      */
     public static function available_countries() {
-        $countries = array( '' => __( 'Global (sin país)', 'taxocommerce-core' ) );
-        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Country selection relies on canonical page postmeta; only pages with this key are fetched.
-        $page_ids = get_posts( array(
-            'post_type' => 'page',
-            'post_status' => array( 'publish', 'future', 'draft', 'pending', 'private' ),
-            'posts_per_page' => -1,
-            'fields' => 'ids',
-            'meta_key' => TaxoCommerce_Core_Country::META,
-            'no_found_rows' => true,
-        ) );
-        $codes = array();
-        foreach ( (array) $page_ids as $id ) {
-            $code = self::page_country( $id );
-            if ( '' !== $code ) { $codes[ $code ] = true; }
-        }
-        ksort( $codes, SORT_STRING );
-        $known = TaxoCommerce_Core_Country::countries();
-        foreach ( array_keys( $codes ) as $code ) {
-            $countries[ $code ] = isset( $known[ $code ] ) ? $known[ $code ] . ' (' . $code . ')' : $code;
-        }
-        return $countries;
+        // One source of truth for both the menu proposal and Core country fields.
+        return TaxoCommerce_Core_Country::page_countries();
     }
 
     public static function country( $write = false ) {

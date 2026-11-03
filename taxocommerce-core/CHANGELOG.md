@@ -17,6 +17,11 @@
 
 - Anomalías (#2071): filtrado adicional de relaciones SEO para no activar el informe estructural por relaciones ajenas a clústeres, hubs y landings; regresión en tienda sin jerarquía. Despliegue del módulo Core a STAGING y Focazul mediante el flujo de módulos modificados.
 
+## [0.4.48]
+
+- Países (#2092): se utiliza la misma lista dinámica de países de páginas en menús y formularios de Core; Global es el país vacío por defecto, sin asignación a ES y sin países ficticios. La edición de páginas admite códigos de dos letras sin catálogo predefinido; las categorías pueden volver a Global eliminando su metadato en lugar de generar un error.
+- Los filtros de asignación de páginas en Jerarquía SEO respetan Global como metadato ausente; la vista de jerarquía no asume España. Sin borrar ni renombrar menús, contenidos o relaciones existentes.
+
 ## [0.4.47]
 
 - Menús (#2090): solo se ofrecen países con páginas asignadas explícitamente en `_seo_pais_origen`; Global (`''`) es la opción sin país, nunca una sustitución de ES. Se respetan menús creados anteriormente y los menús nativos de WordPress. Los árboles de jerarquía de menús se aíslan por asignaciones explícitas de páginas y categorías; se descartan enlaces entre países distintos.
