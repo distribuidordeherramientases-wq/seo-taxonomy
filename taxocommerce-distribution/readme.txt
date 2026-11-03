@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,13 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.4 =
+* Separate the last successfully published sitemap date from the generation start and latest heartbeat.
+* Publish generation-scoped child XML files before replacing the validated root index so the previous index never references partially replaced children.
+* Detect WP-Cron schedule failures and keep the last valid public sitemaps available. Existing in-progress jobs resume with safe child names.
+* Report only already-published XML entries during regeneration and include regression checks for both date and publication safety.
+
 
 = 0.1.3 =
 * Cabecera administrativa homogénea con el diseño de Core, versión visible e integración autónoma sin depender de Core.
