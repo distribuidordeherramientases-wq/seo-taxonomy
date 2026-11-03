@@ -195,7 +195,7 @@ final class Admin {
         foreach ( $scopes as $scope => $label ) {
             echo '<a href="' . esc_url( self::scope_tab_url( $scope ) ) . '" class="nav-tab' . ( $selected === $scope ? ' nav-tab-active' : '' ) . '"' . ( $selected === $scope ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
         }
-        foreach ( array( 'auto-test' => 'Auto Test', 'manual' => 'Manual' ) as $key => $label ) {
+        foreach ( array( 'auto-test' => 'Autocheck', 'manual' => 'Manual' ) as $key => $label ) {
             echo '<a href="' . esc_url( self::scope_tab_url( $key ) ) . '" class="nav-tab' . ( $selected === $key ? ' nav-tab-active' : '' ) . '"' . ( $selected === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
         }
         echo '</nav>';
