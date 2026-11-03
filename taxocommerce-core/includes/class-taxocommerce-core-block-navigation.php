@@ -10,12 +10,16 @@ final class TaxoCommerce_Core_Block_Navigation {
     const CREATE = 'taxocommerce_core_create_block_navigation';
     const ACTIVATE = 'taxocommerce_core_activate_block_navigation';
     const ADD_LINK = 'taxocommerce_core_add_block_navigation_link';
+    const ADD_OBJECTS = 'taxocommerce_core_add_block_navigation_objects';
+    const REMOVE = 'taxocommerce_core_remove_block_navigation_link';
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'save' ) );
         add_action( 'admin_post_' . self::CREATE, array( __CLASS__, 'create' ) );
         add_action( 'admin_post_' . self::ACTIVATE, array( __CLASS__, 'activate' ) );
         add_action( 'admin_post_' . self::ADD_LINK, array( __CLASS__, 'add_link' ) );
+        add_action( 'admin_post_' . self::ADD_OBJECTS, array( __CLASS__, 'add_objects' ) );
+        add_action( 'admin_post_' . self::REMOVE, array( __CLASS__, 'remove_link' ) );
     }
 
     /** Collect referenced navigation posts and inline navigation from the site's header templates. */
@@ -87,7 +91,7 @@ final class TaxoCommerce_Core_Block_Navigation {
     }
 
     /** Only standard Navigation Link and Submenu blocks are edited; other blocks survive unchanged. */
-    private static function links( $blocks, &$links ) {
+    private static function links( $blocks, &$links, $depth = 0 ) {
         foreach ( $blocks as $block ) {
             $name = $block['blockName'] ?? '';
             if ( in_array( $name, array( 'core/navigation-link', 'core/navigation-submenu' ), true ) ) {
@@ -97,122 +101,166 @@ final class TaxoCommerce_Core_Block_Navigation {
                     'url' => (string) ( $attrs['url'] ?? '' ),
                     'custom' => empty( $attrs['id'] ),
                     'editable' => '' === trim( (string) ( $block['innerHTML'] ?? '' ) ),
+                    'depth' => $depth,
+                    'removable' => 'core/navigation-link' === $name && empty( $block['innerBlocks'] ) && '' === trim( (string) ( $block['innerHTML'] ?? '' ) ),
                 );
             }
-            if ( ! empty( $block['innerBlocks'] ) ) { self::links( $block['innerBlocks'], $links ); }
+            if ( ! empty( $block['innerBlocks'] ) ) { self::links( $block['innerBlocks'], $links, $depth + ( 'core/navigation-submenu' === $name ? 1 : 0 ) ); }
         }
     }
 
+    /**
+     * Same screen layout as classic menus: loading, publication controls and
+     * two-column object picker / nested structure. The storage stays native:
+     * wp_navigation blocks here, nav_menu terms in classic themes.
+     */
     public static function render() {
         if ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() ) { return; }
         $found = self::header_references();
         $menus = $found['menus'];
-        // A Navigation block may use WordPress' fallback without a ref, or an
-        // existing wp_navigation post from another theme. Make those posts
-        // selectable while clearly distinguishing them from header references.
         $other_menus = get_posts( array(
-            'post_type' => 'wp_navigation',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'orderby' => 'title',
-            'order' => 'ASC',
+            'post_type' => 'wp_navigation', 'post_status' => 'publish',
+            'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC',
             'suppress_filters' => true,
         ) );
-        $other_menus = is_array( $other_menus ) ? $other_menus : array();
-        foreach ( $other_menus as $nav ) {
+        foreach ( is_array( $other_menus ) ? $other_menus : array() as $nav ) {
             if ( ! isset( $menus[ $nav->ID ] ) ) {
                 $menus[ $nav->ID ] = __( 'Navegación existente (sin referencia de cabecera confirmada)', 'taxocommerce-core' );
             }
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation choice.
-        $requested = isset( $_GET['tc_nav_id'] ) ? absint( $_GET['tc_nav_id'] ) : 0;
-        // Only a directly referenced header navigation is automatically
-        // selected. Other navigation posts require an explicit choice.
-        $selected = $requested && isset( $menus[ $requested ] ) ? $requested : ( count( $found['menus'] ) === 1 ? (int) key( $found['menus'] ) : ( count( $menus ) === 1 ? (int) key( $menus ) : 0 ) );
-        echo '<section class="tc-menu-controls"><h2>' . esc_html__( 'Navegación de la cabecera (tema de bloques)', 'taxocommerce-core' ) . '</h2>';
-        echo '<p>' . esc_html__( 'Los menús clásicos y los bloques de navegación son sistemas distintos. Para cambiar la cabecera debes editar la navegación referenciada por su plantilla.', 'taxocommerce-core' ) . '</p>';
-        if ( $menus ) {
-            echo '<form method="get"><input type="hidden" name="page" value="taxocommerce-core-menu"><input type="hidden" name="tc_tab" value="wordpress">';
-            echo '<label for="tc-active-block-navigation">' . esc_html__( 'Selecciona una navegación', 'taxocommerce-core' ) . '</label> ';
-            echo '<select id="tc-active-block-navigation" name="tc_nav_id"><option value="0">' . esc_html__( 'Selecciona una navegación', 'taxocommerce-core' ) . '</option>';
-            foreach ( $menus as $id => $source ) {
-                $post = get_post( $id );
-                echo '<option value="' . absint( $id ) . '"' . selected( $selected, $id, false ) . '>' . esc_html( $post->post_title . ' (ID ' . $id . ' — ' . $source . ')' ) . '</option>';
-            }
-            echo '</select> <button class="button" type="submit">' . esc_html__( 'Cargar para editar', 'taxocommerce-core' ) . '</button></form>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation selection.
+        $requested = isset( $_GET['tc_nav_id'] ) && is_scalar( $_GET['tc_nav_id'] ) ? absint( $_GET['tc_nav_id'] ) : 0;
+        $selected = $requested && isset( $menus[ $requested ] ) ? $requested
+            : ( 1 === count( $found['menus'] ) ? (int) key( $found['menus'] )
+                : ( 1 === count( $menus ) ? (int) key( $menus ) : 0 ) );
+
+        echo '<section class="tc-menu-load" aria-labelledby="tc-block-menu-load-title">';
+        echo '<h2 id="tc-block-menu-load-title">' . esc_html__( 'Cargar un menú de WordPress', 'taxocommerce-core' ) . '</h2>';
+        echo '<form method="get" class="tc-menu-load-form">';
+        echo '<input type="hidden" name="page" value="taxocommerce-core-menu">';
+        echo '<label for="tc-block-menu-existing">' . esc_html__( 'Menú existente', 'taxocommerce-core' ) . '</label>';
+        echo '<select name="tc_nav_id" id="tc-block-menu-existing">';
+        echo '<option value="0">' . esc_html__( 'Selecciona una navegación', 'taxocommerce-core' ) . '</option>';
+        foreach ( $menus as $id => $source ) {
+            $post = get_post( $id );
+            if ( ! $post || 'wp_navigation' !== $post->post_type || 'publish' !== $post->post_status ) { continue; }
+            echo '<option value="' . absint( $id ) . '"' . selected( $selected, $id, false ) . '>' .
+                esc_html( $post->post_title . ' (ID ' . $id . ' — ' . $source . ')' ) . '</option>';
         }
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '</select><button class="button" type="submit">' . esc_html__( 'Cargar para editar', 'taxocommerce-core' ) . '</button></form>';
+        echo '<form method="post" class="tc-menu-create-form" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="' . esc_attr( self::CREATE ) . '">';
         wp_nonce_field( self::CREATE );
-        echo '<label>' . esc_html__( 'Nombre del nuevo menú', 'taxocommerce-core' ) . ' <input type="text" name="menu_name" maxlength="200" required></label> ';
-        echo '<button class="button" type="submit">' . esc_html__( 'Crear menú nuevo', 'taxocommerce-core' ) . '</button></form>';
+        echo '<label for="tc-block-menu-new-name">' . esc_html__( 'Nombre del nuevo menú', 'taxocommerce-core' ) . '</label>';
+        echo '<input id="tc-block-menu-new-name" type="text" name="menu_name" maxlength="200" required>';
+        echo '<button type="submit" class="button">' . esc_html__( 'Crear menú nuevo', 'taxocommerce-core' ) . '</button></form>';
+        echo '<p class="description">' . esc_html__( 'La selección no modifica ni copia el menú. Los cambios guardados afectan al menú elegido; crear uno nuevo no reemplaza el menú activo del tema.', 'taxocommerce-core' ) . '</p>';
+        echo '</section>';
         if ( $found['inline'] ) {
-            echo '<p class="notice notice-warning inline">' . esc_html__( 'El tema contiene una navegación integrada directamente en una plantilla. No aparece en los menús clásicos ni se puede guardar como un menú independiente. Para editar exactamente esa navegación, abre el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'El tema contiene una navegación integrada directamente en una plantilla. No aparece en los menús clásicos ni se puede guardar como un menú independiente. Para editar exactamente esa navegación, abre el Editor del sitio.', 'taxocommerce-core' ) . '</p></div>';
         }
         if ( ! $selected ) {
+            echo '<p class="notice notice-info inline">' . esc_html__( 'Selecciona un menú de WordPress existente o crea uno nuevo para añadir y editar sus elementos.', 'taxocommerce-core' ) . '</p>';
             echo '<p>' . esc_html__( 'No se ha confirmado una única navegación de cabecera editable. Selecciona una navegación de bloques para examinarla, o abre el Editor del sitio si la cabecera utiliza enlaces integrados. No se modificará ningún menú por suposición.', 'taxocommerce-core' ) . '</p>';
-        } else {
-            $post = get_post( $selected );
-            $blocks = parse_blocks( $post->post_content );
-            $links = array();
-            self::links( $blocks, $links );
-            echo '<h3>' . esc_html( $post->post_title ) . '</h3>';
-            $edit_link = get_edit_post_link( $selected, 'raw' );
-            if ( $edit_link ) {
-                echo '<p><a class="button" href="' . esc_url( $edit_link ) . '">' . esc_html__( 'Editar esta navegación en WordPress', 'taxocommerce-core' ) . '</a></p>';
+            return;
+        }
+        $post = get_post( $selected );
+        if ( ! $post || 'wp_navigation' !== $post->post_type || 'publish' !== $post->post_status ) { return; }
+        $hash = hash( 'sha256', $post->post_content );
+        $links = array();
+        self::links( parse_blocks( $post->post_content ), $links );
+        echo '<h2>' . esc_html( $post->post_title ) . '</h2>';
+        echo '<p>' . esc_html__( 'Identificador del menú:', 'taxocommerce-core' ) . ' <code>' . absint( $selected ) . '</code></p>';
+        echo '<form id="tc-menu-save-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
+        echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
+        echo '<input type="hidden" name="content_hash" value="' . esc_attr( $hash ) . '">';
+        wp_nonce_field( self::ACTION . '_' . $selected );
+        echo '<label for="tc-menu-save-name">' . esc_html__( 'Nombre del menú', 'taxocommerce-core' ) . '</label> ';
+        echo '<input id="tc-menu-save-name" type="text" name="menu_name" maxlength="200" value="' . esc_attr( $post->post_title ) . '" required>';
+        echo '</form>';
+        echo '<p class="tc-menu-unsaved" data-tc-menu-unsaved hidden>' . esc_html__( 'Hay cambios pendientes de guardar.', 'taxocommerce-core' ) . '</p>';
+        self::publication_controls( $selected, $found, 'top' );
+        echo '<p>' . esc_html__( 'Gestiona las páginas, entradas, categorías y enlaces de este menú nativo WordPress.', 'taxocommerce-core' ) . '</p>';
+        echo '<div class="tc-menu-editor"><aside><h2>' . esc_html__( 'Añadir elementos al menú', 'taxocommerce-core' ) . '</h2>';
+        TaxoCommerce_Core_Menu_Editor::render_block_pickers( $selected, $hash );
+        echo '</aside><section><h2>' . esc_html__( 'Estructura del menú', 'taxocommerce-core' ) . '</h2>';
+        echo '<div class="tc-menu-structure"><div class="tc-menu-summary"><strong>' . esc_html__( 'Elementos del menú WordPress', 'taxocommerce-core' ) . '</strong><p>';
+        echo esc_html( sprintf(
+            /* translators: %d: number of links in this navigation. */
+            _n( '%d elemento de navegación', '%d elementos de navegación', count( $links ), 'taxocommerce-core' ), count( $links )
+        ) ) . '</p></div>';
+        if ( ! $links ) {
+            echo '<p>' . esc_html__( 'Este menú está vacío. Añade páginas, entradas, categorías o enlaces desde el panel izquierdo.', 'taxocommerce-core' ) . '</p>';
+        }
+        echo '<ul class="tc-menu-items">';
+        foreach ( $links as $index => $link ) {
+            $depth = min( 4, absint( $link['depth'] ) );
+            echo '<li class="tc-menu-depth-' . $depth . '"><details class="tc-menu-item"><summary><strong>' .
+                esc_html( $link['label'] ) . '</strong><span>' . esc_html__( 'Bloque de navegación', 'taxocommerce-core' ) . '</span></summary>';
+            echo '<div class="tc-menu-item-content">';
+            if ( $link['url'] ) {
+                echo '<p><a href="' . esc_url( $link['url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $link['url'] ) . '</a></p>';
             }
-            echo '<p>' . esc_html( isset( $found['menus'][ $selected ] )
-                ? __( 'Este contenido está referenciado desde una plantilla de cabecera. Guardarlo modifica esa navegación de bloques, no los menús clásicos.', 'taxocommerce-core' )
-                : __( 'Esta navegación existe en WordPress, pero su uso en la cabecera no está confirmado. Comprueba que sus enlaces coinciden con el menú público antes de guardar.', 'taxocommerce-core' ) ) . '</p>';
-            if ( $links ) {
-                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-                echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '"><input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
-                echo '<input type="hidden" name="content_hash" value="' . esc_attr( hash( 'sha256', $post->post_content ) ) . '">';
-                wp_nonce_field( self::ACTION . '_' . $selected );
-                foreach ( $links as $i => $link ) {
-                    echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' ';
-                    echo '<input type="text" name="nav_links[' . absint( $i ) . '][label]" value="' . esc_attr( $link['label'] ) . '" maxlength="200"' . ( $link['editable'] ? ' required' : ' readonly' ) . '></label> ';
-                    if ( $link['custom'] ) {
-                        echo '<label>URL <input type="url" name="nav_links[' . absint( $i ) . '][url]" value="' . esc_attr( $link['url'] ) . '"' . ( $link['editable'] ? ' required' : ' readonly' ) . '></label>';
-                    }
-                    if ( ! $link['editable'] ) {
-                        echo ' <span class="description">' . esc_html__( 'Este bloque requiere el Editor del sitio para cambios avanzados.', 'taxocommerce-core' ) . '</span>';
-                    }
-                    echo '</p>';
-                }
-                echo '<button class="button button-primary" type="submit">' . esc_html__( 'Guardar navegación de cabecera', 'taxocommerce-core' ) . '</button></form>';
+            echo '<div class="tc-menu-item-edit"><p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' ';
+            echo '<input form="tc-menu-save-form" type="text" name="nav_links[' . absint( $index ) . '][label]" value="' . esc_attr( $link['label'] ) . '" maxlength="200"' . ( $link['editable'] ? ' required' : ' readonly' ) . '></label></p>';
+            if ( $link['custom'] ) {
+                echo '<p><label>URL <input form="tc-menu-save-form" type="text" name="nav_links[' . absint( $index ) . '][url]" value="' . esc_attr( $link['url'] ) . '"' . ( $link['editable'] ? ' required' : ' readonly' ) . '></label></p>';
+            }
+            if ( ! $link['editable'] ) {
+                echo '<p class="description">' . esc_html__( 'Este bloque requiere el Editor del sitio para cambios avanzados.', 'taxocommerce-core' ) . '</p>';
             } else {
-                echo '<p>' . esc_html__( 'Esta navegación está vacía o utiliza bloques que deben editarse desde el Editor del sitio.', 'taxocommerce-core' ) . '</p>';
+                echo '<p class="description">' . esc_html__( 'Pulsa Guardar menú para aplicar estos cambios.', 'taxocommerce-core' ) . '</p>';
             }
-            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-            echo '<input type="hidden" name="action" value="' . esc_attr( self::ADD_LINK ) . '">';
-            echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
-            echo '<input type="hidden" name="content_hash" value="' . esc_attr( hash( 'sha256', $post->post_content ) ) . '">';
-            wp_nonce_field( self::ADD_LINK . '_' . $selected );
-            echo '<h4>' . esc_html__( 'Añadir elementos al menú', 'taxocommerce-core' ) . '</h4>';
-            echo '<p><label>' . esc_html__( 'Texto del enlace', 'taxocommerce-core' ) . ' <input name="item_title" type="text" maxlength="200" required></label> ';
-            echo '<label>URL <input name="item_url" type="url" required></label> ';
-            echo '<button class="button" type="submit">' . esc_html__( 'Añadir al menú', 'taxocommerce-core' ) . '</button></p></form>';
-            $targets = self::editable_header_parts();
-            if ( $targets ) {
-                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-                echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTIVATE ) . '">';
+            echo '</div>';
+            if ( $link['removable'] ) {
+                echo '<form method="post" data-tc-menu-remove action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+                echo '<input type="hidden" name="action" value="' . esc_attr( self::REMOVE ) . '">';
                 echo '<input type="hidden" name="tc_nav_id" value="' . absint( $selected ) . '">';
-                wp_nonce_field( self::ACTIVATE . '_' . $selected );
-                echo '<label>' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . ' <select name="tc_header_id">';
-                foreach ( $targets as $target ) {
-                    echo '<option value="' . esc_attr( $target['id'] ) . '">' . esc_html( $target['title'] ) . '</option>';
-                }
-                echo '</select></label> ';
-                echo '<button type="submit" class="button">' . esc_html__( 'Activar en esta ubicación', 'taxocommerce-core' ) . '</button></form>';
-                echo '<p class="description">' . esc_html__( 'La activación guarda la cabecera seleccionada como plantilla personalizada de WordPress, sin modificar ficheros del tema. El menú anterior permanece guardado.', 'taxocommerce-core' ) . '</p>';
-            } else {
-                echo '<p class="description">' . esc_html__( 'La cabecera procede de una plantilla del tema no personalizada o contiene varias navegaciones. Para activarla, usa el Editor del sitio; no se cambiará la plantilla por suposición.', 'taxocommerce-core' ) . '</p>';
+                echo '<input type="hidden" name="content_hash" value="' . esc_attr( $hash ) . '">';
+                echo '<input type="hidden" name="item_index" value="' . absint( $index ) . '">';
+                wp_nonce_field( self::REMOVE . '_' . $selected );
+                echo '<button type="submit" class="button-link-delete">' . esc_html__( 'Eliminar del menú', 'taxocommerce-core' ) . '</button></form>';
             }
+            echo '</div></details></li>';
+        }
+        echo '</ul></div></section></div>';
+        self::publication_controls( $selected, $found, 'bottom' );
+    }
+
+    /** Consistent publication controls; only the WordPress storage API differs. */
+    private static function publication_controls( $id, $found, $position ) {
+        echo '<section class="tc-menu-controls" data-position="' . esc_attr( $position ) . '">';
+        echo '<h2>' . esc_html__( 'Publicación del menú', 'taxocommerce-core' ) . '</h2>';
+        echo '<div class="tc-menu-actions">';
+        $edit_link = get_edit_post_link( $id, 'raw' );
+        if ( $edit_link ) {
+            echo '<a class="button" href="' . esc_url( $edit_link ) . '">' . esc_html__( 'Editar manualmente en WordPress', 'taxocommerce-core' ) . '</a>';
+        }
+        echo '<button form="tc-menu-save-form" class="button button-primary" type="submit">' . esc_html__( 'Guardar menú', 'taxocommerce-core' ) . '</button>';
+        echo '</div>';
+        if ( isset( $found['menus'][ $id ] ) ) {
+            echo '<p class="description">' . esc_html__( 'Esta navegación está referenciada en una plantilla de WordPress; comprueba que sea la cabecera pública.', 'taxocommerce-core' ) . '</p>';
+        } else {
+            echo '<p class="description">' . esc_html__( 'Esta navegación existe en WordPress, pero su uso en la cabecera no está confirmado. Comprueba que sus enlaces coinciden con el menú público antes de guardar.', 'taxocommerce-core' ) . '</p>';
+        }
+        $targets = self::editable_header_parts();
+        if ( $targets ) {
+            echo '<h3>' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . '</h3>';
+            echo '<form method="post" class="tc-menu-actions" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTIVATE ) . '">';
+            echo '<input type="hidden" name="tc_nav_id" value="' . absint( $id ) . '">';
+            wp_nonce_field( self::ACTIVATE . '_' . $id );
+            echo '<label class="screen-reader-text" for="tc-block-menu-location-' . esc_attr( $position ) . '">' . esc_html__( 'Ubicación en el tema', 'taxocommerce-core' ) . '</label>';
+            echo '<select id="tc-block-menu-location-' . esc_attr( $position ) . '" data-tc-menu-location name="tc_header_id">';
+            foreach ( $targets as $target ) {
+                echo '<option value="' . esc_attr( $target['id'] ) . '">' . esc_html( $target['title'] ) . '</option>';
+            }
+            echo '</select><button type="submit" class="button">' . esc_html__( 'Activar en esta ubicación', 'taxocommerce-core' ) . '</button></form>';
+        } else {
+            echo '<p class="description">' . esc_html__( 'La cabecera procede de una plantilla del tema no personalizada o contiene varias navegaciones. Para activarla, usa el Editor del sitio; no se cambiará la plantilla por suposición.', 'taxocommerce-core' ) . '</p>';
         }
         echo '<p><a class="button" href="' . esc_url( admin_url( 'site-editor.php' ) ) . '">' . esc_html__( 'Editar cabecera en el Editor del sitio', 'taxocommerce-core' ) . '</a></p></section>';
-        // Classic menus have their own WordPress theme-location editor and
-        // are intentionally not offered as a second tab in block themes.
     }
 
     /**
