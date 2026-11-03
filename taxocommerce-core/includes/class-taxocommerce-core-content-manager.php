@@ -707,6 +707,9 @@ final class TaxoCommerce_Core_Content_Manager {
         $parent = isset( $_POST['parent'] ) ? absint( wp_unslash( $_POST['parent'] ) ) : 0;
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- save_content() verified nonce.
         $description = isset( $_POST['content'] ) ? wp_kses_post( wp_unslash( $_POST['content'] ) ) : '';
+        // Only overwrite the saved excerpt when the editor actually submitted the field.
+        $excerpt = isset( $_POST['excerpt'] ) && is_string( $_POST['excerpt'] )
+            ? wp_kses_post( wp_unslash( $_POST['excerpt'] ) ) : null;
         $image_id = TaxoCommerce_Core_Editor_UI::image_id();
         if ( is_wp_error( $image_id ) ) {
             return $image_id;
@@ -735,6 +738,9 @@ final class TaxoCommerce_Core_Content_Manager {
         }
         if ( null !== $image_id ) {
             update_term_meta( $item_id, 'thumbnail_id', $image_id );
+        }
+        if ( null !== $excerpt ) {
+            update_term_meta( $item_id, 'seo_excerpt', $excerpt );
         }
         return true;
     }

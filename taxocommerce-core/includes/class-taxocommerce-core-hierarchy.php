@@ -44,6 +44,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	public function register_hooks() {
 		add_action( 'admin_init', array( $this, 'ensure_relations_schema' ), 10 );
 		add_action( 'admin_init', array( $this, 'maybe_import_legacy' ), 30 );
+		add_action( 'admin_init', array( $this, 'migrate_native_roles' ), 20 );
 		add_action( 'admin_init', array( $this, 'reconcile_relations' ), 40 );
 		add_action( 'admin_post_taxocommerce_core_replace_hierarchy_relations', array( $this, 'handle_replace_relations' ) );
 		add_action( 'wp_ajax_taxocommerce_core_search_hierarchy_categories', array( $this, 'handle_search_relations' ) );
@@ -68,8 +69,15 @@ final class TaxoCommerce_Core_Hierarchy {
 		TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 	}
 
+	/** Import active legacy page roles into WordPress post metadata once. */
+	public function migrate_native_roles() {
+		if ( current_user_can( 'manage_options' ) ) {
+			TaxoCommerce_Core_Hierarchy_Classic::migrate_page_roles_to_native( $this );
+		}
+	}
+
 	/**
-	 * Migrate links previously stored only as native Core metadata.
+	 * Reconcile native hierarchy relationships with canonical links.
 	 * Existing seo_relations rows are never deleted or overwritten.
 	 */
 	public function reconcile_relations() {
@@ -153,15 +161,16 @@ final class TaxoCommerce_Core_Hierarchy {
 			);
 		}
 
-		$saved = TaxoCommerce_Core_Hierarchy_Classic::save_role_node( $page_id, $role );
-		if ( is_wp_error( $saved ) ) {
-			return $saved;
-		}
-		// Legacy Core metadata mirrored during the transition.
+		// WordPress postmeta is authoritative. seo_nodes is a compatibility mirror.
 		if ( '' === $role ) {
 			delete_post_meta( $page_id, self::ROLE_META );
-		} else {
-			update_post_meta( $page_id, self::ROLE_META, $role );
+		} elseif ( ! update_post_meta( $page_id, self::ROLE_META, $role )
+			&& (string) get_post_meta( $page_id, self::ROLE_META, true ) !== $role ) {
+			return new WP_Error( 'taxocommerce_core_role_save_failed', __( 'No se pudo guardar el rol en WordPress.', 'taxocommerce-core' ) );
+		}
+		$saved = TaxoCommerce_Core_Hierarchy_Classic::save_role_node( $page_id, $role );
+		if ( is_wp_error( $saved ) ) {
+			$this->logger->warning( 'No se pudo sincronizar el rol SEO histórico.', array( 'page_id' => $page_id ) );
 		}
 
 		$this->logger->info(
