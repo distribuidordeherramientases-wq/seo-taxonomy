@@ -43,6 +43,7 @@ CLIENT_MARKERS = (
     re.compile(r"distribuidordeherramientas", re.I),
     re.compile(r"asociacionfocazul|focazul", re.I),
     re.compile(r"hosting160568eu", re.I),
+    re.compile(r"\bdht_[a-z0-9_]+\b", re.I),
     re.compile(r"\b(?:makita|beko|becko|vevor|arebos|todotaladros|cam elion|cam elion)\b", re.I),
 )
 # Current Core menu editor contract shared by classic and block themes.
@@ -205,6 +206,10 @@ def ftps_parity(report, paths):
 def public_navigation(report, site, base):
     try:
         final, html, code = read_html(urllib.request.build_opener(), base)
+    except urllib.error.HTTPError as exc:
+        status = "NOT_CHECKED" if exc.code in (401, 403, 429) else "FAIL"
+        check(report, site, "Web pública", status, "HTTP " + str(exc.code))
+        return
     except (OSError, ValueError, urllib.error.URLError) as exc:
         check(report, site, "Web pública", "NOT_CHECKED", "Respuesta HTTP no disponible: " + safe_report_error(exc))
         return
@@ -230,14 +235,14 @@ def public_navigation(report, site, base):
         check(report, site, "Navegación pública", "WARNING", f"{parser.nav_count} nav sin enlaces HTML detectables")
         return
     suspects = []
-    unexpected_local = 0
+    unexpected_local = []
     for link in parser.nav_links:
         destination = urllib.parse.urlparse(urllib.parse.urljoin(base, link["href"]))
         if site == "focazul":
             if destination.hostname == "staging.distribuidordeherramientas.es":
                 suspects.append("enlace a STAGING ajeno")
             if destination.hostname == origin.hostname and not destination.path.startswith("/asociacionfocazul/"):
-                unexpected_local += 1
+                unexpected_local.append(destination.path[:120])
             if re.search(r"\b(?:makita|beko|becko|vevor|taller mec[aá]nico)\b", link["text"], re.I):
                 suspects.append("marca/categoría ajena")
         if site == "staging" and destination.hostname == origin.hostname:
@@ -246,7 +251,8 @@ def public_navigation(report, site, base):
     if suspects or unexpected_local:
         check(report, site, "Navegación pública", "WARNING",
               f"{len(parser.nav_links)} enlaces en {parser.nav_count} nav; "
-              f"posibles referencias cruzadas={len(suspects)}; rutas fuera del subdirectorio={unexpected_local}")
+              f"posibles referencias cruzadas={len(suspects)}; rutas fuera del subdirectorio="
+              f"{len(unexpected_local)} (muestra: {unexpected_local[:3]})")
     else:
         check(report, site, "Navegación pública", "PASS",
               f"{len(parser.nav_links)} enlaces en {parser.nav_count} nav; sin referencias cruzadas conocidas")
@@ -322,7 +328,7 @@ def save_report(report, prefix):
     lines = [
         "# TaxoCommerce Core — auditoría comparativa STAGING y Focazul",
         "",
-        f"**Commit fuente:** \`{report['commit']}\` · **Chequeos:** "
+        f"**Commit fuente:** `{report['commit']}` · **Chequeos:** "
         + " · ".join(f"{k}={totals[k]}" for k in ("PASS", "FAIL", "WARNING", "NOT_CHECKED")),
         "",
         "STAGING y Focazul deben tener el **mismo plugin**, pero datos, menú y marcas **independientes**.",
@@ -335,7 +341,7 @@ def save_report(report, prefix):
         lines.append(f"| {c['site']} | {c['name']} | **{c['status']}** | {detail} |")
     lines.extend([
         "",
-        "**Alcance:** La paridad de ficheros y las páginas públicas se verifican remotamente.",
+        "**Alcance:** Se intenta verificar remotamente la paridad de ficheros y las páginas públicas; cada fila declara su resultado real.",
         "La equivalencia de la interfaz de administración solo se comprueba remotamente si hay usuarios de pruebas autorizados para las DOS tiendas.",
         "Sin autenticación, las pruebas PHPUnit/PHP de CI verifican código simulado, no la funcionalidad visual de ambas instalaciones.",
         "No se comprueban bases de datos, países/categorías internos, creación/guardado efectivo ni permisos por rol sin credenciales/ejecución WordPress autorizados.",
@@ -363,6 +369,8 @@ def main():
     for site, cfg in SITES.items():
         public_navigation(report, site, cfg["url"])
         authenticated_ui(report, site, cfg)
+        check(report, site, "Independencia de datos internos", "NOT_CHECKED",
+              "Los países de páginas, menús no publicados, categorías y proveedores requieren una consulta autenticada a WordPress; no se infieren de la igualdad de archivos")
     return save_report(report, args.out)
 
 
