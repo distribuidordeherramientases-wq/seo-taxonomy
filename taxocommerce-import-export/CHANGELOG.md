@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Import-Export - Import & Export for WooCommerce
 
+## [0.4.13] — 2026-11-03
+
+- Cabecera común de la familia basada en Core: icono, nombre, descripción, versión y diseño adaptable.
+- Navegación y funciones originales conservadas, sin dependencia de Core. Issue #2137.
+
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]

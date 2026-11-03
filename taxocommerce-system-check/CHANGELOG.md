@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce System Check
 
+## [0.2.14] — 2026-11-03
+
+- Cabecera común de la familia basada en Core: icono, nombre, descripción, versión y diseño adaptable.
+- Navegación y funciones originales conservadas, sin dependencia de Core. Issue #2137.
+
 > Historial de las versiones independientes del plugin. El origen de los motores de diagnóstico está en el monolito TaxoCommerce SEO; no se asignan versiones retrospectivas a esa etapa.
 
 ## [Unreleased]

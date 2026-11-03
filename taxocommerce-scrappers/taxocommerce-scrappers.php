@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Scrappers
  * Description: External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.
- * Version: 0.1.7
+ * Version: 0.1.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,8 +14,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.7' );
+
+define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.8' );
 define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SCRAPPERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SCRAPPERS_URL', plugin_dir_url( __FILE__ ) );

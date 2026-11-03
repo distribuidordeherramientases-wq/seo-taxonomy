@@ -4,6 +4,11 @@
 
 # CHANGELOG — TaxoCommerce Images - Image Management for WooCommerce
 
+## [0.2.16] — 2026-11-03
+
+- Cabecera común basada en TaxoCommerce Core: identidad, icono, descripción y versión con estilo responsive.
+- Enlaces, pestañas, permisos y lógica interna conservados; implementación autónoma sin requerir Core. Issue #2137.
+
 > Historial maestro de versiones del plugin independiente. El origen monolítico se documenta en [`changelog.txt`](changelog.txt).
 
 ## [Unreleased]

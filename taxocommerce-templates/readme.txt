@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.8
+Stable tag: 0.4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,11 @@ The association-audit panel compares old and new file locations, roles without t
 Use `tct_request_definitions` to extend named request definitions and `tct_request_candidates` to customise frontend request resolution precedence. Request types not using `template_include` or the native WooCommerce template hooks need their own dedicated integration.
 
 == Changelog ==
+
+= 0.4.9 =
+* Cabecera común de administración basada en TaxoCommerce Core, sin dependencia de Core.
+* Se conservan pestañas, permisos y procesos existentes.
+
 
 = 0.4.0 =
 * Standalone request and WooCommerce template routing.

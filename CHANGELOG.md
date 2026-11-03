@@ -1,5 +1,31 @@
 # Changelog
 
+## PRO: verificar el directorio FTP antes de copiar cualquier plugin — 03/11/2026 (#2119)
+
+- Corregido el falso diagnóstico de «plugin ausente»: el directorio real de PRODUCCIÓN muestra carpetas que el login FTPS no encontraba. Se listan ahora las carpetas por NLST, se buscan posibles raíces WordPress y se verifica la coincidencia con los plugins de la revisión antes de elegir una instalación.
+- Preferencia por el directorio de PRODUCCIÓN confirmado en Webempresa; si existen varias instalaciones ambiguas, falta acceso al sitio de PRODUCCIÓN o solo se ven tres de los veinte plugins, se cancela el despliegue **antes de transmitir el primer archivo**.
+- Se comprueba por lectura la accesibilidad de todas las carpetas presentes y sus archivos principales. Los errores FTP 550 sobre carpetas visibles se notifican como problema de ruta/permisos, no como si el plugin no existiera.
+- Un plugin verdaderamente ausente en el listado del destino no se instala; puede omitirse de forma explícita. No se copian monolito, .git, .github ni archivos ajenos a las carpetas TaxoCommerce.
+- El manifiesto incorpora raíz FTP, lista de plugins visibles y descripción real de los errores. Pruebas nuevas con dos WordPress accesibles, 19 carpetas de PRODUCCIÓN, errores FTP 550 y origen incorrecto con tres plugins. Despliegue real a PRODUCCIÓN pendiente de verificación.
+
+
+## STAGING → PRO: continuar con plugins presentes sin bloquear toda la familia — 2026-11-03 (#2119)
+
+- La ejecución manual ya no se cancela porque un directorio `taxocommerce-*` no exista o no sea accesible en PRO (error observado en `taxocommerce-auditor`). Se actualizan los demás plugins existentes, sin crear el ausente ni cambiar la configuración del sitio.
+- Cada plugin omitido se registra con su causa en el log y en `pro-release-manifest.json` (`skipped_plugins` y `modules_skipped`). La síntesis distingue actualización parcial de publicación completa, sin afirmar que todos los plugins están desplegados.
+- Las transferencias continúan limitadas a archivos distribuibles rastreados en Git y al directorio individual de cada plugin bajo `wp-content/plugins`. No se sincroniza el repositorio, el monolítico, `.git`, pruebas ni archivos ocultos.
+- Test de regresión del flujo completo con `taxocommerce-auditor` ausente y otros dos plugins instalados. Las incidencias reales de transferencia (por ejemplo, errores SHA-256) siguen provocando fallo del job.
+- El flujo PRO sigue siendo exclusivamente manual; esta corrección de GitHub no ejecuta ninguna subida real a PRODUCCIÓN.
+
+
+## Corrección de ruta FTPS de plugins en PRO - 2026-11-03 (Issue #2119)
+
+- El despliegue manual solo actualiza archivos publicables rastreados en Git dentro de carpetas `taxocommerce-*/` bajo `wp-content/plugins/`; nunca se copia `.git`, `.github`, código de pruebas, el monolito `seo-taxonomy` ni el repositorio completo.
+- Elimina la dependencia FTP del directorio `seo-taxonomy`; localiza el directorio real de plugins mediante la instalación existente de TaxoCommerce Core, con alternativa explícita `PRO_FTP_PLUGINS_DIR` cuando el login FTPS tenga una raíz no convencional.
+- Antes de subir un archivo verifica que **todos** los plugins de la publicación están presentes en PRO. No crea nuevos directorios raíz de plugins ni modifica plugins ausentes; mantiene comprobación SHA-256 e idempotencia.
+- Pruebas sin red para raíces FTP diversas, exclusiones de archivos, ausencia de plugins, rechazo de rutas inseguras e integridad de transferencias. No se ha ejecutado despliegue a PRODUCCIÓN durante esta corrección.
+
+
 ## Despliegue manual de toda la familia a PRO - 2026-11-03 (Issue #2119)
 
 - Sustituida la sincronizacion FTPS del repositorio entero, que escribia en el FTP del monolito, por una rutina centrada exclusivamente en los directorios `taxocommerce-*` de `staging`.

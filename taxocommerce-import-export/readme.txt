@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.12
+Stable tag: 0.4.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,11 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.13 =
+* Cabecera administrativa unificada de TaxoCommerce con nombre, icono y versión.
+* Estilos propios sin Core, funciones y permisos intactos.
+
 
 = 0.4.12 =
 * Add native WordPress post-category CSV export and import (single CSV and multi-file batch), separately from WooCommerce product categories.
