@@ -66,6 +66,8 @@ function taxocommerce_distribution_render_manual() {
         <p><?php esc_html_e( 'Consulta el índice público /sitemap.xml y sus ficheros hijos: productos, categorías de producto, entradas, páginas, clústeres y hubs. El informe indica validación XML, URLs, cobertura de auditoría, tamaño y fecha de modificación cuando existen datos.', 'taxocommerce-distribution' ); ?></p>
         <p><?php esc_html_e( 'Regenerate and validate sitemaps ejecuta una generación real. El motor agrupa productos en bloques, valida el XML y publica de manera atómica para evitar exponer archivos incompletos. Ejecuta esta operación solo cuando proceda; Autocheck no la activa.', 'taxocommerce-distribution' ); ?></p>
 
+        <p><?php esc_html_e( 'Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron.', 'taxocommerce-distribution' ); ?></p>
+
         <h3><?php esc_html_e( '5. Automation: supervisar el trabajo', 'taxocommerce-distribution' ); ?></h3>
         <p><?php esc_html_e( 'Consulta si la automatización comercial corresponde al plugin independiente o al módulo antiguo, la regeneración diaria, el último lote y la propiedad de los sitemaps. El worker funciona por ventanas con cursor y bloqueo; no es necesario dejar abierta la pantalla para publicar.', 'taxocommerce-distribution' ); ?></p>
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## PRO: verificar el directorio FTP antes de copiar cualquier plugin — 03/11/2026 (#2119)
+
+- Corregido el falso diagnóstico de «plugin ausente»: el directorio real de PRODUCCIÓN muestra carpetas que el login FTPS no encontraba. Se listan ahora las carpetas por NLST, se buscan posibles raíces WordPress y se verifica la coincidencia con los plugins de la revisión antes de elegir una instalación.
+- Preferencia por el directorio de PRODUCCIÓN confirmado en Webempresa; si existen varias instalaciones ambiguas, falta acceso al sitio de PRODUCCIÓN o solo se ven tres de los veinte plugins, se cancela el despliegue **antes de transmitir el primer archivo**.
+- Se comprueba por lectura la accesibilidad de todas las carpetas presentes y sus archivos principales. Los errores FTP 550 sobre carpetas visibles se notifican como problema de ruta/permisos, no como si el plugin no existiera.
+- Un plugin verdaderamente ausente en el listado del destino no se instala; puede omitirse de forma explícita. No se copian monolito, .git, .github ni archivos ajenos a las carpetas TaxoCommerce.
+- El manifiesto incorpora raíz FTP, lista de plugins visibles y descripción real de los errores. Pruebas nuevas con dos WordPress accesibles, 19 carpetas de PRODUCCIÓN, errores FTP 550 y origen incorrecto con tres plugins. Despliegue real a PRODUCCIÓN pendiente de verificación.
+
+
 ## STAGING → PRO: continuar con plugins presentes sin bloquear toda la familia — 2026-11-03 (#2119)
 
 - La ejecución manual ya no se cancela porque un directorio `taxocommerce-*` no exista o no sea accesible en PRO (error observado en `taxocommerce-auditor`). Se actualizan los demás plugins existentes, sin crear el ausente ni cambiar la configuración del sitio.
