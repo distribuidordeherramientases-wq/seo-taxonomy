@@ -26,6 +26,8 @@ function wp_die( $message ) { throw new RuntimeException( (string) $message ); }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
 function wp_nonce_url( $url, $action ) { return $url . '&_wpnonce=test'; }
+function wp_nonce_field( $action, $name = '_wpnonce' ) { echo '<input type="hidden" name="' . $name . '" value="test">'; }
+function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function check_admin_referer( $action ) {
     ++$GLOBALS['tcs_nonce_calls'];
     if ( 'tcs_auto_test_run' !== $action || ( $_GET['_wpnonce'] ?? '' ) !== 'test' ) { throw new RuntimeException( 'Missing nonce.' ); }
@@ -75,7 +77,7 @@ $_GET['_wpnonce'] = 'test';
 ob_start();
 TaxoCommerce_System_Check_Auto_Test::render();
 $html = ob_get_clean();
-tcs_smoke_expect( $GLOBALS['tcs_nonce_calls'] === 1 && strpos( $html, 'No ejecutado / N/A' ) !== false, 'Explicit signed test must render skip evidence.' );
+tcs_smoke_expect( $GLOBALS['tcs_nonce_calls'] === 1 && strpos( $html, 'No ejecutado / N/A' ) !== false && strpos( $html, 'taxocommerce_system_check_autocheck_json' ) !== false, 'Explicit signed test must render skip evidence.' );
 tcs_smoke_expect( $GLOBALS['tcs_mutations'] === 0, 'Rendering must not trigger mutations.' );
 
 unset( $_GET['tcs_run'], $_GET['_wpnonce'] );
