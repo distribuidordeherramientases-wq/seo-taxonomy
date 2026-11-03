@@ -39,6 +39,8 @@ function __( $text, $domain = '' ) { return $text; }
 function esc_html__( $text, $domain = '' ) { return $text; }
 function esc_html_e( $text, $domain = '' ) { echo esc_html__( $text, $domain ); }
 function esc_url( $url ) { return $url; }
+function wp_unslash( $value ) { return $value; }
+function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function admin_url( $path ) { return '/wp-admin/' . $path; }
 function get_the_title( $page ) { return 'Page ' . $page->ID; }
 function wp_get_nav_menu_items( $id ) { return array(); }
@@ -129,8 +131,16 @@ $GLOBALS['theme_locations'] = array();
 
 require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-country.php';
 require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-menu.php';
+require dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-hierarchy.php';
 
 verify( array_keys( TaxoCommerce_Core_Menu::available_countries() ) === array( '' ), 'fresh site only has Global (no configured country)' );
+$hierarchy = new TaxoCommerce_Core_Hierarchy( new TaxoCommerce_Core_Logger() );
+$country_request = new ReflectionMethod( TaxoCommerce_Core_Hierarchy::class, 'country_request' );
+$_GET = array();
+verify( '' === $country_request->invoke( $hierarchy ), 'hierarchy defaults to Global, never ES' );
+$_GET = array( 'tc_country' => 'FR' );
+verify( 'FR' === $country_request->invoke( $hierarchy ), 'hierarchy keeps explicit FR' );
+$_GET = array();
 $proposal = new TaxoCommerce_Core_Menu( new TaxoCommerce_Core_Logger() );
 $before_menus = count( $GLOBALS['menus'] );
 ob_start();
