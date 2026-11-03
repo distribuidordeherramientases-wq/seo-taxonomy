@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Corrección de permisos en navegación (#2109): los accesos internos de Core (Contenidos, Jerarquía, Menús y Manual) permanecen registrados en `$submenu` para que WordPress resuelva las URLs de administración. Se ocultan únicamente con CSS, sin eliminar rutas ni alterar capacidades. Pruebas de regresión para Core aislado y con extensiones instaladas. No se modifica producción.
+
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
 
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
