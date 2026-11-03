@@ -406,6 +406,16 @@ function tcdist_sitemap_background_worker_tick() {
 }
 add_action( TCDIST_SITEMAP_WORKER_HOOK, 'tcdist_sitemap_background_worker_tick' );
 
+/** Recover the worker when a previous PHP process was interrupted or cron stalled. */
+function tcdist_sitemap_recover_background_worker() {
+    $state = tcdist_sitemap_job_state();
+    if ( 'running' === ( $state['status'] ?? '' ) && ! wp_next_scheduled( TCDIST_SITEMAP_WORKER_HOOK ) ) {
+        $delay = max( 1, absint( $state['not_before'] ?? 0 ) - time() );
+        tcdist_sitemap_schedule_window( $delay );
+    }
+}
+add_action( 'init', 'tcdist_sitemap_recover_background_worker', 40 );
+
 function tcdist_sitemap_stop_background_build() {
     $state = tcdist_sitemap_job_state();
     if ( 'running' !== ( $state['status'] ?? '' ) ) {
