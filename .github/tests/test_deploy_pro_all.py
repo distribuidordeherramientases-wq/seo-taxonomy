@@ -16,9 +16,15 @@ SPEC.loader.exec_module(mod)
 class FakeFTP:
     def __init__(self):
         self.dirs = {"/", "/site", "/site/wp-content", "/site/wp-content/plugins",
-                     "/site/wp-content/plugins/seo-taxonomy"}
-        self.files = {"/site/wp-content/plugins/seo-taxonomy/seo-taxonomy.php": b"<?php /* Plugin Name: SEO Taxonomy */"}
-        self.here = "/site/wp-content/plugins/seo-taxonomy"
+                     "/site/wp-content/plugins/taxocommerce-core",
+                     "/site/wp-content/plugins/taxocommerce-foo"}
+        self.files = {
+            "/site/wp-content/plugins/taxocommerce-core/taxocommerce-core.php":
+                b"<?php /* Plugin Name: TaxoCommerce Core */",
+            "/site/wp-content/plugins/taxocommerce-foo/taxocommerce-foo.php":
+                b"<?php /* Plugin Name: TaxoCommerce Foo */",
+        }
+        self.here = "/site/wp-content/plugins"
         self.transfers = []
         self.tamper = False
 
@@ -98,14 +104,17 @@ class DeployProTests(unittest.TestCase):
                 os.chdir(cwd)
 
     def test_ftp_login_guard(self):
-        ftp = FakeFTP()
-        root = mod.enter_wp_plugins_root(ftp)
-        self.assertEqual(root, "/site/wp-content/plugins")
-        self.assertEqual(ftp.here, root)
+        for login in ("/site", "/site/wp-content/plugins", "/site/wp-content/plugins/taxocommerce-core"):
+            ftp = FakeFTP()
+            ftp.here = login
+            root = mod.enter_wp_plugins_root(ftp)
+            self.assertEqual(root, "/site/wp-content/plugins")
+            self.assertEqual(ftp.here, root)
         bad = FakeFTP()
-        bad.here = "/site/wp-content/plugins"
-        with self.assertRaises(RuntimeError):
+        bad.files.clear()
+        with self.assertRaisesRegex(RuntimeError, "No se localiza"):
             mod.enter_wp_plugins_root(bad)
+        self.assertFalse(bad.transfers)
 
     def test_reconcile_all_creates_missing_plugin_without_deleting(self):
         ftp = FakeFTP()
@@ -125,12 +134,53 @@ class DeployProTests(unittest.TestCase):
                 self.assertEqual(report[0]["updated"], 3)
                 self.assertEqual(len(ftp.transfers), 3)
                 self.assertFalse(any(".taxocommerce-upload-" in path for path in ftp.files))
-                self.assertIn("/site/wp-content/plugins/seo-taxonomy/seo-taxonomy.php", ftp.files)
+                self.assertFalse(any("seo-taxonomy" in name for name in ftp.files))
+                self.assertTrue(all(name.startswith("/site/wp-content/plugins/taxocommerce-core/")
+                                    for name in ftp.transfers))
                 mod.reconcile_one(ftp, root, slug, files, report)
                 self.assertEqual(report[1]["unchanged"], 3)
                 self.assertEqual(len(ftp.transfers), 3)
             finally:
                 os.chdir(cwd)
+
+    def test_rejects_extra_repository_files_and_unsafe_paths(self):
+        ftp = FakeFTP()
+        root = mod.enter_wp_plugins_root(ftp)
+        with self.assertRaisesRegex(ValueError, "non-release"):
+            mod.reconcile_one(ftp, root, "taxocommerce-core", [".git/config"], [])
+        with self.assertRaisesRegex(ValueError, "non-release"):
+            mod.reconcile_one(ftp, root, "taxocommerce-core", ["../seo-taxonomy.php"], [])
+        self.assertFalse(ftp.transfers)
+
+    def test_missing_plugin_blocks_entire_family_preflight(self):
+        ftp = FakeFTP()
+        root = mod.enter_wp_plugins_root(ftp)
+        with self.assertRaisesRegex(RuntimeError, "absent on PRO"):
+            mod.verify_installed_plugins(ftp, root, {
+                "taxocommerce-core": ["taxocommerce-core.php"],
+                "taxocommerce-missing": ["taxocommerce-missing.php"]
+            })
+        self.assertFalse(ftp.transfers)
+        self.assertNotIn("/site/wp-content/plugins/taxocommerce-missing", ftp.dirs)
+
+    def test_missing_main_file_blocks_preflight(self):
+        ftp = FakeFTP()
+        ftp.files.pop("/site/wp-content/plugins/taxocommerce-foo/taxocommerce-foo.php")
+        root = mod.enter_wp_plugins_root(ftp)
+        with self.assertRaisesRegex(RuntimeError, "Main plugin file"):
+            mod.verify_installed_plugins(ftp, root, {
+                "taxocommerce-core": ["taxocommerce-core.php"],
+                "taxocommerce-foo": ["taxocommerce-foo.php"],
+            })
+        self.assertFalse(ftp.transfers)
+
+    def test_explicit_plugins_path_is_restricted(self):
+        ftp = FakeFTP()
+        with patch.dict(os.environ, {"PRO_FTP_PLUGINS_DIR": "/site/wp-content/plugins"}):
+            self.assertEqual(mod.enter_wp_plugins_root(ftp), "/site/wp-content/plugins")
+        with patch.dict(os.environ, {"PRO_FTP_PLUGINS_DIR": "/site/../.git"}):
+            with self.assertRaisesRegex(RuntimeError, "Unsafe"):
+                mod.enter_wp_plugins_root(FakeFTP())
 
     def test_integrity_mismatch_aborts(self):
         ftp = FakeFTP()
