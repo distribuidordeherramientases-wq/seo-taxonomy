@@ -10,6 +10,8 @@ on:
       - 'taxocommerce-*/**'
       - '.github/scripts/deploy_staging_delta.py'
       - '.github/tests/test_deploy_staging_delta.py'
+      - '.github/scripts/audit_core_dual_sites.py'
+      - '.github/tests/test_audit_core_dual_sites.py'
       - '.github/workflows/deploy-staging.yml'
 
 permissions:
@@ -30,6 +32,8 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
+          python3 -m py_compile .github/scripts/audit_core_dual_sites.py
+          python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
       - name: Validate all TaxoCommerce binary gettext catalogs
         run: |
           python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
@@ -147,7 +151,6 @@ jobs:
           fi
           echo "All applicable deployments completed successfully"
       - uses: actions/checkout@v4
-        if: needs.plan.outputs.core == 'true'
       - name: Verify and repair tracked Core file parity on both installations
         if: needs.plan.outputs.core == 'true'
         env:
@@ -162,3 +165,27 @@ jobs:
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: python3 .github/scripts/audit_staging_mo.py
+      - name: Read-only comparison of Core and both WordPress menus (no site writes)
+        # Audit findings stay visible in the summary/artifact; transient HTTP/FTPS
+        # failures must not invalidate the verified delivery baseline used by deploy.
+        continue-on-error: true
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          TC_STAGING_WP_USER: ${{ secrets.TC_STAGING_WP_USER }}
+          TC_STAGING_WP_PASSWORD: ${{ secrets.TC_STAGING_WP_PASSWORD }}
+          TC_FOCAZUL_WP_USER: ${{ secrets.TC_FOCAZUL_WP_USER }}
+          TC_FOCAZUL_WP_PASSWORD: ${{ secrets.TC_FOCAZUL_WP_PASSWORD }}
+        run: python3 .github/scripts/audit_core_dual_sites.py --out core-dual-audit/report
+      - name: Preserve cross-site audit report (including failed and unchecked results)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-dual-site-audit-${{ github.run_id }}
+          path: |
+            core-dual-audit/report.json
+            core-dual-audit/report.md
+          if-no-files-found: ignore
+          retention-days: 30
+
