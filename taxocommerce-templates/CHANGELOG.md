@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.4.10] — 2026-11-03
+
+- Nueva pestaña «Autocheck» independiente: comprueba clases, rutas, tablas y políticas sin cambiar plantillas; exporta JSON autenticado.
+- Issue #2150, PR #2151; rutas existentes conservadas y sin pruebas de escritura.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce Templates

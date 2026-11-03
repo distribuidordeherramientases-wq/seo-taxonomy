@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+
+## [0.2.15] — 2026-11-03
+
+- Pestaña homogénea «Autocheck» y descarga JSON del último informe, por usuario y sitio, con control de permisos y nonce.
+- Issue #2150, PR #2151; rutas existentes conservadas y sin pruebas de escritura.
+
 - Dominio gettext, carga de catalogos locales, etiquetas de menús y textos HTML de salida estáticos; catálogos PO/MO sincronizados con el texto fuente.
 
 # CHANGELOG — TaxoCommerce System Check
