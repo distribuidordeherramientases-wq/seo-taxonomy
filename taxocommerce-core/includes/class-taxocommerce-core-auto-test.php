@@ -370,6 +370,9 @@ final class TaxoCommerce_Core_Auto_Test {
                 }
                 continue;
             }
+            if ( $id && (int) $resolved !== $id ) {
+                return self::bad( 'Menú ' . $name . ': ID guardado ' . $id . ' distinto del menú nativo localizado #' . absint( $resolved ) . '.' );
+            }
             $menu = wp_get_nav_menu_object( $resolved );
             if ( ! $menu || is_wp_error( $menu ) ||
                  ( (string) $menu->name !== TaxoCommerce_Core_Menu::menu_name( $code ) &&
