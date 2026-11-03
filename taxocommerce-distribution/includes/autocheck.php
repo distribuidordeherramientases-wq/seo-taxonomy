@@ -161,6 +161,25 @@ function taxocommerce_distribution_autocheck_run() {
             : 'Falta el controlador manual o el callback automático del motor.'
     );
 
+    $sitemap_worker = function_exists( 'tcdist_sitemap_background_worker_tick' )
+        && defined( 'TCDIST_SITEMAP_ITEMS_PER_WINDOW' ) && 250 === TCDIST_SITEMAP_ITEMS_PER_WINDOW
+        && false !== has_action( TCDIST_SITEMAP_WORKER_HOOK, 'tcdist_sitemap_background_worker_tick' );
+    taxocommerce_distribution_autocheck_add(
+        $checks,
+        'Sitemaps',
+        'Worker de 250 y regulador de carga',
+        $sitemap_worker ? 'ok' : 'error',
+        $sitemap_worker ? 'El worker incremental y el control de carga están disponibles; no se ejecutan.' : 'No se encuentra el worker incremental.'
+    );
+    $sitemap_speed = get_option( TCDIST_SITEMAP_SPEED_OPTION, 2 );
+    taxocommerce_distribution_autocheck_add(
+        $checks,
+        'Sitemaps',
+        'Velocidad configurada',
+        in_array( absint( $sitemap_speed ), array( 1, 2, 3, 4, 5 ), true ) ? 'ok' : 'error',
+        'Prioridad guardada: ' . absint( $sitemap_speed ) . ' (1=Suave, 5=Máxima).'
+    );
+
     // Do not call the storage helpers: tcdist_feed_storage() may create a
     // directory/index.html, and other helpers may trigger update operations.
     $uploads = wp_upload_dir( null, false );
