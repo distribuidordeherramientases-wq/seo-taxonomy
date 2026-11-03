@@ -342,6 +342,163 @@ final class TaxoCommerce_Core_Block_Navigation {
         self::redirect( $id, 'ok', __( 'Menú nuevo creado. Puedes editarlo sin modificar los existentes.', 'taxocommerce-core' ) );
     }
 
+    /**
+     * Convert validated native WordPress objects to Gutenberg Navigation Link
+     * blocks. Data and permissions belong to this WordPress, not TaxoCommerce.
+     */
+    private static function object_blocks( $type, $ids ) {
+        $allowed = array( 'page', 'post', 'category' );
+        if ( taxonomy_exists( 'product_cat' ) ) { $allowed[] = 'product_cat'; }
+        if ( ! in_array( $type, $allowed, true ) || ! is_array( $ids ) ) {
+            return new WP_Error( 'block_nav_type', __( 'Tipo de elemento no permitido.', 'taxocommerce-core' ) );
+        }
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+        if ( ! $ids || count( $ids ) > 50 ) {
+            return new WP_Error( 'block_nav_count', __( 'Selecciona entre 1 y 50 elementos.', 'taxocommerce-core' ) );
+        }
+        $result = array();
+        foreach ( $ids as $id ) {
+            if ( in_array( $type, array( 'page', 'post' ), true ) ) {
+                $post = get_post( $id );
+                if ( ! $post || $post->post_type !== $type || 'publish' !== $post->post_status || ! empty( $post->post_password ) ) {
+                    return new WP_Error( 'block_nav_post', __( 'La selección contiene un contenido no publicado o no válido.', 'taxocommerce-core' ) );
+                }
+                $label = get_the_title( $post );
+                $url = get_permalink( $id );
+                $kind = 'post-type';
+            } else {
+                $term = get_term( $id, $type );
+                if ( ! $term || is_wp_error( $term ) || (string) $term->taxonomy !== $type ) {
+                    return new WP_Error( 'block_nav_term', __( 'La categoría seleccionada no existe.', 'taxocommerce-core' ) );
+                }
+                $label = $term->name;
+                $url = get_term_link( $term, $type );
+                $kind = 'taxonomy';
+            }
+            if ( is_wp_error( $url ) || ! is_string( $url ) ) {
+                return new WP_Error( 'block_nav_url', __( 'La URL del enlace no es válida.', 'taxocommerce-core' ) );
+            }
+            $url = esc_url_raw( $url, array( 'https', 'http' ) );
+            if ( '' === $url || '' === trim( (string) $label ) ) {
+                return new WP_Error( 'block_nav_url', __( 'La URL del enlace no es válida.', 'taxocommerce-core' ) );
+            }
+            $result[] = array(
+                'blockName' => 'core/navigation-link',
+                'attrs' => array(
+                    'label' => sanitize_text_field( $label ),
+                    'url' => $url, 'kind' => $kind, 'type' => $type, 'id' => $id,
+                ),
+                'innerBlocks' => array(), 'innerHTML' => '', 'innerContent' => array(),
+            );
+        }
+        return $result;
+    }
+
+    /** Add selected pages/posts/categories while preserving existing blocks. */
+    public static function add_objects() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar este menú.', 'taxocommerce-core' ) );
+        }
+        $id = isset( $_POST['tc_nav_id'] ) && is_scalar( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
+        check_admin_referer( self::ADD_OBJECTS . '_' . $id );
+        $post = $id ? get_post( $id ) : false;
+        if ( ! $post || 'wp_navigation' !== $post->post_type || 'publish' !== $post->post_status || ! current_user_can( 'edit_post', $id ) ) {
+            self::redirect( $id, 'error', __( 'La navegación seleccionada no es editable.', 'taxocommerce-core' ) );
+        }
+        $hash = isset( $_POST['content_hash'] ) && is_scalar( $_POST['content_hash'] )
+            ? sanitize_text_field( wp_unslash( $_POST['content_hash'] ) ) : '';
+        if ( ! hash_equals( hash( 'sha256', $post->post_content ), $hash ) ) {
+            self::redirect( $id, 'error', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+        }
+        $type = isset( $_POST['object_type'] ) && is_string( $_POST['object_type'] )
+            ? sanitize_key( wp_unslash( $_POST['object_type'] ) ) : '';
+        $ids = isset( $_POST['object_ids'] ) ? wp_unslash( $_POST['object_ids'] ) : array();
+        $new_blocks = self::object_blocks( $type, $ids );
+        if ( is_wp_error( $new_blocks ) ) { self::redirect( $id, 'error', $new_blocks->get_error_message() ); }
+        $blocks = array_merge( parse_blocks( $post->post_content ), $new_blocks );
+        $saved = wp_update_post( array( 'ID' => $id, 'post_content' => wp_slash( serialize_blocks( $blocks ) ) ), true );
+        if ( is_wp_error( $saved ) || ! $saved ) {
+            self::redirect( $id, 'error', is_wp_error( $saved ) ? $saved->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( $id, 'ok', __( 'Elementos añadidos al menú.', 'taxocommerce-core' ) );
+    }
+
+    /**
+     * Remove only a leaf Navigation Link. Never delete an entire submenu or
+     * unsupported block implicitly. Keep innerContent placeholders aligned.
+     */
+    private static function remove_link_block( &$blocks, $wanted, &$counter, &$removed_position ) {
+        for ( $pos = 0; $pos < count( $blocks ); ++$pos ) {
+            $name = $blocks[ $pos ]['blockName'] ?? '';
+            if ( in_array( $name, array( 'core/navigation-link', 'core/navigation-submenu' ), true ) ) {
+                if ( $counter === $wanted ) {
+                    if ( 'core/navigation-link' !== $name || ! empty( $blocks[ $pos ]['innerBlocks'] )
+                        || '' !== trim( (string) ( $blocks[ $pos ]['innerHTML'] ?? '' ) ) ) {
+                        return new WP_Error( 'block_nav_protected', __( 'Este bloque requiere el Editor del sitio para cambios avanzados.', 'taxocommerce-core' ) );
+                    }
+                    array_splice( $blocks, $pos, 1 );
+                    $removed_position = $pos;
+                    return true;
+                }
+                ++$counter;
+            }
+            if ( ! empty( $blocks[ $pos ]['innerBlocks'] ) ) {
+                $child_pos = null;
+                $removed = self::remove_link_block( $blocks[ $pos ]['innerBlocks'], $wanted, $counter, $child_pos );
+                if ( is_wp_error( $removed ) ) { return $removed; }
+                if ( true === $removed ) {
+                    if ( null !== $child_pos ) {
+                        $fragments = $blocks[ $pos ]['innerContent'] ?? null;
+                        if ( ! is_array( $fragments ) ) {
+                            return new WP_Error( 'block_nav_content', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+                        }
+                        $child_counter = 0; $content_index = null;
+                        foreach ( $fragments as $index => $fragment ) {
+                            if ( null === $fragment ) {
+                                if ( $child_counter === $child_pos ) { $content_index = $index; break; }
+                                ++$child_counter;
+                            }
+                        }
+                        if ( null === $content_index ) {
+                            return new WP_Error( 'block_nav_content', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+                        }
+                        array_splice( $blocks[ $pos ]['innerContent'], $content_index, 1 );
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static function remove_link() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar este menú.', 'taxocommerce-core' ) );
+        }
+        $id = isset( $_POST['tc_nav_id'] ) && is_scalar( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
+        check_admin_referer( self::REMOVE . '_' . $id );
+        $post = $id ? get_post( $id ) : false;
+        if ( ! $post || 'wp_navigation' !== $post->post_type || 'publish' !== $post->post_status || ! current_user_can( 'edit_post', $id ) ) {
+            self::redirect( $id, 'error', __( 'La navegación seleccionada no es editable.', 'taxocommerce-core' ) );
+        }
+        $hash = isset( $_POST['content_hash'] ) && is_scalar( $_POST['content_hash'] )
+            ? sanitize_text_field( wp_unslash( $_POST['content_hash'] ) ) : '';
+        if ( ! hash_equals( hash( 'sha256', $post->post_content ), $hash ) ) {
+            self::redirect( $id, 'error', __( 'La navegación ha cambiado. Recarga la página antes de guardar.', 'taxocommerce-core' ) );
+        }
+        $wanted = isset( $_POST['item_index'] ) && is_scalar( $_POST['item_index'] ) ? absint( $_POST['item_index'] ) : -1;
+        $blocks = parse_blocks( $post->post_content );
+        $counter = 0; $position = null;
+        $result = self::remove_link_block( $blocks, $wanted, $counter, $position );
+        if ( is_wp_error( $result ) ) { self::redirect( $id, 'error', $result->get_error_message() ); }
+        if ( true !== $result ) { self::redirect( $id, 'error', __( 'El elemento seleccionado ya no existe.', 'taxocommerce-core' ) ); }
+        $saved = wp_update_post( array( 'ID' => $id, 'post_content' => wp_slash( serialize_blocks( $blocks ) ) ), true );
+        if ( is_wp_error( $saved ) || ! $saved ) {
+            self::redirect( $id, 'error', is_wp_error( $saved ) ? $saved->get_error_message() : __( 'No se pudo guardar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( $id, 'ok', __( 'Elemento eliminado del menú.', 'taxocommerce-core' ) );
+    }
+
     /** Add an explicitly requested link without rewriting existing navigation blocks. */
     public static function add_link() {
         if ( ! current_user_can( 'edit_theme_options' ) ) {
