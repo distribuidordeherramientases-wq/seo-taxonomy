@@ -191,7 +191,7 @@ final class TaxoCommerce_Core_Menu_Editor {
             $terms = get_terms( array( 'taxonomy' => $type, 'hide_empty' => false, 'number' => $limit + 1, 'offset' => $offset,
                 'search' => $needle, 'orderby' => 'recent' === $mode ? 'count' : 'name', 'order' => 'recent' === $mode ? 'DESC' : 'ASC' ) );
             if ( is_wp_error( $terms ) ) { return $terms; }
-            foreach ( $terms as $term ) { if ( 'product_cat' === $type && TaxoCommerce_Core_Menu::term_country( $term->term_id ) !== $country ) { continue; } $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
+            foreach ( $terms as $term ) { if ( 'product_cat' === $type && ! $wordpress && TaxoCommerce_Core_Menu::term_country( $term->term_id ) !== $country ) { continue; } $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
         }
         return array( 'items' => array_slice( $items, 0, $limit ), 'more' => 'recent' !== $mode && count( $items ) > $limit );
     }
