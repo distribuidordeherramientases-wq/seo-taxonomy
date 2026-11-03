@@ -81,7 +81,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'assets'           => array( 'startup', 'Recursos JavaScript y CSS disponibles' ),
             'woocommerce'      => array( 'startup', 'WooCommerce y catálogo disponibles' ),
             'db_read'          => array( 'startup', 'Consulta sencilla de MySQL' ),
-            'csv_columns'      => array( 'csv', 'Cabeceras de cinco tipos de exportación' ),
+            'csv_columns'      => array( 'csv', 'Cabeceras de seis tipos de exportación' ),
             'csv_countries'    => array( 'csv', 'Campo country_code en todos los tipos' ),
             'csv_aliases'      => array( 'csv', 'Cabeceras heredadas y alias de país' ),
             'csv_identify'     => array( 'csv', 'Detección segura del tipo de CSV' ),
@@ -93,7 +93,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'queue_state'      => array( 'batch', 'Estado persistente de la cola' ),
             'queue_progress'   => array( 'batch', 'Porcentaje y bytes de progreso' ),
             'queue_registry'   => array( 'batch', 'Integración con miniimportadores' ),
-            'export_types'     => array( 'export', 'Cinco tipos de exportación' ),
+            'export_types'     => array( 'export', 'Seis tipos de exportación' ),
             'export_actions'   => array( 'export', 'Inicio, bloque, estado, cancelación y descarga' ),
             'export_state'     => array( 'export', 'Estado de exportación por usuario' ),
             'export_headers'   => array( 'export', 'Contrato completo y reducido de productos' ),
@@ -319,7 +319,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
 
     private static function check_csv_columns() {
         $csv = self::csv();
-        $types = array( 'products', 'products_reduced', 'product_categories', 'posts', 'pages' );
+        $types = array( 'products', 'products_reduced', 'product_categories', 'wp_categories', 'posts', 'pages' );
         foreach ( $types as $type ) {
             $header = $csv->export_header_for_job( $type );
             if ( ! is_array( $header ) || count( $header ) !== count( array_unique( $header ) )
@@ -448,7 +448,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
 
     private static function check_export_types() {
         $types = TaxoCommerce_Import_Export_Exporter::types();
-        $required = array( 'products', 'products_reduced', 'product_categories', 'posts', 'pages' );
+        $required = array( 'products', 'products_reduced', 'product_categories', 'wp_categories', 'posts', 'pages' );
         return is_array( $types ) && ! array_diff( $required, array_keys( $types ) )
             ? self::pass( 'Cinco conjuntos exportables registrados, incluido inventario reducido.' )
             : self::fail( 'Se ha perdido algún tipo exportable.' );
