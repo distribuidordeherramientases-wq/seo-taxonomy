@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- AutoCheck manual (#2126): verificación voluntaria desde el panel de Core después de cargar las rutas WordPress. Añade diagnóstico de accesibilidad de pantallas administrativas, archivos/versión, conexión de lectura a MySQL, categorías y roles. Captura por prueba errores PHP y los incorpora al JSON como `errors`, con `not_executed` para comprobaciones omitidas. Sin ejecución automática ni escrituras en los datos de la tienda.
+
 - Corrección de permisos en navegación (#2109): los accesos internos de Core (Contenidos, Jerarquía, Menús y Manual) permanecen registrados en `$submenu` para que WordPress resuelva las URLs de administración. Se ocultan únicamente con CSS, sin eliminar rutas ni alterar capacidades. Pruebas de regresión para Core aislado y con extensiones instaladas. No se modifica producción.
 
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
