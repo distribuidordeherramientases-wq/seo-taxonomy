@@ -189,7 +189,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         $autocheck_report = $report;
         $autocheck_report['plugin'] = 'taxocommerce-system-check';
         $autocheck_report['schema'] = 1;
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
