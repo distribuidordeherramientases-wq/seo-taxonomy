@@ -39,7 +39,7 @@ body.tcc-family-admin #adminmenu .wp-has-current-submenu>a.wp-has-current-submen
 .tcc-hero__art span:nth-child(2){left:10px;top:12px;opacity:.45}
 .tcc-hero__art span:nth-child(3){left:105px;top:94px}
 .tcc-hero__art span:nth-child(4){left:197px;top:85px;opacity:.35}
-.tcc-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin:15px 0 22px}
+.tcc-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:15px 0 22px}
 .tcc-metric{display:flex;align-items:center;gap:14px;min-height:91px;padding:15px;border:1px solid var(--tc-border);border-radius:11px;background:#fff;box-shadow:0 3px 12px rgba(20,45,85,.045)}
 .tcc-metric__icon{display:grid!important;place-items:center;flex:0 0 44px;width:44px!important;height:44px!important;font-size:25px!important;color:var(--tc-blue);background:#eaf2ff;border-radius:9px}
 .tcc-metric__content{display:flex;flex-direction:column;gap:8px;min-width:0}
