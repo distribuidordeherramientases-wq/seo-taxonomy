@@ -216,7 +216,11 @@ final class TaxoCommerce_Core_Country {
 
 	public static function set_term( $id, $country ) {
 		$id = absint( $id );
-		$country = self::normalize( $country );
+		$raw = strtoupper( trim( (string) $country ) );
+		if ( '' !== $raw && ! self::valid( $raw ) ) {
+			return new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core' ) );
+		}
+		$country = self::normalize( $raw );
 		$taxonomy = get_taxonomy( 'product_cat' );
 		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
 			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de esta categoría.', 'taxocommerce-core' ) );
