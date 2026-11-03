@@ -624,7 +624,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
 
         private static function render_tabs($current) {
             echo '<nav class="nav-tab-wrapper" aria-label="Logistics sections">';
-            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => 'Autocheck', 'user-guide' => 'Manual') as $tab => $label) {
+            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => __( 'Autocheck', 'taxocommerce-logistica' ), 'user-guide' => 'Manual') as $tab => $label) {
                 $args = array('page' => self::PAGE);
                 if ('shipping' !== $tab) { $args['tc_logistica_tab'] = $tab; }
                 $url = add_query_arg($args, admin_url('admin.php'));
