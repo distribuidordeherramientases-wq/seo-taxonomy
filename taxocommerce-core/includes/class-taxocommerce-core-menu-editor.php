@@ -71,12 +71,9 @@ final class TaxoCommerce_Core_Menu_Editor {
     /** Internal tabs: no extra item in the main WordPress sidebar. */
     public static function tabs( $active = 'wordpress' ) {
         $menu_url = admin_url( 'admin.php?page=taxocommerce-core-menu' );
-        $check_url = add_query_arg(
-            array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ),
-            admin_url( 'admin.php' )
-        );
+        $check_url = admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' );
         echo '<nav class="nav-tab-wrapper" aria-label="' .
-            esc_attr__( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ) . '">';
+            esc_attr( __( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ) ) . '">';
         echo '<a class="nav-tab nav-tab-active" aria-current="page" href="' . esc_url( $menu_url ) . '">' .
             esc_html__( 'Menu Manager', 'taxocommerce-core' ) . '</a>';
         echo '<a class="nav-tab" href="' . esc_url( $check_url ) . '">' .
