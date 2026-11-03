@@ -51,14 +51,55 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     public static function role_node( $page_id ) {
+        $page_id = absint( $page_id );
+        if ( ! $page_id || 'page' !== get_post_type( $page_id ) ) {
+            return '';
+        }
+        return sanitize_key( (string) get_post_meta( $page_id, TaxoCommerce_Core_Hierarchy::ROLE_META, true ) );
+    }
+
+    /**
+     * One-time import of active legacy roles into native WordPress postmeta.
+     * Never overwrites native roles or changes legacy rows.
+     */
+    public static function migrate_page_roles_to_native( $hierarchy ) {
+        if ( get_option( 'taxocommerce_core_roles_native_v1', false ) ) {
+            return;
+        }
         global $wpdb;
         $table = self::nodes_table();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-        $row = $wpdb->get_var( $wpdb->prepare(
-            "SELECT seo_role FROM %i WHERE object_type = %s AND object_id = %d AND status = 1 ORDER BY id DESC LIMIT 1",
-            $table, 'page', absint( $page_id )
-        ) );
-        return sanitize_key( (string) $row );
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) !== $table ) {
+            update_option( 'taxocommerce_core_roles_native_v1', 1, false );
+            return;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time historical migration.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT n.object_id, n.seo_role FROM %i n
+             INNER JOIN %i p ON p.ID = n.object_id AND p.post_type = 'page'
+             WHERE n.object_type = 'page' AND n.status = 1
+             ORDER BY n.updated_at DESC, n.id DESC",
+            $table, $wpdb->posts
+        ), ARRAY_A );
+        if ( ! is_array( $rows ) ) {
+            return;
+        }
+        $seen = array();
+        foreach ( $rows as $row ) {
+            $id = absint( $row['object_id'] ?? 0 );
+            $role = sanitize_key( (string) ( $row['seo_role'] ?? '' ) );
+            if ( ! $id || isset( $seen[ $id ] ) ) {
+                continue;
+            }
+            $seen[ $id ] = true;
+            if ( ! isset( $hierarchy->roles()[ $role ] ) ) {
+                continue;
+            }
+            if ( ! metadata_exists( 'post', $id, TaxoCommerce_Core_Hierarchy::ROLE_META )
+                && ! add_post_meta( $id, TaxoCommerce_Core_Hierarchy::ROLE_META, $role, true ) ) {
+                return;
+            }
+        }
+        update_option( 'taxocommerce_core_roles_native_v1', 1, false );
     }
 
     public static function save_role_node( $page_id, $role ) {
@@ -504,31 +545,15 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
     }
 
     public static function role_pages( $role ) {
-        global $wpdb;
-        $nodes = self::nodes_table();
-        $ids = array_map(
-            'absint',
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live canonical SEO hierarchy read; map() already memoizes relationships in this request.
-            (array) $wpdb->get_col(
-                $wpdb->prepare(
-                    "SELECT p.ID FROM %i p
-                     INNER JOIN %i n ON n.object_type = %s AND n.object_id = p.ID
-                     WHERE p.post_type = %s AND p.post_status IN ('publish','draft','pending','private','future')
-                       AND n.seo_role = %s AND n.status = 1 ORDER BY p.post_title ASC",
-                    $wpdb->posts,
-                    $nodes,
-                    'page',
-                    'page',
-                    sanitize_key( $role )
-                )
-            )
-        );
-        if ( ! $ids ) {
-            return array();
-        }
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Native page role selector.
         return get_posts( array(
-            'post_type' => 'page', 'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
-            'posts_per_page' => -1, 'post__in' => $ids, 'orderby' => 'title', 'order' => 'ASC',
+            'post_type' => 'page',
+            'post_status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+            'posts_per_page' => -1,
+            'meta_key' => TaxoCommerce_Core_Hierarchy::ROLE_META,
+            'meta_value' => sanitize_key( $role ),
+            'orderby' => 'title',
+            'order' => 'ASC',
         ) );
     }
 
