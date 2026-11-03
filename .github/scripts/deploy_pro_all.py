@@ -105,7 +105,7 @@ def candidate_plugin_roots(ftp):
 
     if configured:
         parts = [part for part in configured.split("/") if part not in ("", ".")]
-        if ("\\x00" in configured or "\\" in configured or ".." in parts
+        if ("\0" in configured or "\\" in configured or ".." in parts
                 or parts[-2:] != ["wp-content", "plugins"]):
             raise RuntimeError(
                 "Unsafe PRO_FTP_PLUGINS_DIR: expected a path ending in "
