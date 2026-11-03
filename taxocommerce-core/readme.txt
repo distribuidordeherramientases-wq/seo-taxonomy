@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.53
+Stable tag: 0.4.54
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.54 =
+* Resolve two Plugin Check errors in native block navigation: remove explicit suppress_filters and escape the numeric depth attribute.
+* Sanitize block-navigation POST inputs while keeping native WordPress menu storage, existing selection and permissions unchanged.
+* Clarify read-only anomalies query arguments and the targeted page-country query for Plugin Check.
 
 = 0.4.53 =
 * Export the last authenticated Core Autocheck report as UTF-8 JSON, including installation identity, detailed test results and explicit skipped cases, without re-running or changing store data.
