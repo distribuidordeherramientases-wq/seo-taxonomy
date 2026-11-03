@@ -166,7 +166,7 @@ final class TaxoCommerce_Core_Menu_Editor {
 
     /** Bounded queries; search covers all published objects, not just the first page. */
     public static function objects( $type, $mode = 'recent', $page = 1, $needle = '', $country = '', $wordpress = false ) {
-        $country = TaxoCommerce_Core_Country::normalize( $country ) ?: TaxoCommerce_Core_Menu::country();
+        $country = TaxoCommerce_Core_Menu::normalize_code( $country );
         if ( ! isset( self::types( $wordpress )[ $type ] ) ) { return new WP_Error( 'menu_type', 'Tipo de elemento no permitido.' ); }
         $mode = in_array( $mode, array( 'recent', 'all', 'search' ), true ) ? $mode : 'recent';
         $limit = 'recent' === $mode ? 10 : self::LIMIT;
@@ -175,17 +175,19 @@ final class TaxoCommerce_Core_Menu_Editor {
         $items = array();
         if ( in_array( $type, array( 'page', 'post' ), true ) ) {
             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Bounded (10/25) admin selector queries indexed country metadata for international markets.
-            $market_filter = $wordpress || 'ES' === $country ? array() : array( 'meta_query' => array( 'relation' => 'OR', array( 'key' => '_seo_pais_origen', 'value' => $country ), array( 'key' => 'dht_pilot_market', 'value' => $country ) ) );
+            $market_filter = $wordpress ? array() : array( 'meta_query' => '' === $country
+                ? array( 'relation' => 'OR', array( 'key' => TaxoCommerce_Core_Country::META, 'compare' => 'NOT EXISTS' ), array( 'key' => TaxoCommerce_Core_Country::META, 'value' => '' ) )
+                : array( array( 'key' => TaxoCommerce_Core_Country::META, 'value' => $country ) ) );
             $query = new WP_Query( array_merge( $market_filter, array( 'post_type' => $type, 'post_status' => 'publish', 'has_password' => false,
                 'posts_per_page' => $limit + 1, 'offset' => $offset, 's' => $needle, 'no_found_rows' => true,
                 'orderby' => 'recent' === $mode ? 'date' : 'title', 'order' => 'recent' === $mode ? 'DESC' : 'ASC',
                 'ignore_sticky_posts' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false ) ) );
-            foreach ( $query->posts as $post ) { if ( ! $wordpress && TaxoCommerce_Core_Country::post( $post->ID ) !== $country ) { continue; } $items[] = array( 'id' => (int) $post->ID, 'title' => wp_specialchars_decode( get_the_title( $post ), ENT_QUOTES ) ); }
+            foreach ( $query->posts as $post ) { if ( ! $wordpress && TaxoCommerce_Core_Menu::page_country( $post->ID ) !== $country ) { continue; } $items[] = array( 'id' => (int) $post->ID, 'title' => wp_specialchars_decode( get_the_title( $post ), ENT_QUOTES ) ); }
         } else {
             $terms = get_terms( array( 'taxonomy' => $type, 'hide_empty' => false, 'number' => $limit + 1, 'offset' => $offset,
                 'search' => $needle, 'orderby' => 'recent' === $mode ? 'count' : 'name', 'order' => 'recent' === $mode ? 'DESC' : 'ASC' ) );
             if ( is_wp_error( $terms ) ) { return $terms; }
-            foreach ( $terms as $term ) { if ( 'product_cat' === $type && TaxoCommerce_Core_Country::term( $term->term_id ) !== $country ) { continue; } $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
+            foreach ( $terms as $term ) { if ( 'product_cat' === $type && TaxoCommerce_Core_Menu::term_country( $term->term_id ) !== $country ) { continue; } $items[] = array( 'id' => (int) $term->term_id, 'title' => wp_specialchars_decode( $term->name, ENT_QUOTES ) ); }
         }
         return array( 'items' => array_slice( $items, 0, $limit ), 'more' => 'recent' !== $mode && count( $items ) > $limit );
     }
@@ -433,12 +435,12 @@ final class TaxoCommerce_Core_Menu_Editor {
             if ( in_array( $type, array( 'page', 'post' ), true ) ) {
                 $post = get_post( $id );
                 if ( ! $post || $post->post_type !== $type || 'publish' !== $post->post_status || '' !== $post->post_password ) { return new WP_Error( 'menu_post', 'La selección contiene un contenido no publicado o no válido.' ); }
-                if ( ! self::is_wordpress_tab( true ) && TaxoCommerce_Core_Country::post( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'El contenido pertenece a otro país.' ); }
+                if ( ! self::is_wordpress_tab( true ) && TaxoCommerce_Core_Menu::page_country( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'El contenido pertenece a otro país.' ); }
                 $data[] = array( 'menu-item-object-id' => $id, 'menu-item-object' => $type, 'menu-item-type' => 'post_type', 'menu-item-title' => wp_slash( get_the_title( $post ) ) );
             } else {
                 $term = get_term( $id, $type );
                 if ( ! $term || is_wp_error( $term ) ) { return new WP_Error( 'menu_term', 'La categoría seleccionada no existe.' ); }
-                if ( 'product_cat' === $type && ! self::is_wordpress_tab( true ) && TaxoCommerce_Core_Country::term( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'La categoría pertenece a otro país.' ); }
+                if ( 'product_cat' === $type && ! self::is_wordpress_tab( true ) && TaxoCommerce_Core_Menu::term_country( $id ) !== TaxoCommerce_Core_Menu::country( true ) ) { return new WP_Error( 'menu_country', 'La categoría pertenece a otro país.' ); }
                 $data[] = array( 'menu-item-object-id' => $id, 'menu-item-object' => $type, 'menu-item-type' => 'taxonomy', 'menu-item-title' => wp_slash( $term->name ) );
             }
         }
@@ -539,7 +541,7 @@ final class TaxoCommerce_Core_Menu_Editor {
         if ( ! $menu || is_wp_error( $menu ) ) { return true; }
         $name = (string) ( $menu->name ?? '' );
         if ( 'TaxoCommerce' === $name || 0 === strpos( $name, 'TaxoCommerce - ' ) ) { return true; }
-        foreach ( (array) TaxoCommerce_Core_Country::countries() as $country => $label ) {
+        foreach ( array_merge( array( '' ), array_keys( TaxoCommerce_Core_Country::countries() ) ) as $country ) {
             // Protect even a renamed or stale country menu referenced by its saved option.
             if ( $menu_id === absint( get_option( TaxoCommerce_Core_Menu::menu_option( $country ), 0 ) ) ) { return true; }
             if ( $menu_id === absint( TaxoCommerce_Core_Menu::managed_menu_id( $country, false ) ) ) { return true; }

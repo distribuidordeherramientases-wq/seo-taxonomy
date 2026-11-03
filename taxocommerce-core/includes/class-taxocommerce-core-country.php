@@ -25,7 +25,8 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function valid( $country ) {
-		return isset( self::countries()[ strtoupper( trim( (string) $country ) ) ] );
+		// Country values must not depend on an installation-specific preset.
+		return 1 === preg_match( '/^[A-Z]{2}$/D', strtoupper( trim( (string) $country ) ) );
 	}
 
 	public static function normalize( $country ) {
@@ -106,9 +107,18 @@ final class TaxoCommerce_Core_Country {
 		return $declared && $declared !== $source_country ? '' : $source_country;
 	}
 
-	public static function options( $current = '' ) {
+	public static function options( $current = '', $allow_global = false ) {
 		$current = self::normalize( $current );
-		foreach ( self::countries() as $code => $label ) {
+		if ( $allow_global ) {
+			echo '<option value=""' . selected( $current, '', false ) . '>' .
+				esc_html__( 'Global (sin país)', 'taxocommerce-core' ) . '</option>';
+		}
+		$choices = self::countries();
+		if ( '' !== $current && ! isset( $choices[ $current ] ) ) {
+			// Keep any valid imported country editable without inventing defaults.
+			$choices[ $current ] = $current;
+		}
+		foreach ( $choices as $code => $label ) {
 			echo '<option value="' . esc_attr( $code ) . '"' . selected( $current, $code, false ) . '>' .
 				esc_html( $label . ' (' . $code . ')' ) . '</option>';
 		}
@@ -118,7 +128,7 @@ final class TaxoCommerce_Core_Country {
 		echo '<div class="tc-field"><label class="tc-field-label" for="tc-edit-country">' .
 			esc_html__( 'País', 'taxocommerce-core' ) . '</label>';
 		echo '<select class="tc-input" id="tc-edit-country" name="' . esc_attr( $name ) . '">';
-		self::options( $country );
+		self::options( $country, true );
 		echo '</select><p class="tc-field-help">' .
 			esc_html__( 'Define el mercado de este contenido. No cambia la URL, el idioma ni sus relaciones SEO.', 'taxocommerce-core' ) .
 			'</p></div>';
@@ -127,7 +137,7 @@ final class TaxoCommerce_Core_Country {
 	public static function label( $country ) {
 		$country = self::normalize( $country );
 		$all = self::countries();
-		return $country ? $all[ $country ] . ' (' . $country . ')' : __( 'Sin asignar', 'taxocommerce-core' );
+		return $country ? ( $all[ $country ] ?? $country ) . ' (' . $country . ')' : __( 'Global (sin país)', 'taxocommerce-core' );
 	}
 
 	public static function read_posted( $name = self::FIELD ) {
@@ -135,17 +145,23 @@ final class TaxoCommerce_Core_Country {
 		if ( ! isset( $_POST[ $name ] ) || ! is_string( $_POST[ $name ] ) ) { return null; }
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Mutation handlers verify their action-specific nonce before calling read_posted().
 		$value = strtoupper( trim( sanitize_text_field( wp_unslash( $_POST[ $name ] ) ) ) );
-		return self::valid( $value )
+		return '' === $value || self::valid( $value )
 			? $value
 			: new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core' ) );
 	}
 
 	public static function set_post( $id, $country ) {
 		$id = absint( $id );
-		if ( ! current_user_can( 'edit_post', $id ) || ! self::valid( $country ) ) {
+		if ( ! current_user_can( 'edit_post', $id ) || ( '' !== $country && ! self::valid( $country ) ) ) {
 			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de este contenido.', 'taxocommerce-core' ) );
 		}
-		if ( self::normalize( get_post_meta( $id, self::META, true ) ) !== $country
+		$current = (string) get_post_meta( $id, self::META, true );
+		if ( '' === $country ) {
+			// Global means no stored country, not a synthetic market.
+			if ( '' !== $current && false === delete_post_meta( $id, self::META ) ) {
+				return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+			}
+		} elseif ( self::normalize( $current ) !== $country
 			&& false === update_post_meta( $id, self::META, $country ) ) {
 			return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
 		}
@@ -185,7 +201,8 @@ final class TaxoCommerce_Core_Country {
 
 	public static function native_post_box( $post ) {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE );
-		self::field( self::post( $post->ID ) );
+		// An unassigned page starts in Global, never implicitly in ES.
+		self::field( get_post_meta( $post->ID, self::META, true ) );
 	}
 
 	public static function save_native_post( $id ) {

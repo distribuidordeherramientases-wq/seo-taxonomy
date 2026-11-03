@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.46
+Stable tag: 0.4.47
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Editorial management for products, product categories, posts and pages using native WordPress editing.
 * Cached read-only inventory dashboard for products, posts, pages, categories, media, statuses and optional FAQs.
 * SEO architecture based on clusters, primary hubs, secondary hubs, product categories and products.
-* Native WordPress navigation menu generation with optional manual entries and safe regeneration.
+* Native WordPress navigation menu generation with optional manual entries and safe regeneration. SEO menu countries come only from explicitly assigned page countries; Global denotes no country, with no preset menu countries.
 * Unified WordPress menu manager: classic-theme menus use their native locations; block-theme menus use wp_navigation posts with loading, safe link editing, creation and activation in a header template part containing exactly one navigation block, including a WordPress database override of a theme-file header. Theme files are never modified; ambiguous headers and advanced inline navigation use the Site Editor.
 * Optional SEO hierarchy menus are only proposed for populated hierarchies. No stored menu is overwritten by viewing the manager. Inline template navigation remains editable in the native Site Editor.
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
@@ -55,6 +55,9 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.47 =
+* Generate available SEO menu countries from actual page assignments; unassigned pages use Global with no country code. Existing WordPress menus and country menus are retained. Add independent language catalogs and regression tests.
 
 = 0.4.46 =
 * Contextual anomalies: display only verified findings by default, retain an opt-in detailed view, and suppress unconfigured hierarchy or optional FAQ/Vocabulary warnings.
