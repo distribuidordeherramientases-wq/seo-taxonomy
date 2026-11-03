@@ -6,6 +6,8 @@ on:
       - 'taxocommerce-*/includes/admin-branding.php'
       - 'taxocommerce-*/taxocommerce-*.php'
       - '.github/tests/family-admin-header-smoke.php'
+      - '.github/scripts/sync_family_admin_branding.py'
+      - '.github/templates/tc-family-admin-branding.php.tpl'
       - '.github/workflows/family-admin-header-qa.yml'
   workflow_dispatch:
 
@@ -24,6 +26,8 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
+      - name: Verify canonical template and independent copies
+        run: python3 .github/scripts/sync_family_admin_branding.py --check
       - name: PHP syntax for all 18 headers and entrypoints
         shell: bash
         run: |
