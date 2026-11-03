@@ -48,6 +48,7 @@ jobs:
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-menu-editor.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-auto-test.php
+          php .github/tests/taxocommerce-core/auto-test-smoke.php
           php .github/tests/taxocommerce-core/auto-test-json-smoke.php
           php .github/tests/taxocommerce-core/auto-test-json-smoke.php download | php .github/tests/taxocommerce-core/auto-test-json-smoke.php assert-json
           php .github/tests/taxocommerce-core/autocheck-native-menus-smoke.php
