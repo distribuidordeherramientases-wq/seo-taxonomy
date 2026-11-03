@@ -377,7 +377,8 @@ final class TaxoCommerce_Core_Auto_Test {
                 return self::bad( 'Menú ' . $name . ': identidad del menú nativo incoherente.' );
             }
             $items = wp_get_nav_menu_items( $resolved );
-            if ( false === $items || is_wp_error( $items ) ) {
+            // An existing but empty menu is not a broken menu.
+            if ( false !== $items && ( is_wp_error( $items ) || ! is_array( $items ) ) ) {
                 return self::bad( 'Menú ' . $name . ': sus elementos no se pueden recuperar.' );
             }
             ++$checked;
@@ -440,7 +441,11 @@ final class TaxoCommerce_Core_Auto_Test {
                 return self::bad( 'Ubicación ' . $location . ': el menú activo #' . $id . ' no existe.' );
             }
             $items = wp_get_nav_menu_items( $id, array( 'post_status' => 'publish,draft' ) );
-            if ( false === $items || is_wp_error( $items ) || ! is_array( $items ) ) {
+            // WordPress may return false for a valid, empty menu.
+            if ( false === $items ) {
+                $items = array();
+            }
+            if ( is_wp_error( $items ) || ! is_array( $items ) ) {
                 return self::bad( 'Ubicación ' . $location . ': no se pueden cargar los elementos del menú #' . $id . '.' );
             }
             $ids[ $id ] = true;
