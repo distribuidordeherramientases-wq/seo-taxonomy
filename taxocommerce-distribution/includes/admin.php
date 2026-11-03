@@ -120,8 +120,14 @@ function taxocommerce_distribution_sitemap_ajax_pulse() {
     if ( 'running' === ( $state['status'] ?? '' ) ) {
         $state = tcdist_sitemap_background_worker_tick();
     }
+    $updated = absint( $state['updated_at'] ?? 0 );
+    $published = tcdist_sitemap_publication_time();
     // Never expose local filesystem paths or unpublished filename lists.
     wp_send_json_success( array(
+        'started' => ! empty( $state['started_at'] ) ? wp_date( 'd/m/Y H:i:s', absint( $state['started_at'] ) ) : '',
+        'published' => $published ? wp_date( 'd/m/Y H:i:s', $published ) : '',
+        'heartbeat' => $updated ? wp_date( 'd/m/Y H:i:s', $updated ) : '',
+        'stalled' => 'running' === ( $state['status'] ?? '' ) && $updated > 0 && time() - $updated > 180,
         'status' => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
         'phase' => sanitize_key( (string) ( $state['phase'] ?? 'idle' ) ),
         'processed' => absint( $state['processed'] ?? 0 ),
@@ -152,6 +158,17 @@ function taxocommerce_distribution_sitemap_enqueue() {
         'working' => __( 'Generando sitemaps por bloques de 250…', 'taxocommerce-distribution' ),
         'finished' => __( 'Finalizado. Actualizando el informe…', 'taxocommerce-distribution' ),
         'failed' => __( 'El trabajador ha detectado un error.', 'taxocommerce-distribution' ),
+        'stalled' => __( 'Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso.', 'taxocommerce-distribution' ),
+        'startedLabel' => __( 'Inicio de esta generación:', 'taxocommerce-distribution' ),
+        'publishedLabel' => __( 'Última publicación completada:', 'taxocommerce-distribution' ),
+        'heartbeatLabel' => __( 'Última actividad:', 'taxocommerce-distribution' ),
+        'statusLabels' => array(
+            'running' => __( 'En ejecución', 'taxocommerce-distribution' ),
+            'completed' => __( 'Completado', 'taxocommerce-distribution' ),
+            'stopped' => __( 'Detenido', 'taxocommerce-distribution' ),
+            'error' => __( 'Error', 'taxocommerce-distribution' ),
+            'idle' => __( 'Sin iniciar', 'taxocommerce-distribution' ),
+        ),
     ) );
 }
 
@@ -318,6 +335,17 @@ function taxocommerce_distribution_render_sitemaps() {
     $running = 'running' === ( $job['status'] ?? '' );
     $speed = tcdist_sitemap_speed();
     $speeds = tcdist_sitemap_speed_labels();
+    $published_at = tcdist_sitemap_publication_time();
+    $published_at_label = $published_at ? wp_date( 'd/m/Y H:i:s', $published_at ) : __( 'Todavía no publicado', 'taxocommerce-distribution' );
+    $started_at_label = ! empty( $job['started_at'] ) ? wp_date( 'd/m/Y H:i:s', absint( $job['started_at'] ) ) : '—';
+    $updated_at_label = ! empty( $job['updated_at'] ) ? wp_date( 'd/m/Y H:i:s', absint( $job['updated_at'] ) ) : '—';
+    $status_labels = array(
+        'running' => __( 'En ejecución', 'taxocommerce-distribution' ),
+        'completed' => __( 'Completado', 'taxocommerce-distribution' ),
+        'stopped' => __( 'Detenido', 'taxocommerce-distribution' ),
+        'error' => __( 'Error', 'taxocommerce-distribution' ),
+        'idle' => __( 'Sin iniciar', 'taxocommerce-distribution' ),
+    );
 
     $result = isset( $_GET['tcdist_sitemap_result'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_sitemap_result'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
     $message = isset( $_GET['tcdist_sitemap_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tcdist_sitemap_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -331,6 +359,13 @@ function taxocommerce_distribution_render_sitemaps() {
             <div class="notice <?php echo esc_attr( 'ok' === $result ? 'notice-success' : 'notice-error' ); ?> inline"><p><?php echo esc_html( $message ); ?></p></div>
         <?php endif; ?>
 
+        <p id="tcdist-sitemap-publication"><strong><?php esc_html_e( 'Última publicación completada:', 'taxocommerce-distribution' ); ?></strong>
+            <span id="tcdist-sitemap-published-at"><?php echo esc_html( $published_at_label ); ?></span>.
+            <?php esc_html_e( 'La fecha de los archivos XML corresponde a la última publicación, no al inicio del trabajo.', 'taxocommerce-distribution' ); ?>
+        </p>
+        <?php if ( $running ) : ?>
+            <div class="notice notice-info inline"><p><?php esc_html_e( 'La generación está en curso. El índice visible todavía pertenece a la publicación anterior.', 'taxocommerce-distribution' ); ?></p></div>
+        <?php endif; ?>
         <?php if ( ! empty( $report['main_valid'] ) ) : ?>
             <div class="notice notice-success inline"><p><strong><?php esc_html_e( 'Main index is valid.', 'taxocommerce-distribution' ); ?></strong> <?php
             /* translators: %s: number of URLs published in the sitemap index. */
@@ -356,10 +391,19 @@ function taxocommerce_distribution_render_sitemaps() {
             </form>
             <div id="tcdist-sitemap-progress" data-running="<?php echo esc_attr( $running ? '1' : '0' ); ?>" aria-live="polite" style="margin-top:10px;">
                 <strong><?php esc_html_e( 'Estado de generación:', 'taxocommerce-distribution' ); ?></strong>
-                <span id="tcdist-sitemap-status"><?php echo esc_html( (string) ( $job['status'] ?? 'idle' ) ); ?></span>.
+                <span id="tcdist-sitemap-status"><?php echo esc_html( $status_labels[ (string) ( $job['status'] ?? 'idle' ) ] ?? $status_labels['idle'] ); ?></span>.
                 <span id="tcdist-sitemap-counts"><?php echo esc_html( sprintf( __( '%1$d elementos revisados; %2$d URL preparadas.', 'taxocommerce-distribution' ), absint( $job['processed'] ?? 0 ), absint( $job['urls'] ?? 0 ) ) ); ?></span>
                 <span id="tcdist-sitemap-phase"><?php echo esc_html( (string) ( $job['phase'] ?? '' ) ); ?></span>
                 <span id="tcdist-sitemap-message"><?php echo esc_html( (string) ( $job['message'] ?? '' ) ); ?></span>
+                <p><strong><?php esc_html_e( 'Inicio de esta generación:', 'taxocommerce-distribution' ); ?></strong>
+                    <span id="tcdist-sitemap-started-at"><?php echo esc_html( $started_at_label ); ?></span> ·
+                    <strong><?php esc_html_e( 'Última actividad:', 'taxocommerce-distribution' ); ?></strong>
+                    <span id="tcdist-sitemap-updated-at"><?php echo esc_html( $updated_at_label ); ?></span></p>
+                <?php if ( $running && ! empty( $job['updated_at'] ) && time() - absint( $job['updated_at'] ) > 180 ) : ?>
+                    <p class="description" id="tcdist-sitemap-stalled"><?php esc_html_e( 'Sin actividad reciente. Comprueba WP-Cron; el navegador intentará recuperar el proceso.', 'taxocommerce-distribution' ); ?></p>
+                <?php else : ?>
+                    <p class="description" id="tcdist-sitemap-stalled"></p>
+                <?php endif; ?>
                 <p class="description" id="tcdist-sitemap-load"><?php
                 $sample = (array) ( $job['last_sample'] ?? array() );
                 echo esc_html( sprintf(
