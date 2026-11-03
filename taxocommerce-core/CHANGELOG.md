@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+- Categorías nativas (#2123): el editor de Core lee y guarda la descripción mediante la taxonomía de WooCommerce y el extracto en `wp_termmeta.seo_excerpt`, conservando textos existentes si el campo no se envía. Las categorías no consultan `seo_nodes`.
+- Jerarquía (#2123): roles de páginas leídos desde `wp_postmeta._taxocommerce_core_seo_role` en el árbol, informes, selector y auditoría. Importación idempotente sin sobrescribir roles nativos desde los nodos históricos activos de `seo_nodes`; `seo_relations` mantiene los enlaces y el antiguo nodo se conserva como espejo para otras extensiones.
+- Regresión sin WordPress para edición nativa de categorías y migración de roles, integrada en el workflow de validación de STAGING. No se despliega en producción.
+
+
 - Navegación lateral (#2109): WordPress muestra solo Core y los plugins de TaxoCommerce instalados; Contenidos, Jerarquía SEO, Gestor de menús y Manual siguen accesibles desde Core y mediante sus URLs directas, sin aparecer como entradas del desplegable de WordPress. Sin cambios en funciones, permisos ni datos.
 
 - Despliegue compartido (#2088): STAGING y Focazul utilizan la misma cuenta FTPS con raíz `public_html` y subdirectorios de WordPress diferentes (`staging.distribuidordeherramientas.es/` y `asociacionfocazul/`). Se mantienen las transferencias incrementales, la verificación de integridad y las restricciones de plugins por destino. Sin cambios en la funcionalidad de Core.
