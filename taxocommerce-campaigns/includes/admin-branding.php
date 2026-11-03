@@ -11,8 +11,7 @@ $tc_brand_slug = basename( dirname( __DIR__ ) );
 $tc_brand_main = dirname( __DIR__ ) . '/' . $tc_brand_slug . '.php';
 $tc_brand_on_screen = static function () use ( $tc_brand_slug ) {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only WordPress admin route.
-    $page = isset( $_GET['page'] ) && is_string( $_GET['page'] )
-        ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    $page = isset( $_GET['page'] ) && is_string( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
     return $page === $tc_brand_slug || 0 === strpos( $page, $tc_brand_slug . '-' );
 };
 
