@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+- Plugin Check (#2149): corregido el indicador de Stable tag para Core 0.4.57; retirada la lectura de error_reporting() dentro del Autocheck manual (sin cambiar la configuración PHP); comprobaciones de nonce conservadas en acciones, consultas SQL y filtros de metadatos documentados y revisados. Verificación del paquete y regresiones previstas.
+
 - Core 0.4.57 (#2147): eliminada del panel la tarjeta «TaxoCommerce SEO actual / No detectado» y el texto de convivencia con el monolito; se conservan versión, estado de WooCommerce y extensiones registradas, sin cambiar integraciones de migración.
 
 - Categorías nativas (#2123): el editor de Core lee y guarda la descripción mediante la taxonomía de WooCommerce y el extracto en `wp_termmeta.seo_excerpt`, conservando textos existentes si el campo no se envía. Las categorías no consultan `seo_nodes`.
