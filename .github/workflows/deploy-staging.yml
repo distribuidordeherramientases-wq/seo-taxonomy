@@ -30,6 +30,10 @@ jobs:
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
+      - name: Validate all TaxoCommerce binary gettext catalogs
+        run: |
+          python3 -m unittest discover -s .github/tests -p test_verify_mo_catalogs.py -v
+          python3 .github/scripts/verify_mo_catalogs.py --repo
       - name: Core PHP syntax and regression tests
         run: |
           php -l taxocommerce-core/taxocommerce-core.php
@@ -141,3 +145,12 @@ jobs:
             test "$FOCAZUL" = "success"
           fi
           echo "All applicable deployments completed successfully"
+      - uses: actions/checkout@v4
+        if: needs.plan.outputs.core == 'true'
+      - name: Audit WordPress MO catalogues on STAGING after Core delivery
+        if: needs.plan.outputs.core == 'true'
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: python3 .github/scripts/audit_staging_mo.py
