@@ -12,6 +12,7 @@ final class TaxoCommerce_Core_Block_Navigation {
     const ADD_LINK = 'taxocommerce_core_add_block_navigation_link';
     const ADD_OBJECTS = 'taxocommerce_core_add_block_navigation_objects';
     const REMOVE = 'taxocommerce_core_remove_block_navigation_link';
+    const DELETE = 'taxocommerce_core_delete_block_navigation';
 
     public static function register_hooks() {
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'save' ) );
@@ -20,6 +21,7 @@ final class TaxoCommerce_Core_Block_Navigation {
         add_action( 'admin_post_' . self::ADD_LINK, array( __CLASS__, 'add_link' ) );
         add_action( 'admin_post_' . self::ADD_OBJECTS, array( __CLASS__, 'add_objects' ) );
         add_action( 'admin_post_' . self::REMOVE, array( __CLASS__, 'remove_link' ) );
+        add_action( 'admin_post_' . self::DELETE, array( __CLASS__, 'delete' ) );
     }
 
     /** Collect referenced navigation posts and inline navigation from the site's header templates. */
@@ -257,7 +259,39 @@ final class TaxoCommerce_Core_Block_Navigation {
         } else {
             echo '<p class="description">' . esc_html__( 'La cabecera procede de una plantilla del tema no personalizada o contiene varias navegaciones. Para activarla, usa el Editor del sitio; no se cambiará la plantilla por suposición.', 'taxocommerce-core' ) . '</p>';
         }
+        if ( 'top' === $position && ! isset( $found['menus'][ $id ] ) && current_user_can( 'delete_post', $id ) ) {
+            echo '<form class="tc-menu-delete-form" data-tc-menu-delete method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            echo '<input type="hidden" name="action" value="' . esc_attr( self::DELETE ) . '">';
+            echo '<input type="hidden" name="tc_nav_id" value="' . absint( $id ) . '">';
+            wp_nonce_field( self::DELETE . '_' . $id );
+            echo '<label><input type="checkbox" name="confirm_delete" value="1" required> ' . esc_html__( 'Confirmar eliminación definitiva', 'taxocommerce-core' ) . '</label>';
+            echo '<button type="submit" class="button-link-delete">' . esc_html__( 'Eliminar menú', 'taxocommerce-core' ) . '</button></form>';
+        }
         echo '<p><a class="button" href="' . esc_url( admin_url( 'site-editor.php' ) ) . '">' . esc_html__( 'Editar cabecera en el Editor del sitio', 'taxocommerce-core' ) . '</a></p></section>';
+    }
+
+    /** Delete only an unreferenced menu after a separate explicit confirmation. */
+    public static function delete() {
+        if ( ! current_user_can( 'edit_theme_options' ) ) {
+            wp_die( esc_html__( 'No tienes permisos para gestionar este menú.', 'taxocommerce-core' ) );
+        }
+        $id = isset( $_POST['tc_nav_id'] ) && is_scalar( $_POST['tc_nav_id'] ) ? absint( $_POST['tc_nav_id'] ) : 0;
+        check_admin_referer( self::DELETE . '_' . $id );
+        $confirmed = isset( $_POST['confirm_delete'] ) && '1' === (string) $_POST['confirm_delete'];
+        if ( ! $confirmed ) {
+            self::redirect( $id, 'error', __( 'Confirma la eliminación del menú.', 'taxocommerce-core' ) );
+        }
+        $post = $id ? get_post( $id ) : false;
+        $references = self::header_references();
+        if ( ! $post || 'wp_navigation' !== $post->post_type || 'publish' !== $post->post_status
+            || ! current_user_can( 'delete_post', $id ) || isset( $references['menus'][ $id ] ) ) {
+            self::redirect( $id, 'error', __( 'El menú está protegido o no puede eliminarse.', 'taxocommerce-core' ) );
+        }
+        $deleted = wp_delete_post( $id, true );
+        if ( ! $deleted || is_wp_error( $deleted ) ) {
+            self::redirect( $id, 'error', __( 'No se pudo eliminar el menú.', 'taxocommerce-core' ) );
+        }
+        self::redirect( 0, 'ok', __( 'Menú eliminado correctamente.', 'taxocommerce-core' ) );
     }
 
     /**
