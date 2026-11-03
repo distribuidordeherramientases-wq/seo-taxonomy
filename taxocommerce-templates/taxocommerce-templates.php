@@ -27,6 +27,7 @@ require_once TCT_DIR . 'includes/class-tct-unified-manager.php';
 require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
 require_once TCT_DIR . 'includes/class-tct-designs.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
+require_once TCT_DIR . 'includes/class-tct-autocheck.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 
@@ -106,6 +107,7 @@ final class TaxoCommerce_Templates {
         TCT_Router::seed_catalog();
     }
     public static function boot() {
+        TCT_Autocheck::boot();
         // Mantener el filtrado de escaparate ES del anterior cargador. No
         // declarar funciones duplicadas si ambos plugins estan activos.
         if (self::policies_enabled() &&
@@ -397,14 +399,15 @@ final class TaxoCommerce_Templates {
         // The legacy URLs still resolve, preserving form redirects and old bookmarks.
         $tab = isset($_GET['tab']) && is_string($_GET['tab'])
             ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
-        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer'), true)) {
+        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck'), true)) {
             $tab = 'routing';
         }
-        $main_tab = in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer';
+        $main_tab = 'autocheck' === $tab ? 'autocheck' : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Templates', 'taxocommerce-templates' ) . '</h1>' . '<nav class="nav-tab-wrapper">';
         foreach (array(
             'routing'  => 'Enrutamiento',
             'designer' => 'Diseñador de plantillas',
+            'autocheck' => 'Autocheck',
         ) as $key => $label) {
             echo '<a class="nav-tab ' . ($key === $main_tab ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(TCT_Request_Admin::admin_url($key)) . '">' . esc_html($label) . '</a>';
@@ -416,7 +419,9 @@ final class TaxoCommerce_Templates {
         }
         echo '</div>';
 
-        if ('routing' === $main_tab) {
+        if ('autocheck' === $main_tab) {
+            TCT_Autocheck::render();
+        } elseif ('routing' === $main_tab) {
             if ('audit' === $tab) {
                 TCT_Association_Audit::render();
             } elseif ('roles' === $tab) {
