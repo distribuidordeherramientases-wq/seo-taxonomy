@@ -1,14 +1,6 @@
 name: Diagnose WordPress MO catalogs in STAGING (#2094)
 
 on:
-  push:
-    branches:
-      - staging
-    paths:
-      - '.github/scripts/verify_mo_catalogs.py'
-      - '.github/scripts/audit_staging_mo.py'
-      - '.github/tests/test_verify_mo_catalogs.py'
-      - '.github/workflows/audit-staging-mo.yml'
   pull_request:
     paths:
       - '.github/scripts/verify_mo_catalogs.py'
