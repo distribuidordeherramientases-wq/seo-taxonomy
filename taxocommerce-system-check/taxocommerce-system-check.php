@@ -151,7 +151,7 @@ function taxocommerce_system_check_active_tab() {
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'auto-test' => 'Auto Test', 'manual' => 'Manual' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'auto-test' => 'Autocheck', 'manual' => 'Manual' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
