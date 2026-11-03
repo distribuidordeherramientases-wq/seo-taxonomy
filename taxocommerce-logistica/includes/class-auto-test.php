@@ -80,7 +80,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             'tax_contract' => array( 'checkout', 'Impuestos calculados por WooCommerce' ),
             'export_import' => array( 'transfer', 'Controladores de JSON registrados' ),
             'schema' => array( 'transfer', 'Formato JSON compatible y límites' ),
-            'permissions' => array( 'transfer', 'Permisos y nonce del Auto Test' ),
+            'permissions' => array( 'transfer', 'Permisos y nonce del Autocheck' ),
             'isolated_reports' => array( 'transfer', 'Resultados separados por usuario y sitio' ),
             'real_checkout' => array( 'uat', 'Checkout real con Península y Baleares' ),
             'real_foreign' => array( 'uat', 'Checkout real con destinos internacionales' ),
@@ -236,7 +236,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 return self::fail( 'Falta un recurso de administración: ' . $file );
             }
         }
-        return self::pass( 'CSS, JavaScript de reglas y CSS de Auto Test disponibles.' );
+        return self::pass( 'CSS, JavaScript de reglas y CSS de Autocheck disponibles.' );
     }
     private static function test_core() {
         if ( ! function_exists( 'taxocommerce_core' ) ) {
@@ -299,7 +299,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
     private static function test_region_mapping() {
         if ( class_exists( 'SEO_Facturas_Tax' ) ) {
-            return self::skip( 'Clasificación delegada en Facturación: verificarla también con su Auto Test.' );
+            return self::skip( 'Clasificación delegada en Facturación: verificarla también con su Autocheck.' );
         }
         $settings = TaxoCommerce_Logistica_Transporte_Costes::defaults();
         $cases = array(
@@ -523,7 +523,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
 
     public static function handle_run() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para Auto Test.', 'taxocommerce-logistica' ) ); }
+        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-logistica' ) ); }
         check_admin_referer( self::NONCE, 'tc_logistica_nonce' );
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified immediately above.
         $group = isset( $_POST['test_group'] ) && is_string( $_POST['test_group'] )
@@ -544,14 +544,14 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
 
     public static function handle_export() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar Auto Test.', 'taxocommerce-logistica' ) ); }
+        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar Autocheck.', 'taxocommerce-logistica' ) ); }
         check_admin_referer( self::NONCE, 'tc_logistica_nonce' );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified immediately above.
         $kind = isset( $_POST['report_kind'] ) && is_string( $_POST['report_kind'] )
             ? sanitize_key( wp_unslash( $_POST['report_kind'] ) ) : 'latest';
         $kind = 'before' === $kind ? 'before' : 'latest';
         $report = self::stored( $kind );
-        if ( ! $report ) { wp_die( esc_html__( 'No hay un informe de Auto Test disponible.', 'taxocommerce-logistica' ) ); }
+        if ( ! $report ) { wp_die( esc_html__( 'No hay un informe de Autocheck disponible.', 'taxocommerce-logistica' ) ); }
         $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
         if ( false === $json ) { wp_die( esc_html__( 'No se ha podido generar el JSON.', 'taxocommerce-logistica' ) ); }
         nocache_headers();
@@ -587,7 +587,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
 
     public static function render() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Auto Test.', 'taxocommerce-logistica' ) ); }
+        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-logistica' ) ); }
         $before = self::stored( 'before' );
         $latest = self::stored( 'latest' );
         $cases = self::cases();
@@ -600,7 +600,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
         $diff = $before && $latest ? self::compare( $before, $latest ) : null;
         ?>
         <section class="tc-log-at" aria-labelledby="tc-log-at-heading">
-            <h2 id="tc-log-at-heading"><?php esc_html_e( 'Auto Test — Logistics', 'taxocommerce-logistica' ); ?></h2>
+            <h2 id="tc-log-at-heading"><?php esc_html_e( 'Autocheck — Logistics', 'taxocommerce-logistica' ); ?></h2>
             <p><?php esc_html_e( 'Chequeo no destructivo de tarifas, reglas, pesos, destinos y seguridad. No realiza envíos, cambia pedidos, recalcula carritos ni importa configuraciones. Solo guarda sus propios informes.', 'taxocommerce-logistica' ); ?></p>
             <div class="tc-log-at-actions">
                 <?php self::run_button( 'all', 'before', '1. Guardar estado ANTES', true ); ?>
