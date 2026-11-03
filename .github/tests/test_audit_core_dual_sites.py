@@ -92,6 +92,30 @@ class DualAuditTests(unittest.TestCase):
         self.assertIn("module.php:1", self.report["checks"][0]["detail"])
         self.assertNotIn("CHANGELOG", self.report["checks"][0]["detail"])
 
+    def test_legacy_country_fallback_is_not_mistaken_for_global(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = os.getcwd()
+            try:
+                os.chdir(directory)
+                path = Path("taxocommerce-core/includes/class-taxocommerce-core-country.php")
+                path.parent.mkdir(parents=True)
+                path.write_text("<?php function country() { return 'ES'; }", encoding="utf-8")
+                audit.global_country_audit(self.report)
+                self.assertEqual(self.report["checks"][-1]["status"], "WARNING")
+                self.assertIn("1 retornos ES", self.report["checks"][-1]["detail"])
+                path.write_text("<?php function country() { return ''; }", encoding="utf-8")
+                audit.global_country_audit(self.report)
+                self.assertEqual(self.report["checks"][-1]["status"], "PASS")
+            finally:
+                os.chdir(original)
+
+    def test_http_server_errors_are_fail_not_unchecked(self):
+        base = audit.SITES["staging"]["url"]
+        exc = audit.urllib.error.HTTPError(base, 500, "error", {}, None)
+        with patch.object(audit, "read_html", side_effect=exc):
+            audit.public_navigation(self.report, "staging", base)
+        self.assertEqual(self.report["checks"][-1]["status"], "FAIL")
+
     def test_ftps_hashes_both_sites_against_single_checkout_and_never_writes(self):
         with tempfile.TemporaryDirectory() as directory:
             original = os.getcwd()
