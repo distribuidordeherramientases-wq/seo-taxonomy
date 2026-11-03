@@ -79,7 +79,6 @@ check_status( 'native_classic', 'pass', 'Classic active menu loads' );
 check_status( 'native_blocks', 'skip', 'Block navigation ignored under classic theme' );
 check_status( 'menu_actions', 'pass', 'Native save/load/delete handlers are registered' );
 
-$GLOBALS['missing_action'] = 'admin_post_' . TaxoCommerce_Core_Block_Navigation::SAVE;
 $GLOBALS['missing_action'] = 'admin_post_' . TaxoCommerce_Core_Block_Navigation::ACTION;
 check_status( 'menu_actions', 'fail', 'Missing block save handler is detected' );
 $GLOBALS['missing_action'] = '';
