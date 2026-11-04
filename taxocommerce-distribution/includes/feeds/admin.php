@@ -217,6 +217,21 @@ function tcdist_feed_admin_origin_label( $origin ) {
 }
 
 /**
+ * Display a translated status without changing the stored process state.
+ */
+function tcdist_feed_admin_status_label( $value ) {
+    $labels = array(
+        'never'     => __( 'Not started', 'taxocommerce-distribution' ),
+        'running'   => __( 'Running', 'taxocommerce-distribution' ),
+        'completed' => __( 'Completed', 'taxocommerce-distribution' ),
+        'failed'    => __( 'Failed', 'taxocommerce-distribution' ),
+        'stopped'   => __( 'Stopped', 'taxocommerce-distribution' ),
+    );
+    $value = sanitize_key( (string) $value );
+    return isset( $labels[ $value ] ) ? $labels[ $value ] : $value;
+}
+
+/**
  * Render principal de la pestana.
  */
 function tcdist_feed_render_admin() {
@@ -355,7 +370,7 @@ function tcdist_feed_render_admin() {
 
             <div class="card" style="max-width:none;padding:20px;">
                 <h3 style="margin-top:0;"><?php esc_html_e( 'Generation', 'taxocommerce-distribution' ); ?></h3>
-                <p><strong><?php esc_html_e( 'Status:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( $status ); ?></p>
+                <p><strong><?php esc_html_e( 'Status:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_status_label( $status ) ); ?></p>
                 <p><strong><?php esc_html_e( 'Source:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
                 <p><strong><?php esc_html_e( 'Candidates:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
                 <p><strong><?php esc_html_e( 'Processed:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong><?php esc_html_e( 'published:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong><?php esc_html_e( 'excluded:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
@@ -496,7 +511,7 @@ function tcdist_feed_render_admin() {
                             <tr>
                                 <td><?php echo esc_html( tcdist_feed_admin_local_datetime( $entry['completed_at'] ?? '' ) ); ?></td>
                                 <td><?php echo esc_html( tcdist_feed_admin_origin_label( $entry['origin'] ?? '' ) ); ?></td>
-                                <td><code><?php echo esc_html( (string) ( $entry['status'] ?? '' ) ); ?></code></td>
+                                <td><code><?php echo esc_html( tcdist_feed_admin_status_label( $entry['status'] ?? '' ) ); ?></code></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['candidate_total'] ?? 0 ) ) ); ?></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['written'] ?? 0 ) ) ); ?></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['excluded'] ?? 0 ) ) ); ?></td>
