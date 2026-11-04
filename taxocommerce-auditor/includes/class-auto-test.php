@@ -69,7 +69,7 @@ final class Auto_Test {
             ++$totals[ $result['status'] ];
         }
         return array(
-            'version' => Plugin::VERSION, 'date' => current_time( 'mysql' ),
+            'version' => Plugin::VERSION, 'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
             'totals' => $totals, 'rows' => $rows,
         );
@@ -273,7 +273,7 @@ final class Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-auditor' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Último informe · v' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<h3>Último informe · v' . esc_html( $current['version'] ) . ' · ' . esc_html( __( 'Fecha de ejecución:', 'taxocommerce-auditor' ) . ' ' . $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $old = array();
