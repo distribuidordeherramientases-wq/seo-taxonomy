@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.14
+Stable tag: 0.4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,13 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.15 =
+* Autocheck manual unificado con dos acciones: «Ejecutar Autocheck» y «Descargar resultados (JSON)» del último informe.
+* Eliminada la interfaz y el almacenamiento nuevo ANTES/DESPUÉS y los botones por grupo; se mantienen los 35 casos de prueba, sus estados, fecha de ejecución y protección por usuario y sitio.
+* Eliminada la cabecera interior duplicada, manteniendo la cabecera común TaxoCommerce y las pestañas actuales.
+* Los informes históricos no se borran; el último informe previo sigue disponible.
+
 
 = 0.4.14 =
 * Pestaña «Autocheck» con descarga JSON ya existente, conservación de controles de seguridad y de comparaciones de regresiones.
