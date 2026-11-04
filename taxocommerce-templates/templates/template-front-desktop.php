@@ -146,8 +146,8 @@ if (!function_exists('dht_template_get_media_product_image_candidates')) {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
-                     FROM {$usage_table} u
-                     LEFT JOIN {$images_table} i ON i.attachment_id = u.attachment_id
+                     FROM %i u
+                     LEFT JOIN %i i ON i.attachment_id = u.attachment_id
                      WHERE u.object_id = %d
                        AND u.object_type = 'product'
                      ORDER BY CASE u.tipo_uso
@@ -155,7 +155,7 @@ if (!function_exists('dht_template_get_media_product_image_candidates')) {
                          WHEN 'gallery' THEN 2
                          WHEN 'content' THEN 3
                          ELSE 9 END ASC,
-                         u.fecha DESC",
+                         u.fecha DESC", $usage_table, $images_table,
                     $product_id
                 )
             );
@@ -206,12 +206,12 @@ if (!function_exists('dht_template_get_supplier_product_image_candidates')) {
             $supplier_urls = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
-                     ORDER BY is_primary DESC, position ASC, id ASC",
+                     ORDER BY is_primary DESC, position ASC, id ASC", $supplier_table,
                     $product_id
                 )
             );
@@ -566,12 +566,12 @@ $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_
 
 if ($table_exists === $relations_table) {
     $cluster_ids = $wpdb->get_col(
-        "SELECT source_id
-         FROM {$relations_table}
+        $wpdb->prepare("SELECT source_id
+         FROM %i
          WHERE source_type = 'cluster'
          GROUP BY source_id
          ORDER BY MIN(id) ASC
-         LIMIT 12"
+         LIMIT 12", $relations_table)
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
 
@@ -594,20 +594,20 @@ if ($table_exists === $relations_table) {
     $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 3));
 
     $primary_from_targets = $wpdb->get_col(
-        "SELECT target_id
-         FROM {$relations_table}
+        $wpdb->prepare("SELECT target_id
+         FROM %i
          WHERE target_type = 'hub_primary'
          GROUP BY target_id
          ORDER BY MIN(id) ASC
-         LIMIT 30"
+         LIMIT 30", $relations_table)
     );
     $primary_from_sources = $wpdb->get_col(
-        "SELECT source_id
-         FROM {$relations_table}
+        $wpdb->prepare("SELECT source_id
+         FROM %i
          WHERE source_type = 'hub_primary'
          GROUP BY source_id
          ORDER BY MIN(id) ASC
-         LIMIT 30"
+         LIMIT 30", $relations_table)
     );
     $hub_primary_ids = dht_template_public_post_ids(array_merge($primary_from_targets, $primary_from_sources));
 
@@ -617,13 +617,13 @@ if ($table_exists === $relations_table) {
     if (!empty($hub_primary_ids) && !empty($cluster_ids)) {
         $candidate_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
         $cluster_hub_rows = $wpdb->get_results(
-            "SELECT source_id, target_id, MIN(id) AS sort_id
-             FROM {$relations_table}
+            $wpdb->prepare("SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM %i
              WHERE source_type = 'cluster'
                AND target_type = 'hub_primary'
                AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
              GROUP BY source_id, target_id
-             ORDER BY sort_id ASC"
+             ORDER BY sort_id ASC", $relations_table)
         );
         $hubs_by_cluster = array();
         foreach ((array) $cluster_hub_rows as $row) {
@@ -664,13 +664,13 @@ if ($table_exists === $relations_table) {
     if (!empty($hub_primary_ids)) {
         $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
         $secondary_rows = $wpdb->get_results(
-            "SELECT source_id, target_id, MIN(id) AS sort_id
-             FROM {$relations_table}
+            $wpdb->prepare("SELECT source_id, target_id, MIN(id) AS sort_id
+             FROM %i
              WHERE source_type = 'hub_primary'
                AND target_type = 'hub_secondary'
                AND relation_type = 'hub_primary_to_hub_secondary'
              GROUP BY source_id, target_id
-             ORDER BY sort_id ASC"
+             ORDER BY sort_id ASC", $relations_table)
         );
 
         foreach ((array) $secondary_rows as $row) {
@@ -702,12 +702,12 @@ $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table,
         $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT target_id
-                 FROM {$relations_table}
+                 FROM %i
                  WHERE source_type = 'cluster'
                    AND source_id = %d
                    AND target_type = 'product_cat'
                  ORDER BY id ASC
-                 LIMIT 1",
+                 LIMIT 1", $relations_table,
                 $cluster_id
             )
         )
