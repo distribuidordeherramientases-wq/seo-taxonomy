@@ -63,6 +63,9 @@ class FakeFTP:
         self.calls.append(("MKD", dest))
 
     def mlsd(self):
+        # The real shared FTPS service may expose "." and ".." as cdir/pdir.
+        yield ".", {"type": "cdir"}
+        yield "..", {"type": "pdir"}
         prefix = self.path.rstrip("/") + "/"
         for name in sorted(self.files):
             if name.startswith(prefix):

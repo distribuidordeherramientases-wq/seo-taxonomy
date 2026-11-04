@@ -41,14 +41,23 @@ def listing(ftp, directory):
     try:
         result = []
         for name, facts in ftp.mlsd():
+            # FTP MLSD frequently exposes cdir/pdir records named "." or "..".
+            # They are navigation markers, never package files.
+            kind = str(facts.get("type", "")).lower()
+            if kind in ("cdir", "pdir"):
+                continue
+            if not isinstance(name, str) or name.rstrip("/") in ("", ".", ".."):
+                continue
             name = safe_name(name)
-            if facts.get("type", "").lower() == "file":
+            if kind == "file":
                 result.append(name)
         return sorted(set(result))
     except (AttributeError, ftplib.error_perm, ftplib.error_reply):
         ftp.cwd(directory)
         result = []
         for raw in ftp.nlst():
+            if not isinstance(raw, str) or raw.rstrip("/") in ("", ".", ".."):
+                continue
             name = safe_name(raw)
             try:
                 ftp.cwd(directory.rstrip("/") + "/" + name)
