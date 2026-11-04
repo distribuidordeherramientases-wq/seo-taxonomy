@@ -34,8 +34,6 @@ def remote_plugin_dir(target, slug):
         raise ValueError(f"Unrecognized FTP destination: {target}")
     if not SLUG.fullmatch(slug):
         raise ValueError(f"Invalid plugin slug: {slug}")
-    if target == "focazul" and slug != "taxocommerce-core":
-        raise ValueError("Only TaxoCommerce Core may be deployed to Focazul")
     return "./" + SITE_FTP_ROOTS[target] + "/wp-content/plugins/" + slug + "/"
 
 
@@ -111,16 +109,35 @@ def plan():
     head = git("rev-parse", "HEAD").decode().strip()
     base = last_successful_base(os.environ["GITHUB_REPOSITORY"], head, os.environ.get("GITHUB_TOKEN", ""))
     changes = changed_files(base, head)
-    slugs = list(changes)
-    core = "taxocommerce-core" in changes
+    # On deployment-policy changes, reconcile all installed modules against
+    # the same source tree. Remote SHA-256 comparisons upload only mismatches.
+    # This repairs sites that missed updates before dual-site delivery existed.
+    policy_changes = git(
+        "diff", "--name-only", base, head, "--",
+        ".github/workflows/deploy-staging.yml",
+        ".github/scripts/deploy_staging_delta.py",
+    ).decode("utf-8").strip()
+    sync = bool(policy_changes)
+    if sync:
+        slugs = sorted(
+            d.name for d in Path(".").glob("taxocommerce-*")
+            if d.is_dir() and SLUG.fullmatch(d.name)
+            and (d / (d.name + ".php")).is_file()
+        )
+    else:
+        slugs = list(changes)
+    core = "taxocommerce-core" in slugs
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"base={base}\n")
         output.write("slugs=" + json.dumps(slugs, separators=(",", ":")) + "\n")
         output.write("count=" + str(len(slugs)) + "\n")
+        output.write("sync=" + str(sync).lower() + "\n")
         output.write("core=" + str(core).lower() + "\n")
     print(f"Verified baseline {base}, target {head}")
     for slug, files in changes.items():
         print(f"{slug}: {len(files)} changed distributable file(s)")
+    if sync:
+        print(f"Deployment policy updated: reconcile {len(slugs)} installed-plugin candidates on both sites")
     if not slugs:
         print("No plugin runtime files changed; no FTPS connection needed")
 
@@ -183,6 +200,25 @@ def upload_plugin(ftp, target, slug, files, required):
                 pass
 
 
+def plugin_source_files(slug):
+    """All tracked, installable files of a standalone plugin. Never delete."""
+    if not SLUG.fullmatch(slug):
+        raise ValueError("Invalid plugin slug")
+    names = git("ls-files", "-z", "--", slug).decode("utf-8").split("\0")
+    files = set()
+    for name in names:
+        parsed = distributable(name)
+        if not parsed or parsed[0] != slug:
+            continue
+        source = Path(name)
+        if not source.is_file() or source.is_symlink():
+            raise ValueError(f"Missing or unsafe tracked plugin source: {name}")
+        files.add(parsed[1])
+    if slug + ".php" not in files:
+        raise ValueError(f"Tracked plugin entrypoint missing: {slug}")
+    return sorted(files)
+
+
 def core_source_files():
     """All tracked, installable Core files from this one shared source tree.
 
@@ -235,11 +271,15 @@ def reconcile_core():
             pass
 
 
-def deploy(base, target, slug):
+def deploy(base, target, slug, full=False):
     head = git("rev-parse", "HEAD").decode().strip()
-    changes = changed_files(base, head, selected_slug=slug)
-    if slug not in changes:
-        raise ValueError(f"No distributable changes selected for {slug}")
+    if full:
+        files = plugin_source_files(slug)
+    else:
+        changes = changed_files(base, head, selected_slug=slug)
+        if slug not in changes:
+            raise ValueError(f"No distributable changes selected for {slug}")
+        files = changes[slug]
     # One FTPS login shared by both clients; each site has an isolated path.
     # Validate the destination before connecting to the server.
     remote_plugin_dir(target, slug)
@@ -255,7 +295,7 @@ def deploy(base, target, slug):
             ftp.connect(host, 21)
             ftp.login(user, password)
             ftp.prot_p()
-            upload_plugin(ftp, target, slug, changes[slug], required=(slug == "taxocommerce-core"))
+            upload_plugin(ftp, target, slug, files, required=(slug == "taxocommerce-core"))
             ftp.quit()
             return
         except (OSError, EOFError, ftplib.error_temp) as exc:
@@ -276,6 +316,7 @@ def main():
     parser.add_argument("--base")
     parser.add_argument("--target", choices=["staging", "focazul"])
     parser.add_argument("--slug")
+    parser.add_argument("--full", choices=("true", "false"), default="false")
     args = parser.parse_args()
     if args.command == "plan":
         plan()
@@ -284,7 +325,7 @@ def main():
     elif not args.base or not args.target or not args.slug:
         parser.error("deploy requires --base, --target and --slug")
     else:
-        deploy(args.base, args.target, args.slug)
+        deploy(args.base, args.target, args.slug, full=args.full == "true")
 
 
 if __name__ == "__main__":
