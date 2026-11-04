@@ -131,6 +131,7 @@ jobs:
       slugs: ${{ steps.changed.outputs.slugs }}
       count: ${{ steps.changed.outputs.count }}
       core: ${{ steps.changed.outputs.core }}
+      sync: ${{ steps.changed.outputs.sync }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -164,27 +165,32 @@ jobs:
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG"
+          SYNC: ${{ needs.plan.outputs.sync }}
+        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
 
   deploy-focazul:
-    name: Focazul / Core
+    name: Focazul / ${{ matrix.slug }}
     needs: plan
-    if: needs.plan.result == 'success' && needs.plan.outputs.core == 'true'
+    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        slug: ${{ fromJSON(needs.plan.outputs.slugs) }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Upload Core changes to Focazul using the shared FTPS login
-        # FTP user root: /home/hosting160568eu/public_html
-        # Target path is restricted in deploy_staging_delta.py to
-        # ./asociacionfocazul/wp-content/plugins/taxocommerce-core/
+      - name: Upload verified changed plugin files to Focazul
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
           BASE: ${{ needs.plan.outputs.base }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug taxocommerce-core
+          SLUG: ${{ matrix.slug }}
+          SYNC: ${{ needs.plan.outputs.sync }}
+        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"
 
   verify:
     name: Require successful delivery to every applicable site
@@ -207,7 +213,7 @@ jobs:
           if [ "$COUNT" != "0" ]; then
             test "$STAGING" = "success"
           fi
-          if [ "$CORE" = "true" ]; then
+          if [ "$COUNT" != "0" ]; then
             test "$FOCAZUL" = "success"
           fi
           echo "All applicable deployments completed successfully"
