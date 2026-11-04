@@ -1,6 +1,12 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.1.6] — 2026-11-04
+
+- WordPress Plugin Check (#2161): resueltos cinco errores (comentario de traductores y escape de mensajes/nombres de ficheros lanzados como excepciones) y un aviso (eliminado error_log redundante).
+- Se conserva el error persistido en el estado del trabajador, la limpieza de temporales y la publicación atómica de XML. Sin cambios en los chequeos manuales existentes.
+- No implica modificación de producción ni demuestra la aprobación del comprobador oficial antes de ejecutarlo de nuevo.
+
 ## [0.1.5] — 2026-11-03
 
 - Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.

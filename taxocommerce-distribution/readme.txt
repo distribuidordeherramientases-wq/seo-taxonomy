@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.6 =
+* Resolve five official Plugin Check errors: add translator guidance for sitemap progress and escape exception messages and filenames.
+* Remove a redundant error_log call; sitemap errors remain available in the saved generation state.
+* Keep feed and sitemap generation, publication, schedules and Autocheck unchanged.
 
 = 0.1.5 =
 * Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.
