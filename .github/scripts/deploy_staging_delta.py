@@ -34,6 +34,8 @@ def remote_plugin_dir(target, slug):
         raise ValueError(f"Unrecognized FTP destination: {target}")
     if not SLUG.fullmatch(slug):
         raise ValueError(f"Invalid plugin slug: {slug}")
+    if target == "focazul" and slug != "taxocommerce-core":
+        raise ValueError("Only TaxoCommerce Core may be deployed to Focazul")
     return "./" + SITE_FTP_ROOTS[target] + "/wp-content/plugins/" + slug + "/"
 
 
