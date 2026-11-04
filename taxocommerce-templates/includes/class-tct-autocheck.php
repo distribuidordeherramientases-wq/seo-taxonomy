@@ -79,7 +79,7 @@ final class TCT_Autocheck {
         foreach ( $rows as $row ) { ++$totals[ $row['status'] ]; }
         return array(
             'schema' => 1, 'plugin' => 'taxocommerce-templates', 'version' => TCT_VERSION,
-            'generated_at' => gmdate( 'c' ), 'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ), 'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals, 'rows' => $rows,
         );
     }
@@ -130,6 +130,7 @@ final class TCT_Autocheck {
         echo '<input type="hidden" name="action" value="' . esc_attr( self::JSON ) . '">';
         wp_nonce_field( self::NONCE );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-templates' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-templates' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $report['executed_at'] ) ) ) . '</p>';
         echo '</form>';
         echo '<p>' . esc_html( sprintf( '%d correctas, %d errores, %d omitidas.',
             (int) $report['totals']['pass'], (int) $report['totals']['fail'], (int) $report['totals']['skip'] ) ) . '</p>';
