@@ -73,6 +73,12 @@ foreach ( $ui as $slug => $path ) {
             $errors[] = "$slug: missing JSON/export security contract $contract";
         }
     }
+    if ( false === strpos( $code, "'executed_at' =>" ) ) {
+        $errors[] = "$slug: missing UTC execution timestamp in saved report";
+    }
+    if ( false === strpos( $code, 'Fecha de ejecución:' ) ) {
+        $errors[] = "$slug: missing visible execution date label";
+    }
     if ( false === strpos( $code, 'rows' ) || false === strpos( $code, 'totals' ) ) {
         $errors[] = "$slug: exported result structure missing rows or totals";
     }
