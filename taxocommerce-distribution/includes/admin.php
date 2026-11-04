@@ -392,7 +392,9 @@ function taxocommerce_distribution_render_sitemaps() {
             <div id="tcdist-sitemap-progress" data-running="<?php echo esc_attr( $running ? '1' : '0' ); ?>" aria-live="polite" style="margin-top:10px;">
                 <strong><?php esc_html_e( 'Estado de generación:', 'taxocommerce-distribution' ); ?></strong>
                 <span id="tcdist-sitemap-status"><?php echo esc_html( $status_labels[ (string) ( $job['status'] ?? 'idle' ) ] ?? $status_labels['idle'] ); ?></span>.
-                <span id="tcdist-sitemap-counts"><?php echo esc_html( sprintf( __( '%1$d elementos revisados; %2$d URL preparadas.', 'taxocommerce-distribution' ), absint( $job['processed'] ?? 0 ), absint( $job['urls'] ?? 0 ) ) ); ?></span>
+                <span id="tcdist-sitemap-counts"><?php
+                /* translators: 1: Number of sitemap items examined, 2: Number of sitemap URLs prepared. */
+                echo esc_html( sprintf( __( '%1$d elementos revisados; %2$d URL preparadas.', 'taxocommerce-distribution' ), absint( $job['processed'] ?? 0 ), absint( $job['urls'] ?? 0 ) ) ); ?></span>
                 <span id="tcdist-sitemap-phase"><?php echo esc_html( (string) ( $job['phase'] ?? '' ) ); ?></span>
                 <span id="tcdist-sitemap-message"><?php echo esc_html( (string) ( $job['message'] ?? '' ) ); ?></span>
                 <p><strong><?php esc_html_e( 'Inicio de esta generación:', 'taxocommerce-distribution' ); ?></strong>
