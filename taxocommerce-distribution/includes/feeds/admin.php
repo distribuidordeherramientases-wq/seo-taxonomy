@@ -257,15 +257,15 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! empty( $environment['mismatch'] ) ) {
-        echo '<div class="notice notice-warning inline"><p><strong>Entorno discrepante:</strong> WordPress informa <code>'
+        echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Entorno discrepante:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html__( 'WordPress informa', 'taxocommerce-distribution' ) . ' <code>'
             . esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) )
-            . '</code>, pero la deteccion efectiva por hostname es <code>'
+            . '</code>, ' . esc_html__( 'pero la detección efectiva por hostname es', 'taxocommerce-distribution' ) . ' <code>'
             . esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) )
-            . '</code>. Review <code>WP_ENVIRONMENT_TYPE</code> in the environment configuration.</p></div>';
+            . '</code>. ' . esc_html__( 'Review WP_ENVIRONMENT_TYPE in the environment configuration.', 'taxocommerce-distribution' ) . '</p></div>';
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline">' . '<p>' . '<strong>' . esc_html__( 'Distribution worker:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html__( 'Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled.', 'taxocommerce-distribution' ) . '</p>' . '</div';
+        echo '<div class="notice notice-error inline">' . '<p>' . '<strong>' . esc_html__( 'Distribution worker:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html__( 'Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -329,7 +329,7 @@ function tcdist_feed_render_admin() {
                         </label>
                         <span>
                             <strong><?php esc_html_e( 'Lote', 'taxocommerce-distribution' ); ?></strong><br>
-                            <span class="description">Adaptive · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'view Automation', 'taxocommerce-distribution' ); ?></a></span>
+                            <span class="description"><?php esc_html_e( 'Adaptive', 'taxocommerce-distribution' ); ?> · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'view Automation', 'taxocommerce-distribution' ); ?></a></span>
                         </span>
                     </p>
 
@@ -361,14 +361,14 @@ function tcdist_feed_render_admin() {
                 <p><strong><?php esc_html_e( 'Processed:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong><?php esc_html_e( 'published:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong><?php esc_html_e( 'excluded:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
 
                 <p><strong><?php esc_html_e( 'Regulador:', 'taxocommerce-distribution' ); ?></strong>
-                    next batch <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
-                    · presion <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
+                    <?php esc_html_e( 'next batch', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
+                    · <?php esc_html_e( 'pressure', 'taxocommerce-distribution' ); ?> <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
                     <?php if ( ! empty( $state['adaptive_next_delay'] ) ) : ?>
-                        · pausa <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
+                        · <?php esc_html_e( 'pause', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
                     <?php endif; ?>
                 </p>
                 <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
-                    <p class="description"><strong><?php esc_html_e( 'Last batch:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> products in <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
+                    <p class="description"><strong><?php esc_html_e( 'Last batch:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> <?php esc_html_e( 'products in', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
                 <?php else : ?>
                     <p class="description"><?php esc_html_e( 'Waiting for the first Distribution worker window.', 'taxocommerce-distribution' ); ?></p>
                 <?php endif; ?>
@@ -377,11 +377,11 @@ function tcdist_feed_render_admin() {
                     <div style="height:14px;background:#dcdcde;border-radius:7px;overflow:hidden;max-width:620px;">
                         <div style="height:100%;width:<?php echo esc_attr( (string) $progress ); ?>%;background:#2271b1;"></div>
                     </div>
-                    <p class="description"><?php echo esc_html( (string) $progress ); ?> % completado.</p>
+                    <p class="description"><?php echo esc_html( (string) $progress ); ?> <?php esc_html_e( '% completed.', 'taxocommerce-distribution' ); ?></p>
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['started_at'] ) ) : ?>
-                    <p class="description">Inicio: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · End: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
+                    <p class="description"><?php esc_html_e( 'Inicio:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · <?php esc_html_e( 'End:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
                 <?php endif; ?>
 
                 <?php if ( tcdist_feed_is_production() && ! empty( $settings['auto_refresh'] ) ) : ?>
@@ -391,7 +391,7 @@ function tcdist_feed_render_admin() {
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['updated_at'] ) ) : ?>
-                    <p class="description"><strong><?php esc_html_e( 'Ultima actividad:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['updated_at'] ) ); ?><?php if ( 'running' === $status ) : ?> · <?php echo esc_html( number_format_i18n( $idle_seconds ) ); ?> s sin cambios<?php endif; ?></p>
+                    <p class="description"><strong><?php esc_html_e( 'Ultima actividad:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['updated_at'] ) ); ?><?php if ( 'running' === $status ) : ?> · <?php echo esc_html( number_format_i18n( $idle_seconds ) ); ?> <?php esc_html_e( 's without changes', 'taxocommerce-distribution' ); ?><?php endif; ?></p>
                 <?php endif; ?>
 
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
@@ -407,7 +407,7 @@ function tcdist_feed_render_admin() {
                         <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm(<?php echo esc_attr( wp_json_encode( __( 'Stop the current generation? Partial files will not be published.', 'taxocommerce-distribution' ) ) ); ?>);" ><?php esc_html_e( 'Stop generation', 'taxocommerce-distribution' ); ?></button>
                     </form>
                 </div>
-                <p class="description">Start creates a new generation and hands it to the <strong>Distribution worker</strong>. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.</p>
+                <p class="description"><?php esc_html_e( 'Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.', 'taxocommerce-distribution' ); ?></p>
                 <p class="description"><?php esc_html_e( 'Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.', 'taxocommerce-distribution' ); ?></p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
@@ -511,11 +511,11 @@ function tcdist_feed_render_admin() {
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
             <h3 style="margin-top:0;"><?php esc_html_e( 'Alta inicial en las plataformas', 'taxocommerce-distribution' ); ?></h3>
-            <p><strong>Google Merchant Center:</strong> creates a product data source from a file and registers the URL of <code>google-merchant.xml</code>.</p>
-            <p><strong>Microsoft Merchant Center:</strong> crea un feed con descarga automatica desde URL y registra <code>microsoft-merchant.txt</code>.</p>
-            <p><strong>Pinterest Catalogs:</strong> adds a hosted data source by URL and registers <code>pinterest-catalog.csv</code>.</p>
-            <p><strong>Other receivers:</strong> use <code>catalogo-universal.csv</code> or <code>catalogo-universal.json</code>. JSON preserves the full canonical record structure, including additional images as an array. New channels can also be registered through the <code>tcdist_commercial_feed_channels</code> filter.</p>
-            <p class="description">This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later.</p>
+            <p><strong>Google Merchant Center:</strong> <?php esc_html_e( 'Create a product data source from a file and register the URL:', 'taxocommerce-distribution' ); ?> <code>google-merchant.xml</code>.</p>
+            <p><strong>Microsoft Merchant Center:</strong> <?php esc_html_e( 'Create a feed with automatic download from URL and register:', 'taxocommerce-distribution' ); ?> <code>microsoft-merchant.txt</code>.</p>
+            <p><strong>Pinterest Catalogs:</strong> <?php esc_html_e( 'Add a hosted data source by URL and register:', 'taxocommerce-distribution' ); ?> <code>pinterest-catalog.csv</code>.</p>
+            <p><strong><?php esc_html_e( 'Other receivers:', 'taxocommerce-distribution' ); ?></strong> <?php esc_html_e( 'Use', 'taxocommerce-distribution' ); ?> <code>catalogo-universal.csv</code> <?php esc_html_e( 'or', 'taxocommerce-distribution' ); ?> <code>catalogo-universal.json</code>. <?php esc_html_e( 'JSON preserves the complete record including additional images. Custom channels can be registered using the filter:', 'taxocommerce-distribution' ); ?> <code>tcdist_commercial_feed_channels</code>.</p>
+            <p class="description"><?php esc_html_e( 'This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later.', 'taxocommerce-distribution' ); ?></p>
         </div>
     </div>
 
