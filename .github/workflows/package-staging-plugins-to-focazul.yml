@@ -1,4 +1,4 @@
-name: Mirror TaxoCommerce plugin ZIP repository from STAGING to Focazul
+name: Publish all TaxoCommerce ZIPs in canonical STAGING and Focazul uploads
 
 on:
   pull_request:
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Verify ZIP packaging safety and path isolation
+    name: Verify full ZIP generation and canonical upload paths
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,23 +32,29 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile .github/scripts/package_staging_plugins_for_focazul.py
+          python3 -m py_compile .github/scripts/build_taxocommerce_updates.py
           python3 -m unittest discover -s .github/tests -p test_package_staging_plugins_for_focazul.py -v
+          python3 .github/scripts/build_taxocommerce_updates.py --root . --output /tmp/taxocommerce-zip-validation
 
   upload:
-    name: Mirror STAGING ZIPs to canonical Focazul uploads directory
+    name: Publish identical canonical ZIPs to STAGING and Focazul
     needs: validate
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
-      - name: Copy verified standard ZIPs and manifest to wp-content/uploads/taxocommerce-core/plugins
+      - name: Build complete family ZIP repository from staging branch
+        run: |
+          python3 .github/scripts/build_taxocommerce_updates.py --root . --output taxocommerce-built-zips
+      - name: Write verified ZIPs and manifest to the SAME folder on each WordPress
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: |
           python3 .github/scripts/package_staging_plugins_for_focazul.py \
+            --local-packages taxocommerce-built-zips \
             --manifest-file taxocommerce-plugin-packages-report.json
       - name: Save same-directory ZIP checksum inventory
         if: success()
