@@ -73,7 +73,7 @@ rmdir( $dir );
 rmdir( WP_CONTENT_DIR );
 $restricted = array(
     'includes/class-tct-router.php' => array( 'fopen(', 'fread(', 'fclose(' ),
-    'includes/class-tct-template-editor.php' => array( 'move_uploaded_file(', '@unlink(', '@chmod(', 'rename($temp,', 'is_writable($dir)' ),
+    'includes/class-tct-template-editor.php' => array( 'if (!move_uploaded_file(', '@unlink(', '@chmod(', 'if (!rename($temp,', '!is_writable($dir)' ),
     'includes/class-tct-association-audit.php' => array( 'fclose($output)' ),
     'taxocommerce-templates.php' => array( 'readfile($path)' ),
 );
