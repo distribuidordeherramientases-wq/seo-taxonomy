@@ -148,7 +148,7 @@ final class TaxoCommerce_Connections_Autocheck {
         wp_nonce_field( self::NONCE );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-connections' ), 'secondary', 'submit', false );
         echo '</form>';
-        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-connections' ) . '</strong> ' . esc_html( ( isset( $report['executed_at'] ) ? ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $report['executed_at'] ) ) : $report['executed_at'] . ' (UTC)' ) : ( isset( $report['generated_at'] ) ? ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $report['generated_at'] ) ) : $report['generated_at'] . ' (UTC)' ) : __( 'No disponible; ejecuta un nuevo Autocheck.', 'taxocommerce-"+slug+"' ) ) ) ) . '</p>';
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-connections' ) . '</strong> ' . esc_html( ( isset( $report['executed_at'] ) ? ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $report['executed_at'] ) ) : $report['executed_at'] . ' (UTC)' ) : ( isset( $report['generated_at'] ) ? ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $report['generated_at'] ) ) : $report['generated_at'] . ' (UTC)' ) : __( 'No disponible; ejecuta un nuevo Autocheck.', 'taxocommerce-connections' ) ) ) ) . '</p>';
         echo '<p>' . esc_html( sprintf( '%d correctas, %d errores y %d omitidas.',
             (int) $report['totals']['pass'], (int) $report['totals']['fail'], (int) $report['totals']['skip'] ) ) . '</p>';
         echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Comprobación', 'taxocommerce-connections' ) .
