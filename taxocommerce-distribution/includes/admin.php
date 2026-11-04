@@ -252,7 +252,7 @@ function taxocommerce_distribution_render_summary() {
     <div class="notice notice-info inline" style="margin:12px 0;padding:9px 13px;max-width:1200px;" aria-label="<?php esc_attr_e( 'Publishing summary', 'taxocommerce-distribution' ); ?>">
         <p style="margin:0 0 5px;">
             <strong><?php esc_html_e( 'Commercial feeds:', 'taxocommerce-distribution' ); ?></strong>
-            <?php echo esc_html( (string) ( $feed['status'] ?? 'never' ) ); ?>
+            <?php echo esc_html( tcdist_feed_admin_status_label( $feed['status'] ?? 'never' ) ); ?>
             · <?php esc_html_e( 'Published products:', 'taxocommerce-distribution' ); ?>
             <?php echo esc_html( number_format_i18n( absint( $feed['written'] ?? 0 ) ) ); ?>
             · <strong><?php esc_html_e( 'Active channels:', 'taxocommerce-distribution' ); ?></strong>
