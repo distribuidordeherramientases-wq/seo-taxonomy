@@ -1,6 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.2.18] — 2026-11-04
+
+- Eliminada la segunda cabecera duplicada en el administrador de Images. Se conserva únicamente la cabecera homogénea con nombre, descripción y versión.
+- Sin cambios en pestañas, regulación de velocidad, auditoría, inventario, Autocheck ni datos. Issue #2178.
+
 ## [0.2.17] — 2026-11-03
 
 - Nombre uniforme «Autocheck» y exportación JSON autenticada del último diagnóstico, sin ejecutar operaciones de escritura o procesos comerciales.
