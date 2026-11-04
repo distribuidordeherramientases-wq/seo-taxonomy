@@ -1,5 +1,9 @@
 TAXOCOMMERCE TEMPLATES — CHANGELOG DEL PLUGIN INDEPENDIENTE
 
+## [0.4.13] — 2026-11-04
+* SQL seguro con %i en 16 archivos de plantillas: corrige 32 errores identificados por Plugin Check. Mantiene relaciones, catálogos y vistas actuales. Nuevos tests y PHP lint en plantillas (#2187).
+* Revisión WordPress.org pendiente de nuevo Plugin Check, avisos restantes y separación del editor PHP ejecutable.
+
 ## [0.4.12] — 2026-11-04
 * Corrección de 12 errores Plugin Check de operaciones con archivos sin eliminar funciones del editor privado, descargas ni exportación CSV. WP_Filesystem, wp_delete_file y pruebas de regresión (#2182).
 * Todavía no se permite su publicación en WordPress.org con subida o edición de PHP ejecutable; pendiente separación y auditoría completa.
