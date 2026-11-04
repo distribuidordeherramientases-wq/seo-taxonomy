@@ -263,14 +263,6 @@ final class TaxoCommerce_Images {
 		}
 		?>
 		<div class="wrap tcc-family-screen">
-			<header class="tcc-page-header">
-				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-format-image"></span></span>
-				<div class="tcc-page-header__content">
-					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-images' ); ?></p>
-					<h1><?php echo esc_html__( 'TaxoCommerce Images', 'taxocommerce-images' ); ?></h1>
-					<p><?php echo esc_html__( 'Media de WordPress es la fuente de verdad. La importación y exportación de archivos pertenece a TaxoCommerce Import-Export.', 'taxocommerce-images' ); ?></p>
-				</div>
-			</header>
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de imágenes', 'taxocommerce-images' ); ?>">
 				<?php foreach ( $tabs as $key => $label ) : ?>
 					<a class="nav-tab<?php echo $tab === $key ? ' nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-images', 'tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>
