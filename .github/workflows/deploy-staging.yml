@@ -5,6 +5,12 @@ on:
     branches:
       - staging
   workflow_dispatch:
+    inputs:
+      full_sync:
+        description: 'Reconciliar todos los plugins instalados (solo manual; normalmente NO)'
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -142,6 +148,7 @@ jobs:
         id: changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAXOCOMMERCE_FULL_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.full_sync && '1' || '0' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
