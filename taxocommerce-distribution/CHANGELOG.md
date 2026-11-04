@@ -1,5 +1,12 @@
 ## Unreleased - Familia i18n #2062
 
+## [0.1.7] — 2026-11-04
+
+- Issue #2172: interfaz administrativa de Distribution traducible al español, incluidos controles de feeds; traducciones gettext es_ES completas y catálogos binarios coherentes.
+- Eliminada la pestaña Overview redundante. Sus indicadores de solo lectura aparecen debajo de la cabecera común y las URL antiguas abren Feeds.
+- Conservados los motores de feeds, sitemaps, automatización, acciones protegidas y Autocheck manual. Despliegue en STAGING y Focazul; no producción.
+
+
 
 ## [0.1.6] — 2026-11-04
 
