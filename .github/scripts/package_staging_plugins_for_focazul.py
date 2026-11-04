@@ -327,7 +327,7 @@ def main():
     args = parser.parse_args()
     try:
         run(args.manifest_file)
-    except (ValueError, KeyError, OSError, RuntimeError, ftplib.all_errors, zipfile.BadZipFile) as exc:
+    except (ValueError, KeyError, OSError, RuntimeError, zipfile.BadZipFile, *ftplib.all_errors) as exc:
         print("::error::Staging-to-Focazul plugin ZIP copy failed: " + str(exc), file=sys.stderr)
         sys.exit(1)
 
