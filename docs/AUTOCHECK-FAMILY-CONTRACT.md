@@ -8,6 +8,8 @@ El administrador inicia el diagnóstico expresamente. La ejecución prueba las f
 
 Cada Autocheck expone un botón **Descargar resultados (JSON)** que entrega el último informe disponible, con identificación del plugin y su versión, fecha y detalles de las comprobaciones. Los campos concretos de cada fila conservan el esquema previo de cada plugin para no romper consumidores de informes. Los nuevos informes temporales se guardan exclusivamente por usuario y sitio durante una hora; los módulos que ya gestionaban históricos conservan su política existente.
 
+Cada ejecución manual registra también `executed_at` en formato ISO 8601 UTC, sin recalcularlo durante la descarga JSON. La interfaz muestra explícitamente **Fecha de ejecución** en la zona horaria del sitio WordPress cuando está disponible. Los campos anteriores (`date`, `date_utc`, `generated_at`) se mantienen para compatibilidad, incluso en informes ANTES/DESPUÉS; no se inventan fechas de ejecución para informes antiguos que no las contienen.
+
 La descarga requiere sesión WordPress, capacidad suficiente y nonce. No ejecuta nuevas comprobaciones ni da por superadas operaciones reales no verificadas. Los JSON nunca deben transportar credenciales, contraseñas, tokens ni claves API.
 
 ## Verificación
