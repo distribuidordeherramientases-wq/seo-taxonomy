@@ -161,8 +161,8 @@ if (!function_exists('dht_shop_template_get_media_product_image_candidates')) {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
-                     FROM {$usage_table} u
-                     LEFT JOIN {$images_table} i ON i.attachment_id = u.attachment_id
+                     FROM %i u
+                     LEFT JOIN %i i ON i.attachment_id = u.attachment_id
                      WHERE u.object_id = %d
                        AND u.object_type = 'product'
                      ORDER BY CASE u.tipo_uso
@@ -170,7 +170,7 @@ if (!function_exists('dht_shop_template_get_media_product_image_candidates')) {
                          WHEN 'gallery' THEN 2
                          WHEN 'content' THEN 3
                          ELSE 9 END ASC,
-                         u.fecha DESC",
+                         u.fecha DESC", $usage_table, $images_table,
                     $product_id
                 )
             );
@@ -220,12 +220,12 @@ if (!function_exists('dht_shop_template_get_supplier_product_image_candidates'))
             $supplier_urls = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
-                     ORDER BY is_primary DESC, position ASC, id ASC",
+                     ORDER BY is_primary DESC, position ASC, id ASC", $supplier_table,
                     $product_id
                 )
             );
@@ -558,11 +558,11 @@ $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_
 
 if ($table_exists === $relations_table) {
     $cluster_ids = $wpdb->get_col(
-        "SELECT DISTINCT source_id
-         FROM {$relations_table}
+        $wpdb->prepare("SELECT DISTINCT source_id
+         FROM %i
          WHERE source_type = 'cluster'
          ORDER BY source_id ASC
-         LIMIT 8"
+         LIMIT 8", $relations_table)
     );
     $cluster_ids = dht_template_public_post_ids($cluster_ids);
 }
@@ -577,12 +577,12 @@ $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table,
         $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT target_id
-                 FROM {$relations_table}
+                 FROM %i
                  WHERE source_type = 'cluster'
                    AND source_id = %d
                    AND target_type = 'product_cat'
                  ORDER BY id ASC
-                 LIMIT 1",
+                 LIMIT 1", $relations_table,
                 $cluster_id
             )
         )
