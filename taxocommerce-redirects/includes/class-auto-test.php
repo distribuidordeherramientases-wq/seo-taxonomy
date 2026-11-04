@@ -476,7 +476,7 @@ final class Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-redirects' ); ?></h3>
                     <?php if ( $before ) : ?>
-                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-redirects' ); ?></strong> <?php echo esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $before['date_utc'] ) ) ); ?></p>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-redirects' ); ?></strong> <?php echo esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $before['date_utc'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $before['date_utc'] ) ) . ' UTC' ) ); ?></p>
                         <p><?php echo esc_html( (string) $before['date_utc'] . ' · v' . (string) $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
                         <?php self::export_button( true, 'Descargar ANTES (JSON)' ); ?>
@@ -487,7 +487,7 @@ final class Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-redirects' ); ?></h3>
                     <?php if ( $last ) : ?>
-                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-redirects' ); ?></strong> <?php echo esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $last['date_utc'] ) ) ); ?></p>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-redirects' ); ?></strong> <?php echo esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $last['date_utc'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $last['date_utc'] ) ) . ' UTC' ) ); ?></p>
                         <p><?php echo esc_html( (string) $last['date_utc'] . ' · v' . (string) $last['version'] . ' · ' . (string) $last['phase'] ); ?></p>
                         <?php self::export_button( false, 'Descargar último (JSON)' ); ?>
                     <?php else : ?>
