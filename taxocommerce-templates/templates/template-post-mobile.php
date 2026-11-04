@@ -436,11 +436,11 @@ while (have_posts()) :
 
     if (!empty($related_category_ids)) {
         $placeholders = implode(',', array_fill(0, count($related_category_ids), '%d'));
-        $params       = array_merge($related_category_ids, array($post_id));
+        $params       = array_merge(array($relations_table, $wpdb->posts), $related_category_ids, array($post_id));
 
         $sql = "SELECT DISTINCT r.source_id
-                FROM {$relations_table} r
-                INNER JOIN {$wpdb->posts} p
+                FROM %i r
+                INNER JOIN %i p
                    ON p.ID = r.source_id
                   AND p.post_type = 'post'
                   AND p.post_status = 'publish'
@@ -452,7 +452,7 @@ while (have_posts()) :
                 ORDER BY p.post_date DESC
                 LIMIT 12";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Lista de marcadores %d generada localmente; tablas %i e IDs enlazados mediante $wpdb->prepare().
         $prepared_sql = $wpdb->prepare($sql, ...$params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
         $related_post_ids = $wpdb->get_col($prepared_sql);
