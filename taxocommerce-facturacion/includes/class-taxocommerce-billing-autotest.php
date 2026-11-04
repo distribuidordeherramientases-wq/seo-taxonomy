@@ -165,7 +165,7 @@ final class TaxoCommerce_Billing_Autotest {
             'schema' => 1,
             'plugin' => 'taxocommerce-facturacion',
             'version' => defined( 'TAXOCOMMERCE_FACTURACION_VERSION' ) ? constant( 'TAXOCOMMERCE_FACTURACION_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $rows,
         );
@@ -176,6 +176,7 @@ final class TaxoCommerce_Billing_Autotest {
         echo '<input type="hidden" name="action" value="taxocommerce_facturacion_autocheck_json">';
         wp_nonce_field( 'taxocommerce_facturacion_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-facturacion' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-facturacion' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) ) . '</p>';
         echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $rows as $row ) {
