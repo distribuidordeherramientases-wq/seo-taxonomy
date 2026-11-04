@@ -163,10 +163,11 @@ final class TaxoCommerce_Scrappers_Auto_Test {
             'schema' => 1,
             'plugin' => 'taxocommerce-scrappers',
             'version' => defined( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) ? constant( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-scrappers' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $autocheck_report['executed_at'] ) ) : $autocheck_report['executed_at'] . ' (UTC)' ) ) . '</p>';
         if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_scrappers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
