@@ -43,18 +43,18 @@ function taxocommerce_distribution_render_manual() {
         <h1><?php esc_html_e( 'Manual de usuario', 'taxocommerce-distribution' ); ?></h1>
         <p><?php esc_html_e( 'Destinatarios: responsables de catálogo, operaciones y administración de WooCommerce. Explica qué revisar antes, durante y después de publicar un feed o sitemap.', 'taxocommerce-distribution' ); ?></p>
         <h3><?php esc_html_e( '1. Acceso y pestañas', 'taxocommerce-distribution' ); ?></h3>
-        <p><?php esc_html_e( 'Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Overview, Commercial Feeds, Sitemaps, Automation, Manual y Autocheck. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador.', 'taxocommerce-distribution' ); ?></p>
+        <p><?php esc_html_e( 'Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador.', 'taxocommerce-distribution' ); ?></p>
 
         <h3><?php esc_html_e( '1.1. Secuencia inicial segura', 'taxocommerce-distribution' ); ?></h3>
         <ol>
             <li><?php esc_html_e( 'Confirma el entorno (STAGING o PRO) y que WooCommerce esté activo. Comprueba si el módulo SEO monolítico sigue siendo propietario de las tareas automáticas.', 'taxocommerce-distribution' ); ?></li>
-            <li><?php esc_html_e( 'Revisa Overview y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado.', 'taxocommerce-distribution' ); ?></li>
+            <li><?php esc_html_e( 'Revisa el resumen bajo la cabecera y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado.', 'taxocommerce-distribution' ); ?></li>
             <li><?php esc_html_e( 'Abre Commercial Feeds, selecciona canales, país e idioma y guarda; esta operación puede retirar el fichero de un canal desactivado.', 'taxocommerce-distribution' ); ?></li>
             <li><?php esc_html_e( 'Inicia la generación manual solo cuando no haya otra activa; sigue el estado de lotes y comprueba los enlaces publicados.', 'taxocommerce-distribution' ); ?></li>
             <li><?php esc_html_e( 'Comprueba Sitemaps y, si procede, regenera el índice; valida el XML publicado antes de facilitar su URL a buscadores.', 'taxocommerce-distribution' ); ?></li>
         </ol>
 
-        <h3><?php esc_html_e( '2. Overview: estado general', 'taxocommerce-distribution' ); ?></h3>
+        <h3><?php esc_html_e( '2. Resumen general bajo la cabecera', 'taxocommerce-distribution' ); ?></h3>
         <p><?php esc_html_e( 'Consulta el estado de la generación comercial, candidatos procesados, productos publicados, canales activos, estado del índice de sitemaps, URL publicadas y ficheros existentes. Estos indicadores no lanzan ninguna generación.', 'taxocommerce-distribution' ); ?></p>
 
         <h3><?php esc_html_e( '3. Commercial Feeds: configuración y generación', 'taxocommerce-distribution' ); ?></h3>

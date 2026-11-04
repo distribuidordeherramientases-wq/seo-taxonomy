@@ -206,14 +206,29 @@ function tcdist_feed_admin_local_datetime( $utc_mysql ) {
  */
 function tcdist_feed_admin_origin_label( $origin ) {
     $labels = [
-        'manual'          => 'Manual',
-        'manual_processes'=> 'Manual from Processes',
-        'supplier_sync' => 'Supplier synchronization completed',
-        'daily_safety'  => 'Daily safety regeneration',
-        'scheduled'     => 'Programada',
+        'manual'          => __( 'Manual', 'taxocommerce-distribution' ),
+        'manual_processes'=> __( 'Manual from Processes', 'taxocommerce-distribution' ),
+        'supplier_sync' => __( 'Supplier synchronization completed', 'taxocommerce-distribution' ),
+        'daily_safety'  => __( 'Daily safety regeneration', 'taxocommerce-distribution' ),
+        'scheduled'     => __( 'Programada', 'taxocommerce-distribution' ),
     ];
     $origin = sanitize_key( (string) $origin );
     return $labels[ $origin ] ?? ( $origin ? $origin : '—' );
+}
+
+/**
+ * Display a translated status without changing the stored process state.
+ */
+function tcdist_feed_admin_status_label( $value ) {
+    $labels = array(
+        'never'     => __( 'Not started', 'taxocommerce-distribution' ),
+        'running'   => __( 'Running', 'taxocommerce-distribution' ),
+        'completed' => __( 'Completed', 'taxocommerce-distribution' ),
+        'failed'    => __( 'Failed', 'taxocommerce-distribution' ),
+        'stopped'   => __( 'Stopped', 'taxocommerce-distribution' ),
+    );
+    $value = sanitize_key( (string) $value );
+    return isset( $labels[ $value ] ) ? $labels[ $value ] : $value;
 }
 
 /**
@@ -257,15 +272,15 @@ function tcdist_feed_render_admin() {
     }
 
     if ( ! empty( $environment['mismatch'] ) ) {
-        echo '<div class="notice notice-warning inline"><p><strong>Entorno discrepante:</strong> WordPress informa <code>'
+        echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Entorno discrepante:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html__( 'WordPress informa', 'taxocommerce-distribution' ) . ' <code>'
             . esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) )
-            . '</code>, pero la deteccion efectiva por hostname es <code>'
+            . '</code>, ' . esc_html__( 'pero la detección efectiva por hostname es', 'taxocommerce-distribution' ) . ' <code>'
             . esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) )
-            . '</code>. Review <code>WP_ENVIRONMENT_TYPE</code> in the environment configuration.</p></div>';
+            . '</code>. ' . esc_html__( 'Review WP_ENVIRONMENT_TYPE in the environment configuration.', 'taxocommerce-distribution' ) . '</p></div>';
     }
 
     if ( ! $manager_enabled ) {
-        echo '<div class="notice notice-error inline">' . '<p>' . '<strong>' . esc_html__( 'Distribution worker:', 'taxocommerce-distribution' ) . '</strong>' . ' Commercial feeds are not enabled in Processes &gt; Distribution worker. You can start a generation, but it will not progress until that process is enabled.' . '</p>' . '</div>';
+        echo '<div class="notice notice-error inline">' . '<p>' . '<strong>' . esc_html__( 'Distribution worker:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html__( 'Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled.', 'taxocommerce-distribution' ) . '</p>' . '</div>';
     }
 
     $status = (string) ( $state['status'] ?? 'never' );
@@ -276,38 +291,36 @@ function tcdist_feed_render_admin() {
     $idle_seconds = $updated_ts ? max( 0, time() - $updated_ts ) : 0;
     ?>
     <div style="max-width:1220px;">
-        <h2>Commercial Feeds</h2>
+        <h2><?php esc_html_e( 'Commercial Feeds', 'taxocommerce-distribution' ); ?></h2>
         <p>
-            Generates public product feeds for platforms that download the catalog by URL.
-            It does not replace sitemaps: this publishes commercial inventory with price, stock, image,
-            GTIN/MPN, brand, and category.
+            <?php esc_html_e( 'Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category.', 'taxocommerce-distribution' ); ?>
         </p>
 
         <div class="card" style="max-width:none;padding:16px 20px;margin-top:16px;">
-            <strong>Entorno informado por WordPress:</strong>
+            <strong><?php esc_html_e( 'Entorno informado por WordPress:', 'taxocommerce-distribution' ); ?></strong>
             <code><?php echo esc_html( strtoupper( (string) ( $environment['reported'] ?? '' ) ) ); ?></code>
-            &nbsp;·&nbsp; <strong>Entorno efectivo:</strong>
+            &nbsp;·&nbsp; <strong><?php esc_html_e( 'Entorno efectivo:', 'taxocommerce-distribution' ); ?></strong>
             <code><?php echo esc_html( strtoupper( (string) ( $environment['effective'] ?? '' ) ) ); ?></code>
             <br>
-            <strong>Host:</strong> <code><?php echo esc_html( (string) ( $environment['host'] ?? '' ) ); ?></code>
+            <strong><?php esc_html_e( 'Host:', 'taxocommerce-distribution' ); ?></strong> <code><?php echo esc_html( (string) ( $environment['host'] ?? '' ) ); ?></code>
             <?php if ( ! is_wp_error( $storage ) ) : ?>
-                &nbsp;·&nbsp; <strong>Host de feeds:</strong> <code><?php echo esc_html( (string) wp_parse_url( $storage['url'], PHP_URL_HOST ) ); ?></code>
+                &nbsp;·&nbsp; <strong><?php esc_html_e( 'Host de feeds:', 'taxocommerce-distribution' ); ?></strong> <code><?php echo esc_html( (string) wp_parse_url( $storage['url'], PHP_URL_HOST ) ); ?></code>
             <?php endif; ?>
-            &nbsp;·&nbsp; <strong>Source de la deteccion:</strong>
+            &nbsp;·&nbsp; <strong><?php esc_html_e( 'Detection source:', 'taxocommerce-distribution' ); ?></strong>
             <code><?php echo esc_html( (string) ( $environment['source'] ?? '' ) ); ?></code>
             <?php if ( ! is_wp_error( $storage ) && ! empty( $storage['url_corrected'] ) ) : ?>
-                <p class="description" style="margin-bottom:0;">Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING.</p>
+                <p class="description" style="margin-bottom:0;"><?php esc_html_e( 'Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING.', 'taxocommerce-distribution' ); ?></p>
             <?php endif; ?>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;margin-top:18px;">
             <div class="card" style="max-width:none;padding:20px;">
-                <h3 style="margin-top:0;">Settings</h3>
+                <h3 style="margin-top:0;"><?php esc_html_e( 'Settings', 'taxocommerce-distribution' ); ?></h3>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="tcdist_feed_save_settings">
                     <?php wp_nonce_field( 'tcdist_feed_save_settings' ); ?>
 
-                    <p><strong>Canales activos</strong></p>
+                    <p><strong><?php esc_html_e( 'Active channels', 'taxocommerce-distribution' ); ?></strong></p>
                     <?php foreach ( $channels as $channel => $config ) : ?>
                         <label style="display:block;margin:0 0 8px;">
                             <input
@@ -322,99 +335,99 @@ function tcdist_feed_render_admin() {
 
                     <p style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;">
                         <label>
-                            <strong>Country</strong><br>
+                            <strong><?php esc_html_e( 'Country', 'taxocommerce-distribution' ); ?></strong><br>
                             <input type="text" name="country" value="<?php echo esc_attr( $settings['country'] ); ?>" maxlength="2" size="5">
                         </label>
                         <label>
-                            <strong>Language</strong><br>
+                            <strong><?php esc_html_e( 'Language', 'taxocommerce-distribution' ); ?></strong><br>
                             <input type="text" name="language" value="<?php echo esc_attr( $settings['language'] ); ?>" maxlength="2" size="5">
                         </label>
                         <span>
-                            <strong>Lote</strong><br>
-                            <span class="description">Adaptive · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>">view Automation</a></span>
+                            <strong><?php esc_html_e( 'Batch', 'taxocommerce-distribution' ); ?></strong><br>
+                            <span class="description"><?php esc_html_e( 'Adaptive', 'taxocommerce-distribution' ); ?> · <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'taxocommerce-distribution', 'tcdist_tab' => 'automation' ], admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'view Automation', 'taxocommerce-distribution' ); ?></a></span>
                         </span>
                     </p>
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="refresh_after_supplier_sync" value="1" <?php checked( ! empty( $settings['refresh_after_supplier_sync'] ) ); ?>>
-                        Regenerate after a supplier synchronization that changed products
+                        <?php esc_html_e( 'Regenerate after a supplier synchronization that changed products', 'taxocommerce-distribution' ); ?>
                     </label>
-                    <p class="description">In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it.</p>
+                    <p class="description"><?php esc_html_e( 'In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it.', 'taxocommerce-distribution' ); ?></p>
 
                     <label style="display:block;margin:16px 0 8px;">
                         <input type="checkbox" name="auto_refresh" value="1" <?php checked( ! empty( $settings['auto_refresh'] ) ); ?>>
-                        Daily safety regeneration en PRODUCTION
+                        <?php esc_html_e( 'Daily safety regeneration en PRODUCTION', 'taxocommerce-distribution' ); ?>
                     </label>
                     <label style="display:block;margin:0 0 8px;">
-                        <strong>Hora diaria</strong><br>
+                        <strong><?php esc_html_e( 'Daily time', 'taxocommerce-distribution' ); ?></strong><br>
                         <input type="time" name="daily_time" value="<?php echo esc_attr( $settings['daily_time'] ); ?>" step="60">
                     </label>
-                    <p class="description">WordPress local time. This acts as a fallback even when no supplier synchronization has occurred.</p>
+                    <p class="description"><?php esc_html_e( 'WordPress local time. This acts as a fallback even when no supplier synchronization has occurred.', 'taxocommerce-distribution' ); ?></p>
 
-                    <p><button type="submit" class="button button-primary">Save settings</button></p>
+                    <p><button type="submit" class="button button-primary"><?php esc_html_e( 'Save settings', 'taxocommerce-distribution' ); ?></button></p>
                 </form>
             </div>
 
             <div class="card" style="max-width:none;padding:20px;">
-                <h3 style="margin-top:0;">Generation</h3>
-                <p><strong>Status:</strong> <?php echo esc_html( $status ); ?></p>
-                <p><strong>Source:</strong> <?php echo esc_html( tcdist_feed_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
-                <p><strong>Candidates:</strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
-                <p><strong>Processed:</strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong>published:</strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong>excluded:</strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
+                <h3 style="margin-top:0;"><?php esc_html_e( 'Generation', 'taxocommerce-distribution' ); ?></h3>
+                <p><strong><?php esc_html_e( 'Status:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_status_label( $status ) ); ?></p>
+                <p><strong><?php esc_html_e( 'Source:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_origin_label( $state['origin'] ?? '' ) ); ?></p>
+                <p><strong><?php esc_html_e( 'Candidates:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( $total ) ); ?></p>
+                <p><strong><?php esc_html_e( 'Processed:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( $processed ) ); ?> · <strong><?php esc_html_e( 'published:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['written'] ?? 0 ) ) ); ?> · <strong><?php esc_html_e( 'excluded:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['excluded'] ?? 0 ) ) ); ?></p>
 
-                <p><strong>Regulador:</strong>
-                    next batch <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
-                    · presion <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
+                <p><strong><?php esc_html_e( 'Regulator:', 'taxocommerce-distribution' ); ?></strong>
+                    <?php esc_html_e( 'next batch', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_batch_size'] ?? TCDIST_FEED_BATCH_SIZE ) ) ); ?>
+                    · <?php esc_html_e( 'pressure', 'taxocommerce-distribution' ); ?> <?php echo esc_html( (string) ( $state['adaptive_pressure'] ?? 'baja' ) ); ?>
                     <?php if ( ! empty( $state['adaptive_next_delay'] ) ) : ?>
-                        · pausa <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
+                        · <?php esc_html_e( 'pause', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( absint( $state['adaptive_next_delay'] ) ) ); ?> s
                     <?php endif; ?>
                 </p>
                 <?php if ( ! empty( $state['last_batch_rows'] ) ) : ?>
-                    <p class="description"><strong>Last batch:</strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> products in <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
+                    <p class="description"><strong><?php esc_html_e( 'Last batch:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $state['last_batch_rows'] ) ) ); ?> <?php esc_html_e( 'products in', 'taxocommerce-distribution' ); ?> <?php echo esc_html( number_format_i18n( (float) ( $state['last_batch_duration'] ?? 0 ), 2 ) ); ?> s · <?php echo esc_html( (string) ( $state['adaptive_reason'] ?? '' ) ); ?></p>
                 <?php else : ?>
-                    <p class="description">Waiting for the first Distribution worker window.</p>
+                    <p class="description"><?php esc_html_e( 'Waiting for the first Distribution worker window.', 'taxocommerce-distribution' ); ?></p>
                 <?php endif; ?>
 
                 <?php if ( 'running' === $status ) : ?>
                     <div style="height:14px;background:#dcdcde;border-radius:7px;overflow:hidden;max-width:620px;">
                         <div style="height:100%;width:<?php echo esc_attr( (string) $progress ); ?>%;background:#2271b1;"></div>
                     </div>
-                    <p class="description"><?php echo esc_html( (string) $progress ); ?> % completado.</p>
+                    <p class="description"><?php echo esc_html( (string) $progress ); ?> <?php esc_html_e( '% completed.', 'taxocommerce-distribution' ); ?></p>
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['started_at'] ) ) : ?>
-                    <p class="description">Inicio: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · End: <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
+                    <p class="description"><?php esc_html_e( 'Inicio:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['started_at'] ) ); ?><?php if ( ! empty( $state['completed_at'] ) ) : ?> · <?php esc_html_e( 'End:', 'taxocommerce-distribution' ); ?> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['completed_at'] ) ); ?><?php endif; ?></p>
                 <?php endif; ?>
 
                 <?php if ( tcdist_feed_is_production() && ! empty( $settings['auto_refresh'] ) ) : ?>
-                    <p><strong>Next daily regeneration:</strong> <?php echo $next_daily ? esc_html( wp_date( 'd/m/Y H:i', $next_daily, wp_timezone() ) ) : '<span style="color:#b32d2e;">pending scheduling</span>'; ?></p>
+                    <p><strong><?php esc_html_e( 'Next daily regeneration:', 'taxocommerce-distribution' ); ?></strong> <?php echo $next_daily ? esc_html( wp_date( 'd/m/Y H:i', $next_daily, wp_timezone() ) ) : '<span style="color:#b32d2e;">' . esc_html__( 'pending scheduling', 'taxocommerce-distribution' ) . '</span>'; ?></p>
                 <?php else : ?>
-                    <p class="description">Automatic regeneration is not active in this environment.</p>
+                    <p class="description"><?php esc_html_e( 'Automatic regeneration is not active in this environment.', 'taxocommerce-distribution' ); ?></p>
                 <?php endif; ?>
 
                 <?php if ( ! empty( $state['updated_at'] ) ) : ?>
-                    <p class="description"><strong>Ultima actividad:</strong> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['updated_at'] ) ); ?><?php if ( 'running' === $status ) : ?> · <?php echo esc_html( number_format_i18n( $idle_seconds ) ); ?> s sin cambios<?php endif; ?></p>
+                    <p class="description"><strong><?php esc_html_e( 'Last activity:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( tcdist_feed_admin_local_datetime( $state['updated_at'] ) ); ?><?php if ( 'running' === $status ) : ?> · <?php echo esc_html( number_format_i18n( $idle_seconds ) ); ?> <?php esc_html_e( 's without changes', 'taxocommerce-distribution' ); ?><?php endif; ?></p>
                 <?php endif; ?>
 
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
                         <input type="hidden" name="action" value="tcdist_feed_regenerate">
                         <?php wp_nonce_field( 'tcdist_feed_regenerate' ); ?>
-                        <button type="submit" class="button button-primary" <?php disabled( 'running' === $status ); ?>>Start generation</button>
+                        <button type="submit" class="button button-primary" <?php disabled( 'running' === $status ); ?>><?php esc_html_e( 'Start generation', 'taxocommerce-distribution' ); ?></button>
                     </form>
 
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
                         <input type="hidden" name="action" value="tcdist_feed_stop">
                         <?php wp_nonce_field( 'tcdist_feed_stop' ); ?>
-                        <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm('Stop the current generation? Partial files will not be published.');">Stop generation</button>
+                        <button type="submit" class="button" <?php disabled( 'running' !== $status ); ?> onclick="return confirm(<?php echo esc_attr( wp_json_encode( __( 'Stop the current generation? Partial files will not be published.', 'taxocommerce-distribution' ) ) ); ?>);" ><?php esc_html_e( 'Stop generation', 'taxocommerce-distribution' ); ?></button>
                     </form>
                 </div>
-                <p class="description">Start creates a new generation and hands it to the <strong>Distribution worker</strong>. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.</p>
-                <p class="description">Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.</p>
+                <p class="description"><?php esc_html_e( 'Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker.', 'taxocommerce-distribution' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo.', 'taxocommerce-distribution' ); ?></p>
 
                 <?php if ( ! empty( $state['excluded_reasons'] ) ) : ?>
                     <details>
-                        <summary>Motivos de exclusion</summary>
+                        <summary><?php esc_html_e( 'Exclusion reasons', 'taxocommerce-distribution' ); ?></summary>
                         <ul style="margin-left:20px;">
                             <?php foreach ( (array) $state['excluded_reasons'] as $reason => $count ) : ?>
                                 <li><code><?php echo esc_html( (string) $reason ); ?></code>: <?php echo esc_html( number_format_i18n( absint( $count ) ) ); ?></li>
@@ -425,7 +438,7 @@ function tcdist_feed_render_admin() {
 
                 <?php if ( ! empty( $state['errors'] ) ) : ?>
                     <details open>
-                        <summary>Technical errors</summary>
+                        <summary><?php esc_html_e( 'Technical errors', 'taxocommerce-distribution' ); ?></summary>
                         <ul style="margin-left:20px;">
                             <?php foreach ( array_slice( (array) $state['errors'], -10 ) as $message ) : ?>
                                 <li><?php echo esc_html( (string) $message ); ?></li>
@@ -437,16 +450,16 @@ function tcdist_feed_render_admin() {
         </div>
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-            <h3 style="margin-top:0;">URLs de inventario</h3>
-            <p>These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule.</p>
-            <p class="description">The plugin records feed generation, not each remote download: these files are served directly by the web server.</p>
+            <h3 style="margin-top:0;"><?php esc_html_e( 'Inventory URLs', 'taxocommerce-distribution' ); ?></h3>
+            <p><?php esc_html_e( 'These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule.', 'taxocommerce-distribution' ); ?></p>
+            <p class="description"><?php esc_html_e( 'The plugin records feed generation, not each remote download: these files are served directly by the web server.', 'taxocommerce-distribution' ); ?></p>
 
             <table class="widefat striped" style="max-width:1180px;">
                 <thead>
                     <tr>
                         <th>Canal</th>
                         <th>Archivo</th>
-                        <th>Status</th>
+                        <th><?php esc_html_e( 'Status', 'taxocommerce-distribution' ); ?></th>
                         <th>URL</th>
                     </tr>
                 </thead>
@@ -462,7 +475,7 @@ function tcdist_feed_render_admin() {
                     <tr>
                         <td><strong><?php echo esc_html( $config['label'] ); ?></strong><br><span class="description"><?php echo esc_html( $config['description'] ); ?></span></td>
                         <td><code><?php echo esc_html( $filename ); ?></code><?php if ( $exists ) : ?><br><span class="description"><?php echo esc_html( tcdist_feed_admin_bytes( filesize( $path ) ) ); ?></span><?php endif; ?></td>
-                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">Ready</span>' : '<span style="color:#996800;">Pending generation</span>' ) : '<span style="color:#646970;">Disabled</span>'; ?></td>
+                        <td><?php echo $enabled ? ( $exists ? '<span style="color:#1d6b43;">' . esc_html__( 'Ready', 'taxocommerce-distribution' ) . '</span>' : '<span style="color:#996800;">' . esc_html__( 'Pending generation', 'taxocommerce-distribution' ) . '</span>' ) : '<span style="color:#646970;">' . esc_html__( 'Disabled', 'taxocommerce-distribution' ) . '</span>'; ?></td>
                         <td>
                             <?php if ( $enabled && $url ) : ?>
                                 <code style="word-break:break-all;"><?php echo esc_html( $url ); ?></code>
@@ -476,14 +489,14 @@ function tcdist_feed_render_admin() {
         </div>
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-            <h3 style="margin-top:0;">Generation history</h3>
-            <p class="description">Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno.</p>
+            <h3 style="margin-top:0;"><?php esc_html_e( 'Generation history', 'taxocommerce-distribution' ); ?></h3>
+            <p class="description"><?php esc_html_e( 'Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno.', 'taxocommerce-distribution' ); ?></p>
             <?php if ( empty( $history ) ) : ?>
-                <p>Aun no hay ejecuciones finalizadas registradas.</p>
+                <p><?php esc_html_e( 'Aun no hay ejecuciones finalizadas registradas.', 'taxocommerce-distribution' ); ?></p>
             <?php else : ?>
                 <div style="overflow:auto;">
                     <table class="widefat striped">
-                        <thead><tr><th>End</th><th>Source</th><th>Status</th><th>Candidates</th><th>Published</th><th>Excluded</th><th>Files</th></tr></thead>
+                        <thead><tr><th><?php esc_html_e( 'End', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Source', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Status', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Candidates', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Published', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Excluded', 'taxocommerce-distribution' ); ?></th><th><?php esc_html_e( 'Files', 'taxocommerce-distribution' ); ?></th></tr></thead>
                         <tbody>
                         <?php foreach ( array_slice( $history, 0, 20 ) as $entry ) : ?>
                             <?php
@@ -498,7 +511,7 @@ function tcdist_feed_render_admin() {
                             <tr>
                                 <td><?php echo esc_html( tcdist_feed_admin_local_datetime( $entry['completed_at'] ?? '' ) ); ?></td>
                                 <td><?php echo esc_html( tcdist_feed_admin_origin_label( $entry['origin'] ?? '' ) ); ?></td>
-                                <td><code><?php echo esc_html( (string) ( $entry['status'] ?? '' ) ); ?></code></td>
+                                <td><code><?php echo esc_html( tcdist_feed_admin_status_label( $entry['status'] ?? '' ) ); ?></code></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['candidate_total'] ?? 0 ) ) ); ?></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['written'] ?? 0 ) ) ); ?></td>
                                 <td><?php echo esc_html( number_format_i18n( absint( $entry['excluded'] ?? 0 ) ) ); ?></td>
@@ -512,12 +525,12 @@ function tcdist_feed_render_admin() {
         </div>
 
         <div class="card" style="max-width:none;padding:20px;margin-top:20px;">
-            <h3 style="margin-top:0;">Alta inicial en las plataformas</h3>
-            <p><strong>Google Merchant Center:</strong> creates a product data source from a file and registers the URL of <code>google-merchant.xml</code>.</p>
-            <p><strong>Microsoft Merchant Center:</strong> crea un feed con descarga automatica desde URL y registra <code>microsoft-merchant.txt</code>.</p>
-            <p><strong>Pinterest Catalogs:</strong> adds a hosted data source by URL and registers <code>pinterest-catalog.csv</code>.</p>
-            <p><strong>Other receivers:</strong> use <code>catalogo-universal.csv</code> or <code>catalogo-universal.json</code>. JSON preserves the full canonical record structure, including additional images as an array. New channels can also be registered through the <code>tcdist_commercial_feed_channels</code> filter.</p>
-            <p class="description">This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later.</p>
+            <h3 style="margin-top:0;"><?php esc_html_e( 'Initial platform setup', 'taxocommerce-distribution' ); ?></h3>
+            <p><strong>Google Merchant Center:</strong> <?php esc_html_e( 'Create a product data source from a file and register the URL:', 'taxocommerce-distribution' ); ?> <code>google-merchant.xml</code>.</p>
+            <p><strong>Microsoft Merchant Center:</strong> <?php esc_html_e( 'Create a feed with automatic download from URL and register:', 'taxocommerce-distribution' ); ?> <code>microsoft-merchant.txt</code>.</p>
+            <p><strong>Pinterest Catalogs:</strong> <?php esc_html_e( 'Add a hosted data source by URL and register:', 'taxocommerce-distribution' ); ?> <code>pinterest-catalog.csv</code>.</p>
+            <p><strong><?php esc_html_e( 'Other receivers:', 'taxocommerce-distribution' ); ?></strong> <?php esc_html_e( 'Use', 'taxocommerce-distribution' ); ?> <code>catalogo-universal.csv</code> <?php esc_html_e( 'or', 'taxocommerce-distribution' ); ?> <code>catalogo-universal.json</code>. <?php esc_html_e( 'JSON preserves the complete record including additional images. Custom channels can be registered using the filter:', 'taxocommerce-distribution' ); ?> <code>tcdist_commercial_feed_channels</code>.</p>
+            <p class="description"><?php esc_html_e( 'This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later.', 'taxocommerce-distribution' ); ?></p>
         </div>
     </div>
 
