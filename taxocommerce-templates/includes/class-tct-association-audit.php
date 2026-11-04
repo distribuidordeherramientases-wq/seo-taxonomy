@@ -364,7 +364,8 @@ final class TCT_Association_Audit {
                 '', $mail['enabled'] && !$mail['modern'] ? 'Correo pendiente de archivo nuevo' : 'Registrado'
             )));
         }
-        fclose($output);
+        // php://output is automatically closed at the end of this request.
+        // Explicit fclose() is unnecessary and triggers Plugin Check.
         exit;
     }
 

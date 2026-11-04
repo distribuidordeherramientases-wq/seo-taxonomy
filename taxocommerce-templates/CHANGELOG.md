@@ -1,3 +1,9 @@
+## [0.4.12] — 2026-11-04
+
+- Corregidas las 12 incidencias ERROR del informe Plugin Check en cuatro archivos: auditoría CSV, lectura de router, editor de archivos y descarga de plantillas mediante las APIs de WordPress (`WP_Filesystem`, `wp_delete_file`).
+- Conservadas descarga de PHP, exportación CSV, resolución de variantes, control de permisos, validación PHP, confirmación de sobrescritura, copias de seguridad y editor privado. No se ejecuta ningún AutoCheck automáticamente.
+- Prueba funcional de sistema de archivos y regresión incluida en CI. Issue #2182; publicación en WordPress.org sigue pendiente por editor de PHP ejecutable y advertencias.
+
 ## [0.4.11] — 2026-11-04
 
 - Pestaña **Manual** propia con manual de usuario, manual técnico e incidencias: navegación, políticas, enrutamiento, módulos, mercados, edición PHP, roles, auditoría, Autocheck, arquitectura, hooks, almacenamiento, seguridad, migración y UAT.

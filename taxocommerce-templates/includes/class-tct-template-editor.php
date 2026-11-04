@@ -11,6 +11,23 @@ defined('ABSPATH') || exit;
 final class TCT_Template_Editor {
     const MAX_SIZE = 1048576;
 
+    /**
+     * Resolve WordPress' filesystem implementation for trusted admin edits.
+     * Do not fall back to raw PHP file operations if WordPress disallows access.
+     *
+     * @return WP_Filesystem_Base|WP_Error
+     */
+    private static function filesystem() {
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        global $wp_filesystem;
+        if (!$wp_filesystem && !WP_Filesystem()) {
+            return new WP_Error('tct_filesystem_unavailable', 'WordPress no permite modificar los archivos de plantillas.');
+        }
+        return $wp_filesystem;
+    }
+
     public static function can_edit() {
         return current_user_can('manage_options') &&
             current_user_can('edit_plugins') &&
@@ -42,7 +59,11 @@ final class TCT_Template_Editor {
         if (!is_dir($dir) && !wp_mkdir_p($dir)) {
             return new WP_Error('tct_dir', 'No se pudo crear la carpeta de plantillas.');
         }
-        if (!is_dir($dir) || !is_writable($dir)) {
+        $filesystem = self::filesystem();
+        if (is_wp_error($filesystem)) {
+            return $filesystem;
+        }
+        if (!$filesystem->is_dir($dir) || !$filesystem->is_writable($dir)) {
             return new WP_Error('tct_not_writable', 'La carpeta de plantillas no es escribible.');
         }
 
@@ -205,15 +226,17 @@ final class TCT_Template_Editor {
             self::redirect('No se pudo crear el archivo temporal.', $source, $assign);
         }
 
-        $length = file_put_contents($temp, $code, LOCK_EX);
-        if (false === $length || $length !== strlen($code)) {
-            @unlink($temp);
+        $filesystem = self::filesystem();
+        if (is_wp_error($filesystem)) {
+            wp_delete_file($temp);
+            self::redirect($filesystem->get_error_message(), $source, $assign);
+        }
+        if (!$filesystem->put_contents($temp, $code, 0640)) {
+            wp_delete_file($temp);
             self::redirect('Escritura incompleta; el original no se ha modificado.', $source, $assign);
         }
-
-        @chmod($temp, 0640);
-        if (!rename($temp, $dest)) {
-            @unlink($temp);
+        if (!$filesystem->move($temp, $dest, true)) {
+            wp_delete_file($temp);
             self::redirect('Error al sustituir el archivo. Conservado el original.', $source, $assign);
         }
 
@@ -286,10 +309,16 @@ final class TCT_Template_Editor {
             }
         }
 
-        if (!move_uploaded_file($files['tmp_name'], $target)) {
+        $filesystem = self::filesystem();
+        if (is_wp_error($filesystem)) {
+            self::redirect($filesystem->get_error_message(), '', $assign);
+        }
+        // is_uploaded_file() was checked above; WP_Filesystem handles the
+        // validated temporary upload without forbidden move_uploaded_file().
+        if (!$filesystem->move($files['tmp_name'], $target, true)) {
             self::redirect('No se pudo guardar el archivo en la biblioteca.', '', $assign);
         }
-        @chmod($target, 0640);
+        $filesystem->chmod($target, 0640);
 
         $assigned = self::assign_saved_file($assign, $name);
         if (is_wp_error($assigned)) {

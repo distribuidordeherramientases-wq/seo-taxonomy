@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.11
+Stable tag: 0.4.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,9 @@ Open the Manual tab in Templates to read two integrated guides without executing
 Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
 
 == Changelog ==
+
+= 0.4.12 =
+* Fix 12 filesystem Plugin Check errors using WordPress filesystem APIs while preserving editing, imports, downloads and CSV exports. The executable PHP editor remains private-only and blocks WordPress.org publication.
 
 = 0.4.11 =
 * Add the integrated Manual tab with detailed User Manual and Technical Manual, anchored contents, troubleshooting and a read-only permissioned smoke test.
