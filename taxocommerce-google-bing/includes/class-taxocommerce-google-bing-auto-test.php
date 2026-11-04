@@ -237,7 +237,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
             'version' => defined( 'TAXOCOMMERCE_GOOGLE_BING_VERSION' ) ? TAXOCOMMERCE_GOOGLE_BING_VERSION : '',
             'wordpress_version' => isset( $wp_version ) ? (string) $wp_version : '',
             'php_version' => PHP_VERSION,
-            'date' => current_time( 'mysql' ),
+            'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'timestamp' => time(),
             'group' => $group,
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
@@ -703,6 +703,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Referencia anterior al despliegue', 'taxocommerce-google-bing' ); ?></h3>
                     <?php if ( $before ) : ?>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong> <?php echo esc_html( (string) $before['date'] ); ?></p>
                         <p><?php echo esc_html( $before['date'] . ' · Insights ' . $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores · ' . absint( $before['totals']['skip'] ) . ' sin verificar' ); ?></p>
                         <?php self::export_form( 'baseline', 'Descargar ANTES (JSON)' ); ?>
@@ -713,6 +714,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Última ejecución', 'taxocommerce-google-bing' ); ?></h3>
                     <?php if ( $last ) : ?>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-google-bing' ); ?></strong> <?php echo esc_html( (string) $last['date'] ); ?></p>
                         <p><?php echo esc_html( $last['date'] . ' · Insights ' . $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
                         <p><?php echo esc_html( 'Modo: ' . ( 'before' === $last['phase'] ? 'ANTES' : ( 'after' === $last['phase'] ? 'DESPUÉS' : 'CHEQUEO' ) ) . ' · grupo ' . $last['group'] ); ?></p>
                         <?php self::export_form( 'last', 'Descargar último (JSON)' ); ?>

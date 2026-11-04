@@ -90,7 +90,7 @@ final class TaxoCommerce_Images_Auto_Test {
 		}
 		return array(
 			'version' => defined( 'TAXOCOMMERCE_IMAGES_VERSION' ) ? TAXOCOMMERCE_IMAGES_VERSION : '',
-			'date' => current_time( 'mysql' ),
+			'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
 			'ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
 			'totals' => $totals,
 			'rows' => $rows,
@@ -378,7 +378,7 @@ final class TaxoCommerce_Images_Auto_Test {
                     <?php wp_nonce_field( self::NONCE, 'tci_autotest_nonce' ); ?>
                     <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-images' ), 'secondary', 'submit', false ); ?>
                 </form>
-				<p><strong><?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
+				<p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-images' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
 				<div class="tc-at-summary">
 					<span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-images' ); ?></span>
 					<span><strong style="color:#c5221f"><?php echo esc_html( absint( $totals['fail'] ) ); ?></strong> <?php esc_html_e( 'Errores', 'taxocommerce-images' ); ?></span>

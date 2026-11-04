@@ -68,7 +68,7 @@ final class TCV_Auto_Test {
         }
         return array(
             'version' => TAXOCOMMERCE_VOCABULARY_VERSION,
-            'date' => current_time( 'mysql' ),
+            'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -272,7 +272,7 @@ final class TCV_Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-vocabulary' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<h3>Resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-vocabulary' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $before = array();

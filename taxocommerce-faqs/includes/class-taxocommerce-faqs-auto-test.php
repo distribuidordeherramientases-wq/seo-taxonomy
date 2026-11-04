@@ -135,7 +135,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 			'version' => TAXOCOMMERCE_FAQS_VERSION,
 			'wordpress' => isset( $wp_version ) ? (string) $wp_version : '',
 			'php' => PHP_VERSION,
-			'date' => current_time( 'mysql' ),
+			'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
 			'timestamp' => time(),
 			'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
 			'totals' => $totals,
@@ -465,7 +465,8 @@ final class TaxoCommerce_FAQs_Auto_Test {
 				<div class="tc-faq-at__panel">
 					<h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-faqs' ); ?></h3>
 					<?php if ( $before ) : ?>
-						<p><?php echo esc_html( (string) $before['date'] . ' · v' . (string) $before['version'] ); ?></p>
+						<p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-faqs' ); ?></strong> <?php echo esc_html( (string) $before['date'] ); ?></p>
+                        <p><?php echo esc_html( (string) $before['date'] . ' · v' . (string) $before['version'] ); ?></p>
 						<p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctos · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
 						<?php self::download_button( 'before', 'Descargar ANTES (JSON)' ); ?>
 					<?php else : ?>
@@ -475,7 +476,8 @@ final class TaxoCommerce_FAQs_Auto_Test {
 				<div class="tc-faq-at__panel">
 					<h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-faqs' ); ?></h3>
 					<?php if ( $last ) : ?>
-						<p><?php echo esc_html( (string) $last['date'] . ' · v' . (string) $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
+						<p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-faqs' ); ?></strong> <?php echo esc_html( (string) $last['date'] ); ?></p>
+                        <p><?php echo esc_html( (string) $last['date'] . ' · v' . (string) $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
 						<p><?php echo esc_html( 'Fase: ' . (string) $last['phase'] . ' · Grupo: ' . (string) $last['group'] ); ?></p>
 						<?php self::download_button( 'latest', 'Descargar último (JSON)' ); ?>
 					<?php else : ?>
