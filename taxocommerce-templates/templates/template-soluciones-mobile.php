@@ -97,7 +97,7 @@ if (!function_exists('dht_solutions_v2_product_image_mobile')) {
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
-                     FROM {$usage_table}
+                     FROM %i
                      WHERE object_type = 'product'
                        AND object_id = %d
                        AND attachment_id IS NOT NULL
@@ -110,7 +110,7 @@ if (!function_exists('dht_solutions_v2_product_image_mobile')) {
                          ELSE 9
                        END ASC,
                        fecha DESC
-                     LIMIT 10",
+                     LIMIT 10", $usage_table,
                     $product_id
                 )
             );
@@ -133,13 +133,13 @@ if (!function_exists('dht_solutions_v2_product_image_mobile')) {
             $supplier_url = $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
-                     LIMIT 1",
+                     LIMIT 1", $supplier_table,
                     $product_id
                 )
             );
@@ -175,15 +175,15 @@ if (!function_exists('dht_solutions_v2_related_terms_mobile')) {
         $term_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT r.target_id
-                 FROM {$wpdb->prefix}seo_relations r
-                 INNER JOIN {$wpdb->term_taxonomy} tt
+                 FROM %i r
+                 INNER JOIN %i tt
                     ON tt.term_id = r.target_id
                    AND tt.taxonomy = 'product_cat'
                  WHERE r.source_type = 'landing'
                    AND r.source_id = %d
                    AND r.target_type = 'product_cat'
                    AND r.relation_type = 'landing_to_category'
-                 ORDER BY r.id ASC",
+                 ORDER BY r.id ASC", $wpdb->prefix . 'seo_relations', $wpdb->term_taxonomy,
                 $landing_id
             )
         );
@@ -352,14 +352,14 @@ $per_page    = 18;
 $nodes_table = $wpdb->prefix . 'seo_nodes';
 
 $landing_ids = $wpdb->get_col(
-    "SELECT DISTINCT n.object_id
-     FROM {$nodes_table} n
-     INNER JOIN {$wpdb->posts} p ON p.ID = n.object_id
+    $wpdb->prepare("SELECT DISTINCT n.object_id
+     FROM %i n
+     INNER JOIN %i p ON p.ID = n.object_id
      WHERE n.object_type = 'page'
        AND n.seo_role = 'landing'
        AND n.status = 1
        AND p.post_type = 'page'
-       AND p.post_status = 'publish'"
+       AND p.post_status = 'publish'", $nodes_table, $wpdb->posts)
 );
 $landing_ids = array_values(array_unique(array_filter(array_map('intval', (array) $landing_ids))));
 $landing_ids = array_values(array_diff($landing_ids, array((int) $page_id)));
@@ -376,14 +376,14 @@ $landing_query = new WP_Query(array(
 ));
 
 $cluster_ids = $wpdb->get_col(
-    "SELECT DISTINCT n.object_id
-     FROM {$nodes_table} n
-     INNER JOIN {$wpdb->posts} p ON p.ID = n.object_id
+    $wpdb->prepare("SELECT DISTINCT n.object_id
+     FROM %i n
+     INNER JOIN %i p ON p.ID = n.object_id
      WHERE n.object_type = 'page'
        AND n.seo_role = 'cluster'
        AND n.status = 1
        AND p.post_type = 'page'
-       AND p.post_status = 'publish'"
+       AND p.post_status = 'publish'", $nodes_table, $wpdb->posts)
 );
 $cluster_ids = array_values(array_unique(array_filter(array_map('intval', (array) $cluster_ids))));
 $cluster_query = new WP_Query(array(
