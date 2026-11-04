@@ -179,13 +179,17 @@ final class TCT_Router {
         if (!$path) {
             return false;
         }
-        $handle = fopen($path, 'rb');
-        if (!$handle) {
+        // Read-only local file inspection via the WordPress filesystem API.
+        // This is a trusted path returned by path(), never user input.
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        global $wp_filesystem;
+        if (!$wp_filesystem && !WP_Filesystem()) {
             return false;
         }
-        $head = fread($handle, 8192);
-        fclose($handle);
-        return is_string($head) && false !== strpos($head, 'dht_template_device_variant_file(');
+        $head = $wp_filesystem->get_contents($path);
+        return is_string($head) && false !== strpos(substr($head, 0, 8192), 'dht_template_device_variant_file(');
     }
 
     public static function plan($row, $device) {
