@@ -104,6 +104,7 @@ final class TaxoCommerce_Core_Auto_Test {
             ),
             'autocheck' => array(
                 'executed_at' => (string) $report['date'],
+                'executed_at_utc' => isset( $report['executed_at'] ) ? (string) $report['executed_at'] : null,
                 'duration_ms' => (int) $report['ms'],
                 'mode' => 'read_only',
                 'overall_status' => (int) $totals['fail'] > 0 ? 'fail'
@@ -250,7 +251,7 @@ final class TaxoCommerce_Core_Auto_Test {
         }
         return array(
             'version' => defined( 'TAXOCOMMERCE_CORE_VERSION' ) ? TAXOCOMMERCE_CORE_VERSION : '',
-            'date' => current_time( 'mysql' ),
+            'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -920,7 +921,7 @@ final class TaxoCommerce_Core_Auto_Test {
             <?php if ( null === $totals ) : ?>
                 <p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core.', 'taxocommerce-core' ); ?></p>
             <?php else : ?>
-                <p><strong><?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
+                <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-core' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
                 <div class="tc-at-summary">
                     <span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-core' ); ?></span>
                     <span><strong style="color:#c5221f"><?php echo esc_html( absint( $totals['fail'] ) ); ?></strong> <?php esc_html_e( 'Errores', 'taxocommerce-core' ); ?></span>
