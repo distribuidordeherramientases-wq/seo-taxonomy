@@ -58,7 +58,7 @@ class DeltaTests(unittest.TestCase):
                     b"taxocommerce-templates/taxocommerce-templates.php\\0"
                     b"taxocommerce-templates/includes/class-tct-manual.php\\0"
                     b"taxocommerce-templates/tests/smoke.php\\0"
-                ).replace(b"\\0", b"\\x00")):
+                ).replace(b"\\0", b"\x00")):
                     self.assertEqual(
                         module.plugin_source_files("taxocommerce-templates"),
                         ["includes/class-tct-manual.php", "taxocommerce-templates.php"],
