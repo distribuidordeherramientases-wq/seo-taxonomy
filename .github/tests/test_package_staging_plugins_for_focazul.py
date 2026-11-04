@@ -111,14 +111,14 @@ class MirrorTests(unittest.TestCase):
 
     def test_both_sites_use_one_wordpress_relative_folder(self):
         src = mirror.ftp_root(self.ftp, "/home/public_html", mirror.SOURCE_SITE)
-        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE)
+        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE, create=True)
         self.assertEqual(src, self.ftp.source())
         self.assertEqual(dst, self.ftp.destination())
         self.assertTrue(dst.endswith("/wp-content/uploads/taxocommerce-core/plugins"))
 
     def test_copy_standard_names_and_manifest_last(self):
         src = mirror.ftp_root(self.ftp, "/home/public_html", mirror.SOURCE_SITE)
-        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE)
+        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE, create=True)
         result = mirror.mirror(self.ftp, src, dst)
         self.assertEqual(result["count"], 2)
         self.assertEqual(sorted(f.split("/")[-1] for f in self.ftp.files if f.startswith(dst + "/")),
@@ -135,7 +135,7 @@ class MirrorTests(unittest.TestCase):
 
     def test_idempotent_and_safe_update_of_existing_zip(self):
         src = mirror.ftp_root(self.ftp, "/home/public_html", mirror.SOURCE_SITE)
-        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE)
+        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE, create=True)
         self.ftp.files[dst + "/taxocommerce-templates.zip"] = archive("taxocommerce-templates", "0.4.10")
         first = mirror.mirror(self.ftp, src, dst)
         self.assertEqual(first["plugins"]["taxocommerce-templates"]["status"], "UPDATED")
@@ -145,7 +145,7 @@ class MirrorTests(unittest.TestCase):
 
     def test_unverified_staging_manifest_fails_before_upload(self):
         src = mirror.ftp_root(self.ftp, "/home/public_html", mirror.SOURCE_SITE)
-        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE)
+        dst = mirror.ftp_root(self.ftp, "/home/public_html", mirror.DESTINATION_SITE, create=True)
         self.ftp.files[src + "/manifest.json"] = b'{"schema":1,"plugins":{"taxocommerce-templates":{"version":"0.0.0"}}}'
         with self.assertRaises(ValueError):
             mirror.mirror(self.ftp, src, dst)
