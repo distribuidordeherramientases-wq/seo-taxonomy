@@ -54,7 +54,7 @@ final class TCDB_Auto_Test {
             $rows[] = array( 'id' => $id, 'group' => $labels[0], 'label' => $labels[1], 'status' => $result['status'], 'message' => $result['message'], 'ms' => (int) round( ( microtime( true ) - $began ) * 1000 ) );
             ++$totals[ $result['status'] ];
         }
-        return array( 'version' => TAXOCOMMERCE_DATABASE_VERSION, 'date' => current_time( 'mysql' ), 'ms' => (int) round( ( microtime( true ) - $start ) * 1000 ), 'totals' => $totals, 'rows' => $rows );
+        return array( 'version' => TAXOCOMMERCE_DATABASE_VERSION, 'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ), 'ms' => (int) round( ( microtime( true ) - $start ) * 1000 ), 'totals' => $totals, 'rows' => $rows );
     }
     private static function pass( $s ) { return self::result( 'pass', $s ); }
     private static function fail( $s ) { return self::result( 'fail', $s ); }
@@ -226,7 +226,7 @@ final class TCDB_Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-database' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Último resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<h3>Último resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-database' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
         echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $before = array();
