@@ -144,7 +144,7 @@ final class TCD_Auto_Test {
 		}
 		return array(
 			'version' => defined( 'TAXOCOMMERCE_DEPENDIENTE_VERSION' ) ? TAXOCOMMERCE_DEPENDIENTE_VERSION : '',
-			'date' => current_time( 'mysql' ),
+			'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
 			'group' => $selected,
 			'ms' => (int) round( 1000 * ( microtime( true ) - $start ) ),
 			'totals' => $totals,
@@ -682,7 +682,7 @@ final class TCD_Auto_Test {
 				<span><?php esc_html_e( 'Solo lectura, sin reiniciar formación ni alterar productos, memoria o workers.', 'taxocommerce-dependiente' ); ?></span>
 			</form>
 			<?php if ( $report ) : ?>
-				<p><strong><?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
+				<p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-dependiente' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
 			<?php else : ?>
 				<p><?php esc_html_e( 'Aún no hay resultados de esta versión. Ejecuta una prueba para ver el estado.', 'taxocommerce-dependiente' ); ?></p>
 			<?php endif; ?>
