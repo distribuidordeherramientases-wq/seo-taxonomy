@@ -10,6 +10,10 @@ Cada Autocheck expone un botón **Descargar resultados (JSON)** que entrega el �
 
 La descarga requiere sesión WordPress, capacidad suficiente y nonce. No ejecuta nuevas comprobaciones ni da por superadas operaciones reales no verificadas. Los JSON nunca deben transportar credenciales, contraseñas, tokens ni claves API.
 
+## Fecha de ejecución (#2154)
+
+Cada ejecución **manual** genera `executed_at` como fecha y hora ISO 8601 UTC, conservada en el informe JSON sin recalcularla al descargar. El panel muestra **Fecha de ejecución** (día, hora y zona horaria, o fecha local histórica para informes existentes). Se mantienen por compatibilidad los campos `date`, `date_utc` y `generated_at` y las referencias ANTES/DESPUÉS. Una descarga, visita al panel, activación o despliegue nunca ejecuta de nuevo el Autocheck.
+
 ## Verificación
 
 La prueba `.github/tests/taxocommerce-autocheck-family.php` comprueba los **20 plugins** y falla si falta la denominación o el contrato JSON protegido. La ejecución de CI valida también la sintaxis PHP y pruebas offline de regresión. Estas pruebas no sustituyen la ejecución UAT con WordPress en STAGING ni una prueba real de descarga autenticada en cada sitio.
