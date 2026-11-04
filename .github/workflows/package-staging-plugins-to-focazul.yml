@@ -1,4 +1,4 @@
-name: Package STAGING plugins into Focazul uploads
+name: Mirror TaxoCommerce plugin ZIP repository from STAGING to Focazul
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: taxocommerce-stage-zips-focazul-uploads
+  group: taxocommerce-stage-zips-focazul-canonical
   cancel-in-progress: false
 
 jobs:
@@ -35,14 +35,14 @@ jobs:
           python3 -m unittest discover -s .github/tests -p test_package_staging_plugins_for_focazul.py -v
 
   upload:
-    name: Copy installed STAGING plugin ZIPs into Focazul uploads
+    name: Mirror STAGING ZIPs to canonical Focazul uploads directory
     needs: validate
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
-      - name: Retrieve installed STAGING plugins and copy verified ZIPs only
+      - name: Copy verified standard ZIPs and manifest to wp-content/uploads/taxocommerce-core/plugins
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
@@ -50,7 +50,7 @@ jobs:
         run: |
           python3 .github/scripts/package_staging_plugins_for_focazul.py \
             --manifest-file taxocommerce-plugin-packages-report.json
-      - name: Save ZIP inventory for installation
+      - name: Save same-directory ZIP checksum inventory
         if: success()
         uses: actions/upload-artifact@v4
         with:
