@@ -147,7 +147,7 @@ final class TaxoCommerce_Connections_Autocheck {
         echo '<input type="hidden" name="action" value="' . esc_attr( self::DOWNLOAD ) . '">';
         wp_nonce_field( self::NONCE );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-connections' ), 'secondary', 'submit', false );
-        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-connections' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $report['executed_at'] ) ) ) . '</p>';
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-connections' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $report['executed_at'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $report['executed_at'] ) ) . ' UTC' ) ) . '</p>';
         echo '</form>';
         echo '<p>' . esc_html( sprintf( '%d correctas, %d errores y %d omitidas.',
             (int) $report['totals']['pass'], (int) $report['totals']['fail'], (int) $report['totals']['skip'] ) ) . '</p>';
