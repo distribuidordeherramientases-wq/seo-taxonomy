@@ -109,15 +109,10 @@ def plan():
     head = git("rev-parse", "HEAD").decode().strip()
     base = last_successful_base(os.environ["GITHUB_REPOSITORY"], head, os.environ.get("GITHUB_TOKEN", ""))
     changes = changed_files(base, head)
-    # On deployment-policy changes, reconcile all installed modules against
-    # the same source tree. Remote SHA-256 comparisons upload only mismatches.
-    # This repairs sites that missed updates before dual-site delivery existed.
-    policy_changes = git(
-        "diff", "--name-only", base, head, "--",
-        ".github/workflows/deploy-staging.yml",
-        ".github/scripts/deploy_staging_delta.py",
-    ).decode("utf-8").strip()
-    sync = bool(policy_changes)
+    # An ordinary push must deploy only plugin runtime files changed in Git.
+    # Updating a workflow, CI test or deployment script must NEVER initiate a
+    # family-wide reconciliation without an explicit manual operator request.
+    sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
     if sync:
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
@@ -137,7 +132,7 @@ def plan():
     for slug, files in changes.items():
         print(f"{slug}: {len(files)} changed distributable file(s)")
     if sync:
-        print(f"Deployment policy updated: reconcile {len(slugs)} installed-plugin candidates on both sites")
+        print(f"Manual full synchronization requested: reconcile {len(slugs)} installed-plugin candidates on both sites")
     if not slugs:
         print("No plugin runtime files changed; no FTPS connection needed")
 

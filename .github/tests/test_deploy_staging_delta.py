@@ -127,6 +127,55 @@ class DeltaTests(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_workflow_updates_do_not_trigger_unrequested_full_sync(self):
+        import json
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            output = Path(root) / "output"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="b" * 40):
+                        with mock.patch.object(module, "changed_files",
+                                               return_value={"taxocommerce-templates": ["taxocommerce-templates.php"]}):
+                            module.plan()
+            data = dict(line.split("=", 1) for line in output.read_text().strip().splitlines())
+            self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-templates"])
+            self.assertEqual(data["sync"], "false")
+            self.assertEqual(data["core"], "false")
+
+    def test_manual_full_sync_requires_explicit_opt_in(self):
+        import json
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            output = Path(root) / "output"
+            original = os.getcwd()
+            os.chdir(root)
+            try:
+                Path("taxocommerce-templates").mkdir()
+                Path("taxocommerce-templates/taxocommerce-templates.php").write_text("<?php")
+                Path("taxocommerce-core").mkdir()
+                Path("taxocommerce-core/taxocommerce-core.php").write_text("<?php")
+                with mock.patch.dict(os.environ, {
+                    "GITHUB_REPOSITORY": "shop/test",
+                    "GITHUB_TOKEN": "fake",
+                    "GITHUB_OUTPUT": str(output),
+                    "TAXOCOMMERCE_FULL_SYNC": "1",
+                }):
+                    with mock.patch.object(module, "git", return_value=b"a" * 40):
+                        with mock.patch.object(module, "last_successful_base", return_value="b" * 40):
+                            with mock.patch.object(module, "changed_files", return_value={}):
+                                module.plan()
+                data = dict(line.split("=", 1) for line in output.read_text().strip().splitlines())
+                self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-core", "taxocommerce-templates"])
+                self.assertEqual(data["sync"], "true")
+            finally:
+                os.chdir(original)
+
     def test_changes_include_only_real_changed_runtime_files(self):
         with tempfile.TemporaryDirectory() as temp:
             import os

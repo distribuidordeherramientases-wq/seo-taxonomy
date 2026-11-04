@@ -1,5 +1,10 @@
 # Registro de cambios de la infraestructura QA
 
+## 2026-11-04 — Despliegue automático restringido a diferencias reales (#2184)
+
+- Se elimina la sincronización automática de 20 plugins cuando cambia solamente el workflow de CI o el script de despliegue. Un push normal despliega exclusivamente los archivos instalables modificados desde la última base verificada.
+- La reconciliación completa se mantiene disponible únicamente mediante ejecución manual del workflow con `full_sync=true` explícito. Se añaden regresiones para ambos comportamientos, sin tocar producción.
+
 ## 2026-11-04 — Aislamiento FTPS de Focazul (#2164)
 
 - El constructor de rutas remoto impide cualquier destino distinto de `taxocommerce-core` en Asociación Focazul. STAGING mantiene sus módulos instalados y autorizados; PRO permanece fuera del flujo. Se reutiliza la prueba existente que falló en el PR #2155 (`test_shared_ftp_site_roots_are_isolated`), sin cambiar archivos instalables de plugins ni ejecutar ningún AutoCheck automáticamente.
