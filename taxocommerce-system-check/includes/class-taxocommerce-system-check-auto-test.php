@@ -158,7 +158,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         }
         return array(
             'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -196,6 +196,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         echo '<input type="hidden" name="action" value="taxocommerce_system_check_autocheck_json">';
         wp_nonce_field( 'taxocommerce_system_check_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-system-check' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-system-check' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) ) . '</p>';
         echo '</form>';
         echo '<p><strong>Resultados:</strong> ' . esc_html( (string) $report['totals']['pass'] ) . ' correctas, '
             . esc_html( (string) $report['totals']['fail'] ) . ' fallidas y '
