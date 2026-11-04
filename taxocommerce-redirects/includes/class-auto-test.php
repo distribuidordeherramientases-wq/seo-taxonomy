@@ -135,7 +135,7 @@ final class Auto_Test {
             'schema' => 1, 'phase' => 'check', 'group' => $group,
             'site_hash' => self::site_hash(), 'version' => Plugin::VERSION,
             'wp_version' => isset( $wp_version ) ? (string) $wp_version : '',
-            'php_version' => PHP_VERSION, 'date_utc' => gmdate( 'c' ),
+            'php_version' => PHP_VERSION, 'date_utc' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals, 'rows' => $rows,
         );
@@ -476,7 +476,7 @@ final class Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-redirects' ); ?></h3>
                     <?php if ( $before ) : ?>
-                        <p><?php echo esc_html( (string) $before['date_utc'] . ' · v' . (string) $before['version'] ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-redirects' ) . ' ' . ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $before['date_utc'] ) ) : $before['date_utc'] . ' (UTC)' ) . ' · v' . (string) $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
                         <?php self::export_button( true, 'Descargar ANTES (JSON)' ); ?>
                     <?php else : ?>
@@ -486,7 +486,7 @@ final class Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-redirects' ); ?></h3>
                     <?php if ( $last ) : ?>
-                        <p><?php echo esc_html( (string) $last['date_utc'] . ' · v' . (string) $last['version'] . ' · ' . (string) $last['phase'] ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-redirects' ) . ' ' . ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $last['date_utc'] ) ) : $last['date_utc'] . ' (UTC)' ) . ' · v' . (string) $last['version'] . ' · ' . (string) $last['phase'] ); ?></p>
                         <?php self::export_button( false, 'Descargar último (JSON)' ); ?>
                     <?php else : ?>
                         <p><?php esc_html_e( 'Todavía no hay una ejecución registrada.', 'taxocommerce-redirects' ); ?></p>
