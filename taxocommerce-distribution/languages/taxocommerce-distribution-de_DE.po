@@ -1103,3 +1103,459 @@ msgstr "Die XML-Dateidaten zeigen die letzte Veröffentlichung, nicht den Start 
 #: includes/admin.php includes/sitemaps/batch-worker.php
 msgid "La generación está en curso. El índice visible todavía pertenece a la publicación anterior."
 msgstr "Die Erstellung läuft. Der sichtbare Index gehört noch zur vorherigen Veröffentlichung."
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Selecciona una velocidad entre 1 y 5."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "La generación se ha detenido."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Sin permisos."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Generando sitemaps por bloques de 250…"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Finalizado. Actualizando el informe…"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "El trabajador ha detectado un error."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Publishing summary"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Commercial feeds:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Published products:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Active channels:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "XML index:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Valid"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Review"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Control de carga del generador XML"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Guardar velocidad"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Estado de generación:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "%1$d elementos revisados; %2$d URL preparadas."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Último bloque: %1$s s · CPU PHP: %2$s%% · Memoria PHP: %3$s%%"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Generar sitemaps en bloques de 250"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Detener generación"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Invalid"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Manual from Processes"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Supplier synchronization completed"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Daily safety regeneration"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Programada"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Entorno discrepante:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "WordPress informa"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "pero la detección efectiva por hostname es"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Review WP_ENVIRONMENT_TYPE in the environment configuration."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Entorno informado por WordPress:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Entorno efectivo:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Host:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Host de feeds:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Detection source:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Settings"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Country"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Language"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Batch"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Adaptive"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "view Automation"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Regenerate after a supplier synchronization that changed products"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Daily safety regeneration en PRODUCTION"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Daily time"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Save settings"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Generation"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Source:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Candidates:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "published:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "excluded:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Regulator:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "next batch"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "pressure"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "pause"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Last batch:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "products in"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Waiting for the first Distribution worker window."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "% completed."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Inicio:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "End:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Next daily regeneration:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "pending scheduling"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Automatic regeneration is not active in this environment."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Last activity:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "s without changes"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Start generation"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Stop the current generation? Partial files will not be published."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Stop generation"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Exclusion reasons"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Technical errors"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Inventory URLs"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "The plugin records feed generation, not each remote download: these files are served directly by the web server."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Status"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Ready"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Pending generation"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Generation history"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Aun no hay ejecuciones finalizadas registradas."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "End"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Source"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Candidates"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Published"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Excluded"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Files"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Initial platform setup"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Create a product data source from a file and register the URL:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Create a feed with automatic download from URL and register:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Add a hosted data source by URL and register:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Other receivers:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Use"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "or"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Revisa el resumen bajo la cabecera y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "2. Resumen general bajo la cabecera"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Ejecutar Autocheck"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Descargar resultados (JSON)"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Fecha de ejecución:"
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Sin permisos para descargar el Autocheck."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Ejecuta el Autocheck antes de descargar el JSON."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "No se pudo generar el informe JSON."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Publica feeds comerciales y sitemaps XML de tu catálogo."
+msgstr ""
+
+#: includes/admin.php includes/feeds/admin.php
+msgid "Versión"
+msgstr ""
