@@ -239,7 +239,7 @@ function tcdist_sitemap_write_window( &$state, $build_dir ) {
         'urlset'
     );
     if ( is_wp_error( $written ) ) {
-        throw new RuntimeException( $written->get_error_message() );
+        throw new RuntimeException( esc_html( $written->get_error_message() ) );
     }
 
     $state['urls'] += absint( $written['count'] );
@@ -281,7 +281,7 @@ function tcdist_sitemap_publish_window( &$state, $build_dir, $public_dir ) {
             $state['files'][ $state['publish_cursor'] ]['filename'] = $filename;
         }
         if ( ! tcdist_sitemap_publish_sitemap_file( $build_dir . $filename, $public_dir . $filename ) ) {
-            throw new RuntimeException( 'Cannot publish validated sitemap: ' . $filename );
+            throw new RuntimeException( esc_html( 'Cannot publish validated sitemap: ' . $filename ) );
         }
         $state['publish_cursor']++;
         $done++;
@@ -297,10 +297,10 @@ function tcdist_sitemap_publish_index( &$state, $build_dir, $public_dir ) {
     foreach ( array( 'sitemap-index.xml', 'sitemap_index.xml', 'sitemap.xml' ) as $filename ) {
         $written = tcdist_sitemap_write_validated_xml( $build_dir . $filename, $xml, 'sitemapindex' );
         if ( is_wp_error( $written ) ) {
-            throw new RuntimeException( $written->get_error_message() );
+            throw new RuntimeException( esc_html( $written->get_error_message() ) );
         }
         if ( ! tcdist_sitemap_publish_sitemap_file( $build_dir . $filename, $public_dir . $filename ) ) {
-            throw new RuntimeException( 'Cannot publish sitemap index: ' . $filename );
+            throw new RuntimeException( esc_html( 'Cannot publish sitemap index: ' . $filename ) );
         }
     }
     $state['phase'] = 'finish';
@@ -465,9 +465,6 @@ function tcdist_sitemap_background_worker_tick() {
         $dir = tcdist_sitemap_job_build_directory( $state );
         if ( ! is_wp_error( $dir ) ) {
             tcdist_sitemap_remove_directory( $dir );
-        }
-        if ( function_exists( 'error_log' ) ) {
-            error_log( 'TaxoCommerce Distribution sitemap worker: ' . $state['message'] );
         }
     } finally {
         @flock( $lock, LOCK_UN );

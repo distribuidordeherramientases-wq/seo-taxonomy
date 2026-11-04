@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy changed files of existing TaxoCommerce plugins to permitted WordPress sites.
+"""Deploy changed files of already installed TaxoCommerce plugins to both permitted WordPress sites.
 
 Baseline: last successful staging workflow, so a failed run cannot lose its changes.
 Deletion of runtime files is blocked until a separately reviewed migration.
@@ -34,8 +34,6 @@ def remote_plugin_dir(target, slug):
         raise ValueError(f"Unrecognized FTP destination: {target}")
     if not SLUG.fullmatch(slug):
         raise ValueError(f"Invalid plugin slug: {slug}")
-    if target == "focazul" and slug != "taxocommerce-core":
-        raise ValueError("Only Core can be deployed to Focazul")
     return "./" + SITE_FTP_ROOTS[target] + "/wp-content/plugins/" + slug + "/"
 
 
@@ -240,8 +238,6 @@ def deploy(base, target, slug):
     changes = changed_files(base, head, selected_slug=slug)
     if slug not in changes:
         raise ValueError(f"No distributable changes selected for {slug}")
-    if target == "focazul" and slug != "taxocommerce-core":
-        raise ValueError("Only Core is authorized for Focazul")
     # One FTPS login shared by both clients; each site has an isolated path.
     # Validate the destination before connecting to the server.
     remote_plugin_dir(target, slug)

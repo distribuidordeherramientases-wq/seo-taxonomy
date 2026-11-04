@@ -92,7 +92,7 @@ if ( 1 !== count( $warnings ) || 1 !== count( $errors ) || 9 !== $wpdb->queries 
 $main = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-scrappers.php' );
 $manual = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-scrappers-manual.php' );
 if ( false === strpos( $main, "'autotest'   => __( 'Autocheck', 'taxocommerce-scrappers' )" )
-    || false === strpos( $main, "'manual'     => 'Manual'" )
+    || false === strpos( $main, "'manual'     => __( 'Manual', 'taxocommerce-scrappers' )" )
     || false === strpos( $manual, 'Manual de usuario' )
     || false === strpos( $manual, 'Manual técnico' )
     || false === strpos( $main, "TaxoCommerce_Scrappers_Auto_Test::render()" )

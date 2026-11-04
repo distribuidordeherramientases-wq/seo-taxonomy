@@ -158,7 +158,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         }
         return array(
             'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -175,7 +175,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         );
         echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Autocheck · System Check', 'taxocommerce-system-check' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.', 'taxocommerce-system-check' ) . '</p>';
-        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Auto Test</a></p>';
+        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Autocheck</a></p>';
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
         $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] )
             && '1' === sanitize_key( wp_unslash( $_GET['tcs_run'] ) );
@@ -189,13 +189,14 @@ final class TaxoCommerce_System_Check_Auto_Test {
         $autocheck_report = $report;
         $autocheck_report['plugin'] = 'taxocommerce-system-check';
         $autocheck_report['schema'] = 1;
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_system_check_autocheck_json">';
         wp_nonce_field( 'taxocommerce_system_check_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-system-check' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-system-check' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $autocheck_report['executed_at'] ) ) . ' UTC' ) ) . '</p>';
         echo '</form>';
         echo '<p><strong>Resultados:</strong> ' . esc_html( (string) $report['totals']['pass'] ) . ' correctas, '
             . esc_html( (string) $report['totals']['fail'] ) . ' fallidas y '

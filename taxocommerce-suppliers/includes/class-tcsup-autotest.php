@@ -95,7 +95,7 @@ final class TCSUP_Autotest {
 		echo '</form>';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified before executing the diagnostics.
 		if ( ! isset( $_POST['tcsup_run_autotest'] ) ) {
-			echo '<p class="description">' . esc_html__( 'Los resultados solo se muestran cuando se pulsa el botón; no se guardan.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
+			echo '<p class="description">' . esc_html__( 'Los resultados se generan al pulsar el botón. Se conserva el último durante una hora para descargarlo en JSON.', 'taxocommerce-suppliers' ) . '</p>' . '</section>';
 			return;
 		}
 		check_admin_referer( 'tcsup_autotest' );
@@ -109,17 +109,18 @@ final class TCSUP_Autotest {
             'schema' => 1,
             'plugin' => 'taxocommerce-suppliers',
             'version' => defined( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) ? constant( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $rows,
         );
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_suppliers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_suppliers_autocheck_json">';
         wp_nonce_field( 'taxocommerce_suppliers_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-suppliers' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-suppliers' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $autocheck_report['executed_at'] ) ) . ' UTC' ) ) . '</p>';
         echo '</form>';
 		$counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
 		foreach ( $rows as $row ) {

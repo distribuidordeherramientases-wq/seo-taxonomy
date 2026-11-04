@@ -103,7 +103,7 @@ final class TaxoCommerce_Core_Auto_Test {
                 'locale' => get_locale(),
             ),
             'autocheck' => array(
-                'executed_at' => (string) $report['date'],
+                'executed_at' => (string) ( $report['executed_at'] ?? $report['date'] ),
                 'duration_ms' => (int) $report['ms'],
                 'mode' => 'read_only',
                 'overall_status' => (int) $totals['fail'] > 0 ? 'fail'
@@ -250,7 +250,7 @@ final class TaxoCommerce_Core_Auto_Test {
         }
         return array(
             'version' => defined( 'TAXOCOMMERCE_CORE_VERSION' ) ? TAXOCOMMERCE_CORE_VERSION : '',
-            'date' => current_time( 'mysql' ),
+            'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -907,7 +907,7 @@ final class TaxoCommerce_Core_Auto_Test {
             <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
                 <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
-                <?php submit_button( __( 'Ejecutar Auto Test', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
+                <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
                 <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
             </form>
             <?php if ( null !== $totals ) : ?>
@@ -920,7 +920,7 @@ final class TaxoCommerce_Core_Auto_Test {
             <?php if ( null === $totals ) : ?>
                 <p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core.', 'taxocommerce-core' ); ?></p>
             <?php else : ?>
-                <p><strong><?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
+                <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-core' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
                 <div class="tc-at-summary">
                     <span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-core' ); ?></span>
                     <span><strong style="color:#c5221f"><?php echo esc_html( absint( $totals['fail'] ) ); ?></strong> <?php esc_html_e( 'Errores', 'taxocommerce-core' ); ?></span>

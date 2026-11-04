@@ -76,6 +76,13 @@ foreach ( $ui as $slug => $path ) {
     if ( false === strpos( $code, 'rows' ) || false === strpos( $code, 'totals' ) ) {
         $errors[] = "$slug: exported result structure missing rows or totals";
     }
+    if ( false === strpos( $code, "'executed_at'" ) || false === strpos( $code, 'Fecha de ejecución:' ) ) {
+        $errors[] = "$slug: fecha de ejecución ausente del JSON o de la interfaz";
+    }
+    // Each new timestamp is generated in the manually executed report; never on download.
+    if ( false === strpos( $code, "'executed_at' => gmdate( 'c' )" ) ) {
+        $errors[] = "$slug: no se registra la ejecución en UTC";
+    }
     if ( false === strpos( $code, 'nonce' ) && false === strpos( $code, 'NONCE' ) ) {
         $errors[] = "$slug: missing nonce for JSON download";
     }

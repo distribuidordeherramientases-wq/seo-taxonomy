@@ -163,17 +163,18 @@ final class TaxoCommerce_Scrappers_Auto_Test {
             'schema' => 1,
             'plugin' => 'taxocommerce-scrappers',
             'version' => defined( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) ? constant( 'TAXOCOMMERCE_SCRAPPERS_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
-        if ( function_exists( 'set_transient' ) ) {
+        if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_scrappers_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_scrappers_autocheck_json">';
         wp_nonce_field( 'taxocommerce_scrappers_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-scrappers' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-scrappers' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $autocheck_report['executed_at'] ) ) . ' UTC' ) ) . '</p>';
         echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $checks as $check ) {
@@ -201,7 +202,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
         if ( '' !== $group ) {
             echo '</tbody></table>';
         }
-        echo '<p class="description">' . esc_html__( 'El resultado es puntual, no se guarda. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
+        echo '<p class="description">' . esc_html__( 'Se conserva el último resultado una hora para descargarlo. La conexión real de proveedores se prueba por separado desde Connections y puede consumir recursos del servicio externo.', 'taxocommerce-scrappers' ) . '</p>' . '</div>';
     }
 }
 

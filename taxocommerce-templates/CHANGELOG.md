@@ -1,3 +1,9 @@
+## [0.4.11] — 2026-11-04
+
+- Pestaña **Manual** propia con manual de usuario, manual técnico e incidencias: navegación, políticas, enrutamiento, módulos, mercados, edición PHP, roles, auditoría, Autocheck, arquitectura, hooks, almacenamiento, seguridad, migración y UAT.
+- Sin escrituras ni ejecuciones automáticas. Prueba de humo independiente de lectura, permisos y navegación. Issue #2159.
+- No se modifican plantillas públicas, reglas, permisos existentes ni datos.
+
 ## Unreleased - Familia i18n #2062
 
 

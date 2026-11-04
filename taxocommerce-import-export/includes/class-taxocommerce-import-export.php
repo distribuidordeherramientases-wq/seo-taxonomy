@@ -210,14 +210,6 @@ final class TaxoCommerce_Import_Export {
 		}
 		?>
 		<div class="wrap tcc-family-screen">
-			<header class="tcc-page-header">
-				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-database-import"></span></span>
-				<div class="tcc-page-header__content">
-					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'Familia TaxoCommerce', 'taxocommerce-import-export' ); ?></p>
-					<h1><?php echo esc_html__( 'TaxoCommerce Import-Export', 'taxocommerce-import-export' ); ?></h1>
-					<p><?php echo esc_html__( 'Un único punto de intercambio para productos, categorías WooCommerce, categorías WordPress, entradas, páginas y Biblioteca de Medios.', 'taxocommerce-import-export' ); ?></p>
-				</div>
-			</header>
 
 			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Secciones de Import-Export', 'taxocommerce-import-export' ); ?>">
 				<a class="nav-tab <?php echo esc_attr( 'export' === $tab ? 'nav-tab-active' : '' ); ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-import-export', 'tc_ie_tab' => 'export' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Exportación', 'taxocommerce-import-export' ); ?></a>
