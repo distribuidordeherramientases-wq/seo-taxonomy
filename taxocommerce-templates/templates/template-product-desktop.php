@@ -86,11 +86,11 @@ $faq_table = $wpdb->prefix . 'seo_faq';
 $product_faqs = (array) $wpdb->get_results(
     $wpdb->prepare(
         "SELECT id, question, answer
-         FROM {$faq_table}
+         FROM %i
          WHERE object_type = %d
            AND object_id = %d
            AND active = 1
-         ORDER BY sort_order ASC, id ASC",
+         ORDER BY sort_order ASC, id ASC", $faq_table,
         3,
         $product_id
     )
@@ -127,7 +127,7 @@ if ($supplier_images_exists) {
                 position,
                 is_primary,
                 status
-             FROM {$supplier_images_table}
+             FROM %i
              WHERE product_id = %d
                AND status = 'active'
                AND image_url IS NOT NULL
@@ -135,7 +135,7 @@ if ($supplier_images_exists) {
              ORDER BY
                 is_primary DESC,
                 position ASC,
-                id ASC",
+                id ASC", $supplier_images_table,
             $product_id
         ),
         ARRAY_A
