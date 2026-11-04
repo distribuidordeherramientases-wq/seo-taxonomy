@@ -1,6 +1,8 @@
 # Actualizaciones nativas TaxoCommerce — repositorio temporal
 
 - **Origen temporal:** `wp-content/uploads/taxocommerce-core/plugins/` del propio WordPress.
+- **Ruta idéntica por instalación:** tanto STAGING (`staging.distribuidordeherramientas.es`), Asociación Focazul (`asociacionfocazul`) como la instalación del cliente usan la misma ruta **relativa a su WordPress**: `wp-content/uploads/taxocommerce-core/plugins/`. No crear directorios alternativos como `taxocommerce-plugin-zips`.
+- **Copia entre instalaciones de prueba:** los ZIP canónicos `taxocommerce-<modulo>.zip` y el `manifest.json` validado de STAGING se replican dentro de esa misma ruta de Focazul, verificando SHA-256 y publicando el manifiesto al final. Nunca tocar los plugins activos ni la base de datos. El despliegue a producción se gestiona por separado y no se activa por este proceso.
 - **Proveedor común:** `wp-content/mu-plugins/taxocommerce-upload-update-provider.php` (MU; independiente de Core).
 - **Identificación del canal:** el proveedor MU reconoce únicamente plugins instalados con nombre/carpeta canónicos `taxocommerce-<slug>/taxocommerce-<slug>.php` y presentes en el manifiesto verificado. Las cabeceras de los plugins **no** contienen `Update URI` para conservar compatibilidad con WordPress.org.
 - **Paquetes:** ZIP por módulo con carpeta raíz `<slug>/` y entrada `<slug>/<slug>.php`.
