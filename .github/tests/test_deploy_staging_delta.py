@@ -32,13 +32,45 @@ class DeltaTests(unittest.TestCase):
             module.remote_plugin_dir("staging", "taxocommerce-vocabulary"),
             "./staging.distribuidordeherramientas.es/wp-content/plugins/taxocommerce-vocabulary/",
         )
+        self.assertEqual(
+            module.remote_plugin_dir("focazul", "taxocommerce-templates"),
+            "./asociacionfocazul/wp-content/plugins/taxocommerce-templates/",
+        )
         for target, slug in (
-            ("focazul", "taxocommerce-vocabulary"),
             ("production", "taxocommerce-core"),
             ("staging", "../wp-config.php"),
         ):
             with self.assertRaises(ValueError):
                 module.remote_plugin_dir(target, slug)
+
+    def test_full_reconciliation_selects_existing_module_sources(self):
+        with tempfile.TemporaryDirectory() as root:
+            import os
+            old = os.getcwd()
+            os.chdir(root)
+            try:
+                Path("taxocommerce-templates/includes").mkdir(parents=True)
+                Path("taxocommerce-templates/tests").mkdir()
+                Path("taxocommerce-templates/taxocommerce-templates.php").write_text("<?php")
+                Path("taxocommerce-templates/includes/class-tct-manual.php").write_text("<?php")
+                Path("taxocommerce-templates/tests/smoke.php").write_text("<?php")
+                with mock.patch.object(module, "git", return_value=(
+                    b"taxocommerce-templates/taxocommerce-templates.php\\0"
+                    b"taxocommerce-templates/includes/class-tct-manual.php\\0"
+                    b"taxocommerce-templates/tests/smoke.php\\0"
+                ).replace(b"\\0", b"\x00")):
+                    self.assertEqual(
+                        module.plugin_source_files("taxocommerce-templates"),
+                        ["includes/class-tct-manual.php", "taxocommerce-templates.php"],
+                    )
+            finally:
+                os.chdir(old)
+
+    def test_optional_focazul_plugin_absent_is_not_created(self):
+        ftp = mock.Mock()
+        ftp.cwd.side_effect = module.ftplib.error_perm("550 no such directory")
+        module.upload_plugin(ftp, "focazul", "taxocommerce-templates", ["taxocommerce-templates.php"], required=False)
+        ftp.storbinary.assert_not_called()
 
     def test_upload_core_checks_correct_site_without_writing_other_site(self):
         ftp = mock.Mock()
