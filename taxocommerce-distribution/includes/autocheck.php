@@ -276,10 +276,11 @@ function taxocommerce_distribution_render_autocheck() {
             'schema' => 1,
             'plugin' => 'taxocommerce-distribution',
             'version' => defined( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) ? constant( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $autocheck_report['executed_at'] ) ) : $autocheck_report['executed_at'] . ' (UTC)' ) ) . '</p>';
         if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_distribution_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
