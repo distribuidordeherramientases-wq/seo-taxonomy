@@ -48,7 +48,7 @@ function taxocommerce_distribution_register_menu() {
     );
 }
 
-function taxocommerce_distribution_url( $tab = 'overview', $args = array() ) {
+function taxocommerce_distribution_url( $tab = 'feeds', $args = array() ) {
     return add_query_arg(
         array_merge(
             array(
@@ -174,20 +174,20 @@ function taxocommerce_distribution_sitemap_enqueue() {
 
 function taxocommerce_distribution_render_page() {
     taxocommerce_distribution_guard();
-    $tab = isset( $_GET['tcdist_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_tab'] ) ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    if ( ! in_array( $tab, array( 'overview', 'feeds', 'sitemaps', 'automation', 'manual', 'autocheck' ), true ) ) {
-        $tab = 'overview';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+    $tab = isset( $_GET['tcdist_tab'] ) && is_string( $_GET['tcdist_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcdist_tab'] ) ) : 'feeds';
+    if ( ! in_array( $tab, array( 'feeds', 'sitemaps', 'automation', 'manual', 'autocheck' ), true ) ) {
+        // Existing Overview bookmarks remain valid and open Commercial Feeds.
+        $tab = 'feeds';
     }
     ?>
     <div class="wrap">
-        <h1><?php esc_html_e( 'TaxoCommerce Distribution', 'taxocommerce-distribution' ); ?> <small style="font-size:13px;font-weight:400;color:#50575e;vertical-align:middle;">v<?php echo esc_html( TAXOCOMMERCE_DISTRIBUTION_VERSION ); ?></small></h1>
-        <p><?php esc_html_e( 'Technical catalog publishing: commercial feeds and XML sitemaps through safe bounded processes.', 'taxocommerce-distribution' ); ?></p>
+        <?php taxocommerce_distribution_render_summary(); ?>
 
         <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Secciones de Distribution', 'taxocommerce-distribution' ); ?>">
             <?php
             foreach (
                 array(
-                    'overview'   => __( 'Overview', 'taxocommerce-distribution' ),
                     'feeds'      => __( 'Commercial Feeds', 'taxocommerce-distribution' ),
                     'sitemaps'   => __( 'Sitemaps', 'taxocommerce-distribution' ),
                     'automation' => __( 'Automation', 'taxocommerce-distribution' ),
@@ -215,7 +215,7 @@ function taxocommerce_distribution_render_page() {
             } elseif ( 'autocheck' === $tab ) {
                 taxocommerce_distribution_render_autocheck();
             } else {
-                taxocommerce_distribution_render_overview();
+                tcdist_feed_render_admin();
             }
             ?>
         </div>
@@ -232,50 +232,43 @@ function taxocommerce_distribution_render_compatibility_notice() {
     }
 }
 
-function taxocommerce_distribution_render_overview() {
-    $feed_state = function_exists( 'tcdist_feed_state' ) ? tcdist_feed_state() : array();
-    $sitemap = function_exists( 'tcdist_sitemap_get_sitemap_report' ) ? tcdist_sitemap_get_sitemap_report() : array();
-    $feed_settings = function_exists( 'tcdist_feed_settings' ) ? tcdist_feed_settings() : array();
-    $channels = function_exists( 'tcdist_feed_channels' ) ? tcdist_feed_channels() : array();
-    $enabled = (array) ( $feed_settings['enabled_channels'] ?? array() );
+/**
+ * Compact, read-only overview immediately below the common plugin header.
+ * Public feed/sitemap operations remain on their dedicated tabs.
+ */
+function taxocommerce_distribution_render_summary() {
+    $feed = tcdist_feed_state();
+    $settings = tcdist_feed_settings();
+    $sitemap = tcdist_sitemap_get_sitemap_report();
+    $channels = tcdist_feed_channels();
+    $enabled = (array) ( $settings['enabled_channels'] ?? array() );
+    $labels = array();
+    foreach ( $enabled as $key ) {
+        if ( isset( $channels[ $key ]['label'] ) ) {
+            $labels[] = $channels[ $key ]['label'];
+        }
+    }
     ?>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1200px;">
-        <div class="card" style="padding:18px;max-width:none;">
-            <h2 style="margin-top:0;"><?php esc_html_e( 'Commercial Feeds', 'taxocommerce-distribution' ); ?></h2>
-            <p><strong><?php esc_html_e( 'Status:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( (string) ( $feed_state['status'] ?? 'never' ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Processed:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['processed'] ?? 0 ) ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Published:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $feed_state['written'] ?? 0 ) ) ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'feeds' ) ); ?>"><?php esc_html_e( 'Open feeds', 'taxocommerce-distribution' ); ?></a></p>
-        </div>
-
-        <div class="card" style="padding:18px;max-width:none;">
-            <h2 style="margin-top:0;"><?php esc_html_e( 'Active channels', 'taxocommerce-distribution' ); ?></h2>
-            <p style="font-size:28px;margin:8px 0;"><strong><?php echo esc_html( number_format_i18n( count( $enabled ) ) ); ?></strong></p>
-            <p><?php
-            $labels = array();
-            foreach ( $enabled as $key ) {
-                if ( isset( $channels[ $key ]['label'] ) ) {
-                    $labels[] = $channels[ $key ]['label'];
-                }
-            }
-            echo esc_html( implode( ' · ', $labels ) );
-            ?></p>
-        </div>
-
-        <div class="card" style="padding:18px;max-width:none;">
-            <h2 style="margin-top:0;"><?php esc_html_e( 'Sitemaps', 'taxocommerce-distribution' ); ?></h2>
-            <p><strong><?php esc_html_e( 'Index:', 'taxocommerce-distribution' ); ?></strong> <?php echo ! empty( $sitemap['main_valid'] ) ? '<span style="color:#1d6b43">Valid</span>' : '<span style="color:#b32d2e">Review</span>'; ?></p>
-            <p><strong><?php esc_html_e( 'Published URLs:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( absint( $sitemap['total_urls'] ?? 0 ) ) ); ?></p>
-            <p><strong><?php esc_html_e( 'Files:', 'taxocommerce-distribution' ); ?></strong> <?php echo esc_html( number_format_i18n( count( (array) ( $sitemap['files'] ?? array() ) ) ) ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( taxocommerce_distribution_url( 'sitemaps' ) ); ?>"><?php esc_html_e( 'Open sitemaps', 'taxocommerce-distribution' ); ?></a></p>
-        </div>
-    </div>
-
-    <div class="card" style="padding:20px;max-width:1200px;margin-top:18px;">
-        <h2 style="margin-top:0;"><?php esc_html_e( 'Plugin responsibility', 'taxocommerce-distribution' ); ?></h2>
-        <p><?php esc_html_e( 'Distribution publishes the catalog to external systems. It does not edit templates, campaigns, social media, or editorial content.', 'taxocommerce-distribution' ); ?></p>
-        <p><strong><?php esc_html_e( 'Feeds:', 'taxocommerce-distribution' ); ?></strong> Google Merchant Center, Microsoft/Bing Shopping, Pinterest, and universal formats.</p>
-        <p><strong><?php esc_html_e( 'Sitemaps:', 'taxocommerce-distribution' ); ?></strong> products, categories, posts, pages, clusters, and hubs with a stable XML index.</p>
+    <div class="notice notice-info inline" style="margin:12px 0;padding:9px 13px;max-width:1200px;" aria-label="<?php esc_attr_e( 'Resumen de publicación', 'taxocommerce-distribution' ); ?>">
+        <p style="margin:0 0 5px;">
+            <strong><?php esc_html_e( 'Feeds comerciales:', 'taxocommerce-distribution' ); ?></strong>
+            <?php echo esc_html( (string) ( $feed['status'] ?? 'never' ) ); ?>
+            · <?php esc_html_e( 'Productos publicados:', 'taxocommerce-distribution' ); ?>
+            <?php echo esc_html( number_format_i18n( absint( $feed['written'] ?? 0 ) ) ); ?>
+            · <strong><?php esc_html_e( 'Canales activos:', 'taxocommerce-distribution' ); ?></strong>
+            <?php echo esc_html( number_format_i18n( count( $enabled ) ) ); ?>
+        </p>
+        <p style="margin:0;">
+            <strong><?php esc_html_e( 'Índice XML:', 'taxocommerce-distribution' ); ?></strong>
+            <?php echo ! empty( $sitemap['main_valid'] ) ? esc_html__( 'Válido', 'taxocommerce-distribution' ) : esc_html__( 'Revisar', 'taxocommerce-distribution' ); ?>
+            · <?php esc_html_e( 'URL publicadas:', 'taxocommerce-distribution' ); ?>
+            <?php echo esc_html( number_format_i18n( absint( $sitemap['total_urls'] ?? 0 ) ) ); ?>
+            · <?php esc_html_e( 'Archivos:', 'taxocommerce-distribution' ); ?>
+            <?php echo esc_html( number_format_i18n( count( (array) ( $sitemap['files'] ?? array() ) ) ) ); ?>
+        </p>
+        <?php if ( $labels ) : ?>
+            <p class="description" style="margin:5px 0 0;"><?php echo esc_html( implode( ' · ', $labels ) ); ?></p>
+        <?php endif; ?>
     </div>
     <?php
 }
