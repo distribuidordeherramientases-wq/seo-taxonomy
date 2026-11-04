@@ -1314,3 +1314,23 @@ msgstr ""
 #: includes/admin.php includes/feeds/admin.php
 msgid "Versión"
 msgstr ""
+
+#: includes/feeds/admin.php
+msgid "Not started"
+msgstr ""
+
+#: includes/feeds/admin.php
+msgid "Running"
+msgstr ""
+
+#: includes/feeds/admin.php
+msgid "Completed"
+msgstr ""
+
+#: includes/feeds/admin.php
+msgid "Failed"
+msgstr ""
+
+#: includes/feeds/admin.php
+msgid "Stopped"
+msgstr ""
