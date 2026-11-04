@@ -130,7 +130,7 @@ if (!function_exists('dht_landing_v6_product_image')) {
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
-                     FROM {$usage_table}
+                     FROM %i
                      WHERE object_type = 'product'
                        AND object_id = %d
                        AND attachment_id IS NOT NULL
@@ -143,7 +143,7 @@ if (!function_exists('dht_landing_v6_product_image')) {
                          ELSE 9
                        END ASC,
                        fecha DESC
-                     LIMIT 12",
+                     LIMIT 12", $usage_table,
                     $product_id
                 )
             );
@@ -169,13 +169,13 @@ if (!function_exists('dht_landing_v6_product_image')) {
             $supplier_url = $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
-                     LIMIT 1",
+                     LIMIT 1", $supplier_table,
                     $product_id
                 )
             );
@@ -290,12 +290,12 @@ if (!function_exists('dht_landing_v6_hub_image')) {
         $term_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
-                 FROM {$wpdb->prefix}seo_relations
+                 FROM %i
                  WHERE source_type = 'hub_secondary'
                    AND source_id = %d
                    AND target_type = 'product_cat'
                    AND relation_type = 'hub_secondary_to_category'
-                 ORDER BY id ASC",
+                 ORDER BY id ASC", $wpdb->prefix . 'seo_relations',
                 $hub_id
             )
         );
@@ -347,15 +347,15 @@ if (!function_exists('dht_landing_v6_img')) {
 $related_cat_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT DISTINCT r.target_id
-         FROM {$relations_table} r
-         INNER JOIN {$wpdb->term_taxonomy} tt
+         FROM %i r
+         INNER JOIN %i tt
             ON tt.term_id = r.target_id
            AND tt.taxonomy = 'product_cat'
          WHERE r.source_type = 'landing'
            AND r.source_id = %d
            AND r.target_type = 'product_cat'
            AND r.relation_type = 'landing_to_category'
-         ORDER BY r.id ASC",
+         ORDER BY r.id ASC", $relations_table, $wpdb->term_taxonomy,
         $post_id
     )
 );
