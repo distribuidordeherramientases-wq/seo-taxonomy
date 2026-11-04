@@ -1560,3 +1560,23 @@ msgstr "Publica feeds comerciales y sitemaps XML de tu catálogo."
 #: includes/admin-branding.php
 msgid "Versión"
 msgstr "Versión"
+
+#: includes/feeds/admin.php
+msgid "Not started"
+msgstr "Sin iniciar"
+
+#: includes/feeds/admin.php
+msgid "Running"
+msgstr "En ejecución"
+
+#: includes/feeds/admin.php
+msgid "Completed"
+msgstr "Completado"
+
+#: includes/feeds/admin.php
+msgid "Failed"
+msgstr "Fallido"
+
+#: includes/feeds/admin.php
+msgid "Stopped"
+msgstr "Detenido"
