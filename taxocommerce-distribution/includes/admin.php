@@ -249,21 +249,21 @@ function taxocommerce_distribution_render_summary() {
         }
     }
     ?>
-    <div class="notice notice-info inline" style="margin:12px 0;padding:9px 13px;max-width:1200px;" aria-label="<?php esc_attr_e( 'Resumen de publicación', 'taxocommerce-distribution' ); ?>">
+    <div class="notice notice-info inline" style="margin:12px 0;padding:9px 13px;max-width:1200px;" aria-label="<?php esc_attr_e( 'Publishing summary', 'taxocommerce-distribution' ); ?>">
         <p style="margin:0 0 5px;">
-            <strong><?php esc_html_e( 'Feeds comerciales:', 'taxocommerce-distribution' ); ?></strong>
+            <strong><?php esc_html_e( 'Commercial feeds:', 'taxocommerce-distribution' ); ?></strong>
             <?php echo esc_html( (string) ( $feed['status'] ?? 'never' ) ); ?>
-            · <?php esc_html_e( 'Productos publicados:', 'taxocommerce-distribution' ); ?>
+            · <?php esc_html_e( 'Published products:', 'taxocommerce-distribution' ); ?>
             <?php echo esc_html( number_format_i18n( absint( $feed['written'] ?? 0 ) ) ); ?>
-            · <strong><?php esc_html_e( 'Canales activos:', 'taxocommerce-distribution' ); ?></strong>
+            · <strong><?php esc_html_e( 'Active channels:', 'taxocommerce-distribution' ); ?></strong>
             <?php echo esc_html( number_format_i18n( count( $enabled ) ) ); ?>
         </p>
         <p style="margin:0;">
-            <strong><?php esc_html_e( 'Índice XML:', 'taxocommerce-distribution' ); ?></strong>
-            <?php echo ! empty( $sitemap['main_valid'] ) ? esc_html__( 'Válido', 'taxocommerce-distribution' ) : esc_html__( 'Revisar', 'taxocommerce-distribution' ); ?>
-            · <?php esc_html_e( 'URL publicadas:', 'taxocommerce-distribution' ); ?>
+            <strong><?php esc_html_e( 'XML index:', 'taxocommerce-distribution' ); ?></strong>
+            <?php echo ! empty( $sitemap['main_valid'] ) ? esc_html__( 'Valid', 'taxocommerce-distribution' ) : esc_html__( 'Review', 'taxocommerce-distribution' ); ?>
+            · <?php esc_html_e( 'Published URLs:', 'taxocommerce-distribution' ); ?>
             <?php echo esc_html( number_format_i18n( absint( $sitemap['total_urls'] ?? 0 ) ) ); ?>
-            · <?php esc_html_e( 'Archivos:', 'taxocommerce-distribution' ); ?>
+            · <?php esc_html_e( 'Files:', 'taxocommerce-distribution' ); ?>
             <?php echo esc_html( number_format_i18n( count( (array) ( $sitemap['files'] ?? array() ) ) ) ); ?>
         </p>
         <?php if ( $labels ) : ?>
@@ -443,7 +443,7 @@ function taxocommerce_distribution_render_sitemaps() {
                 ?>
                 <tr>
                     <td><a href="<?php echo esc_url( (string) $file['url'] ); ?>" target="_blank" rel="noopener"><code><?php echo esc_html( (string) $file['filename'] ); ?></code></a></td>
-                    <td><?php echo ! empty( $file['valid'] ) ? '<span style="color:#1d6b43;font-weight:700">Valid</span>' : '<span style="color:#b32d2e;font-weight:700">Invalid</span>'; ?></td>
+                    <td><?php echo ! empty( $file['valid'] ) ? '<span style="color:#1d6b43;font-weight:700">' . esc_html__( 'Valid', 'taxocommerce-distribution' ) . '</span>' : '<span style="color:#b32d2e;font-weight:700">' . esc_html__( 'Invalid', 'taxocommerce-distribution' ) . '</span>'; ?></td>
                     <td><?php echo esc_html( number_format_i18n( $count ) ); ?></td>
                     <?php if ( $is_index ) : ?>
                         <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
