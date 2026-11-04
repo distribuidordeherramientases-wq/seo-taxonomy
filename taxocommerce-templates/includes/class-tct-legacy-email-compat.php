@@ -28,12 +28,12 @@ final class TCT_Legacy_Email_Compat {
         }
 
         $rows = (array)$wpdb->get_results(
-            "SELECT mail.mail_key, tpl.template_file
-             FROM {$mail} AS mail
-             INNER JOIN {$templates} AS tpl
+            $wpdb->prepare("SELECT mail.mail_key, tpl.template_file
+             FROM %i AS mail
+             INNER JOIN %i AS tpl
                ON tpl.template_key = mail.template_key
              WHERE mail.is_enabled = 1
-               AND tpl.is_active = 1"
+               AND tpl.is_active = 1", $mail, $templates)
         );
         $result = array();
         foreach ($rows as $row) {

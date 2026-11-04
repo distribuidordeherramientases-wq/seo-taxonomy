@@ -1,3 +1,10 @@
+## [0.4.13] — 2026-11-04
+
+- Corregidos los **32 errores SQL** detectados por Plugin Check (22:23:34) en 16 archivos: correo heredado y plantillas front, shop, landing, página, post, producto, categoría y soluciones, tanto móvil como escritorio (#2187).
+- Consultas con identificadores de tablas enlazados mediante `$wpdb->prepare()` y marcadores `%i` (WordPress 6.5+). Se conservan filtros, parámetros numéricos, JOIN, ordenación, resultados y rutas existentes; también el SQL construido de entradas relacionadas.
+- Prueba de regresión de los 32 puntos y comprobación de sintaxis de las plantillas ejecutables en CI. No se crean trabajos automáticos de AutoCheck ni se modifica producción.
+- Quedan pendientes un nuevo Plugin Check del plugin desplegado, advertencias de seguridad/rendimiento y la separación del editor PHP privado antes de WordPress.org.
+
 ## [0.4.12] — 2026-11-04
 
 - Corregidas las 12 incidencias ERROR del informe Plugin Check en cuatro archivos: auditoría CSV, lectura de router, editor de archivos y descarga de plantillas mediante las APIs de WordPress (`WP_Filesystem`, `wp_delete_file`).

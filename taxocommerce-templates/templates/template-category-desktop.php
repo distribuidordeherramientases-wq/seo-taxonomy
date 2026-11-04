@@ -75,13 +75,13 @@ global $wpdb;
 $excerpt = (string) $wpdb->get_var(
     $wpdb->prepare(
         "SELECT keywords
-         FROM {$wpdb->prefix}seo_nodes
+         FROM %i
          WHERE object_type = 'category'
            AND object_id = %d
            AND seo_role = 'excerpt'
            AND status = 1
          ORDER BY updated_at DESC, id DESC
-         LIMIT 1",
+         LIMIT 1", $wpdb->prefix . 'seo_nodes',
         $term->term_id
     )
 );
@@ -93,13 +93,13 @@ if (trim(wp_strip_all_tags($excerpt)) === '') {
 $keywords = (string) $wpdb->get_var(
     $wpdb->prepare(
         "SELECT keywords
-         FROM {$wpdb->prefix}seo_nodes
+         FROM %i
          WHERE object_type = 'category'
            AND object_id = %d
            AND seo_role = 'category'
            AND status = 1
          ORDER BY id DESC
-         LIMIT 1",
+         LIMIT 1", $wpdb->prefix . 'seo_nodes',
         $term->term_id
     )
 );
@@ -107,13 +107,13 @@ $keywords = (string) $wpdb->get_var(
 $category_description = (string) $wpdb->get_var(
     $wpdb->prepare(
         "SELECT keywords
-         FROM {$wpdb->prefix}seo_nodes
+         FROM %i
          WHERE object_type = 'category'
            AND object_id = %d
            AND seo_role = 'description'
            AND status = 1
          ORDER BY updated_at DESC, id DESC
-         LIMIT 1",
+         LIMIT 1", $wpdb->prefix . 'seo_nodes',
         $term->term_id
     )
 );
@@ -133,11 +133,11 @@ $faq_table = $wpdb->prefix . 'seo_faq';
 $category_faqs = (array) $wpdb->get_results(
     $wpdb->prepare(
         "SELECT id, question, answer
-         FROM {$faq_table}
+         FROM %i
          WHERE object_type = %d
            AND object_id = %d
            AND active = 1
-         ORDER BY sort_order ASC, id ASC",
+         ORDER BY sort_order ASC, id ASC", $faq_table,
         2,
         $term->term_id
     )
@@ -647,13 +647,13 @@ $json = array(
                         $related_description_html = (string) $wpdb->get_var(
                             $wpdb->prepare(
                                 "SELECT keywords
-                                 FROM {$wpdb->prefix}seo_nodes
+                                 FROM %i
                                  WHERE object_type = 'category'
                                    AND object_id = %d
                                    AND seo_role = 'description'
                                    AND status = 1
                                  ORDER BY id DESC
-                                 LIMIT 1",
+                                 LIMIT 1", $wpdb->prefix . 'seo_nodes',
                                 $related_category->term_id
                             )
                         );
