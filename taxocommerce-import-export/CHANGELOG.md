@@ -10,6 +10,14 @@
 
 # CHANGELOG — TaxoCommerce Import-Export - Import & Export for WooCommerce
 
+## [0.4.15] — 2026-11-04
+
+- Issue #2157: Autocheck reducido a dos acciones manuales, «Ejecutar Autocheck» y «Descargar resultados (JSON)», igual que Distribution. Conserva los 35 casos, la última ejecución por usuario/sitio y el esquema JSON existente con fecha, versión y resultados.
+- Eliminados de la interfaz y de las nuevas escrituras los pasos y comparaciones ANTES/DESPUÉS, los botones de chequeos por grupo y la doble descarga. La información histórica no se elimina y sigue siendo válida para comparaciones manuales entre JSON.
+- Eliminada la segunda cabecera de administración; se conserva la cabecera común autónoma, pestañas y funcionalidades originales.
+- Regresión aislada verifica dos controles, aislamiento de informes por sitio, fecha visible y no ejecución de importaciones, además de las verificaciones de carga y cola anteriores.
+
+
 ## [0.4.13] — 2026-11-03
 
 - Cabecera común de la familia basada en Core: icono, nombre, descripción, versión y diseño adaptable.
