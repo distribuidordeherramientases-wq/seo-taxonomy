@@ -114,6 +114,7 @@ class PackagingTests(unittest.TestCase):
                     "taxocommerce-templates/taxocommerce-templates.php",
                 ])
                 self.assertIsNone(archive.testzip())
+            stream.seek(0)
             digest = hashlib.sha256(stream.read()).hexdigest()
             self.assertEqual(digest, report["sha256"])
         finally:
