@@ -384,8 +384,21 @@ final class TaxoCommerce_Templates {
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('X-Content-Type-Options: nosniff');
-        header('Content-Length: ' . filesize($path));
-        readfile($path);
+        // WP_Filesystem allows the download without using direct readfile().
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        global $wp_filesystem;
+        if (!$wp_filesystem && !WP_Filesystem()) {
+            wp_die(esc_html__('No se pudo acceder al archivo solicitado.', 'taxocommerce-templates'));
+        }
+        $contents = $wp_filesystem->get_contents($path);
+        if (false === $contents) {
+            wp_die(esc_html__('No se pudo leer la plantilla.', 'taxocommerce-templates'));
+        }
+        header('Content-Length: ' . strlen($contents));
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Authorized PHP file download, never an HTML response.
+        echo $contents;
         exit;
     }
 
