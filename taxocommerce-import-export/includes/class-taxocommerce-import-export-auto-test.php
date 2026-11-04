@@ -166,7 +166,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'version' => TAXOCOMMERCE_IMPORT_EXPORT_VERSION,
             'wordpress' => isset( $wp_version ) ? (string) $wp_version : '',
             'php' => PHP_VERSION,
-            'date' => current_time( 'mysql' ),
+            'date' => current_time( 'mysql' ), 'executed_at' => gmdate( 'c' ),
             'timestamp' => time(),
             'duration_ms' => (int) round( 1000 * ( microtime( true ) - $start ) ),
             'totals' => $totals,
@@ -603,7 +603,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
                 <div class="tc-ie-at-panel">
                     <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-import-export' ); ?></h3>
                     <?php if ( $before ) : ?>
-                        <p><?php echo esc_html( (string) $before['date'] . ' · v' . (string) $before['version'] ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-import-export' ) . ' ' . (string) $before['date'] . ' · v' . (string) $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
                         <?php self::download_button( 'before', 'Descargar ANTES (JSON)' ); ?>
                     <?php else : ?>
@@ -613,7 +613,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
                 <div class="tc-ie-at-panel">
                     <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-import-export' ); ?></h3>
                     <?php if ( $last ) : ?>
-                        <p><?php echo esc_html( (string) $last['date'] . ' · v' . (string) $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-import-export' ) . ' ' . (string) $last['date'] . ' · v' . (string) $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
                         <p><?php echo esc_html( 'Fase: ' . (string) $last['phase'] . ' · Grupo: ' . (string) $last['group'] ); ?></p>
                         <?php self::download_button( 'latest', 'Descargar último (JSON)' ); ?>
                     <?php else : ?>
