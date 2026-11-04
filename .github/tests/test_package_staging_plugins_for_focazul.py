@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import posixpath
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
@@ -149,6 +150,49 @@ class MirrorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             mirror.mirror(self.ftp, src, dst)
         self.assertNotIn(dst + "/taxocommerce-templates.zip", self.ftp.files)
+
+    def test_publish_built_families_to_both_canonical_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            manifests = {}
+            for slug, version in (("taxocommerce-templates", "0.4.11"),
+                                  ("taxocommerce-distribution", "0.1.6")):
+                content = archive(slug, version)
+                (Path(temp) / (slug + ".zip")).write_bytes(content)
+                manifests[slug] = mirror.verify_zip(slug, content)
+            (Path(temp) / "manifest.json").write_text(
+                json.dumps({"schema": 1, "plugins": manifests, "generated_utc": "2026-11-04T20:00:00Z"})
+                + "\n", encoding="utf-8")
+            report = mirror.publish_built_repository(self.ftp, "/home/public_html", temp)
+            self.assertEqual(report["count"], 2)
+            src, dst = self.ftp.source(), self.ftp.destination()
+            for slug in manifests:
+                filename = slug + ".zip"
+                self.assertEqual(self.ftp.files[src + "/" + filename],
+                                 self.ftp.files[dst + "/" + filename])
+                self.assertEqual(hashlib.sha256(self.ftp.files[dst + "/" + filename]).hexdigest(),
+                                 manifests[slug]["sha256"])
+            self.assertEqual(self.ftp.files[src + "/manifest.json"],
+                             self.ftp.files[dst + "/manifest.json"])
+            self.assertEqual(report["sites"][mirror.SOURCE_SITE]["manifest"], "UPDATED")
+            self.assertEqual(report["sites"][mirror.DESTINATION_SITE]["manifest"], "UPDATED")
+            # Rerun must be idempotent, including existing canonical ZIP files.
+            again = mirror.publish_built_repository(self.ftp, "/home/public_html", temp)
+            self.assertTrue(all(v["status"] == "UNCHANGED"
+                                for site in again["sites"].values()
+                                for v in site["plugins"].values()))
+
+    def test_reject_built_repository_with_wrong_checksums_before_upload(self):
+        with tempfile.TemporaryDirectory() as temp:
+            slug = "taxocommerce-templates"
+            (Path(temp) / (slug + ".zip")).write_bytes(archive(slug, "0.4.11"))
+            (Path(temp) / "manifest.json").write_text(json.dumps({
+                "schema": 1, "plugins": {
+                    slug: {"version": "0.4.11", "size": 1, "sha256": "0" * 64}
+                }
+            }), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                mirror.publish_built_repository(self.ftp, "/home/public_html", temp)
+            self.assertFalse(any(action in ("STOR", "RENAME") for action, _ in self.ftp.calls))
 
     def test_traversal_and_missing_entrypoint_rejected(self):
         data = io.BytesIO()
