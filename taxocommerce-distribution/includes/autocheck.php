@@ -276,7 +276,7 @@ function taxocommerce_distribution_render_autocheck() {
             'schema' => 1,
             'plugin' => 'taxocommerce-distribution',
             'version' => defined( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) ? constant( 'TAXOCOMMERCE_DISTRIBUTION_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
@@ -287,6 +287,7 @@ function taxocommerce_distribution_render_autocheck() {
         echo '<input type="hidden" name="action" value="taxocommerce_distribution_autocheck_json">';
         wp_nonce_field( 'taxocommerce_distribution_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-distribution' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-distribution' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) ) . '</p>';
         echo '</form>';
         $counts = array( 'ok' => 0, 'warning' => 0, 'error' => 0 );
         foreach ( $checks as $check ) {
