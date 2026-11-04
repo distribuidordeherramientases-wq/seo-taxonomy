@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.10
+Stable tag: 0.4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,7 +46,21 @@ The association-audit panel compares old and new file locations, roles without t
 
 Use `tct_request_definitions` to extend named request definitions and `tct_request_candidates` to customise frontend request resolution precedence. Request types not using `template_include` or the native WooCommerce template hooks need their own dedicated integration.
 
+== Manuals ==
+
+Open the Manual tab in Templates to read two integrated guides without executing diagnostics or changing settings:
+
+* User manual: safe policy activation, route assignment, filters, countries, desktop/mobile drafts, trusted PHP library, existing SEO roles, migration audit and voluntary Autocheck.
+* Technical manual: class/file map, tables and options, hooks and routing precedence, security, WordPress/WooCommerce fallbacks, plugin integration, QA, maintenance and troubleshooting.
+
+Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
+
 == Changelog ==
+
+= 0.4.11 =
+* Add the integrated Manual tab with detailed User Manual and Technical Manual, anchored contents, troubleshooting and a read-only permissioned smoke test.
+* Document existing behaviour only; no public template filters, stored route assignments or business operations changed.
+
 
 = 0.4.10 =
 * Nueva pestaña «Autocheck» independiente: comprueba clases, rutas, tablas y políticas sin cambiar plantillas; exporta JSON autenticado.
