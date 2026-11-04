@@ -46,7 +46,7 @@ function tccampaigns_render_autotest() {
             'schema' => 1,
             'plugin' => 'taxocommerce-campaigns',
             'version' => defined( 'TAXOCOMMERCE_CAMPAIGNS_VERSION' ) ? constant( 'TAXOCOMMERCE_CAMPAIGNS_VERSION' ) : '',
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'totals' => $autocheck_totals,
             'rows' => $checks,
         );
@@ -57,6 +57,7 @@ function tccampaigns_render_autotest() {
         echo '<input type="hidden" name="action" value="taxocommerce_campaigns_autocheck_json">';
         wp_nonce_field( 'taxocommerce_campaigns_autocheck_json' );
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-campaigns' ), 'secondary', 'submit', false );
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-campaigns' ) . '</strong> ' . esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $autocheck_report['executed_at'] ) ) ) . '</p>';
         echo '</form>';
     echo '<table class="widefat striped" style="margin-top:16px">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Comprobación', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-campaigns' ) . '</th>' . '<th>' . esc_html__( 'Detalle', 'taxocommerce-campaigns' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
     foreach ($checks as $check) {
