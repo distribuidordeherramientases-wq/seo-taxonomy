@@ -157,7 +157,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             'wordpress' => isset( $wp_version ) ? (string) $wp_version : '',
             'php' => PHP_VERSION,
             'timestamp' => time(),
-            'date_utc' => gmdate( 'c' ),
+            'date_utc' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -611,7 +611,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-logistica' ); ?></h3>
                     <?php if ( $before ) : ?>
-                        <p><?php echo esc_html( (string) $before['date_utc'] . ' · v' . (string) $before['version'] ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-logistica' ) . ' ' . ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $before['date_utc'] ) ) : $before['date_utc'] . ' (UTC)' ) . ' · v' . (string) $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
                         <?php self::download_button( 'before', 'Descargar ANTES (JSON)' ); ?>
                     <?php else : ?>
@@ -621,7 +621,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-logistica' ); ?></h3>
                     <?php if ( $latest ) : ?>
-                        <p><?php echo esc_html( (string) $latest['date_utc'] . ' · v' . (string) $latest['version'] ); ?></p>
+                        <p><?php echo esc_html( __( 'Fecha de ejecución:', 'taxocommerce-logistica' ) . ' ' . ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $latest['date_utc'] ) ) : $latest['date_utc'] . ' (UTC)' ) . ' · v' . (string) $latest['version'] ); ?></p>
                         <p><?php echo esc_html( (string) $latest['phase'] . ' · ' . (string) $latest['group'] . ' · ' . absint( $latest['duration_ms'] ) . ' ms' ); ?></p>
                         <?php self::download_button( 'latest', 'Descargar último (JSON)' ); ?>
                     <?php else : ?>
