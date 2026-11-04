@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.10
+ * Version: 0.4.11
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.10');
+define('TCT_VERSION','0.4.11');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -28,6 +28,7 @@ require_once TCT_DIR . 'includes/class-tct-routing-admin.php';
 require_once TCT_DIR . 'includes/class-tct-designs.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-autocheck.php';
+require_once TCT_DIR . 'includes/class-tct-manual.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
 
@@ -399,15 +400,16 @@ final class TaxoCommerce_Templates {
         // The legacy URLs still resolve, preserving form redirects and old bookmarks.
         $tab = isset($_GET['tab']) && is_string($_GET['tab'])
             ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
-        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck'), true)) {
+        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck','manual'), true)) {
             $tab = 'routing';
         }
-        $main_tab = 'autocheck' === $tab ? 'autocheck' : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
+        $main_tab = in_array($tab, array('autocheck','manual'), true) ? $tab : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Templates', 'taxocommerce-templates' ) . '</h1>' . '<nav class="nav-tab-wrapper">';
         foreach (array(
             'routing'  => 'Enrutamiento',
             'designer' => 'Diseñador de plantillas',
             'autocheck' => 'Autocheck',
+            'manual' => __( 'Manual', 'taxocommerce-templates' ),
         ) as $key => $label) {
             echo '<a class="nav-tab ' . ($key === $main_tab ? 'nav-tab-active' : '') . '" href="' .
                 esc_url(TCT_Request_Admin::admin_url($key)) . '">' . esc_html($label) . '</a>';
@@ -421,6 +423,8 @@ final class TaxoCommerce_Templates {
 
         if ('autocheck' === $main_tab) {
             TCT_Autocheck::render();
+        } elseif ('manual' === $main_tab) {
+            TCT_Manual::render();
         } elseif ('routing' === $main_tab) {
             if ('audit' === $tab) {
                 TCT_Association_Audit::render();
