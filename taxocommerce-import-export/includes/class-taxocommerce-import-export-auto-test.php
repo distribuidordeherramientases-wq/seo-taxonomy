@@ -5,7 +5,7 @@
  * Tests read in-memory contracts and small snapshots of existing job state.
  * They never call import/export handlers, queue workers, delete controls,
  * cron dispatch, HTTP endpoints, or file-writing methods. Only the test's
- * own two per-user reports are saved to usermeta for deployment comparison.
+ * most recent report is saved per user and site for authenticated JSON export.
  *
  * @package TaxoCommerceImportExport
  */
@@ -15,7 +15,6 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     const ACTION = 'taxocommerce_ie_auto_test_run';
     const DOWNLOAD_ACTION = 'taxocommerce_ie_auto_test_download';
     const NONCE = 'taxocommerce_ie_auto_test';
-    const BASELINE = 'taxocommerce_ie_at_before_';
     const LATEST = 'taxocommerce_ie_at_latest_';
 
     public static function register() {
@@ -44,8 +43,8 @@ final class TaxoCommerce_Import_Export_Auto_Test {
         return current_user_can( $capability ) || current_user_can( 'manage_options' );
     }
 
-    private static function meta_key( $which ) {
-        return ( 'before' === $which ? self::BASELINE : self::LATEST ) . get_current_blog_id();
+    private static function meta_key() {
+        return self::LATEST . get_current_blog_id();
     }
 
     private static function site_hash() {
@@ -167,6 +166,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
             'wordpress' => isset( $wp_version ) ? (string) $wp_version : '',
             'php' => PHP_VERSION,
             'date' => current_time( 'mysql' ),
+            'executed_at' => gmdate( 'c' ),
             'timestamp' => time(),
             'duration_ms' => (int) round( 1000 * ( microtime( true ) - $start ) ),
             'totals' => $totals,
@@ -174,86 +174,47 @@ final class TaxoCommerce_Import_Export_Auto_Test {
         );
     }
 
-    public static function compare( $before, $after ) {
-        if ( ! is_array( $before ) || ! is_array( $after ) || empty( $before['site_hash'] )
-            || empty( $after['site_hash'] ) || ! hash_equals( (string) $before['site_hash'], (string) $after['site_hash'] )
-            || ( $before['phase'] ?? '' ) !== 'before' || ( $after['phase'] ?? '' ) !== 'after'
-            || ( $before['group'] ?? '' ) !== 'all' || ( $after['group'] ?? '' ) !== 'all' ) {
-            return null;
-        }
-        $old = array();
-        $new = array();
-        foreach ( (array) ( $before['rows'] ?? array() ) as $row ) {
-            if ( isset( $row['id'], $row['status'] ) ) { $old[ $row['id'] ] = $row['status']; }
-        }
-        foreach ( (array) ( $after['rows'] ?? array() ) as $row ) {
-            if ( isset( $row['id'], $row['status'] ) ) { $new[ $row['id'] ] = $row['status']; }
-        }
-        $changes = array( 'new_failures' => array(), 'resolved' => array(), 'unchanged_failures' => array(), 'coverage_lost' => array(), 'new_checks' => array() );
-        foreach ( $new as $id => $status ) {
-            if ( ! array_key_exists( $id, $old ) ) {
-                $changes['new_checks'][] = $id;
-                if ( 'fail' === $status ) { $changes['new_failures'][] = $id; }
-                continue;
-            }
-            if ( 'fail' === $status ) {
-                $changes[ 'fail' === $old[ $id ] ? 'unchanged_failures' : 'new_failures' ][] = $id;
-            } elseif ( 'fail' === $old[ $id ] && 'pass' === $status ) {
-                $changes['resolved'][] = $id;
-            } elseif ( ( 'pass' === $old[ $id ] || 'fail' === $old[ $id ] )
-                && ( 'skip' === $status || 'not_run' === $status ) ) {
-                $changes['coverage_lost'][] = $id;
-            }
-        }
-        foreach ( $old as $id => $status ) {
-            if ( ! array_key_exists( $id, $new ) ) { $changes['coverage_lost'][] = $id; }
-        }
-        return $changes;
-    }
-
-    private static function get_saved( $which ) {
-        $value = get_user_meta( get_current_user_id(), self::meta_key( $which ), true );
+    /**
+     * Only the last report is retained for this user and current WordPress site.
+     * Historical ANTES/DESPUÉS metadata is neither loaded nor deleted.
+     */
+    private static function get_saved() {
+        $value = get_user_meta( get_current_user_id(), self::meta_key(), true );
         return is_array( $value ) && ! empty( $value['rows'] ) && isset( $value['site_hash'] )
             && hash_equals( self::site_hash(), (string) $value['site_hash'] ) ? $value : array();
     }
 
     public static function handle_run() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-import-export' ) ); }
-        check_admin_referer( self::NONCE, 'tc_ie_auto_nonce' );
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce and capability checked above.
-        $group = isset( $_POST['test_group'] ) && is_string( $_POST['test_group'] )
-            ? sanitize_key( wp_unslash( $_POST['test_group'] ) ) : 'all';
-        $phase = isset( $_POST['test_phase'] ) && is_string( $_POST['test_phase'] )
-            ? sanitize_key( wp_unslash( $_POST['test_phase'] ) ) : 'check';
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
-        if ( 'all' !== $group && ! isset( self::groups()[ $group ] ) ) { $group = 'all'; }
-        if ( ! in_array( $phase, array( 'before', 'after', 'check' ), true ) || 'all' !== $group ) { $phase = 'check'; }
-        $report = self::run_suite( $group );
-        $report['phase'] = $phase;
-        update_user_meta( get_current_user_id(), self::meta_key( 'latest' ), $report );
-        if ( 'before' === $phase ) {
-            update_user_meta( get_current_user_id(), self::meta_key( 'before' ), $report );
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'Sin permisos para ejecutar Autocheck.', 'taxocommerce-import-export' ) );
         }
+        check_admin_referer( self::NONCE, 'tc_ie_auto_nonce' );
+
+        // Always execute the complete, non-destructive suite on explicit request.
+        // Keep historical action names and the latest-report metadata key.
+        update_user_meta( get_current_user_id(), self::meta_key(), self::run_suite( 'all' ) );
         wp_safe_redirect( self::url() );
         exit;
     }
 
     public static function handle_download() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para descargar el autochequeo.', 'taxocommerce-import-export' ) ); }
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'Sin permisos para descargar el Autocheck.', 'taxocommerce-import-export' ) );
+        }
         check_admin_referer( self::NONCE, 'tc_ie_auto_nonce' );
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce checked above.
-        $which = isset( $_POST['report'] ) && is_string( $_POST['report'] )
-            ? sanitize_key( wp_unslash( $_POST['report'] ) ) : 'latest';
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
-        $which = 'before' === $which ? 'before' : 'latest';
-        $report = self::get_saved( $which );
-        if ( ! $report ) { wp_die( esc_html__( 'No existe un informe válido para este sitio.', 'taxocommerce-import-export' ) ); }
+        $report = self::get_saved();
+        if ( ! $report ) {
+            wp_die( esc_html__( 'Ejecuta el Autocheck antes de descargar el JSON.', 'taxocommerce-import-export' ) );
+        }
+
         $json = wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
-        if ( false === $json ) { wp_die( esc_html__( 'No se ha podido generar el JSON.', 'taxocommerce-import-export' ) ); }
+        if ( ! is_string( $json ) ) {
+            wp_die( esc_html__( 'No se ha podido generar el JSON.', 'taxocommerce-import-export' ) );
+        }
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'X-Content-Type-Options: nosniff' );
-        header( 'Content-Disposition: attachment; filename="taxocommerce-import-export-autocheck-' . $which . '-' . gmdate( 'Ymd-His' ) . '.json"' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-import-export-autocheck-' . gmdate( 'Ymd-His' ) . '.json"' );
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Intentional JSON download, not HTML.
         echo $json;
         exit;
@@ -545,9 +506,9 @@ final class TaxoCommerce_Import_Export_Auto_Test {
 
     private static function check_reports() {
         return function_exists( 'get_user_meta' ) && function_exists( 'update_user_meta' )
-            && self::meta_key( 'before' ) !== self::meta_key( 'latest' )
-            ? self::pass( 'Resultados aislados por administrador/sitio; no incluyen contenidos ni rutas de CSV.' )
-            : self::fail( 'No se puede conservar el historial de autochequeos.' );
+            && function_exists( 'get_current_blog_id' ) && '' !== self::meta_key()
+            ? self::pass( 'Último informe aislado por administrador/sitio; no incluye CSV ni credenciales.' )
+            : self::fail( 'No se puede conservar el último informe de Autocheck.' );
     }
 
     private static function check_real_import() { return self::skip( 'No se importan filas reales. Validar con un CSV pequeño en staging.' ); }
@@ -555,100 +516,70 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     private static function check_real_media() { return self::skip( 'No se crean attachments. Validar un ZIP de prueba y sus relaciones en staging.' ); }
     private static function check_real_queue() { return self::skip( 'No se inicia la cola. Comprobar reanudación real y cron en staging.' ); }
 
-    private static function button( $group, $phase, $label, $primary = false ) {
-        ?>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tc-ie-at-form">
-            <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
-            <input type="hidden" name="test_group" value="<?php echo esc_attr( $group ); ?>">
-            <input type="hidden" name="test_phase" value="<?php echo esc_attr( $phase ); ?>">
-            <?php wp_nonce_field( self::NONCE, 'tc_ie_auto_nonce' ); ?>
-            <button type="submit" class="button <?php echo $primary ? 'button-primary' : 'button-secondary'; ?>"><?php echo esc_html( $label ); ?></button>
-        </form>
-        <?php
-    }
-
-    private static function download_button( $which, $label ) {
-        ?>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tc-ie-at-form">
-            <input type="hidden" name="action" value="<?php echo esc_attr( self::DOWNLOAD_ACTION ); ?>">
-            <input type="hidden" name="report" value="<?php echo esc_attr( $which ); ?>">
-            <?php wp_nonce_field( self::NONCE, 'tc_ie_auto_nonce' ); ?>
-            <button type="submit" class="button button-secondary"><?php echo esc_html( $label ); ?></button>
-        </form>
-        <?php
-    }
-
     public static function render() {
-        if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-import-export' ) ); }
-        $before = self::get_saved( 'before' );
-        $last = self::get_saved( 'latest' );
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-import-export' ) );
+        }
+
+        $last = self::get_saved();
         $cases = self::cases();
         $groups = self::groups();
         $index = array();
         foreach ( (array) ( $last['rows'] ?? array() ) as $row ) {
-            if ( isset( $row['id'] ) ) { $index[ $row['id'] ] = $row; }
+            if ( isset( $row['id'] ) ) {
+                $index[ $row['id'] ] = $row;
+            }
         }
         $totals = $last['totals'] ?? array( 'pass' => 0, 'fail' => 0, 'skip' => 0, 'not_run' => count( $cases ) );
-        $comparison = $before && $last ? self::compare( $before, $last ) : null;
         ?>
         <section class="tc-ie-at" aria-labelledby="tc-ie-at-title">
-            <h2 id="tc-ie-at-title"><?php esc_html_e( 'Autocheck — Import / Export', 'taxocommerce-import-export' ); ?></h2>
-            <p><?php esc_html_e( 'Diagnóstico seguro por módulos para comprobar el plugin antes y después de actualizarlo. No importa productos, no exporta archivos, no ejecuta workers ni cambia opciones del catálogo.', 'taxocommerce-import-export' ); ?></p>
+            <h2 id="tc-ie-at-title"><?php esc_html_e( 'Autocheck de Import-Export', 'taxocommerce-import-export' ); ?></h2>
+            <p><?php esc_html_e( 'Diagnóstico manual y no destructivo: comprueba las funciones y la configuración sin importar ni exportar archivos, ejecutar workers ni modificar productos.', 'taxocommerce-import-export' ); ?></p>
             <div class="tc-ie-at-actions">
-                <?php self::button( 'all', 'before', '1. Guardar estado ANTES', true ); ?>
-                <?php self::button( 'all', 'after', '2. Comprobar DESPUÉS' ); ?>
-                <?php self::button( 'all', 'check', 'Ejecutar chequeo completo' ); ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tc-ie-at-form">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
+                    <?php wp_nonce_field( self::NONCE, 'tc_ie_auto_nonce' ); ?>
+                    <button type="submit" class="button button-secondary"><?php esc_html_e( 'Ejecutar Autocheck', 'taxocommerce-import-export' ); ?></button>
+                </form>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tc-ie-at-form">
+                    <input type="hidden" name="action" value="<?php echo esc_attr( self::DOWNLOAD_ACTION ); ?>">
+                    <?php wp_nonce_field( self::NONCE, 'tc_ie_auto_nonce' ); ?>
+                    <button type="submit" class="button button-secondary" <?php disabled( ! $last ); ?>><?php esc_html_e( 'Descargar resultados (JSON)', 'taxocommerce-import-export' ); ?></button>
+                </form>
             </div>
-            <div class="tc-ie-at-baselines">
-                <div class="tc-ie-at-panel">
-                    <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-import-export' ); ?></h3>
-                    <?php if ( $before ) : ?>
-                        <p><?php echo esc_html( (string) $before['date'] . ' · v' . (string) $before['version'] ); ?></p>
-                        <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
-                        <?php self::download_button( 'before', 'Descargar ANTES (JSON)' ); ?>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'Aún no hay referencia. Ejecútala antes de subir la nueva versión.', 'taxocommerce-import-export' ); ?></p>
-                    <?php endif; ?>
-                </div>
-                <div class="tc-ie-at-panel">
-                    <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-import-export' ); ?></h3>
-                    <?php if ( $last ) : ?>
-                        <p><?php echo esc_html( (string) $last['date'] . ' · v' . (string) $last['version'] . ' · ' . absint( $last['duration_ms'] ) . ' ms' ); ?></p>
-                        <p><?php echo esc_html( 'Fase: ' . (string) $last['phase'] . ' · Grupo: ' . (string) $last['group'] ); ?></p>
-                        <?php self::download_button( 'latest', 'Descargar último (JSON)' ); ?>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'Todavía no hay una ejecución.', 'taxocommerce-import-export' ); ?></p>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <div class="tc-ie-at-totals" aria-label="<?php esc_attr_e( 'Resultados', 'taxocommerce-import-export' ); ?>">
-                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span>Correctos</span></div>
-                <div class="tc-ie-at-fail"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span>Errores</span></div>
-                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span>Omitidos / externos</span></div>
-                <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span>No ejecutados</span></div>
-            </div>
-            <?php if ( $comparison ) : ?>
-                <div class="tc-ie-at-panel" role="status">
-                    <h3><?php esc_html_e( 'Comparación de despliegues', 'taxocommerce-import-export' ); ?></h3>
-                    <p><?php echo esc_html( 'Errores nuevos: ' . count( $comparison['new_failures'] ) . ' · Corregidos: ' . count( $comparison['resolved'] ) . ' · Errores previos: ' . count( $comparison['unchanged_failures'] ) . ' · Cobertura perdida: ' . count( $comparison['coverage_lost'] ) . ' · Pruebas nuevas: ' . count( $comparison['new_checks'] ) ); ?></p>
-                    <?php if ( $comparison['new_failures'] || $comparison['coverage_lost'] ) : ?>
-                        <p class="tc-ie-at-alert"><?php echo esc_html( implode( ', ', array_unique( array_merge( $comparison['new_failures'], $comparison['coverage_lost'] ) ) ) ); ?></p>
-                    <?php else : ?>
-                        <p><?php esc_html_e( 'No hay regresiones en las pruebas comparables. Los casos omitidos siguen pendientes de validación real.', 'taxocommerce-import-export' ); ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ( $before && $last ) : ?>
-                <p><?php esc_html_e( 'Ejecuta «Comprobar DESPUÉS» con todos los grupos en el mismo sitio para comparar las versiones.', 'taxocommerce-import-export' ); ?></p>
+
+            <?php if ( $last ) : ?>
+                <p class="tc-ie-at-last">
+                    <strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-import-export' ); ?></strong>
+                    <?php echo esc_html( (string) ( $last['date'] ?? '' ) ); ?>
+                    · <?php echo esc_html( 'v' . (string) ( $last['version'] ?? '' ) ); ?>
+                    · <?php echo esc_html( absint( $last['duration_ms'] ?? 0 ) . ' ms' ); ?>
+                </p>
+            <?php else : ?>
+                <p class="description"><?php esc_html_e( 'Todavía no se ha ejecutado el Autocheck en este sitio.', 'taxocommerce-import-export' ); ?></p>
             <?php endif; ?>
+
+            <div class="tc-ie-at-totals" aria-label="<?php esc_attr_e( 'Resultados', 'taxocommerce-import-export' ); ?>">
+                <div><strong><?php echo esc_html( absint( $totals['pass'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Correctos', 'taxocommerce-import-export' ); ?></span></div>
+                <div class="tc-ie-at-fail"><strong><?php echo esc_html( absint( $totals['fail'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Errores', 'taxocommerce-import-export' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['skip'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'Omitidos / externos', 'taxocommerce-import-export' ); ?></span></div>
+                <div><strong><?php echo esc_html( absint( $totals['not_run'] ?? 0 ) ); ?></strong><span><?php esc_html_e( 'No ejecutados', 'taxocommerce-import-export' ); ?></span></div>
+            </div>
+
             <?php foreach ( $groups as $group => $name ) : ?>
                 <?php
-                $items = array_filter( $cases, static function ( $entry ) use ( $group ) { return $entry[0] === $group; } );
+                $items = array_filter( $cases, static function ( $entry ) use ( $group ) {
+                    return $entry[0] === $group;
+                } );
                 $failed = 0;
-                foreach ( $items as $id => $entry ) { if ( ( $index[ $id ]['status'] ?? '' ) === 'fail' ) { ++$failed; } }
+                foreach ( $items as $id => $entry ) {
+                    if ( ( $index[ $id ]['status'] ?? '' ) === 'fail' ) {
+                        ++$failed;
+                    }
+                }
                 ?>
                 <details class="tc-ie-at-group" <?php echo $failed || ! $last ? 'open' : ''; ?>>
                     <summary><?php echo esc_html( $name . ' · ' . count( $items ) . ' pruebas' . ( $failed ? ' · ' . $failed . ' errores' : '' ) ); ?></summary>
-                    <div class="tc-ie-at-group-control"><?php self::button( $group, 'check', 'Ejecutar este grupo' ); ?></div>
                     <?php foreach ( $items as $id => $entry ) : ?>
                         <?php $row = $index[ $id ] ?? array( 'status' => 'not_run', 'message' => 'Todavía no ejecutada.', 'ms' => 0 ); ?>
                         <div class="tc-ie-at-row">
@@ -661,7 +592,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
                     <?php endforeach; ?>
                 </details>
             <?php endforeach; ?>
-            <p class="description"><?php esc_html_e( 'Aprobado significa que los contratos y lecturas han pasado; no certifica una importación, exportación o restauración real. Utiliza CSV y ZIP de prueba en staging para los casos omitidos.', 'taxocommerce-import-export' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Los controles correctos validan contratos y lecturas, no operaciones reales. Los casos omitidos requieren pruebas manuales con CSV o ZIP en STAGING.', 'taxocommerce-import-export' ); ?></p>
         </section>
         <?php
     }
