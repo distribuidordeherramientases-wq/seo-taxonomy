@@ -158,7 +158,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         }
         return array(
             'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-            'generated_at' => gmdate( 'c' ),
+            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -189,6 +189,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
         $autocheck_report = $report;
         $autocheck_report['plugin'] = 'taxocommerce-system-check';
         $autocheck_report['schema'] = 1;
+        echo '<p><strong>' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-system-check' ) . '</strong> ' . esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( $autocheck_report['executed_at'] ) ) : $autocheck_report['executed_at'] . ' (UTC)' ) ) . '</p>';
         if ( function_exists( 'set_transient' ) && function_exists( 'get_current_blog_id' ) && function_exists( 'get_current_user_id' ) ) {
             set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
