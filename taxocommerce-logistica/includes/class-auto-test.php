@@ -158,6 +158,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
             'php' => PHP_VERSION,
             'timestamp' => time(),
             'date_utc' => gmdate( 'c' ),
+            'executed_at' => gmdate( 'c' ),
             'duration_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -611,6 +612,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Referencia ANTES', 'taxocommerce-logistica' ); ?></h3>
                     <?php if ( $before ) : ?>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-logistica' ); ?></strong> <?php echo esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $before['date_utc'] ) ) ); ?></p>
                         <p><?php echo esc_html( (string) $before['date_utc'] . ' · v' . (string) $before['version'] ); ?></p>
                         <p><?php echo esc_html( absint( $before['totals']['pass'] ) . ' correctas · ' . absint( $before['totals']['fail'] ) . ' errores' ); ?></p>
                         <?php self::download_button( 'before', 'Descargar ANTES (JSON)' ); ?>
@@ -621,6 +623,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 <div>
                     <h3><?php esc_html_e( 'Último chequeo', 'taxocommerce-logistica' ); ?></h3>
                     <?php if ( $latest ) : ?>
+                        <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-logistica' ); ?></strong> <?php echo esc_html( wp_date( 'd/m/Y H:i:s T', strtotime( (string) $latest['date_utc'] ) ) ); ?></p>
                         <p><?php echo esc_html( (string) $latest['date_utc'] . ' · v' . (string) $latest['version'] ); ?></p>
                         <p><?php echo esc_html( (string) $latest['phase'] . ' · ' . (string) $latest['group'] . ' · ' . absint( $latest['duration_ms'] ) . ' ms' ); ?></p>
                         <?php self::download_button( 'latest', 'Descargar último (JSON)' ); ?>
