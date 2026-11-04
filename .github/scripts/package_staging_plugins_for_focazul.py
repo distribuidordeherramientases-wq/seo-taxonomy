@@ -141,7 +141,7 @@ def verify_zip(slug, content):
     }
 
 
-def ftp_root(ftp, home, site):
+def ftp_root(ftp, home, site, create=False):
     ftp.cwd(home)
     ftp.cwd("./" + site + "/wp-content/uploads")
     uploads = ftp.pwd()
@@ -149,7 +149,7 @@ def ftp_root(ftp, home, site):
         try:
             ftp.cwd(part)
         except ftplib.error_perm as exc:
-            if site == SOURCE_SITE or not str(exc).startswith("550"):
+            if not create or not str(exc).startswith("550"):
                 raise
             ftp.mkd(part)
             ftp.cwd(part)
@@ -257,7 +257,66 @@ def mirror(ftp, source, destination):
     return report
 
 
-def run(report_file):
+def publish_built_repository(ftp, home, directory):
+    """Publish *every* repository plugin ZIP to the same uploads path on both sites.
+
+    The ZIPs are built from the staging Git tree by build_taxocommerce_updates.py
+    and validated completely before the first FTPS write.
+    """
+    manifest_path = os.path.join(directory, "manifest.json")
+    with open(manifest_path, "rb") as inp:
+        manifest_bytes = inp.read(512001)
+    if len(manifest_bytes) > 512000:
+        raise ValueError("Local ZIP manifest exceeds safe size")
+    manifest = json.loads(manifest_bytes)
+    if manifest.get("schema") != 1 or not isinstance(manifest.get("plugins"), dict):
+        raise ValueError("Invalid built plugin manifest")
+    expected = manifest["plugins"]
+    if not 1 <= len(expected) <= MAX_PLUGINS:
+        raise ValueError("Unexpected number of plugin packages")
+    packages = {}
+    total = 0
+    for slug in sorted(expected):
+        if not SLUG.fullmatch(slug):
+            raise ValueError("Invalid plugin slug in manifest")
+        info = expected[slug]
+        if not isinstance(info, dict):
+            raise ValueError(slug + ": invalid manifest entry")
+        full_path = os.path.join(directory, slug + ".zip")
+        if os.path.islink(full_path):
+            raise ValueError(slug + ": package is a symlink")
+        with open(full_path, "rb") as archive:
+            content = archive.read(MAX_PACKAGE + 1)
+        if len(content) > MAX_PACKAGE:
+            raise ValueError(slug + ": ZIP exceeds safe size")
+        total += len(content)
+        if total > MAX_TOTAL:
+            raise ValueError("Plugin ZIP collection exceeds safe total")
+        verified = verify_zip(slug, content)
+        for field in ("version", "size", "sha256"):
+            if verified[field] != info.get(field):
+                raise ValueError(slug + ": manifest does not match verified ZIP (" + field + ")")
+        packages[slug] = (content, verified)
+    report = {"source": "staging Git branch plugin packages",
+              "directory": REPOSITORY, "count": len(packages), "sites": {}}
+    for site in (SOURCE_SITE, DESTINATION_SITE):
+        target = ftp_root(ftp, home, site, create=True)
+        results = {}
+        for slug, (content, info) in packages.items():
+            name = slug + ".zip"
+            state = write_atomic(ftp, target, name, content, info["sha256"])
+            results[slug] = {"version": info["version"], "sha256": info["sha256"], "status": state}
+            print(site, state, name, "sha256=" + info["sha256"][:12], flush=True)
+        # Publish authoritative update metadata after all ZIPs on this site
+        # have been written and independently verified.
+        state = write_atomic(ftp, target, "manifest.json", manifest_bytes,
+                             hashlib.sha256(manifest_bytes).hexdigest())
+        report["sites"][site] = {"plugins": results, "manifest": state}
+        print(site, "VERIFIED", len(results), "canonical plugin ZIPs", flush=True)
+    return report
+
+
+def run(report_file, local_packages=None):
     server = os.environ["STAGING_FTP_SERVER"]
     username = os.environ["STAGING_FTP_USERNAME"]
     password = os.environ["STAGING_FTP_PASSWORD"]
@@ -269,9 +328,12 @@ def run(report_file):
         ftp.login(username, password)
         ftp.prot_p()
         home = ftp.pwd()
-        source = ftp_root(ftp, home, SOURCE_SITE)
-        destination = ftp_root(ftp, home, DESTINATION_SITE)
-        report = mirror(ftp, source, destination)
+        if local_packages:
+            report = publish_built_repository(ftp, home, local_packages)
+        else:
+            source = ftp_root(ftp, home, SOURCE_SITE)
+            destination = ftp_root(ftp, home, DESTINATION_SITE)
+            report = mirror(ftp, source, destination)
         with open(report_file, "w", encoding="utf-8") as file:
             json.dump(report, file, indent=2, ensure_ascii=False)
         ftp.quit()
@@ -285,9 +347,10 @@ def run(report_file):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest-file", default="taxocommerce-plugin-packages-report.json")
+    parser.add_argument("--local-packages", help="Validated ZIPs built from staging branch")
     args = parser.parse_args()
     try:
-        run(args.manifest_file)
+        run(args.manifest_file, args.local_packages)
     except (ValueError, OSError, RuntimeError, *ftplib.all_errors) as exc:
         print("::error::STAGING-to-Focazul canonical plugin mirror failed: " + str(exc), file=sys.stderr)
         sys.exit(1)
