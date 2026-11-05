@@ -59,6 +59,8 @@ jobs:
           php taxocommerce-dependiente/tests/clean-install-smoke.php
           php -l taxocommerce-dependiente/tests/first-install-catalog-smoke.php
           php taxocommerce-dependiente/tests/first-install-catalog-smoke.php
+          php -l taxocommerce-dependiente/tests/no-products-runtime-smoke.php
+          php taxocommerce-dependiente/tests/no-products-runtime-smoke.php
           php taxocommerce-distribution/tests/manual-autocheck-smoke.php
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php

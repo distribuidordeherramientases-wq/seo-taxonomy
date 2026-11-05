@@ -288,6 +288,7 @@ final class TCD_Admin {
             'thresholds_invalid'=>array('error','No se han guardado los umbrales: indica diez valores entre 0 y 100, con un decimal como máximo.'),
             'quality_accepted'=>array('success','Lección aceptada expresamente con el umbral configurado. El examen y sus fallos permanecen registrados.'),
             'quality_accept_rejected'=>array('error','No se ha aceptado la lección: revisa el umbral, el estado de la lección y la auditoría disponible.'),
+            'no_products'=>array('error','No hay productos WooCommerce publicados. Añade al menos un producto antes de iniciar o reiniciar el aprendizaje. No se ha eliminado ningún conocimiento.'),
         );
         if(isset($messages[$result])){
             $notice=$messages[$result];
@@ -403,12 +404,14 @@ final class TCD_Admin {
         // La tabla L1-L10 ya muestra el progreso dinámico de la lección activa.
         // Evitamos duplicar aquí una segunda barra; mantenemos solo la
         // autoactualización para que la fila inferior avance en tiempo real.
-        if(
-            'quality'===(string)($state['phase']??'')
-            && ($quality_progress || $identity_backfill_active)
-            && 'running'===(string)($state['status']??'')
-        ){
-            echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
+        if ( 'running' === (string) ( $state['status'] ?? '' ) ) {
+            // The overview must update during snapshot and learning too.
+            // Avoid reloading hidden tabs or while an administrator edits a form.
+            $refresh_ms = (
+                'quality' === (string) ( $state['phase'] ?? '' )
+                && ( $quality_progress || $identity_backfill_active )
+            ) ? 4000 : 20000;
+            echo '<script>window.setTimeout(function(){if(document.visibilityState==="hidden")return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;window.location.reload();},'.absint($refresh_ms).');</script>';
         }
 
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';

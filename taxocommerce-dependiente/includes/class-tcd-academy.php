@@ -215,24 +215,47 @@ final class TCD_Academy {
      *
      * Existing sites and reactivations continue using the explicit Start button.
      */
+
+    /**
+     * Read only one published product, without altering the customer's catalog.
+     * Starting L1-L10 in an entirely empty shop cannot complete L2/L4/L9.
+     */
+    public static function has_published_catalog_products() {
+        if ( ! function_exists( 'post_type_exists' )
+            || ! post_type_exists( 'product' )
+            || ! function_exists( 'get_posts' ) ) {
+            return false;
+        }
+        $products = get_posts( array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'fields' => 'ids',
+            'posts_per_page' => 1,
+            'no_found_rows' => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+        ) );
+        return is_array( $products ) && ! empty( $products );
+    }
+
+    /** Only gate a new source snapshot, never discard an existing frozen snapshot. */
+    private static function requires_catalog_guard( $state ) {
+        $lesson = absint( $state['lesson'] ?? 0 );
+        return $lesson >= 1 && $lesson <= 10
+            && 'snapshot' === (string) ( $state['phase'] ?? '' )
+            && 0 === absint( $state['snapshot_id'] ?? 0 )
+            && 0 === absint( $state['snapshot_cursor'] ?? 0 );
+    }
+
     public static function start_first_install_catalog() {
-        if ( ! function_exists( 'post_type_exists' ) || ! post_type_exists( 'product' ) ||
-            ! function_exists( 'get_posts' ) ) {
+        if ( ! self::has_published_catalog_products() ) {
             return false;
         }
         $state = self::state();
         if ( 'idle' !== (string) ( $state['status'] ?? '' ) || ! empty( $state['run_id'] ) ) {
             return false;
         }
-        // One bounded read: installation must never clone a developer catalogue.
-        $products = get_posts( array(
-            'post_type' => 'product', 'post_status' => 'publish', 'fields' => 'ids',
-            'posts_per_page' => 1, 'no_found_rows' => true,
-            'update_post_meta_cache' => false, 'update_post_term_cache' => false,
-        ) );
-        if ( ! is_array( $products ) || ! $products ) {
-            return false;
-        }
+        // The bounded read-only product check above is shared with manual start.
         // Refuse to start automatically if older knowledge/snapshots survive.
         // A missing state option is not proof that a database is new.
         global $wpdb;
@@ -280,7 +303,19 @@ final class TCD_Academy {
         $state=self::state();
         $result='';
 
-        if('thresholds'===$action){
+        // Do not reset knowledge or schedule work that cannot finish in an
+        // empty WooCommerce installation. In particular, restart is destructive.
+        if (
+            in_array( $action, array( 'start', 'restart' ), true )
+            && ( 'restart' === $action || self::requires_catalog_guard( $state ) )
+            && ! self::has_published_catalog_products()
+        ) {
+            $result = 'no_products';
+            self::log( 'start_blocked_no_products', array(
+                'lesson' => absint( $state['lesson'] ?? 0 ),
+                'action' => $action,
+            ) );
+        }elseif('thresholds'===$action){
             $values=isset($_POST['thresholds']) && is_array($_POST['thresholds'])
                 ? map_deep(wp_unslash($_POST['thresholds']),'sanitize_text_field')
                 : array();
@@ -464,6 +499,24 @@ final class TCD_Academy {
         $lock_started=absint(explode(':',$lock,2)[0]);
         $lock_age=$lock_started?max(0,$now-$lock_started):0;
         if($lock && $lock_age<self::LOCK_TTL)return;
+
+        // A running job with no frozen snapshot and no products cannot
+        // progress to the product-dependent lessons. Surface the reason rather
+        // than keeping the status at "running" forever. Never erase snapshots.
+        if ( self::requires_catalog_guard( $state ) && ! self::has_published_catalog_products() ) {
+            $message = 'No hay productos WooCommerce publicados en esta instalación. Añade al menos un producto y reanuda el aprendizaje.';
+            self::save( array(
+                'status' => 'error',
+                'last_error' => $message,
+                'last_message' => $message,
+            ) );
+            wp_clear_scheduled_hook( self::CRON_HOOK );
+            self::log( 'learning_blocked_no_products', array(
+                'lesson' => absint( $state['lesson'] ?? 0 ),
+                'run' => $run,
+            ) );
+            return;
+        }
 
         $next=wp_next_scheduled(self::CRON_HOOK);
         $cron_repaired=false;
