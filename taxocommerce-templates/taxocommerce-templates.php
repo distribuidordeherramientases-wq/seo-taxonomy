@@ -172,7 +172,7 @@ final class TaxoCommerce_Templates {
     }
     public static function page_role($id) {
         global $wpdb;$table=self::nodes();
-        return (string)$wpdb->get_var($wpdb->prepare("SELECT seo_role FROM {$table} WHERE object_type='page' AND object_id=%d AND status=1 ORDER BY id DESC LIMIT 1",absint($id)));
+        return (string)$wpdb->get_var($wpdb->prepare("SELECT seo_role FROM %i WHERE object_type='page' AND object_id=%d AND status=1 ORDER BY id DESC LIMIT 1",$table,absint($id)));
     }
     public static function set_role($id,$role) {
         global $wpdb;$id=absint($id);$role=sanitize_key($role);
@@ -182,14 +182,14 @@ final class TaxoCommerce_Templates {
         // Roles used in live hierarchy must not be silently reassigned.
         $relations=$wpdb->prefix.'seo_relations';
         if($current&&$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
-            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$relations} WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$id,$id));
+            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
         $now=current_time('mysql');$wpdb->query('START TRANSACTION');
         $disabled=$wpdb->update($table,array('status'=>0,'updated_at'=>$now),array('object_type'=>'page','object_id'=>$id));
         $saved=true;
         if(false!==$disabled&&$role) {
-            $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$id,$role));
+            $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
             $saved=$existing?
                 false!==$wpdb->update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
                 false!==$wpdb->insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
@@ -466,7 +466,7 @@ final class TaxoCommerce_Templates {
         $rows = TCT_Router::rows();
         $files = TCT_Router::available_files();
         $node_table = self::nodes();
-        $associations = $wpdb->get_results("SELECT object_id, seo_role FROM {$node_table} WHERE object_type='page' AND status=1");
+        $associations = $wpdb->get_results($wpdb->prepare("SELECT object_id, seo_role FROM %i WHERE object_type='page' AND status=1", $node_table));
         $by_role = array();
         $occupied = array();
         foreach ((array)$associations as $entry) {
