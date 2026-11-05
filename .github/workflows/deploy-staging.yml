@@ -76,6 +76,8 @@ jobs:
           done
           php -l taxocommerce-templates/tests/sql-identifiers-smoke.php
           php taxocommerce-templates/tests/sql-identifiers-smoke.php
+          php -l taxocommerce-templates/tests/plugincheck-warnings-smoke.php
+          php taxocommerce-templates/tests/plugincheck-warnings-smoke.php
           php taxocommerce-vocabulary/tests/auto-test-manual-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
         run: |
