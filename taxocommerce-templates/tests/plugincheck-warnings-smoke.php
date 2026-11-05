@@ -18,6 +18,9 @@ $cases = array(
         "SELECT object_id, seo_role FROM %i WHERE object_type='page'",
         "is_string(\$_POST['tct_page_role_nonce'])",
     ),
+    'includes/class-tct-routing-admin.php' => array(
+        "esc_html__( 'Automático / sin rol SEO', 'taxocommerce-templates' )",
+    ),
     'includes/class-tct-request-registry.php' => array(
         'SELECT seo_role FROM %i',
         "wp_cache_get( \$cache_key, 'taxocommerce_templates' )",
