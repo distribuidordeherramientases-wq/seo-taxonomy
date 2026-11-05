@@ -25,7 +25,7 @@ if (
 $comparison_table = $wpdb->prefix . 'seo_category_comparisons';
 
 // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $comparison_table is an internal prefixed table used only by this template.
-$comparison = $wpdb->get_row(
+$comparison = TCT_DB::get_row(
     $wpdb->prepare(
         "SELECT id, category_id, title, content, product_count, analysis_snapshot, source_hash, updated_at
          FROM %i
