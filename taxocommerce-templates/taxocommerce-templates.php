@@ -281,6 +281,7 @@ final class TaxoCommerce_Templates {
     }
 
     public static function enqueue_policy_control() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
             || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
             return;
@@ -411,6 +412,7 @@ final class TaxoCommerce_Templates {
             wp_die('Acceso denegado.');
         }
         // The legacy URLs still resolve, preserving form redirects and old bookmarks.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $tab = isset($_GET['tab']) && is_string($_GET['tab'])
             ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
         if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck','manual'), true)) {
@@ -429,6 +431,7 @@ final class TaxoCommerce_Templates {
         }
         echo '</nav>';
         self::render_policy_control();
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if (isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }
@@ -478,6 +481,7 @@ final class TaxoCommerce_Templates {
             echo '<div class="wrap">' . '<h1>' . esc_html__( 'Gestor de Plantillas', 'taxocommerce-templates' ) . '</h1>';
         }
         echo '<p>' . esc_html__( 'Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.', 'taxocommerce-templates' ) . '</p>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if (!$embedded && isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) {
             echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
         }

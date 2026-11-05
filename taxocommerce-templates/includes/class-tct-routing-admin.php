@@ -11,10 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 final class TCT_Routing_Admin {
     public static function enqueue() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
             || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
             return;
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
             ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'routing';
         if ( ! in_array( $tab, array( 'routing', 'roles', 'requests', 'audit' ), true ) ) {
@@ -216,6 +218,7 @@ final class TCT_Routing_Admin {
         // inventory is only discovered when explicitly requested.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selection.
         $view = isset( $_GET['tct_view'] ) && is_string( $_GET['tct_view'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? sanitize_key( wp_unslash( $_GET['tct_view'] ) ) : 'managed';
         if ( ! in_array( $view, array( 'managed', 'pending', 'all' ), true ) ) {
             $view = 'managed';
@@ -236,12 +239,14 @@ final class TCT_Routing_Admin {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI filters are read-only.
         $group = isset( $_GET['tct_group'] ) && is_string( $_GET['tct_group'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? sanitize_text_field( wp_unslash( $_GET['tct_group'] ) ) : 'all';
         if ( ! isset( $groups[ $group ] ) ) {
             $group = 'all';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI filters are read-only.
         $search = isset( $_GET['tct_search'] ) && is_string( $_GET['tct_search'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? substr( sanitize_text_field( wp_unslash( $_GET['tct_search'] ) ), 0, 120 ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI pagination is read-only.
         $page = isset( $_GET['tct_paged'] ) ? max( 1, absint( $_GET['tct_paged'] ) ) : 1;

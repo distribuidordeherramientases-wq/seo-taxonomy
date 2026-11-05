@@ -5,6 +5,7 @@ require_once __DIR__ . '/template-helpers.php';
 
 $search_term = get_search_query();
 $requested_post_type = get_query_var('post_type');
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
 if (!$requested_post_type && isset($_GET['post_type']) && !is_array($_GET['post_type'])) {
     $requested_post_type = sanitize_key(wp_unslash($_GET['post_type']));
 }
@@ -22,7 +23,8 @@ if (
     && function_exists('seo_search_query_products')
     && function_exists('seo_search_render_results_page')
 ) {
-    $page = max(1, absint(isset($_GET['product-page']) ? $_GET['product-page'] : 1));
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+    $page = max(1, absint(isset($_GET['product-page']) && is_scalar($_GET['product-page']) ? $_GET['product-page'] : 1));
     $filters = function_exists('seo_search_get_active_filters')
         ? seo_search_get_active_filters()
         : array();

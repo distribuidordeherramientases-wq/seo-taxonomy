@@ -148,11 +148,13 @@ final class TCT_Front_Composer {
     }
 
     public static function enqueue( $hook ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
             || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
             return;
         }
         // This tab is the only caller of the pilot's scripts and styles.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
         if ( ! in_array( $tab, array( 'designer', 'manager', 'composer', 'editor' ), true ) ) {
             return;
@@ -185,6 +187,7 @@ final class TCT_Front_Composer {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI selection.
         $market = isset( $_GET['market'] ) && is_string( $_GET['market'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? self::market( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : 'ES';
         $current = self::config( $market );
         ?>

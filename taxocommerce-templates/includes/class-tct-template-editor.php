@@ -458,6 +458,7 @@ final class TCT_Template_Editor {
     private static function render_library($source) {
         $assignments = self::assignments_by_file();
         $files = TCT_Router::available_files(true);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $search = isset($_GET['tct_file_search']) && is_string($_GET['tct_file_search']) ? sanitize_text_field(wp_unslash($_GET['tct_file_search'])) : '';
 
         echo '<section class="tct-editor-library">';
@@ -575,8 +576,10 @@ final class TCT_Template_Editor {
 
         $can_edit = self::can_edit();
         // The editor route is read-only. Saving and uploading use separate verified POST actions.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $source = isset($_GET['tct_source']) && is_string($_GET['tct_source']) ? self::safe_source_name(sanitize_file_name(wp_unslash($_GET['tct_source']))) : '';
         $target = isset($_GET['tct_target']) && is_string($_GET['tct_target']) ? self::safe_target_name(sanitize_file_name(wp_unslash($_GET['tct_target']))) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $assign = isset($_GET['tct_assign']) && is_string($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
 
         $path = self::source($source);
@@ -600,6 +603,7 @@ final class TCT_Template_Editor {
         }
 
         $pending = get_transient('tct_editor_pending_' . get_current_user_id());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if (is_array($pending) && isset($_GET['tct_notice']) && isset($pending['code']) &&
             isset($pending['source']) && (string)$pending['source'] === $source) {
             $filename = isset($pending['filename']) && $pending['filename'] !== '' ? (string)$pending['filename'] : $filename;

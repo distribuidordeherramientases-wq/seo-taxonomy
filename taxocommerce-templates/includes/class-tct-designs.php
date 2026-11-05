@@ -231,8 +231,10 @@ final class TCT_Designs {
     }
 
     public static function enqueue() {
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) || ! is_string( $_GET['page'] )
             || 'taxocommerce-templates' !== $_GET['page'] ) { return; }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $id = isset( $_GET['tct_design'] ) && is_string( $_GET['tct_design'] )
             ? sanitize_text_field( wp_unslash( $_GET['tct_design'] ) ) : '';
         $design = self::get( $id );
@@ -259,6 +261,7 @@ final class TCT_Designs {
             echo '<p>La plantilla no existe. <a href="' . esc_url( TCT_Request_Admin::admin_url( 'routing' ) ) . '">Volver al enrutamiento</a>.</p>';
             return;
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $market = isset( $_GET['market'] ) && is_string( $_GET['market'] )
             ? strtoupper( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : '';
         if ( ! in_array( $market, self::COUNTRIES, true ) ) { $market = $design['countries'][0]; }

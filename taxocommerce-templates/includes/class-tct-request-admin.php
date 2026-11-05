@@ -98,10 +98,12 @@ final class TCT_Request_Admin {
 
         // Las rutas propias de otros modulos mantienen sus asignaciones aunque
         // no pertenezcan a un tipo de ejecucion WordPress estandar.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $selected_group = isset($_GET['tct_group']) && is_string($_GET['tct_group']) ? sanitize_text_field(wp_unslash($_GET['tct_group'])) : 'WordPress';
         if (!isset($groups[$selected_group])) {
             $selected_group = (string) key($groups);
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $search = isset($_GET['tct_search']) && is_string($_GET['tct_search']) ? sanitize_text_field(wp_unslash($_GET['tct_search'])) : '';
         $page = isset($_GET['tct_paged']) && is_scalar($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1;
 
