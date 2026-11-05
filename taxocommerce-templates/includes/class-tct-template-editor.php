@@ -124,8 +124,8 @@ final class TCT_Template_Editor {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $id = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE template_key=%s LIMIT 1",
-            $request_key
+            "SELECT id FROM %i WHERE template_key=%s LIMIT 1",
+            $table, $request_key
         ));
         $now = current_time('mysql');
 
@@ -171,10 +171,16 @@ final class TCT_Template_Editor {
         }
         check_admin_referer('tct_save_code');
 
-        $name = isset($_POST['filename']) ? self::safe_target_name(wp_unslash($_POST['filename'])) : '';
-        $source = isset($_POST['source_filename']) ? self::safe_source_name(wp_unslash($_POST['source_filename'])) : '';
-        $assign = isset($_POST['assign_request']) ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
-        $raw = isset($_POST['code']) ? wp_unslash($_POST['code']) : '';
+        $name = isset($_POST['filename']) && is_string($_POST['filename'])
+            ? self::safe_target_name(sanitize_file_name(wp_unslash($_POST['filename']))) : '';
+        $source = isset($_POST['source_filename']) && is_string($_POST['source_filename'])
+            ? self::safe_source_name(sanitize_file_name(wp_unslash($_POST['source_filename']))) : '';
+        $assign = isset($_POST['assign_request']) && is_string($_POST['assign_request'])
+            ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
+        // PHP source must retain exact bytes; sanitizing it as plain text would corrupt code.
+        // This is a private-only editor gated by edit_plugins, file-mod policy and nonce.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP source must remain byte-for-byte intact; edit capability, nonce, size limit and PHP validation guard the write.
+        $raw = isset($_POST['code']) && is_string($_POST['code']) ? wp_unslash($_POST['code']) : '';
         $code = is_string($raw) ? $raw : '';
 
         if (strlen($code) <= self::MAX_SIZE) {
@@ -262,10 +268,20 @@ final class TCT_Template_Editor {
         }
         check_admin_referer('tct_upload_template');
 
-        $assign = isset($_POST['assign_request']) ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
-        $files = isset($_FILES['template_file']) ? $_FILES['template_file'] : null;
+        $assign = isset($_POST['assign_request']) && is_string($_POST['assign_request'])
+            ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
+        // WordPress uploads are validated by type, origin, size, extension and PHP parser below.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata requires strict structural validation, not HTML sanitization; origin, filename, size and parser are checked before use.
+        $files = isset($_FILES['template_file']) && is_array($_FILES['template_file']) ? $_FILES['template_file'] : null;
 
-        if (!is_array($files) || !isset($files['error']) || UPLOAD_ERR_OK !== (int)$files['error']) {
+        // Reject malformed nested upload fields before type-sensitive native calls.
+        if (!is_array($files)
+            || !isset($files['error'], $files['name'], $files['tmp_name'], $files['size'])
+            || !is_int($files['error'])
+            || !is_string($files['name'])
+            || !is_string($files['tmp_name'])
+            || !is_int($files['size'])
+            || UPLOAD_ERR_OK !== $files['error']) {
             self::redirect('Error en la subida del archivo.', '', $assign);
         }
 
@@ -451,7 +467,8 @@ final class TCT_Template_Editor {
     private static function render_library($source) {
         $assignments = self::assignments_by_file();
         $files = TCT_Router::available_files(true);
-        $search = isset($_GET['tct_file_search']) ? sanitize_text_field(wp_unslash($_GET['tct_file_search'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $search = isset($_GET['tct_file_search']) && is_string($_GET['tct_file_search']) ? sanitize_text_field(wp_unslash($_GET['tct_file_search'])) : '';
 
         echo '<section class="tct-editor-library">';
         echo '<div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap">';
@@ -567,9 +584,12 @@ final class TCT_Template_Editor {
         }
 
         $can_edit = self::can_edit();
-        $source = isset($_GET['tct_source']) ? self::safe_source_name(wp_unslash($_GET['tct_source'])) : '';
-        $target = isset($_GET['tct_target']) ? self::safe_target_name(wp_unslash($_GET['tct_target'])) : '';
-        $assign = isset($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
+        // The editor route is read-only. Saving and uploading use separate verified POST actions.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $source = isset($_GET['tct_source']) && is_string($_GET['tct_source']) ? self::safe_source_name(sanitize_file_name(wp_unslash($_GET['tct_source']))) : '';
+        $target = isset($_GET['tct_target']) && is_string($_GET['tct_target']) ? self::safe_target_name(sanitize_file_name(wp_unslash($_GET['tct_target']))) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $assign = isset($_GET['tct_assign']) && is_string($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
 
         $path = self::source($source);
         $original_path = (!$path && $assign) ? self::original_for_request($assign) : '';
@@ -592,6 +612,7 @@ final class TCT_Template_Editor {
         }
 
         $pending = get_transient('tct_editor_pending_' . get_current_user_id());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         if (is_array($pending) && isset($_GET['tct_notice']) && isset($pending['code']) &&
             isset($pending['source']) && (string)$pending['source'] === $source) {
             $filename = isset($pending['filename']) && $pending['filename'] !== '' ? (string)$pending['filename'] : $filename;

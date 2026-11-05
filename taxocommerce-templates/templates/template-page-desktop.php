@@ -140,7 +140,7 @@ if (!function_exists('dht_page_product_image_source')) {
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT u.attachment_id
-                     FROM {$usage_table} u
+                     FROM %i u
                      WHERE u.object_id = %d
                        AND u.object_type = 'product'
                        AND u.attachment_id IS NOT NULL
@@ -153,7 +153,7 @@ if (!function_exists('dht_page_product_image_source')) {
                          ELSE 9
                        END ASC,
                        u.fecha DESC
-                     LIMIT 12",
+                     LIMIT 12", $usage_table,
                     $product_id
                 )
             );
@@ -179,13 +179,13 @@ if (!function_exists('dht_page_product_image_source')) {
             $supplier_url = $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
-                     LIMIT 1",
+                     LIMIT 1", $supplier_table,
                     $product_id
                 )
             );
@@ -445,7 +445,7 @@ while (have_posts()) :
     $seo_role = (string) $wpdb->get_var(
         $wpdb->prepare(
             "SELECT seo_role
-             FROM {$nodes_table}
+             FROM %i
              WHERE object_type = 'page'
                AND object_id = %d
                AND status = 1
@@ -458,7 +458,7 @@ while (have_posts()) :
                    'corporate_page'
                )
              ORDER BY updated_at DESC, id DESC
-             LIMIT 1",
+             LIMIT 1", $nodes_table,
             $page_id
         )
     );
@@ -471,15 +471,15 @@ while (have_posts()) :
         $related_term_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT r.target_id
-                 FROM {$relations_table} r
-                 INNER JOIN {$wpdb->term_taxonomy} tt
+                 FROM %i r
+                 INNER JOIN %i tt
                     ON tt.term_id = r.target_id
                    AND tt.taxonomy = 'product_cat'
                  WHERE r.source_type = 'landing'
                    AND r.source_id = %d
                    AND r.target_type = 'product_cat'
                    AND r.relation_type = 'landing_to_category'
-                 ORDER BY r.target_id ASC",
+                 ORDER BY r.target_id ASC", $relations_table, $wpdb->term_taxonomy,
                 $page_id
             )
         );

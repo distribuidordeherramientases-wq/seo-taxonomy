@@ -1,3 +1,25 @@
+## [0.4.15] — 2026-11-05
+
+- Segundo lote parcial de avisos #2189: identificadores SQL con `%i` en las asignaciones de página, relaciones jerárquicas, ejemplos de auditoría y catálogo de roles; defensas para entradas de administración no escalares y comprobación del tipo del nonce en el metabox.
+- Ampliación del lote: 34 consultas SQL en 17 plantillas de clústeres, hubs, categorías, productos, tienda, blog y piloto VEVOR ahora enlazan identificadores de tablas mediante `%i` y `$wpdb->prepare()`. Se revisan además SQL de afiliación, catálogo y utilidades, sin alterar las relaciones funcionales.
+- Comprobaciones estrictas de tipo en parámetros GET y saneamiento de interruptores; los parámetros de navegación GET (solo lectura) y los POST bajo un nonce existente se documentan con excepciones de análisis estrictamente localizadas, nunca globales.
+- Pruebas PHP y regresiones de enrutamiento conservadas; queda pendiente cerrar las advertencias de consultas directas/caché, seguridad y rendimiento detectadas en GitHub Actions.
+- Sin cambios funcionales previstos en las asignaciones. No se declara cero avisos ni compatibilidad WordPress.org, pendiente Plugin Check/UAT y resolución del editor PHP privado (#1522).
+
+## [0.4.14] — 2026-11-05
+
+- Primer lote de advertencias del nuevo Plugin Check (#2189): identificadores SQL preparados con `%i` en el registro de peticiones, router, asociaciones, guardado de roles y editor; conserva los filtros `IN` parametrizados y las reglas existentes.
+- Los nombres entrantes del editor comprueban el tipo escalar antes de sanearse; el código PHP original se conserva únicamente bajo la protección previa de permisos y nonce. La edición de PHP ejecutable continúa siendo una función privada y un bloqueo para WordPress.org (#1522).
+- El estilo de clúster internacional declara versión para evitar caché antigua. La navegación administrativa de solo lectura se documenta separada de las acciones POST protegidas.
+- Pendientes avisos de seguridad, acceso SQL/caché y rendimiento en otras rutas; no se afirma 0 warnings ni se altera producción. Requiere Plugin Check real y UAT tras el despliegue.
+
+## [0.4.13] — 2026-11-04
+
+- Corregidos los **32 errores SQL** detectados por Plugin Check (22:23:34) en 16 archivos: correo heredado y plantillas front, shop, landing, página, post, producto, categoría y soluciones, tanto móvil como escritorio (#2187).
+- Consultas con identificadores de tablas enlazados mediante `$wpdb->prepare()` y marcadores `%i` (WordPress 6.5+). Se conservan filtros, parámetros numéricos, JOIN, ordenación, resultados y rutas existentes; también el SQL construido de entradas relacionadas.
+- Prueba de regresión de los 32 puntos y comprobación de sintaxis de las plantillas ejecutables en CI. No se crean trabajos automáticos de AutoCheck ni se modifica producción.
+- Quedan pendientes un nuevo Plugin Check del plugin desplegado, advertencias de seguridad/rendimiento y la separación del editor PHP privado antes de WordPress.org.
+
 ## [0.4.12] — 2026-11-04
 
 - Corregidas las 12 incidencias ERROR del informe Plugin Check en cuatro archivos: auditoría CSV, lectura de router, editor de archivos y descarga de plantillas mediante las APIs de WordPress (`WP_Filesystem`, `wp_delete_file`).

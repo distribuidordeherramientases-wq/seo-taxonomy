@@ -31,7 +31,7 @@ final class TCDB_Auto_Test {
             'full_export' => array( 'Exportar BBDD', 'Selección de tablas SQL completa y SEO' ),
             'inventory' => array( 'Resumen tablas', 'Inventario de tablas SEO' ),
             'columns' => array( 'Explorar tablas', 'Columnas de una tabla SEO' ),
-            'exports' => array( 'Exportar tablas', 'Preparación CSV, SQL y ZIP' ),
+            'exports' => array( 'Exportar BBDD', 'Preparación CSV, SQL y ZIP' ),
             'manual' => array( 'Manual', 'Documentación integrada' ),
             'destructive' => array( 'Operaciones de escritura', 'Limpieza, reparación y exportaciones reales' ),
         );

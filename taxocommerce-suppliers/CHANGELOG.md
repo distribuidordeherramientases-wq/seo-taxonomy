@@ -1,4 +1,17 @@
+## [0.2.7] — 2026-11-05 — Internacionalización (#2062)
+
+- Se reutiliza el mecanismo gettext nativo de TaxoCommerce Core, sin introducir un cargador alternativo.
+- Se preparan para gettext las pestañas y textos de administración, etiquetas de campos CSV, mensajes de error y resultados, compras, Autocheck y el manual.
+- Actualización de catálogos por idioma; preservadas las claves, formularios, nonces, estados de proveedor y contratos WooCommerce.
+
 ## Unreleased - Familia i18n #2062
+
+## [0.2.6] — 2026-11-05
+
+- Issue #2198: formulario plegado en CSV Templates para crear plantillas reutilizables desde JSON o CSV/TXT subidos o texto pegado.
+- Validación de correspondencias canónicas, campos obligatorios, límite de tamaño, nonce, permisos y protección frente a sobrescrituras accidentales. Exportación JSON de las plantillas personalizadas.
+- Reutilización del almacenamiento actual de WordPress sin ejecutar código, importar productos ni modificar las plantillas integradas. Pruebas de regresión offline.
+
 
 
 ## [0.2.5] — 2026-11-03

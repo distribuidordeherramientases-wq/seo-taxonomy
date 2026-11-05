@@ -32,10 +32,10 @@ tcsup_assert( false !== strpos( $purchasing, "Purchase" ), 'supplier purchasing 
 
 tcsup_assert( false !== strpos( $main, 'class-tcsup-manual.php' ), 'manual loaded' );
 tcsup_assert( false !== strpos( $main, 'class-tcsup-autotest.php' ), 'autotest loaded' );
-tcsup_assert( false !== strpos( $admin, "'manual' => 'Manual'" ), 'manual tab' );
+tcsup_assert( false !== strpos( $admin, "'manual' => __( 'Manual', 'taxocommerce-suppliers' )" ), 'manual tab' );
 tcsup_assert( false !== strpos( $admin, "'autotest' => __( 'Autocheck', 'taxocommerce-suppliers' )" ), 'autotest tab' );
-tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-user">Manual de usuario</h1>' ), 'full user manual heading' );
-tcsup_assert( false !== strpos( $manual, '<h1 id="tcsup-dev">Manual técnico para futuros desarrolladores</h1>' ), 'full developer manual heading' );
+tcsup_assert( false !== strpos( $manual, "esc_html_e( 'Manual de usuario', 'taxocommerce-suppliers' )" ), 'full user manual heading' );
+tcsup_assert( false !== strpos( $manual, "esc_html_e( 'Manual técnico para futuros desarrolladores', 'taxocommerce-suppliers' )" ), 'full developer manual heading' );
 tcsup_assert( substr_count( $manual, 'class="tcsup-manual-section"' ) >= 16, 'comprehensive indexed manual sections' );
 tcsup_assert( false !== strpos( $manual, 'tcsup-manual-index' ) && false !== strpos( $manual, 'tcsup-manual-scroll' ), 'manual navigation and tables' );
 tcsup_assert( false !== strpos( $manual, 'class-tcsup-schema.php' ) && false !== strpos( $manual, 'taxocommerce_suppliers_get_sources' ), 'developer architecture and public contracts' );
@@ -48,4 +48,9 @@ tcsup_assert( false !== strpos( $csv, "check_admin_referer( 'tcsup_import_csv' )
 tcsup_assert( false !== strpos( $products, "check_admin_referer( 'tcsup_price_update' )" ), 'price edits must verify nonce in handler' );
 tcsup_assert( false !== strpos( $products, "sanitize_textarea_field( wp_unslash( \$_POST['image_urls'] ) )" ), 'image URLs must be sanitized' );
 tcsup_assert( false !== strpos( $csv, "map_deep( wp_unslash( \$_POST['mapping'] ), 'sanitize_text_field' )" ), 'CSV mapping must be sanitized' );
+tcsup_assert( false !== strpos( $admin, 'tcsup_create_template' ), 'standalone template creation form' );
+tcsup_assert( false !== strpos( $admin, 'tcsup-template-create' ), 'collapsible template creation UI' );
+tcsup_assert( false !== strpos( $csv, 'parse_template_definition' ), 'safe mapping definition parser' );
+tcsup_assert( false !== strpos( $csv, 'handle_export_template' ), 'JSON export control' );
+tcsup_assert( false !== strpos( $admin, "'import'    => __( 'CSV Import', 'taxocommerce-suppliers' )" ), 'native gettext admin tab' );
 echo "OK\n";

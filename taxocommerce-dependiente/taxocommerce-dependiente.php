@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Assistant
  * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
- * Version: 0.3.24
+ * Version: 0.3.26
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.24' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.26' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -99,11 +99,17 @@ add_action( 'taxocommerce_core_register_modules', static function ( $core ) {
 }, 10, 1 );
 
 register_activation_hook( __FILE__, static function () {
+    // A reactivation or an upgrade must not start a new learning run.
+    $first_install = false === get_option( TCD_Academy::STATE, false );
     TCD_Academy::install();
     TCD_Knowledge_Transfer::install();
     TCD_Feedback::install();
     TCD_Intelligence::install();
     TCD_Original_Interprete_DB::install();
+    if ( $first_install ) {
+        // Queue bounded learning from this site's own products only.
+        TCD_Academy::start_first_install_catalog();
+    }
 } );
 register_deactivation_hook( __FILE__, static function () {
     wp_clear_scheduled_hook( TCD_Academy::CRON_HOOK );

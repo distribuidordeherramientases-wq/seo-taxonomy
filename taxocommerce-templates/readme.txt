@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.12
+Stable tag: 0.4.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,18 @@ Open the Manual tab in Templates to read two integrated guides without executing
 Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
 
 == Changelog ==
+
+= 0.4.15 =
+* Second partial Plugin Check remediation: prepared role and audit SQL identifiers, scalar guards for admin input. Remaining warnings and WordPress.org editor blocker still pending.
+
+= 0.4.14 =
+* Initial targeted review of Plugin Check warnings: prepare table identifiers in key SQL routes and audit queries, validate editor input types, and version the international cluster stylesheet.
+* Further security, caching and performance warnings remain under issue #2189; this is not an approved WordPress.org release.
+
+
+= 0.4.13 =
+* Prepare SQL table identifiers with WordPress %i placeholders across 16 template and compatibility files, addressing 32 Plugin Check SQL errors without changing output or assignments. Add regression and PHP lint checks.
+* WordPress.org release remains blocked pending the full review and separation of private executable-PHP editing.
 
 = 0.4.12 =
 * Fix 12 filesystem Plugin Check errors using WordPress filesystem APIs while preserving editing, imports, downloads and CSV exports. The executable PHP editor remains private-only and blocks WordPress.org publication.

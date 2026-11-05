@@ -28,7 +28,9 @@ final class TCT_Unified_Manager {
             wp_die( esc_html__( 'Acceso denegado.', 'taxocommerce-templates' ) );
         }
         // Route-specific Edit buttons always open that exact saved design.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only design selection, no state change.
         $design_id = isset( $_GET['tct_design'] ) && is_string( $_GET['tct_design'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? sanitize_text_field( wp_unslash( $_GET['tct_design'] ) ) : '';
         if ( '' !== $design_id ) {
             TCT_Designs::render( $design_id );
@@ -37,6 +39,7 @@ final class TCT_Unified_Manager {
         $sections = self::sections();
         if ( ! isset( $sections[ $focus ] ) ) {
             // A routing row can open the designer with the selected PHP file.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             $focus = ( isset( $_GET['tct_source'] ) || isset( $_GET['tct_assign'] ) ) ? 'editor' : 'composer';
         }
         $front_file = '';

@@ -60,7 +60,7 @@ final class TCT_Router {
 
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $existing = array_fill_keys((array) $wpdb->get_col("SELECT template_key FROM {$table}"), true);
+        $existing = array_fill_keys((array) $wpdb->get_col($wpdb->prepare("SELECT template_key FROM %i", $table)), true);
         $ok = true;
         foreach (self::catalog() as $key => $row) {
             if (isset($existing[$key])) {
@@ -95,10 +95,10 @@ final class TCT_Router {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         return (array) $wpdb->get_results(
-            "SELECT template_key, template_name, template_file, template_type,
+            $wpdb->prepare("SELECT template_key, template_name, template_file, template_type,
                     assignment_mode, is_assignable, is_active, is_public,
                     device_variants_enabled
-             FROM {$table} ORDER BY display_order ASC, template_name ASC, id ASC"
+             FROM %i ORDER BY display_order ASC, template_name ASC, id ASC", $table)
         );
     }
 
@@ -290,8 +290,8 @@ final class TCT_Router {
         $table = TaxoCommerce_Templates::templates();
         $row = $wpdb->get_row($wpdb->prepare(
             "SELECT template_file, is_active, device_variants_enabled
-             FROM {$table} WHERE template_key = %s LIMIT 1",
-            $key
+             FROM %i WHERE template_key = %s LIMIT 1",
+            $table, $key
         ));
         if (!$row || !(int) $row->is_active) {
             return $original;

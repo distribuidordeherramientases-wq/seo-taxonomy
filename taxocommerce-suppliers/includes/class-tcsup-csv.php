@@ -14,26 +14,26 @@ final class TCSUP_CSV {
 
 	public static function fields() {
 		return array(
-			'proveedor_id_externo' => array( 'label' => 'Supplier product ID', 'required' => true, 'type' => 'text' ),
-			'sku'                   => array( 'label' => 'Supplier SKU', 'type' => 'text' ),
-			'source_row_key'        => array( 'label' => 'Stable variant key', 'type' => 'text' ),
-			'pais_origen'           => array( 'label' => 'Market country', 'type' => 'country' ),
-			'idioma_origen'         => array( 'label' => 'Source language', 'type' => 'text' ),
-			'mpn'                   => array( 'label' => 'MPN', 'type' => 'text' ),
-			'url_origen'            => array( 'label' => 'Supplier product URL', 'type' => 'url' ),
-			'url_canonica'          => array( 'label' => 'Canonical URL', 'type' => 'url' ),
-			'nombre'                => array( 'label' => 'Product name', 'required' => true, 'type' => 'text' ),
-			'descripcion'           => array( 'label' => 'Description', 'type' => 'html' ),
-			'marca'                 => array( 'label' => 'Brand', 'type' => 'text' ),
-			'categoria_proveedor'   => array( 'label' => 'Supplier category', 'type' => 'text' ),
-			'precio_sin_iva'        => array( 'label' => 'Price excl. tax', 'type' => 'decimal' ),
-			'precio_con_iva'        => array( 'label' => 'Price incl. tax', 'type' => 'decimal' ),
-			'iva_porcentaje'        => array( 'label' => 'Tax %', 'type' => 'decimal' ),
-			'moneda'                => array( 'label' => 'Currency', 'type' => 'currency' ),
-			'stock_estado'          => array( 'label' => 'Stock state', 'type' => 'text' ),
-			'stock_cantidad'        => array( 'label' => 'Stock quantity', 'type' => 'decimal' ),
-			'stock_texto'           => array( 'label' => 'Stock text', 'type' => 'text' ),
-			'imagenes'              => array( 'label' => 'External image URLs', 'type' => 'images' ),
+			'proveedor_id_externo' => array( 'label' => __( 'Supplier product ID', 'taxocommerce-suppliers' ), 'required' => true, 'type' => 'text' ),
+			'sku'                   => array( 'label' => __( 'Supplier SKU', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'source_row_key'        => array( 'label' => __( 'Stable variant key', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'pais_origen'           => array( 'label' => __( 'Market country', 'taxocommerce-suppliers' ), 'type' => 'country' ),
+			'idioma_origen'         => array( 'label' => __( 'Source language', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'mpn'                   => array( 'label' => __( 'MPN', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'url_origen'            => array( 'label' => __( 'Supplier product URL', 'taxocommerce-suppliers' ), 'type' => 'url' ),
+			'url_canonica'          => array( 'label' => __( 'Canonical URL', 'taxocommerce-suppliers' ), 'type' => 'url' ),
+			'nombre'                => array( 'label' => __( 'Product name', 'taxocommerce-suppliers' ), 'required' => true, 'type' => 'text' ),
+			'descripcion'           => array( 'label' => __( 'Description', 'taxocommerce-suppliers' ), 'type' => 'html' ),
+			'marca'                 => array( 'label' => __( 'Brand', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'categoria_proveedor'   => array( 'label' => __( 'Supplier category', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'precio_sin_iva'        => array( 'label' => __( 'Price excl. tax', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'precio_con_iva'        => array( 'label' => __( 'Price incl. tax', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'iva_porcentaje'        => array( 'label' => __( 'Tax %', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'moneda'                => array( 'label' => __( 'Currency', 'taxocommerce-suppliers' ), 'type' => 'currency' ),
+			'stock_estado'          => array( 'label' => __( 'Stock state', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'stock_cantidad'        => array( 'label' => __( 'Stock quantity', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'stock_texto'           => array( 'label' => __( 'Stock text', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'imagenes'              => array( 'label' => __( 'External image URLs', 'taxocommerce-suppliers' ), 'type' => 'images' ),
 		);
 	}
 
@@ -41,7 +41,7 @@ final class TCSUP_CSV {
 		return array(
 			'canonical' => array(
 				'id'       => 'canonical',
-				'name'     => 'TaxoCommerce canonical CSV',
+				'name'     => __( 'TaxoCommerce canonical CSV', 'taxocommerce-suppliers' ),
 				'provider' => '',
 				'mode'     => 'canonical',
 				'builtin'  => true,
@@ -49,7 +49,7 @@ final class TCSUP_CSV {
 			),
 			'price_update' => array(
 				'id'       => 'price_update',
-				'name'     => 'Supplier Price Update CSV',
+				'name'     => __( 'Supplier Price Update CSV', 'taxocommerce-suppliers' ),
 				'provider' => '',
 				'mode'     => 'price_update',
 				'builtin'  => true,
@@ -57,7 +57,7 @@ final class TCSUP_CSV {
 			),
 			'vevor' => array(
 				'id'       => 'vevor',
-				'name'     => 'VEVOR official CSV',
+				'name'     => __( 'VEVOR official CSV', 'taxocommerce-suppliers' ),
 				'provider' => 'VEVOR',
 				'mode'     => 'vevor',
 				'builtin'  => true,
@@ -65,7 +65,7 @@ final class TCSUP_CSV {
 			),
 			'satkit' => array(
 				'id'       => 'satkit',
-				'name'     => 'SATKIT visual mapping',
+				'name'     => __( 'SATKIT visual mapping', 'taxocommerce-suppliers' ),
 				'provider' => 'SATKIT',
 				'mode'     => 'mapping',
 				'builtin'  => true,
@@ -73,7 +73,7 @@ final class TCSUP_CSV {
 			),
 			'todotaladros' => array(
 				'id'       => 'todotaladros',
-				'name'     => 'TodoTaladros visual mapping',
+				'name'     => __( 'TodoTaladros visual mapping', 'taxocommerce-suppliers' ),
 				'provider' => 'TODOTALADROS',
 				'mode'     => 'mapping',
 				'builtin'  => true,
@@ -405,6 +405,171 @@ final class TCSUP_CSV {
 		);
 		update_option( self::TEMPLATE_OPTION, $templates, false );
 		return $id;
+	}
+
+	/**
+	 * Parse a declarative template (JSON mapping or two-column CSV).
+	 * Source files are data only: no PHP or executable transformations.
+	 *
+	 * @param string $contents User-supplied definition.
+	 * @param string $format   json, csv or txt.
+	 * @return array|WP_Error Canonical field => source CSV column.
+	 */
+	public static function parse_template_definition( $contents, $format ) {
+		if ( ! is_string( $contents ) || '' === trim( $contents ) || strlen( $contents ) > 65536 ) {
+			return new WP_Error( 'tcsup_template_size', __( 'La definición debe contener entre 1 y 65536 bytes.', 'taxocommerce-suppliers' ) );
+		}
+		$format  = strtolower( (string) $format );
+		$content = preg_replace( '/^\xEF\xBB\xBF/', '', $contents );
+		$mapping = array();
+		if ( 'json' === $format ) {
+			$decoded = json_decode( $content, true );
+			if ( ! is_array( $decoded ) || JSON_ERROR_NONE !== json_last_error() ) {
+				return new WP_Error( 'tcsup_template_json', __( 'La definición JSON no es válida.', 'taxocommerce-suppliers' ) );
+			}
+			$mapping = isset( $decoded['mapping'] ) ? $decoded['mapping'] : $decoded;
+		} elseif ( in_array( $format, array( 'csv', 'txt' ), true ) ) {
+			$rows = preg_split( '/\r\n|\r|\n/', $content );
+			$first = (string) reset( $rows );
+			$delimiter = self::detect_delimiter( $first );
+			foreach ( $rows as $line ) {
+				if ( '' === trim( $line ) ) {
+					continue;
+				}
+				$columns = str_getcsv( $line, $delimiter, '"', '' );
+				if ( 2 !== count( $columns ) ) {
+					return new WP_Error( 'tcsup_template_csv', __( 'Cada fila debe tener dos columnas: campo de TaxoCommerce y columna del proveedor.', 'taxocommerce-suppliers' ) );
+				}
+				$key = trim( (string) $columns[0] );
+				if ( in_array( strtolower( $key ), array( 'campo', 'field', 'destino', 'destination' ), true ) ) {
+					continue;
+				}
+				if ( isset( $mapping[ $key ] ) ) {
+					return new WP_Error( 'tcsup_template_duplicate_field', __( 'La definición contiene campos duplicados.', 'taxocommerce-suppliers' ) );
+				}
+				$mapping[ $key ] = $columns[1];
+			}
+		} else {
+			return new WP_Error( 'tcsup_template_format', __( 'Formato no admitido. Utiliza JSON, CSV o TXT.', 'taxocommerce-suppliers' ) );
+		}
+		if ( ! is_array( $mapping ) || ! $mapping ) {
+			return new WP_Error( 'tcsup_template_empty', __( 'No hay correspondencias de columnas.', 'taxocommerce-suppliers' ) );
+		}
+		$allowed = self::fields();
+		$clean = array();
+		foreach ( $mapping as $field => $source ) {
+			if ( ! is_string( $field ) || ! isset( $allowed[ $field ] ) || ! is_string( $source ) ) {
+				return new WP_Error( 'tcsup_template_fields', __( 'La definición contiene campos desconocidos o valores no válidos.', 'taxocommerce-suppliers' ) );
+			}
+			$column = sanitize_text_field( $source );
+			if ( '' === trim( $column ) || strlen( $column ) > 255 ) {
+				return new WP_Error( 'tcsup_template_column', __( 'El nombre de una columna de origen está vacío o es demasiado largo.', 'taxocommerce-suppliers' ) );
+			}
+			$clean[ $field ] = $column;
+		}
+		foreach ( $allowed as $field => $definition ) {
+			if ( ! empty( $definition['required'] ) && ! isset( $clean[ $field ] ) ) {
+				return new WP_Error( 'tcsup_template_required', __( 'Faltan las correspondencias obligatorias: identificador externo y nombre del producto.', 'taxocommerce-suppliers' ) );
+			}
+		}
+		return $clean;
+	}
+
+	/**
+	 * Persist a user template without replacing presets or existing definitions.
+	 *
+	 * @return string|WP_Error
+	 */
+	public static function create_template_from_definition( $name, $provider, $contents, $format ) {
+		$name = sanitize_text_field( (string) $name );
+		$provider = sanitize_text_field( (string) $provider );
+		$id = 'custom_' . sanitize_key( $name );
+		if ( '' === trim( $name ) || 'custom_' === $id || strlen( $name ) > 100 ) {
+			return new WP_Error( 'tcsup_template_name', __( 'Introduce un nombre válido para la plantilla (máximo 100 caracteres).', 'taxocommerce-suppliers' ) );
+		}
+		$mapping = self::parse_template_definition( $contents, $format );
+		if ( is_wp_error( $mapping ) ) {
+			return $mapping;
+		}
+		$templates = get_option( self::TEMPLATE_OPTION, array() );
+		$templates = is_array( $templates ) ? $templates : array();
+		if ( isset( $templates[ $id ] ) || isset( self::builtin_templates()[ $id ] ) ) {
+			return new WP_Error( 'tcsup_template_exists', __( 'Ya existe una plantilla con ese nombre. Elige otro para no sobrescribirla.', 'taxocommerce-suppliers' ) );
+		}
+		$templates[ $id ] = array(
+			'id'       => $id,
+			'name'     => $name,
+			'provider' => $provider,
+			'mode'     => 'mapping',
+			'builtin'  => false,
+			'mapping'  => $mapping,
+		);
+		update_option( self::TEMPLATE_OPTION, $templates, false );
+		return $id;
+	}
+
+	/**
+	 * Create a reusable template without importing supplier products.
+	 */
+	public static function handle_create_template() {
+		self::guard();
+		check_admin_referer( 'tcsup_create_template' );
+		$name = isset( $_POST['template_name'] ) && is_string( $_POST['template_name'] )
+			? sanitize_text_field( wp_unslash( $_POST['template_name'] ) ) : '';
+		$provider = isset( $_POST['provider'] ) && is_string( $_POST['provider'] )
+			? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
+		$format = 'json';
+		$contents = '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File metadata is sanitized and size, extension, upload status and is_uploaded_file() are checked before reading the temporary file.
+		$file = isset( $_FILES['template_file'] ) && is_array( $_FILES['template_file'] ) ? $_FILES['template_file'] : array();
+		$upload_error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
+		if ( UPLOAD_ERR_NO_FILE !== $upload_error ) {
+			$filename = isset( $file['name'] ) && is_string( $file['name'] ) ? sanitize_file_name( $file['name'] ) : '';
+			$tmp = isset( $file['tmp_name'] ) && is_string( $file['tmp_name'] ) ? $file['tmp_name'] : '';
+			$format = strtolower( (string) pathinfo( $filename, PATHINFO_EXTENSION ) );
+			$size = absint( $file['size'] ?? 0 );
+			if ( UPLOAD_ERR_OK !== $upload_error || ! in_array( $format, array( 'json', 'csv', 'txt' ), true ) || $size < 1 || $size > 65536 || ! is_uploaded_file( $tmp ) ) {
+				self::redirect( array( 'tab' => 'templates', 'tc_error' => 'template_file' ) );
+			}
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a validated <=64 KiB PHP upload temporary file; no remote URL.
+			$contents = file_get_contents( $tmp, false, null, 0, 65537 );
+		} else {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Parsed as inert JSON or CSV and individually sanitized before storage.
+			$contents = isset( $_POST['template_text'] ) && is_string( $_POST['template_text'] ) ? wp_unslash( $_POST['template_text'] ) : '';
+			$format = isset( $_POST['template_format'] ) && is_string( $_POST['template_format'] )
+				? sanitize_key( wp_unslash( $_POST['template_format'] ) ) : 'json';
+		}
+		$result = self::create_template_from_definition( $name, $provider, $contents, $format );
+		if ( is_wp_error( $result ) ) {
+			// Only known, fixed error codes appear in the browser address.
+			self::redirect( array( 'tab' => 'templates', 'tc_error' => sanitize_key( $result->get_error_code() ) ) );
+		}
+		self::redirect( array( 'tab' => 'templates', 'template_saved' => 1 ) );
+	}
+
+	/**
+	 * Download a saved mapping as a declarative JSON definition.
+	 */
+	public static function handle_export_template() {
+		self::guard();
+		check_admin_referer( 'tcsup_export_template' );
+		$id = isset( $_POST['template_id'] ) && is_string( $_POST['template_id'] )
+			? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : '';
+		$templates = get_option( self::TEMPLATE_OPTION, array() );
+		if ( ! is_array( $templates ) || ! isset( $templates[ $id ] ) || 'mapping' !== ( $templates[ $id ]['mode'] ?? '' ) ) {
+			wp_die( esc_html__( 'No existe esa plantilla personalizada.', 'taxocommerce-suppliers' ) );
+		}
+		$json = wp_json_encode( array( 'mapping' => $templates[ $id ]['mapping'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+		if ( ! is_string( $json ) ) {
+			wp_die( esc_html__( 'No se pudo exportar la plantilla.', 'taxocommerce-suppliers' ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=UTF-8' );
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $id . '.json' ) . '"' );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Valid JSON response is an attachment, not HTML.
+		echo $json;
+		exit;
 	}
 
 	private static function mapping_from_template( $template, $header ) {

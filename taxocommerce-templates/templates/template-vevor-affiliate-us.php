@@ -54,16 +54,20 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     $provider_categories = array();
     if (!empty($product_ids)) {
         $id_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
-        $sql = $wpdb->prepare(
-            "SELECT DISTINCT categoria_proveedor
-             FROM {$table}
+        // The only dynamic SQL fragment is a sequence of literal %d placeholders
+        // derived from count(); all product identifiers are bound by prepare().
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The generated fragment cannot contain SQL values or identifiers.
+        $sql_pattern = "SELECT DISTINCT categoria_proveedor
+             FROM %i
              WHERE proveedor = %s
-               AND object_id IN ({$id_placeholders})
+               AND object_id IN (" . $id_placeholders . ")
                AND categoria_proveedor IS NOT NULL
                AND categoria_proveedor <> ''
-             LIMIT 20",
-            ...array_merge(array('vevor'), array_map('absint', $product_ids))
+             LIMIT 20";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Safe generated %d placeholders; actual IDs passed as bound arguments.
+        $sql = $wpdb->prepare(
+            $sql_pattern, // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The IN fragment is generated only from %d placeholders; every ID is bound.
+            ...array_merge(array($table, 'vevor'), array_map('absint', $product_ids))
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $provider_rows = (array) $wpdb->get_col($sql);
@@ -111,13 +115,13 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
                     nombre, descripcion, categoria_proveedor, precio_con_iva,
                     moneda, imagenes, estado_seleccion, estado_sincronizacion,
                     object_id, actualizado
-                FROM {$table}
+                FROM %i
                 WHERE " . implode(' AND ', $where) . "
                   AND (url_canonica IS NOT NULL OR url_origen IS NOT NULL)
                 ORDER BY actualizado DESC, id DESC
                 LIMIT 80";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y placeholders se generan internamente; valores enlazados mediante $wpdb->prepare().
-        $sql = $wpdb->prepare($sql, ...$args);
+        $sql = $wpdb->prepare($sql, ...array_merge(array($table), $args));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $candidates = $wpdb->get_results($sql, ARRAY_A);
 
@@ -183,13 +187,13 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
                 id, proveedor_id_externo, sku, url_origen, url_canonica,
                 nombre, categoria_proveedor, precio_con_iva, moneda, imagenes,
                 estado_seleccion, estado_sincronizacion
-             FROM {$table}
+             FROM %i
              WHERE proveedor = %s
                AND estado_seleccion = %s
                AND estado_sincronizacion = %s
              ORDER BY RAND()
              LIMIT %d",
-            'vevor', 'descartado', 'ignorado', $limit
+            $table, 'vevor', 'descartado', 'ignorado', $limit
         ),
         ARRAY_A
     );

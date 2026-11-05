@@ -36,8 +36,8 @@ final class TCT_Request_Admin {
             self::redirect('La tabla de plantillas no existe.');
         }
 
-        $key  = isset($_POST['request_key']) ? sanitize_key(wp_unslash($_POST['request_key'])) : '';
-        $file = isset($_POST['template_file']) ? sanitize_file_name(wp_unslash($_POST['template_file'])) : '';
+        $key  = isset($_POST['request_key']) && is_string($_POST['request_key']) ? sanitize_key(wp_unslash($_POST['request_key'])) : '';
+        $file = isset($_POST['template_file']) && is_string($_POST['template_file']) ? sanitize_file_name(wp_unslash($_POST['template_file'])) : '';
         $defs = TCT_Request_Registry::definitions();
         if (!isset($defs[$key])) {
             self::redirect('Tipo de peticion desconocido.');
@@ -49,7 +49,7 @@ final class TCT_Request_Admin {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $current = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE template_key = %s LIMIT 1", $key
+            "SELECT id FROM %i WHERE template_key = %s LIMIT 1", $table, $key
         ));
         $now = current_time('mysql');
         if ($current) {
@@ -98,12 +98,14 @@ final class TCT_Request_Admin {
 
         // Las rutas propias de otros modulos mantienen sus asignaciones aunque
         // no pertenezcan a un tipo de ejecucion WordPress estandar.
-        $selected_group = isset($_GET['tct_group']) ? sanitize_text_field(wp_unslash($_GET['tct_group'])) : 'WordPress';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $selected_group = isset($_GET['tct_group']) && is_string($_GET['tct_group']) ? sanitize_text_field(wp_unslash($_GET['tct_group'])) : 'WordPress';
         if (!isset($groups[$selected_group])) {
             $selected_group = (string) key($groups);
         }
-        $search = isset($_GET['tct_search']) ? sanitize_text_field(wp_unslash($_GET['tct_search'])) : '';
-        $page = isset($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1;
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $search = isset($_GET['tct_search']) && is_string($_GET['tct_search']) ? sanitize_text_field(wp_unslash($_GET['tct_search'])) : '';
+        $page = isset($_GET['tct_paged']) && is_scalar($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
 
         $matching = array();
         foreach ($groups[$selected_group] as $key => $def) {

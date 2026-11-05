@@ -1,89 +1,789 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-suppliers\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.7\n"
 "Language: es_ES\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#. Plugin Name of the plugin
-#: taxocommerce-suppliers.php includes/class-tcsup-admin.php:41
-#: includes/class-tcsup-admin.php:49 includes/class-tcsup-admin.php:50
-msgid "TaxoCommerce Suppliers"
+msgid "— Do not import —"
+msgstr "— No importar —"
+
+msgid "1. Objetivo, acceso y precauciones"
 msgstr ""
 
-#. Description of the plugin
-#: taxocommerce-suppliers.php
-msgid ""
-"Supplier catalogue intake, purchasing, product decisions, supplier prices, "
-"WooCommerce linking, and external image references."
+msgid "1. Upload supplier CSV"
+msgstr "1. Subir CSV del proveedor"
+
+msgid "1.1 Qué resuelve"
 msgstr ""
 
-#. Author of the plugin
-#: taxocommerce-suppliers.php
-msgid "David Perez"
+msgid "1.2 Dónde se encuentra"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:42
-msgid "Suppliers"
+msgid "1.3 Antes de operar"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:74
-msgid "You do not have permission to manage TaxoCommerce Suppliers."
+msgid "10. Arquitectura y límites del módulo"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:203
+msgid "10.1 Arranque y activación"
+msgstr ""
+
+msgid "11. Directorios, clases y responsabilidades"
+msgstr ""
+
+msgid "12. Modelo de datos, identidad y persistencia"
+msgstr ""
+
+msgid "12.1 Tabla de catálogo"
+msgstr ""
+
+msgid "12.2 Tabla de imágenes"
+msgstr ""
+
+msgid "12.3 Opciones, transients y archivos"
+msgstr ""
+
+msgid "13. Motor CSV y transformaciones"
+msgstr ""
+
+msgid "13.1 Pasos internos"
+msgstr ""
+
+msgid "13.2 Modos y deduplicación"
+msgstr ""
+
+msgid "13.3 Límites operativos"
+msgstr ""
+
+msgid "14. Aceptación, sincronización y compras WooCommerce"
+msgstr ""
+
+msgid "14.1 Selección de productos"
+msgstr ""
+
+msgid "14.2 Márgenes y existencias"
+msgstr ""
+
+msgid "14.3 Consulta de compras y compatibilidad HPOS"
+msgstr ""
+
+msgid "15. API pública, hooks y contratos"
+msgstr ""
+
+msgid "15.1 Funciones consumibles por otros plugins"
+msgstr ""
+
+msgid "15.2 Acciones administrativas"
+msgstr ""
+
+msgid "16. Seguridad, límites y compatibilidad"
+msgstr ""
+
+msgid "16.1 Acceso y formularios"
+msgstr ""
+
+msgid "16.2 SQL, ficheros y datos de terceros"
+msgstr ""
+
+msgid "16.3 Dependencias y exclusiones"
+msgstr ""
+
+msgid "17. Pruebas, mantenimiento y entrega"
+msgstr ""
+
+msgid "17.1 Autotest"
+msgstr ""
+
+msgid "17.2 Matriz mínima antes de fusionar"
+msgstr ""
+
+msgid "17.3 Proceso de cambios"
+msgstr ""
+
+msgid "17.4 Cómo mantener esta documentación"
+msgstr ""
+
+msgid "2. Pestañas y resultados de las acciones"
+msgstr ""
+
+msgid "2. Review normalization"
+msgstr "2. Revisar normalización"
+
+msgid "3. Importación CSV paso a paso"
+msgstr ""
+
+msgid "3.1 Analizar el archivo"
+msgstr ""
+
+msgid "3.2 Resultado y comprobación"
+msgstr ""
+
+msgid "3.3 Actualización exclusiva de precios"
+msgstr ""
+
+msgid "3.4 Casos VEVOR"
+msgstr ""
+
+msgid "3.5 Limitaciones reales"
+msgstr ""
+
+msgid "4. Plantillas CSV"
+msgstr ""
+
+msgid "4.1 Guardar un mapeo"
+msgstr ""
+
+msgid "4.2 Crear una plantilla sin importar productos"
+msgstr ""
+
+msgid "4.3 Eliminar una plantilla"
+msgstr ""
+
+msgid "5. Inventario intermedio y decisiones"
+msgstr ""
+
+msgid "5.1 Localizar una referencia"
+msgstr ""
+
+msgid "5.2 Qué significa cada decisión"
+msgstr ""
+
+msgid "5.3 Aceptar un producto nuevo"
+msgstr ""
+
+msgid "5.4 Aceptar uno existente"
+msgstr ""
+
+msgid "5.5 Acciones masivas"
+msgstr ""
+
+msgid "6. Precios, impuestos y márgenes"
+msgstr ""
+
+msgid "6.1 Configurar márgenes"
+msgstr ""
+
+msgid "6.2 Corregir una fila"
+msgstr ""
+
+msgid "6.3 Aplicar precios a WooCommerce"
+msgstr ""
+
+msgid "7. Imágenes externas"
+msgstr ""
+
+msgid "7.1 Diferencia entre referencia y archivo local"
+msgstr ""
+
+msgid "8. Compras a proveedores"
+msgstr ""
+
+msgid "8.1 Cómo utiliza los proveedores"
+msgstr ""
+
+msgid "8.2 Qué queda fuera"
+msgstr ""
+
+msgid "9. Autotest y resolución de problemas"
+msgstr ""
+
+msgid "A default WooCommerce product category is required before accepting new products."
+msgstr "Debes configurar una categoría de producto predeterminada en WooCommerce antes de aceptar productos nuevos."
+
+msgid "A supplier name is required."
+msgstr "Es obligatorio indicar un proveedor."
+
+msgid "A template name is required."
+msgstr "Es obligatorio indicar un nombre de plantilla."
+
+msgid "Accept"
+msgstr "Aceptar"
+
+msgid "Accepted"
+msgstr "Aceptado"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "Active sales"
+msgstr "Ventas activas"
+
+msgid "Analyze CSV"
+msgstr "Analizar CSV"
+
+msgid "Another acceptance process is already working on this supplier product."
+msgstr "Ya hay otro proceso aceptando este producto del proveedor."
+
+msgid "Apply"
+msgstr "Aplicar"
+
+msgid "Apply Woo prices"
+msgstr "Aplicar precios a WooCommerce"
+
+msgid "Archivo de plantilla inválido. Utiliza JSON, CSV o TXT de hasta 64 KiB."
+msgstr ""
+
+msgid "Asigna al menos el ID externo y el nombre del producto."
+msgstr ""
+
+msgid "Autocheck"
+msgstr "Autochequeo"
+
+msgid "Autocheck de disponibilidad, no de resultados comerciales o de importación. No repara ni modifica tablas."
+msgstr ""
+
+msgid "Autocheck de Suppliers"
+msgstr "Autochequeo de Suppliers"
+
+msgid "Aviso"
+msgstr ""
+
+msgid "Brand"
+msgstr "Marca"
+
+msgid "Cada fila debe tener dos columnas de correspondencia."
+msgstr ""
+
+msgid "Cada fila debe tener dos columnas: campo de TaxoCommerce y columna del proveedor."
+msgstr ""
+
+msgid "Canonical URL"
+msgstr "URL canónica"
+
+msgid "Columns mapped"
+msgstr "Columnas asignadas"
+
+msgid "Conflict"
+msgstr "Conflicto"
+
+msgid "Correcto"
+msgstr ""
+
+msgid "Cost"
+msgstr "Coste"
+
+msgid "Country"
+msgstr "País"
+
+msgid "Crear nueva plantilla de proveedor"
+msgstr ""
+
+msgid "CSV column"
+msgstr "Columna CSV"
+
+msgid "CSV file"
+msgstr "Archivo CSV"
+
+msgid "CSV Import"
+msgstr "Importación CSV"
+
 msgid "CSV mapping template saved."
+msgstr "Plantilla de asignación CSV guardada."
+
+msgid "CSV rows stay here until they are accepted, sent to review, or discarded."
+msgstr "Las filas CSV permanecen aquí hasta su aceptación, revisión o descarte."
+
+msgid "CSV template"
+msgstr "Plantilla CSV"
+
+msgid "CSV Templates"
+msgstr "Plantillas CSV"
+
+msgid "Currency"
+msgstr "Moneda"
+
+msgid "Decision"
+msgstr "Decisión"
+
+msgid "Default regular margin %"
+msgstr "Margen regular predeterminado %"
+
+msgid "Default sale margin %"
+msgstr "Margen de oferta predeterminado %"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Delimiter:"
+msgstr "Delimitador:"
+
+msgid "Descargar cabecera CSV canónica"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:206
-msgid "Price data saved."
+msgid "Descargar JSON"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:209
+msgid "Descargar resultados (JSON)"
+msgstr ""
+
+msgid "Description"
+msgstr "Descripción"
+
+msgid "Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP."
+msgstr ""
+
+msgid "Discard"
+msgstr "Descartar"
+
+msgid "Discarded"
+msgstr "Descartado"
+
+msgid "Duplicate"
+msgstr "Duplicado"
+
+msgid "Ejecuta el Autocheck antes de descargar el JSON."
+msgstr ""
+
+msgid "Ejecutar Autocheck"
+msgstr "Ejecutar autochequeo"
+
+msgid "El nombre de una columna de origen está vacío o es demasiado largo."
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+msgid "Excl. tax"
+msgstr "Sin impuestos"
+
+msgid "External identity"
+msgstr "Identificador externo"
+
 msgid "External image references saved."
+msgstr "Referencias de imágenes externas guardadas."
+
+msgid "External image URLs"
+msgstr "URL de imágenes externas"
+
+msgid "External image URLs are stored as references in"
+msgstr "Las URL de imágenes externas se guardan como referencias en"
+
+msgid "External Images"
+msgstr "Imágenes externas"
+
+msgid "Faltan las correspondencias obligatorias: identificador externo y nombre del producto."
 msgstr ""
 
-#: includes/class-tcsup-autotest.php:88
-msgid "No tienes permisos para ejecutar el autotest."
+msgid "Fecha de ejecución:"
 msgstr ""
 
-#: includes/class-tcsup-autotest.php:90
-msgid "Autotest de Suppliers"
+msgid "File:"
+msgstr "Archivo:"
+
+msgid "Filter"
+msgstr "Filtrar"
+
+msgid "Formato del texto pegado"
 msgstr ""
 
-#: includes/class-tcsup-autotest.php:90
-msgid ""
-"Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos "
-"ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes "
-"HTTP."
+msgid "Formato no admitido. Utiliza JSON, CSV o TXT."
 msgstr ""
 
-#: includes/class-tcsup-autotest.php:98
-msgid ""
-"Los resultados solo se muestran cuando se pulsa el botón; no se guardan."
+msgid "Gestiona catálogos, compras, precios y relaciones con proveedores."
 msgstr ""
 
-#: includes/class-tcsup-autotest.php:123
-msgid ""
-"Autotest de disponibilidad, no de resultados comerciales o de importación. "
-"No repara ni modifica tablas."
+msgid "Guardar plantilla"
 msgstr ""
 
-#: includes/class-tcsup-csv.php:155
-msgid "You do not have permission to manage supplier imports."
+msgid "Ignored"
+msgstr "Ignorado"
+
+msgid "Import into intermediate inventory"
+msgstr "Importar al inventario intermedio"
+
+msgid "Incl. tax"
+msgstr "Con impuestos"
+
+msgid "Índice"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:15
+msgid "Intermediate supplier inventory"
+msgstr "Inventario intermedio de proveedores"
+
+msgid "Introduce un nombre de plantilla válido."
+msgstr ""
+
+msgid "Introduce un nombre válido para la plantilla (máximo 100 caracteres)."
+msgstr ""
+
+msgid "Inventory"
+msgstr "Inventario"
+
+msgid "JSON: {\"mapping\":{\"proveedor_id_externo\":\"ID\",\"nombre\":\"Nombre\"}}. CSV/TXT: dos columnas separadas por coma o punto y coma, una línea por correspondencia (campo interno, columna del proveedor). Si subes un archivo, tiene prioridad sobre el texto pegado."
+msgstr ""
+
+msgid "La definición contiene campos desconocidos o valores no válidos."
+msgstr ""
+
+msgid "La definición contiene campos duplicados."
+msgstr ""
+
+msgid "La definición debe contener entre 1 y 65536 bytes."
+msgstr ""
+
+msgid "La definición JSON no es válida."
+msgstr ""
+
+msgid "La plantilla contiene campos canónicos desconocidos o valores inválidos."
+msgstr ""
+
+msgid "La plantilla no contiene correspondencias."
+msgstr ""
+
+msgid "La plantilla tiene campos duplicados."
+msgstr ""
+
+msgid "Las plantillas relacionan las columnas del CSV del proveedor con los campos de TaxoCommerce. No ejecutan código ni importan productos al guardarse."
+msgstr ""
+
+msgid "Legacy"
+msgstr "Heredado"
+
+msgid "Los resultados se generan al pulsar el botón. Se conserva el último durante una hora para descargarlo en JSON."
+msgstr ""
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Manual de TaxoCommerce Suppliers"
+msgstr ""
+
+msgid "Manual de usuario"
+msgstr ""
+
+msgid "Manual técnico para futuros desarrolladores"
+msgstr ""
+
+msgid "Market"
+msgstr "Mercado"
+
+msgid "Market country"
+msgstr "País de mercado"
+
+msgid "Mode"
+msgstr "Modo"
+
+msgid "Modified"
+msgstr "Modificado"
+
+msgid "MPN"
+msgstr "MPN"
+
+msgid "Name, SKU or external ID"
+msgstr "Nombre, SKU o ID externo"
+
+msgid "New"
+msgstr "Nuevo"
+
+msgid "No existe esa plantilla personalizada."
+msgstr ""
+
+msgid "No hay correspondencias de columnas."
+msgstr ""
+
+msgid "No product brand taxonomy is available."
+msgstr "No hay ninguna taxonomía de marcas de producto disponible."
+
+msgid "No se pudo exportar la plantilla."
+msgstr ""
+
+msgid "No se pudo generar el informe JSON."
+msgstr ""
+
 msgid "No tienes permisos para consultar el manual."
 msgstr ""
 
-#: includes/class-tcsup-products.php:15
-msgid "You do not have permission to manage supplier products."
+msgid "No tienes permisos para ejecutar el autotest."
 msgstr ""
 
-#: includes/class-tcsup-purchasing.php:184
-msgid "WooCommerce must be active to resolve sales into supplier purchases."
+msgid "Nombre de la plantilla"
 msgstr ""
+
+msgid "O pegar la definición en el campo siguiente:"
+msgstr ""
+
+msgid "Only CSV files are accepted. XLS/XLSX and web scraping are intentionally excluded."
+msgstr "Solo se admiten archivos CSV. Se excluyen expresamente XLS/XLSX y la extracción web."
+
+msgid "Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction."
+msgstr "Solo se procesan CSV facilitados por proveedores. Este plugin no incorpora scrapers, rastreadores ni extracción web automática."
+
+msgid "Optional template name"
+msgstr "Nombre de plantilla opcional"
+
+msgid "Order lines"
+msgstr "Líneas de pedido"
+
+msgid "Pending"
+msgstr "Pendiente"
+
+msgid "Preview"
+msgstr "Vista previa"
+
+msgid "Price control"
+msgstr "Control de precios"
+
+msgid "Price data saved."
+msgstr "Datos de precios guardados."
+
+msgid "Price excl. tax"
+msgstr "Precio sin impuestos"
+
+msgid "Price incl. tax"
+msgstr "Precio con impuestos"
+
+msgid "Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed."
+msgstr "El modo de actualización de precios no crea filas de catálogo. Asigna el ID externo o SKU y al menos una columna de precio; para VEVOR, también el país, para no mezclar mercados."
+
+msgid "Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID."
+msgstr "Para actualizar precios hace falta un identificador y al menos una columna de precio. VEVOR también exige país e ID externo."
+
+msgid "Prices"
+msgstr "Precios"
+
+msgid "Product"
+msgstr "Producto"
+
+msgid "Product name"
+msgstr "Nombre del producto"
+
+msgid "Proveedor (opcional)"
+msgstr ""
+
+msgid "Published"
+msgstr "Publicado"
+
+msgid "Purchase"
+msgstr "Comprar"
+
+msgid "Purchasing"
+msgstr "Compras"
+
+msgid "Qty."
+msgstr "Cant."
+
+msgid "Required"
+msgstr "Obligatorio"
+
+msgid "Resumen"
+msgstr ""
+
+msgid "Review"
+msgstr "Revisar"
+
+msgid "Sale"
+msgstr "Venta"
+
+msgid "SATKIT visual mapping"
+msgstr "Asignación visual SATKIT"
+
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Save external images"
+msgstr "Guardar imágenes externas"
+
+msgid "Save margins"
+msgstr "Guardar márgenes"
+
+msgid "Save this mapping as a reusable template"
+msgstr "Guardar esta asignación como plantilla reutilizable"
+
+msgid "Select all rows on this page"
+msgstr "Seleccionar todas las filas de esta página"
+
+msgid "Sin permisos para descargar el Autocheck."
+msgstr ""
+
+msgid "Solo se admiten definiciones JSON, CSV o TXT."
+msgstr ""
+
+msgid "Source language"
+msgstr "Idioma de origen"
+
+msgid "Stable variant key"
+msgstr "Clave estable de variante"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Stock"
+msgstr "Existencias"
+
+msgid "Stock quantity"
+msgstr "Cantidad disponible"
+
+msgid "Stock state"
+msgstr "Estado del stock"
+
+msgid "Stock text"
+msgstr "Texto de existencias"
+
+msgid "Subir definición JSON, CSV o TXT (máximo 64 KiB)"
+msgstr ""
+
+msgid "Supplier"
+msgstr "Proveedor"
+
+msgid "Supplier Catalogue"
+msgstr "Catálogo de proveedores"
+
+msgid "Supplier catalogue intake, product decisions, purchasing, price control, and external image references."
+msgstr "Entrada de catálogos de proveedores, decisiones sobre productos, compras, control de precios y referencias de imágenes externas."
+
+msgid "Supplier catalogue row was not found."
+msgstr "No se ha encontrado la fila del catálogo de proveedores."
+
+msgid "Supplier category"
+msgstr "Categoría del proveedor"
+
+msgid "Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV."
+msgstr "El coste del proveedor se mantiene separado del precio de venta de WooCommerce. Puedes corregirlo sin importar de nuevo el CSV."
+
+msgid "Supplier ID"
+msgstr "ID del proveedor"
+
+msgid "Supplier price"
+msgstr "Precio del proveedor"
+
+msgid "Supplier Price Update CSV"
+msgstr "CSV de actualización de precios de proveedores"
+
+msgid "Supplier product"
+msgstr "Producto del proveedor"
+
+msgid "Supplier product ID"
+msgstr "ID de producto del proveedor"
+
+msgid "Supplier product ID and product name must be mapped before importing."
+msgstr "Debes asignar el ID externo y el nombre del producto antes de importar."
+
+msgid "Supplier product URL"
+msgstr "URL del producto del proveedor"
+
+msgid "Supplier SKU"
+msgstr "SKU del proveedor"
+
+msgid "Supplier SKU is already linked in WooCommerce to a different supplier."
+msgstr "El SKU del proveedor ya está vinculado en WooCommerce a otro proveedor."
+
+msgid "Supplier-linked"
+msgstr "Con proveedor vinculado"
+
+msgid "Suppliers"
+msgstr "Proveedores"
+
+msgid "Sync"
+msgstr "Sincronización"
+
+msgid "Synchronized"
+msgstr "Sincronizado"
+
+msgid "Tax %"
+msgstr "Impuestos %"
+
+msgid "TaxoCommerce canonical CSV"
+msgstr "CSV canónico de TaxoCommerce"
+
+msgid "TaxoCommerce field"
+msgstr "Campo de TaxoCommerce"
+
+msgid "TaxoCommerce Suppliers"
+msgstr ""
+
+msgid "Template"
+msgstr "Plantilla"
+
+msgid "The analyzed CSV session expired. Upload the file again."
+msgstr "Ha caducado la sesión de análisis del CSV. Vuelve a subir el archivo."
+
+msgid "The CSV could not be read."
+msgstr "No se ha podido leer el CSV."
+
+msgid "The CSV exceeds the WordPress upload limit."
+msgstr "El CSV supera el límite de subida de WordPress."
+
+msgid "The CSV header is not valid."
+msgstr "La cabecera del CSV no es válida."
+
+msgid "The CSV upload failed."
+msgstr "Ha fallado la subida del CSV."
+
+msgid "The supplier catalogue row no longer exists."
+msgstr "La fila del catálogo del proveedor ya no existe."
+
+msgid "The supplier import storage directory is not writable."
+msgstr "No se puede escribir en el directorio de importaciones de proveedores."
+
+msgid "The VEVOR CSV is missing one or more required official feed columns."
+msgstr "Faltan columnas obligatorias del fichero oficial de VEVOR."
+
+msgid "The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made."
+msgstr "La plantilla VEVOR relaciona localmente las columnas oficiales con los campos de producto, mercado, precio, moneda e imágenes. No realiza conexiones de red."
+
+msgid "They are not downloaded into WordPress Media."
+msgstr "No se descargan a la biblioteca de medios de WordPress."
+
+msgid "TodoTaladros visual mapping"
+msgstr "Asignación visual TodoTaladros"
+
+msgid "Una columna de origen está vacía o es demasiado larga."
+msgstr ""
+
+msgid "Unchanged"
+msgstr "Sin cambios"
+
+msgid "Update"
+msgstr "Actualizar"
+
+msgid "URLs"
+msgstr "URL"
+
+msgid "Versión"
+msgstr ""
+
+msgid "VEVOR official CSV"
+msgstr "CSV oficial de VEVOR"
+
+msgid "Without source"
+msgstr "Sin proveedor"
+
+msgid "Woo ID"
+msgstr "ID WooCommerce"
+
+msgid "Woo regular"
+msgstr "Precio habitual WooCommerce"
+
+msgid "Woo sale"
+msgstr "Precio rebajado WooCommerce"
+
+msgid "WooCommerce did not return a product ID."
+msgstr "WooCommerce no ha devuelto un ID de producto."
+
+msgid "WooCommerce is required to accept supplier products."
+msgstr "Se necesita WooCommerce para aceptar productos de proveedores."
+
+msgid "WooCommerce must be active to resolve sales into supplier purchases."
+msgstr "WooCommerce debe estar activo para relacionar las ventas con las compras a proveedores."
+
+msgid "WooCommerce product"
+msgstr "Producto de WooCommerce"
+
+msgid "WooCommerce product could not be loaded."
+msgstr "No se ha podido cargar el producto de WooCommerce."
+
+msgid "Ya existe una plantilla con ese nombre."
+msgstr ""
+
+msgid "Ya existe una plantilla con ese nombre. Elige otro para no sobrescribirla."
+msgstr ""
+
+msgid "You do not have permission to manage supplier imports."
+msgstr "No tienes permisos para gestionar importaciones de proveedores."
+
+msgid "You do not have permission to manage supplier products."
+msgstr "No tienes permisos para gestionar productos de proveedores."
+
+msgid "You do not have permission to manage TaxoCommerce Suppliers."
+msgstr "No tienes permisos para gestionar TaxoCommerce Suppliers."

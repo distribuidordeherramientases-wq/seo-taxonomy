@@ -4,7 +4,7 @@ Tags: woocommerce, mysql, database, backup, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.7
+Stable tag: 0.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Standalone migration of the original Clean Database and SEO Data Table tools fro
 
 Version 0.4.5 preserves the two original database tools:
 
-* Clean Database: Data Errors, Database Cleanup and Database Export tabs.
+* Clean Database: Data Errors, Database Cleanup and a unified Export tab that combines complete WordPress SQL backups with SEO-table CSV/SQL/ZIP exports.
 * Validation and repair of SEO nodes, relationships, scopes, categories and bulk supplier acceptance locks.
 * All 17 original WordPress, WooCommerce and Action Scheduler cleanup actions, without a total deletion limit of 100 records or typed confirmation words. Cleanup remains manual and synchronous as in the original plugin.
 * Full WordPress database SQL backup and SEO-only SQL backup.
@@ -32,6 +32,11 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 4. Download an SQL backup before any irreversible cleanup operation.
 
 == Changelog ==
+
+= 0.4.8 =
+* Merge the two admin export tabs into one while retaining full-site SQL, SEO-only SQL, per-table CSV/SQL and bundled SEO CSV/SQL/ZIP downloads.
+* Keep existing export routes, security checks and old bookmarked export-tab URLs compatible. No changes to export engines, stored data, or backup formats.
+
 
 = 0.4.7 =
 * Nombre uniforme «Autocheck» y descarga autenticada del último informe JSON, con resultados por comprobación y sin ejecutar operaciones reales.

@@ -1,6 +1,20 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.26] — 2026-11-05
+
+- Primera instalación con al menos un producto WooCommerce publicado: **programa** el aprendizaje L1–L10 por lotes desde la tienda local, tras crear los esquemas vacíos. No ejecuta un escaneo masivo durante la activación.
+- Sin productos publicados: queda en reposo sin inventar conocimiento.
+- Reactivaciones, actualizaciones y sitios con conocimiento o cursores previos: no reinician aprendizaje ni borran datos.
+- Prueba aislada de arranque, ausencia de productos, registros preexistentes y errores SQL; se mantienen los controles Iniciar/Detener y el regulador existente.
+
+## [0.3.25] — 2026-11-05
+
+- Instalación nueva: crea el esquema del léxico y sus evidencias **sin insertar las 17 expresiones de herramientas de prueba**, que procedían del desarrollo de la tienda original.
+- Retirado del plugin independiente el método de semilla sectorial. Se conserva el aprendizaje L1–L10 y M11 desde los productos, categorías, etiquetas y Vocabulary **del WordPress del cliente**, cuando el administrador lo inicia.
+- Actualizaciones no eliminan los conocimientos ni las evidencias ya existentes. Los registros históricos de Focazul no se borran automáticamente.
+- Prueba de regresión ejecutable: primera instalación vacía, reconciliación del esquema sin pérdida de registros y existencia de los lectores del catálogo local. Issue #2195.
+
 ## [0.3.24] — 2026-11-03
 
 - Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.
