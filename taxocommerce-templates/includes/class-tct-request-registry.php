@@ -120,7 +120,7 @@ final class TCT_Request_Registry {
         }
         global $wpdb;
         $table = TaxoCommerce_Templates::nodes();
-        return (string) $wpdb->get_var($wpdb->prepare(
+        return (string) TCT_Read_Query_Cache::get_var($wpdb->prepare(
             "SELECT seo_role FROM %i
              WHERE object_type = %s AND object_id = %d AND status = 1
              ORDER BY id DESC LIMIT 1",
@@ -291,7 +291,7 @@ final class TCT_Request_Registry {
         $table = TaxoCommerce_Templates::templates();
         $slots = implode(', ', array_fill(0, count($candidates), '%s'));
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The dynamic IN segment contains only literal %s placeholders from array_fill; every value is bound by prepare().
-        $rows = $wpdb->get_results($wpdb->prepare(
+        $rows = TCT_Read_Query_Cache::get_results($wpdb->prepare(
             "SELECT template_key,template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key IN ({$slots}) AND is_active = 1", array_merge( array( $table ), $candidates )
         ));
@@ -320,7 +320,7 @@ final class TCT_Request_Registry {
         }
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $row = $wpdb->get_row($wpdb->prepare(
+        $row = TCT_Read_Query_Cache::get_row($wpdb->prepare(
             "SELECT template_file,is_active,device_variants_enabled FROM %i WHERE template_key = %s LIMIT 1",
             $table, 'comments'
         ));
@@ -354,7 +354,7 @@ final class TCT_Request_Registry {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $key = self::woocommerce_key($relative);
-        $row = $wpdb->get_row($wpdb->prepare(
+        $row = TCT_Read_Query_Cache::get_row($wpdb->prepare(
             "SELECT template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key = %s AND is_active = 1 LIMIT 1", $table, $key
         ));
