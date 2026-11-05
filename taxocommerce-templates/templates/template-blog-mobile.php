@@ -100,14 +100,14 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
             : $wpdb->prefix . 'seo_media_usos';
 
         if (null === $usage_table_available) {
-            $usage_table_available = $wpdb->get_var(
+            $usage_table_available = TCT_Read_Query_Cache::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             ) === $usage_table;
         }
 
         if ($usage_table_available) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $usage_table comes from the internal Media table helper and is existence-checked immediately above.
-            $attachment_ids = $wpdb->get_col(
+            $attachment_ids = TCT_Read_Query_Cache::get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
                      FROM %i
@@ -138,13 +138,13 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
 
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_Read_Query_Cache::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_Read_Query_Cache::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -258,7 +258,7 @@ if (!function_exists('dht_blog_v2_post_image_mobile')) {
             }
         }
 
-        $related_term_ids = $wpdb->get_col(
+        $related_term_ids = TCT_Read_Query_Cache::get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
                  FROM {$wpdb->prefix}seo_relations
