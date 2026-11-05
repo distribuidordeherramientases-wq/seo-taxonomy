@@ -1,3 +1,11 @@
+## [Unreleased] — revisión estricta del paquete Templates (#2189)
+
+- Nuevo workflow de comprobación WordPress Plugin Check sobre el ZIP instalable, con comprobación estricta de errores y advertencias, sin tests ni archivos ocultos.
+- Consultas SQL parametrizadas con identificadores `%i` en el gestor de roles, relaciones, enrutamiento, categorías, hubs, clústeres, productos, tienda, blog, pilotos y variantes de escritorio/móvil. Se conserva el comportamiento de las consultas y la vinculación de parámetros.
+- Comprobación y documentación por entrada de que los parámetros GET de filtros son de solo lectura y de que las operaciones POST existentes usan comprobación de permisos y nonce; los valores de los filtros se validan por tipo antes de usarse.
+- Las pruebas de plantilla internacional dejan de exigir igualdad de código con el monolítico: comprueban las rutas, el comportamiento esperado y el SQL parametrizado del plugin independiente.
+- **En desarrollo:** aún no es una versión publicable ni desplegable. Las consultas directas a tablas propias, falta de caché, advertencias de rendimiento y el editor PHP ejecutable necesitan revisión adicional. No declarar cero advertencias sin pasar la comprobación estricta.
+
 ## [0.4.14] — 2026-11-05
 
 - Primer lote de advertencias del nuevo Plugin Check (#2189): identificadores SQL preparados con `%i` en el registro de peticiones, router, asociaciones, guardado de roles y editor; conserva los filtros `IN` parametrizados y las reglas existentes.
