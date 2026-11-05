@@ -2,7 +2,6 @@ msgid ""
 msgstr ""
 "Project-Id-Version: TaxoCommerce Suppliers 0.2.7\n"
 "Language: es_ES\n"
-"MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -198,8 +197,14 @@ msgstr "Es obligatorio indicar un proveedor."
 msgid "A template name is required."
 msgstr "Es obligatorio indicar un nombre de plantilla."
 
+msgid "Accept"
+msgstr "Aceptar"
+
 msgid "Accepted"
 msgstr "Aceptado"
+
+msgid "Actions"
+msgstr "Acciones"
 
 msgid "Active sales"
 msgstr "Ventas activas"
@@ -212,6 +217,9 @@ msgstr "Ya hay otro proceso aceptando este producto del proveedor."
 
 msgid "Apply"
 msgstr "Aplicar"
+
+msgid "Apply Woo prices"
+msgstr "Aplicar precios a WooCommerce"
 
 msgid "Archivo de plantilla inválido. Utiliza JSON, CSV o TXT de hasta 64 KiB."
 msgstr ""
@@ -243,6 +251,9 @@ msgstr ""
 msgid "Canonical URL"
 msgstr "URL canónica"
 
+msgid "Columns mapped"
+msgstr "Columnas asignadas"
+
 msgid "Conflict"
 msgstr "Conflicto"
 
@@ -252,8 +263,17 @@ msgstr ""
 msgid "Cost"
 msgstr "Coste"
 
+msgid "Country"
+msgstr "País"
+
 msgid "Crear nueva plantilla de proveedor"
 msgstr ""
+
+msgid "CSV column"
+msgstr "Columna CSV"
+
+msgid "CSV file"
+msgstr "Archivo CSV"
 
 msgid "CSV Import"
 msgstr "Importación CSV"
@@ -261,14 +281,32 @@ msgstr "Importación CSV"
 msgid "CSV mapping template saved."
 msgstr "Plantilla de asignación CSV guardada."
 
+msgid "CSV rows stay here until they are accepted, sent to review, or discarded."
+msgstr "Las filas CSV permanecen aquí hasta su aceptación, revisión o descarte."
+
+msgid "CSV template"
+msgstr "Plantilla CSV"
+
 msgid "CSV Templates"
 msgstr "Plantillas CSV"
 
 msgid "Currency"
 msgstr "Moneda"
 
+msgid "Decision"
+msgstr "Decisión"
+
+msgid "Default regular margin %"
+msgstr "Margen regular predeterminado %"
+
+msgid "Default sale margin %"
+msgstr "Margen de oferta predeterminado %"
+
 msgid "Delete"
 msgstr "Eliminar"
+
+msgid "Delimiter:"
+msgstr "Delimitador:"
 
 msgid "Descargar cabecera CSV canónica"
 msgstr ""
@@ -284,6 +322,9 @@ msgstr "Descripción"
 
 msgid "Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP."
 msgstr ""
+
+msgid "Discard"
+msgstr "Descartar"
 
 msgid "Discarded"
 msgstr "Descartado"
@@ -303,11 +344,20 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
+msgid "Excl. tax"
+msgstr "Sin impuestos"
+
+msgid "External identity"
+msgstr "Identificador externo"
+
 msgid "External image references saved."
 msgstr "Referencias de imágenes externas guardadas."
 
 msgid "External image URLs"
 msgstr "URL de imágenes externas"
+
+msgid "External image URLs are stored as references in"
+msgstr "Las URL de imágenes externas se guardan como referencias en"
 
 msgid "External Images"
 msgstr "Imágenes externas"
@@ -317,6 +367,9 @@ msgstr ""
 
 msgid "Fecha de ejecución:"
 msgstr ""
+
+msgid "File:"
+msgstr "Archivo:"
 
 msgid "Filter"
 msgstr "Filtrar"
@@ -338,6 +391,9 @@ msgstr "Ignorado"
 
 msgid "Import into intermediate inventory"
 msgstr "Importar al inventario intermedio"
+
+msgid "Incl. tax"
+msgstr "Con impuestos"
 
 msgid "Índice"
 msgstr ""
@@ -399,14 +455,23 @@ msgstr ""
 msgid "Manual técnico para futuros desarrolladores"
 msgstr ""
 
+msgid "Market"
+msgstr "Mercado"
+
 msgid "Market country"
 msgstr "País de mercado"
+
+msgid "Mode"
+msgstr "Modo"
 
 msgid "Modified"
 msgstr "Modificado"
 
 msgid "MPN"
 msgstr "MPN"
+
+msgid "Name, SKU or external ID"
+msgstr "Nombre, SKU o ID externo"
 
 msgid "New"
 msgstr "Nuevo"
@@ -441,6 +506,12 @@ msgstr ""
 msgid "Only CSV files are accepted. XLS/XLSX and web scraping are intentionally excluded."
 msgstr "Solo se admiten archivos CSV. Se excluyen expresamente XLS/XLSX y la extracción web."
 
+msgid "Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction."
+msgstr "Solo se procesan CSV facilitados por proveedores. Este plugin no incorpora scrapers, rastreadores ni extracción web automática."
+
+msgid "Optional template name"
+msgstr "Nombre de plantilla opcional"
+
 msgid "Order lines"
 msgstr "Líneas de pedido"
 
@@ -462,11 +533,17 @@ msgstr "Precio sin impuestos"
 msgid "Price incl. tax"
 msgstr "Precio con impuestos"
 
+msgid "Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed."
+msgstr "El modo de actualización de precios no crea filas de catálogo. Asigna el ID externo o SKU y al menos una columna de precio; para VEVOR, también el país, para no mezclar mercados."
+
 msgid "Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID."
 msgstr "Para actualizar precios hace falta un identificador y al menos una columna de precio. VEVOR también exige país e ID externo."
 
 msgid "Prices"
 msgstr "Precios"
+
+msgid "Product"
+msgstr "Producto"
 
 msgid "Product name"
 msgstr "Nombre del producto"
@@ -485,6 +562,9 @@ msgstr "Compras"
 
 msgid "Qty."
 msgstr "Cant."
+
+msgid "Required"
+msgstr "Obligatorio"
 
 msgid "Resumen"
 msgstr ""
@@ -510,6 +590,9 @@ msgstr "Guardar márgenes"
 msgid "Save this mapping as a reusable template"
 msgstr "Guardar esta asignación como plantilla reutilizable"
 
+msgid "Select all rows on this page"
+msgstr "Seleccionar todas las filas de esta página"
+
 msgid "Sin permisos para descargar el Autocheck."
 msgstr ""
 
@@ -524,6 +607,9 @@ msgstr "Clave estable de variante"
 
 msgid "Status"
 msgstr "Estado"
+
+msgid "Stock"
+msgstr "Existencias"
 
 msgid "Stock quantity"
 msgstr "Cantidad disponible"
@@ -552,8 +638,14 @@ msgstr "No se ha encontrado la fila del catálogo de proveedores."
 msgid "Supplier category"
 msgstr "Categoría del proveedor"
 
+msgid "Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV."
+msgstr "El coste del proveedor se mantiene separado del precio de venta de WooCommerce. Puedes corregirlo sin importar de nuevo el CSV."
+
 msgid "Supplier ID"
 msgstr "ID del proveedor"
+
+msgid "Supplier price"
+msgstr "Precio del proveedor"
 
 msgid "Supplier Price Update CSV"
 msgstr "CSV de actualización de precios de proveedores"
@@ -582,6 +674,9 @@ msgstr "Con proveedor vinculado"
 msgid "Suppliers"
 msgstr "Proveedores"
 
+msgid "Sync"
+msgstr "Sincronización"
+
 msgid "Synchronized"
 msgstr "Sincronizado"
 
@@ -591,8 +686,14 @@ msgstr "Impuestos %"
 msgid "TaxoCommerce canonical CSV"
 msgstr "CSV canónico de TaxoCommerce"
 
+msgid "TaxoCommerce field"
+msgstr "Campo de TaxoCommerce"
+
 msgid "TaxoCommerce Suppliers"
 msgstr ""
+
+msgid "Template"
+msgstr "Plantilla"
 
 msgid "The analyzed CSV session expired. Upload the file again."
 msgstr "Ha caducado la sesión de análisis del CSV. Vuelve a subir el archivo."
@@ -618,6 +719,12 @@ msgstr "No se puede escribir en el directorio de importaciones de proveedores."
 msgid "The VEVOR CSV is missing one or more required official feed columns."
 msgstr "Faltan columnas obligatorias del fichero oficial de VEVOR."
 
+msgid "The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made."
+msgstr "La plantilla VEVOR relaciona localmente las columnas oficiales con los campos de producto, mercado, precio, moneda e imágenes. No realiza conexiones de red."
+
+msgid "They are not downloaded into WordPress Media."
+msgstr "No se descargan a la biblioteca de medios de WordPress."
+
 msgid "TodoTaladros visual mapping"
 msgstr "Asignación visual TodoTaladros"
 
@@ -630,6 +737,9 @@ msgstr "Sin cambios"
 msgid "Update"
 msgstr "Actualizar"
 
+msgid "URLs"
+msgstr "URL"
+
 msgid "Versión"
 msgstr ""
 
@@ -638,6 +748,15 @@ msgstr "CSV oficial de VEVOR"
 
 msgid "Without source"
 msgstr "Sin proveedor"
+
+msgid "Woo ID"
+msgstr "ID WooCommerce"
+
+msgid "Woo regular"
+msgstr "Precio habitual WooCommerce"
+
+msgid "Woo sale"
+msgstr "Precio rebajado WooCommerce"
 
 msgid "WooCommerce did not return a product ID."
 msgstr "WooCommerce no ha devuelto un ID de producto."
