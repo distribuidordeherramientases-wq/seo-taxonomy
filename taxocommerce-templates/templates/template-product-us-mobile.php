@@ -127,7 +127,7 @@ if ($supplier_images_exists) {
                 position,
                 is_primary,
                 status
-             FROM {$supplier_images_table}
+             FROM %i
              WHERE product_id = %d
                AND status = 'active'
                AND image_url IS NOT NULL
@@ -136,7 +136,7 @@ if ($supplier_images_exists) {
                 is_primary DESC,
                 position ASC,
                 id ASC",
-            $product_id
+            $supplier_images_table, $product_id
         ),
         ARRAY_A
     );
