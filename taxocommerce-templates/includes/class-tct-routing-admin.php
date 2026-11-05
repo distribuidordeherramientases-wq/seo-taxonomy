@@ -186,6 +186,8 @@ final class TCT_Routing_Admin {
     }
 
     private static function redirect( $message ) {
+        // Redirect parameters are read only after save() has verified its nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by save() before calling this helper.
         $group = isset( $_POST['tct_group'] ) && is_string( $_POST['tct_group'] )
             ? sanitize_text_field( wp_unslash( $_POST['tct_group'] ) ) : '';
         $search = isset( $_POST['tct_search'] ) && is_string( $_POST['tct_search'] )
