@@ -40,6 +40,7 @@ function WP_Filesystem() {
 function verify( $condition, $message ) {
     if ( !$condition ) { fwrite( STDERR, 'FAILED: ' . $message . "\n" ); exit( 1 ); }
 }
+require_once TCT_DIR . 'includes/class-tct-read-cache.php';
 require TCT_DIR . 'includes/class-tct-router.php';
 require TCT_DIR . 'includes/class-tct-template-editor.php';
 $dir = TCT_Router::library_dir();
