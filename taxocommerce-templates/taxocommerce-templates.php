@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.16
+ * Version: 0.4.17
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,10 +14,11 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.16');
+define('TCT_VERSION','0.4.17');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
+require_once TCT_DIR . 'includes/class-tct-db.php';
 require_once TCT_DIR . 'includes/class-tct-router.php';
 require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
@@ -57,7 +58,7 @@ final class TaxoCommerce_Templates {
     public static function installed() {
         global $wpdb;
         foreach(array(self::nodes(),self::templates()) as $table) {
-            if($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($table)))!==$table) return false;
+            if(TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($table)))!==$table) return false;
         }
         return true;
     }
@@ -180,21 +181,21 @@ final class TaxoCommerce_Templates {
         if($current===$role) return true;
         // Roles used in live hierarchy must not be silently reassigned.
         $relations=$wpdb->prefix.'seo_relations';
-        if($current&&$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
+        if($current&&TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
             $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
-        $now=current_time('mysql');$wpdb->query('START TRANSACTION');
-        $disabled=$wpdb->update($table,array('status'=>0,'updated_at'=>$now),array('object_type'=>'page','object_id'=>$id));
+        $now=current_time('mysql');TCT_DB::query('START TRANSACTION');
+        $disabled=TCT_DB::update($table,array('status'=>0,'updated_at'=>$now),array('object_type'=>'page','object_id'=>$id));
         $saved=true;
         if(false!==$disabled&&$role) {
-            $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
+            $existing=TCT_DB::get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
             $saved=$existing?
-                false!==$wpdb->update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
+                false!==TCT_DB::update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
                 false!==$wpdb->insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
         }
-        if(false===$disabled||!$saved){$wpdb->query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
-        $wpdb->query('COMMIT');
+        if(false===$disabled||!$saved){TCT_DB::query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
+        TCT_DB::query('COMMIT');
         // A new role must be visible immediately to the active template resolver.
         wp_cache_delete( 'role_page_' . $id, 'taxocommerce_templates' );
         if($role) update_post_meta($id,'_taxocommerce_seo_role',$role);
@@ -237,9 +238,9 @@ final class TaxoCommerce_Templates {
         $custom[$role]=$name;update_option(self::ROLE_OPTION,$custom,false);
         global $wpdb;
         $table=self::templates();
-        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
+        $exists=TCT_DB::get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$exists) {
-            $wpdb->insert($table,array(
+            TCT_DB::insert($table,array(
                 'template_key'=>$role,'template_name'=>$name,'template_file'=>'',
                 'template_type'=>'page','assignment_mode'=>'multiple','is_assignable'=>1,
                 'is_active'=>0,'is_public'=>1,'created_at'=>current_time('mysql'),
@@ -255,12 +256,12 @@ final class TaxoCommerce_Templates {
         $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $file=isset($_POST['file']) && is_string($_POST['file']) ? sanitize_file_name(wp_unslash($_POST['file'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $table=self::templates();
-        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
+        $exists=TCT_DB::get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$role||!$exists||!TCT_Router::valid_filename($file))self::redirect('Ruta o plantilla no validas.');
         $path=TCT_Router::path($file);
         if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
         $fields=array('template_file'=>$file,'is_active'=>1,'updated_at'=>current_time('mysql'));
-        $saved=$wpdb->update($table,$fields,array('id'=>(int)$exists));
+        $saved=TCT_DB::update($table,$fields,array('id'=>(int)$exists));
         self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
     public static function settings() {
@@ -319,7 +320,7 @@ final class TaxoCommerce_Templates {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $key = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $table = self::templates();
-        $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM %i WHERE template_key=%s", $table, $key));
+        $row = TCT_DB::get_row($wpdb->prepare("SELECT template_file FROM %i WHERE template_key=%s", $table, $key));
         if (!$row) {
             self::redirect('Ruta desconocida.');
         }
@@ -329,7 +330,7 @@ final class TaxoCommerce_Templates {
         if (!$enabled && $plan['dispatcher']) {
             self::redirect('La principal es un dispatcher y necesita sus variantes.');
         }
-        $saved = $wpdb->update($table, array('device_variants_enabled'=>$enabled, 'updated_at'=>current_time('mysql')), array('template_key'=>$key));
+        $saved = TCT_DB::update($table, array('device_variants_enabled'=>$enabled, 'updated_at'=>current_time('mysql')), array('template_key'=>$key));
         self::redirect(false === $saved ? 'Error guardando el modo por dispositivo.' : 'Modo por dispositivo actualizado.');
     }
 
@@ -343,7 +344,7 @@ final class TaxoCommerce_Templates {
         }
         global $wpdb;
         $table = self::templates();
-        $mode = $wpdb->get_var($wpdb->prepare(
+        $mode = TCT_DB::get_var($wpdb->prepare(
             "SELECT assignment_mode FROM %i WHERE template_key=%s AND is_assignable=1", $table, $key
         ));
         if (!in_array($mode, array('multiple','single'), true)) {
@@ -351,7 +352,7 @@ final class TaxoCommerce_Templates {
         }
         if ('single' === $mode) {
             $nodes = self::nodes();
-            $occupied = (int) $wpdb->get_var($wpdb->prepare(
+            $occupied = (int) TCT_DB::get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE seo_role=%s AND object_type='page' AND object_id<>%d AND status=1",
                 $nodes, $key, $id
             ));
@@ -478,7 +479,7 @@ final class TaxoCommerce_Templates {
         $rows = TCT_Router::rows();
         $files = TCT_Router::available_files();
         $node_table = self::nodes();
-        $associations = $wpdb->get_results($wpdb->prepare("SELECT object_id, seo_role FROM %i WHERE object_type='page' AND status=1", $node_table));
+        $associations = TCT_DB::get_results($wpdb->prepare("SELECT object_id, seo_role FROM %i WHERE object_type='page' AND status=1", $node_table));
         $by_role = array();
         $occupied = array();
         foreach ((array)$associations as $entry) {
