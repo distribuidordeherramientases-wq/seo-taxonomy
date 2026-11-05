@@ -4,7 +4,7 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.16
+Stable tag: 0.2.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,9 @@ Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO pl
 System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
 == Changelog ==
+
+= 0.2.17 =
+* Keep the most recent Autocheck JSON download available on returning to the tab, until the user- and site-scoped report expires. Export does not rerun tests.
 
 = 0.2.16 =
 * Load bundled server diagnostics when legacy SEO is installed but inactive, or active without its Server Status module; avoid duplicate headers and reloading existing global engines.
