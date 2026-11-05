@@ -1,3 +1,10 @@
+## [0.3.9] — 2026-11-05 — Recuperación del clasificador monolítico (#2232)
+
+- Recuperado el análisis contextual local: título, descripción corta/larga, categorías, etiquetas WooCommerce, marcas, SKU y metadatos genéricos/de migración de proveedores, con extensión opcional mediante un filtro estándar.
+- Incorporadas equivalencias léxicas conservadoras, puntuación con evidencia de origen, reconocimiento de términos controlados y sus alias, y lectura explícita de medidas técnicas con unidades (tensión, potencia, diámetro, piezas, etc.).
+- El motor funciona de forma independiente: no llama a funciones del monolito ni a servicios externos; no crea ni asigna etiquetas/atributos automáticamente y conserva las propuestas, filtros, JSON y clasificación de categorías existentes.
+- Pruebas de regresión para coincidencia contextual, alias, medidas con unidades, ausencia de falsos positivos, datos vacíos y contratos del módulo; PHP lint y Plugin Check.
+
 ## Unreleased - Familia i18n #2062
 
 
