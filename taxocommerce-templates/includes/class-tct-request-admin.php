@@ -36,7 +36,9 @@ final class TCT_Request_Admin {
             self::redirect('La tabla de plantillas no existe.');
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $key  = isset($_POST['request_key']) ? sanitize_key(wp_unslash($_POST['request_key'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $file = isset($_POST['template_file']) ? sanitize_file_name(wp_unslash($_POST['template_file'])) : '';
         $defs = TCT_Request_Registry::definitions();
         if (!isset($defs[$key])) {
@@ -98,11 +100,14 @@ final class TCT_Request_Admin {
 
         // Las rutas propias de otros modulos mantienen sus asignaciones aunque
         // no pertenezcan a un tipo de ejecucion WordPress estandar.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $selected_group = isset($_GET['tct_group']) ? sanitize_text_field(wp_unslash($_GET['tct_group'])) : 'WordPress';
         if (!isset($groups[$selected_group])) {
             $selected_group = (string) key($groups);
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $search = isset($_GET['tct_search']) ? sanitize_text_field(wp_unslash($_GET['tct_search'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $page = isset($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1;
 
         $matching = array();
