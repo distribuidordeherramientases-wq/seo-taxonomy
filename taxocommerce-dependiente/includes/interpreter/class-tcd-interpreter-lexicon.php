@@ -128,56 +128,11 @@ final class TCD_Original_Interprete_DB {
         self::$evidence_table_exists = true;
         self::$usage_columns_ready = true;
 
-        self::seed_i1_subject_action();
+        // Installation reconciles the schema only. Product language and synonyms
+        // are learned later from this WordPress site's own catalogue.
         self::resolve_vocabulary_ids();
         update_option(self::SCHEMA_OPTION, self::SCHEMA_VERSION, false);
         self::clear_cache();
-    }
-
-    /**
-     * Semilla mínima de regresión. Lingüista ampliará la memoria automáticamente.
-     */
-    private static function seed_i1_subject_action() {
-        $rows = array(
-            array('extractor', 'extractor', 'extractor', 'noun', '', array(), 0, 1.00, 1),
-            array('extractores', 'extractor', 'extractor', 'noun', '', array(), 0, 1.00, 1),
-            array('extraer', 'extractor', 'extractor', 'verb_to_tool', '', array('rodamiento','rodamientos','cojinete','cojinetes','polea','poleas','engranaje','engranajes','rotula','rotulas'), 1, 0.98, 2),
-            array('sacar', 'extractor', 'extractor', 'verb_to_tool', '', array('rodamiento','rodamientos','cojinete','cojinetes','polea','poleas','engranaje','engranajes','rotula','rotulas'), 1, 0.96, 3),
-            array('retirar', 'extractor', 'extractor', 'verb_to_tool', '', array('rodamiento','rodamientos','cojinete','cojinetes','polea','poleas','engranaje','engranajes','rotula','rotulas'), 1, 0.95, 3),
-
-            array('taladro', 'taladro', 'taladro', 'noun', '', array(), 0, 1.00, 1),
-            array('taladros', 'taladro', 'taladro', 'noun', '', array(), 0, 1.00, 1),
-            array('taladrar', 'taladro', 'taladro', 'verb_to_tool', '', array(), 0, 0.99, 2),
-            array('perforar', 'taladro', 'taladro', 'verb_to_tool', '', array(), 0, 0.96, 3),
-            array('agujerear', 'taladro', 'taladro', 'verb_to_tool', '', array(), 0, 0.98, 2),
-            array('hacer un agujero', 'taladro', 'taladro', 'phrase_to_tool', '', array(), 0, 0.97, 2),
-            array('hacer agujeros', 'taladro', 'taladro', 'phrase_to_tool', '', array(), 0, 0.97, 2),
-
-            array('remachar', 'remachadora', 'remachadora', 'verb_to_tool', '', array(), 0, 0.99, 2),
-            array('soldar', 'soldadora', 'soldadora', 'verb_to_tool', '', array(), 0, 0.96, 3),
-            array('lijar', 'lijadora', 'lijadora', 'verb_to_tool', '', array(), 0, 0.98, 2),
-            array('grapar', 'grapadora', 'grapadora', 'verb_to_tool', '', array(), 0, 0.98, 2),
-            array('desbrozar', 'desbrozadora', 'desbrozadora', 'verb_to_tool', '', array(), 0, 0.99, 2),
-        );
-
-        foreach ($rows as $row) {
-            self::upsert_row(array(
-                'expression'       => $row[0],
-                'canonical_term'   => $row[1],
-                'target_search'    => $row[2],
-                'relation_type'    => $row[3],
-                'semantic_group'   => $row[4],
-                'context_terms'    => $row[5],
-                'context_required' => $row[6],
-                'confidence'       => $row[7],
-                'priority'         => $row[8],
-                'source'           => 'interpreter_seed',
-                'lesson_key'       => 'i1_subject_action',
-                'evidence_count'   => 1,
-                'validated'        => 1,
-                'active'           => 1,
-            ));
-        }
     }
 
     /**
