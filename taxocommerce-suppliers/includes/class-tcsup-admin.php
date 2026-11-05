@@ -19,6 +19,8 @@ final class TCSUP_Admin {
 		add_action( 'admin_post_tcsup_analyze_csv', array( 'TCSUP_CSV', 'handle_analyze' ) );
 		add_action( 'admin_post_tcsup_import_csv', array( 'TCSUP_CSV', 'handle_import' ) );
 		add_action( 'admin_post_tcsup_save_template', array( 'TCSUP_CSV', 'handle_save_template' ) );
+		add_action( 'admin_post_tcsup_create_template', array( 'TCSUP_CSV', 'handle_create_template' ) );
+		add_action( 'admin_post_tcsup_export_template', array( 'TCSUP_CSV', 'handle_export_template' ) );
 		add_action( 'admin_post_tcsup_delete_template', array( 'TCSUP_CSV', 'handle_delete_template' ) );
 		add_action( 'admin_post_tcsup_download_template', array( 'TCSUP_CSV', 'handle_download_template' ) );
 
@@ -175,6 +177,18 @@ final class TCSUP_Admin {
 				'vevor_headers'     => 'The VEVOR CSV is missing one or more required official feed columns.',
 				'price_mapping'    => 'Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID.',
 				'template_name'    => 'A template name is required.',
+				'template_file'    => __( 'Archivo de plantilla inválido. Utiliza JSON, CSV o TXT de hasta 64 KiB.', 'taxocommerce-suppliers' ),
+				'tcsup_template_size' => __( 'La definición debe contener entre 1 y 65536 bytes.', 'taxocommerce-suppliers' ),
+				'tcsup_template_json' => __( 'La definición JSON no es válida.', 'taxocommerce-suppliers' ),
+				'tcsup_template_csv' => __( 'Cada fila debe tener dos columnas de correspondencia.', 'taxocommerce-suppliers' ),
+				'tcsup_template_duplicate_field' => __( 'La plantilla tiene campos duplicados.', 'taxocommerce-suppliers' ),
+				'tcsup_template_format' => __( 'Solo se admiten definiciones JSON, CSV o TXT.', 'taxocommerce-suppliers' ),
+				'tcsup_template_empty' => __( 'La plantilla no contiene correspondencias.', 'taxocommerce-suppliers' ),
+				'tcsup_template_fields' => __( 'La plantilla contiene campos canónicos desconocidos o valores inválidos.', 'taxocommerce-suppliers' ),
+				'tcsup_template_column' => __( 'Una columna de origen está vacía o es demasiado larga.', 'taxocommerce-suppliers' ),
+				'tcsup_template_required' => __( 'Asigna al menos el ID externo y el nombre del producto.', 'taxocommerce-suppliers' ),
+				'tcsup_template_name' => __( 'Introduce un nombre de plantilla válido.', 'taxocommerce-suppliers' ),
+				'tcsup_template_exists' => __( 'Ya existe una plantilla con ese nombre.', 'taxocommerce-suppliers' ),
 				'missing'          => 'The supplier catalogue row no longer exists.',
 			);
 			$code = sanitize_key( wp_unslash( $_GET['tc_error'] ) );
@@ -360,8 +374,25 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2>CSV Templates</h2>
-			<p>Templates only define local CSV normalization. They never fetch supplier websites.</p>
-			<p><a class="button button-primary" href="<?php echo esc_url( $download ); ?>">Download canonical CSV header</a></p>
+			<p><?php esc_html_e( 'Las plantillas relacionan las columnas del CSV del proveedor con los campos de TaxoCommerce. No ejecutan código ni importan productos al guardarse.', 'taxocommerce-suppliers' ); ?></p>
+			<details class="tcsup-template-create" style="margin:14px 0;padding:12px 16px;border:1px solid #c3c4c7;background:#fff;">
+				<summary style="cursor:pointer;font-weight:600;"><?php esc_html_e( 'Crear nueva plantilla de proveedor', 'taxocommerce-suppliers' ); ?></summary>
+				<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:14px;">
+					<input type="hidden" name="action" value="tcsup_create_template">
+					<?php wp_nonce_field( 'tcsup_create_template' ); ?>
+					<p><label><strong><?php esc_html_e( 'Nombre de la plantilla', 'taxocommerce-suppliers' ); ?></strong><br><input type="text" name="template_name" maxlength="100" required class="regular-text" placeholder="Mi proveedor CSV"></label></p>
+					<p><label><strong><?php esc_html_e( 'Proveedor (opcional)', 'taxocommerce-suppliers' ); ?></strong><br><input type="text" name="provider" class="regular-text" placeholder="Nombre del proveedor"></label></p>
+					<p><label><strong><?php esc_html_e( 'Subir definición JSON, CSV o TXT (máximo 64 KiB)', 'taxocommerce-suppliers' ); ?></strong><br><input type="file" name="template_file" accept=".json,.csv,.txt,application/json,text/csv,text/plain"></label></p>
+					<p><?php esc_html_e( 'O pegar la definición en el campo siguiente:', 'taxocommerce-suppliers' ); ?></p>
+					<p><label><strong><?php esc_html_e( 'Formato del texto pegado', 'taxocommerce-suppliers' ); ?></strong><br>
+						<select name="template_format"><option value="json">JSON</option><option value="csv">CSV</option><option value="txt">TXT</option></select>
+					</label></p>
+					<p><textarea name="template_text" rows="7" class="large-text code" placeholder='{"mapping":{"proveedor_id_externo":"Supplier ID","nombre":"Product name","precio_con_iva":"Price","moneda":"Currency"}}'></textarea></p>
+					<p class="description"><?php esc_html_e( 'JSON: {"mapping":{"proveedor_id_externo":"ID","nombre":"Nombre"}}. CSV/TXT: dos columnas separadas por coma o punto y coma, una línea por correspondencia (campo interno, columna del proveedor). Si subes un archivo, tiene prioridad sobre el texto pegado.', 'taxocommerce-suppliers' ); ?></p>
+					<?php submit_button( __( 'Guardar plantilla', 'taxocommerce-suppliers' ), 'primary', 'submit', false ); ?>
+				</form>
+			</details>
+			<p><a class="button button-primary" href="<?php echo esc_url( $download ); ?>"><?php esc_html_e( 'Descargar cabecera CSV canónica', 'taxocommerce-suppliers' ); ?></a></p>
 			<table class="widefat striped">
 				<thead><tr><th>Template</th><th>Supplier</th><th>Mode</th><th>Columns mapped</th><th></th></tr></thead>
 				<tbody>
@@ -373,7 +404,13 @@ final class TCSUP_Admin {
 						<td><?php echo esc_html( count( (array) ( $template['mapping'] ?? array() ) ) ); ?></td>
 						<td>
 						<?php if ( empty( $template['builtin'] ) ) : ?>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;margin-right:8px;">
+								<input type="hidden" name="action" value="tcsup_export_template">
+								<input type="hidden" name="template_id" value="<?php echo esc_attr( $id ); ?>">
+								<?php wp_nonce_field( 'tcsup_export_template' ); ?>
+								<button class="button button-small"><?php esc_html_e( 'Descargar JSON', 'taxocommerce-suppliers' ); ?></button>
+							</form>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block;">
 								<input type="hidden" name="action" value="tcsup_delete_template">
 								<input type="hidden" name="template_id" value="<?php echo esc_attr( $id ); ?>">
 								<?php wp_nonce_field( 'tcsup_delete_template' ); ?>
