@@ -22,7 +22,11 @@ class TestOptionalDB {
         return $sql;
     }
     public function get_var( $table ) {
-        $this->last_error = $this->fail_table === $table ? 'Simulated schema error' : '';
+        if ( $this->fail_table === $table ) {
+            $this->last_error = 'Simulated schema error';
+            return null;
+        }
+        $this->last_error = '';
         return in_array( $table, $this->tables, true ) ? $table : null;
     }
     public function get_results( $query, $mode = null ) {
