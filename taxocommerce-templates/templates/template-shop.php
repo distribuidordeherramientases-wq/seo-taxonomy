@@ -405,6 +405,7 @@ $root_categories = get_terms(array(
     'taxonomy'   => 'product_cat',
     'hide_empty' => true,
     'parent'     => 0,
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion prevents repetition or the default product category.
     'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
     'number'     => 16,
     'orderby'    => 'count',
@@ -420,6 +421,7 @@ $get_children = static function ($term_id, $limit = 4) use ($default_product_cat
         'taxonomy'   => 'product_cat',
         'hide_empty' => true,
         'parent'     => absint($term_id),
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion prevents repetition or the default product category.
         'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
         'number'     => absint($limit),
         'orderby'    => 'count',
@@ -452,6 +454,7 @@ $get_term_image = static function ($term, $size = 'medium_large') use ($wpdb) {
         'no_found_rows'  => true,
         'orderby'        => 'date',
         'order'          => 'DESC',
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded category/metadata selection uses the native WordPress query API.
         'tax_query'      => array(array(
             'taxonomy'         => 'product_cat',
             'field'            => 'term_id',
