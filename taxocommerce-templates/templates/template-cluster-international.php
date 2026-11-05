@@ -59,17 +59,17 @@ global $wpdb;
 $table = $wpdb->prefix . 'seo_relations';
 
 $raw_hubs = $wpdb->get_col( $wpdb->prepare(
-    "SELECT target_id FROM {$table} WHERE source_type = 'cluster' AND source_id = %d
+    "SELECT target_id FROM %i WHERE source_type = 'cluster' AND source_id = %d
       AND target_type = 'hub_primary' AND relation_type IN ('cluster_to_primary','cluster_to_hub_primary')
-      ORDER BY id ASC", $current_id
+      ORDER BY id ASC", $table, $current_id
 ) );
 $hub_ids = array_values( array_filter( dht_template_public_post_ids( $raw_hubs ), static function ( $id ) use ( $market ) {
     return dht_cluster_country_for_page( $id ) === $market;
 } ) );
 $raw_categories = $wpdb->get_col( $wpdb->prepare(
-    "SELECT target_id FROM {$table} WHERE source_type = 'cluster' AND source_id = %d
+    "SELECT target_id FROM %i WHERE source_type = 'cluster' AND source_id = %d
       AND target_type = 'product_cat' AND relation_type = 'cluster_to_category'
-      ORDER BY id ASC", $current_id
+      ORDER BY id ASC", $table, $current_id
 ) );
 $category_ids = array_values( array_filter(
     dht_template_public_term_ids( $raw_categories, 'product_cat' ),
