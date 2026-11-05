@@ -105,6 +105,10 @@ jobs:
           fi
           find "build/$PLUGIN" -type f -name '*.php' -print0 |
             xargs -0 -r -n1 php -l
+          # Optional, read-only plugin-specific boot regression (not packed in ZIP).
+          if [ -f "$PLUGIN/tests/standalone-bootstrap-smoke.php" ]; then
+            php "$PLUGIN/tests/standalone-bootstrap-smoke.php"
+          fi
           python3 .github/scripts/taxocommerce_family_readme_check.py "$PLUGIN" "build/$PLUGIN"
           ( cd build && zip -qr "../$PLUGIN-plugin-check.zip" "$PLUGIN" )
           unzip -t "$PLUGIN-plugin-check.zip"

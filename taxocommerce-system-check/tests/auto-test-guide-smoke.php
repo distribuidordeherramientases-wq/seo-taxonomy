@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
     exit;
 }
 define( 'ABSPATH', '/' );
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.13' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.16' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['tcs_hooks'] = array();
 $GLOBALS['tcs_nonce_calls'] = 0;
