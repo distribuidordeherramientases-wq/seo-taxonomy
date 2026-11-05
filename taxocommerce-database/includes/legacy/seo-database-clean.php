@@ -1237,19 +1237,19 @@ function seo_clean_db_fix_category_hierarchy() {
  */
 function seo_clean_db_issue_label($issue) {
     $labels = array(
-        'invalid_id' => 'ID no válido',
-        'missing_seo_node' => 'no existe en seo_nodes con ese rol',
-        'missing_wordpress_object' => 'el objeto de WordPress ya no existe',
-        'trashed_wordpress_object' => 'el objeto de WordPress está en la papelera',
-        'missing_term' => 'la categoría de producto no existe',
-        'unknown_endpoint_type' => 'tipo de extremo desconocido',
-        'missing_relation_type' => 'relation_type está vacío',
-        'relation_schema_mismatch' => 'los tipos no coinciden con relation_type',
-        'unknown_relation_type' => 'relation_type no está registrado en el validador',
+        'invalid_id' => __( 'ID no válido', 'taxocommerce-database' ),
+        'missing_seo_node' => __( 'no existe en seo_nodes con ese rol', 'taxocommerce-database' ),
+        'missing_wordpress_object' => __( 'el objeto de WordPress ya no existe', 'taxocommerce-database' ),
+        'trashed_wordpress_object' => __( 'el objeto de WordPress está en la papelera', 'taxocommerce-database' ),
+        'missing_term' => __( 'la categoría de producto no existe', 'taxocommerce-database' ),
+        'unknown_endpoint_type' => __( 'tipo de extremo desconocido', 'taxocommerce-database' ),
+        'missing_relation_type' => __( 'relation_type está vacío', 'taxocommerce-database' ),
+        'relation_schema_mismatch' => __( 'los tipos no coinciden con relation_type', 'taxocommerce-database' ),
+        'unknown_relation_type' => __( 'relation_type no está registrado en el validador', 'taxocommerce-database' ),
     );
 
-    $side_labels = array('source' => 'Origen', 'target' => 'Destino', 'relation' => 'Relación');
-    $side = isset($side_labels[$issue['side']]) ? $side_labels[$issue['side']] : 'Dato';
+    $side_labels = array('source' => __( 'Origen', 'taxocommerce-database' ), 'target' => __( 'Destino', 'taxocommerce-database' ), 'relation' => __( 'Relación', 'taxocommerce-database' ));
+    $side = isset($side_labels[$issue['side']]) ? $side_labels[$issue['side']] : __( 'Dato', 'taxocommerce-database' );
     $message = isset($labels[$issue['code']]) ? $labels[$issue['code']] : $issue['code'];
 
     return $side . ': ' . $message;
@@ -1345,12 +1345,12 @@ function seo_clean_db_render_data_errors_tab() {
 
     echo '<div class="seo-clean-grid">';
     $summary = array(
-        'Relaciones analizadas' => $relation_analysis['total'],
-        'Relaciones inválidas' => count($relation_analysis['invalid']),
-        'Avisos de configuración' => count($relation_analysis['warnings']),
-        'Nodos sin contenido activo' => count($stale_nodes),
-        'Grupos de relaciones duplicadas' => count($duplicate_relations),
-        'Productos con varios ámbitos' => count($multiple_ambito_products),
+        __( 'Relaciones analizadas', 'taxocommerce-database' ) => $relation_analysis['total'],
+        __( 'Relaciones inválidas', 'taxocommerce-database' ) => count($relation_analysis['invalid']),
+        __( 'Avisos de configuración', 'taxocommerce-database' ) => count($relation_analysis['warnings']),
+        __( 'Nodos sin contenido activo', 'taxocommerce-database' ) => count($stale_nodes),
+        __( 'Grupos de relaciones duplicadas', 'taxocommerce-database' ) => count($duplicate_relations),
+        __( 'Productos con varios ámbitos', 'taxocommerce-database' ) => count($multiple_ambito_products),
     );
 
     foreach ($summary as $label => $value) {
@@ -1372,10 +1372,10 @@ function seo_clean_db_render_data_errors_tab() {
 function seo_clean_db_render_relations_section($relation_analysis, $config) {
     echo '<div class="seo-clean-card">';
     echo '<h2>' . esc_html__( '1. Integridad de relaciones SEO', 'taxocommerce-database' ) . '</h2>';
-    echo '<p>Cada extremo se valida según su tipo: los roles SEO deben existir en <code>seo_nodes</code> y conservar su objeto WordPress; <code>product_cat</code> debe existir como categoría de WooCommerce.</p>';
+    echo '<p>' . wp_kses_post( __( 'Cada extremo se valida según su tipo: los roles SEO deben existir en <code>seo_nodes</code> y conservar su objeto WordPress; <code>product_cat</code> debe existir como categoría de WooCommerce.', 'taxocommerce-database' ) ) . '</p>';
 
     if (empty($relation_analysis['invalid'])) {
-        echo '<p class="description">' . esc_html('No se han encontrado relaciones inválidas.') . '</p>';
+        echo '<p class="description">' . esc_html__( 'No se han encontrado relaciones inválidas.', 'taxocommerce-database' ) . '</p>';
     } else {
         seo_clean_db_render_notice('warning', 'Se han encontrado <strong>' . count($relation_analysis['invalid']) . '</strong> relaciones inválidas. La acción elimina únicamente esas filas de <code>seo_relations</code>.');
         echo '<table class="widefat striped seo-clean-table">' . '<thead>' . '<tr>' . '<th>' . 'ID' . '</th>' . '<th>' . esc_html__( 'Tipo de relación', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Destino', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Problema', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
@@ -1393,13 +1393,13 @@ function seo_clean_db_render_relations_section($relation_analysis, $config) {
 
         echo '</tbody></table>';
         echo '<div class="seo-clean-actions">';
-        seo_clean_db_render_action_form('clean_invalid_relations', 'Eliminar relaciones inválidas', 'button button-primary', 'Se eliminarán únicamente las relaciones listadas como inválidas. ¿Continuar?');
+        seo_clean_db_render_action_form('clean_invalid_relations', __( 'Eliminar relaciones inválidas', 'taxocommerce-database' ), 'button button-primary', __( 'Se eliminarán únicamente las relaciones listadas como inválidas. ¿Continuar?', 'taxocommerce-database' ));
         echo '</div>';
     }
 
     if (!empty($relation_analysis['warnings'])) {
         echo '<h3>' . esc_html__( 'Avisos de tipos no registrados', 'taxocommerce-database' ) . '</h3>';
-        echo '<p>Estos registros no se eliminan automáticamente. Revisa los filtros <code>seo_clean_db_node_roles</code> y <code>seo_clean_db_relation_schemas</code> si el plugin admite más tipos.</p>';
+        echo '<p>' . wp_kses_post( __( 'Estos registros no se eliminan automáticamente. Revisa los filtros <code>seo_clean_db_node_roles</code> y <code>seo_clean_db_relation_schemas</code> si el plugin admite más tipos.', 'taxocommerce-database' ) ) . '</p>';
     }
 
     echo '</div>';
@@ -1411,10 +1411,10 @@ function seo_clean_db_render_relations_section($relation_analysis, $config) {
 function seo_clean_db_render_stale_nodes_section($stale_nodes, $config) {
     echo '<div class="seo-clean-card">';
     echo '<h2>' . esc_html__( '2. Nodos SEO sin objeto WordPress activo', 'taxocommerce-database' ) . '</h2>';
-    echo '<p>Detecta registros de <code>seo_nodes</code> cuyo contenido fue eliminado o enviado a la papelera.</p>';
+    echo '<p>' . wp_kses_post( __( 'Detecta registros de <code>seo_nodes</code> cuyo contenido fue eliminado o enviado a la papelera.', 'taxocommerce-database' ) ) . '</p>';
 
     if (empty($stale_nodes)) {
-        echo '<p class="description">' . esc_html('Todos los nodos SEO conservan un objeto WordPress activo.') . '</p>';
+        echo '<p class="description">' . esc_html__( 'Todos los nodos SEO conservan un objeto WordPress activo.', 'taxocommerce-database' ) . '</p>';
     } else {
         echo '<table class="widefat striped seo-clean-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Registro', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Objeto', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Rol', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
@@ -1426,7 +1426,7 @@ function seo_clean_db_render_stale_nodes_section($stale_nodes, $config) {
 
         echo '</tbody></table>';
         echo '<div class="seo-clean-actions">';
-        seo_clean_db_render_action_form('clean_stale_nodes', 'Eliminar nodos internos obsoletos', 'button button-primary', 'Se eliminarán los registros internos obsoletos y sus relaciones. No se eliminará contenido de WordPress. ¿Continuar?');
+        seo_clean_db_render_action_form('clean_stale_nodes', __( 'Eliminar nodos internos obsoletos', 'taxocommerce-database' ), 'button button-primary', __( 'Se eliminarán los registros internos obsoletos y sus relaciones. No se eliminará contenido de WordPress. ¿Continuar?', 'taxocommerce-database' ));
         echo '</div>';
     }
 
@@ -1449,7 +1449,7 @@ function seo_clean_db_render_duplicates_section($duplicate_relations, $duplicate
             echo '<tr><td>#' . (int) $row->keep_id . '</td><td>[' . (int) $row->source_id . '] ' . esc_html($row->source_type) . '</td><td>[' . (int) $row->target_id . '] ' . esc_html($row->target_type) . '</td><td><code>' . esc_html($row->relation_type) . '</code></td><td>' . (int) $row->total . '</td></tr>';
         }
         echo '</tbody></table><div class="seo-clean-actions">';
-        seo_clean_db_render_action_form('clean_duplicate_relations', 'Eliminar copias de relaciones', 'button button-secondary', 'Se conservará la fila más antigua de cada relación exacta. ¿Continuar?');
+        seo_clean_db_render_action_form('clean_duplicate_relations', __( 'Eliminar copias de relaciones', 'taxocommerce-database' ), 'button button-secondary', __( 'Se conservará la fila más antigua de cada relación exacta. ¿Continuar?', 'taxocommerce-database' ));
         echo '</div>';
     }
 
@@ -1462,7 +1462,7 @@ function seo_clean_db_render_duplicates_section($duplicate_relations, $duplicate
             echo '<tr><td><code>' . esc_html($row->object_type) . '</code></td><td>' . (int) $row->object_id . '</td><td><code>' . esc_html($row->seo_role) . '</code></td><td>#' . (int) $row->keep_id . '</td><td>' . (int) $row->total . '</td></tr>';
         }
         echo '</tbody></table><div class="seo-clean-actions">';
-        seo_clean_db_render_action_form('clean_duplicate_node_rows', 'Eliminar copias de nodos', 'button button-secondary', 'Se conservará el registro más reciente de cada tipo de objeto, objeto y rol. ¿Continuar?');
+        seo_clean_db_render_action_form('clean_duplicate_node_rows', __( 'Eliminar copias de nodos', 'taxocommerce-database' ), 'button button-secondary', __( 'Se conservará el registro más reciente de cada tipo de objeto, objeto y rol. ¿Continuar?', 'taxocommerce-database' ));
         echo '</div>';
     }
 
@@ -1475,10 +1475,10 @@ function seo_clean_db_render_duplicates_section($duplicate_relations, $duplicate
 function seo_clean_db_render_multiple_ambitos_section($multiple_ambito_products, $config) {
     echo '<div class="seo-clean-card">';
     echo '<h2>' . esc_html__( '4. Productos con múltiples ámbitos', 'taxocommerce-database' ) . '</h2>';
-    echo '<p>Las filas <code>product</code>, <code>ambito</code>, <code>description</code> y <code>excerpt</code> pueden coexistir legalmente. Esta comprobación solo marca productos que tienen más de una fila <code>ambito</code>.</p>';
+    echo '<p>' . wp_kses_post( __( 'Las filas <code>product</code>, <code>ambito</code>, <code>description</code> y <code>excerpt</code> pueden coexistir legalmente. Esta comprobación solo marca productos que tienen más de una fila <code>ambito</code>.', 'taxocommerce-database' ) ) . '</p>';
 
     if (empty($multiple_ambito_products)) {
-        echo '<p class="description">' . esc_html('No hay productos con múltiples ámbitos.') . '</p>';
+        echo '<p class="description">' . esc_html__( 'No hay productos con múltiples ámbitos.', 'taxocommerce-database' ) . '</p>';
     } else {
         seo_clean_db_render_notice('warning', 'Se han encontrado <strong>' . count($multiple_ambito_products) . '</strong> productos con más de un ámbito. El informe es diagnóstico y no elimina datos automáticamente.');
         echo '<table class="widefat striped seo-clean-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Producto', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Título', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Ámbitos', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Valores registrados', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'IDs de nodo', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
@@ -1487,7 +1487,7 @@ function seo_clean_db_render_multiple_ambitos_section($multiple_ambito_products,
             $title = get_the_title((int) $row->object_id);
             echo '<tr>';
             echo '<td>' . (int) $row->object_id . '</td>';
-            echo '<td>' . esc_html($title ? $title : 'Sin título o contenido inexistente') . '</td>';
+            echo '<td>' . esc_html($title ? $title : __( 'Sin título o contenido inexistente', 'taxocommerce-database' )) . '</td>';
             echo '<td>' . (int) $row->total_ambitos . '</td>';
             echo '<td>' . esc_html((string) $row->ambitos) . '</td>';
             echo '<td><code>' . esc_html((string) $row->node_ids) . '</code></td>';
@@ -1509,14 +1509,14 @@ function seo_clean_db_render_broken_categories_section($broken_categories) {
     echo '<p>' . esc_html__( 'Detecta categorías cuyo padre ya no existe. La reparación las mueve al nivel raíz.', 'taxocommerce-database' ) . '</p>';
 
     if (empty($broken_categories)) {
-        echo '<p class="description">' . esc_html('No hay categorías con jerarquía rota.') . '</p>';
+        echo '<p class="description">' . esc_html__( 'No hay categorías con jerarquía rota.', 'taxocommerce-database' ) . '</p>';
     } else {
         echo '<table class="widefat striped seo-clean-table">' . '<thead>' . '<tr>' . '<th>' . 'ID' . '</th>' . '<th>' . esc_html__( 'Nombre', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Slug', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Padre inexistente', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ($broken_categories as $category) {
             echo '<tr><td>' . (int) $category->term_id . '</td><td>' . esc_html($category->name) . '</td><td><code>' . esc_html($category->slug) . '</code></td><td>' . (int) $category->parent . '</td></tr>';
         }
         echo '</tbody></table><div class="seo-clean-actions">';
-        seo_clean_db_render_action_form('fix_category_hierarchy', 'Mover categorías afectadas a la raíz', 'button button-secondary', 'Las categorías con padre inexistente se moverán al nivel raíz. ¿Continuar?');
+        seo_clean_db_render_action_form('fix_category_hierarchy', __( 'Mover categorías afectadas a la raíz', 'taxocommerce-database' ), 'button button-secondary', __( 'Las categorías con padre inexistente se moverán al nivel raíz. ¿Continuar?', 'taxocommerce-database' ));
         echo '</div>';
     }
 
@@ -1542,7 +1542,7 @@ function seo_clean_db_render_manual_reset_section($config) {
         echo '<option value="' . esc_attr($role) . '">' . esc_html($role) . '</option>';
     }
     echo '</select></p>';
-    echo '<button type="submit" class="button button-secondary" onclick="return confirm(' . esc_attr(wp_json_encode('Se eliminarán el registro SEO y sus relaciones internas. El contenido de WordPress se conservará. ¿Continuar?')) . ');">Restablecer objeto SEO</button>';
+    echo '<button type="submit" class="button button-secondary" onclick="return confirm(' . esc_attr(wp_json_encode( __( 'Se eliminarán el registro SEO y sus relaciones internas. El contenido de WordPress se conservará. ¿Continuar?', 'taxocommerce-database' ) )) . ');">' . esc_html__( 'Restablecer objeto SEO', 'taxocommerce-database' ) . '</button>';
     echo '</form>';
     echo '</div>';
 }
@@ -2030,8 +2030,8 @@ function seo_clean_db_render_database_cleanup_tab() {
     echo '<h2>' . esc_html__( 'Limpieza BBDD', 'taxocommerce-database' ) . '</h2>';
     echo '<p>' . esc_html__( 'Limpiezas manuales de residuos técnicos habituales de WordPress y WooCommerce.', 'taxocommerce-database' ) . '</p>';
     echo '<div class="seo-clean-warning-box">' . '<strong>' . esc_html__( 'Recomendación:', 'taxocommerce-database' ) . '</strong>' . ' ' . esc_html__( 'antes de ejecutar acciones destructivas, descarga un backup SQL. No es obligatorio, pero está a un clic para evitar sustos.', 'taxocommerce-database' ) . '</div>';
-    echo '<p><a class="button button-primary" href="' . esc_url(seo_clean_db_export_url('full')) . '">Descargar backup SQL completo</a> ';
-    echo '<a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas TaxoCommerce SEO</a></p>';
+    echo '<p><a class="button button-primary" href="' . esc_url(seo_clean_db_export_url('full')) . '">' . esc_html__( 'Descargar backup SQL completo', 'taxocommerce-database' ) . '</a> ';
+    echo '<a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">' . esc_html__( 'Descargar solo tablas TaxoCommerce SEO', 'taxocommerce-database' ) . '</a></p>';
 
     echo '<div class="seo-clean-grid">';
     foreach ($stats as $key => $value) {
@@ -2043,23 +2043,23 @@ function seo_clean_db_render_database_cleanup_tab() {
     echo '<h2>' . esc_html__( 'Acciones disponibles', 'taxocommerce-database' ) . '</h2>';
     echo '<table class="widefat striped seo-clean-table">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Limpieza', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Encontrados', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Riesgo', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Acción', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
 
-    seo_clean_db_cleanup_row('Revisiones', $stats['revisions'], 'Bajo', 'clean_revisions', 'Eliminar revisiones', 'Se eliminarán revisiones de entradas, páginas y productos. ¿Continuar?');
-    seo_clean_db_cleanup_row('Autoguardados / auto-drafts', $stats['auto_drafts'], 'Bajo', 'clean_auto_drafts', 'Eliminar autoguardados', 'Se eliminarán borradores automáticos. ¿Continuar?');
-    seo_clean_db_cleanup_row('Contenido en papelera', $stats['trashed_posts'], 'Medio', 'clean_trashed_posts', 'Vaciar papelera', 'Se eliminará definitivamente el contenido en papelera. ¿Continuar?');
-    seo_clean_db_cleanup_row('Comentarios spam', $stats['spam_comments'], 'Bajo', 'clean_spam_comments', 'Eliminar spam', 'Se eliminarán comentarios marcados como spam. ¿Continuar?');
-    seo_clean_db_cleanup_row('Comentarios en papelera', $stats['trashed_comments'], 'Bajo', 'clean_trashed_comments', 'Eliminar comentarios papelera', 'Se eliminarán comentarios en papelera. ¿Continuar?');
-    seo_clean_db_cleanup_row('Transients expirados', $stats['expired_transients'], 'Bajo', 'clean_expired_transients', 'Eliminar transients expirados', 'Se eliminarán transients expirados. ¿Continuar?');
-    seo_clean_db_cleanup_row('Postmeta huérfano', $stats['orphan_postmeta'], 'Medio', 'clean_orphan_postmeta', 'Eliminar postmeta huérfano', 'Se eliminarán metadatos sin post asociado. Recomendado backup previo. ¿Continuar?');
-    seo_clean_db_cleanup_row('Commentmeta huérfano', $stats['orphan_commentmeta'], 'Bajo', 'clean_orphan_commentmeta', 'Eliminar commentmeta huérfano', 'Se eliminarán metadatos sin comentario asociado. ¿Continuar?');
-    seo_clean_db_cleanup_row('Termmeta huérfano', $stats['orphan_termmeta'], 'Bajo', 'clean_orphan_termmeta', 'Eliminar termmeta huérfano', 'Se eliminarán metadatos sin término asociado. ¿Continuar?');
-    seo_clean_db_cleanup_row('Relaciones de términos huérfanas', $stats['orphan_term_relationships'], 'Medio', 'clean_orphan_term_relationships', 'Eliminar relaciones huérfanas', 'Se eliminarán relaciones de términos sin objeto asociado. Recomendado backup previo. ¿Continuar?');
-    seo_clean_db_cleanup_row('Sesiones WooCommerce expiradas', $stats['wc_sessions'], 'Bajo', 'clean_wc_sessions', 'Eliminar sesiones expiradas', 'Se eliminarán sesiones WooCommerce expiradas. ¿Continuar?');
-    seo_clean_db_cleanup_row('Usermeta huérfano', $stats['orphan_usermeta'], 'Bajo', 'clean_orphan_usermeta', 'Eliminar usermeta huérfano', 'Se eliminarán metadatos asociados a usuarios que ya no existen. ¿Continuar?');
-    seo_clean_db_cleanup_row('Action Scheduler: logs huérfanos', $stats['as_orphan_logs'], 'Bajo', 'clean_as_orphan_logs', 'Eliminar logs huérfanos', 'Se eliminarán únicamente logs cuyo action_id ya no existe. ¿Continuar?');
-    seo_clean_db_cleanup_row('Action Scheduler: logs antiguos completados/cancelados (>30 días)', $stats['as_old_completed_logs'], 'Bajo', 'clean_as_old_completed_logs', 'Purgar logs antiguos', 'Se eliminará solo historial de más de 30 días perteneciente a acciones ya completas o canceladas. No se tocarán acciones pendientes, fallidas ni en ejecución. ¿Continuar?');
-    seo_clean_db_cleanup_row('Action Scheduler: claims huérfanos (>24 h)', $stats['as_orphan_claims'], 'Bajo', 'clean_as_orphan_claims', 'Eliminar claims huérfanos', 'Se eliminarán únicamente claims sin ninguna acción asociada y con más de 24 horas. ¿Continuar?');
-    seo_clean_db_cleanup_row('WooCommerce: reservas de stock expiradas', $stats['wc_expired_reserved_stock'], 'Bajo', 'clean_wc_expired_reserved_stock', 'Eliminar reservas expiradas', 'Se eliminarán únicamente reservas de stock cuya fecha de expiración ya ha pasado. ¿Continuar?');
-    seo_clean_db_cleanup_row('WooCommerce: order item meta huérfano', $stats['wc_orphan_order_itemmeta'], 'Bajo', 'clean_wc_orphan_order_itemmeta', 'Eliminar meta huérfano', 'Se eliminarán metadatos de líneas de pedido cuyo item padre ya no existe. No se eliminan pedidos ni líneas de pedido. ¿Continuar?');
+    seo_clean_db_cleanup_row( __( 'Revisiones', 'taxocommerce-database' ), $stats['revisions'], 'Bajo', 'clean_revisions', __( 'Eliminar revisiones', 'taxocommerce-database' ), __( 'Se eliminarán revisiones de entradas, páginas y productos. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Autoguardados / auto-drafts', 'taxocommerce-database' ), $stats['auto_drafts'], 'Bajo', 'clean_auto_drafts', __( 'Eliminar autoguardados', 'taxocommerce-database' ), __( 'Se eliminarán borradores automáticos. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Contenido en papelera', 'taxocommerce-database' ), $stats['trashed_posts'], 'Medio', 'clean_trashed_posts', __( 'Vaciar papelera', 'taxocommerce-database' ), __( 'Se eliminará definitivamente el contenido en papelera. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Comentarios spam', 'taxocommerce-database' ), $stats['spam_comments'], 'Bajo', 'clean_spam_comments', __( 'Eliminar spam', 'taxocommerce-database' ), __( 'Se eliminarán comentarios marcados como spam. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Comentarios en papelera', 'taxocommerce-database' ), $stats['trashed_comments'], 'Bajo', 'clean_trashed_comments', __( 'Eliminar comentarios papelera', 'taxocommerce-database' ), __( 'Se eliminarán comentarios en papelera. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Transients expirados', 'taxocommerce-database' ), $stats['expired_transients'], 'Bajo', 'clean_expired_transients', __( 'Eliminar transients expirados', 'taxocommerce-database' ), __( 'Se eliminarán transients expirados. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Postmeta huérfano', 'taxocommerce-database' ), $stats['orphan_postmeta'], 'Medio', 'clean_orphan_postmeta', __( 'Eliminar postmeta huérfano', 'taxocommerce-database' ), __( 'Se eliminarán metadatos sin post asociado. Recomendado backup previo. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Commentmeta huérfano', 'taxocommerce-database' ), $stats['orphan_commentmeta'], 'Bajo', 'clean_orphan_commentmeta', __( 'Eliminar commentmeta huérfano', 'taxocommerce-database' ), __( 'Se eliminarán metadatos sin comentario asociado. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Termmeta huérfano', 'taxocommerce-database' ), $stats['orphan_termmeta'], 'Bajo', 'clean_orphan_termmeta', __( 'Eliminar termmeta huérfano', 'taxocommerce-database' ), __( 'Se eliminarán metadatos sin término asociado. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Relaciones de términos huérfanas', 'taxocommerce-database' ), $stats['orphan_term_relationships'], 'Medio', 'clean_orphan_term_relationships', __( 'Eliminar relaciones huérfanas', 'taxocommerce-database' ), __( 'Se eliminarán relaciones de términos sin objeto asociado. Recomendado backup previo. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Sesiones WooCommerce expiradas', 'taxocommerce-database' ), $stats['wc_sessions'], 'Bajo', 'clean_wc_sessions', __( 'Eliminar sesiones expiradas', 'taxocommerce-database' ), __( 'Se eliminarán sesiones WooCommerce expiradas. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Usermeta huérfano', 'taxocommerce-database' ), $stats['orphan_usermeta'], 'Bajo', 'clean_orphan_usermeta', __( 'Eliminar usermeta huérfano', 'taxocommerce-database' ), __( 'Se eliminarán metadatos asociados a usuarios que ya no existen. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Action Scheduler: logs huérfanos', 'taxocommerce-database' ), $stats['as_orphan_logs'], 'Bajo', 'clean_as_orphan_logs', __( 'Eliminar logs huérfanos', 'taxocommerce-database' ), __( 'Se eliminarán únicamente logs cuyo action_id ya no existe. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Action Scheduler: logs antiguos completados/cancelados (>30 días)', 'taxocommerce-database' ), $stats['as_old_completed_logs'], 'Bajo', 'clean_as_old_completed_logs', __( 'Purgar logs antiguos', 'taxocommerce-database' ), __( 'Se eliminará solo historial de más de 30 días perteneciente a acciones ya completas o canceladas. No se tocarán acciones pendientes, fallidas ni en ejecución. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'Action Scheduler: claims huérfanos (>24 h)', 'taxocommerce-database' ), $stats['as_orphan_claims'], 'Bajo', 'clean_as_orphan_claims', __( 'Eliminar claims huérfanos', 'taxocommerce-database' ), __( 'Se eliminarán únicamente claims sin ninguna acción asociada y con más de 24 horas. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'WooCommerce: reservas de stock expiradas', 'taxocommerce-database' ), $stats['wc_expired_reserved_stock'], 'Bajo', 'clean_wc_expired_reserved_stock', __( 'Eliminar reservas expiradas', 'taxocommerce-database' ), __( 'Se eliminarán únicamente reservas de stock cuya fecha de expiración ya ha pasado. ¿Continuar?', 'taxocommerce-database' ) );
+    seo_clean_db_cleanup_row( __( 'WooCommerce: order item meta huérfano', 'taxocommerce-database' ), $stats['wc_orphan_order_itemmeta'], 'Bajo', 'clean_wc_orphan_order_itemmeta', __( 'Eliminar meta huérfano', 'taxocommerce-database' ), __( 'Se eliminarán metadatos de líneas de pedido cuyo item padre ya no existe. No se eliminan pedidos ni líneas de pedido. ¿Continuar?', 'taxocommerce-database' ) );
 
     echo '</tbody></table>';
     echo '</div>';
@@ -2070,23 +2070,23 @@ function seo_clean_db_render_database_cleanup_tab() {
  */
 function seo_clean_db_cleanup_label($key) {
     $labels = array(
-        'revisions' => 'Revisiones',
-        'auto_drafts' => 'Autoguardados',
-        'trashed_posts' => 'Contenido en papelera',
-        'spam_comments' => 'Comentarios spam',
-        'trashed_comments' => 'Comentarios en papelera',
-        'expired_transients' => 'Transients expirados',
-        'orphan_postmeta' => 'Postmeta huérfano',
-        'orphan_commentmeta' => 'Commentmeta huérfano',
-        'orphan_termmeta' => 'Termmeta huérfano',
-        'orphan_term_relationships' => 'Relaciones términos huérfanas',
-        'wc_sessions' => 'Sesiones WC expiradas',
-        'orphan_usermeta' => 'Usermeta huérfano',
-        'as_orphan_logs' => 'AS logs huérfanos',
-        'as_old_completed_logs' => 'AS logs antiguos >30 días',
-        'as_orphan_claims' => 'AS claims huérfanos >24 h',
-        'wc_expired_reserved_stock' => 'Reservas stock WC expiradas',
-        'wc_orphan_order_itemmeta' => 'Order item meta huérfano',
+        'revisions' => __( 'Revisiones', 'taxocommerce-database' ),
+        'auto_drafts' => __( 'Autoguardados', 'taxocommerce-database' ),
+        'trashed_posts' => __( 'Contenido en papelera', 'taxocommerce-database' ),
+        'spam_comments' => __( 'Comentarios spam', 'taxocommerce-database' ),
+        'trashed_comments' => __( 'Comentarios en papelera', 'taxocommerce-database' ),
+        'expired_transients' => __( 'Transients expirados', 'taxocommerce-database' ),
+        'orphan_postmeta' => __( 'Postmeta huérfano', 'taxocommerce-database' ),
+        'orphan_commentmeta' => __( 'Commentmeta huérfano', 'taxocommerce-database' ),
+        'orphan_termmeta' => __( 'Termmeta huérfano', 'taxocommerce-database' ),
+        'orphan_term_relationships' => __( 'Relaciones términos huérfanas', 'taxocommerce-database' ),
+        'wc_sessions' => __( 'Sesiones WC expiradas', 'taxocommerce-database' ),
+        'orphan_usermeta' => __( 'Usermeta huérfano', 'taxocommerce-database' ),
+        'as_orphan_logs' => __( 'AS logs huérfanos', 'taxocommerce-database' ),
+        'as_old_completed_logs' => __( 'AS logs antiguos >30 días', 'taxocommerce-database' ),
+        'as_orphan_claims' => __( 'AS claims huérfanos >24 h', 'taxocommerce-database' ),
+        'wc_expired_reserved_stock' => __( 'Reservas stock WC expiradas', 'taxocommerce-database' ),
+        'wc_orphan_order_itemmeta' => __( 'Order item meta huérfano', 'taxocommerce-database' ),
     );
 
     return isset($labels[$key]) ? $labels[$key] : $key;
@@ -2125,16 +2125,16 @@ function seo_clean_db_render_export_tab() {
 
     echo '<div class="seo-clean-card">';
     echo '<h2>' . esc_html__( 'Backup completo de WordPress', 'taxocommerce-database' ) . '</h2>';
-    echo '<p>Incluye tablas con el prefijo activo de WordPress: <code>' . esc_html($GLOBALS['wpdb']->prefix) . '</code>.</p>';
-    echo '<p>Tablas detectadas: <strong>' . esc_html(number_format_i18n(count($full_tables))) . '</strong></p>';
-    echo '<p><a class="button button-primary" href="' . esc_url(seo_clean_db_export_url('full')) . '">Descargar backup SQL completo</a></p>';
+    echo '<p>' . esc_html__( 'Incluye tablas con el prefijo activo de WordPress:', 'taxocommerce-database' ) . ' <code>' . esc_html($GLOBALS['wpdb']->prefix) . '</code>.</p>';
+    echo '<p>' . esc_html__( 'Tablas detectadas:', 'taxocommerce-database' ) . ' <strong>' . esc_html(number_format_i18n(count($full_tables))) . '</strong></p>';
+    echo '<p><a class="button button-primary" href="' . esc_url(seo_clean_db_export_url('full')) . '">' . esc_html__( 'Descargar backup SQL completo', 'taxocommerce-database' ) . '</a></p>';
     echo '</div>';
 
     echo '<div class="seo-clean-card">';
     echo '<h2>' . esc_html__( 'Backup solo TaxoCommerce SEO', 'taxocommerce-database' ) . '</h2>';
-    echo '<p>Incluye únicamente tablas internas cuyo nombre empieza por <code>' . esc_html($GLOBALS['wpdb']->prefix . 'seo_') . '</code>.</p>';
-    echo '<p>Tablas detectadas: <strong>' . esc_html(number_format_i18n(count($seo_tables))) . '</strong></p>';
-    echo '<p><a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">Descargar solo tablas TaxoCommerce SEO</a></p>';
+    echo '<p>' . esc_html__( 'Incluye únicamente tablas internas cuyo nombre empieza por', 'taxocommerce-database' ) . ' <code>' . esc_html($GLOBALS['wpdb']->prefix . 'seo_') . '</code>.</p>';
+    echo '<p>' . esc_html__( 'Tablas detectadas:', 'taxocommerce-database' ) . ' <strong>' . esc_html(number_format_i18n(count($seo_tables))) . '</strong></p>';
+    echo '<p><a class="button" href="' . esc_url(seo_clean_db_export_url('seo')) . '">' . esc_html__( 'Descargar solo tablas TaxoCommerce SEO', 'taxocommerce-database' ) . '</a></p>';
     echo '</div>';
 
     if (!empty($seo_tables)) {

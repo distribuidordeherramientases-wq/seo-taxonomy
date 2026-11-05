@@ -1,3 +1,8 @@
+## [0.4.9] — 2026-11-05 (i18n Database #2213)
+
+- Carga de textos de administración según idioma de WordPress: pestañas, KPIs, controles, títulos y ayudas vinculados a gettext; traducción nativa inglesa corregida.
+- Sin cambios en las operaciones de base de datos, SQL, exportadores, nonces ni datos.
+
 ## Unreleased - Familia i18n #2062
 
 

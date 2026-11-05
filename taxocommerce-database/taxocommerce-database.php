@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.8
+ * Version: 0.4.9
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.8' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.9' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -64,12 +64,12 @@ final class TaxoCommerce_Database {
             $clean_tab = 'export';
         }
         $tabs = array(
-            'clean:data_errors'     => array( 'Errores en datos', 'clean', 'seo_clean_db_tab', 'data_errors' ),
-            'clean:database_cleanup'=> array( 'Limpieza BBDD', 'clean', 'seo_clean_db_tab', 'database_cleanup' ),
-            'clean:export'          => array( 'Exportar BBDD', 'clean', 'seo_clean_db_tab', 'export' ),
-            'table:overview'        => array( 'Resumen tablas', 'table', 'section', 'overview' ),
-            'table:explorer'        => array( 'Explorar tablas', 'table', 'section', 'explorer' ),
-            'manual'                => array( 'Manual', 'manual', 'section', 'manual' ),
+            'clean:data_errors'     => array( __( 'Errores en datos', 'taxocommerce-database' ), 'clean', 'seo_clean_db_tab', 'data_errors' ),
+            'clean:database_cleanup'=> array( __( 'Limpieza BBDD', 'taxocommerce-database' ), 'clean', 'seo_clean_db_tab', 'database_cleanup' ),
+            'clean:export'          => array( __( 'Exportar BBDD', 'taxocommerce-database' ), 'clean', 'seo_clean_db_tab', 'export' ),
+            'table:overview'        => array( __( 'Resumen tablas', 'taxocommerce-database' ), 'table', 'section', 'overview' ),
+            'table:explorer'        => array( __( 'Explorar tablas', 'taxocommerce-database' ), 'table', 'section', 'explorer' ),
+            'manual'                => array( __( 'Manual', 'taxocommerce-database' ), 'manual', 'section', 'manual' ),
             'auto-test'             => array( __( 'Autocheck', 'taxocommerce-database' ), 'auto-test', 'section', 'auto-test' ),
         );
         $active = in_array( $screen, array( 'manual', 'auto-test' ), true ) ? $screen : ( 'table' === $screen ? 'table:' . $table_section : 'clean:' . $clean_tab );
@@ -125,7 +125,7 @@ final class TaxoCommerce_Database {
                 'name' => 'TaxoCommerce Database',
                 'version' => TAXOCOMMERCE_DATABASE_VERSION,
                 'status' => 'active',
-                'description' => 'Clean Database y SEO Data Table originales, sin Data Layer.',
+                'description' => __( 'Clean Database y SEO Data Table originales, sin Data Layer.', 'taxocommerce-database' ),
                 'admin_url' => admin_url( 'admin.php?page=taxocommerce-database' ),
             ) );
         }
