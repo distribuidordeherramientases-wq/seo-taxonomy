@@ -277,6 +277,7 @@ final class TaxoCommerce_Templates {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Accepts only the literal boolean checkbox value '1'.
             '1' === wp_unslash($_POST['enable']);
         // Disable the effective gate FIRST. Re-enable it only after the
         // existing legacy switch has been updated. Safe even after an upgrade.
