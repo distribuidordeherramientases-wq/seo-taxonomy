@@ -1,6 +1,7 @@
 TAXOCOMMERCE TEMPLATES — CHANGELOG DEL PLUGIN INDEPENDIENTE
 
 ## [0.4.15] — 2026-11-05
+* Segundo lote parcial #2189: 34 consultas SQL de 17 plantillas + consultas VEVOR, blogs, relaciones y servicios, y validaciones precisas de GET/POST con nonce. Continúan avisos de SQL/caché y rendimiento; NO certificada con cero warnings.
 * Segundo lote parcial #2189: consultas SQL parametrizadas de roles, relaciones y auditoría, y validación de entradas escalares de formularios administrativos. Quedan pendientes avisos y UAT/Plugin Check real.
 
 ## [0.4.14] — 2026-11-05

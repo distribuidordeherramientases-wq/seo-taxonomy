@@ -65,6 +65,38 @@ foreach ( $cases as $relative => $expected ) {
         }
     }
 }
+// Keep the migrated runtime layouts backed by prepared table identifiers.
+// This catches accidental reintroduction of interpolated custom-table SQL.
+$prepared_templates = array(
+    'template-cluster-desktop.php' => 2,
+    'template-cluster-mobile.php' => 2,
+    'template-hub-primary-desktop.php' => 3,
+    'template-hub-primary-mobile.php' => 3,
+    'template-hub-secondary-desktop.php' => 3,
+    'template-hub-secondary-mobile.php' => 3,
+    'template-product-stock-alert.php' => 1,
+    'template-product-stock-alert-us.php' => 1,
+    'template-category-comparison.php' => 1,
+    'template-blog-desktop.php' => 3,
+    'template-blog-mobile.php' => 3,
+    'template-shop-desktop.php' => 2,
+    'template-shop-mobile.php' => 2,
+    'template-product-us-desktop.php' => 2,
+    'template-product-us-mobile.php' => 2,
+    'template-cluster-international.php' => 2,
+    'template-pilot-vevor.php' => 3,
+    'template-vevor-affiliate.php' => 2,
+    'template-vevor-affiliate-us.php' => 2,
+    'template-helpers.php' => 1,
+);
+foreach ( $prepared_templates as $template => $minimum ) {
+    $source = file_get_contents( $root . '/templates/' . $template );
+    if ( false === $source || substr_count( $source, 'FROM %i' ) < $minimum ) {
+        fwrite( STDERR, "FAIL $template has fewer than $minimum prepared table identifiers\\n" );
+        exit( 1 );
+    }
+}
+
 $plugin = file_get_contents( $root . '/taxocommerce-templates.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
 if ( false === strpos( $plugin, 'Version: 0.4.15' ) ||
