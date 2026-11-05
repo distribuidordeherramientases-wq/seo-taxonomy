@@ -858,3 +858,63 @@ msgstr "Rutas heredadas existentes"
 #. TaxoCommerce Templates administration UI
 msgid "Catálogo de peticiones"
 msgstr "Catálogo de peticiones"
+
+#. Templates UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+
+#. Templates UI
+msgid "Versión"
+msgstr "Versión"
+
+#. Templates UI
+msgid "Todas las peticiones"
+msgstr "Todas las peticiones"
+
+#. Templates UI
+msgid "Guardar"
+msgstr "Guardar"
+
+#. Templates UI
+msgid "Asociar archivo"
+msgstr "Asociar archivo"
+
+#. Templates UI
+msgid "Desasignar"
+msgstr "Desasignar"
+
+#. Templates UI
+msgid "Asignar pagina"
+msgstr "Asignar pagina"
+
+#. Templates UI
+msgid "Crear rol"
+msgstr "Crear rol"
+
+#. Templates UI
+msgid "Automático / sin rol SEO"
+msgstr "Automático / sin rol SEO"
+
+#. Templates UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr "Aún no tienes plantillas asignadas y activas."
+
+#. Templates UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr "Elegir el primer tipo de contenido para configurar"
+
+#. Templates UI
+msgid "Ir al Diseñador de plantillas"
+msgstr "Ir al Diseñador de plantillas"
+
+#. Templates UI
+msgid "Ver archivo PHP"
+msgstr "Ver archivo PHP"
+
+#. Templates UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr "Abrir auditoría técnica de asociaciones existentes"
+
+#. Templates UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr "Gestionar las páginas asignadas a cada rol"
