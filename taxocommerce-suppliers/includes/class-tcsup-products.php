@@ -116,7 +116,7 @@ final class TCSUP_Products {
 				if ( $linked_provider && 0 !== strcasecmp( $linked_provider, $provider ) ) {
 					return new WP_Error(
 						'tcsup_sku_provider_conflict',
-						'Supplier SKU is already linked in WooCommerce to a different supplier.'
+						__( 'Supplier SKU is already linked in WooCommerce to a different supplier.', 'taxocommerce-suppliers' )
 					);
 				}
 				return $candidate;
@@ -179,7 +179,7 @@ final class TCSUP_Products {
 
 		$taxonomy = self::brand_taxonomy();
 		if ( '' === $taxonomy ) {
-			return new WP_Error( 'tcsup_brand_taxonomy', 'No product brand taxonomy is available.' );
+			return new WP_Error( 'tcsup_brand_taxonomy', __( 'No product brand taxonomy is available.', 'taxocommerce-suppliers' ) );
 		}
 
 		$term = term_exists( $brand, $taxonomy );
@@ -233,7 +233,7 @@ final class TCSUP_Products {
 		);
 		return 1 === $locked
 			? $name
-			: new WP_Error( 'tcsup_accept_lock', 'Another acceptance process is already working on this supplier product.' );
+			: new WP_Error( 'tcsup_accept_lock', __( 'Another acceptance process is already working on this supplier product.', 'taxocommerce-suppliers' ) );
 	}
 
 	private static function release_acceptance_lock( $name ) {
@@ -248,7 +248,7 @@ final class TCSUP_Products {
 	public static function accept( $id ) {
 		$row = self::row( $id );
 		if ( ! $row ) {
-			return new WP_Error( 'tcsup_missing_row', 'Supplier catalogue row was not found.' );
+			return new WP_Error( 'tcsup_missing_row', __( 'Supplier catalogue row was not found.', 'taxocommerce-suppliers' ) );
 		}
 
 		$lock = self::acquire_acceptance_lock( $row );
@@ -265,12 +265,12 @@ final class TCSUP_Products {
 
 	private static function accept_unlocked( $id ) {
 		if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Product_Simple' ) ) {
-			return new WP_Error( 'tcsup_woocommerce', 'WooCommerce is required to accept supplier products.' );
+			return new WP_Error( 'tcsup_woocommerce', __( 'WooCommerce is required to accept supplier products.', 'taxocommerce-suppliers' ) );
 		}
 
 		$row = self::row( $id );
 		if ( ! $row ) {
-			return new WP_Error( 'tcsup_missing_row', 'Supplier catalogue row was not found.' );
+			return new WP_Error( 'tcsup_missing_row', __( 'Supplier catalogue row was not found.', 'taxocommerce-suppliers' ) );
 		}
 
 		$product_match = self::existing_product( $row );
@@ -281,13 +281,13 @@ final class TCSUP_Products {
 		$is_new     = ! $product_id;
 		$product    = $product_id ? wc_get_product( $product_id ) : new WC_Product_Simple();
 		if ( ! $product ) {
-			return new WP_Error( 'tcsup_product', 'WooCommerce product could not be loaded.' );
+			return new WP_Error( 'tcsup_product', __( 'WooCommerce product could not be loaded.', 'taxocommerce-suppliers' ) );
 		}
 
 		if ( $is_new ) {
 			$category_id = self::default_category_id();
 			if ( ! $category_id ) {
-				return new WP_Error( 'tcsup_category', 'A default WooCommerce product category is required before accepting new products.' );
+				return new WP_Error( 'tcsup_category', __( 'A default WooCommerce product category is required before accepting new products.', 'taxocommerce-suppliers' ) );
 			}
 			$product->set_status( 'draft' );
 			$product->set_catalog_visibility( 'hidden' );
@@ -337,7 +337,7 @@ final class TCSUP_Products {
 
 		$product_id = absint( $product->save() );
 		if ( ! $product_id ) {
-			return new WP_Error( 'tcsup_save', 'WooCommerce did not return a product ID.' );
+			return new WP_Error( 'tcsup_save', __( 'WooCommerce did not return a product ID.', 'taxocommerce-suppliers' ) );
 		}
 
 		$meta = array(
