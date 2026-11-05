@@ -292,8 +292,8 @@ final class TCSUP_Admin {
 
 	private static function render_mapping( $state, $templates ) {
 		$template = self::template_for_state( $state, $templates );
-		$mode     = (string) ( $template['mode'] ?? 'mapping' );
 		$header   = (array) $state['header'];
+		$mode     = TCSUP_CSV::effective_mode( $template, $header, (string) ( $state['provider'] ?? '' ) );
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( '2. Review normalization', 'taxocommerce-suppliers' ); ?></h2>
@@ -420,6 +420,9 @@ final class TCSUP_Admin {
 						</td>
 					</tr>
 				<?php endforeach; ?>
+				<?php if ( ! $templates ) : ?>
+					<tr><td colspan="5"><?php esc_html_e( 'No templates have been created on this site.', 'taxocommerce-suppliers' ); ?></td></tr>
+				<?php endif; ?>
 				</tbody>
 			</table>
 		</section>
