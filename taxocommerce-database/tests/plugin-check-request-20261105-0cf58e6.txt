@@ -1,0 +1,5 @@
+Only triggers .github/workflows/taxocommerce-plugin-check.yml through its pull_request path filter.
+No installable PHP, code, assets, SQL, configuration, or release data changed.
+Not for merge or deployment. Close test PR after recording official WordPress Plugin Check results.
+Base staging SHA: 0cf58e6ef54e45890ed0f5d1ebc5807460396d8c
+Plugin: taxocommerce-database
