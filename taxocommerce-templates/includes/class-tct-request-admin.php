@@ -56,6 +56,7 @@ final class TCT_Request_Admin {
         $now = current_time('mysql');
         if ($current) {
             // No se modifican tipos, asignaciones, nombres ni relaciones antiguas.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->update($table, array(
                 'template_file' => $file,
                 'is_active' => $file !== '' ? 1 : 0,
@@ -65,6 +66,7 @@ final class TCT_Request_Admin {
             $group = $defs[$key][1];
             $type = (strpos($group, 'WooCommerce - correos') === 0) ? 'email' :
                     ((strpos($group, 'WooCommerce') === 0) ? 'woocommerce' : 'system');
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->insert($table, array(
                 'template_key' => $key,
                 'template_name' => $defs[$key][0],
