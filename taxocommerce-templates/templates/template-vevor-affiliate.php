@@ -43,6 +43,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         'posts_per_page' => 250,
         'fields'         => 'ids',
         'no_found_rows'  => true,
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
         'tax_query'      => array(array(
             'taxonomy'         => 'product_cat',
             'field'            => 'term_id',
