@@ -1,6 +1,13 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.26] — 2026-11-05
+
+- Primera instalación con al menos un producto WooCommerce publicado: **programa** el aprendizaje L1–L10 por lotes desde la tienda local, tras crear los esquemas vacíos. No ejecuta un escaneo masivo durante la activación.
+- Sin productos publicados: queda en reposo sin inventar conocimiento.
+- Reactivaciones, actualizaciones y sitios con conocimiento o cursores previos: no reinician aprendizaje ni borran datos.
+- Prueba aislada de arranque, ausencia de productos, registros preexistentes y errores SQL; se mantienen los controles Iniciar/Detener y el regulador existente.
+
 ## [0.3.25] — 2026-11-05
 
 - Instalación nueva: crea el esquema del léxico y sus evidencias **sin insertar las 17 expresiones de herramientas de prueba**, que procedían del desarrollo de la tienda original.

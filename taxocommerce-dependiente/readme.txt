@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.25
+Stable tag: 0.3.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Learning does not edit the source products. The plugin runs local background tas
 
 1. Install and activate WooCommerce.
 2. Install and activate TaxoCommerce Assistant from its standalone ZIP.
-3. Open its administration page to check the empty initial learning state and launch or review training. Knowledge is learned only from this site's WooCommerce products, categories, tags and locally available sources.
+3. Open its administration page to inspect learning progress. On a genuinely new installation with published local WooCommerce products, the plugin schedules its bounded L1-L10 training automatically. With no published products it stays idle; Start remains available at any time.
 4. Add [taxocommerce_dependiente_moderno] to a page to test the new storefront search.
 5. Confirm relevance and resource usage before replacing an existing storefront search.
 
@@ -60,9 +60,15 @@ No. Core provides optional grouped administration.
 
 == Clean installation and local learning ==
 
-A new installation creates the Assistant's learning/lexicon/evidence schemas empty; it does NOT insert example tools, synonyms or knowledge from the developer's store. Only technical configuration, lesson definitions and generic language processing rules are bundled. Start the L1-L10 learning process from the administration screen when you are ready to learn the current site's WooCommerce catalogue. After catalog learning, the Interpreter/Linguist builds evidence-backed lexical relationships from local products and taxonomy. Plugin upgrades do not erase existing learning. No sample dataset is installed automatically.
+A new installation creates the Assistant's learning/lexicon/evidence schemas empty; it does NOT insert example tools, synonyms or knowledge from the developer's store. Only technical configuration, lesson definitions and generic language processing rules are bundled. On a first installation only, if the site's WooCommerce catalogue contains at least one published product, the plugin schedules its bounded L1-L10 learning through WordPress cron; training is not run synchronously during activation. If there are no published products, it stays idle until the administrator starts learning. Reactivation or updates never restart training automatically. After catalog learning, the Interpreter/Linguist builds evidence-backed lexical relationships from local products and taxonomy. Plugin upgrades do not erase existing learning. No sample dataset is installed automatically.
 
 == Changelog ==
+
+= 0.3.26 =
+* After creating empty knowledge tables on a genuine first install, schedule bounded learning from published products of this site's WooCommerce catalogue; never read a shipped developer dataset.
+* Leave empty shops idle. Never auto-start on upgrades/reactivation, when pre-existing knowledge exists or when schema reads fail.
+* Preserve all existing manual learning controls, pause/stop, quality gates and scheduled worker; no synchronous full catalogue scan in plugin activation.
+* Add isolated first-install discovery and scheduling smoke test.
 
 = 0.3.25 =
 * Stop installing the 17 hardcoded tool expressions into the customer lexicon. Fresh tables are empty, while existing learned data and evidence remain untouched.
