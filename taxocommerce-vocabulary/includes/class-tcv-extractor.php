@@ -112,4 +112,136 @@ final class TCV_Extractor {
         }
         return array( 'score' => round( min( 1.0, $score ), 4 ), 'evidence' => $evidence );
     }
+
+    /**
+     * Controlled technical attributes: existing active terms and aliases only.
+     * Keeps the matched source as auditable evidence.
+     */
+    public static function controlled( $attribute, $terms, $aliases, $context ) {
+        $best = null;
+        foreach ( (array) $terms as $term ) {
+            $id = absint( $term['id'] );
+            $variants = array_merge(
+                array( $term['label'] ),
+                isset( $aliases[ $id ] ) ? $aliases[ $id ] : array()
+            );
+            foreach ( $variants as $variant ) {
+                $phrase = self::normalize( $variant );
+                if ( '' === $phrase ) {
+                    continue;
+                }
+                foreach ( array( 'title' => 0.98, 'brands' => 0.96, 'supplier' => 0.94,
+                    'tags' => 0.92, 'excerpt' => 0.88, 'content' => 0.80,
+                    'categories' => 0.76 ) as $source => $confidence ) {
+                    $text = isset( $context['segments'][ $source ] ) ? $context['segments'][ $source ] : '';
+                    if ( false === strpos( ' ' . $text . ' ', ' ' . $phrase . ' ' ) ) {
+                        continue;
+                    }
+                    if ( null === $best || $confidence > $best['confidence'] ) {
+                        $best = array(
+                            'attribute_id' => absint( $attribute['id'] ),
+                            'attribute' => (string) $attribute['nombre'],
+                            'term_id' => $id,
+                            'value' => (string) $term['label'],
+                            'confidence' => $confidence,
+                            'source' => $source,
+                            'matched' => (string) $variant,
+                        );
+                    }
+                }
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Explicit technical quantities, as defined by the original classifier.
+     * Generic units such as kg/mm require an attribute name to avoid confusing
+     * a weight, a load limit or an unrelated dimension.
+     */
+    public static function numeric( $attribute, $context ) {
+        $slug = sanitize_key( (string) $attribute['slug'] );
+        $rules = array(
+            'tension' => array( array( 'voltaje', 'tensión', 'voltage' ), array( 'v' ) ),
+            'potencia' => array( array( 'power' ), array( 'kw', 'w' ) ),
+            'capacidad_bateria' => array( array( 'capacidad de batería', 'battery capacity' ), array( 'mah', 'ah' ) ),
+            'par' => array( array( 'par máximo', 'torque' ), array( 'n·m', 'n-m', 'nm' ) ),
+            'presion' => array( array( 'presión', 'pressure' ), array( 'mpa', 'bar', 'psi' ) ),
+            'diametro' => array( array( 'diámetro', 'diametro' ), array( 'mm', 'cm', 'm' ) ),
+            'longitud' => array( array( 'largo', 'length' ), array( 'mm', 'cm', 'm' ) ),
+            'anchura' => array( array( 'ancho', 'width' ), array( 'mm', 'cm', 'm' ) ),
+            'altura' => array( array( 'alto', 'height' ), array( 'mm', 'cm', 'm' ) ),
+            'peso' => array( array( 'weight' ), array( 'kg', 'g', 'lb' ) ),
+            'carga_maxima' => array( array( 'carga máxima', 'capacidad de carga' ), array( 'kg', 'g', 'lb', 't' ) ),
+            'numero_piezas' => array( array( 'piezas', 'kit de', 'set de' ), array( 'piezas', 'ud', 'uds' ) ),
+            'frecuencia' => array( array( 'frequency' ), array( 'ghz', 'mhz', 'khz', 'hz' ) ),
+            'caudal' => array( array( 'flujo' ), array( 'l/min', 'cfm' ) ),
+            'nivel_sonoro' => array( array( 'ruido' ), array( 'db' ) ),
+        );
+        $rule = isset( $rules[ $slug ] ) ? $rules[ $slug ] : array( array(), array() );
+        $labels = array_merge( array( $attribute['nombre'], str_replace( '_', ' ', $slug ) ), $rule[0] );
+        $unit_names = array_unique( array_filter( array_merge( $rule[1], array( $attribute['unidad_base'] ) ) ) );
+        $unit_parts = array();
+        foreach ( $unit_names as $unit ) {
+            $unit_parts[] = preg_quote( (string) $unit, '/' );
+        }
+        usort( $unit_parts, static function ( $a, $b ) { return strlen( $b ) - strlen( $a ); } );
+        $units = implode( '|', $unit_parts );
+        if ( '' === $units ) {
+            return null;
+        }
+        foreach ( array( 'title' => 0.99, 'supplier' => 0.95, 'excerpt' => 0.91,
+            'content' => 0.84 ) as $source => $confidence ) {
+            $text = isset( $context['raw'][ $source ] ) ? $context['raw'][ $source ] : '';
+            if ( '' === $text ) {
+                continue;
+            }
+            if ( 'diametro' === $slug &&
+                preg_match( '/(?:Ø|ø|⌀|di[aá]metro)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(mm|cm|m)\b/iu', $text, $m ) ) {
+                return self::quantity( $attribute, $m[1], $m[2], $source, $confidence );
+            }
+            if ( 'numero_piezas' === $slug &&
+                preg_match( '/\b(?:set|juego|kit|pack)\s+(?:de\s+)?(\d{1,4})\b/iu', $text, $m ) ) {
+                return self::quantity( $attribute, $m[1], 'ud', $source, $confidence );
+            }
+            foreach ( $labels as $label ) {
+                $name = trim( (string) $label );
+                if ( '' === $name ) {
+                    continue;
+                }
+                if ( preg_match( '/(?:^|[^\p{L}])' . preg_quote( $name, '/' ) .
+                    '\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(' . $units . ')\b/iu', $text, $m ) ) {
+                    return self::quantity( $attribute, $m[1], $m[2], $source, $confidence );
+                }
+            }
+            $distinct = array( 'tension', 'potencia', 'capacidad_bateria', 'par',
+                'presion', 'frecuencia', 'caudal', 'nivel_sonoro' );
+            if ( in_array( $slug, $distinct, true ) &&
+                preg_match( '/\b(\d+(?:[.,]\d+)?)\s*(' . $units . ')\b/iu', $text, $m ) ) {
+                return self::quantity( $attribute, $m[1], $m[2], $source, max( 0.76, $confidence - 0.06 ) );
+            }
+        }
+        return null;
+    }
+
+    private static function quantity( $attribute, $number, $unit, $source, $confidence ) {
+        $number = str_replace( ',', '.', (string) $number );
+        $unit = trim( (string) $unit );
+        $display = array( 'v' => 'V', 'w' => 'W', 'kw' => 'kW', 'ah' => 'Ah',
+            'mah' => 'mAh', 'nm' => 'N·m', 'db' => 'dB', 'hz' => 'Hz' );
+        $key = strtolower( str_replace( array( ' ', '·', '-' ), '', $unit ) );
+        if ( isset( $display[ $key ] ) ) {
+            $unit = $display[ $key ];
+        }
+        return array(
+            'attribute_id' => absint( $attribute['id'] ),
+            'attribute' => (string) $attribute['nombre'],
+            'value' => $number,
+            'unit' => $unit,
+            'confidence' => $confidence,
+            'source' => $source,
+            'evidence' => array( 'number' => $number, 'unit' => $unit, 'source' => $source ),
+        );
+    }
+
 }
