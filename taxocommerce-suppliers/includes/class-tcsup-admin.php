@@ -198,7 +198,9 @@ final class TCSUP_Admin {
 		}
 		if ( isset( $_GET['imported'] ) ) {
 			printf(
-				'<div class="notice notice-success"><p>' . esc_html__( 'CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
+				'<div class="notice notice-success"><p>' .
+				// translators: 1: processed CSV rows, 2: new rows, 3: updated rows, 4: unchanged rows, 5: errors.
+				esc_html__( 'CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
 				absint( $_GET['processed'] ?? 0 ),
 				absint( $_GET['new'] ?? 0 ),
 				absint( $_GET['updated'] ?? 0 ),
@@ -208,7 +210,9 @@ final class TCSUP_Admin {
 		}
 		if ( isset( $_GET['bulk_done'] ) ) {
 			printf(
-				'<div class="notice notice-success"><p>' . esc_html__( '%1$d supplier rows processed. %2$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
+				'<div class="notice notice-success"><p>' .
+				// translators: 1: supplier rows processed, 2: errors.
+				esc_html__( '%1$d supplier rows processed. %2$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
 				absint( $_GET['bulk_done'] ),
 				absint( $_GET['bulk_errors'] ?? 0 )
 			);
