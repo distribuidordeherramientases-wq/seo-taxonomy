@@ -10,254 +10,6 @@ msgstr ""
 msgid "— Do not import —"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:79
-msgid ", asigna las columnas de origen a los campos de TaxoCommerce. Para una importación normal son obligatorios el identificador externo y el nombre del producto. La plantilla VEVOR utiliza su propia normalización."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:119
-msgid ", asociado a esa categoría. No se publica automáticamente ni se asigna directamente a la categoría final del árbol comercial. Debes revisar y completar el producto antes de publicarlo desde WooCommerce."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:263
-msgid ", con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:172
-msgid ", con WordPress 6.5+, PHP 7.4+ y dependencia declarada de WooCommerce. TaxoCommerce Core es opcional para el menú y registro familiar. No confundir este código con el plugin SEO monolítico ni trasladar mejoras al legado."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:98
-msgid ", despliega"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid ", filtra la lista y pulsa"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:107
-msgid ", filtra por proveedor, decisión, país y texto (nombre, SKU o ID externo). La lista muestra 50 filas por página con precio, stock, estado de selección, estado de sincronización y, si existe, enlace al producto WooCommerce."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid ", guarda los porcentajes"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:199
-msgid ", hashes, estados y fechas de importación/sincronización."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:231
-msgid ", metadatos de vínculo y, cuando es seguro, SKU. Para VEVOR con país no debe reutilizarse un producto solo por SKU; el SKU interno nuevo se forma como"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:271
-msgid ", no calidad de datos, precios, stock ni éxito de importación. No utilizar para reparación automática del esquema."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:199
-msgid ", nombre, marca, categoría de origen, precios, impuestos, moneda, stock, imágenes,"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:52
-msgid ", pero aceptar una fila sí puede crear un producto o modificar otro ya vinculado. Trabaja primero con pocas referencias y comprueba país, proveedor, SKU, precios e IVA. El módulo no realiza scraping ni descarga catálogos de sitios web."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:202
-msgid ", posición, imagen principal, estado y marcas de tiempo. La clave única es"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:76
-msgid ", selecciona una plantilla y escribe el nombre del proveedor. Las plantillas pueden proponer uno."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:89
-msgid ", vuelve a subir el fichero. No cierres ni repitas la operación sobre un catálogo grande sin comprobar antes su resultado."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:234
-msgid ", y se redondean con la precisión de WooCommerce. Stock numérico activa gestión de existencias y cantidad; sin cantidad se determina disponibilidad según el estado textual admitido. Estos comportamientos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:98
-msgid "; al menos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid "; el módulo toma preferentemente"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:231
-msgid "; se libera con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:186
-msgid ": aceptación, WooCommerce, marcas, costes e imágenes."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:185
-msgid ": campos, plantillas, análisis, transformación, importación, descarga canónica."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:190
-msgid ": comprobaciones locales bajo demanda."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:187
-msgid ": consulta de ventas y proveedores vinculados."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:237
-msgid ": debe mantenerse la compatibilidad HPOS."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:188
-msgid ": esquema y actualización mediante"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:189
-msgid ": estas guías."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:184
-msgid ": menú, pestañas, filtros, formularios, márgenes y avisos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:290
-msgid "?php\n\t}\n}"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:20
-msgid ". Abrir esta pestaña no importa CSV, modifica precios ni ejecuta compras."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid ". Ajustar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:261
-msgid ". Cada operación que modifica estado debe comprobar capacidad y nonce con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid ". Comprueba siempre que ese origen y el tratamiento fiscal sean los adecuados."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:123
-msgid ". Consulta los recuentos de procesadas y errores. No interpretes el selector"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:87
-msgid ". El ID se extrae del segmento"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:77
-msgid ". El módulo admite separadores de punto y coma, coma o tabulador; intenta detectar el apropiado."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:140
-msgid ". Elegir Local o Inherit desactiva las referencias externas activas de esa fila, pero no genera automáticamente nuevas imágenes locales. Comprueba los derechos de uso y la disponibilidad de las URLs en el sitio de origen."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:223
-msgid ". En conflictos de SKU/ID, el código puede marcar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:98
-msgid ". Escribe un nombre y, opcionalmente, el proveedor. Sube una definición JSON, CSV o TXT (máximo 64 KiB) o pega su contenido. Las definiciones usan pares de"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:85
-msgid ". Este modo"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:255
-msgid ". Filtro de compras:"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:202
-msgid ". Guardar referencias externas desactiva las anteriores y activa/inserta las vigentes; cambiar a Local/Inherit desactiva referencias activas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:20
-msgid ". Guía de operación y referencia para futuros desarrolladores del"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:261
-msgid ". Las lecturas de filtros GET se saneán y las salidas de usuario pasan por las funciones de escape de WordPress."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:175
-msgid ". Las pestañas Manual y Autotest se cargan desde sus clases propias. El registro en Core se realiza con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:85
-msgid ". Los registros no identificados o ambiguos se contabilizan como error."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid ". Los valores de instalación son 20 % y 45 %, respectivamente. Al aceptar un producto con coste numérico se calcula el precio mediante"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:255
-msgid ". Mantener las firmas de métodos y nombres de acciones para no romper integraciones de la familia."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid ". Muestra número de pedido, línea, cantidad, proveedor, ID/SKU, coste y, cuando existe, enlace"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:225
-msgid ". No añadir llamadas de red, colas automáticas o nuevos scrapers como parte de una corrección documental. La aceptación en WooCommerce se realiza por una acción distinta de importar. El registro de resultados de la pantalla muestra contadores, no constituye un historial permanente por fila."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:99
-msgid ". Para CSV/TXT utiliza dos columnas separadas por coma o punto y coma. Guarda la plantilla, selecciónala posteriormente en"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:200
-msgid ". Para datos VEVOR con país, la importación busca esa identidad compuesta y aplica una reconciliación limitada para filas heredadas sin"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:200
-msgid ". Para otros proveedores también verifica identificador externo y SKU, y marca conflictos si conducen a filas distintas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:131
-msgid ". Pulsar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:50
-msgid ". Se requiere una cuenta autorizada para gestionar WooCommerce o las opciones del sitio."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid ". Si utilizas referencias externas, pega una URL por línea y pulsa"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:50
-msgid ". Su dirección administrativa es"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:149
-msgid ". Suppliers ofrece la relación comercial con el proveedor, pero no sustituye la gestión del pedido en WooCommerce."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid ". También presenta los casos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:223
-msgid ". Toda modificación del importador requiere casos de prueba de reimportación, duplicación y países."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:214
-msgid ". Una migración de esquema o identidades debe considerar los consumidores externos de estas claves."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:77
-msgid ".csv"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:217
 msgid "' . esc_html__( 'CSV mapping template saved.', 'taxocommerce-suppliers' ) . '"
 msgstr ""
@@ -282,28 +34,8 @@ msgstr ""
 msgid "' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['tc_error_message'] ) ) ) ) . '"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:199
-msgid "(nombre lógico; prefijo real del sitio calculado por"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:83
-msgid "(o en"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:175
-msgid "(prioridad 30),"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:199
-msgid "). Conserva"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:211
 msgid "%1$d supplier rows processed. %2$d errors."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:173
-msgid "→ decisión humana → vinculación o borrador WooCommerce → metadatos de origen e imágenes externas → consulta comercial de pedidos. No existe extracción web, crawler, ejecutor externo o pedido automático dentro de Suppliers."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:751
@@ -570,32 +302,16 @@ msgstr ""
 msgid "A template name is required."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:50
-msgid "Abre"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:147
-msgid "abre la página del proveedor en otra pestaña: no envía pedidos, no realiza pagos ni reserva stock."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:664 includes/class-tcsup-manual.php:115
+#: includes/class-tcsup-admin.php:664
 msgid "Accept"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:640 includes/class-tcsup-manual.php:123
+#: includes/class-tcsup-admin.php:640
 msgid "Accept / link to WooCommerce"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:602
 msgid "Accepted"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:110
-msgid "Acción"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:62
-msgid "Aceptar"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:648
@@ -610,30 +326,6 @@ msgstr ""
 msgid "Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:155
-msgid "Actuación segura"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:131
-msgid "actualiza los datos de proveedor y sus metadatos asociados cuando existe un producto vinculado; no requiere volver a importar el CSV."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:189
-msgid "Actualizar al cambiar los controles; no añadir escrituras ni peticiones externas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:236
-msgid "admite estados aceptado y otros legados previstos en el código. La pantalla no crea órdenes de compra."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:83
-msgid "Al finalizar, el aviso distingue filas procesadas, nuevas, actualizadas, sin cambios y con error. El resultado se examina en"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:172
-msgid "Alcance:"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:585
 msgid "All decisions"
 msgstr ""
@@ -642,11 +334,7 @@ msgstr ""
 msgid "All suppliers"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:278
-msgid "Alta como borrador oculto; vínculo existente; colisión de SKU; categoría por defecto; márgenes y stock."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:254 includes/class-tcsup-manual.php:77
+#: includes/class-tcsup-admin.php:254
 msgid "Analyze CSV"
 msgstr ""
 
@@ -654,44 +342,12 @@ msgstr ""
 msgid "Another acceptance process is already working on this supplier product."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:231
-msgid "antes de delegar a"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid "Antes de editar, inspeccionar clases relacionadas y compatibilidad de tablas compartidas. Cada cambio debe disponer de Issue, PR vinculado, pruebas y nota en"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:243
-msgid "antes de usar estas funciones desde módulos opcionales; no asumir que las imágenes son adjuntos locales."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:39
-msgid "API y hooks"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:645 includes/class-tcsup-manual.php:123
+#: includes/class-tcsup-admin.php:645
 msgid "Apply"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:63 includes/class-tcsup-manual.php:133
-msgid "Apply Woo prices"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:181
-msgid "Archivo"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:180
 msgid "Archivo de plantilla inválido. Utiliza JSON, CSV o TXT de hasta 64 KiB."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:34
-msgid "Arquitectura"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:208
-msgid "Array de asignaciones personalizadas; los cinco presets viven en PHP."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:189
@@ -710,20 +366,8 @@ msgstr ""
 msgid "Autocheck de Suppliers"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:67 includes/class-tcsup-manual.php:166
-msgid "Autotest"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:163
-msgid "Autotest con error"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:139
 msgid "Aviso"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:183
-msgid "Bootstrap, versión, alta en Core y API pública."
 msgstr ""
 
 #: includes/class-tcsup-csv.php:27
@@ -732,22 +376,6 @@ msgstr ""
 
 #: includes/class-tcsup-admin.php:639
 msgid "Bulk action"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:115
-msgid "Busca el producto relacionado y lo enlaza o crea uno nuevo."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:231
-msgid "busca por"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:276
-msgid "Cabecera válida e inválida; separadores; plantilla personalizada; reimportación; modo precio sin altas nuevas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:159
-msgid "Cabeceras oficiales, segmento p_ de URL, país, dominio e identidad."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:183
@@ -762,119 +390,27 @@ msgstr ""
 msgid "Canonical URL"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:274
-msgid "Casos recomendados en STAGING"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:181
-msgid "Clase / cometido"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:397
 msgid "Columns mapped"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:123
-msgid "como selección de todo el catálogo."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:35
-msgid "Componentes"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:163
-msgid "Componentes, hooks, opciones, tablas y columnas indicadas por el control."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:31 includes/class-tcsup-manual.php:280
-msgid "Compras"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:161
-msgid "Compras sin proveedor"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:155
-msgid "Comprobación inicial"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:67
-msgid "Comprobar componentes y configuraciones bajo demanda."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:78
-msgid "Comprueba el nombre del archivo, el separador detectado y la vista previa de hasta ocho filas. El CSV debe disponer de cabecera y tener un tamaño admitido por WordPress."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:220
-msgid "comprueba sesión/plantilla, valida columnas obligatorias, sanea datos y recorre las filas. Los métodos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:207
-msgid "comprueba tablas y puede ejecutar dbDelta."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:94
-msgid "con las columnas internas, consultar las plantillas disponibles y borrar solo las creadas por el usuario. Los modelos integrados son"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:618
 msgid "Conflict"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:186
-msgid "Conservar locks de aceptación, compatibilidad SKU/país y metadatos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:271
-msgid "consulta clases, registro de acciones, opciones, tablas/columnas y API de WooCommerce."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:65
-msgid "Consulta pedidos y presenta enlaces externos; no compra automáticamente ni modifica estados de pedidos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid "consulta por defecto pedidos WooCommerce"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:66
-msgid "Consultar estas dos guías."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:202
-msgid "contiene"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:246
-msgid "Controlador"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:139
 msgid "Correcto"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:157
-msgid "Corregir el fichero y volver a analizarlo; no modificar tablas directamente."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:159
-msgid "Corregir origen y evitar mezclar países o variantes."
 msgstr ""
 
 #: includes/class-tcsup-purchasing.php:231
 msgid "Cost"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:129
-msgid "coste base × (1 + margen/100)"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:379 includes/class-tcsup-manual.php:98
+#: includes/class-tcsup-admin.php:379
 msgid "Crear nueva plantilla de proveedor"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:388 includes/class-tcsup-manual.php:276
+#: includes/class-tcsup-admin.php:388
 msgid "CSV"
 msgstr ""
 
@@ -886,24 +422,12 @@ msgstr ""
 msgid "CSV file"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:110 includes/class-tcsup-manual.php:60 includes/class-tcsup-manual.php:76 includes/class-tcsup-manual.php:99
+#: includes/class-tcsup-admin.php:110
 msgid "CSV Import"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:173
-msgid "CSV local → análisis/mapeo temporal → fila de"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:211
-msgid "CSV originales subidos; no están en la carpeta instalable del plugin y no se deben confundir con tests."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:201
 msgid "CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:157
-msgid "CSV rechazado"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:632
@@ -914,64 +438,24 @@ msgstr ""
 msgid "CSV template"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:111 includes/class-tcsup-admin.php:376 includes/class-tcsup-manual.php:61 includes/class-tcsup-manual.php:94 includes/class-tcsup-manual.php:98
+#: includes/class-tcsup-admin.php:111 includes/class-tcsup-admin.php:376
 msgid "CSV Templates"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:85
-msgid "cuando solo debas renovar costes de referencias existentes. Exige una identidad (ID externo o SKU) y al menos una columna de precio; para VEVOR exige"
-msgstr ""
-
-#: includes/class-tcsup-csv.php:32 includes/class-tcsup-manual.php:131
+#: includes/class-tcsup-csv.php:32
 msgid "Currency"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:36
-msgid "Datos y claves"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:87
-msgid "de la URL oficial; el dominio y, cuando existe, la columna Country sirven para determinar el mercado. DE, NL, FR, US y otros mercados soportados se mantienen diferenciados, sin fusionar productos por compartir SKU."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:98
-msgid "deben estar presentes."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:648
 msgid "Decision"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:129
-msgid "Default regular margin"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid "Default sale margin"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:236
-msgid "define los estados activos (por defecto pending, on-hold y processing)."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:220
-msgid "definen el contrato canónico."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid "del ZIP. La validación debe hacerse en STAGING;"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:417 includes/class-tcsup-manual.php:101
+#: includes/class-tcsup-admin.php:417
 msgid "Delete"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:300
 msgid "Delimiter:"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:61
-msgid "Descargar cabecera canónica, crear plantillas desde un archivo JSON/CSV/TXT o texto pegado, descargar, consultar y eliminar plantillas personalizadas."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:395
@@ -990,27 +474,11 @@ msgstr ""
 msgid "Description"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:114
-msgid "desde la acción masiva."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:243
-msgid "devuelve filas del catálogo proveedor asociadas al producto;"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:243
-msgid "devuelve referencias de imágenes activas. Comprobar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:114
-msgid "Devuelve una fila a"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:90
 msgid "Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:642 includes/class-tcsup-admin.php:666 includes/class-tcsup-manual.php:113 includes/class-tcsup-manual.php:123
+#: includes/class-tcsup-admin.php:642 includes/class-tcsup-admin.php:666
 msgid "Discard"
 msgstr ""
 
@@ -1018,36 +486,8 @@ msgstr ""
 msgid "Discarded"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:94
-msgid "Download canonical CSV header"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:606
 msgid "Duplicate"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:96
-msgid "Durante el análisis CSV, asigna los campos, abre"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "e infiere el país desde el dominio cuando el CSV no lo indica."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid "Edit"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:63
-msgid "Editar costes de proveedor, IVA, moneda, márgenes y precios Woo."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:64
-msgid "Editar URL y modo de imagen por referencia."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:246
-msgid "Efecto"
 msgstr ""
 
 #: includes/class-tcsup-autotest.php:161
@@ -1058,76 +498,12 @@ msgstr ""
 msgid "Ejecutar Autocheck"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:99
-msgid "Ejemplo JSON:"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:175
-msgid "El archivo principal registra"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:225
-msgid "El código actual lee el CSV local con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:140
-msgid "El módulo guarda URLs y metadatos de imágenes del proveedor en una tabla propia;"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:121
-msgid "El módulo intenta localizar una vinculación previa por ID de objeto, metadatos de catálogo/proveedor o SKU compatible. Puede actualizar precios calculados con los márgenes configurados, existencia, marca, referencias externas y metadatos del proveedor. Confirma que el vínculo es correcto antes de aceptar; las referencias VEVOR por mercado no deben tratarse como un único producto."
-msgstr ""
-
 #: includes/class-tcsup-csv.php:466
 msgid "El nombre de una columna de origen está vacío o es demasiado largo."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:61
-msgid "Eliminar una plantilla personalizada borra su definición, no las filas ya importadas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:76 includes/class-tcsup-manual.php:79 includes/class-tcsup-manual.php:98 includes/class-tcsup-manual.php:107 includes/class-tcsup-manual.php:129 includes/class-tcsup-manual.php:138
-msgid "En"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "En modo"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:139
 msgid "Error"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:159
-msgid "Errores VEVOR"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:271
-msgid "espera una acción POST manual con nonce"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:161
-msgid "Estado de aceptación,"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:133
-msgid "están habilitados únicamente para productos vinculados. Marca explícitamente"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:188
-msgid "Evitar migraciones destructivas y preservar tablas compartidas/legadas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:131
-msgid "Excl. tax"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:87
-msgid "exige las columnas"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:157
-msgid "Extensión .csv, límite de subida, permisos de almacenamiento, cabecera y delimitador."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:648
@@ -1142,12 +518,8 @@ msgstr ""
 msgid "External image URLs — one per line"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:114 includes/class-tcsup-admin.php:738 includes/class-tcsup-manual.php:64 includes/class-tcsup-manual.php:138
+#: includes/class-tcsup-admin.php:114 includes/class-tcsup-admin.php:738
 msgid "External Images"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid "External references"
 msgstr ""
 
 #: includes/class-tcsup-csv.php:472
@@ -1166,14 +538,6 @@ msgstr ""
 msgid "Filter"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:62
-msgid "Filtrar filas, aceptar, revisar, descartar o devolver a pendiente."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:173
-msgid "Flujo:"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:387
 msgid "Formato del texto pegado"
 msgstr ""
@@ -1182,76 +546,12 @@ msgstr ""
 msgid "Formato no admitido. Utiliza JSON, CSV o TXT."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:205
-msgid "Función"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:249
-msgid "Gestión y descarga de plantillas."
-msgstr ""
-
 #: includes/admin-branding.php:47
 msgid "Gestiona catálogos, compras, precios y relaciones con proveedores."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:274
-msgid "Grupo"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:60
-msgid "Guarda el CSV original e inserta o actualiza filas del catálogo intermedio; no publica productos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:252
-msgid "Guarda porcentajes de margen."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:64
-msgid "Guarda referencias y su estado; no descarga archivos a Media."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:63
-msgid "Guardar actualiza los datos del proveedor; solo aplica precios WooCommerce cuando se marca"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:163
-msgid "Guardar evidencia y revisar despliegue antes de ejecutar migraciones."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:392
 msgid "Guardar plantilla"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:158
-msgid "Han pasado dos horas o el archivo original ya no es legible."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:52
-msgid "Haz una copia de seguridad de las tablas de proveedores y de la base de datos antes de una importación importante. Importar un CSV"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid "histórico y excluir los scripts"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:246
-msgid "Hook admin-post.php"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:85
-msgid "ID externo y país"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:277
-msgid "Identidad internacional"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:184
-msgid "identifica exclusivamente al plugin independiente; conservar slugs y nonces."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:205
-msgid "Identificador"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:619
@@ -1262,44 +562,16 @@ msgstr ""
 msgid "Image mode"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:30 includes/class-tcsup-manual.php:279
-msgid "Imágenes"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:162
-msgid "Imágenes que no aparecen"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:356 includes/class-tcsup-manual.php:80
+#: includes/class-tcsup-admin.php:356
 msgid "Import into intermediate inventory"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:26
-msgid "Importar un CSV"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:32
-msgid "Incidencias"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:131
-msgid "Incl. tax"
 msgstr ""
 
 #: includes/class-tcsup-manual.php:22
 msgid "Índice"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:138
-msgid "Inherit existing behavior"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:632
 msgid "Intermediate supplier inventory"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:24
-msgid "Introducción"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:190
@@ -1310,11 +582,7 @@ msgstr ""
 msgid "Introduce un nombre válido para la plantilla (máximo 100 caracteres)."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:28
-msgid "Inventario y aceptación"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:112 includes/class-tcsup-manual.php:62 includes/class-tcsup-manual.php:83 includes/class-tcsup-manual.php:107
+#: includes/class-tcsup-admin.php:112
 msgid "Inventory"
 msgstr ""
 
@@ -1324,18 +592,6 @@ msgstr ""
 
 #: includes/class-tcsup-admin.php:391
 msgid "JSON: {\"mapping\":{\"proveedor_id_externo\":\"ID\",\"nombre\":\"Nombre\"}}. CSV/TXT: dos columnas separadas por coma o punto y coma, una línea por correspondencia (campo interno, columna del proveedor). Si subes un archivo, tiene prioridad sobre el texto pegado."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:101
-msgid "La acción"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:200
-msgid "La clave única definida en esquema es"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:237
-msgid "La consulta actual usa"
 msgstr ""
 
 #: includes/class-tcsup-csv.php:462
@@ -1354,26 +610,6 @@ msgstr ""
 msgid "La definición JSON no es válida."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:89
-msgid "La importación se ejecuta al confirmar el formulario: no se ofrece aquí una cola de scraping o importación XLS/XLSX. Una sesión de análisis caduca a las dos horas; si aparece"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:131
-msgid "La lista de 40 filas por página permite modificar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:261
-msgid "La pantalla usa la capacidad"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:94 includes/class-tcsup-manual.php:145
-msgid "La pestaña"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:87
-msgid "La plantilla"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:187
 msgid "La plantilla contiene campos canónicos desconocidos o valores inválidos."
 msgstr ""
@@ -1386,14 +622,6 @@ msgstr ""
 msgid "La plantilla tiene campos duplicados."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:214
-msgid "La relación WooCommerce usa, entre otros, los metadatos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:149
-msgid "La valoración de peso, portes y coste de entrega se realiza en"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:377
 msgid "Las plantillas relacionan las columnas del CSV del proveedor con los campos de TaxoCommerce. No ejecutan código ni importan productos al guardarse."
 msgstr ""
@@ -1402,31 +630,11 @@ msgstr ""
 msgid "Legacy"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:175
-msgid "llama a"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid "Local Media"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:133
-msgid "Los campos"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:234
-msgid "Los márgenes definidos en opciones se aplican sobre el precio base, priorizando"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:98
 msgid "Los resultados se generan al pulsar el botón. Se conserva el último durante una hora para descargarlo en JSON."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:191
-msgid "Los scripts tests se excluyen del ZIP distribuible."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:116 includes/class-tcsup-manual.php:66
+#: includes/class-tcsup-admin.php:116
 msgid "Manual"
 msgstr ""
 
@@ -1434,31 +642,15 @@ msgstr ""
 msgid "Manual de TaxoCommerce Suppliers"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:23 includes/class-tcsup-manual.php:44
+#: includes/class-tcsup-manual.php:44
 msgid "Manual de usuario"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:33
-msgid "Manual técnico / desarrolladores"
 msgstr ""
 
 #: includes/class-tcsup-manual.php:169
 msgid "Manual técnico para futuros desarrolladores"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:112 includes/class-tcsup-manual.php:113
-msgid "Marca la fila"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:123
-msgid "Marca las filas deseadas de la página actual, elige"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:209
-msgid "Márgenes comerciales (por defecto 20 y 45); valores acotados por el controlador de ajustes."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:641 includes/class-tcsup-manual.php:123
+#: includes/class-tcsup-admin.php:641
 msgid "Mark for review"
 msgstr ""
 
@@ -1478,36 +670,12 @@ msgstr ""
 msgid "Modified"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:162
-msgid "Modo de imagen, URLs guardadas, consumidor de imágenes externas y sitio de origen."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:37
-msgid "Motor CSV"
-msgstr ""
-
 #: includes/class-tcsup-csv.php:22
 msgid "MPN"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:614
 msgid "New"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:85
-msgid "no crea filas nuevas"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:140
-msgid "no descarga los archivos ni crea adjuntos en la Biblioteca de Medios"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:200
-msgid "No eliminar país o clave de variante"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:113
-msgid "No equivale a borrar un producto WooCommerce ya creado."
 msgstr ""
 
 #: includes/class-tcsup-csv.php:560
@@ -1518,20 +686,8 @@ msgstr ""
 msgid "No hay correspondencias de columnas."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:183
-msgid "No introducir lógica de UI/importación dentro del bootstrap."
-msgstr ""
-
 #: includes/class-tcsup-products.php:182
 msgid "No product brand taxonomy is available."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:52
-msgid "no publica productos de inmediato"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:112
-msgid "No resuelve automáticamente un conflicto de identidad."
 msgstr ""
 
 #: includes/class-tcsup-csv.php:564
@@ -1554,28 +710,12 @@ msgstr ""
 msgid "No tienes permisos para ejecutar el autotest."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:190
-msgid "No utilizar métodos de instalación, aceptación, importación ni envío."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:383
 msgid "Nombre de la plantilla"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:123 includes/class-tcsup-manual.php:138
-msgid "o"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:386
 msgid "O pegar la definición en el campo siguiente:"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:231
-msgid "obtiene la fila y adquiere un lock MySQL con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid "on-hold"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:169
@@ -1586,10 +726,6 @@ msgstr ""
 msgid "Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:80
-msgid "Opcionalmente introduce un nombre para guardar la asignación como plantilla reutilizable y pulsa"
-msgstr ""
-
 #: includes/class-tcsup-purchasing.php:275
 msgid "Open supplier inventory"
 msgstr ""
@@ -1598,92 +734,8 @@ msgstr ""
 msgid "Order lines"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:175
-msgid "para crear/actualizar tablas y establecer márgenes iniciales. En"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:263
-msgid "para identificadores cuando proceda, y evitar interpolar entradas no fiables. No asumir que una URL externa es un archivo local. Los CSV originales residen bajo"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:83
-msgid "para la plantilla de actualización de costes). Revisa las referencias sin país, sin SKU o con conflictos antes de aceptarlas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:133
-msgid "para modificar los precios del producto WooCommerce. Si no lo marcas, solo se actualizan los datos de coste/metadatos del proveedor. Revisa moneda, impuestos y descuentos antes de guardar."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:237
-msgid "para pedidos activos, por lo que en tiendas de gran volumen conviene evaluar su coste antes de ampliar el panel. No substituir la API WooCommerce por consultas directas a"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid "para que se revise su vinculación."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:200
-msgid "para simplificar consultas: se producirían colisiones entre mercados."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:280
-msgid "Pedidos activos sin fuente, con fuente exacta, variación que hereda fuente del padre y enlaces válidos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid "pending"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:600 includes/class-tcsup-admin.php:620
 msgid "Pending"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:281
-msgid "Permisos y nonces, escape, SQL preparado, PHP lint, smoke, Plugin Check y ZIP sin"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:94
-msgid "permite descargar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:223
-msgid "permiten identificar cambios. Las filas existentes conservan su identidad y se actualizan; las nuevas entran con"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:58
-msgid "Pestaña"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:25
-msgid "Pestañas y controles"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:27
-msgid "Plantillas"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:172
-msgid "plugin autónomo"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:20
-msgid "plugin independiente"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:110
-msgid "Precaución"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:29
-msgid "Precios"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:251
-msgid "Precios de fuente/Woo y vínculos de imágenes."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:191
-msgid "Presentación y regresión de la interfaz/contratos."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:359
@@ -1710,20 +762,8 @@ msgstr ""
 msgid "Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:113 includes/class-tcsup-manual.php:63 includes/class-tcsup-manual.php:83 includes/class-tcsup-manual.php:129
+#: includes/class-tcsup-admin.php:113
 msgid "Prices"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:147
-msgid "Primero busca una fuente aceptada para el producto de la línea; si es una variación sin fuente, intenta usar la del producto padre. Si hay varias fuentes, presenta alternativas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:145
-msgid "processing"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid "PRODUCCIÓN requiere autorización expresa"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:648 includes/class-tcsup-admin.php:763
@@ -1734,43 +774,19 @@ msgstr ""
 msgid "Product name"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:160
-msgid "Producto no aceptado"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:119
-msgid "producto simple en borrador, oculto del catálogo"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:384
 msgid "Proveedor (opcional)"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:41
-msgid "Pruebas y evolución"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:604
 msgid "Published"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:62
-msgid "puede escribir un producto WooCommerce y metadatos; las otras decisiones modifican el estado de selección."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:115
-msgid "Puede modificar precio, stock y metadatos de un producto existente."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:181
-msgid "Puntos de extensión y precauciones"
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:232 includes/class-tcsup-manual.php:145 includes/class-tcsup-manual.php:147
+#: includes/class-tcsup-purchasing.php:232
 msgid "Purchase"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:115 includes/class-tcsup-purchasing.php:204 includes/class-tcsup-manual.php:65 includes/class-tcsup-manual.php:145
+#: includes/class-tcsup-admin.php:115 includes/class-tcsup-purchasing.php:204
 msgid "Purchasing"
 msgstr ""
 
@@ -1778,83 +794,35 @@ msgstr ""
 msgid "Qty."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:58
-msgid "Qué permite"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:58
-msgid "Qué se modifica y qué no"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:279
-msgid "Referencias externas nuevas, duplicadas, cambio de modo y ausencia de descargas a Media."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:255
-msgid "Registro familiar:"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:158
-msgid "Repetir Analyze CSV y revisar el mapeo."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:314
 msgid "Required"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:160
-msgid "Resolver identidad/categoría antes de volver a aceptar."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:185
-msgid "Respetar identidad, prevención de duplicados, VEVOR y formato CSV."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:236
-msgid "resuelve primero la variación/producto exacto y luego el padre;"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:110
-msgid "Resultado"
 msgstr ""
 
 #: includes/class-tcsup-autotest.php:129
 msgid "Resumen"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:643 includes/class-tcsup-manual.php:114 includes/class-tcsup-manual.php:123
+#: includes/class-tcsup-admin.php:643
 msgid "Return to pending"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:601 includes/class-tcsup-admin.php:665 includes/class-tcsup-manual.php:112
+#: includes/class-tcsup-admin.php:601 includes/class-tcsup-admin.php:665
 msgid "Review"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:79
-msgid "Review normalization"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:114
-msgid "Revisa antes los datos que motivaron su descarte."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:161
-msgid "Revisar vínculo de catálogo y producto."
 msgstr ""
 
 #: includes/class-tcsup-purchasing.php:223
 msgid "Sale"
 msgstr ""
 
-#: includes/class-tcsup-csv.php:68 includes/class-tcsup-manual.php:94
+#: includes/class-tcsup-csv.php:68
 msgid "SATKIT visual mapping"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:721 includes/class-tcsup-manual.php:131
+#: includes/class-tcsup-admin.php:721
 msgid "Save"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:759 includes/class-tcsup-manual.php:138
+#: includes/class-tcsup-admin.php:759
 msgid "Save external images"
 msgstr ""
 
@@ -1862,104 +830,16 @@ msgstr ""
 msgid "Save margins"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:352 includes/class-tcsup-manual.php:96
+#: includes/class-tcsup-admin.php:352
 msgid "Save this mapping as a reusable template"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:166
-msgid "se ejecuta con su propio botón y nonce; inspecciona disponibilidad en modo de solo lectura y muestra Correcto / Aviso / Error. No comprueba el contenido semántico de cada CSV ni garantiza que un servidor externo sirva una imagen."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "se esperan las cabeceras de los campos internos;"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:40
-msgid "Seguridad"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:281
-msgid "Seguridad / WP.org"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:250
-msgid "Selección y aceptación de filas; la interfaz del inventario envía las acciones individuales por"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:85
-msgid "Selecciona"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:77
-msgid "Selecciona un archivo"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:123
-msgid "Select all rows on this page"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:158
-msgid "Sesión CSV caducada"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:89
-msgid "session expired"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:50
-msgid "si Core está activo, o el menú independiente"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:232
-msgid "Si no hay coincidencia, usa"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:119
-msgid "Si no se encuentra un producto existente y hay categoría WooCommerce predeterminada válida, se crea un"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:287
-msgid "Si una funcionalidad cambia, actualizar tanto el procedimiento operativo (botones, riesgos, resultados) como el contrato técnico (clases, tablas, hooks y pruebas). No inventar opciones que no existan en el plugin. Conservar esta estructura de dos manuales completos en la pestaña Manual para que el siguiente desarrollador no dependa de conversaciones anteriores."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:261
-msgid "si WooCommerce está activo, con acceso alternativo para"
 msgstr ""
 
 #: includes/class-tcsup-autotest.php:156
 msgid "Sin permisos para descargar el Autocheck."
 msgstr ""
 
-#: includes/class-tcsup-manual.php:155
-msgid "Situación"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:138
-msgid "sobre una referencia. Elige"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "solo actualiza fuentes identificadas de manera inequívoca y no crea filas."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:101
-msgid "solo aparece para las personalizadas. No elimina productos, filas del inventario ni archivos CSV ya almacenados. Después de cambiar un formato de proveedor, verifica el mapeo antes de importar de nuevo."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:67
-msgid "Solo diagnóstico; no repara tablas ni procesa pedidos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:66
-msgid "Solo lectura."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:185
 msgid "Solo se admiten definiciones JSON, CSV o TXT."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:234
-msgid "son efectos de aceptar"
 msgstr ""
 
 #: includes/class-tcsup-csv.php:21
@@ -1990,16 +870,8 @@ msgstr ""
 msgid "Stock text"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:248
-msgid "Subida/análisis e inserción/actualización intermedia."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:385
 msgid "Subir definición JSON, CSV o TXT (máximo 64 KiB)"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:60
-msgid "Subir, analizar, asignar columnas e importar."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:247 includes/class-tcsup-admin.php:311 includes/class-tcsup-admin.php:397 includes/class-tcsup-admin.php:648 includes/class-tcsup-admin.php:763 includes/class-tcsup-purchasing.php:227
@@ -2034,7 +906,7 @@ msgstr ""
 msgid "Supplier price"
 msgstr ""
 
-#: includes/class-tcsup-csv.php:52 includes/class-tcsup-manual.php:85 includes/class-tcsup-manual.php:94
+#: includes/class-tcsup-csv.php:52
 msgid "Supplier Price Update CSV"
 msgstr ""
 
@@ -2070,10 +942,6 @@ msgstr ""
 msgid "Suppliers"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:48
-msgid "Suppliers recibe catálogos CSV facilitados por proveedores, los normaliza y mantiene en un inventario intermedio. Permite revisar cada referencia antes de crear o enlazar productos WooCommerce, corregir los costes, conservar referencias de imágenes externas y consultar qué proveedor corresponde a una venta."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:648
 msgid "Sync"
 msgstr ""
@@ -2082,27 +950,19 @@ msgstr ""
 msgid "Synchronized"
 msgstr ""
 
-#: includes/class-tcsup-csv.php:31 includes/class-tcsup-manual.php:131
+#: includes/class-tcsup-csv.php:31
 msgid "Tax %"
 msgstr ""
 
-#: includes/class-tcsup-csv.php:44 includes/class-tcsup-manual.php:94
+#: includes/class-tcsup-csv.php:44
 msgid "TaxoCommerce canonical CSV"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:50
-msgid "TaxoCommerce Core → Suppliers"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:314
 msgid "TaxoCommerce field"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:149
-msgid "TaxoCommerce Logistics"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:43 includes/class-tcsup-admin.php:51 includes/class-tcsup-admin.php:52 includes/class-tcsup-manual.php:50
+#: includes/class-tcsup-admin.php:43 includes/class-tcsup-admin.php:51 includes/class-tcsup-admin.php:52
 msgid "TaxoCommerce Suppliers"
 msgstr ""
 
@@ -2154,24 +1014,12 @@ msgstr ""
 msgid "There are no pending, on-hold, or processing WooCommerce order lines to purchase."
 msgstr ""
 
-#: includes/class-tcsup-csv.php:76 includes/class-tcsup-manual.php:94
+#: includes/class-tcsup-csv.php:76
 msgid "TodoTaladros visual mapping"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "transforma las seis cabeceras oficiales, extrae el ID numérico de 12 dígitos de"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:210
-msgid "Transient de análisis, cabeceras, vista previa y ruta temporal; duración de dos horas."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:388
 msgid "TXT"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:271
-msgid "Un test correcto solo confirma disponibilidad estructural"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:188
@@ -2190,51 +1038,15 @@ msgstr ""
 msgid "URLs"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:236
-msgid "usa"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:222
-msgid "usa nombres del fichero;"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:187
-msgid "Usar APIs de pedidos WooCommerce; no SQL directo sobre tablas de pedidos."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:263
-msgid "Utilizar"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:220
-msgid "valida el fichero, lo almacena en uploads, detecta delimitador y guarda el estado por usuario."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:65
-msgid "Ver pedidos activos y sus posibles proveedores."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:162
-msgid "Verificar referencias; Suppliers no importa archivos a Media."
-msgstr ""
-
-#: includes/admin-branding.php:49 includes/class-tcsup-manual.php:20
+#: includes/admin-branding.php:49
 msgid "Versión"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:207
-msgid "Versión del esquema, actualmente"
-msgstr ""
-
-#: includes/class-tcsup-csv.php:60 includes/class-tcsup-manual.php:87 includes/class-tcsup-manual.php:94
+#: includes/class-tcsup-csv.php:60
 msgid "VEVOR official CSV"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:277
-msgid "VEVOR US/DE/NL/FR con igual SKU, variante distinta, país ausente, ID y URL erróneos."
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:213 includes/class-tcsup-manual.php:145
+#: includes/class-tcsup-purchasing.php:213
 msgid "Without source"
 msgstr ""
 
@@ -2242,24 +1054,8 @@ msgstr ""
 msgid "Woo ID"
 msgstr ""
 
-#: includes/class-tcsup-manual.php:133
-msgid "Woo regular"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:133
-msgid "Woo sale"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:278
-msgid "WooCommerce"
-msgstr ""
-
 #: includes/class-tcsup-products.php:340
 msgid "WooCommerce did not return a product ID."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:265
-msgid "WooCommerce es obligatorio para aceptación de productos y consultas de compras; TaxoCommerce Core es opcional para agrupar el menú. El módulo no gestiona pesos y transportes (Logistics), no ejecuta scraping (Scrappers) y no publica automáticamente productos. No modificar el plugin monolítico ni asumir que sus clases antiguas siguen disponibles."
 msgstr ""
 
 #: includes/class-tcsup-products.php:268
@@ -2272,70 +1068,6 @@ msgstr ""
 
 #: includes/class-tcsup-products.php:284
 msgid "WooCommerce product could not be loaded."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:38
-msgid "WooCommerce y fuentes"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:160
-msgid "WooCommerce, categoría por defecto, SKU ocupado y mensajes de conflicto."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:87 includes/class-tcsup-manual.php:94 includes/class-tcsup-manual.php:98 includes/class-tcsup-manual.php:98 includes/class-tcsup-manual.php:129 includes/class-tcsup-manual.php:131 includes/class-tcsup-manual.php:133 includes/class-tcsup-manual.php:145 includes/class-tcsup-manual.php:175 includes/class-tcsup-manual.php:209 includes/class-tcsup-manual.php:214 includes/class-tcsup-manual.php:220 includes/class-tcsup-manual.php:223 includes/class-tcsup-manual.php:223 includes/class-tcsup-manual.php:255
-msgid "y"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:232
-msgid "y crea un borrador oculto con la categoría WooCommerce predeterminada. Para fuentes ya enlazadas puede actualizar precio, stock, marca, metadatos y enlaces de imagen. Tras guardar actualiza"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:234
-msgid "y deben cubrirse por pruebas de regresión antes de cualquier cambio."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:175
-msgid "y el filtro de catálogo familiar."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:96
-msgid "y escribe un nombre. Se conservan los nombres de las columnas de origen, no su posición fija: si un proveedor reordena columnas sin cambiar sus nombres, la plantilla puede reutilizarse."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:232
-msgid "y estado de sincronización."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:236
-msgid "y los métodos de pedidos/líneas WooCommerce. El filtro"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:161
-msgid "y producto/variación del pedido."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:263
-msgid "y pueden contener información comercial: antes de ampliar los endpoints, comprobar autorización, accesibilidad pública, tipos de fichero y límites. No introducir exportaciones o rutas de descarga de originales sin petición explícita y evaluación de seguridad."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:77 includes/class-tcsup-manual.php:123
-msgid "y pulsa"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:99
-msgid "y revisa la asignación antes de importar. Puedes descargar el JSON de respaldo junto al nombre de cualquier plantilla personalizada."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:113
-msgid "y sincronización ignorada."
-msgstr ""
-
-#: includes/class-tcsup-manual.php:285
-msgid "y versión del archivo principal antes de publicar en WordPress.org, conservar el"
-msgstr ""
-
-#: includes/class-tcsup-manual.php:129
-msgid "y, si no está,"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:191
