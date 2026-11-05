@@ -1,6 +1,10 @@
+## [Unreleased] — 2026-11-05 — Pruebas de regresión y despliegue (Issue #2212)
+
+- Reparadas dos pruebas offline obsoletas/rotas que bloqueaban el despliegue incremental de todos los plugins: comprobación de pestañas actualizada al gettext nativo de WordPress, y corrección de sintaxis en la prueba de advertencias de Plugin Check. Sin modificar funcionalidad ni archivos PHP instalables de Templates.
+
 ## [0.4.16] — 2026-11-05
 
-- Traducciones nativas EN/ES de cabeceras, políticas, pestañas y enrutamiento; catálogos MO completos y validados; sin cambios de configuración ni plantillas públicas.
+- Internacionalización EN/ES nativa de la administración, cabeceras, enrutamiento y políticas; diccionarios `.po/.mo` completos y validados. No cambia reglas ni rutas.
 
 ## [0.4.15] — 2026-11-05
 

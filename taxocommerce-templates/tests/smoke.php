@@ -300,8 +300,10 @@ tct_assert(count($manager_sections) === 2
     && isset($manager_sections['composer'], $manager_sections['editor']),
     'Designer must contain only the compositor and PHP library.');
 tct_assert(strpos($entrypoint, "'routing'  => __( 'Enrutamiento', 'taxocommerce-templates' )") !== false
-    && strpos($entrypoint, "'designer' => __( 'Diseñador de plantillas', 'taxocommerce-templates' )") !== false,
-    'The Templates navigation must expose Enrutamiento and Diseñador only.');
+    && strpos($entrypoint, "'designer' => __( 'Diseñador de plantillas', 'taxocommerce-templates' )") !== false
+    && strpos($entrypoint, "'autocheck' => __( 'Autocheck', 'taxocommerce-templates' )") !== false
+    && strpos($entrypoint, "'manual' => __( 'Manual', 'taxocommerce-templates' )") !== false,
+    'The Templates navigation must expose native gettext routing, designer, Autocheck and Manual tabs.');
 $routing = TCT_Routing_Admin::items();
 tct_assert(isset($routing['front_page'], $routing['page'], $routing['single_post'],
     $routing['taxonomy_product_cat'], $routing['single_product'], $routing['cluster'],
@@ -501,7 +503,6 @@ tct_assert(strpos($ui_code, 'TCT_Designs::render_routes(') !== false
     && strpos($js_code, "typeof TCTDesignComposer !== 'undefined'") !== false,
     'Edit must load the selected instance and its own market/device module configuration.');
 
-
 // Native gettext regression: both catalog files must be real, readable MO
 // binaries, not the empty 238-byte header-only catalogs from earlier builds.
 function tct_smoke_mo_entries( $path ) {
@@ -537,5 +538,6 @@ tct_assert( ( $catalog_es['Aplicación de políticas'] ?? '' ) === 'Aplicación 
 tct_assert( strpos( $entrypoint, "load_textdomain( \$domain, \$catalog );" ) !== false
     && strpos( $entrypoint, "add_action( 'init'," ) !== false,
     'Standalone translations must load at init using the native Core fallback.' );
+
 
 echo "OK: Smoke tests TaxoCommerce Templates\n";
