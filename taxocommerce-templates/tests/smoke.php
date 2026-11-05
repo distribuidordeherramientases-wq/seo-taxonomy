@@ -526,6 +526,12 @@ tct_assert( ( $catalog_en['Aplicación de políticas'] ?? '' ) === 'Policy appli
     && ( $catalog_en['Mis plantillas'] ?? '' ) === 'My templates'
     && ( $catalog_en['Por configurar'] ?? '' ) === 'To configure',
     'English locale must translate the policy controls and routing filter.' );
+tct_assert( ( $catalog_en['Gestiona plantillas, enrutado de páginas y reglas de presentación.'] ?? '' ) === 'Manage templates, page routing and presentation rules.'
+    && ( $catalog_en['Versión'] ?? '' ) === 'Version'
+    && ( $catalog_en['Enrutamiento'] ?? '' ) === 'Routing'
+    && ( $catalog_en['Diseñador de plantillas'] ?? '' ) === 'Template designer'
+    && ( $catalog_en['Aplicación de políticas'] ?? '' ) === 'Policy application',
+    'English WordPress administration must display Templates labels in English.' );
 tct_assert( ( $catalog_es['Aplicación de políticas'] ?? '' ) === 'Aplicación de políticas',
     'Spanish locale must retain the correct Spanish UI translation.' );
 tct_assert( strpos( $entrypoint, "load_textdomain( \$domain, \$catalog );" ) !== false
