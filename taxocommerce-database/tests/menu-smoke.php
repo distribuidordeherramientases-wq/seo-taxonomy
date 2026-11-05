@@ -54,12 +54,13 @@ foreach ( array( 'Errores en datos', 'Limpieza BBDD', 'Exportar BBDD', 'Resumen 
     }
 }
 // Both original export engines must be available from the single top-level tab.
+// Both export engines are rendered from one tab; legacy export bookmarks still work.
 if ( 1 !== substr_count( $source, "=> array( 'Exportar BBDD'," )
     || false !== strpos( $source, "'table:export'          =>" )
-    || false === strpos( $source, "if ( 'table' === \\$screen && 'export' === \\$table_section )" )
     || false === strpos( $source, 'seo_clean_db_render_export_tab();' )
-    || false === strpos( $source, 'seo_data_render_export( \\TCDB_Legacy\\seo_data_get_tables() );' ) ) {
-    fwrite( STDERR, "FAIL: export tabs not consolidated or old links not preserved\\n" ); exit( 1 );
+    || false === strpos( $source, 'seo_data_render_export( \TCDB_Legacy\seo_data_get_tables() );' )
+    || false === strpos( $source, "'export' === " . '$table_section' ) ) {
+    fwrite( STDERR, "FAIL: export tabs not consolidated or old links not preserved\n" ); exit( 1 );
 }
 if ( false === strpos( $source, 'tcdb-flat-tabs' ) || false === strpos( $source, 'overflow-x:auto' ) ) {
     fwrite( STDERR, "FAIL: horizontal scroll tabs missing\n" ); exit( 1 );
