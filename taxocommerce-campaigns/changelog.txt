@@ -1,3 +1,6 @@
+PLUGIN INDEPENDIENTE — ACTUALIZACIÓN 0.1.4 (2026-11-05)
+* Traducciones operativas de campañas de marketing en ES/EN/FR/DE/NL y catálogos MO reales (#2239). Se preserva a continuación el historial del monolito.
+
 HISTORIAL LEGADO — TAXOCOMMERCE CAMPAIGNS
 
 TaxoCommerce SEO monolítico, versiones previas a la división modular.
