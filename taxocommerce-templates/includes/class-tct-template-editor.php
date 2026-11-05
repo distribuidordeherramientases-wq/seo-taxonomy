@@ -123,7 +123,7 @@ final class TCT_Template_Editor {
 
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $id = $wpdb->get_var($wpdb->prepare(
+        $id = TCT_Read_Query_Cache::get_var($wpdb->prepare(
             "SELECT id FROM %i WHERE template_key=%s LIMIT 1",
             $table, $request_key
         ));
