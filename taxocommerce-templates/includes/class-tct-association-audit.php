@@ -394,6 +394,7 @@ final class TCT_Association_Audit {
             }
             $is_page = !empty($groups['page']['active']);
             $now = current_time('mysql');
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $ok = $wpdb->insert($table, array(
                 'template_key' => $key,
                 'template_name' => ucwords(str_replace(array('_','-'), ' ', $key)),
