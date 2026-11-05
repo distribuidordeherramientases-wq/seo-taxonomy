@@ -161,6 +161,7 @@ final class TCT_Routing_Admin {
         $now = current_time( 'mysql' );
         if ( $old ) {
             // Keep role assignments, type, per-device variants and metadata intact.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->update(
                 $table,
                 array( 'template_file' => $file, 'is_active' => '' !== $file ? 1 : 0, 'updated_at' => $now ),
@@ -175,6 +176,7 @@ final class TCT_Routing_Admin {
             $group = (string) $defs[ $key ][1];
             $type = 0 === strpos( $group, 'WooCommerce - correos' ) ? 'email'
                 : ( 0 === strpos( $group, 'WooCommerce' ) ? 'woocommerce' : 'system' );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->insert( $table, array(
                 'template_key' => $key,
                 'template_name' => (string) $defs[ $key ][0],
