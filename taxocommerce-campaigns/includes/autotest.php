@@ -32,7 +32,7 @@ function tccampaigns_render_autotest() {
     echo '<form method="post" action="' . esc_url(tccampaigns_admin_tab_url('autotest')) . '">';
     wp_nonce_field('tccampaigns_autotest');
     echo '<input type="hidden" name="tccampaigns_run_autotest" value="1">';
-    submit_button('Ejecutar Autocheck','primary','submit',false);
+    submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-campaigns' ),'primary','submit',false);
     echo '</form>';
     if (!isset($_POST['tccampaigns_run_autotest'])) { echo '</section>'; return; }
     check_admin_referer('tccampaigns_autotest');

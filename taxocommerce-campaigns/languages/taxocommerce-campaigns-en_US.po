@@ -1,371 +1,458 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-campaigns\n"
+"Project-Id-Version: taxocommerce-campaigns 0.1.4\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#. Plugin Name of the plugin
-#: taxocommerce-campaigns.php includes/admin.php:7 includes/admin.php:9
-#: includes/admin.php:86 includes/social-publication.php:860
-msgid "TaxoCommerce Campaigns"
-msgstr ""
-
-#. Description of the plugin
-#: taxocommerce-campaigns.php
-msgid ""
-"Offer campaigns, campaign pricing, public banners, social offer publishing, "
-"and a standalone commercial calendar."
-msgstr ""
-
-#. Author of the plugin
-#: taxocommerce-campaigns.php
-msgid "David Perez"
-msgstr ""
-
-#: includes/admin.php:7
-msgid "Campaigns"
-msgstr ""
-
-#: includes/admin.php:51
-msgid "Configuración guardada."
-msgstr ""
-
-#: includes/admin.php:55
-msgid "Banners públicos"
-msgstr ""
-
-#: includes/admin.php:60
-msgid "Publicación de ofertas en redes"
-msgstr ""
-
-#: includes/admin.php:61
-msgid ""
-"Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las "
-"conexiones y los publicadores, pero su calendario editorial permanece "
-"separado."
-msgstr ""
-
-#: includes/admin.php:72
-msgid ""
-"Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, "
-"{descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}."
-msgstr ""
-
-#: includes/admin.php:86
-msgid ""
-"Campañas de ofertas, precios promocionales, banners y agenda comercial "
-"autónoma."
-msgstr ""
-
-#: includes/admin.php:99
-msgid ""
-"TaxoCommerce Social no está activo. El calendario comercial funciona "
-"igualmente; la programación de ofertas en redes se habilitará cuando Social "
-"esté disponible."
-msgstr ""
-
-#: includes/autotest.php:30
-msgid "Autotest de TaxoCommerce Campaigns"
-msgstr ""
-
-#: includes/autotest.php:31
-msgid ""
-"Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan "
-"campañas, no modifican precios, no crean tablas ni solicitan servicios "
-"externos."
-msgstr ""
-
-#: includes/autotest.php:40
-msgid "Grupo"
-msgstr ""
-
-#: includes/autotest.php:40
-msgid "Comprobación"
-msgstr ""
-
-#: includes/autotest.php:40
-msgid "Estado"
-msgstr ""
-
-#: includes/autotest.php:40
-msgid "Detalle"
-msgstr ""
-
-#: includes/calendar.php:82
-msgid "Calendario de campañas y ofertas"
-msgstr ""
-
-#: includes/calendar.php:82
-msgid ""
-"Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de "
-"oferta; no mezcla entradas, páginas ni Noticias."
-msgstr ""
-
-#: includes/campaigns.php:2485
-msgid "Importar / Exportar campanas"
-msgstr ""
-
-#: includes/campaigns.php:2486
-msgid ""
-"Intercambia la campana completa: calendario, productos, precio de campana y "
-"posicion. Los archivos antiguos que solo contienen calendario siguen siendo "
-"compatibles."
-msgstr ""
-
-#: includes/campaigns.php:2493
-msgid "Sustituir completamente los productos de las campanas incluidas"
-msgstr ""
-
-#: includes/campaigns.php:2495
-msgid "Importar / actualizar"
-msgstr ""
-
-#: includes/campaigns.php:2600
-msgid "No hay campañas en este grupo."
-msgstr ""
-
-#: includes/campaigns.php:2659
-msgid "Campañas"
-msgstr ""
-
-#: includes/campaigns.php:2659
-msgid ""
-"Organiza campanas realizadas, activas y futuras, sus productos y precios "
-"promocionales."
-msgstr ""
-
-#: includes/campaigns.php:2702
-msgid "No hay productos anadidos todavia."
-msgstr ""
-
-#: includes/campaigns.php:2711 includes/campaigns.php:2761
-#: includes/social-publication.php:931
-msgid "Producto"
-msgstr ""
-
-#: includes/campaigns.php:2711 includes/campaigns.php:2761
-msgid "Precio habitual"
-msgstr ""
-
-#: includes/campaigns.php:2711 includes/campaigns.php:2761
-msgid "Oferta actual"
-msgstr ""
-
-#: includes/campaigns.php:2711 includes/campaigns.php:2761
-msgid "Precio campaña"
-msgstr ""
-
-#: includes/campaigns.php:2711
-msgid "Aplicado"
-msgstr ""
-
-#: includes/campaigns.php:2711
-msgid "Quitar"
-msgstr ""
-
-#: includes/campaigns.php:2726
-msgid "Guardar productos y precios"
-msgstr ""
-
-#: includes/campaigns.php:2742
-msgid "Anadir productos"
-msgstr ""
-
-#: includes/campaigns.php:2746
-msgid "Buscar productos"
-msgstr ""
-
-#: includes/campaigns.php:2749
-msgid ""
-"El catalogo no se carga completo. Busca por nombre o SKU y selecciona tantos"
-" productos como necesites."
-msgstr ""
-
-#: includes/campaigns.php:2754
-msgid "No se han encontrado productos."
-msgstr ""
-
-#: includes/campaigns.php:2761
-msgid "Seleccionar"
-msgstr ""
-
-#: includes/campaigns.php:2761 includes/campaigns.php:2834
-msgid "Tipo"
-msgstr ""
-
-#: includes/campaigns.php:2782
-msgid "Anadir seleccionados"
-msgstr ""
-
-#: includes/campaigns.php:2796
-msgid "La campaña indicada no existe."
-msgstr ""
-
-#: includes/campaigns.php:2823
-msgid "Datos de la campaña"
-msgstr ""
-
-#: includes/campaigns.php:2839
-msgid "Repeticion"
-msgstr ""
-
-#: includes/campaigns.php:2844
-msgid "Creatividad social"
-msgstr ""
-
-#: includes/campaigns.php:2848
-msgid ""
-"Esta plantilla se usara al generar la imagen social automatica de la campaña"
-" para Facebook, Instagram, LinkedIn, Pinterest y X."
-msgstr ""
-
-#: includes/campaigns.php:2859
-msgid "Crear nueva edicion (+1 ano)"
-msgstr ""
-
-#: includes/campaigns.php:2860
-msgid ""
-"Conserva el nombre/serie y crea otro ID. No copia productos ni precios."
-msgstr ""
-
-#: includes/campaigns.php:2864
-msgid "Gestion de la campana"
-msgstr ""
-
-#: includes/campaigns.php:2868
-msgid "Vaciar productos"
-msgstr ""
-
-#: includes/campaigns.php:2874
-msgid "Eliminar campana"
-msgstr ""
-
-#: includes/campaigns.php:2876
-msgid ""
-"Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus "
-"relaciones con productos."
-msgstr ""
-
-#: includes/campaigns.php:2888
-msgid "Productos"
-msgstr ""
-
-#: includes/campaigns.php:2888
-msgid ""
-"Guarda primero la campaña. Despues aparecera aqui el selector multiple de "
-"productos y el precio de oferta de cada uno."
-msgstr ""
-
-#: includes/social-publication.php:640
-msgid "No tienes permisos para programar campañas sociales."
-msgstr ""
-
-#: includes/social-publication.php:741
-msgid "No tienes permisos para cancelar campañas sociales."
-msgstr ""
-
-#: includes/social-publication.php:822
-msgid "Campañas:"
-msgstr ""
-
-#: includes/social-publication.php:822
-msgid "el modulo TaxoCommerce Campaigns no esta disponible."
-msgstr ""
-
-#: includes/social-publication.php:847
-msgid ""
-"Activa TaxoCommerce Social para programar y publicar ofertas en redes. El "
-"calendario comercial y los banners públicos siguen funcionando sin Social."
-msgstr ""
-
-#: includes/social-publication.php:860
-msgid "Campañas de Marketing"
-msgstr ""
-
-#: includes/social-publication.php:860
-msgid "Lee directamente"
-msgstr ""
-
-#: includes/social-publication.php:860
 msgid ". Las ofertas se programan a la"
-msgstr ""
+msgstr ". Offers are scheduled at the"
 
-#: includes/social-publication.php:860
-msgid "hora comercial configurada"
-msgstr ""
+msgid "Abrir campaña"
+msgstr "Open campaign"
 
-#: includes/social-publication.php:860
-msgid ""
-"y pueden convivir el mismo día con entradas o landings. Solo se evita "
-"duplicar dos ofertas de campaña el mismo día en una misma red."
-msgstr ""
-
-#: includes/social-publication.php:860
-msgid "Fuente: Campaigns"
-msgstr ""
-
-#: includes/social-publication.php:863
-msgid ""
-"No hay campañas habilitadas actuales o futuras con productos disponibles."
-msgstr ""
-
-#: includes/social-publication.php:867
-msgid "Conecta al menos una red social para programar productos de campaña."
-msgstr ""
-
-#: includes/social-publication.php:890
-msgid "Redes"
-msgstr ""
-
-#: includes/social-publication.php:898
-msgid "Max. productos por red"
-msgstr ""
-
-#: includes/social-publication.php:898
-msgid "Se programa como máximo una oferta por día y red."
-msgstr ""
-
-#: includes/social-publication.php:902
-msgid ""
-"No mueve ni reprograma contenido editorial existente. Si una entrada sale "
-"por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe "
-"otra oferta de campaña ese día en la misma red, se utiliza el siguiente día "
-"disponible. La creatividad usa la foto real del producto: Media local o "
-"imagen externa activa del proveedor sin importarla a Media."
-msgstr ""
-
-#: includes/social-publication.php:906
-msgid "Vista previa de plantilla"
-msgstr ""
-
-#: includes/social-publication.php:927
-msgid "Campañas ya insertadas en la agenda"
-msgstr ""
-
-#: includes/social-publication.php:929
-msgid "Todavia no hay productos de campaña programados."
-msgstr ""
-
-#: includes/social-publication.php:931
-msgid "Fecha"
-msgstr ""
-
-#: includes/social-publication.php:931
-msgid "Campaña"
-msgstr ""
-
-#: includes/social-publication.php:931
-msgid "Red"
-msgstr ""
-
-#: includes/social-publication.php:931
 msgid "Accion"
-msgstr ""
+msgstr "Action"
 
-#: includes/social-publication.php:939
+msgid "Activa TaxoCommerce Social para programar y publicar ofertas en redes. El calendario comercial y los banners públicos siguen funcionando sin Social."
+msgstr "Activate TaxoCommerce Social to schedule and publish offers to social networks. The marketing calendar and public banners work without Social."
+
+msgid "Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de oferta; no mezcla entradas, páginas ni Noticias."
+msgstr "Campaigns' own calendar. Shows promotion periods and offer posts; it does not mix in posts, pages or news."
+
+msgid "Alta o actualización mediante <code>campaign_key</code>. No elimina campañas ausentes del archivo."
+msgstr "Create or update by <code>campaign_key</code>. Campaigns missing from the file are never deleted."
+
+msgid "Anadir productos"
+msgstr "Add products"
+
+msgid "Anadir seleccionados"
+msgstr "Add selected"
+
+msgid "Anual"
+msgstr "Annual"
+
+msgid "Aplicado"
+msgstr "Applied"
+
+msgid "Autocheck"
+msgstr "Autocheck"
+
+msgid "Autocheck de TaxoCommerce Campaigns"
+msgstr "TaxoCommerce Campaigns Autocheck"
+
+msgid "Autotest de TaxoCommerce Campaigns"
+msgstr "TaxoCommerce Campaigns self-test"
+
+msgid "Banners / Publicación"
+msgstr "Banners / Publishing"
+
+msgid "Banners públicos"
+msgstr "Public banners"
+
+msgid "Buscar por nombre o SKU"
+msgstr "Search by name or SKU"
+
+msgid "Buscar productos"
+msgstr "Search products"
+
+msgid "Calendario"
+msgstr "Calendar"
+
+msgid "Calendario comercial"
+msgstr "Marketing calendar"
+
+msgid "Calendario de campañas y ofertas"
+msgstr "Campaign and promotion calendar"
+
+msgid "Campaigns"
+msgstr "Marketing campaigns"
+
+msgid "Campaña"
+msgstr "Campaign"
+
+msgid "Campaña habilitada"
+msgstr "Campaign enabled"
+
+msgid "Campañas"
+msgstr "Marketing campaigns"
+
+msgid "Campañas de Marketing"
+msgstr "Marketing campaigns"
+
+msgid "Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma."
+msgstr "Promotional campaigns, special prices, banners and a standalone marketing calendar."
+
+msgid "Campañas ya insertadas en la agenda"
+msgstr "Campaigns already on the schedule"
+
+msgid "Campañas:"
+msgstr "Campaigns:"
+
 msgid "Cancelar"
-msgstr ""
+msgstr "Cancel"
+
+msgid "Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos."
+msgstr "Read-only availability and schema checks. They do not run campaigns, change prices, create tables or contact external services."
+
+msgid "Comprobación"
+msgstr "Check"
+
+msgid "Conecta al menos una red social para programar productos de campaña."
+msgstr "Connect at least one social network to schedule campaign products."
+
+msgid "Configuración guardada."
+msgstr "Settings saved."
+
+msgid "Conserva el nombre/serie y crea otro ID. No copia productos ni precios."
+msgstr "Keeps the name and series but creates a new ID. Does not copy products or prices."
+
+msgid "Crear campaña"
+msgstr "Create campaign"
+
+msgid "Crear nueva edicion (+1 ano)"
+msgstr "Create next edition (+1 year)"
+
+msgid "Creatividad social"
+msgstr "Social creative"
+
+msgid "Datos de la campaña"
+msgstr "Campaign details"
+
+msgid "David Perez"
+msgstr "David Perez"
+
+msgid "Descargar resultados (JSON)"
+msgstr "Download results (JSON)"
+
+msgid "Deshabilitada"
+msgstr "Disabled"
+
+msgid "Deshabilitadas"
+msgstr "Disabled"
+
+msgid "Detalle"
+msgstr "Details"
+
+msgid "Diseño 1 · Tarjeta oscura"
+msgstr "Design 1 · Dark card"
+
+msgid "Diseño 2 · Oferta clara"
+msgstr "Design 2 · Light offer"
+
+msgid "Diseño 3 · Banner intenso"
+msgstr "Design 3 · Bold banner"
+
+msgid "Dom"
+msgstr "Sun"
+
+msgid "Edición"
+msgstr "Edition"
+
+msgid "Editar campaña"
+msgstr "Edit campaign"
+
+msgid "Ejecuta el Autocheck antes de descargar el JSON."
+msgstr "Run Autocheck before downloading the JSON report."
+
+msgid "Ejecutar Autocheck"
+msgstr "Run Autocheck"
+
+msgid "El catalogo no se carga completo. Busca por nombre o SKU y selecciona tantos productos como necesites."
+msgstr "The full catalogue is not loaded. Search by product name or SKU and select as many products as needed."
+
+msgid "El precio de campaña se aplica únicamente durante estas fechas. Al finalizar, se intenta restaurar la oferta anterior."
+msgstr "Campaign prices apply only during these dates. The previous offer is restored where possible afterwards."
+
+msgid "Eliminar campana"
+msgstr "Delete campaign"
+
+msgid "En curso"
+msgstr "In progress"
+
+msgid "Esta plantilla se usara al generar la imagen social automatica de la campaña para Facebook, Instagram, LinkedIn, Pinterest y X."
+msgstr "This template will be used to generate the campaign's automatic social image for Facebook, Instagram, LinkedIn, Pinterest and X."
+
+msgid "Estado"
+msgstr "Status"
+
+msgid "Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las conexiones y los publicadores, pero su calendario editorial permanece separado."
+msgstr "These templates belong to Marketing Campaigns. TaxoCommerce Social provides connections and publishers, but its editorial calendar remains separate."
+
+msgid "Exportar"
+msgstr "Export"
+
+msgid "Exportar CSV"
+msgstr "Export CSV"
+
+msgid "Exportar JSON"
+msgstr "Export JSON"
+
+msgid "Fecha"
+msgstr "Date"
+
+msgid "Fecha de ejecución:"
+msgstr "Run date:"
+
+msgid "Fin"
+msgstr "End"
+
+msgid "Finalizada"
+msgstr "Completed"
+
+msgid "Finalizadas"
+msgstr "Completed"
+
+msgid "Fuente: Campaigns"
+msgstr "Source: Campaigns"
+
+msgid "Gestion de la campana"
+msgstr "Campaign management"
+
+msgid "Grupo"
+msgstr "Group"
+
+msgid "Guarda primero la campaña. Despues aparecera aqui el selector multiple de productos y el precio de oferta de cada uno."
+msgstr "Save the campaign first. The multi-product selector and individual promotional prices will appear here."
+
+msgid "Guardar cambios"
+msgstr "Save changes"
+
+msgid "Guardar productos y precios"
+msgstr "Save products and prices"
+
+msgid "Guardar publicación de ofertas"
+msgstr "Save offer publishing"
+
+msgid "Hora de publicación comercial"
+msgstr "Commercial publishing time"
+
+msgid "Identificador"
+msgstr "Identifier"
+
+msgid "Importar / Exportar campanas"
+msgstr "Import / Export campaigns"
+
+msgid "Importar / actualizar"
+msgstr "Import / update"
+
+msgid "Inicio"
+msgstr "Start"
+
+msgid "Intercambia la campana completa: calendario, productos, precio de campana y posicion. Los archivos antiguos que solo contienen calendario siguen siendo compatibles."
+msgstr "Exchange complete campaigns, including schedules, products, campaign prices and order. Legacy calendar-only files remain compatible."
+
+msgid "JSON es el formato principal. CSV incluye filas <code>campaign</code> y <code>product</code> para editarlas en una hoja de cálculo."
+msgstr "JSON is the primary format. CSV includes <code>campaign</code> and <code>product</code> rows that can be edited in a spreadsheet."
+
+msgid "Jue"
+msgstr "Thu"
+
+msgid "La campaña indicada no existe."
+msgstr "The specified campaign does not exist."
+
+msgid "Las campañas activas pueden mostrarse mediante la plantilla <code>template-campaign.php</code> de TaxoCommerce Templates. No se crean entradas."
+msgstr "Active campaigns can be displayed using the <code>template-campaign.php</code> template from TaxoCommerce Templates. No posts are created."
+
+msgid "Lee directamente"
+msgstr "Reads directly"
+
+msgid "Lun"
+msgstr "Mon"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Mar"
+msgstr "Tue"
+
+msgid "Marketing campaigns"
+msgstr "Marketing campaigns"
+
+msgid "Max. productos por red"
+msgstr "Max. products per network"
+
+msgid "Mié"
+msgstr "Wed"
+
+msgid "No"
+msgstr "No"
+
+msgid "No compatible en V1"
+msgstr "Not supported in V1"
+
+msgid "No hay campañas en este grupo."
+msgstr "There are no campaigns in this group."
+
+msgid "No hay campañas habilitadas actuales o futuras con productos disponibles."
+msgstr "No current or upcoming enabled campaigns with available products."
+
+msgid "No hay productos anadidos todavia."
+msgstr "No products added yet."
+
+msgid "No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media."
+msgstr "Does not move or reschedule existing editorial content. A morning post and an offer at 18:00 can coexist. If an offer is already planned for that network and day, the next available day is used. Images come from the actual product, either local Media or the active external supplier image, without importing it."
+
+msgid "No recurrente"
+msgstr "Non-recurring"
+
+msgid "No se han encontrado productos."
+msgstr "No products found."
+
+msgid "No se pudo generar el informe JSON."
+msgstr "Could not generate the JSON report."
+
+msgid "No tienes permisos para cancelar campañas sociales."
+msgstr "You do not have permission to cancel social campaigns."
+
+msgid "No tienes permisos para programar campañas sociales."
+msgstr "You do not have permission to schedule social campaigns."
+
+msgid "No tienes permisos."
+msgstr "You do not have permission."
+
+msgid "Nombre"
+msgstr "Name"
+
+msgid "Nueva campaña"
+msgstr "New campaign"
+
+msgid "Nueva edición manual"
+msgstr "New manual edition"
+
+msgid "Oferta actual"
+msgstr "Current offer"
+
+msgid "Offer campaigns, campaign pricing, banners, social offer publication, and standalone commercial calendar."
+msgstr "Offer campaigns, campaign prices, banners, social publishing and a standalone marketing calendar."
+
+msgid "Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar."
+msgstr "Offer campaigns, promotional pricing, public banners, social offer publishing and a standalone marketing calendar."
+
+msgid "Offer campaigns, prices, banners, social offers, and commercial calendar."
+msgstr "Offer campaigns, prices, banners, social offers and marketing calendar."
+
+msgid "Organiza campanas realizadas, activas y futuras, sus productos y precios promocionales."
+msgstr "Manage completed, active and upcoming campaigns, products and promotional prices."
+
+msgid "Organiza campañas comerciales, ofertas, creatividades y calendario."
+msgstr "Manage marketing campaigns, offers, creative assets and the calendar."
+
+msgid "Precio campaña"
+msgstr "Campaign price"
+
+msgid "Precio habitual"
+msgstr "Regular price"
+
+msgid "Primero define la campaña y sus fechas. Después podrás añadir los productos."
+msgstr "First define the campaign and its dates. You can then add the products."
+
+msgid "Producto"
+msgstr "Product"
+
+msgid "Producto estrella"
+msgstr "Featured product"
+
+msgid "Productos"
+msgstr "Products"
+
+msgid "Productos de la campaña"
+msgstr "Campaign products"
+
+msgid "Próxima"
+msgstr "Upcoming"
+
+msgid "Próximas"
+msgstr "Upcoming"
+
+msgid "Publicación de ofertas en redes"
+msgstr "Publishing offers on social media"
+
+msgid "Puedes insertar una campaña con <code>[taxocommerce_campaign]</code>, seleccionar otra con <code>[taxocommerce_campaign key=\"mi-campana\"]</code> o usar <code>[oferta]</code>. El shortcode usa la campaña activa y sus productos; no crea códigos dinámicos como <code>[oferta01]</code>."
+msgstr "Insert a campaign using <code>[taxocommerce_campaign]</code>, select one using <code>[taxocommerce_campaign key=\"mi-campana\"]</code> or use <code>[oferta]</code>. The shortcode uses an active campaign and its products; it does not create dynamic codes such as <code>[oferta01]</code>."
+
+msgid "Quitar"
+msgstr "Remove"
+
+msgid "Red"
+msgstr "Network"
+
+msgid "Redes"
+msgstr "Networks"
+
+msgid "Repeticion"
+msgstr "Recurrence"
+
+msgid "Se programa como máximo una oferta por día y red."
+msgstr "At most one offer is scheduled per day and network."
+
+msgid "Seleccionar"
+msgstr "Select"
+
+msgid "Serie"
+msgstr "Series"
+
+msgid "Sin marcar, la importación añade o actualiza productos y conserva los existentes. Si marcas la casilla, sustituye los productos de las campañas que tengan filas <code>product</code> en el archivo."
+msgstr "If left unchecked, importing adds or updates products and keeps existing ones. If checked, it replaces products in campaigns that include <code>product</code> rows in the file."
+
+msgid "Sin permisos para descargar el Autocheck."
+msgstr "No permission to download Autocheck."
+
+msgid "Sustituir completamente los productos de las campanas incluidas"
+msgstr "Replace all products in the included campaigns"
+
+msgid "Sáb"
+msgstr "Sat"
+
+msgid "Sí"
+msgstr "Yes"
+
+msgid "TaxoCommerce Campaigns"
+msgstr "TaxoCommerce Marketing Campaigns"
+
+msgid "TaxoCommerce Social no está activo. El calendario comercial funciona igualmente; la programación de ofertas en redes se habilitará cuando Social esté disponible."
+msgstr "TaxoCommerce Social is not active. The marketing calendar still works; scheduling social offers will become available once Social is active."
+
+msgid "Tipo"
+msgstr "Type"
+
+msgid "Todavia no hay productos de campaña programados."
+msgstr "No campaign products have been scheduled yet."
+
+msgid "Táctica / puntual"
+msgstr "Tactical / one-off"
+
+msgid "Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus relaciones con productos."
+msgstr "Removing products keeps the campaign; deleting a campaign permanently removes it and its product links."
+
+msgid "Vaciar productos"
+msgstr "Remove all products"
+
+msgid "Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}."
+msgstr "Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}."
+
+msgid "Versión"
+msgstr "Version"
+
+msgid "Vie"
+msgstr "Fri"
+
+msgid "Vista previa de plantilla"
+msgstr "Template preview"
+
+msgid "Volver a campañas"
+msgstr "Back to campaigns"
+
+msgid "el modulo TaxoCommerce Campaigns no esta disponible."
+msgstr "the TaxoCommerce Campaigns module is unavailable."
+
+msgid "hora comercial configurada"
+msgstr "configured commercial time"
+
+msgid "productos"
+msgstr "products"
+
+msgid "y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red."
+msgstr "and can share a day with posts or landing pages. Only two campaign offers on the same network and day are prevented."

@@ -1,3 +1,10 @@
+## [0.1.4] — 2026-11-05 — Traducciones de campañas de marketing (#2239)
+
+- Menú y pestañas con nombre funcional «Campañas de marketing» en español y equivalentes naturales en inglés, francés, alemán y neerlandés.
+- Completados y compilados los cinco catálogos `.po/.mo` nativos, con 151 mensajes por idioma en lugar de archivos vacíos. Actualizada la plantilla `.pot`.
+- Internacionalizados los encabezados, textos administrativos, formularios de campañas, calendarios, banners y controles de Autocheck. Corregidas erratas ortográficas en las traducciones españolas sin alterar claves de datos, acciones ni URLs.
+- Añadidas pruebas de integridad de los catálogos y conservadas las integraciones y reglas comerciales. Publicación sujeta a Plugin Check y validación funcional en STAGING/Focazul; sin despliegue en producción.
+
 ## Unreleased - Familia i18n #2062
 
 

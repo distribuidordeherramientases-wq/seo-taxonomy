@@ -33,7 +33,7 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
         return;
     }
     $plugin = get_file_data( $tc_brand_main, array( 'name' => 'Plugin Name', 'version' => 'Version' ) );
-    $title = preg_replace( '/\\s+-\\s+.*$/', '', (string) ( $plugin['name'] ?? '' ) );
+    $title = __( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' );
     $version = (string) ( $plugin['version'] ?? '' );
     if ( '' === $title ) {
         return;

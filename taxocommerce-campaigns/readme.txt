@@ -4,7 +4,7 @@ Tags: woocommerce, marketing, campaigns, pricing, offers
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,6 +29,10 @@ Two campaign engines must not edit or schedule the same campaign simultaneously;
 4. Enable automated campaign schedules only after checking no other plugin owns these jobs.
 
 == Changelog ==
+
+= 0.1.4 =
+* Localized marketing campaign navigation and administration; complete ES, EN, FR, DE and NL gettext catalogues (151 messages per locale).
+
 
 = 0.1.3 =
 * Nombre uniforme «Autocheck» y descarga autenticada del último informe JSON, con resultados por comprobación y sin ejecutar operaciones reales.

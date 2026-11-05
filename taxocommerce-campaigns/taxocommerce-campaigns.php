@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Campaigns
  * Description: Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define('TAXOCOMMERCE_CAMPAIGNS_VERSION','0.1.3');
+define('TAXOCOMMERCE_CAMPAIGNS_VERSION','0.1.4');
 define('TAXOCOMMERCE_CAMPAIGNS_PATH',plugin_dir_path(__FILE__));
 define('TAXOCOMMERCE_CAMPAIGNS_URL',plugin_dir_url(__FILE__));
 
