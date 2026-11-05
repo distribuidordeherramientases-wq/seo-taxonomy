@@ -16,14 +16,14 @@ $primary_id = absint(
     $wpdb->get_var(
         $wpdb->prepare(
             "SELECT source_id
-             FROM {$table}
+             FROM %i
              WHERE source_type = 'hub_primary'
                AND target_type = 'hub_secondary'
                AND target_id = %d
                AND relation_type = 'hub_primary_to_hub_secondary'
              ORDER BY id ASC
              LIMIT 1",
-            $current_id
+            $table, $current_id
         )
     )
 );
@@ -38,14 +38,14 @@ if ($primary_id > 0) {
         $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT source_id
-                 FROM {$table}
+                 FROM %i
                  WHERE source_type = 'cluster'
                    AND target_type = 'hub_primary'
                    AND target_id = %d
                    AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
                  ORDER BY id ASC
                  LIMIT 1",
-                $primary_id
+                $table, $primary_id
             )
         )
     );
@@ -58,13 +58,13 @@ if ($primary_id > 0) {
 $category_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
-         FROM {$table}
+         FROM %i
          WHERE source_type = 'hub_secondary'
            AND source_id = %d
            AND target_type = 'product_cat'
            AND relation_type = 'hub_secondary_to_category'
          ORDER BY id ASC",
-        $current_id
+        $table, $current_id
     )
 );
 $category_ids = dht_template_public_term_ids($category_ids, 'product_cat');
