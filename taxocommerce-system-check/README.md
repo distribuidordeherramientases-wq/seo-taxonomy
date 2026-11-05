@@ -14,6 +14,31 @@ Action Scheduler (cuando existe) o WP-Cron. No se requieren tokens GitHub.
 El disparador de trabajos exige un WP-Cron o cron real operativo para progresar
 sin visitantes. La recuperacion programada revisa ejecuciones interrumpidas.
 
+## Autocheck independiente (0.2.17)
+
+La pestaña **Autocheck** ejecuta verificaciones locales de solo lectura: datos y
+estados del diagnóstico PHP, coherencia de los módulos registrados, rutas de
+administración, hooks y programación del auditor HTTP y capacidad real de
+serialización JSON. Cada prueba incluye un resultado `pass`, `fail` o `skip`,
+explicación, evidencias estructuradas y un resumen de cobertura que **no** suma
+las omitidas como superadas.
+
+El histórico del servidor se consulta sin iniciar un nuevo diagnóstico:
+si no existe o tiene más de 24 horas se marca `skip`; si contiene datos
+estructuralmente inválidos, `fail`. Los avisos técnicos del entorno pueden
+existir dentro de un informe válido sin significar que el motor del plugin
+haya dejado de funcionar. Las pruebas de HTTP externo, correos, tareas,
+cobros o escrituras se dejan para pruebas explícitas independientes.
+
+El JSON se conserva temporalmente por usuario y sitio (una hora) para
+descargarlo sin repetir las pruebas. La descarga exige `manage_options`
+y nonce de WordPress. El Autocheck **no equivale** al Plugin Check oficial.
+
+**Aviso de alcance:** informes históricos provenientes del monolito pueden
+comprobar archivos, clases y plantillas no instaladas en un WooCommerce
+modular. Esos resultados no se deben presentar como fallos del Autocheck
+independiente; la auditoría heredada profunda permanece separada.
+
 ## Compatibilidad con el plugin original
 
 Las implementaciones existentes tienen funciones globales `seo_*`.
