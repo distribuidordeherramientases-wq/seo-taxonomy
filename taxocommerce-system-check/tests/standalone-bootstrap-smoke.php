@@ -35,7 +35,7 @@ $checks = array(
         && false === strpos( $entry, '<header class="tcc-page-header">' ),
     'System diagnostics and existing tabs remain reachable' =>
         false !== strpos( $entry, 'taxocommerce_system_check_server_screen();' )
-        && false !== strpos( $entry, "taxocommerce_system_check_render_tabs( $tab );" )
+        && false !== strpos( $entry, 'taxocommerce_system_check_render_tabs( $tab );' )
         && false !== strpos( $entry, "seo_server_status();" ),
     'Plugin version and readme are aligned' =>
         false !== strpos( $entry, "* Version: 0.2.16" )
