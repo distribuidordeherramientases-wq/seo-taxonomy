@@ -155,7 +155,7 @@ $landing_categories = array();
 if ($is_landing) {
     global $wpdb;
     $table = $wpdb->prefix . 'seo_relations';
-    $linked_ids = $wpdb->get_col($wpdb->prepare(
+    $linked_ids = TCT_Read_Query_Cache::get_col($wpdb->prepare(
         "SELECT target_id FROM %i
           WHERE source_type = 'landing' AND source_id = %d
           AND target_type = 'product_cat' AND relation_type = 'landing_to_category'
@@ -205,14 +205,14 @@ $hero_image = '';
 if ($is_category) {
     global $wpdb;
     $seo_table = $wpdb->prefix . 'seo_nodes';
-    $category_excerpt = (string) $wpdb->get_var($wpdb->prepare(
+    $category_excerpt = (string) TCT_Read_Query_Cache::get_var($wpdb->prepare(
         "SELECT keywords FROM %i WHERE object_type = 'category' AND object_id = %d AND seo_role = 'excerpt' AND status = 1 ORDER BY updated_at DESC, id DESC LIMIT 1",
         $seo_table, (int) $term->term_id
     ));
     if (trim(wp_strip_all_tags($category_excerpt)) === '') {
         $category_excerpt = (string) get_term_meta($term->term_id, 'seo_excerpt', true);
     }
-    $category_description = (string) $wpdb->get_var($wpdb->prepare(
+    $category_description = (string) TCT_Read_Query_Cache::get_var($wpdb->prepare(
         "SELECT keywords FROM %i WHERE object_type = 'category' AND object_id = %d AND seo_role = 'description' AND status = 1 ORDER BY updated_at DESC, id DESC LIMIT 1",
         $seo_table, (int) $term->term_id
     ));
