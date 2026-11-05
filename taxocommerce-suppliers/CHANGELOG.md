@@ -1,3 +1,11 @@
+## [0.2.8] — 2026-11-05 — Aislamiento de plantillas por instalación (Issue #2218)
+
+- Eliminados los perfiles comerciales VEVOR, SATKIT y TodoTaladros que venían incorporados en PHP y aparecían automáticamente en todas las tiendas.
+- «Plantillas CSV» muestra exclusivamente las asignaciones personalizadas guardadas en la opción local de cada WordPress; una instalación nueva muestra una lista vacía y permite crear, importar y exportar plantillas propias.
+- Los formatos genéricos CSV canónico y actualización de precios siguen disponibles en el importador, sin contarse como plantillas de proveedor.
+- Se mantiene la compatibilidad con el importador regional existente mediante selección explícita del proveedor y comprobación de cabeceras, sin precargar una plantilla comercial.
+- Ajustes de Autocheck y pruebas de regresión para aislamiento entre tiendas, importación y protección de plantillas personalizadas.
+
 ## [0.2.7] — 2026-11-05 — Internacionalización (#2062)
 
 - Se reutiliza el mecanismo gettext nativo de TaxoCommerce Core, sin introducir un cargador alternativo.
