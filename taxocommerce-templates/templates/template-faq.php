@@ -33,7 +33,7 @@ $faq_table = $wpdb->prefix . 'seo_faq';
 
 if($faq_ambito !== ''){
 
-    $faqs = $wpdb->get_results(
+    $faqs = TCT_DB::get_results(
 
         $wpdb->prepare(
 
@@ -58,7 +58,7 @@ if($faq_ambito !== ''){
 
 }else{
 
-    $faqs = $wpdb->get_results(
+    $faqs = TCT_DB::get_results(
 
         $wpdb->prepare(
 

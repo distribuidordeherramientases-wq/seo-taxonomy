@@ -274,13 +274,13 @@ if (!function_exists('dht_shared_product_image_candidates')) {
 
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
         if (null === $supplier_table_exists) {
-            $supplier_table_exists = $wpdb->get_var(
+            $supplier_table_exists = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_exists) {
-            $supplier_urls = $wpdb->get_col(
+            $supplier_urls = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -590,7 +590,7 @@ if (!function_exists('dht_shared_product_compare_data')) {
             && seo_catalog_table_exists($object_table);
 
         if ($semantic_available) {
-            $semantic_rows = $wpdb->get_results(
+            $semantic_rows = TCT_DB::get_results(
                 $wpdb->prepare(
                     "SELECT v.semantic_group, v.label
                      FROM %i ov
@@ -1410,6 +1410,7 @@ if (!function_exists('dht_template_products_for_category_ids')) {
                 'menu_order' => 'ASC',
                 'date'       => 'DESC',
             ),
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded WordPress storefront taxonomy or metadata query; routing and category filtering must be preserved.
             'tax_query'              => $tax_query,
             'update_post_meta_cache' => true,
             'update_post_term_cache' => false,
@@ -1451,12 +1452,12 @@ if (!function_exists('dht_template_node_category_ids')) {
         }
 
         $table = $wpdb->prefix . 'seo_relations';
-        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
+        $exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)));
         if ($exists !== $table) {
             return array();
         }
 
-        $ids = $wpdb->get_col($wpdb->prepare(
+        $ids = TCT_DB::get_col($wpdb->prepare(
             "SELECT target_id
              FROM %i
              WHERE source_type = %s
@@ -1526,6 +1527,7 @@ if (!function_exists('dht_template_term_image_url')) {
                 'no_found_rows'  => true,
                 'orderby'        => 'date',
                 'order'          => 'DESC',
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded WordPress storefront taxonomy or metadata query; routing and category filtering must be preserved.
                 'tax_query'      => array(
                     array(
                         'taxonomy'         => 'product_cat',
@@ -1723,7 +1725,7 @@ if (!function_exists('dht_template_context_posts_for_categories')) {
         }
 
         $relations_table = $wpdb->prefix . 'seo_relations';
-        $exists = $wpdb->get_var(
+        $exists = TCT_DB::get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($relations_table))
         );
         if ($exists !== $relations_table) {
@@ -1765,7 +1767,7 @@ if (!function_exists('dht_template_context_posts_for_categories')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
         $prepared_query = $wpdb->prepare($query, $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query es el resultado de $wpdb->prepare().
-        $post_ids = (array) $wpdb->get_col($prepared_query);
+        $post_ids = (array) TCT_DB::get_col($prepared_query);
         $post_ids = array_values(array_unique(array_filter(array_map('absint', $post_ids))));
         wp_cache_set($cache_key, $post_ids, 'dht_template', 300);
 
@@ -1963,7 +1965,7 @@ if (!function_exists('dht_template_category_external_comments')) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tablas internas/core y placeholders %d generados localmente; IDs/límite enlazados mediante $wpdb->prepare().
         $prepared_query = $wpdb->prepare($query, $params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_query es el resultado de $wpdb->prepare().
-        $rows = (array) $wpdb->get_results($prepared_query, ARRAY_A);
+        $rows = (array) TCT_DB::get_results($prepared_query, ARRAY_A);
         $out = array();
         $product_counts = array();
 
@@ -2266,6 +2268,7 @@ if (!function_exists('dht_template_front_top_viewed_categories')) {
             'taxonomy'   => 'product_cat',
             'hide_empty' => true,
             'number'     => $limit * 3,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded WordPress storefront taxonomy or metadata query; routing and category filtering must be preserved.
             'meta_key'   => $pageviews_key,
             'orderby'    => 'meta_value_num',
             'order'      => 'DESC',
@@ -2769,6 +2772,7 @@ if (!function_exists('dht_template_category_all_product_ids')) {
             'ignore_sticky_posts'    => true,
             'orderby'                => 'ID',
             'order'                  => 'ASC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded WordPress storefront taxonomy or metadata query; routing and category filtering must be preserved.
             'tax_query'              => $tax_query,
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
@@ -2807,7 +2811,7 @@ if (!function_exists('dht_template_category_meta_index')) {
             // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla core y placeholders %d generados localmente; IDs enlazados mediante $wpdb->prepare().
             $prepared_sql = $wpdb->prepare($sql, $chunk);
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
-            $rows = $wpdb->get_results($prepared_sql, ARRAY_A);
+            $rows = TCT_DB::get_results($prepared_sql, ARRAY_A);
 
             foreach ((array) $rows as $row) {
                 $product_id = absint($row['post_id'] ?? 0);
