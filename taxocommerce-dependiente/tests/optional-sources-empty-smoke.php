@@ -1,6 +1,7 @@
 <?php
 /** Tests missing optional source tables separately from real query failures. */
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'ARRAY_A', 'ARRAY_A' );
 class WP_Error {
     private $code;
     public function __construct( $code, $message ) { $this->code = $code; }
