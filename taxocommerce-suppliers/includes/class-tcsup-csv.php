@@ -55,7 +55,6 @@ final class TCSUP_CSV {
 				'builtin'  => true,
 				'mapping'  => array(),
 			),
-
 		);
 	}
 
@@ -148,6 +147,25 @@ final class TCSUP_CSV {
 	 */
 	public static function import_templates() {
 		return array_merge( self::builtin_templates(), self::templates() );
+	}
+
+	/**
+	 * Preserve the existing official regional feed parser without exposing
+	 * another store's supplier as a preconfigured template. Detection requires
+	 * both an explicitly entered supplier and the complete source header.
+	 *
+	 * @param array  $template Selected import format or user mapping.
+	 * @param array  $header   CSV header columns.
+	 * @param string $provider Supplier chosen by the current user.
+	 * @return string Import mode.
+	 */
+	public static function effective_mode( $template, $header, $provider ) {
+		$mode = (string) ( $template['mode'] ?? 'mapping' );
+		if ( 'canonical' !== $mode || 'VEVOR' !== strtoupper( trim( (string) $provider ) ) ) {
+			return $mode;
+		}
+		$official_header = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
+		return ! array_diff( $official_header, (array) $header ) ? 'vevor' : $mode;
 	}
 
 	private static function guard() {
@@ -704,7 +722,7 @@ final class TCSUP_CSV {
 		$header = $handle->fgetcsv();
 		$header = is_array( $header ) ? array_map( array( __CLASS__, 'clean_header' ), $header ) : array();
 
-		$mode = (string) ( $template['mode'] ?? 'mapping' );
+		$mode = self::effective_mode( $template, $header, $provider );
 		$posted_mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] )
 			? map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )
 			: array();
