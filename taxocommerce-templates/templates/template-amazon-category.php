@@ -346,12 +346,14 @@ if (!function_exists('dht_amazon_context_image')) {
                         'order'                  => 'DESC',
                         'no_found_rows'          => true,
                         'ignore_sticky_posts'    => true,
+                        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
                         'tax_query'              => array(array(
                             'taxonomy'         => 'product_cat',
                             'field'            => 'term_id',
                             'terms'            => array((int)$term->term_id),
                             'include_children' => true,
                         )),
+                        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
                         'meta_query'             => array(array(
                             'key'     => '_thumbnail_id',
                             'compare' => 'EXISTS',
