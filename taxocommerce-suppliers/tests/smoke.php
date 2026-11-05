@@ -53,4 +53,40 @@ tcsup_assert( false !== strpos( $admin, 'tcsup-template-create' ), 'collapsible 
 tcsup_assert( false !== strpos( $csv, 'parse_template_definition' ), 'safe mapping definition parser' );
 tcsup_assert( false !== strpos( $csv, 'handle_export_template' ), 'JSON export control' );
 tcsup_assert( false !== strpos( $admin, "'import'    => __( 'CSV Import', 'taxocommerce-suppliers' )" ), 'native gettext admin tab' );
+
+// Regression: a clean WordPress installation has zero supplier templates.
+// The canonical and price-only choices are generic import formats, not presets.
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', $root . '/' );
+}
+if ( ! function_exists( '__' ) ) {
+	function __( $message, $domain = 'default' ) {
+		return $message;
+	}
+}
+if ( ! function_exists( 'get_option' ) ) {
+	function get_option( $key, $default = false ) {
+		return isset( $GLOBALS['tcsup_smoke_options'][ $key ] )
+			? $GLOBALS['tcsup_smoke_options'][ $key ] : $default;
+	}
+}
+require_once $root . '/includes/class-tcsup-csv.php';
+$GLOBALS['tcsup_smoke_options'] = array();
+$generic_formats = TCSUP_CSV::builtin_templates();
+tcsup_assert( array( 'canonical', 'price_update' ) === array_keys( $generic_formats ), 'only generic import formats ship with the plugin' );
+tcsup_assert( array() === TCSUP_CSV::templates(), 'fresh store has zero supplier templates' );
+tcsup_assert( count( TCSUP_CSV::import_templates() ) === 2, 'canonical and price update remain available to new stores' );
+$GLOBALS['tcsup_smoke_options'][ TCSUP_CSV::TEMPLATE_OPTION ] = array(
+	'custom_local' => array( 'id' => 'custom_local', 'name' => 'My store mapping', 'builtin' => false, 'mode' => 'mapping' ),
+	'vevor' => array( 'id' => 'vevor', 'name' => 'Legacy provider preset', 'builtin' => true ),
+);
+tcsup_assert( array( 'custom_local' ) === array_keys( TCSUP_CSV::templates() ), 'only locally saved custom templates are listed' );
+tcsup_assert( count( TCSUP_CSV::import_templates() ) === 3, 'custom mapping remains importable with generic formats' );
+$regional_header = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
+tcsup_assert( 'vevor' === TCSUP_CSV::effective_mode( $generic_formats['canonical'], $regional_header, 'VEVOR' ), 'existing regional CSV parser is preserved without a preset' );
+tcsup_assert( 'canonical' === TCSUP_CSV::effective_mode( $generic_formats['canonical'], $regional_header, 'Another supplier' ), 'regional parser is never imposed on unrelated suppliers' );
+tcsup_assert( 'canonical' === TCSUP_CSV::effective_mode( $generic_formats['canonical'], array( 'id', 'name' ), 'VEVOR' ), 'regional parser requires official header' );
+tcsup_assert( false === strpos( $admin, 'placeholder="e.g. SATKIT"' ), 'no foreign supplier example is prefilled in new stores' );
+tcsup_assert( false !== strpos( $admin, 'No templates have been created on this site.' ), 'empty template list has its own message' );
+
 echo "OK\n";
