@@ -501,4 +501,35 @@ tct_assert(strpos($ui_code, 'TCT_Designs::render_routes(') !== false
     && strpos($js_code, "typeof TCTDesignComposer !== 'undefined'") !== false,
     'Edit must load the selected instance and its own market/device module configuration.');
 
+
+// Native gettext regression: both catalog files must be real, readable MO
+// binaries, not the empty 238-byte header-only catalogs from earlier builds.
+function tct_smoke_mo_entries( $path ) {
+    $raw = file_get_contents( $path );
+    tct_assert( is_string( $raw ) && strlen( $raw ) > 1000, 'Compiled gettext catalog must not be empty.' );
+    $header = unpack( 'Vmagic/Vrevision/Vcount/Voriginal/Vtranslation/Vhash_size/Vhash_offset', substr( $raw, 0, 28 ) );
+    tct_assert( 0x950412de === $header['magic'], 'The .mo file must have a valid little-endian gettext header.' );
+    tct_assert( $header['count'] >= 180, 'Templates must bundle real translations for all cataloged messages.' );
+    $messages = array();
+    for ( $i = 0; $i < $header['count']; $i++ ) {
+        $o = unpack( 'Vlength/Voffset', substr( $raw, $header['original'] + 8 * $i, 8 ) );
+        $t = unpack( 'Vlength/Voffset', substr( $raw, $header['translation'] + 8 * $i, 8 ) );
+        tct_assert( $o['offset'] + $o['length'] < strlen( $raw )
+            && $t['offset'] + $t['length'] < strlen( $raw ), 'Gettext catalog offsets must be within the file.' );
+        $messages[ substr( $raw, $o['offset'], $o['length'] ) ] = substr( $raw, $t['offset'], $t['length'] );
+    }
+    return $messages;
+}
+$catalog_en = tct_smoke_mo_entries( TCT_DIR . 'languages/taxocommerce-templates-en_US.mo' );
+$catalog_es = tct_smoke_mo_entries( TCT_DIR . 'languages/taxocommerce-templates-es_ES.mo' );
+tct_assert( ( $catalog_en['Aplicación de políticas'] ?? '' ) === 'Policy application'
+    && ( $catalog_en['Mis plantillas'] ?? '' ) === 'My templates'
+    && ( $catalog_en['Por configurar'] ?? '' ) === 'To configure',
+    'English locale must translate the policy controls and routing filter.' );
+tct_assert( ( $catalog_es['Aplicación de políticas'] ?? '' ) === 'Aplicación de políticas',
+    'Spanish locale must retain the correct Spanish UI translation.' );
+tct_assert( strpos( $entrypoint, "load_textdomain( \$domain, \$catalog );" ) !== false
+    && strpos( $entrypoint, "add_action( 'init'," ) !== false,
+    'Standalone translations must load at init using the native Core fallback.' );
+
 echo "OK: Smoke tests TaxoCommerce Templates\n";
