@@ -39,10 +39,10 @@ register_activation_hook(__FILE__, static function(){
 function taxocommerce_campaigns_register_core($core){
     if(!is_object($core)||!method_exists($core,'register_module')) return;
     $core->register_module('campaigns',array(
-        'name'=>__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),
+        'name'=>'TaxoCommerce Campaigns',
         'version'=>TAXOCOMMERCE_CAMPAIGNS_VERSION,
         'status'=>'active',
-        'description'=>__( 'Offer campaigns, prices, banners, social offers, and commercial calendar.', 'taxocommerce-campaigns' ),
+        'description'=>'Offer campaigns, prices, banners, social offers, and commercial calendar.',
         'admin_url'=>admin_url('admin.php?page=taxocommerce-campaigns'),
     ));
 }
@@ -59,7 +59,7 @@ function taxocommerce_campaigns_family_catalog($extensions){
         'search_term'=>'TaxoCommerce Campaigns',
         'wordpress_org'=>false,
         'admin_url'=>admin_url('admin.php?page=taxocommerce-campaigns'),
-        'description'=>__( 'Offer campaigns, campaign pricing, banners, social offer publication, and standalone commercial calendar.', 'taxocommerce-campaigns' ),
+        'description'=>'Offer campaigns, campaign pricing, banners, social offer publication, and standalone commercial calendar.',
     );
     return $extensions;
 }
