@@ -1,6 +1,13 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.27] — 2026-11-05
+
+- Guardas de Inicio/Reinicio: sin productos publicados no se inicia una formación imposible y no se borran los datos del cliente.
+- El watchdog informa del catálogo vacío en cursos recién iniciados y cambia el estado a error, conservando snapshots ya existentes.
+- El panel actualiza el progreso también durante la foto fija y el aprendizaje (20 segundos; no interrumpe la edición de formularios).
+- Pruebas de tienda vacía, con producto y recuperación sin pérdida de datos.
+
 ## [0.3.26] — 2026-11-05
 
 - Primera instalación con al menos un producto WooCommerce publicado: **programa** el aprendizaje L1–L10 por lotes desde la tienda local, tras crear los esquemas vacíos. No ejecuta un escaneo masivo durante la activación.
