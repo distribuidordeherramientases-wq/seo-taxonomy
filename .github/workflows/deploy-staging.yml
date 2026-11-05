@@ -61,6 +61,10 @@ jobs:
           php taxocommerce-dependiente/tests/first-install-catalog-smoke.php
           php -l taxocommerce-dependiente/tests/no-products-runtime-smoke.php
           php taxocommerce-dependiente/tests/no-products-runtime-smoke.php
+          php -l taxocommerce-dependiente/tests/empty-lesson-progression-smoke.php
+          php taxocommerce-dependiente/tests/empty-lesson-progression-smoke.php
+          php -l taxocommerce-dependiente/tests/optional-sources-empty-smoke.php
+          php taxocommerce-dependiente/tests/optional-sources-empty-smoke.php
           php taxocommerce-distribution/tests/manual-autocheck-smoke.php
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php

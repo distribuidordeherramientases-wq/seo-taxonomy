@@ -1,6 +1,13 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.28] — 2026-11-05
+
+- Las lecciones con cero fuentes se registran como `skipped_empty`, sin puntuación ficticia ni conocimiento inventado; la formación continúa en la siguiente lección.
+- L1 puede aprender categorías sin productos. Se elimina la restricción introducida en 0.3.27 para arrancar cursos manuales sin productos.
+- Rescate autónomo y limitado de WP-Cron cuando el supervisor no está disponible: máximo cuatro ticks por visita autorizada al panel y 2 segundos por petición; respeta bloqueo del trabajador y no reinicia el curso.
+- El panel distingue «Sin material» y «Lección omitida; no evaluada», conservando snapshots y auditoría.
+
 ## [0.3.27] — 2026-11-05
 
 - Guardas de Inicio/Reinicio: sin productos publicados no se inicia una formación imposible y no se borran los datos del cliente.

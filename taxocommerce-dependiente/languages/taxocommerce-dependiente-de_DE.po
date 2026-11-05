@@ -1813,3 +1813,11 @@ msgstr ""
 #: includes/interpreter/class-tcd-linguist.php:598
 msgid "No tienes permisos para controlar Lingüista."
 msgstr ""
+
+#. Dependiente Academy empty lesson status
+msgid "Sin material"
+msgstr "Kein Material"
+
+#. Dependiente Academy empty lesson status
+msgid "Lección omitida; no evaluada"
+msgstr "Lektion übersprungen; nicht bewertet"
