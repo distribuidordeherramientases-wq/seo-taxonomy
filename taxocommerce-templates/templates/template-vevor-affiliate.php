@@ -54,15 +54,19 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     $provider_categories = array();
     if (!empty($product_ids)) {
         $id_placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
-        $sql = $wpdb->prepare(
-            "SELECT DISTINCT categoria_proveedor
+        // The only dynamic SQL fragment is a sequence of literal %d placeholders
+        // derived from count(); all product identifiers are bound by prepare().
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The generated fragment cannot contain SQL values or identifiers.
+        $sql_pattern = "SELECT DISTINCT categoria_proveedor
              FROM %i
              WHERE proveedor = %s
                AND object_id IN (" . $id_placeholders . ")
                AND categoria_proveedor IS NOT NULL
                AND categoria_proveedor <> ''
-             LIMIT 20",
+             LIMIT 20";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Safe generated %d placeholders; actual IDs passed as bound arguments.
+        $sql = $wpdb->prepare(
+            $sql_pattern,
             ...array_merge(array($table, 'vevor'), array_map('absint', $product_ids))
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
