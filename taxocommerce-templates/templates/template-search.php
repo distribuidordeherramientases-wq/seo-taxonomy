@@ -14,7 +14,9 @@ require_once __DIR__ . '/template-helpers.php';
 $search_term = get_search_query();
 $requested_post_type = get_query_var('post_type');
 
-if (!$requested_post_type && isset($_GET['post_type']) && !is_array($_GET['post_type'])) {
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public filter or notice; does not modify data.
+if (!$requested_post_type && isset($_GET['post_type']) && is_string($_GET['post_type'])) {
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public filter or notice; does not modify data.
     $requested_post_type = sanitize_key(wp_unslash($_GET['post_type']));
 }
 
