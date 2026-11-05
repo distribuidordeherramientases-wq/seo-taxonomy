@@ -3,6 +3,9 @@
 - La descarga JSON del último Autocheck se mantiene visible al volver a la pestaña mientras el informe del usuario y sitio siga disponible (caducidad existente de una hora).
 - Primera visita y después de caducar: no se ofrece descarga sin resultados; nunca se inicia una prueba por descargar.
 - Se preservan el nonce, permisos de administrador, los estados pass/fail/skip y las pruebas; ampliada la regresión de interfaz y persistencia.
+- Autocheck más funcional: valida datos, identificadores y estados del diagnóstico PHP, contratos de módulos registrados, callbacks y planificación del auditor HTTP, además del endpoint y la serialización JSON.
+- Examina exclusivamente el último diagnóstico de servidor guardado: no evaluable si no existe o supera 24 horas; fallo si el informe está corrupto. No realiza escaneos ni altera el entorno.
+- El JSON incluye evidencias estructuradas y porcentaje de cobertura real (omite las pruebas no ejecutadas); sin crear pedidos, peticiones HTTP, correos ni tareas. (#2236)
 
 ## [0.2.16] — 2026-11-05 — Corrección de arranque y cabecera (#2230)
 
