@@ -130,6 +130,7 @@ final class TCT_Template_Editor {
         $now = current_time('mysql');
 
         if ($id) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->update(
                 $table,
                 array(
@@ -143,6 +144,7 @@ final class TCT_Template_Editor {
             $group = (string)$definitions[$request_key][1];
             $type = (0 === strpos($group, 'WooCommerce - correos')) ? 'email' :
                 ((0 === strpos($group, 'WooCommerce')) ? 'woocommerce' : 'system');
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->insert(
                 $table,
                 array(
