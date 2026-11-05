@@ -135,47 +135,64 @@ final class TCV_Classifier {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function attribute_candidates( $ctx ) {
         global $wpdb;
-        $t = TCV_Schema::tables();
-        $attrs = $wpdb->get_results( $wpdb->prepare( "SELECT id,slug,nombre,tipo,unidad_base FROM %i WHERE activo=1 ORDER BY orden,nombre", $t['attributes'] ), ARRAY_A );
-        $terms = $wpdb->get_results( $wpdb->prepare( "SELECT id,atributo_id,slug,nombre FROM %i WHERE activo=1", $t['terms'] ), ARRAY_A );
-        $aliases = $wpdb->get_results( $wpdb->prepare( "SELECT atributo_id,termino_id,alias FROM %i", $t['aliases'] ), ARRAY_A );
-        $by_attr = array();
+        $tables = TCV_Schema::tables();
+        // Canonical, local tables: a live read is required to see the
+        // vocabulary updated by other ordinary WordPress administrators.
+        $attrs = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT id,slug,nombre,tipo,unidad_base FROM %i WHERE activo=1 ORDER BY orden,nombre',
+                $tables['attributes']
+            ),
+            ARRAY_A
+        );
+        $terms = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT id,atributo_id,slug,nombre FROM %i WHERE activo=1',
+                $tables['terms']
+            ),
+            ARRAY_A
+        );
+        $aliases = $wpdb->get_results(
+            $wpdb->prepare( 'SELECT atributo_id,termino_id,alias FROM %i', $tables['aliases'] ),
+            ARRAY_A
+        );
+        $term_map = array();
+        $alias_map = array();
         foreach ( (array) $terms as $term ) {
-            $by_attr[ absint( $term['atributo_id'] ) ][] = array( 'id' => absint( $term['id'] ), 'label' => $term['nombre'] );
+            $term_map[ absint( $term['atributo_id'] ) ][] = array(
+                'id' => absint( $term['id'] ),
+                'label' => (string) $term['nombre'],
+            );
         }
         foreach ( (array) $aliases as $alias ) {
-            if ( ! empty( $alias['termino_id'] ) ) {
-                $by_attr[ absint( $alias['atributo_id'] ) ][] = array( 'id' => absint( $alias['termino_id'] ), 'label' => $alias['alias'] );
+            $id = absint( $alias['atributo_id'] );
+            $term_id = absint( $alias['termino_id'] );
+            if ( $id && $term_id && '' !== trim( (string) $alias['alias'] ) ) {
+                $alias_map[ $id ][ $term_id ][] = (string) $alias['alias'];
             }
         }
-        $full = trim( $ctx['title'] . ' ' . $ctx['excerpt'] . ' ' . $ctx['content'] );
-        $out = array();
-        foreach ( (array) $attrs as $attr ) {
-            $aid = absint( $attr['id'] );
-            if ( 'termino' === $attr['tipo'] ) {
-                $best = null;
-                foreach ( (array) ( $by_attr[ $aid ] ?? array() ) as $candidate ) {
-                    $score = self::score_term( $candidate['label'], $ctx );
-                    if ( $score >= 0.72 && ( ! $best || $score > $best['confidence'] ) ) {
-                        $best = array( 'attribute_id' => $aid, 'attribute' => $attr['nombre'], 'term_id' => $candidate['id'], 'value' => $candidate['label'], 'confidence' => $score );
-                    }
-                }
-                if ( $best ) {
-                    $out[] = $best;
-                }
-                continue;
+        $found = array();
+        foreach ( (array) $attrs as $attribute ) {
+            $id = absint( $attribute['id'] );
+            if ( 'termino' === $attribute['tipo'] ) {
+                $proposal = TCV_Extractor::controlled(
+                    $attribute,
+                    isset( $term_map[ $id ] ) ? $term_map[ $id ] : array(),
+                    isset( $alias_map[ $id ] ) ? $alias_map[ $id ] : array(),
+                    $ctx
+                );
+            } elseif ( in_array( $attribute['tipo'], array( 'numero', 'rango' ), true ) ) {
+                $proposal = TCV_Extractor::numeric( $attribute, $ctx );
+            } else {
+                $proposal = null;
             }
-            if ( in_array( $attr['tipo'], array( 'numero', 'rango' ), true ) ) {
-                $name = preg_quote( self::normalize( $attr['nombre'] ), '/' );
-                $unit = preg_quote( (string) $attr['unidad_base'], '/' );
-                $pattern = $unit ? '/(?:' . $name . '\s*[:=-]?\s*)?(\d+(?:[\.,]\d+)?)\s*' . $unit . '\b/u' : '/\b' . $name . '\s*[:=-]?\s*(\d+(?:[\.,]\d+)?)/u';
-                if ( preg_match( $pattern, $full, $m ) ) {
-                    $out[] = array( 'attribute_id' => $aid, 'attribute' => $attr['nombre'], 'value' => str_replace( ',', '.', $m[1] ), 'unit' => $attr['unidad_base'], 'confidence' => 0.90 );
-                }
+            if ( $proposal ) {
+                $found[] = $proposal;
             }
         }
-        return array_slice( $out, 0, 20 );
+        return array_slice( $found, 0, 20 );
     }
+
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     public static function analyze_product( $product_id ) {
@@ -269,12 +286,12 @@ final class TCV_Classifier {
                 $sample[] = $p->post_title . ' ' . $p->post_excerpt;
             }
         }
-        return array(
-            'title' => self::normalize( $term->name ),
-            'excerpt' => self::normalize( $term->description ),
-            'content' => self::normalize( implode( ' ', $sample ) ),
+        return TCV_Extractor::context( array(
+            'title' => (string) $term->name,
+            'excerpt' => (string) $term->description,
+            'content' => implode( ' ', $sample ),
             'categories' => '',
-        );
+        ) );
     }
 
     // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
