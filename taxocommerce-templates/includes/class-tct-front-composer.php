@@ -127,6 +127,7 @@ final class TCT_Front_Composer {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             $raw = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is decoded and restricted through normalize_layout() before update_option().
                 ? wp_unslash( $_POST[ $key ] ) : '';
             $data = strlen( $raw ) <= 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
