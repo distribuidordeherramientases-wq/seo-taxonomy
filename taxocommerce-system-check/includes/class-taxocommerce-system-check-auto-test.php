@@ -98,6 +98,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 }
                 return self::result(
                     'pass',
+                    /* translators: 1: Number of PHP checks; 2: Number of environment warnings. */
                     sprintf( __( '%1$d comprobaciones PHP válidas; %2$d avisos del entorno (consultables en Sistema > PHP).', 'taxocommerce-system-check' ), count( $rows ), $warnings ),
                     array( 'checks' => count( $rows ), 'environment_warnings' => $warnings )
                 );
@@ -145,6 +146,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 }
                 return self::result(
                     'pass',
+                    /* translators: %d: Number of server checks in the stored report. */
                     sprintf( __( 'Informe guardado válido: %d comprobaciones; su estado de salud se consulta en Sistema.', 'taxocommerce-system-check' ), count( $snapshot['checks'] ) ),
                     $evidence
                 );
@@ -188,6 +190,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 }
                 return self::result(
                     'pass',
+                    /* translators: %d: Number of modules validated by Autocheck. */
                     sprintf( __( '%d módulos comprobados: versiones, estados y verificaciones coherentes.', 'taxocommerce-system-check' ), count( $modules ) ),
                     array( 'module_count' => count( $modules ) )
                 );
@@ -198,6 +201,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 $required = array( 'render', 'process_batch', 'start', 'download_json', 'handle_action' );
                 foreach ( $required as $method ) {
                     if ( ! is_callable( array( 'TaxoCommerce_System_Check_URL_Audit', $method ) ) ) {
+                        /* translators: %s: Missing PHP method name from the HTTP auditor. */
                         return self::result( 'fail', sprintf( __( 'Falta el método HTTP ejecutable: %s.', 'taxocommerce-system-check' ), $method ) );
                     }
                 }
@@ -219,6 +223,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 );
                 foreach ( $hooks as $hook => $callback ) {
                     if ( false === has_action( $hook, $callback ) ) {
+                        /* translators: %s: Name of the WordPress hook without its registered callback. */
                         return self::result( 'fail', sprintf( __( 'Falta el callback HTTP del hook %s.', 'taxocommerce-system-check' ), $hook ) );
                     }
                 }
@@ -359,6 +364,7 @@ final class TaxoCommerce_System_Check_Auto_Test {
             . esc_html( (string) $report['totals']['fail'] ) . ' fallidas y '
             . esc_html( (string) $report['totals']['skip'] ) . ' no ejecutadas / no aplicables. '
             . esc_html( (string) $report['duration_ms'] ) . ' ms.</p>';
+        /* translators: 1: Number of executed checks; 2: Total checks; 3: Coverage percentage. */
         echo '<p>' . esc_html( sprintf( __( 'Cobertura del Autocheck: %1$d de %2$d pruebas (%3$d%%). Los chequeos omitidos no se consideran superados.', 'taxocommerce-system-check' ), $report['coverage']['executed'], $report['coverage']['total'], $report['coverage']['percentage'] ) ) . '</p>';
         foreach ( self::groups() as $group => $label ) {
             echo '<h3>' . esc_html( $label ) . '</h3>';
