@@ -858,3 +858,63 @@ msgstr "Existing legacy routes"
 #. TaxoCommerce Templates administration UI
 msgid "Catálogo de peticiones"
 msgstr "Request catalog"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr "Manage templates, page routing and presentation rules."
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Versión"
+msgstr "Version"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Todas las peticiones"
+msgstr "All requests"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Guardar"
+msgstr "Save"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Asociar archivo"
+msgstr "Assign file"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Desasignar"
+msgstr "Unassign"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Asignar pagina"
+msgstr "Assign page"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Crear rol"
+msgstr "Create role"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Automático / sin rol SEO"
+msgstr "Automatic / no SEO role"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr "You do not have any assigned and active templates yet."
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr "Choose the first content type to configure"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Ir al Diseñador de plantillas"
+msgstr "Go to Template Designer"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Ver archivo PHP"
+msgstr "View PHP file"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr "Open technical audit of existing associations"
+
+#. TaxoCommerce Templates visible administration UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr "Manage pages assigned to each role"
