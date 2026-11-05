@@ -50,8 +50,9 @@ final class TCSUP_Autotest {
 		$templates = get_option( 'taxocommerce_suppliers_csv_templates', array() );
 		self::check( $rows, 'Configuración', 'Plantillas CSV personalizadas', is_array( $templates ) ? 'ok' : 'error', is_array( $templates ) ? 'Estructura válida; ' . count( $templates ) . ' plantillas almacenadas.' : 'La opción no contiene un array.' );
 		$builtin = class_exists( 'TCSUP_CSV', false ) ? TCSUP_CSV::builtin_templates() : array();
-		$expected = array( 'canonical', 'price_update', 'vevor', 'satkit', 'todotaladros' );
-		self::check( $rows, 'Configuración', 'Plantillas integradas', ! array_diff( $expected, array_keys( $builtin ) ) ? 'ok' : 'error', 'Comprobación de los cinco modelos integrados sin importar CSV.' );
+		$expected = array( 'canonical', 'price_update' );
+		$generic_only = array_keys( $builtin ) === $expected;
+		self::check( $rows, 'Configuración', 'Formatos CSV genéricos', $generic_only ? 'ok' : 'error', $generic_only ? 'Solo los dos formatos de importación, sin plantillas de proveedores precargadas.' : 'Se han detectado perfiles de proveedor precargados.' );
 		foreach ( array( 'taxocommerce_suppliers_sale_margin' => 'Margen de venta', 'taxocommerce_suppliers_regular_margin' => 'Margen regular' ) as $option => $label ) {
 			$value = get_option( $option, false );
 			self::check( $rows, 'Configuración', $label, false !== $value && is_numeric( $value ) && is_finite( (float) $value ) ? 'ok' : 'warning', false !== $value && is_numeric( $value ) ? 'Valor numérico guardado.' : 'Opción ausente o no numérica; revisar ajustes.' );
