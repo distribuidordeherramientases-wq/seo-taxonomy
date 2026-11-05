@@ -24,14 +24,14 @@ function tcsup_verify( $condition, $message ) {
 }
 $json = '{"mapping":{"proveedor_id_externo":"Supplier ID","nombre":"Product Name","precio_con_iva":"Price","moneda":"Currency"}}';
 $id = TCSUP_CSV::create_template_from_definition( 'My supplier', 'Vendor A', $json, 'json' );
-tcsup_verify( 'custom_my_supplier' === $id, 'create JSON template' );
+tcsup_verify( 'custom_mysupplier' === $id, 'create JSON template' );
 $templates = TCSUP_CSV::templates();
 tcsup_verify( isset( $templates[ $id ] ) && 'Product Name' === $templates[ $id ]['mapping']['nombre'], 'JSON mapping persisted' );
 tcsup_verify( 'Vendor A' === $templates[ $id ]['provider'], 'provider persisted' );
 tcsup_verify( is_wp_error( TCSUP_CSV::create_template_from_definition( 'My supplier', 'Other', $json, 'json' ) ), 'prevent overwritten definition' );
 $csv = "field;source\nproveedor_id_externo;Product ID\nnombre;Product Title\n";
 $id2 = TCSUP_CSV::create_template_from_definition( 'Other supplier', 'Vendor B', $csv, 'csv' );
-tcsup_verify( 'custom_other_supplier' === $id2, 'create CSV template' );
+tcsup_verify( 'custom_othersupplier' === $id2, 'create CSV template' );
 tcsup_verify( 'Product Title' === TCSUP_CSV::templates()[ $id2 ]['mapping']['nombre'], 'CSV map persisted' );
 tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( '{"mapping":{"nombre":"Only name"}}', 'json' ) ), 'required fields' );
 tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( '{"mapping":{"proveedor_id_externo":"id","nombre":"name","invalid":"bad"}}', 'json' ) ), 'reject unrecognized canonical field' );
