@@ -136,14 +136,14 @@ if (!function_exists('dht_front_mobile_get_media_product_image_candidates')) {
         static $media_tables_available = array();
         $media_key = $usage_table . '|' . $images_table;
         if (!array_key_exists($media_key, $media_tables_available)) {
-            $usage_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
-            $images_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
+            $usage_exists = TCT_Read_Query_Cache::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
+            $images_exists = TCT_Read_Query_Cache::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
             $media_tables_available[$media_key] = ($usage_exists === $usage_table && $images_exists === $images_table);
         }
 
         if ($media_tables_available[$media_key]) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and both tables are existence-checked above.
-            $rows = $wpdb->get_results(
+            $rows = TCT_Read_Query_Cache::get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
                      FROM %i u
@@ -196,14 +196,14 @@ if (!function_exists('dht_front_mobile_get_supplier_product_image_candidates')) 
         static $supplier_table_exists = null;
 
         if (null === $supplier_table_exists) {
-            $supplier_table_exists = $wpdb->get_var(
+            $supplier_table_exists = TCT_Read_Query_Cache::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         /* Todas las URLs activas: principal primero y luego el resto. */
         if ($supplier_table_exists) {
-            $supplier_urls = $wpdb->get_col(
+            $supplier_urls = TCT_Read_Query_Cache::get_col(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -492,7 +492,7 @@ $front_vevor_ids = get_transient( 'dht_front_vevor_showcase_ids_v1' );
 if ( ! is_array( $front_vevor_ids ) ) {
     $front_vevor_ids = array_map(
         'absint',
-        (array) $wpdb->get_col(
+        (array) TCT_Read_Query_Cache::get_col(
             $wpdb->prepare(
                 "SELECT p.ID FROM %i p
                  WHERE p.post_type = 'product'
@@ -562,10 +562,10 @@ $cluster_ids = array();
 $hub_primary_ids = array();
 $hub_secondary_by_primary = array();
 $relations_table = esc_sql( $wpdb->prefix . 'seo_relations' );
-$table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
+$table_exists = TCT_Read_Query_Cache::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
 if ($table_exists === $relations_table) {
-    $cluster_ids = $wpdb->get_col(
+    $cluster_ids = TCT_Read_Query_Cache::get_col(
         $wpdb->prepare("SELECT source_id
          FROM %i
          WHERE source_type = 'cluster'
@@ -593,7 +593,7 @@ if ($table_exists === $relations_table) {
     });
     $cluster_ids = dht_template_public_post_ids(array_slice($cluster_ids, 0, 3));
 
-    $primary_from_targets = $wpdb->get_col(
+    $primary_from_targets = TCT_Read_Query_Cache::get_col(
         $wpdb->prepare("SELECT target_id
          FROM %i
          WHERE target_type = 'hub_primary'
@@ -601,7 +601,7 @@ if ($table_exists === $relations_table) {
          ORDER BY MIN(id) ASC
          LIMIT 30", $relations_table)
     );
-    $primary_from_sources = $wpdb->get_col(
+    $primary_from_sources = TCT_Read_Query_Cache::get_col(
         $wpdb->prepare("SELECT source_id
          FROM %i
          WHERE source_type = 'hub_primary'
@@ -616,7 +616,7 @@ if ($table_exists === $relations_table) {
      * de forma equilibrada la arquitectura real del catalogo. */
     if (!empty($hub_primary_ids) && !empty($cluster_ids)) {
         $candidate_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
-        $cluster_hub_rows = $wpdb->get_results(
+        $cluster_hub_rows = TCT_Read_Query_Cache::get_results(
             $wpdb->prepare("SELECT source_id, target_id, MIN(id) AS sort_id
              FROM %i
              WHERE source_type = 'cluster'
@@ -663,7 +663,7 @@ if ($table_exists === $relations_table) {
 
     if (!empty($hub_primary_ids)) {
         $primary_lookup = array_fill_keys(array_map('absint', $hub_primary_ids), true);
-        $secondary_rows = $wpdb->get_results(
+        $secondary_rows = TCT_Read_Query_Cache::get_results(
             $wpdb->prepare("SELECT source_id, target_id, MIN(id) AS sort_id
              FROM %i
              WHERE source_type = 'hub_primary'
@@ -699,7 +699,7 @@ $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table,
     }
 
     $term_id = absint(
-        $wpdb->get_var(
+        TCT_Read_Query_Cache::get_var(
             $wpdb->prepare(
                 "SELECT target_id
                  FROM %i
