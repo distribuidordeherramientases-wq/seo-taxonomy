@@ -1,4 +1,6 @@
 <?php
+// CI-only trigger for official WordPress Plugin Check on TaxoCommerce Dependiente.
+// This test file is excluded from installable plugin ZIPs; no runtime behavior changes.
 $root=dirname(__DIR__);
 $academy=file_get_contents($root.'/includes/class-tcd-academy.php');
 $learning_log=file_get_contents($root.'/includes/class-tcd-learning-log.php');
