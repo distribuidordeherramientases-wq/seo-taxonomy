@@ -1476,3 +1476,126 @@ msgstr "Dokumentationsverzeichnis"
 
 msgid "— Do not import —"
 msgstr "— Nicht importieren —"
+
+msgid "Sistema"
+msgstr "System"
+
+msgid "Plugin y versión"
+msgstr "Plugin und Version"
+
+msgid "Constante de versión ausente."
+msgstr "Versionskonstante fehlt."
+
+msgid "API de pedidos y productos disponible."
+msgstr "Bestell- und Produkt-APIs verfügbar."
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr "WooCommerce ist für Produkte oder Einkäufe nicht verfügbar."
+
+msgid "Clases del plugin"
+msgstr "Plugin-Klassen"
+
+msgid "Faltan: "
+msgstr "Fehlend: "
+
+msgid "Todos los componentes principales están cargados."
+msgstr "Alle Hauptkomponenten sind geladen."
+
+msgid "Administración"
+msgstr "Verwaltung"
+
+msgid "Controladores registrados"
+msgstr "Registrierte Handler"
+
+msgid "No registrados: "
+msgstr "Nicht registriert: "
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr "Alle 10 Handler sind registriert; keiner wird ausgeführt."
+
+msgid "Servicios"
+msgstr "Dienste"
+
+msgid "Funciones públicas"
+msgstr "Öffentliche Funktionen"
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr "Abfrage von Lieferantenquellen und Bildern (ohne Operationen auszuführen)."
+
+msgid "Configuración"
+msgstr "Konfiguration"
+
+msgid "Plantillas CSV personalizadas"
+msgstr "Benutzerdefinierte CSV-Vorlagen"
+
+msgid "Estructura válida; "
+msgstr "Gültige Struktur; "
+
+msgid " plantillas almacenadas."
+msgstr " Vorlagen gespeichert."
+
+msgid "La opción no contiene un array."
+msgstr "Die Option enthält kein Array."
+
+msgid "Formatos CSV genéricos"
+msgstr "Allgemeine CSV-Formate"
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr "Nur die beiden allgemeinen Importformate, ohne vorinstallierte Lieferantenvorlagen."
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr "Vorinstallierte Lieferantenprofile wurden gefunden."
+
+msgid "Margen de venta"
+msgstr "Verkaufsmarge"
+
+msgid "Margen regular"
+msgstr "Reguläre Marge"
+
+msgid "Valor numérico guardado."
+msgstr "Numerischer Wert gespeichert."
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr "Option fehlt oder ist nicht numerisch; Einstellungen prüfen."
+
+msgid "Persistencia"
+msgstr "Persistenz"
+
+msgid "Versión del esquema"
+msgstr "Schemaversion"
+
+msgid "Versión guardada: "
+msgstr "Gespeicherte Version: "
+
+msgid "sin registrar"
+msgstr "nicht registriert"
+
+msgid ". No se ejecutan migraciones."
+msgstr ". Es werden keine Migrationen ausgeführt."
+
+msgid "Base de datos"
+msgstr "Datenbank"
+
+msgid "Conexión o esquema no disponibles."
+msgstr "Datenbankverbindung oder Schema nicht verfügbar."
+
+msgid "Catálogo intermedio"
+msgstr "Zwischenkatalog"
+
+msgid "Imágenes externas"
+msgstr "Externe Bilder"
+
+msgid "No se encuentra la tabla "
+msgstr "Tabelle nicht gefunden: "
+
+msgid "Columnas ausentes: "
+msgstr "Fehlende Spalten: "
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr "Tabelle und erforderliche Spalten verfügbar."
+
+msgid "Consulta de estados"
+msgstr "Statusabfrage"
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr "Statusfilter geladen; Bestellungen werden weder abgefragt noch geändert."
