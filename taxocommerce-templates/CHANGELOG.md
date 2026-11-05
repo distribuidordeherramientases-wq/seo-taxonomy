@@ -1,3 +1,7 @@
+## [Unreleased] — 2026-11-05 — Pruebas de regresión y despliegue (Issue #2212)
+
+- Reparadas dos pruebas offline obsoletas/rotas que bloqueaban el despliegue incremental de todos los plugins: comprobación de pestañas actualizada al gettext nativo de WordPress, y corrección de sintaxis en la prueba de advertencias de Plugin Check. Sin modificar funcionalidad ni archivos PHP instalables de Templates.
+
 ## [0.4.15] — 2026-11-05
 
 - Segundo lote parcial de avisos #2189: identificadores SQL con `%i` en las asignaciones de página, relaciones jerárquicas, ejemplos de auditoría y catálogo de roles; defensas para entradas de administración no escalares y comprobación del tipo del nonce en el metabox.
