@@ -191,10 +191,13 @@ final class TCT_Routing_Admin {
         // Redirect parameters are read only after save() has verified its nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by save() before calling this helper.
         $group = isset( $_POST['tct_group'] ) && is_string( $_POST['tct_group'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
             ? sanitize_text_field( wp_unslash( $_POST['tct_group'] ) ) : '';
         $search = isset( $_POST['tct_search'] ) && is_string( $_POST['tct_search'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
             ? sanitize_text_field( wp_unslash( $_POST['tct_search'] ) ) : '';
         $view = isset( $_POST['tct_view'] ) && is_string( $_POST['tct_view'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
             ? sanitize_key( wp_unslash( $_POST['tct_view'] ) ) : 'managed';
         if ( ! in_array( $view, array( 'managed', 'pending', 'all' ), true ) ) {
             $view = 'managed';

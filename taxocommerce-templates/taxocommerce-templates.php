@@ -219,6 +219,7 @@ final class TaxoCommerce_Templates {
     }
     public static function save_page_role() {
         self::guard('tct_page_role_admin');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $id=isset($_POST['page_id']) && is_scalar($_POST['page_id']) ? absint($_POST['page_id']) : 0;
         $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : '';
         $result=self::set_role($id,$role);
@@ -226,6 +227,7 @@ final class TaxoCommerce_Templates {
     }
     public static function save_role() {
         self::guard('tct_save_role');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : '';
         $name=isset($_POST['name']) && is_string($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '';
         if(!$role||!$name||strlen($role)>80)self::redirect('Rol o nombre inválido.');
@@ -248,6 +250,7 @@ final class TaxoCommerce_Templates {
     public static function save_template() {
         self::guard('tct_save_template');
         global $wpdb;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : '';
         $file=isset($_POST['file']) && is_string($_POST['file']) ? sanitize_file_name(wp_unslash($_POST['file'])) : '';
         $table=self::templates();
@@ -312,6 +315,7 @@ final class TaxoCommerce_Templates {
     public static function save_device_mode() {
         self::guard('tct_save_device_mode');
         global $wpdb;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $key = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
         $table = self::templates();
         $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM %i WHERE template_key=%s", $table, $key));
@@ -319,6 +323,7 @@ final class TaxoCommerce_Templates {
             self::redirect('Ruta desconocida.');
         }
         $plan = TCT_Router::plan((object)array('template_file'=>$row->template_file, 'device_variants_enabled'=>0), 'mobile');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $enabled = !empty($_POST['enabled']) ? 1 : 0;
         if (!$enabled && $plan['dispatcher']) {
             self::redirect('La principal es un dispatcher y necesita sus variantes.');
@@ -329,6 +334,7 @@ final class TaxoCommerce_Templates {
 
     public static function assign_page() {
         self::guard('tct_assign_page');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
         $key = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
         if (!$id || !$key || !isset(self::roles()[$key])) {
@@ -358,11 +364,13 @@ final class TaxoCommerce_Templates {
 
     public static function unassign_page() {
         self::guard('tct_unassign_page');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
         if (!$id || !current_user_can('edit_page', $id)) {
             self::redirect('Pagina no valida o sin permisos.');
         }
         $existing = self::page_role($id);
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $role = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
         if (!$existing || $existing !== $role) {
             self::redirect('La pagina ya no tiene esa asignacion.');
