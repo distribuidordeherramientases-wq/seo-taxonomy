@@ -8,12 +8,13 @@ if ( 'cli' !== PHP_SAPI ) {
     exit;
 }
 define( 'ABSPATH', '/' );
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.16' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.17' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', dirname( __DIR__ ) . '/' );
 $GLOBALS['tcs_hooks'] = array();
 $GLOBALS['tcs_nonce_calls'] = 0;
 $GLOBALS['tcs_mutations'] = 0;
 $GLOBALS['tcs_allowed'] = true;
+$GLOBALS['tcs_reports'] = array();
 
 function add_action( $hook, $callback ) { $GLOBALS['tcs_hooks'][ $hook ] = $callback; }
 function add_filter( $hook, $callback ) { $GLOBALS['tcs_hooks'][ $hook ] = $callback; }
@@ -50,7 +51,15 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function wp_remote_get() { ++$GLOBALS['tcs_mutations']; throw new RuntimeException( 'Remote calls prohibited.' ); }
 function wp_mail() { ++$GLOBALS['tcs_mutations']; throw new RuntimeException( 'Emails prohibited.' ); }
 function update_option() { ++$GLOBALS['tcs_mutations']; throw new RuntimeException( 'DB writes prohibited.' ); }
-function set_transient() { ++$GLOBALS['tcs_mutations']; throw new RuntimeException( 'Transient writes prohibited.' ); }
+function get_current_blog_id() { return 5; }
+function get_current_user_id() { return 12; }
+function get_transient( $key ) { return $GLOBALS['tcs_reports'][ $key ] ?? false; }
+function set_transient( $key, $value, $expiration ) {
+    tcs_smoke_expect( $expiration === HOUR_IN_SECONDS, 'Stored report must expire.' );
+    $GLOBALS['tcs_reports'][ $key ] = $value;
+    return true;
+}
+define( 'HOUR_IN_SECONDS', 3600 );
 function wp_schedule_event() { ++$GLOBALS['tcs_mutations']; throw new RuntimeException( 'Cron writes prohibited.' ); }
 function tcs_smoke_expect( $condition, $message ) {
     if ( ! $condition ) { fwrite( STDERR, $message . "\n" ); exit( 1 ); }
@@ -73,6 +82,7 @@ ob_start();
 TaxoCommerce_System_Check_Auto_Test::render();
 $initial = ob_get_clean();
 tcs_smoke_expect( strpos( $initial, 'Ejecutar Autocheck' ) !== false && $GLOBALS['tcs_nonce_calls'] === 0, 'Opening tab must not run self-test.' );
+tcs_smoke_expect( strpos( $initial, 'taxocommerce_system_check_autocheck_json' ) === false, 'No JSON download must appear before the first execution.' );
 $_GET['tcs_run'] = '1';
 $_GET['_wpnonce'] = 'test';
 ob_start();
@@ -80,6 +90,20 @@ TaxoCommerce_System_Check_Auto_Test::render();
 $html = ob_get_clean();
 tcs_smoke_expect( $GLOBALS['tcs_nonce_calls'] === 1 && strpos( $html, 'No ejecutado / N/A' ) !== false && strpos( $html, 'taxocommerce_system_check_autocheck_json' ) !== false, 'Explicit signed test must render skip evidence.' );
 tcs_smoke_expect( $GLOBALS['tcs_mutations'] === 0, 'Rendering must not trigger mutations.' );
+tcs_smoke_expect( isset( $GLOBALS['tcs_reports']['taxocommerce_system_check_autocheck_latest_5_12'] ), 'Completed run must save the real report for the current site and user.' );
+$nonce_count = $GLOBALS['tcs_nonce_calls'];
+unset( $_GET['tcs_run'], $_GET['_wpnonce'] );
+ob_start();
+TaxoCommerce_System_Check_Auto_Test::render();
+$return_visit = ob_get_clean();
+tcs_smoke_expect( strpos( $return_visit, 'taxocommerce_system_check_autocheck_json' ) !== false, 'Returning administrator must still see JSON download.' );
+tcs_smoke_expect( strpos( $return_visit, 'Fecha de ejecución:' ) !== false, 'The stored report execution timestamp must be shown.' );
+tcs_smoke_expect( $nonce_count === $GLOBALS['tcs_nonce_calls'] && $GLOBALS['tcs_mutations'] === 0, 'Returning to Autocheck must not execute tests or external actions.' );
+$GLOBALS['tcs_reports'] = array();
+ob_start();
+TaxoCommerce_System_Check_Auto_Test::render();
+$expired_visit = ob_get_clean();
+tcs_smoke_expect( strpos( $expired_visit, 'taxocommerce_system_check_autocheck_json' ) === false, 'Expired report must not have a download button.' );
 
 unset( $_GET['tcs_run'], $_GET['_wpnonce'] );
 foreach ( array( 'user' => 'Manual de usuario', 'technical' => 'Manual técnico' ) as $kind => $title ) {
