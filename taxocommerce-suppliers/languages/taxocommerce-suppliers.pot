@@ -10,46 +10,6 @@ msgstr ""
 msgid "— Do not import —"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:217
-msgid "' . esc_html__( 'CSV mapping template saved.', 'taxocommerce-suppliers' ) . '"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:223
-msgid "' . esc_html__( 'External image references saved.', 'taxocommerce-suppliers' ) . '"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:220
-msgid "' . esc_html__( 'Price data saved.', 'taxocommerce-suppliers' ) . '"
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:184
-msgid "' . esc_html__( 'WooCommerce must be active to resolve sales into supplier purchases.', 'taxocommerce-suppliers' ) . '"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:196
-msgid "' . esc_html( $codes[ $code ] ) . '"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:164
-msgid "' . esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['tc_error_message'] ) ) ) ) . '"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:211
-msgid "%1$d supplier rows processed. %2$d errors."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:751
-msgid ">External references"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:753
-msgid ">Inherit existing behavior"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:752
-msgid ">Local Media"
-msgstr ""
-
 #: includes/class-tcsup-manual.php:46
 msgid "1. Objetivo, acceso y precauciones"
 msgstr ""
@@ -302,36 +262,12 @@ msgstr ""
 msgid "A template name is required."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:664
-msgid "Accept"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:640
-msgid "Accept / link to WooCommerce"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:602
 msgid "Accepted"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648
-msgid "Actions"
-msgstr ""
-
 #: includes/class-tcsup-purchasing.php:210
 msgid "Active sales"
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:205
-msgid "Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:585
-msgid "All decisions"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:580
-msgid "All suppliers"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:254
@@ -374,10 +310,6 @@ msgstr ""
 msgid "Brand"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:639
-msgid "Bulk action"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:183
 msgid "Cada fila debe tener dos columnas de correspondencia."
 msgstr ""
@@ -388,10 +320,6 @@ msgstr ""
 
 #: includes/class-tcsup-csv.php:24
 msgid "Canonical URL"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:397
-msgid "Columns mapped"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:618
@@ -410,32 +338,12 @@ msgstr ""
 msgid "Crear nueva plantilla de proveedor"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:388
-msgid "CSV"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:314
-msgid "CSV column"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:250
-msgid "CSV file"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:110
 msgid "CSV Import"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:201
-msgid "CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:632
-msgid "CSV rows stay here until they are accepted, sent to review, or discarded."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:240
-msgid "CSV template"
+#: includes/class-tcsup-admin.php:217
+msgid "CSV mapping template saved."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:111 includes/class-tcsup-admin.php:376
@@ -446,16 +354,8 @@ msgstr ""
 msgid "Currency"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648
-msgid "Decision"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:417
 msgid "Delete"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:300
-msgid "Delimiter:"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:395
@@ -476,10 +376,6 @@ msgstr ""
 
 #: includes/class-tcsup-autotest.php:90
 msgid "Diagnóstico manual y de solo lectura. No importa CSV, no modifica productos ni precios, no descarga imágenes, no crea pedidos y no hace solicitudes HTTP."
-msgstr ""
-
-#: includes/class-tcsup-admin.php:642 includes/class-tcsup-admin.php:666
-msgid "Discard"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:603
@@ -506,16 +402,12 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648
-msgid "External identity"
+#: includes/class-tcsup-admin.php:223
+msgid "External image references saved."
 msgstr ""
 
 #: includes/class-tcsup-csv.php:36
 msgid "External image URLs"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:756
-msgid "External image URLs — one per line"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:114 includes/class-tcsup-admin.php:738
@@ -528,10 +420,6 @@ msgstr ""
 
 #: includes/class-tcsup-autotest.php:123
 msgid "Fecha de ejecución:"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:300
-msgid "File:"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:593
@@ -558,10 +446,6 @@ msgstr ""
 msgid "Ignored"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:749
-msgid "Image mode"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:356
 msgid "Import into intermediate inventory"
 msgstr ""
@@ -584,10 +468,6 @@ msgstr ""
 
 #: includes/class-tcsup-admin.php:112
 msgid "Inventory"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:388
-msgid "JSON"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:391
@@ -650,20 +530,8 @@ msgstr ""
 msgid "Manual técnico para futuros desarrolladores"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:641
-msgid "Mark for review"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:648
-msgid "Market"
-msgstr ""
-
 #: includes/class-tcsup-csv.php:20
 msgid "Market country"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:397 includes/class-tcsup-admin.php:763
-msgid "Mode"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:615
@@ -698,10 +566,6 @@ msgstr ""
 msgid "No se pudo generar el informe JSON."
 msgstr ""
 
-#: includes/class-tcsup-purchasing.php:275
-msgid "No supplier source linked."
-msgstr ""
-
 #: includes/class-tcsup-manual.php:15
 msgid "No tienes permisos para consultar el manual."
 msgstr ""
@@ -722,14 +586,6 @@ msgstr ""
 msgid "Only CSV files are accepted. XLS/XLSX and web scraping are intentionally excluded."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:235
-msgid "Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction."
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:275
-msgid "Open supplier inventory"
-msgstr ""
-
 #: includes/class-tcsup-purchasing.php:211
 msgid "Order lines"
 msgstr ""
@@ -746,6 +602,10 @@ msgstr ""
 msgid "Price control"
 msgstr ""
 
+#: includes/class-tcsup-admin.php:220
+msgid "Price data saved."
+msgstr ""
+
 #: includes/class-tcsup-csv.php:29
 msgid "Price excl. tax"
 msgstr ""
@@ -754,20 +614,12 @@ msgstr ""
 msgid "Price incl. tax"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:304
-msgid "Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed."
-msgstr ""
-
 #: includes/class-tcsup-admin.php:178
 msgid "Price updates require an identity column and at least one price column. VEVOR also requires market country and external ID."
 msgstr ""
 
 #: includes/class-tcsup-admin.php:113
 msgid "Prices"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:648 includes/class-tcsup-admin.php:763
-msgid "Product"
 msgstr ""
 
 #: includes/class-tcsup-csv.php:25
@@ -794,19 +646,11 @@ msgstr ""
 msgid "Qty."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:314
-msgid "Required"
-msgstr ""
-
 #: includes/class-tcsup-autotest.php:129
 msgid "Resumen"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:643
-msgid "Return to pending"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:601 includes/class-tcsup-admin.php:665
+#: includes/class-tcsup-admin.php:601
 msgid "Review"
 msgstr ""
 
@@ -854,10 +698,6 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648
-msgid "Stock"
-msgstr ""
-
 #: includes/class-tcsup-csv.php:34
 msgid "Stock quantity"
 msgstr ""
@@ -874,7 +714,7 @@ msgstr ""
 msgid "Subir definición JSON, CSV o TXT (máximo 64 KiB)"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:247 includes/class-tcsup-admin.php:311 includes/class-tcsup-admin.php:397 includes/class-tcsup-admin.php:648 includes/class-tcsup-admin.php:763 includes/class-tcsup-purchasing.php:227
+#: includes/class-tcsup-purchasing.php:227
 msgid "Supplier"
 msgstr ""
 
@@ -894,16 +734,8 @@ msgstr ""
 msgid "Supplier category"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:695
-msgid "Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV."
-msgstr ""
-
 #: includes/class-tcsup-purchasing.php:228
 msgid "Supplier ID"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:648
-msgid "Supplier price"
 msgstr ""
 
 #: includes/class-tcsup-csv.php:52
@@ -942,10 +774,6 @@ msgstr ""
 msgid "Suppliers"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648
-msgid "Sync"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:617
 msgid "Synchronized"
 msgstr ""
@@ -958,20 +786,8 @@ msgstr ""
 msgid "TaxoCommerce canonical CSV"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:314
-msgid "TaxoCommerce field"
-msgstr ""
-
 #: includes/class-tcsup-admin.php:43 includes/class-tcsup-admin.php:51 includes/class-tcsup-admin.php:52
 msgid "TaxoCommerce Suppliers"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:102
-msgid "TAXOCOMMERCE SUPPLIERS"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:397
-msgid "Template"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:174
@@ -1006,20 +822,8 @@ msgstr ""
 msgid "The VEVOR CSV is missing one or more required official feed columns."
 msgstr ""
 
-#: includes/class-tcsup-admin.php:302
-msgid "The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made."
-msgstr ""
-
-#: includes/class-tcsup-purchasing.php:217
-msgid "There are no pending, on-hold, or processing WooCommerce order lines to purchase."
-msgstr ""
-
 #: includes/class-tcsup-csv.php:76
 msgid "TodoTaladros visual mapping"
-msgstr ""
-
-#: includes/class-tcsup-admin.php:388
-msgid "TXT"
 msgstr ""
 
 #: includes/class-tcsup-admin.php:188
@@ -1034,10 +838,6 @@ msgstr ""
 msgid "Update"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:763
-msgid "URLs"
-msgstr ""
-
 #: includes/admin-branding.php:49
 msgid "Versión"
 msgstr ""
@@ -1050,16 +850,16 @@ msgstr ""
 msgid "Without source"
 msgstr ""
 
-#: includes/class-tcsup-admin.php:648 includes/class-tcsup-admin.php:763
-msgid "Woo ID"
-msgstr ""
-
 #: includes/class-tcsup-products.php:340
 msgid "WooCommerce did not return a product ID."
 msgstr ""
 
 #: includes/class-tcsup-products.php:268
 msgid "WooCommerce is required to accept supplier products."
+msgstr ""
+
+#: includes/class-tcsup-purchasing.php:184
+msgid "WooCommerce must be active to resolve sales into supplier purchases."
 msgstr ""
 
 #: includes/class-tcsup-purchasing.php:225
