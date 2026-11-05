@@ -14,6 +14,62 @@ final class TCV_Classifier {
         return trim( preg_replace( '/\s+/u', ' ', $text ) );
     }
 
+    /**
+     * Optional read-only access to the original canonical supplier catalogue.
+     * Fresh WooCommerce stores work without the table or Suppliers plugin.
+     */
+    private static function supplier_source_context( $product_id ) {
+        global $wpdb;
+        static $table_exists = null;
+        static $rows = array();
+
+        $product_id = absint( $product_id );
+        if ( array_key_exists( $product_id, $rows ) ) {
+            return $rows[ $product_id ];
+        }
+        $table = $wpdb->prefix . 'seo_proveedores_productos';
+        // WordPress migrations may still hold the canonical supplier table.
+        // Live direct reads are necessary; this module never writes to it.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( null === $table_exists ) {
+            $found = $wpdb->get_var(
+                $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
+            );
+            $table_exists = $found === $table;
+        }
+        if ( ! $table_exists ) {
+            return $rows[ $product_id ] = '';
+        }
+        $reference = absint( get_post_meta( $product_id, '_seo_proveedor_catalogo_id', true ) );
+        if ( $reference ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare( 'SELECT * FROM %i WHERE id=%d LIMIT 1', $table, $reference ),
+                ARRAY_A
+            );
+        } else {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    'SELECT * FROM %i WHERE object_id=%d ORDER BY id DESC LIMIT 1',
+                    $table,
+                    $product_id
+                ),
+                ARRAY_A
+            );
+        }
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( ! is_array( $row ) ) {
+            return $rows[ $product_id ] = '';
+        }
+        $parts = array();
+        foreach ( array( 'nombre', 'descripcion', 'categoria_proveedor', 'marca',
+            'fabricante', 'mpn', 'sku' ) as $field ) {
+            if ( isset( $row[ $field ] ) && is_scalar( $row[ $field ] ) ) {
+                $parts[] = (string) $row[ $field ];
+            }
+        }
+        return $rows[ $product_id ] = implode( ' ', $parts );
+    }
+
     private static function product_context( $product_id ) {
         $post = get_post( $product_id );
         if ( ! $post || 'product' !== $post->post_type ) {
@@ -56,6 +112,7 @@ final class TCV_Classifier {
                 $supplier[] = (string) $value;
             }
         }
+        $supplier[] = self::supplier_source_context( $product_id );
         $values = array(
             'title' => $post->post_title,
             'excerpt' => $post->post_excerpt,
