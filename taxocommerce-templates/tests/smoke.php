@@ -69,6 +69,7 @@ class TaxoCommerce_Templates {
 }
 
 define('TCT_DIR', dirname(__DIR__) . '/');
+require_once TCT_DIR . 'includes/class-tct-read-cache.php';
 require_once TCT_DIR . 'includes/class-tct-router.php';
 require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-template-editor.php';
