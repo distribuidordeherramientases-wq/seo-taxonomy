@@ -43,6 +43,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         'posts_per_page' => 250,
         'fields'         => 'ids',
         'no_found_rows'  => true,
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Limited affiliate product query needs the saved category filter.
         'tax_query'      => array(array(
             'taxonomy'         => 'product_cat',
             'field'            => 'term_id',
@@ -70,7 +71,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
             ...array_merge(array($table, 'vevor'), array_map('absint', $product_ids))
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
-        $provider_rows = (array) $wpdb->get_col($sql);
+        $provider_rows = (array) TCT_DB::get_col($sql);
         $provider_categories = array_values(array_filter(array_map('trim', $provider_rows)));
     }
 
@@ -123,7 +124,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y placeholders se generan internamente; valores enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare($sql, ...array_merge(array($table), $args));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
-        $candidates = $wpdb->get_results($sql, ARRAY_A);
+        $candidates = TCT_DB::get_results($sql, ARRAY_A);
 
         $category_keys = array_fill_keys(array_map(static function ($value) {
             return sanitize_title(remove_accents(mb_strtolower((string) $value)));
@@ -181,7 +182,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     }
 } else {
     // En otros contextos conservamos el comportamiento anterior.
-    $items = $wpdb->get_results(
+    $items = TCT_DB::get_results(
         $wpdb->prepare(
             "SELECT
                 id, proveedor_id_externo, sku, url_origen, url_canonica,

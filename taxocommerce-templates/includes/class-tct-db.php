@@ -24,8 +24,7 @@ final class TCT_DB {
         }
 
         if ( null === self::$request_id ) {
-            self::$request_id = function_exists( 'wp_generate_uuid4' )
-                ? wp_generate_uuid4() : md5( uniqid( '', true ) );
+            self::$request_id = wp_generate_uuid4();
         }
 
         $key   = 'request_' . md5( self::$request_id . '|' . self::$revision . '|' . $method . '|' . serialize( $arguments ) );

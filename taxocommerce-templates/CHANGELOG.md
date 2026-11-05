@@ -1,3 +1,10 @@
+## [0.4.17] — 2026-11-05 — Corrección de advertencias WPC (#2189)
+
+- Centralizados los accesos a tablas propias mediante `TCT_DB`, con caché de lectura limitada a la petición, claves efímeras e invalidación tras escrituras. Conserva los mismos SQL, datos, filtros y contratos públicos; no depende de otros plugins TaxoCommerce.
+- Los filtros de taxonomías, metadatos y exclusiones siguen sujetos a los límites funcionales existentes y se documentan con excepciones PHPCS localizadas, sin desactivar reglas globales.
+- El `IN` del registro de rutas emplea exclusivamente marcadores `%s` generados y argumentos enlazados con `wpdb::prepare` (excepción PHPCS acotada al bloque).
+- Prueba offline de reutilización de caché y lectura inmediata tras actualización; versión 0.4.17. Requiere verificación real WPC estricta y UAT antes de fusionar; no se declara publicación WordPress.org apta mientras exista el editor PHP ejecutable (#1522).
+
 ## [Unreleased] — 2026-11-05 — Corrección WPC y verificación independiente (#2189)
 
 - Reestructurada la salida HTML de la etiqueta de rol en `class-tct-routing-admin.php` para que la traducción y el escape se ejecuten en ramas explícitas. No cambian las rutas ni las asociaciones.
