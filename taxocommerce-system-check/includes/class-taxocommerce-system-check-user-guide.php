@@ -61,12 +61,12 @@ final class TaxoCommerce_System_Check_User_Guide {
                     ),
                 ),
                 'autotest' => array(
-                    'title' => 'Auto Test: contrato y límites',
-                    'body'  => 'TaxoCommerce_System_Check_Auto_Test::run() realiza comprobaciones locales y de lectura de arranque, permisos, PHP, módulos, rutas HTTP y exportaciones. Devuelve una estructura temporal con identificador, estado, mensaje, grupo y totales.',
+                    'title' => 'Autocheck: contratos, cobertura y límites',
+                    'body'  => 'TaxoCommerce_System_Check_Auto_Test::run() verifica contratos y resultados locales de PHP, módulos, auditor HTTP y exportaciones, además del último informe de servidor ya guardado. Devuelve estados, evidencias, cobertura y totales, sin ejecutar nuevas auditorías externas.',
                     'parts' => array(
                         array( 'Estados', 'Correcto indica una condición comprobada; Fallo indica un contrato ausente; No ejecutado / N/A señala una prueba externa, con escritura o de un motor no cargado. No se convierten omisiones en aciertos.' ),
-                        array( 'Efectos secundarios', 'El autotest no escribe opciones ni transients, no envía correos, no llama a APIs, no lanza trabajos, no analiza URLs y no altera tablas. El resultado se muestra solo durante la solicitud actual.' ),
-                        array( 'Cobertura', 'El autotest valida contratos de integración y un inventario PHP real, pero no equivale a Plugin Check de WordPress.org, pruebas de estrés, análisis de vulnerabilidades ni una prueba HTTP desde Internet.' ),
+                        array( 'Efectos secundarios', 'El Autocheck no envía correos, no consulta HTTP externo, no programa procesos ni modifica datos de la tienda. Solo conserva el informe resultante en un transient de WordPress durante una hora, separado por usuario y sitio.' ),
+                        array( 'Cobertura', 'El Autocheck verifica estructuras y estados de retorno, identifica informes de servidor inexistentes o antiguos como no evaluables y muestra porcentaje real de pruebas ejecutadas. No sustituye Plugin Check de WordPress.org, UAT de compras, pruebas externas de HTTP ni diagnósticos de seguridad profundos.' ),
                     ),
                 ),
                 'data' => array(
@@ -120,11 +120,11 @@ final class TaxoCommerce_System_Check_User_Guide {
                 ),
             ),
             'autotest' => array(
-                'title' => 'Pestaña Auto Test',
-                'body'  => 'Pulsa «Ejecutar Auto Test» para comprobar en ese momento que System Check dispone de sus funciones, permisos, rutas y registros fundamentales.',
+                'title' => 'Pestaña Autocheck',
+                'body'  => 'Pulsa «Ejecutar Autocheck» para validar los servicios de System Check y examinar el último snapshot guardado del servidor sin lanzar otro escaneo. Puedes descargar el JSON del último informe mientras esté vigente.',
                 'parts' => array(
                     array( 'Resultados', 'Correcto significa que la comprobación se completó; Fallo señala una dependencia ausente; No ejecutado / N/A indica algo que necesita una prueba independiente. Un test omitido nunca se considera correcto.' ),
-                    array( 'Seguridad', 'Esta operación es de solo lectura: no envía correos, no inicia auditorías HTTP, no programa trabajos y no modifica datos del sitio. Los resultados no se guardan.' ),
+                    array( 'Seguridad', 'La ejecución no envía correos, no inicia auditorías HTTP, no programa trabajos y no modifica productos ni opciones. El único dato que se guarda es el JSON del último resultado en un transient de una hora, protegido por usuario, sitio, permisos y nonce.' ),
                 ),
             ),
             'reports' => array(
