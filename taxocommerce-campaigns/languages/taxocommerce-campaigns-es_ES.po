@@ -12,322 +12,322 @@ msgstr ""
 #: taxocommerce-campaigns.php includes/admin.php:7 includes/admin.php:9
 #: includes/admin.php:86 includes/social-publication.php:860
 msgid "TaxoCommerce Campaigns"
-msgstr ""
+msgstr "TaxoCommerce · Campañas de marketing"
 
 #. Description of the plugin
 #: taxocommerce-campaigns.php
 msgid ""
 "Offer campaigns, campaign pricing, public banners, social offer publishing, "
 "and a standalone commercial calendar."
-msgstr ""
+msgstr "Campañas de ofertas, precios promocionales, banners públicos, publicaciones en redes y calendario comercial independiente."
 
 #. Author of the plugin
 #: taxocommerce-campaigns.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:7
 msgid "Campaigns"
-msgstr ""
+msgstr "Campañas de marketing"
 
 #: includes/admin.php:51
 msgid "Configuración guardada."
-msgstr ""
+msgstr "Configuración guardada."
 
 #: includes/admin.php:55
 msgid "Banners públicos"
-msgstr ""
+msgstr "Banners públicos"
 
 #: includes/admin.php:60
 msgid "Publicación de ofertas en redes"
-msgstr ""
+msgstr "Publicación de ofertas en redes"
 
 #: includes/admin.php:61
 msgid ""
 "Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las "
 "conexiones y los publicadores, pero su calendario editorial permanece "
 "separado."
-msgstr ""
+msgstr "Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las conexiones y los publicadores, pero su calendario editorial permanece separado."
 
 #: includes/admin.php:72
 msgid ""
 "Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, "
 "{descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}."
-msgstr ""
+msgstr "Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}."
 
 #: includes/admin.php:86
 msgid ""
 "Campañas de ofertas, precios promocionales, banners y agenda comercial "
 "autónoma."
-msgstr ""
+msgstr "Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma."
 
 #: includes/admin.php:99
 msgid ""
 "TaxoCommerce Social no está activo. El calendario comercial funciona "
 "igualmente; la programación de ofertas en redes se habilitará cuando Social "
 "esté disponible."
-msgstr ""
+msgstr "TaxoCommerce Social no está activo. El calendario comercial funciona igualmente; la programación de ofertas en redes se habilitará cuando Social esté disponible."
 
 #: includes/autotest.php:30
 msgid "Autotest de TaxoCommerce Campaigns"
-msgstr ""
+msgstr "Autotest de TaxoCommerce Campaigns"
 
 #: includes/autotest.php:31
 msgid ""
 "Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan "
 "campañas, no modifican precios, no crean tablas ni solicitan servicios "
 "externos."
-msgstr ""
+msgstr "Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos."
 
 #: includes/autotest.php:40
 msgid "Grupo"
-msgstr ""
+msgstr "Grupo"
 
 #: includes/autotest.php:40
 msgid "Comprobación"
-msgstr ""
+msgstr "Comprobación"
 
 #: includes/autotest.php:40
 msgid "Estado"
-msgstr ""
+msgstr "Estado"
 
 #: includes/autotest.php:40
 msgid "Detalle"
-msgstr ""
+msgstr "Detalle"
 
 #: includes/calendar.php:82
 msgid "Calendario de campañas y ofertas"
-msgstr ""
+msgstr "Calendario de campañas y ofertas"
 
 #: includes/calendar.php:82
 msgid ""
 "Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de "
 "oferta; no mezcla entradas, páginas ni Noticias."
-msgstr ""
+msgstr "Agenda propia de Campañas. Muestra periodos comerciales y publicaciones de oferta; no mezcla entradas, páginas ni Noticias."
 
 #: includes/campaigns.php:2485
 msgid "Importar / Exportar campanas"
-msgstr ""
+msgstr "Importar / Exportar campañas"
 
 #: includes/campaigns.php:2486
 msgid ""
 "Intercambia la campana completa: calendario, productos, precio de campana y "
 "posicion. Los archivos antiguos que solo contienen calendario siguen siendo "
 "compatibles."
-msgstr ""
+msgstr "Intercambia la campaña completa: calendario, productos, precios promocionales y orden. Los archivos antiguos con solo el calendario siguen siendo compatibles."
 
 #: includes/campaigns.php:2493
 msgid "Sustituir completamente los productos de las campanas incluidas"
-msgstr ""
+msgstr "Sustituir todos los productos de las campañas incluidas"
 
 #: includes/campaigns.php:2495
 msgid "Importar / actualizar"
-msgstr ""
+msgstr "Importar / actualizar"
 
 #: includes/campaigns.php:2600
 msgid "No hay campañas en este grupo."
-msgstr ""
+msgstr "No hay campañas en este grupo."
 
 #: includes/campaigns.php:2659
 msgid "Campañas"
-msgstr ""
+msgstr "Campañas"
 
 #: includes/campaigns.php:2659
 msgid ""
 "Organiza campanas realizadas, activas y futuras, sus productos y precios "
 "promocionales."
-msgstr ""
+msgstr "Organiza las campañas finalizadas, activas y futuras, sus productos y precios promocionales."
 
 #: includes/campaigns.php:2702
 msgid "No hay productos anadidos todavia."
-msgstr ""
+msgstr "Todavía no hay productos añadidos."
 
 #: includes/campaigns.php:2711 includes/campaigns.php:2761
 #: includes/social-publication.php:931
 msgid "Producto"
-msgstr ""
+msgstr "Producto"
 
 #: includes/campaigns.php:2711 includes/campaigns.php:2761
 msgid "Precio habitual"
-msgstr ""
+msgstr "Precio habitual"
 
 #: includes/campaigns.php:2711 includes/campaigns.php:2761
 msgid "Oferta actual"
-msgstr ""
+msgstr "Oferta actual"
 
 #: includes/campaigns.php:2711 includes/campaigns.php:2761
 msgid "Precio campaña"
-msgstr ""
+msgstr "Precio campaña"
 
 #: includes/campaigns.php:2711
 msgid "Aplicado"
-msgstr ""
+msgstr "Aplicado"
 
 #: includes/campaigns.php:2711
 msgid "Quitar"
-msgstr ""
+msgstr "Quitar"
 
 #: includes/campaigns.php:2726
 msgid "Guardar productos y precios"
-msgstr ""
+msgstr "Guardar productos y precios"
 
 #: includes/campaigns.php:2742
 msgid "Anadir productos"
-msgstr ""
+msgstr "Añadir productos"
 
 #: includes/campaigns.php:2746
 msgid "Buscar productos"
-msgstr ""
+msgstr "Buscar productos"
 
 #: includes/campaigns.php:2749
 msgid ""
 "El catalogo no se carga completo. Busca por nombre o SKU y selecciona tantos"
 " productos como necesites."
-msgstr ""
+msgstr "No se carga el catálogo completo. Busca por nombre o SKU y selecciona los productos que necesites."
 
 #: includes/campaigns.php:2754
 msgid "No se han encontrado productos."
-msgstr ""
+msgstr "No se han encontrado productos."
 
 #: includes/campaigns.php:2761
 msgid "Seleccionar"
-msgstr ""
+msgstr "Seleccionar"
 
 #: includes/campaigns.php:2761 includes/campaigns.php:2834
 msgid "Tipo"
-msgstr ""
+msgstr "Tipo"
 
 #: includes/campaigns.php:2782
 msgid "Anadir seleccionados"
-msgstr ""
+msgstr "Añadir seleccionados"
 
 #: includes/campaigns.php:2796
 msgid "La campaña indicada no existe."
-msgstr ""
+msgstr "La campaña indicada no existe."
 
 #: includes/campaigns.php:2823
 msgid "Datos de la campaña"
-msgstr ""
+msgstr "Datos de la campaña"
 
 #: includes/campaigns.php:2839
 msgid "Repeticion"
-msgstr ""
+msgstr "Repeticion"
 
 #: includes/campaigns.php:2844
 msgid "Creatividad social"
-msgstr ""
+msgstr "Creatividad social"
 
 #: includes/campaigns.php:2848
 msgid ""
 "Esta plantilla se usara al generar la imagen social automatica de la campaña"
 " para Facebook, Instagram, LinkedIn, Pinterest y X."
-msgstr ""
+msgstr "Esta plantilla se utilizará al generar automáticamente la imagen social de la campaña para Facebook, Instagram, LinkedIn, Pinterest y X."
 
 #: includes/campaigns.php:2859
 msgid "Crear nueva edicion (+1 ano)"
-msgstr ""
+msgstr "Crear nueva edición (+1 año)"
 
 #: includes/campaigns.php:2860
 msgid ""
 "Conserva el nombre/serie y crea otro ID. No copia productos ni precios."
-msgstr ""
+msgstr "Conserva el nombre/serie y crea otro ID. No copia productos ni precios."
 
 #: includes/campaigns.php:2864
 msgid "Gestion de la campana"
-msgstr ""
+msgstr "Gestión de la campaña"
 
 #: includes/campaigns.php:2868
 msgid "Vaciar productos"
-msgstr ""
+msgstr "Vaciar productos"
 
 #: includes/campaigns.php:2874
 msgid "Eliminar campana"
-msgstr ""
+msgstr "Eliminar campaña"
 
 #: includes/campaigns.php:2876
 msgid ""
 "Vaciar conserva la campana. Eliminar borra definitivamente la campana y sus "
 "relaciones con productos."
-msgstr ""
+msgstr "Vaciar conserva la campaña. Eliminar borra definitivamente la campaña y sus relaciones con productos."
 
 #: includes/campaigns.php:2888
 msgid "Productos"
-msgstr ""
+msgstr "Productos"
 
 #: includes/campaigns.php:2888
 msgid ""
 "Guarda primero la campaña. Despues aparecera aqui el selector multiple de "
 "productos y el precio de oferta de cada uno."
-msgstr ""
+msgstr "Guarda primero la campaña. Después aparecerá el selector múltiple de productos y el precio de oferta de cada uno."
 
 #: includes/social-publication.php:640
 msgid "No tienes permisos para programar campañas sociales."
-msgstr ""
+msgstr "No tienes permisos para programar campañas sociales."
 
 #: includes/social-publication.php:741
 msgid "No tienes permisos para cancelar campañas sociales."
-msgstr ""
+msgstr "No tienes permisos para cancelar campañas sociales."
 
 #: includes/social-publication.php:822
 msgid "Campañas:"
-msgstr ""
+msgstr "Campañas:"
 
 #: includes/social-publication.php:822
 msgid "el modulo TaxoCommerce Campaigns no esta disponible."
-msgstr ""
+msgstr "El módulo TaxoCommerce Campaigns no está disponible."
 
 #: includes/social-publication.php:847
 msgid ""
 "Activa TaxoCommerce Social para programar y publicar ofertas en redes. El "
 "calendario comercial y los banners públicos siguen funcionando sin Social."
-msgstr ""
+msgstr "Activa TaxoCommerce Social para programar y publicar ofertas en redes. El calendario comercial y los banners públicos siguen funcionando sin Social."
 
 #: includes/social-publication.php:860
 msgid "Campañas de Marketing"
-msgstr ""
+msgstr "Campañas de marketing"
 
 #: includes/social-publication.php:860
 msgid "Lee directamente"
-msgstr ""
+msgstr "Lee directamente"
 
 #: includes/social-publication.php:860
 msgid ". Las ofertas se programan a la"
-msgstr ""
+msgstr ". Las ofertas se programan a la"
 
 #: includes/social-publication.php:860
 msgid "hora comercial configurada"
-msgstr ""
+msgstr "hora comercial configurada"
 
 #: includes/social-publication.php:860
 msgid ""
 "y pueden convivir el mismo día con entradas o landings. Solo se evita "
 "duplicar dos ofertas de campaña el mismo día en una misma red."
-msgstr ""
+msgstr "y pueden convivir el mismo día con entradas o landings. Solo se evita duplicar dos ofertas de campaña el mismo día en una misma red."
 
 #: includes/social-publication.php:860
 msgid "Fuente: Campaigns"
-msgstr ""
+msgstr "Fuente: Campaigns"
 
 #: includes/social-publication.php:863
 msgid ""
 "No hay campañas habilitadas actuales o futuras con productos disponibles."
-msgstr ""
+msgstr "No hay campañas habilitadas actuales o futuras con productos disponibles."
 
 #: includes/social-publication.php:867
 msgid "Conecta al menos una red social para programar productos de campaña."
-msgstr ""
+msgstr "Conecta al menos una red social para programar productos de campaña."
 
 #: includes/social-publication.php:890
 msgid "Redes"
-msgstr ""
+msgstr "Redes"
 
 #: includes/social-publication.php:898
 msgid "Max. productos por red"
-msgstr ""
+msgstr "Max. productos por red"
 
 #: includes/social-publication.php:898
 msgid "Se programa como máximo una oferta por día y red."
-msgstr ""
+msgstr "Se programa como máximo una oferta por día y red."
 
 #: includes/social-publication.php:902
 msgid ""
@@ -336,36 +336,37 @@ msgid ""
 "otra oferta de campaña ese día en la misma red, se utiliza el siguiente día "
 "disponible. La creatividad usa la foto real del producto: Media local o "
 "imagen externa activa del proveedor sin importarla a Media."
-msgstr ""
+msgstr "No mueve ni reprograma contenido editorial existente. Si una entrada sale por la mañana y una oferta a las 18:00, ambas se mantienen. Si ya existe otra oferta de campaña ese día en la misma red, se utiliza el siguiente día disponible. La creatividad usa la foto real del producto: Media local o imagen externa activa del proveedor sin importarla a Media."
 
 #: includes/social-publication.php:906
 msgid "Vista previa de plantilla"
-msgstr ""
+msgstr "Vista previa de plantilla"
 
 #: includes/social-publication.php:927
 msgid "Campañas ya insertadas en la agenda"
-msgstr ""
+msgstr "Campañas ya insertadas en la agenda"
 
 #: includes/social-publication.php:929
 msgid "Todavia no hay productos de campaña programados."
-msgstr ""
+msgstr "Todavía no hay productos de campaña programados."
 
 #: includes/social-publication.php:931
 msgid "Fecha"
-msgstr ""
+msgstr "Fecha"
 
 #: includes/social-publication.php:931
 msgid "Campaña"
-msgstr ""
+msgstr "Campaña"
 
 #: includes/social-publication.php:931
 msgid "Red"
-msgstr ""
+msgstr "Red"
 
 #: includes/social-publication.php:931
 msgid "Accion"
-msgstr ""
+msgstr "Accion"
 
 #: includes/social-publication.php:939
 msgid "Cancelar"
-msgstr ""
+msgstr "Cancelar"
+
