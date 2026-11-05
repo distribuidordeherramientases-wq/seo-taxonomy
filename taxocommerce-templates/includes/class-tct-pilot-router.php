@@ -73,7 +73,7 @@ final class TCT_Pilot_Router {
                 "SELECT target_id FROM %i
                  WHERE source_type = 'landing' AND source_id = %d
                    AND target_type = 'product_cat'
-                   AND relation_type = 'landing_to_category'", $id
+                   AND relation_type = 'landing_to_category'", $relations, $id
             ));
             if (!$term_ids) {
                 return '';
