@@ -56,9 +56,9 @@ foreach ( $cases as $relative => $expected ) {
 }
 $plugin = file_get_contents( $root . '/taxocommerce-templates.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
-if ( false === strpos( $plugin, 'Version: 0.4.14' ) ||
-    false === strpos( $plugin, "define('TCT_VERSION','0.4.14');" ) ||
-    false === strpos( $readme, 'Stable tag: 0.4.14' ) ) {
+if ( false === strpos( $plugin, 'Version: 0.4.15' ) ||
+    false === strpos( $plugin, "define('TCT_VERSION','0.4.15');" ) ||
+    false === strpos( $readme, 'Stable tag: 0.4.15' ) ) {
     fwrite( STDERR, "FAIL inconsistent Templates version\n" );
     exit( 1 );
 }
