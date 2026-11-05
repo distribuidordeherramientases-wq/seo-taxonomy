@@ -261,12 +261,13 @@ if (!function_exists('dht_blog_v2_post_image')) {
         $related_term_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
-                 FROM {$wpdb->prefix}seo_relations
+                 FROM %i
                  WHERE source_type = 'post'
                    AND source_id = %d
                    AND target_type = 'product_cat'
                    AND relation_type = 'post_to_category'
                  ORDER BY id ASC",
+                $wpdb->prefix . 'seo_relations',
                 $post_id
             )
         );

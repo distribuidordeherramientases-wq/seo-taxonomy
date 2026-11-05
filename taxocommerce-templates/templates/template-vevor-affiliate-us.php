@@ -115,13 +115,13 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
                     nombre, descripcion, categoria_proveedor, precio_con_iva,
                     moneda, imagenes, estado_seleccion, estado_sincronizacion,
                     object_id, actualizado
-                FROM {$table}
+                FROM %i
                 WHERE " . implode(' AND ', $where) . "
                   AND (url_canonica IS NOT NULL OR url_origen IS NOT NULL)
                 ORDER BY actualizado DESC, id DESC
                 LIMIT 80";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y placeholders se generan internamente; valores enlazados mediante $wpdb->prepare().
-        $sql = $wpdb->prepare($sql, ...$args);
+        $sql = $wpdb->prepare($sql, ...array_merge(array($table), $args));
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $candidates = $wpdb->get_results($sql, ARRAY_A);
 

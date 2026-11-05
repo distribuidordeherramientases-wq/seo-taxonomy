@@ -1458,12 +1458,13 @@ if (!function_exists('dht_template_node_category_ids')) {
 
         $ids = $wpdb->get_col($wpdb->prepare(
             "SELECT target_id
-             FROM {$table}
+             FROM %i
              WHERE source_type = %s
                AND source_id = %d
                AND target_type = 'product_cat'
              ORDER BY id ASC
              LIMIT %d",
+            $table,
             sanitize_key($source_type),
             $source_id,
             $limit
