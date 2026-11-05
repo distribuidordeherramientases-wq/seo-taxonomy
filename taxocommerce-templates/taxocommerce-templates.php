@@ -295,9 +295,9 @@ final class TaxoCommerce_Templates {
 
     public static function render_policy_control() {
         $enabled = self::policies_enabled();
-        echo '<section class="tct-policy-control" aria-label="Aplicación de políticas de plantillas">';
+        echo '<section class="tct-policy-control" aria-label="' . esc_attr__( 'Aplicación de políticas de plantillas', 'taxocommerce-templates' ) . '">';
         echo '<h2>' . esc_html__( 'Aplicación de políticas', 'taxocommerce-templates' ) . '</h2>';
-        echo '<p><strong>Estado: ' . esc_html($enabled ? 'Aplicando las políticas de Templates' : 'Políticas suspendidas') . '</strong></p>';
+        echo '<p><strong>' . esc_html__( 'Estado:', 'taxocommerce-templates' ) . ' ' . esc_html( $enabled ? __( 'Aplicando las políticas de Templates', 'taxocommerce-templates' ) : __( 'Políticas suspendidas', 'taxocommerce-templates' ) ) . '</strong></p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         wp_nonce_field('tct_settings');
         echo '<input type="hidden" name="action" value="tct_settings">';
@@ -306,7 +306,7 @@ final class TaxoCommerce_Templates {
         echo '<p class="description">' . esc_html__( 'Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no sustituye páginas, productos, categorías, comentarios, fragmentos WooCommerce ni correos. WordPress y los demás plugins recuperan el control.', 'taxocommerce-templates' ) . '</p>';
         echo '<p class="description">' . '<strong>' . esc_html__( 'Protección al actualizar:', 'taxocommerce-templates' ) . '</strong>' . ' ' . esc_html__( 'tras instalar esta versión las políticas permanecen suspendidas, incluso si una versión anterior tenía el enrutador activo. Solo se habilitan cuando marcas esta casilla y guardas expresamente.', 'taxocommerce-templates' ) . '</p>';
         echo '<p class="description">' . esc_html__( 'Marcada: las rutas configuradas pueden aplicarse según sus prioridades, mercados y reglas. No activa automáticamente plantillas que sigan como borrador.', 'taxocommerce-templates' ) . '</p>';
-        submit_button('Guardar estado de las políticas', 'secondary', 'submit', false);
+        submit_button( __( 'Guardar estado de las políticas', 'taxocommerce-templates' ), 'secondary', 'submit', false );
         echo '</form></section>';
     }
     public static function available_files() {
@@ -430,9 +430,9 @@ final class TaxoCommerce_Templates {
         $main_tab = in_array($tab, array('autocheck','manual'), true) ? $tab : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Templates', 'taxocommerce-templates' ) . '</h1>' . '<nav class="nav-tab-wrapper">';
         foreach (array(
-            'routing'  => 'Enrutamiento',
-            'designer' => 'Diseñador de plantillas',
-            'autocheck' => 'Autocheck',
+            'routing'  => __( 'Enrutamiento', 'taxocommerce-templates' ),
+            'designer' => __( 'Diseñador de plantillas', 'taxocommerce-templates' ),
+            'autocheck' => __( 'Autocheck', 'taxocommerce-templates' ),
             'manual' => __( 'Manual', 'taxocommerce-templates' ),
         ) as $key => $label) {
             echo '<a class="nav-tab ' . ($key === $main_tab ? 'nav-tab-active' : '') . '" href="' .

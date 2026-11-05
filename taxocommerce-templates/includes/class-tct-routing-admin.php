@@ -266,13 +266,13 @@ final class TCT_Routing_Admin {
 
         echo '<div class="wrap tct-routing-admin">';
         echo '<h2>' . esc_html__( 'Enrutamiento de plantillas', 'taxocommerce-templates' ) . '</h2>';
-        echo '<p>Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en <code>seo_templates</code>, sin modificar archivos PHP.</p>';
+        echo '<p>' . esc_html__( 'Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en seo_templates, sin modificar archivos PHP.', 'taxocommerce-templates' ) . '</p>';
         echo '<div class="notice notice-' . ( $enabled ? 'success' : 'warning' ) . ' inline"><p><strong>';
-        echo $enabled ? 'Enrutador TaxoCommerce habilitado.' : 'Enrutador TaxoCommerce desactivado.';
+        echo esc_html( $enabled ? __( 'Enrutador TaxoCommerce habilitado.', 'taxocommerce-templates' ) : __( 'Enrutador TaxoCommerce desactivado.', 'taxocommerce-templates' ) );
         echo '</strong> ';
         echo $enabled
-            ? 'Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada.'
-            : 'Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado.';
+            ? esc_html__( 'Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada.', 'taxocommerce-templates' )
+            : esc_html__( 'Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado.', 'taxocommerce-templates' );
         echo '</p></div>';
         if ( ! $installed ) {
             echo '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'Las tablas de plantillas no están disponibles; no se pueden guardar asociaciones. El interruptor superior sigue funcionando.', 'taxocommerce-templates' ) . '</p>' . '</div>';
@@ -287,11 +287,11 @@ final class TCT_Routing_Admin {
             }
         }
         $pending_count = count( $pending_items );
-        echo '<nav class="tct-routing-views" aria-label="Vista de enrutamiento">';
+        echo '<nav class="tct-routing-views" aria-label="' . esc_attr__( 'Vista de enrutamiento', 'taxocommerce-templates' ) . '">';
         foreach ( array(
-            'managed' => 'Mis plantillas (' . $managed_count . ')',
-            'pending' => 'Por configurar (' . $pending_count . ')',
-            'all' => 'Todas' . ( 'all' === $view ? ' (' . count( $items ) . ')' : '' ),
+            'managed' => __( 'Mis plantillas', 'taxocommerce-templates' ) . ' (' . $managed_count . ')',
+            'pending' => __( 'Por configurar', 'taxocommerce-templates' ) . ' (' . $pending_count . ')',
+            'all' => __( 'Todas', 'taxocommerce-templates' ) . ( 'all' === $view ? ' (' . count( $items ) . ')' : '' ),
         ) as $code => $label ) {
             $url = TCT_Request_Admin::admin_url( 'routing', array(
                 'tct_view' => $code,
@@ -303,10 +303,10 @@ final class TCT_Routing_Admin {
         }
         echo '</nav>';
         echo '<p class="description">' . esc_html( 'managed' === $view
-            ? 'Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible.'
+            ? __( 'Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible.', 'taxocommerce-templates' )
             : ( 'pending' === $view
-                ? 'Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas».'
-                : 'Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas.' ) ) . '</p>';
+                ? __( 'Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas».', 'taxocommerce-templates' )
+                : __( 'Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas.', 'taxocommerce-templates' ) ) ) . '</p>';
 
         echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" class="tct-routing-filters">';
         echo '<input type="hidden" name="page" value="taxocommerce-templates"><input type="hidden" name="tab" value="routing">';
@@ -316,8 +316,8 @@ final class TCT_Routing_Admin {
             echo '<option value="' . esc_attr( $code ) . '" ' . selected( $group, $code, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select>' . '<label for="tct-routing-search">' . esc_html__( 'Buscar', 'taxocommerce-templates' ) . '</label>';
-        echo '<input id="tct-routing-search" name="tct_search" type="search" value="' . esc_attr( $search ) . '" placeholder="Rol, petición o archivo">';
-        submit_button( 'Filtrar', 'secondary', 'submit', false );
+        echo '<input id="tct-routing-search" name="tct_search" type="search" value="' . esc_attr( $search ) . '" placeholder="' . esc_attr__( 'Rol, petición o archivo', 'taxocommerce-templates' ) . '">';
+        submit_button( __( 'Filtrar', 'taxocommerce-templates' ), 'secondary', 'submit', false );
         echo '</form>';
         $design_count = 0;
         if ( 'pending' !== $view ) {
@@ -331,7 +331,7 @@ final class TCT_Routing_Admin {
             }
         }
         echo '<p><strong>' . (int) ( $total + $design_count ) . '</strong> ' . esc_html(
-            'managed' === $view ? 'plantillas y rutas propias' : ( 'pending' === $view ? 'tipos pendientes' : 'opciones y plantillas' )
+            'managed' === $view ? __( 'plantillas y rutas propias', 'taxocommerce-templates' ) : ( 'pending' === $view ? __( 'tipos pendientes', 'taxocommerce-templates' ) : __( 'opciones y plantillas', 'taxocommerce-templates' ) )
         ) . '. <a href="' . esc_url( TCT_Request_Admin::admin_url( 'designer' ) ) .
             '">Ir al Diseñador de plantillas</a></p>';
         TCT_Designs::render_routes( $view, $items, $search, $group );
@@ -342,7 +342,7 @@ final class TCT_Routing_Admin {
         }
 
         if ( $total ) {
-        echo '<h3>' . esc_html( 'managed' === $view ? 'Rutas heredadas existentes' : 'Catálogo de peticiones' ) . '</h3>';
+        echo '<h3>' . esc_html( 'managed' === $view ? __( 'Rutas heredadas existentes', 'taxocommerce-templates' ) : __( 'Catálogo de peticiones', 'taxocommerce-templates' ) ) . '</h3>';
         echo '<div class="tct-routing-scroll"><table class="widefat striped tct-routing-table"><thead><tr>';
         echo '<th>' . esc_html__( 'Petición WordPress / WooCommerce', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Rol SEO', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Archivo / plantilla', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Estado y origen', 'taxocommerce-templates' ) . '</th>' . '<th>' . esc_html__( 'Diseñador', 'taxocommerce-templates' ) . '</th>';
         echo '</tr></thead><tbody>';
