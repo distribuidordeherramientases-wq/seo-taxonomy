@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.15
+ * Version: 0.4.16
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.15');
+define('TCT_VERSION','0.4.16');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -519,7 +519,7 @@ final class TaxoCommerce_Templates {
                 echo '<option value="' . esc_attr($file) . '" ' . selected($file,$row->template_file,false) . '>' . esc_html($file) . '</option>';
             }
             echo '</select> ';
-            submit_button('Asociar archivo','secondary','submit',false);
+            submit_button( __( 'Asociar archivo', 'taxocommerce-templates' ),'secondary','submit',false);
             echo '</form>';
             if ('email' !== $row->template_type) {
                 $mobile = TCT_Router::plan($row,'mobile');
@@ -552,7 +552,7 @@ final class TaxoCommerce_Templates {
                     echo '<input type="hidden" name="template_key" value="' . esc_attr($key) . '">';
                     echo '<input type="hidden" name="page_id" value="' . (int)$id . '">';
                     echo esc_html(get_the_title($id)) . ' <code>#' . (int)$id . '</code> ';
-                    submit_button('Desasignar','secondary','submit',false);
+                    submit_button( __( 'Desasignar', 'taxocommerce-templates' ),'secondary','submit',false);
                     echo '</form>';
                 }
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -566,7 +566,7 @@ final class TaxoCommerce_Templates {
                     echo '<option value="' . esc_attr($id) . '">' . esc_html(get_the_title($id)) . ' (#' . esc_html($id) . ')</option>';
                 }
                 echo '</select> ';
-                submit_button('Asignar pagina','secondary','submit',false);
+                submit_button( __( 'Asignar pagina', 'taxocommerce-templates' ),'secondary','submit',false);
                 echo '</form>';
             }
             echo '</section>';
@@ -575,7 +575,7 @@ final class TaxoCommerce_Templates {
         echo '<h2>Crear un rol adicional</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
         wp_nonce_field('tct_save_role');
         echo '<input type="hidden" name="action" value="tct_save_role"><input name="role" placeholder="clave_rol" required> <input name="name" placeholder="Nombre del rol" required> ';
-        submit_button('Crear rol','secondary','submit',false);
+        submit_button( __( 'Crear rol', 'taxocommerce-templates' ),'secondary','submit',false);
         echo '</form>';
         if (!$embedded) {
             echo '</div>';

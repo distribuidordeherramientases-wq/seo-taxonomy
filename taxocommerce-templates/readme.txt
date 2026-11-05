@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.15
+Stable tag: 0.4.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,9 @@ Open the Manual tab in Templates to read two integrated guides without executing
 Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
 
 == Changelog ==
+
+= 0.4.16 =
+* Fix English/Spanish admin localization and compiled gettext catalogs; preserve Core-style loading on init.
 
 = 0.4.15 =
 * Second partial Plugin Check remediation: prepared role and audit SQL identifiers, scalar guards for admin input. Remaining warnings and WordPress.org editor blocker still pending.
