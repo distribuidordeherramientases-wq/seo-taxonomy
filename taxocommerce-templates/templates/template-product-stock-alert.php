@@ -55,12 +55,12 @@ if (!function_exists('dht_supplier_product_stock_state')) {
         $raw_states = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT stock_estado
-                 FROM {$table}
+                 FROM %i
                  WHERE object_id = %d
                    AND estado_seleccion = 'aceptado'
                    AND stock_estado IS NOT NULL
                    AND TRIM(stock_estado) <> ''",
-                $product_id
+                $table, $product_id
             )
         );
 
