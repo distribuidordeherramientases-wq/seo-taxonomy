@@ -171,8 +171,7 @@ final class TaxoCommerce_Templates {
         wp_safe_redirect(add_query_arg(array('page'=>'taxocommerce-templates','tct_notice'=>$notice),admin_url('admin.php')));exit;
     }
     public static function page_role($id) {
-        global $wpdb;$table=self::nodes();
-        return (string)$wpdb->get_var($wpdb->prepare("SELECT seo_role FROM %i WHERE object_type='page' AND object_id=%d AND status=1 ORDER BY id DESC LIMIT 1",$table,absint($id)));
+        return TCT_Request_Registry::role_for_object( 'page', absint( $id ) );
     }
     public static function set_role($id,$role) {
         global $wpdb;$id=absint($id);$role=sanitize_key($role);
@@ -196,6 +195,8 @@ final class TaxoCommerce_Templates {
         }
         if(false===$disabled||!$saved){$wpdb->query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
         $wpdb->query('COMMIT');
+        // A new role must be visible immediately to the active template resolver.
+        wp_cache_delete( 'role_page_' . $id, 'taxocommerce_templates' );
         if($role) update_post_meta($id,'_taxocommerce_seo_role',$role);
         else delete_post_meta($id,'_taxocommerce_seo_role');
         return true;
