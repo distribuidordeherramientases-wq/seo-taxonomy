@@ -267,15 +267,19 @@ final class TCV_Classifier {
                 continue;
             }
             $candidates = self::vocabulary_candidates( $group, $ctx );
-            if ( empty( $candidates ) ) {
+            if ( ! $candidates || (float) $candidates[0]['score'] < 0.52 ) {
+                // Legacy discovery is review-only. It does not insert terms
+                // into WooCommerce or the canonical vocabulary.
+                $new_term = TCV_Extractor::discover( $group, $ctx, $candidates );
+                if ( $new_term ) {
+                    $result['labels'][] = $new_term;
+                    self::persist_proposal( $product_id, $group, $new_term );
+                }
                 continue;
             }
             $top = $candidates[0];
             $second = isset( $candidates[1] ) ? (float) $candidates[1]['score'] : 0.0;
             $state = ( $top['score'] >= 0.82 && ( $top['score'] - $second ) >= 0.12 ) ? 'safe' : 'review';
-            if ( $top['score'] < 0.52 ) {
-                continue;
-            }
             $proposal = array( 'group' => $group, 'vocabulary_id' => absint( $top['id'] ), 'label' => $top['label'], 'confidence' => (float) $top['score'], 'state' => $state, 'evidence' => $candidates );
             $result['labels'][] = $proposal;
             self::persist_proposal( $product_id, $group, $proposal );
