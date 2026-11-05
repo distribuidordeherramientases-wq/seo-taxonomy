@@ -117,7 +117,8 @@ if (!function_exists('dht_us_stock_alert_feedback')) {
             return $feedback;
         }
 
-        if (isset($_GET['stock_alert']) && sanitize_key(wp_unslash($_GET['stock_alert'])) === 'sent') {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public filter or notice; does not modify data.
+        if (isset($_GET['stock_alert']) && is_string($_GET['stock_alert']) && sanitize_key(wp_unslash($_GET['stock_alert'])) === 'sent') {
             return array(
                 'type' => 'success',
                 'message' => 'Request received. We will contact you when this product is available again.',
