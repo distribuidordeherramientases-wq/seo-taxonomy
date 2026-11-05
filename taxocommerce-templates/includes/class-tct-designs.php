@@ -175,6 +175,7 @@ final class TCT_Designs {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             $raw = isset( $_POST['layout_' . $device] ) && is_string( $_POST['layout_' . $device] )
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded then validated and sanitized by normalize_layout() before persistence.
                 ? wp_unslash( $_POST['layout_' . $device] ) : '';
             $data = strlen( $raw ) < 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
