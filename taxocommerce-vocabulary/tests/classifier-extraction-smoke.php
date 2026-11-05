@@ -10,6 +10,7 @@ function remove_accents( $s ) {
 }
 function absint( $v ) { return abs( (int) $v ); }
 function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $v ) ); }
+function sanitize_text_field( $v ) { return strip_tags( trim( (string) $v ) ); }
 function tcv_extract_assert( $ok, $reason ) {
     if ( ! $ok ) {
         fwrite( STDERR, 'FAIL Vocabulary extractor: ' . $reason . "\n" );
@@ -71,6 +72,16 @@ $unknown = TCV_Extractor::numeric(
 );
 tcv_extract_assert( null === $unknown, 'never infer a load limit without evidence' );
 tcv_extract_assert( 0.0 === TCV_Extractor::score( 'taladro', TCV_Extractor::context( array() ) )['score'], 'no false positives on an empty site' );
+
+$new_type = TCV_Extractor::discover( 'tipo', TCV_Extractor::context( array(
+    'title' => 'Bosch Taladro percutor 18 V con broca', 'brands' => 'Bosch',
+) ) );
+tcv_extract_assert( 'Taladro percutor' === $new_type['label'] && ! empty( $new_type['new_term'] ), 'missing canonical type is proposed conservatively for review' );
+tcv_extract_assert( 'review' === $new_type['state'] && 0 === $new_type['vocabulary_id'], 'new canonical terms are not automatically assigned' );
+tcv_extract_assert( null === TCV_Extractor::discover( 'tipo', TCV_Extractor::context( array(
+    'title' => 'Taladro percutor 18 V',
+) ), array( array( 'label' => 'Taladro percutor' ) ) ), 'never duplicate an existing canonical concept' );
+tcv_extract_assert( null === TCV_Extractor::discover( 'tipo', TCV_Extractor::context( array() ) ), 'empty product never receives a fabricated type' );
 
 $plugin = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-vocabulary.php' );
 $bridge = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcv-classifier.php' );
