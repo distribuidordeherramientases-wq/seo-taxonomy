@@ -196,9 +196,6 @@ msgstr "9. Autotest and troubleshooting"
 msgid "<code>PAGE</code> identifica exclusivamente al plugin independiente; conservar slugs y nonces."
 msgstr "PAGE identifies the standalone plugin; preserve slugs and nonces."
 
-msgid "<code>TCSUP_Admin</code>"
-msgstr "TCSUP_Admin"
-
 msgid "<code>TCSUP_Admin</code>: menú, pestañas, filtros, formularios, márgenes y avisos."
 msgstr "TCSUP_Admin: menu, tabs, filters, forms, margins and notices."
 
@@ -211,9 +208,6 @@ msgstr "TCSUP_Autotest: local checks on demand."
 msgid "<code>TCSUP_CSV::handle_analyze()</code> valida el fichero, lo almacena en uploads, detecta delimitador y guarda el estado por usuario. <code>handle_import()</code> comprueba sesión/plantilla, valida columnas obligatorias, sanea datos y recorre las filas. Los métodos <code>fields()</code> y <code>builtin_templates()</code> definen el contrato canónico."
 msgstr "<code>TCSUP_CSV::handle_analyze()</code> validates and stores the uploaded file, detects its delimiter and saves per-user analysis state. <code>handle_import()</code> checks the session and template, validates mandatory columns, sanitizes data and iterates rows. <code>fields()</code> and <code>builtin_templates()</code> define the canonical contract."
 
-msgid "<code>TCSUP_CSV</code>"
-msgstr "TCSUP_CSV"
-
 msgid "<code>TCSUP_CSV</code>: campos, plantillas, análisis, transformación, importación, descarga canónica."
 msgstr "TCSUP_CSV: fields, templates, analysis, transformations, import and standard downloads."
 
@@ -222,9 +216,6 @@ msgstr "TCSUP_Manual: these guides."
 
 msgid "<code>TCSUP_Products::accept()</code> obtiene la fila y adquiere un lock MySQL con <code>GET_LOCK</code> antes de delegar a <code>accept_unlocked()</code>; se libera con <code>RELEASE_LOCK</code>. <code>existing_product()</code> busca por <code>object_id</code>, metadatos de vínculo y, cuando es seguro, SKU. Para VEVOR con país no debe reutilizarse un producto solo por SKU; el SKU interno nuevo se forma como <code>vevor-{country}-row-{id}</code>."
 msgstr "<code>TCSUP_Products::accept()</code> fetches a row and obtains a MySQL <code>GET_LOCK</code> before delegating to <code>accept_unlocked()</code>; <code>RELEASE_LOCK</code> releases it. <code>existing_product()</code> matches by object ID, linkage metadata and safe SKU matches. Country-specific VEVOR products must not be merged by SKU alone; a new internal SKU follows <code>vevor-{country}-row-{id}</code>."
-
-msgid "<code>TCSUP_Products</code>"
-msgstr "TCSUP_Products"
 
 msgid "<code>TCSUP_Products</code>: aceptación, WooCommerce, marcas, costes e imágenes."
 msgstr "TCSUP_Products: acceptance, WooCommerce, brands, costs and images."
@@ -238,68 +229,11 @@ msgstr "TCSUP_Purchasing: sales and linked supplier lookup."
 msgid "<code>TCSUP_Schema</code>: esquema y actualización mediante <code>dbDelta()</code>."
 msgstr "TCSUP_Schema: schema and dbDelta() updates."
 
-msgid "<code>assets/admin.css</code>, <code>tests/smoke.php</code>"
-msgstr "assets/admin.css, tests/smoke.php"
-
-msgid "<code>includes/class-tcsup-admin.php</code>"
-msgstr "includes/class-tcsup-admin.php"
-
-msgid "<code>includes/class-tcsup-autotest.php</code>"
-msgstr "includes/class-tcsup-autotest.php"
-
-msgid "<code>includes/class-tcsup-csv.php</code>"
-msgstr "includes/class-tcsup-csv.php"
-
-msgid "<code>includes/class-tcsup-manual.php</code>"
-msgstr "includes/class-tcsup-manual.php"
-
-msgid "<code>includes/class-tcsup-products.php</code>"
-msgstr "includes/class-tcsup-products.php"
-
-msgid "<code>includes/class-tcsup-purchasing.php</code>"
-msgstr "includes/class-tcsup-purchasing.php"
-
-msgid "<code>includes/class-tcsup-schema.php</code>"
-msgstr "includes/class-tcsup-schema.php"
-
 msgid "<code>row_hash()</code> y <code>changed_fields()</code> permiten identificar cambios. Las filas existentes conservan su identidad y se actualizan; las nuevas entran con <code>estado_seleccion=pendiente</code>. En conflictos de SKU/ID, el código puede marcar <code>revisar</code> y <code>conflicto</code>. Toda modificación del importador requiere casos de prueba de reimportación, duplicación y países."
 msgstr "<code>row_hash()</code> and <code>changed_fields()</code> detect changes. Existing rows retain identity and are updated; new rows enter with <code>estado_seleccion=pendiente</code>. SKU/ID conflicts can mark a row for review. Importer modifications require regression tests for reimports, duplicates and different countries."
 
-msgid "<code>taxocommerce-suppliers.php</code>"
-msgstr "taxocommerce-suppliers.php"
-
-msgid "<code>taxocommerce_suppliers_csv_templates</code>"
-msgstr "taxocommerce_suppliers_csv_templates"
-
-msgid "<code>taxocommerce_suppliers_db_version</code>"
-msgstr "taxocommerce_suppliers_db_version"
-
 msgid "<code>taxocommerce_suppliers_get_sources( $product_id )</code> devuelve filas del catálogo proveedor asociadas al producto; <code>taxocommerce_suppliers_get_external_images( $product_id )</code> devuelve referencias de imágenes activas. Comprobar <code>function_exists()</code> antes de usar estas funciones desde módulos opcionales; no asumir que las imágenes son adjuntos locales."
 msgstr "<code>taxocommerce_suppliers_get_sources( $product_id )</code> returns catalogue rows linked to a product; <code>taxocommerce_suppliers_get_external_images( $product_id )</code> returns active image references. Check <code>function_exists()</code> in optional modules and do not assume images are local attachments."
-
-msgid "<code>taxocommerce_suppliers_sale_margin</code> y <code>taxocommerce_suppliers_regular_margin</code>"
-msgstr "taxocommerce_suppliers_sale_margin and taxocommerce_suppliers_regular_margin"
-
-msgid "<code>tcsup_analyze_csv</code>, <code>tcsup_import_csv</code>"
-msgstr "tcsup_analyze_csv, tcsup_import_csv"
-
-msgid "<code>tcsup_csv_{user_id}</code>"
-msgstr "tcsup_csv_{user_id}"
-
-msgid "<code>tcsup_price_update</code>, <code>tcsup_images_update</code>"
-msgstr "tcsup_price_update, tcsup_images_update"
-
-msgid "<code>tcsup_row_action</code>, <code>tcsup_bulk_action</code>"
-msgstr "tcsup_row_action, tcsup_bulk_action"
-
-msgid "<code>tcsup_save_template</code>, <code>tcsup_delete_template</code>, <code>tcsup_download_template</code>"
-msgstr "tcsup_save_template, tcsup_delete_template, tcsup_download_template"
-
-msgid "<code>tcsup_settings</code>"
-msgstr "tcsup_settings"
-
-msgid "<code>wp-content/uploads/taxocommerce-suppliers/originals/</code>"
-msgstr "wp-content/uploads/taxocommerce-suppliers/originals/"
 
 msgid "<code>{$wpdb->prefix}seo_proveedores_productos</code> (nombre lógico; prefijo real del sitio calculado por <code>TCSUP_Schema::catalog_table()</code>). Conserva <code>proveedor</code>, <code>proveedor_id_externo</code>, <code>sku</code>, <code>source_row_key</code>, <code>pais_origen</code>, nombre, marca, categoría de origen, precios, impuestos, moneda, stock, imágenes, <code>object_id</code>, hashes, estados y fechas de importación/sincronización."
 msgstr "<code>{$wpdb->prefix}seo_proveedores_productos</code> is the logical table name (the actual site prefix comes from <code>TCSUP_Schema::catalog_table()</code>). It stores supplier, external ID, SKU, source row key, origin country, name, brand, source category, prices, taxes, currency, stock, images, object ID, hashes, selection/sync states and timestamps."
@@ -1476,3 +1410,127 @@ msgstr "Documentation index"
 
 msgid "— Do not import —"
 msgstr "— Do not import —"
+
+
+msgid "Sistema"
+msgstr "System"
+
+msgid "Plugin y versión"
+msgstr "Plugin and version"
+
+msgid "Constante de versión ausente."
+msgstr "Plugin version constant is missing."
+
+msgid "API de pedidos y productos disponible."
+msgstr "Order and product APIs are available."
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr "WooCommerce is unavailable for products or purchasing."
+
+msgid "Clases del plugin"
+msgstr "Plugin classes"
+
+msgid "Faltan: "
+msgstr "Missing: "
+
+msgid "Todos los componentes principales están cargados."
+msgstr "All main components are loaded."
+
+msgid "Administración"
+msgstr "Administration"
+
+msgid "Controladores registrados"
+msgstr "Registered handlers"
+
+msgid "No registrados: "
+msgstr "Not registered: "
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr "All 10 handlers are registered; none has been executed."
+
+msgid "Servicios"
+msgstr "Services"
+
+msgid "Funciones públicas"
+msgstr "Public functions"
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr "Supplier source and image lookup (without running operations)."
+
+msgid "Configuración"
+msgstr "Configuration"
+
+msgid "Plantillas CSV personalizadas"
+msgstr "Custom CSV templates"
+
+msgid "Estructura válida; "
+msgstr "Valid structure; "
+
+msgid " plantillas almacenadas."
+msgstr " templates stored."
+
+msgid "La opción no contiene un array."
+msgstr "The option does not contain an array."
+
+msgid "Formatos CSV genéricos"
+msgstr "Generic CSV formats"
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr "Only two generic import formats, with no preloaded supplier templates."
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr "Preloaded supplier profiles were detected."
+
+msgid "Margen de venta"
+msgstr "Sale margin"
+
+msgid "Margen regular"
+msgstr "Regular margin"
+
+msgid "Valor numérico guardado."
+msgstr "Numeric value saved."
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr "Option missing or not numeric; review settings."
+
+msgid "Persistencia"
+msgstr "Data persistence"
+
+msgid "Versión del esquema"
+msgstr "Schema version"
+
+msgid "Versión guardada: "
+msgstr "Saved version: "
+
+msgid "sin registrar"
+msgstr "not registered"
+
+msgid ". No se ejecutan migraciones."
+msgstr ". No migrations are run."
+
+msgid "Base de datos"
+msgstr "Database"
+
+msgid "Conexión o esquema no disponibles."
+msgstr "Database connection or schema is unavailable."
+
+msgid "Catálogo intermedio"
+msgstr "Intermediate catalogue"
+
+msgid "Imágenes externas"
+msgstr "External images"
+
+msgid "No se encuentra la tabla "
+msgstr "Table not found: "
+
+msgid "Columnas ausentes: "
+msgstr "Missing columns: "
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr "Table and required columns are available."
+
+msgid "Consulta de estados"
+msgstr "Order status lookup"
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr "Status filter loaded; no orders are queried or modified."
