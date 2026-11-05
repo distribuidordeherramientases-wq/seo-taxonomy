@@ -1,3 +1,7 @@
+## [0.4.16] — 2026-11-05
+
+- Traducciones nativas EN/ES de cabeceras, políticas, pestañas y enrutamiento; catálogos MO completos y validados; sin cambios de configuración ni plantillas públicas.
+
 ## [0.4.15] — 2026-11-05
 
 - Segundo lote parcial de avisos #2189: identificadores SQL con `%i` en las asignaciones de página, relaciones jerárquicas, ejemplos de auditoría y catálogo de roles; defensas para entradas de administración no escalares y comprobación del tipo del nonce en el metabox.
