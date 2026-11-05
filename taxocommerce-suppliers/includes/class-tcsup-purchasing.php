@@ -181,7 +181,7 @@ final class TCSUP_Purchasing {
 
 	public static function render() {
 		if ( ! class_exists( 'WooCommerce' ) || ! function_exists( 'wc_get_orders' ) ) {
-			echo '<section class="tcsup-card">' . '<div class="notice notice-error inline">' . '<p><?php esc_html_e( '\' . esc_html__( \'WooCommerce must be active to resolve sales into supplier purchases.\', \'taxocommerce-suppliers\' ) . \'', 'taxocommerce-suppliers' ); ?></p>' . '</div>' . '</section>';
+			echo '<section class="tcsup-card">' . '<div class="notice notice-error inline">' . '<p>' . esc_html__( 'WooCommerce must be active to resolve sales into supplier purchases.', 'taxocommerce-suppliers' ) . '</p>' . '</div>' . '</section>';
 			return;
 		}
 
@@ -202,7 +202,7 @@ final class TCSUP_Purchasing {
 			<div class="tcsup-card-head">
 				<div>
 					<h2><?php esc_html_e( 'Purchasing', 'taxocommerce-suppliers' ); ?></h2>
-					<p><?php esc_html_e( 'Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics.', 'taxocommerce-suppliers' ); ?></p>
+					<p>Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics.</p>
 				</div>
 			</div>
 
@@ -214,7 +214,7 @@ final class TCSUP_Purchasing {
 			</div>
 
 			<?php if ( empty( $dataset['lines'] ) ) : ?>
-				<div class="notice notice-info inline"><p><?php esc_html_e( 'There are no pending, on-hold, or processing WooCommerce order lines to purchase.', 'taxocommerce-suppliers' ); ?></p></div>
+				<div class="notice notice-info inline"><p>There are no pending, on-hold, or processing WooCommerce order lines to purchase.</p></div>
 			<?php else : ?>
 				<div class="tcsup-scroll">
 					<table class="widefat striped">
@@ -272,7 +272,7 @@ final class TCSUP_Purchasing {
 											<a class="button" href="<?php echo esc_url( self::inventory_url( $source ) ); ?>">Supplier row</a>
 										</td>
 									<?php else : ?>
-										<td colspan="5"><strong><?php esc_html_e( 'No supplier source linked.', 'taxocommerce-suppliers' ); ?></strong> <a class="button" href="<?php echo esc_url( self::inventory_url() ); ?>"><?php esc_html_e( 'Open supplier inventory', 'taxocommerce-suppliers' ); ?></a></td>
+										<td colspan="5"><strong>No supplier source linked.</strong> <a class="button" href="<?php echo esc_url( self::inventory_url() ); ?>">Open supplier inventory</a></td>
 									<?php endif; ?>
 								</tr>
 							<?php endforeach; ?>
