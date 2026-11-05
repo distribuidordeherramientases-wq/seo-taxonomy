@@ -230,6 +230,7 @@ if (!function_exists('dht_post_v12_term_image')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
