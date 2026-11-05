@@ -260,10 +260,10 @@ function seo_front_es_product_is_visible( $product ) {
     if ( $has_supplier_table ) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A trusted WordPress-prefixed table, with all values bound.
         $is_foreign = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table}
+            "SELECT id FROM %i
              WHERE object_id = %d AND proveedor = %s
              AND pais_origen NOT IN (%s,%s) LIMIT 1",
-            $id, 'VEVOR', '', 'ES'
+            $table, $id, 'VEVOR', '', 'ES'
         ) );
         if ( $is_foreign ) {
             return $checked[ $id ] = false;
@@ -362,11 +362,13 @@ add_filter( 'posts_where', static function ( $where, $query ) {
         $supplier_table = $wpdb->prefix . 'seo_proveedores_productos';
         $where .= $wpdb->prepare(
             " AND NOT EXISTS (
-                SELECT 1 FROM {$supplier_table} es_supplier
-                WHERE es_supplier.object_id = {$wpdb->posts}.ID
+                SELECT 1 FROM %i es_supplier
+                WHERE es_supplier.object_id = %i.ID
                   AND es_supplier.proveedor = %s
                   AND es_supplier.pais_origen NOT IN ( %s, %s )
             )",
+            $supplier_table,
+            $wpdb->posts,
             'VEVOR',
             '',
             'ES'
