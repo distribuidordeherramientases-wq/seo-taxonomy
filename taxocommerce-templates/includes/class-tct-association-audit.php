@@ -52,10 +52,10 @@ final class TCT_Association_Audit {
         global $wpdb;
         $table = TaxoCommerce_Templates::nodes();
         $rows = (array)$wpdb->get_results(
-            "SELECT seo_role, object_type, COUNT(*) AS total,
+            $wpdb->prepare("SELECT seo_role, object_type, COUNT(*) AS total,
                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS active_total
-             FROM {$table} GROUP BY seo_role, object_type
-             ORDER BY seo_role ASC, object_type ASC"
+             FROM %i GROUP BY seo_role, object_type
+             ORDER BY seo_role ASC, object_type ASC", $table)
         );
         $by_key = array();
         foreach ($rows as $row) {
@@ -189,9 +189,9 @@ final class TCT_Association_Audit {
         }
         global $wpdb;
         $rows = (array)$wpdb->get_results(
-            "SELECT mail_key, mail_name, template_key, is_enabled,
+            $wpdb->prepare("SELECT mail_key, mail_name, template_key, is_enabled,
                     default_template, default_plain_template
-             FROM {$table} ORDER BY mail_key"
+             FROM %i ORDER BY mail_key", $table)
         );
         $out = array();
         foreach ($rows as $mail) {

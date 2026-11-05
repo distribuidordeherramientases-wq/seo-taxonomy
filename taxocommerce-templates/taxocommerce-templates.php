@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.13
+ * Version: 0.4.14
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.13');
+define('TCT_VERSION','0.4.14');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -234,7 +234,7 @@ final class TaxoCommerce_Templates {
         $custom[$role]=$name;update_option(self::ROLE_OPTION,$custom,false);
         global $wpdb;
         $table=self::templates();
-        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
+        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$exists) {
             $wpdb->insert($table,array(
                 'template_key'=>$role,'template_name'=>$name,'template_file'=>'',
@@ -251,7 +251,7 @@ final class TaxoCommerce_Templates {
         $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
         $file=isset($_POST['file'])?sanitize_file_name(wp_unslash($_POST['file'])):'';
         $table=self::templates();
-        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE template_key=%s",$role));
+        $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$role||!$exists||!TCT_Router::valid_filename($file))self::redirect('Ruta o plantilla no validas.');
         $path=TCT_Router::path($file);
         if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
@@ -313,7 +313,7 @@ final class TaxoCommerce_Templates {
         global $wpdb;
         $key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
         $table = self::templates();
-        $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM {$table} WHERE template_key=%s", $key));
+        $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM %i WHERE template_key=%s", $table, $key));
         if (!$row) {
             self::redirect('Ruta desconocida.');
         }
@@ -336,7 +336,7 @@ final class TaxoCommerce_Templates {
         global $wpdb;
         $table = self::templates();
         $mode = $wpdb->get_var($wpdb->prepare(
-            "SELECT assignment_mode FROM {$table} WHERE template_key=%s AND is_assignable=1", $key
+            "SELECT assignment_mode FROM %i WHERE template_key=%s AND is_assignable=1", $table, $key
         ));
         if (!in_array($mode, array('multiple','single'), true)) {
             self::redirect('Esta ruta se asigna automaticamente.');
@@ -344,8 +344,8 @@ final class TaxoCommerce_Templates {
         if ('single' === $mode) {
             $nodes = self::nodes();
             $occupied = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$nodes} WHERE seo_role=%s AND object_type='page' AND object_id<>%d AND status=1",
-                $key, $id
+                "SELECT COUNT(*) FROM %i WHERE seo_role=%s AND object_type='page' AND object_id<>%d AND status=1",
+                $nodes, $key, $id
             ));
             if ($occupied) {
                 self::redirect('Esta ruta ya tiene una pagina. Desasignala antes.');

@@ -1,3 +1,10 @@
+## [0.4.14] — 2026-11-05
+
+- Primer lote de advertencias del nuevo Plugin Check (#2189): identificadores SQL preparados con `%i` en el registro de peticiones, router, asociaciones, guardado de roles y editor; conserva los filtros `IN` parametrizados y las reglas existentes.
+- Los nombres entrantes del editor comprueban el tipo escalar antes de sanearse; el código PHP original se conserva únicamente bajo la protección previa de permisos y nonce. La edición de PHP ejecutable continúa siendo una función privada y un bloqueo para WordPress.org (#1522).
+- El estilo de clúster internacional declara versión para evitar caché antigua. La navegación administrativa de solo lectura se documenta separada de las acciones POST protegidas.
+- Pendientes avisos de seguridad, acceso SQL/caché y rendimiento en otras rutas; no se afirma 0 warnings ni se altera producción. Requiere Plugin Check real y UAT tras el despliegue.
+
 ## [0.4.13] — 2026-11-04
 
 - Corregidos los **32 errores SQL** detectados por Plugin Check (22:23:34) en 16 archivos: correo heredado y plantillas front, shop, landing, página, post, producto, categoría y soluciones, tanto móvil como escritorio (#2187).

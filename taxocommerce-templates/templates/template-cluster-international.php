@@ -114,7 +114,7 @@ wp_enqueue_style(
     'dht-cluster-international-base',
     plugins_url( 'styles-template.css', __FILE__ ),
     array(),
-    null
+    TCT_VERSION
 );
 $site_name = 'Distribuidor de Herramientas';
 $privacy_url = get_privacy_policy_url();

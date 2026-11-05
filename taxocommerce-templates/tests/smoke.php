@@ -240,8 +240,12 @@ tct_assert( strpos( $cluster_view, 'dht_cluster_external_image_url(' ) !== false
     'External supplier images must preserve visual slots without using local Media.' );
 $legacy_cluster = dirname( TCT_DIR ) . '/seo-system/templates/template-cluster-international.php';
 if ( is_file( $legacy_cluster ) ) {
-    tct_assert( file_get_contents( $legacy_cluster ) === $cluster_view,
-        'Legacy and modular international cluster renderers must be identical.' );
+    // The modular plugin versions its stylesheet to avoid stale browser caches.
+    // Apart from this one resource-version argument, the legacy renderer's
+    // international presentation must remain byte-for-byte identical.
+    $normalized_cluster = str_replace( "    TCT_VERSION\n);", "    null\n);", $cluster_view );
+    tct_assert( file_get_contents( $legacy_cluster ) === $normalized_cluster,
+        'Legacy and modular international cluster renderers must match except for the stylesheet version.' );
 }
 
 // FRONT composer pilot: pure configuration contracts and no changes to public PHP.
