@@ -120,12 +120,23 @@ final class TCT_Request_Registry {
         }
         global $wpdb;
         $table = TaxoCommerce_Templates::nodes();
-        return (string) $wpdb->get_var($wpdb->prepare(
+        $type = sanitize_key( $type );
+        $id = absint( $id );
+        $cache_key = 'role_' . $type . '_' . $id;
+        $cached_role = wp_cache_get( $cache_key, 'taxocommerce_templates' );
+        if ( false !== $cached_role ) {
+            return (string) $cached_role;
+        }
+        // Custom TaxoCommerce role table: no equivalent native WordPress query API.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Prepared, read-only query against the plugin's own table.
+        $role = (string) $wpdb->get_var( $wpdb->prepare(
             "SELECT seo_role FROM %i
              WHERE object_type = %s AND object_id = %d AND status = 1
              ORDER BY id DESC LIMIT 1",
-            $table, sanitize_key($type), absint($id)
-        ));
+            $table, $type, $id
+        ) );
+        wp_cache_set( $cache_key, $role, 'taxocommerce_templates', 15 );
+        return $role;
     }
 
     public static function candidates() {
@@ -290,6 +301,7 @@ final class TCT_Request_Registry {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $slots = implode(', ', array_fill(0, count($candidates), '%s'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The IN clause contains ONLY generated %s placeholders; values are bound below.
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT template_key,template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key IN ({$slots}) AND is_active = 1", array_merge( array( $table ), $candidates )

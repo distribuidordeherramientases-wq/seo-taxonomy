@@ -22,12 +22,12 @@ $table         = $wpdb->prefix . 'seo_relations';
 $hub_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
-         FROM {$table}
+         FROM %i
          WHERE source_type = 'cluster'
            AND source_id = %d
            AND target_type = 'hub_primary'
            AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
-         ORDER BY id ASC",
+         ORDER BY id ASC", $table,
         $current_id
     )
 );
@@ -39,12 +39,12 @@ $hub_ids = dht_template_public_post_ids($hub_ids);
 $direct_category_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
-         FROM {$table}
+         FROM %i
          WHERE source_type = 'cluster'
            AND source_id = %d
            AND target_type = 'product_cat'
            AND relation_type = 'cluster_to_category'
-         ORDER BY id ASC",
+         ORDER BY id ASC", $table,
         $current_id
     )
 );

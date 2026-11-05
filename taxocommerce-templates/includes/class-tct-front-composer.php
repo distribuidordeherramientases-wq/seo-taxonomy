@@ -120,8 +120,8 @@ final class TCT_Front_Composer {
         $input = array();
         foreach ( array( 'desktop', 'mobile' ) as $device ) {
             $key = 'layout_' . $device;
-            $raw = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] )
-                ? wp_unslash( $_POST[ $key ] ) : '';
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- This is JSON, validated by json_decode and normalized against allowed module IDs and sanitized fields below.
+            $raw = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';
             $data = strlen( $raw ) <= 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
                 self::redirect( $market, 'Composición inválida. No se ha guardado.' );
@@ -148,11 +148,13 @@ final class TCT_Front_Composer {
     }
 
     public static function enqueue( $hook ) {
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
-            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             return;
         }
         // This tab is the only caller of the pilot's scripts and styles.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
         if ( ! in_array( $tab, array( 'designer', 'manager', 'composer', 'editor' ), true ) ) {
             return;
@@ -185,6 +187,7 @@ final class TCT_Front_Composer {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI selection.
         $market = isset( $_GET['market'] ) && is_string( $_GET['market'] )
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
             ? self::market( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : 'ES';
         $current = self::config( $market );
         ?>

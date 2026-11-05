@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.14
+ * Version: 0.4.15
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.14');
+define('TCT_VERSION','0.4.15');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -171,8 +171,7 @@ final class TaxoCommerce_Templates {
         wp_safe_redirect(add_query_arg(array('page'=>'taxocommerce-templates','tct_notice'=>$notice),admin_url('admin.php')));exit;
     }
     public static function page_role($id) {
-        global $wpdb;$table=self::nodes();
-        return (string)$wpdb->get_var($wpdb->prepare("SELECT seo_role FROM {$table} WHERE object_type='page' AND object_id=%d AND status=1 ORDER BY id DESC LIMIT 1",absint($id)));
+        return TCT_Request_Registry::role_for_object( 'page', absint( $id ) );
     }
     public static function set_role($id,$role) {
         global $wpdb;$id=absint($id);$role=sanitize_key($role);
@@ -182,20 +181,22 @@ final class TaxoCommerce_Templates {
         // Roles used in live hierarchy must not be silently reassigned.
         $relations=$wpdb->prefix.'seo_relations';
         if($current&&$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
-            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$relations} WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$id,$id));
+            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
         $now=current_time('mysql');$wpdb->query('START TRANSACTION');
         $disabled=$wpdb->update($table,array('status'=>0,'updated_at'=>$now),array('object_type'=>'page','object_id'=>$id));
         $saved=true;
         if(false!==$disabled&&$role) {
-            $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$id,$role));
+            $existing=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
             $saved=$existing?
                 false!==$wpdb->update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
                 false!==$wpdb->insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
         }
         if(false===$disabled||!$saved){$wpdb->query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
         $wpdb->query('COMMIT');
+        // A new role must be visible immediately to the active template resolver.
+        wp_cache_delete( 'role_page_' . $id, 'taxocommerce_templates' );
         if($role) update_post_meta($id,'_taxocommerce_seo_role',$role);
         else delete_post_meta($id,'_taxocommerce_seo_role');
         return true;
@@ -212,22 +213,24 @@ final class TaxoCommerce_Templates {
         // Save only during the native post save and after all validation.
     }
     public static function save_metabox($id,$post) {
-        if(!isset($_POST['tct_page_role_nonce'])||!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['tct_page_role_nonce'])),'tct_page_role'))return;
+        if(!isset($_POST['tct_page_role_nonce'])||!is_string($_POST['tct_page_role_nonce'])||!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['tct_page_role_nonce'])),'tct_page_role'))return;
         if((defined('DOING_AUTOSAVE')&&DOING_AUTOSAVE)||wp_is_post_revision($id)||!current_user_can('edit_page',$id)||!self::installed())return;
-        $role=isset($_POST['tct_role'])?sanitize_key(wp_unslash($_POST['tct_role'])):'';
+        $role=isset($_POST['tct_role']) && is_string($_POST['tct_role']) ? sanitize_key(wp_unslash($_POST['tct_role'])) : '';
         self::set_role($id,$role);
     }
     public static function save_page_role() {
         self::guard('tct_page_role_admin');
-        $id=isset($_POST['page_id'])?absint($_POST['page_id']):0;
-        $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
+        $id=isset($_POST['page_id']) && is_scalar($_POST['page_id']) ? absint($_POST['page_id']) : 0;
+        $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $result=self::set_role($id,$role);
         self::redirect(is_wp_error($result)?$result->get_error_message():'Rol actualizado.');
     }
     public static function save_role() {
         self::guard('tct_save_role');
-        $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
-        $name=isset($_POST['name'])?sanitize_text_field(wp_unslash($_POST['name'])):'';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
+        $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
+        $name=isset($_POST['name']) && is_string($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         if(!$role||!$name||strlen($role)>80)self::redirect('Rol o nombre inválido.');
         $custom=get_option(self::ROLE_OPTION,array());if(!is_array($custom))$custom=array();
         if(isset(self::base_roles()[$role]))self::redirect('Este rol pertenece a la estructura principal.');
@@ -248,8 +251,9 @@ final class TaxoCommerce_Templates {
     public static function save_template() {
         self::guard('tct_save_template');
         global $wpdb;
-        $role=isset($_POST['role'])?sanitize_key(wp_unslash($_POST['role'])):'';
-        $file=isset($_POST['file'])?sanitize_file_name(wp_unslash($_POST['file'])):'';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
+        $role=isset($_POST['role']) && is_string($_POST['role']) ? sanitize_key(wp_unslash($_POST['role'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
+        $file=isset($_POST['file']) && is_string($_POST['file']) ? sanitize_file_name(wp_unslash($_POST['file'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $table=self::templates();
         $exists=$wpdb->get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$role||!$exists||!TCT_Router::valid_filename($file))self::redirect('Ruta o plantilla no validas.');
@@ -267,7 +271,7 @@ final class TaxoCommerce_Templates {
         }
         check_admin_referer('tct_settings');
         $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
-            '1' === wp_unslash($_POST['enable']);
+            '1' === sanitize_text_field(wp_unslash($_POST['enable']));
         // Disable the effective gate FIRST. Re-enable it only after the
         // existing legacy switch has been updated. Safe even after an upgrade.
         update_option(self::REVIEW_CONSENT_OPTION, 0, false);
@@ -281,8 +285,9 @@ final class TaxoCommerce_Templates {
     }
 
     public static function enqueue_policy_control() {
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
-            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             return;
         }
         wp_enqueue_style( 'tct-policy-control', TCT_URL . 'assets/policy-switch.css', array(), TCT_VERSION );
@@ -311,13 +316,15 @@ final class TaxoCommerce_Templates {
     public static function save_device_mode() {
         self::guard('tct_save_device_mode');
         global $wpdb;
-        $key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
+        $key = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         $table = self::templates();
         $row = $wpdb->get_row($wpdb->prepare("SELECT template_file FROM %i WHERE template_key=%s", $table, $key));
         if (!$row) {
             self::redirect('Ruta desconocida.');
         }
         $plan = TCT_Router::plan((object)array('template_file'=>$row->template_file, 'device_variants_enabled'=>0), 'mobile');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $enabled = !empty($_POST['enabled']) ? 1 : 0;
         if (!$enabled && $plan['dispatcher']) {
             self::redirect('La principal es un dispatcher y necesita sus variantes.');
@@ -328,8 +335,9 @@ final class TaxoCommerce_Templates {
 
     public static function assign_page() {
         self::guard('tct_assign_page');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
-        $key = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        $key = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         if (!$id || !$key || !isset(self::roles()[$key])) {
             self::redirect('Pagina o rol incorrecto.');
         }
@@ -357,12 +365,14 @@ final class TaxoCommerce_Templates {
 
     public static function unassign_page() {
         self::guard('tct_unassign_page');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
         $id = isset($_POST['page_id']) ? absint($_POST['page_id']) : 0;
         if (!$id || !current_user_can('edit_page', $id)) {
             self::redirect('Pagina no valida o sin permisos.');
         }
         $existing = self::page_role($id);
-        $role = isset($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
+        $role = isset($_POST['template_key']) && is_string($_POST['template_key']) ? sanitize_key(wp_unslash($_POST['template_key'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         if (!$existing || $existing !== $role) {
             self::redirect('La pagina ya no tiene esa asignacion.');
         }
@@ -374,7 +384,7 @@ final class TaxoCommerce_Templates {
         if (!current_user_can('manage_options')) {
             wp_die('Acceso denegado.');
         }
-        $filename = isset($_GET['file']) ? sanitize_file_name(wp_unslash($_GET['file'])) : '';
+        $filename = isset($_GET['file']) && is_string($_GET['file']) ? sanitize_file_name(wp_unslash($_GET['file'])) : '';
         check_admin_referer('tct_download_' . $filename);
         $path = TCT_Router::path($filename);
         if (!$path) {
@@ -411,8 +421,9 @@ final class TaxoCommerce_Templates {
             wp_die('Acceso denegado.');
         }
         // The legacy URLs still resolve, preserving form redirects and old bookmarks.
-        $tab = isset($_GET['tab']) && is_string($_GET['tab'])
-            ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        $tab = isset($_GET['tab']) && is_string($_GET['tab']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck','manual'), true)) {
             $tab = 'routing';
         }
@@ -429,8 +440,9 @@ final class TaxoCommerce_Templates {
         }
         echo '</nav>';
         self::render_policy_control();
-        if (isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) {
-            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        if (isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         }
         echo '</div>';
 
@@ -466,7 +478,7 @@ final class TaxoCommerce_Templates {
         $rows = TCT_Router::rows();
         $files = TCT_Router::available_files();
         $node_table = self::nodes();
-        $associations = $wpdb->get_results("SELECT object_id, seo_role FROM {$node_table} WHERE object_type='page' AND status=1");
+        $associations = $wpdb->get_results($wpdb->prepare("SELECT object_id, seo_role FROM %i WHERE object_type='page' AND status=1", $node_table));
         $by_role = array();
         $occupied = array();
         foreach ((array)$associations as $entry) {
@@ -478,8 +490,9 @@ final class TaxoCommerce_Templates {
             echo '<div class="wrap">' . '<h1>' . esc_html__( 'Gestor de Plantillas', 'taxocommerce-templates' ) . '</h1>';
         }
         echo '<p>' . esc_html__( 'Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP del plugin antiguo.', 'taxocommerce-templates' ) . '</p>';
-        if (!$embedded && isset($_GET['tct_notice'])) {
-            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
+        if (!$embedded && isset($_GET['tct_notice']) && is_string($_GET['tct_notice'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            echo '<div class="notice notice-info"><p>' . esc_html(sanitize_text_field(wp_unslash($_GET['tct_notice']))) . '</p></div>'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         }
         echo '<p class="description">' . esc_html__( 'El interruptor para aplicar o suspender las políticas está disponible al principio de la página, sin necesidad de desactivar el plugin.', 'taxocommerce-templates' ) . '</p>';
         echo '<h2>' . esc_html__( 'Archivos de plantilla', 'taxocommerce-templates' ) . '</h2>';

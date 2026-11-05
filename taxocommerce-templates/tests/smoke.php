@@ -244,6 +244,17 @@ if ( is_file( $legacy_cluster ) ) {
     // Apart from this one resource-version argument, the legacy renderer's
     // international presentation must remain byte-for-byte identical.
     $normalized_cluster = str_replace( "    TCT_VERSION\n);", "    null\n);", $cluster_view );
+    // The standalone module also prepares the SQL identifier with %i.
+    // Normalize the old unprepared query syntax for presentation-parity
+    // only; the runtime queries remain prepared and parameter-bound.
+    tct_assert( 2 === substr_count( $normalized_cluster, 'FROM %i' )
+        && 2 === substr_count( $normalized_cluster, 'ORDER BY id ASC", $table, $current_id' ),
+        'Both international cluster queries must use prepared SQL identifiers.' );
+    $normalized_cluster = str_replace(
+        array( 'FROM %i', 'ORDER BY id ASC", $table, $current_id' ),
+        array( 'FROM {$table}', 'ORDER BY id ASC", $current_id' ),
+        $normalized_cluster
+    );
     tct_assert( file_get_contents( $legacy_cluster ) === $normalized_cluster,
         'Legacy and modular international cluster renderers must match except for the stylesheet version.' );
 }

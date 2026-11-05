@@ -110,7 +110,7 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
-                     FROM {$usage_table}
+                     FROM %i
                      WHERE object_type = 'product'
                        AND object_id = %d
                        AND attachment_id IS NOT NULL
@@ -123,7 +123,7 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
                          ELSE 9
                        END ASC,
                        fecha DESC
-                     LIMIT 10",
+                     LIMIT 10", $usage_table,
                     $product_id
                 )
             );
@@ -147,13 +147,13 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
             $supplier_url = $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
-                     LIMIT 1",
+                     LIMIT 1", $supplier_table,
                     $product_id
                 )
             );
@@ -261,12 +261,13 @@ if (!function_exists('dht_blog_v2_post_image_mobile')) {
         $related_term_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
-                 FROM {$wpdb->prefix}seo_relations
+                 FROM %i
                  WHERE source_type = 'post'
                    AND source_id = %d
                    AND target_type = 'product_cat'
                    AND relation_type = 'post_to_category'
                  ORDER BY id ASC",
+                $wpdb->prefix . 'seo_relations',
                 $post_id
             )
         );

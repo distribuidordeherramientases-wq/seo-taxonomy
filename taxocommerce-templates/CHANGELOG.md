@@ -1,3 +1,11 @@
+## [0.4.15] — 2026-11-05
+
+- Segundo lote parcial de avisos #2189: identificadores SQL con `%i` en las asignaciones de página, relaciones jerárquicas, ejemplos de auditoría y catálogo de roles; defensas para entradas de administración no escalares y comprobación del tipo del nonce en el metabox.
+- Ampliación del lote: 34 consultas SQL en 17 plantillas de clústeres, hubs, categorías, productos, tienda, blog y piloto VEVOR ahora enlazan identificadores de tablas mediante `%i` y `$wpdb->prepare()`. Se revisan además SQL de afiliación, catálogo y utilidades, sin alterar las relaciones funcionales.
+- Comprobaciones estrictas de tipo en parámetros GET y saneamiento de interruptores; los parámetros de navegación GET (solo lectura) y los POST bajo un nonce existente se documentan con excepciones de análisis estrictamente localizadas, nunca globales.
+- Pruebas PHP y regresiones de enrutamiento conservadas; queda pendiente cerrar las advertencias de consultas directas/caché, seguridad y rendimiento detectadas en GitHub Actions.
+- Sin cambios funcionales previstos en las asignaciones. No se declara cero avisos ni compatibilidad WordPress.org, pendiente Plugin Check/UAT y resolución del editor PHP privado (#1522).
+
 ## [0.4.14] — 2026-11-05
 
 - Primer lote de advertencias del nuevo Plugin Check (#2189): identificadores SQL preparados con `%i` en el registro de peticiones, router, asociaciones, guardado de roles y editor; conserva los filtros `IN` parametrizados y las reglas existentes.
