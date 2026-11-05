@@ -600,6 +600,7 @@ $json = array(
             $related_categories = get_terms([
                 'taxonomy'   => 'product_cat',
                 'parent'     => (int) $term->parent,
+                // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion prevents repetition or the default product category.
                 'exclude'    => [(int) $term->term_id],
                 'hide_empty' => true,
                 'number'     => 4,
