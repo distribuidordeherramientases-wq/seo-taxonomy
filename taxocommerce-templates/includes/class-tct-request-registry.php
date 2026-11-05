@@ -290,10 +290,12 @@ final class TCT_Request_Registry {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $slots = implode(', ', array_fill(0, count($candidates), '%s'));
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The dynamic IN segment contains only literal %s placeholders from array_fill; every value is bound by prepare().
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT template_key,template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key IN ({$slots}) AND is_active = 1", array_merge( array( $table ), $candidates )
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $by_key = array();
         foreach ((array)$rows as $row) {
             $by_key[$row->template_key] = $row;
