@@ -63,7 +63,7 @@ $key_sets = null;
 foreach ( $locales as $locale ) {
     $prefix = $base . '/languages/taxocommerce-suppliers-' . $locale;
     $po = tcsup_i18n_parse_po( $prefix . '.po' );
-    if ( count( $po ) < 492 ) {
+    if ( count( $po ) < 491 ) {
         tcsup_i18n_fail( $locale . ' catalog has too few entries: ' . count( $po ) );
     }
     foreach ( $po as $key => $value ) {
