@@ -57,16 +57,16 @@ final class TCT_Read_Query_Cache {
         global $wpdb;
         switch ( $method ) {
             case 'get_var':
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
                 return $wpdb->get_var( $query, $options[0], $options[1] );
             case 'get_col':
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
                 return $wpdb->get_col( $query, $options[0] );
             case 'get_row':
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
                 return $wpdb->get_row( $query, $options[0], $options[1] );
             case 'get_results':
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- Custom-table read delegated here with request-scope caching and caller-prepared SQL.
                 return $wpdb->get_results( $query, $options[0] );
         }
         throw new InvalidArgumentException( 'Unsupported Templates database read operation.' );
