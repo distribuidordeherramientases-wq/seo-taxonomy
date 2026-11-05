@@ -1476,3 +1476,126 @@ msgstr "Index de la documentation"
 
 msgid "— Do not import —"
 msgstr "— Ne pas importer —"
+
+msgid "Sistema"
+msgstr "Système"
+
+msgid "Plugin y versión"
+msgstr "Extension et version"
+
+msgid "Constante de versión ausente."
+msgstr "Constante de version absente."
+
+msgid "API de pedidos y productos disponible."
+msgstr "API des commandes et produits disponibles."
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr "WooCommerce n'est pas disponible pour les produits ou les achats."
+
+msgid "Clases del plugin"
+msgstr "Classes de l'extension"
+
+msgid "Faltan: "
+msgstr "Manquants : "
+
+msgid "Todos los componentes principales están cargados."
+msgstr "Tous les composants principaux sont chargés."
+
+msgid "Administración"
+msgstr "Administration"
+
+msgid "Controladores registrados"
+msgstr "Gestionnaires enregistrés"
+
+msgid "No registrados: "
+msgstr "Non enregistrés : "
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr "Les 10 gestionnaires sont enregistrés ; aucun n'est exécuté."
+
+msgid "Servicios"
+msgstr "Services"
+
+msgid "Funciones públicas"
+msgstr "Fonctions publiques"
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr "Consultation des sources et images fournisseur (sans exécuter d'opérations)."
+
+msgid "Configuración"
+msgstr "Configuration"
+
+msgid "Plantillas CSV personalizadas"
+msgstr "Modèles CSV personnalisés"
+
+msgid "Estructura válida; "
+msgstr "Structure valide ; "
+
+msgid " plantillas almacenadas."
+msgstr " modèles enregistrés."
+
+msgid "La opción no contiene un array."
+msgstr "L'option ne contient pas un tableau."
+
+msgid "Formatos CSV genéricos"
+msgstr "Formats CSV génériques"
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr "Uniquement les deux formats d'importation, sans modèles fournisseur préinstallés."
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr "Des profils fournisseur préinstallés ont été détectés."
+
+msgid "Margen de venta"
+msgstr "Marge de vente"
+
+msgid "Margen regular"
+msgstr "Marge normale"
+
+msgid "Valor numérico guardado."
+msgstr "Valeur numérique enregistrée."
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr "Option absente ou non numérique ; vérifier les réglages."
+
+msgid "Persistencia"
+msgstr "Persistance"
+
+msgid "Versión del esquema"
+msgstr "Version du schéma"
+
+msgid "Versión guardada: "
+msgstr "Version enregistrée : "
+
+msgid "sin registrar"
+msgstr "non enregistrée"
+
+msgid ". No se ejecutan migraciones."
+msgstr ". Aucune migration n'est exécutée."
+
+msgid "Base de datos"
+msgstr "Base de données"
+
+msgid "Conexión o esquema no disponibles."
+msgstr "Connexion ou schéma de base de données indisponible."
+
+msgid "Catálogo intermedio"
+msgstr "Catalogue intermédiaire"
+
+msgid "Imágenes externas"
+msgstr "Images externes"
+
+msgid "No se encuentra la tabla "
+msgstr "Table introuvable : "
+
+msgid "Columnas ausentes: "
+msgstr "Colonnes manquantes : "
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr "Table et colonnes essentielles disponibles."
+
+msgid "Consulta de estados"
+msgstr "Consultation des états"
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr "Filtre des états chargé ; aucune commande n'est consultée ni modifiée."

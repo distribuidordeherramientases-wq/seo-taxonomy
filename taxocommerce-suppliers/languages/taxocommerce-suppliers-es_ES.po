@@ -1476,3 +1476,126 @@ msgstr "Índice de la documentación"
 
 msgid "— Do not import —"
 msgstr "— No importar —"
+
+msgid "Sistema"
+msgstr "Sistema"
+
+msgid "Plugin y versión"
+msgstr "Plugin y versión"
+
+msgid "Constante de versión ausente."
+msgstr "Constante de versión ausente."
+
+msgid "API de pedidos y productos disponible."
+msgstr "API de pedidos y productos disponible."
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr "WooCommerce no está disponible para productos o compras."
+
+msgid "Clases del plugin"
+msgstr "Clases del plugin"
+
+msgid "Faltan: "
+msgstr "Faltan: "
+
+msgid "Todos los componentes principales están cargados."
+msgstr "Todos los componentes principales están cargados."
+
+msgid "Administración"
+msgstr "Administración"
+
+msgid "Controladores registrados"
+msgstr "Controladores registrados"
+
+msgid "No registrados: "
+msgstr "No registrados: "
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr "Los 10 controladores están registrados; ninguno se ejecuta."
+
+msgid "Servicios"
+msgstr "Servicios"
+
+msgid "Funciones públicas"
+msgstr "Funciones públicas"
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+
+msgid "Configuración"
+msgstr "Configuración"
+
+msgid "Plantillas CSV personalizadas"
+msgstr "Plantillas CSV personalizadas"
+
+msgid "Estructura válida; "
+msgstr "Estructura válida; "
+
+msgid " plantillas almacenadas."
+msgstr " plantillas almacenadas."
+
+msgid "La opción no contiene un array."
+msgstr "La opción no contiene un array."
+
+msgid "Formatos CSV genéricos"
+msgstr "Formatos CSV genéricos"
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr "Se han detectado perfiles de proveedor precargados."
+
+msgid "Margen de venta"
+msgstr "Margen de venta"
+
+msgid "Margen regular"
+msgstr "Margen regular"
+
+msgid "Valor numérico guardado."
+msgstr "Valor numérico guardado."
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr "Opción ausente o no numérica; revisar ajustes."
+
+msgid "Persistencia"
+msgstr "Persistencia"
+
+msgid "Versión del esquema"
+msgstr "Versión del esquema"
+
+msgid "Versión guardada: "
+msgstr "Versión guardada: "
+
+msgid "sin registrar"
+msgstr "sin registrar"
+
+msgid ". No se ejecutan migraciones."
+msgstr ". No se ejecutan migraciones."
+
+msgid "Base de datos"
+msgstr "Base de datos"
+
+msgid "Conexión o esquema no disponibles."
+msgstr "Conexión o esquema no disponibles."
+
+msgid "Catálogo intermedio"
+msgstr "Catálogo intermedio"
+
+msgid "Imágenes externas"
+msgstr "Imágenes externas"
+
+msgid "No se encuentra la tabla "
+msgstr "No se encuentra la tabla "
+
+msgid "Columnas ausentes: "
+msgstr "Columnas ausentes: "
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr "Tabla y columnas esenciales disponibles."
+
+msgid "Consulta de estados"
+msgstr "Consulta de estados"
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr "Filtro de estados cargado; no se consultan ni modifican pedidos."
