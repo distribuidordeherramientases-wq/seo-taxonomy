@@ -277,6 +277,9 @@ final class TCD_Admin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- La pestaña GET solo selecciona una vista de lectura, con una lista blanca.
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
         if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test','user-guide'),true))$tab='overview';
+        // With no external process supervisor, an authorized view can advance
+        // a handful of owner-locked Academy ticks when WP-Cron stalls.
+        if ( 'overview' === $tab ) TCD_Academy::admin_fallback_tick();
 
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Dependiente', 'taxocommerce-dependiente' ) . '</h1>';
         self::tabs($tab);
@@ -288,7 +291,6 @@ final class TCD_Admin {
             'thresholds_invalid'=>array('error','No se han guardado los umbrales: indica diez valores entre 0 y 100, con un decimal como máximo.'),
             'quality_accepted'=>array('success','Lección aceptada expresamente con el umbral configurado. El examen y sus fallos permanecen registrados.'),
             'quality_accept_rejected'=>array('error','No se ha aceptado la lección: revisa el umbral, el estado de la lección y la auditoría disponible.'),
-            'no_products'=>array('error','No hay productos WooCommerce publicados. Añade al menos un producto antes de iniciar o reiniciar el aprendizaje. No se ha eliminado ningún conocimiento.'),
         );
         if(isset($messages[$result])){
             $notice=$messages[$result];
@@ -450,6 +452,11 @@ final class TCD_Admin {
                 $progress_total=absint($quality_progress['total']??0);
                 $progress_text='casos evaluados del examen de calidad';
                 $status='reevaluando';
+            }elseif('skipped_empty'===$status){
+                $progress_value=0;
+                $progress_total=0;
+                $status=__( 'Sin material', 'taxocommerce-dependiente' );
+                $progress_text=__( 'Lección omitida; no evaluada', 'taxocommerce-dependiente' );
             }elseif($building || !$sources){
                 $progress_value=$is_current?absint($state['snapshot_cursor']??0):0;
                 $progress_total=$planned;
