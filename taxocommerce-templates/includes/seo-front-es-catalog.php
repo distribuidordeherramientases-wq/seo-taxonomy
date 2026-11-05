@@ -136,6 +136,7 @@ add_filter( 'get_terms_args', static function ( $args, $taxonomies ) {
     }
     $excluded = seo_front_es_international_category_ids();
     if ( $excluded ) {
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Exclude only known non-Spanish product category IDs from the ES storefront.
         $args['exclude'] = array_values( array_unique( array_merge(
             array_map( 'absint', (array) ( $args['exclude'] ?? array() ) ),
             $excluded
@@ -167,6 +168,7 @@ function seo_front_es_scope_product_query_args( $args ) {
             array( 'key' => $key, 'value' => $es_values, 'compare' => 'IN' ),
         );
     }
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Preserve existing country/locale product visibility, using native WP_Query.
     $args['meta_query'] = $meta_query;
 
     $excluded = seo_front_es_international_category_ids();
@@ -184,6 +186,7 @@ function seo_front_es_scope_product_query_args( $args ) {
             'include_children' => false,
             'operator'         => 'NOT IN',
         );
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Exclude non-Spanish categories without changing product-country ownership.
         $args['tax_query'] = $tax_query;
     }
 
@@ -306,8 +309,10 @@ add_action( 'pre_get_posts', static function ( $query ) {
         'meta_query' => $query->get( 'meta_query' ),
         'tax_query'  => $query->get( 'tax_query' ),
     ) );
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Preserve existing country/locale product visibility, using native WP_Query.
     $query->set( 'meta_query', $scoped['meta_query'] );
     if ( isset( $scoped['tax_query'] ) ) {
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Exclude non-Spanish categories without changing product-country ownership.
         $query->set( 'tax_query', $scoped['tax_query'] );
     }
     $query->set( '_seo_es_catalog_scoped', true );
