@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.5
+Stable tag: 0.2.6
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
@@ -36,6 +36,11 @@ Explicitly excluded:
 * Automatic supplier website extraction.
 
 == Changelog ==
+
+= 0.2.6 =
+* Collapsible CSV Templates form: import declarative JSON, CSV or TXT mapping definitions or paste their contents, persist mappings as reusable named templates, and export user-created mappings as JSON.
+* File contents are treated as data only; rejects unknown fields, duplicate definitions and files over 64 KiB. No supplier products are imported during template creation.
+
 
 = 0.2.5 =
 * Pestaña homogénea «Autocheck» y descarga JSON del último informe, por usuario y sitio, con control de permisos y nonce.

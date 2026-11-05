@@ -58,7 +58,7 @@ final class TCSUP_Manual {
 					<thead><tr><th>Pestaña</th><th>Qué permite</th><th>Qué se modifica y qué no</th></tr></thead>
 					<tbody>
 						<tr><td>CSV Import</td><td>Subir, analizar, asignar columnas e importar.</td><td>Guarda el CSV original e inserta o actualiza filas del catálogo intermedio; no publica productos.</td></tr>
-						<tr><td>CSV Templates</td><td>Descargar cabecera canónica, consultar y eliminar plantillas personalizadas.</td><td>Eliminar una plantilla personalizada borra su definición, no las filas ya importadas.</td></tr>
+						<tr><td>CSV Templates</td><td>Descargar cabecera canónica, crear plantillas desde un archivo JSON/CSV/TXT o texto pegado, descargar, consultar y eliminar plantillas personalizadas.</td><td>Eliminar una plantilla personalizada borra su definición, no las filas ya importadas.</td></tr>
 						<tr><td>Inventory</td><td>Filtrar filas, aceptar, revisar, descartar o devolver a pendiente.</td><td><strong>Aceptar</strong> puede escribir un producto WooCommerce y metadatos; las otras decisiones modifican el estado de selección.</td></tr>
 						<tr><td>Prices</td><td>Editar costes de proveedor, IVA, moneda, márgenes y precios Woo.</td><td>Guardar actualiza los datos del proveedor; solo aplica precios WooCommerce cuando se marca <em>Apply Woo prices</em>.</td></tr>
 						<tr><td>External Images</td><td>Editar URL y modo de imagen por referencia.</td><td>Guarda referencias y su estado; no descarga archivos a Media.</td></tr>
@@ -94,7 +94,10 @@ final class TCSUP_Manual {
 				<p>La pestaña <strong>CSV Templates</strong> permite descargar <strong>Download canonical CSV header</strong> con las columnas internas, consultar las plantillas disponibles y borrar solo las creadas por el usuario. Los modelos integrados son <strong>TaxoCommerce canonical CSV</strong>, <strong>Supplier Price Update CSV</strong>, <strong>VEVOR official CSV</strong>, <strong>SATKIT visual mapping</strong> y <strong>TodoTaladros visual mapping</strong>.</p>
 				<h3>4.1 Guardar un mapeo</h3>
 				<p>Durante el análisis CSV, asigna los campos, abre <strong>Save this mapping as a reusable template</strong> y escribe un nombre. Se conservan los nombres de las columnas de origen, no su posición fija: si un proveedor reordena columnas sin cambiar sus nombres, la plantilla puede reutilizarse.</p>
-				<h3>4.2 Eliminar una plantilla</h3>
+				<h3>4.2 Crear una plantilla sin importar productos</h3>
+				<p>En <strong>CSV Templates</strong>, despliega <strong>Crear nueva plantilla de proveedor</strong>. Escribe un nombre y, opcionalmente, el proveedor. Sube una definición JSON, CSV o TXT (máximo 64 KiB) o pega su contenido. Las definiciones usan pares de <code>campo interno</code> y <code>columna de origen</code>; al menos <code>proveedor_id_externo</code> y <code>nombre</code> deben estar presentes.</p>
+				<p>Ejemplo JSON: <code>{"mapping":{"proveedor_id_externo":"Supplier ID","nombre":"Product Name","precio_con_iva":"Price"}}</code>. Para CSV/TXT utiliza dos columnas separadas por coma o punto y coma. Guarda la plantilla, selecciónala posteriormente en <strong>CSV Import</strong> y revisa la asignación antes de importar. Puedes descargar el JSON de respaldo junto al nombre de cualquier plantilla personalizada.</p>
+				<h3>4.3 Eliminar una plantilla</h3>
 				<p>La acción <strong>Delete</strong> solo aparece para las personalizadas. No elimina productos, filas del inventario ni archivos CSV ya almacenados. Después de cambiar un formato de proveedor, verifica el mapeo antes de importar de nuevo.</p>
 			</section>
 

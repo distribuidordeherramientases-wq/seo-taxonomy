@@ -1,5 +1,12 @@
 ## Unreleased - Familia i18n #2062
 
+## [0.2.6] — 2026-11-05
+
+- Issue #2198: formulario plegado en CSV Templates para crear plantillas reutilizables desde JSON o CSV/TXT subidos o texto pegado.
+- Validación de correspondencias canónicas, campos obligatorios, límite de tamaño, nonce, permisos y protección frente a sobrescrituras accidentales. Exportación JSON de las plantillas personalizadas.
+- Reutilización del almacenamiento actual de WordPress sin ejecutar código, importar productos ni modificar las plantillas integradas. Pruebas de regresión offline.
+
+
 
 ## [0.2.5] — 2026-11-03
 
