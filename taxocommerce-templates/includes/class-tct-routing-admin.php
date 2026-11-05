@@ -11,11 +11,15 @@ defined( 'ABSPATH' ) || exit;
 
 final class TCT_Routing_Admin {
     public static function enqueue() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
             return;
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'routing';
         if ( ! in_array( $tab, array( 'routing', 'roles', 'requests', 'audit' ), true ) ) {
             return;
@@ -133,9 +137,13 @@ final class TCT_Routing_Admin {
         if ( ! TaxoCommerce_Templates::installed() ) {
             self::redirect( 'No están disponibles las tablas del gestor.' );
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $key = isset( $_POST['route_key'] ) && is_string( $_POST['route_key'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key( wp_unslash( $_POST['route_key'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $file = isset( $_POST['template_file'] ) && is_string( $_POST['template_file'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_file_name( wp_unslash( $_POST['template_file'] ) ) : '';
         $items = self::items();
         if ( '' === $key || ! isset( $items[ $key ] ) ) {
@@ -189,10 +197,15 @@ final class TCT_Routing_Admin {
         // Redirect parameters are read only after save() has verified its nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by save() before calling this helper.
         $group = isset( $_POST['tct_group'] ) && is_string( $_POST['tct_group'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_text_field( wp_unslash( $_POST['tct_group'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $search = isset( $_POST['tct_search'] ) && is_string( $_POST['tct_search'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_text_field( wp_unslash( $_POST['tct_search'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $view = isset( $_POST['tct_view'] ) && is_string( $_POST['tct_view'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key( wp_unslash( $_POST['tct_view'] ) ) : 'managed';
         if ( ! in_array( $view, array( 'managed', 'pending', 'all' ), true ) ) {
             $view = 'managed';
@@ -216,6 +229,7 @@ final class TCT_Routing_Admin {
         // inventory is only discovered when explicitly requested.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view selection.
         $view = isset( $_GET['tct_view'] ) && is_string( $_GET['tct_view'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? sanitize_key( wp_unslash( $_GET['tct_view'] ) ) : 'managed';
         if ( ! in_array( $view, array( 'managed', 'pending', 'all' ), true ) ) {
             $view = 'managed';
@@ -236,12 +250,14 @@ final class TCT_Routing_Admin {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI filters are read-only.
         $group = isset( $_GET['tct_group'] ) && is_string( $_GET['tct_group'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? sanitize_text_field( wp_unslash( $_GET['tct_group'] ) ) : 'all';
         if ( ! isset( $groups[ $group ] ) ) {
             $group = 'all';
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI filters are read-only.
         $search = isset( $_GET['tct_search'] ) && is_string( $_GET['tct_search'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? substr( sanitize_text_field( wp_unslash( $_GET['tct_search'] ) ), 0, 120 ) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- UI pagination is read-only.
         $page = isset( $_GET['tct_paged'] ) ? max( 1, absint( $_GET['tct_paged'] ) ) : 1;
