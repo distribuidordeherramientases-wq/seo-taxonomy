@@ -28,11 +28,11 @@ $comparison_table = $wpdb->prefix . 'seo_category_comparisons';
 $comparison = $wpdb->get_row(
     $wpdb->prepare(
         "SELECT id, category_id, title, content, product_count, analysis_snapshot, source_hash, updated_at
-         FROM {$comparison_table}
+         FROM %i
          WHERE category_id = %d
            AND status = 'published'
          LIMIT 1",
-        (int) $comparison_term->term_id
+        $comparison_table, (int) $comparison_term->term_id
     )
 );
 
