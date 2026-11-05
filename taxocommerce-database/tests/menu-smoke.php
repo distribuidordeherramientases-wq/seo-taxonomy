@@ -48,10 +48,18 @@ if ( ! isset( $core->registered['database'] ) ) {
 $source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-database.php' );
 $clean_source = file_get_contents( dirname( __DIR__ ) . '/includes/legacy/seo-database-clean.php' );
 $table_source = file_get_contents( dirname( __DIR__ ) . '/includes/legacy/seo-database-report.php' );
-foreach ( array( 'Errores en datos', 'Limpieza BBDD', 'Exportar BBDD', 'Resumen tablas', 'Explorar tablas', 'Exportar tablas', 'Manual' ) as $tab_label ) {
+foreach ( array( 'Errores en datos', 'Limpieza BBDD', 'Exportar BBDD', 'Resumen tablas', 'Explorar tablas', 'Manual' ) as $tab_label ) {
     if ( false === strpos( $source, $tab_label ) ) {
         fwrite( STDERR, "FAIL: missing flat tab: " . $tab_label . "\n" ); exit( 1 );
     }
+}
+// Both original export engines must be available from the single top-level tab.
+if ( 1 !== substr_count( $source, "=> array( 'Exportar BBDD'," )
+    || false !== strpos( $source, "'table:export'          =>" )
+    || false === strpos( $source, "if ( 'table' === \\$screen && 'export' === \\$table_section )" )
+    || false === strpos( $source, 'seo_clean_db_render_export_tab();' )
+    || false === strpos( $source, 'seo_data_render_export( \\TCDB_Legacy\\seo_data_get_tables() );' ) ) {
+    fwrite( STDERR, "FAIL: export tabs not consolidated or old links not preserved\\n" ); exit( 1 );
 }
 if ( false === strpos( $source, 'tcdb-flat-tabs' ) || false === strpos( $source, 'overflow-x:auto' ) ) {
     fwrite( STDERR, "FAIL: horizontal scroll tabs missing\n" ); exit( 1 );
