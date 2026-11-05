@@ -411,6 +411,7 @@ $root_categories = get_terms(array(
     'taxonomy'   => 'product_cat',
     'hide_empty' => true,
     'parent'     => 0,
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Controlled exclusion of already displayed/default terms or products; required to avoid duplicates.
     'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
     'number'     => 16,
     'orderby'    => 'count',
@@ -426,6 +427,7 @@ $get_children = static function ($term_id, $limit = 4) use ($default_product_cat
         'taxonomy'   => 'product_cat',
         'hide_empty' => true,
         'parent'     => absint($term_id),
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Controlled exclusion of already displayed/default terms or products; required to avoid duplicates.
         'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
         'number'     => absint($limit),
         'orderby'    => 'count',
@@ -458,6 +460,7 @@ $get_term_image = static function ($term, $size = 'medium_large') use ($wpdb) {
         'no_found_rows'  => true,
         'orderby'        => 'date',
         'order'          => 'DESC',
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
         'tax_query'      => array(array(
             'taxonomy'         => 'product_cat',
             'field'            => 'term_id',
@@ -796,7 +799,9 @@ $dht_dependiente_ids = get_posts(array(
     'post_status'    => 'inherit',
     'posts_per_page' => 1,
     'fields'         => 'ids',
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
     'meta_key'       => '_wp_attached_file',
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
     'meta_value'     => $dht_dependiente_relative_file,
     'no_found_rows'  => true,
 ));
