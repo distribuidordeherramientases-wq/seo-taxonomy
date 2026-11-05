@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Campaigns
  * Description: Offer campaigns, campaign pricing, public banners, social offer publishing, and a standalone commercial calendar.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define('TAXOCOMMERCE_CAMPAIGNS_VERSION','0.1.3');
+define('TAXOCOMMERCE_CAMPAIGNS_VERSION','0.1.4');
 define('TAXOCOMMERCE_CAMPAIGNS_PATH',plugin_dir_path(__FILE__));
 define('TAXOCOMMERCE_CAMPAIGNS_URL',plugin_dir_url(__FILE__));
 
@@ -39,10 +39,10 @@ register_activation_hook(__FILE__, static function(){
 function taxocommerce_campaigns_register_core($core){
     if(!is_object($core)||!method_exists($core,'register_module')) return;
     $core->register_module('campaigns',array(
-        'name'=>'TaxoCommerce Campaigns',
+        'name'=>__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),
         'version'=>TAXOCOMMERCE_CAMPAIGNS_VERSION,
         'status'=>'active',
-        'description'=>'Offer campaigns, prices, banners, social offers, and commercial calendar.',
+        'description'=>__( 'Offer campaigns, prices, banners, social offers, and commercial calendar.', 'taxocommerce-campaigns' ),
         'admin_url'=>admin_url('admin.php?page=taxocommerce-campaigns'),
     ));
 }
@@ -59,7 +59,7 @@ function taxocommerce_campaigns_family_catalog($extensions){
         'search_term'=>'TaxoCommerce Campaigns',
         'wordpress_org'=>false,
         'admin_url'=>admin_url('admin.php?page=taxocommerce-campaigns'),
-        'description'=>'Offer campaigns, campaign pricing, banners, social offer publication, and standalone commercial calendar.',
+        'description'=>__( 'Offer campaigns, campaign pricing, banners, social offer publication, and standalone commercial calendar.', 'taxocommerce-campaigns' ),
     );
     return $extensions;
 }
