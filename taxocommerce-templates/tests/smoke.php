@@ -299,8 +299,8 @@ $manager_sections = TCT_Unified_Manager::sections();
 tct_assert(count($manager_sections) === 2
     && isset($manager_sections['composer'], $manager_sections['editor']),
     'Designer must contain only the compositor and PHP library.');
-tct_assert(strpos($entrypoint, "'routing'  => 'Enrutamiento'") !== false
-    && strpos($entrypoint, "'designer' => 'Diseñador de plantillas'") !== false,
+tct_assert(strpos($entrypoint, "'routing'  => __( 'Enrutamiento', 'taxocommerce-templates' )") !== false
+    && strpos($entrypoint, "'designer' => __( 'Diseñador de plantillas', 'taxocommerce-templates' )") !== false,
     'The Templates navigation must expose Enrutamiento and Diseñador only.');
 $routing = TCT_Routing_Admin::items();
 tct_assert(isset($routing['front_page'], $routing['page'], $routing['single_post'],
