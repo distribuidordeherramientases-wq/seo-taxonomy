@@ -182,7 +182,7 @@ final class TaxoCommerce_Templates {
         // Roles used in live hierarchy must not be silently reassigned.
         $relations=$wpdb->prefix.'seo_relations';
         if($current&&TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))===$relations) {
-            $count=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
+            $count=(int)TCT_DB::get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
         $now=current_time('mysql');TCT_DB::query('START TRANSACTION');
@@ -192,7 +192,7 @@ final class TaxoCommerce_Templates {
             $existing=TCT_DB::get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
             $saved=$existing?
                 false!==TCT_DB::update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
-                false!==$wpdb->insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
+                false!==TCT_DB::insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
         }
         if(false===$disabled||!$saved){TCT_DB::query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
         TCT_DB::query('COMMIT');
