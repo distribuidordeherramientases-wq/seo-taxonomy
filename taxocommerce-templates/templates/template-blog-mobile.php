@@ -211,6 +211,7 @@ if (!function_exists('dht_blog_v2_term_image_mobile')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
