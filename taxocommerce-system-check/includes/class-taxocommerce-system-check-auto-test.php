@@ -30,18 +30,24 @@ final class TaxoCommerce_System_Check_Auto_Test {
             'navigation'     => array( 'startup', 'Pantallas y pestañas' ),
             'native_php'     => array( 'diagnostics', 'Motor PHP independiente' ),
             'server_engine'  => array( 'diagnostics', 'Motor de diagnóstico del servidor' ),
+            'server_snapshot'=> array( 'diagnostics', __( 'Último diagnóstico del servidor', 'taxocommerce-system-check' ) ),
             'modules'        => array( 'diagnostics', 'Registro de módulos activos' ),
             'url_engine'     => array( 'http', 'Motor y controles de auditoría HTTP' ),
             'url_hooks'      => array( 'http', 'Acciones y watchdog del auditor' ),
             'module_export'  => array( 'reports', 'Exportación JSON de módulos' ),
             'legacy_exports'=> array( 'reports', 'Exportaciones del motor histórico' ),
+            'report_json'    => array( 'reports', __( 'Contrato JSON de Autocheck', 'taxocommerce-system-check' ) ),
             'network_uat'    => array( 'external', 'Conectividad HTTP real y redirecciones' ),
             'write_uat'      => array( 'external', 'Informes por correo, tareas y reparaciones' ),
         );
     }
 
-    private static function result( $status, $message ) {
-        return array( 'status' => $status, 'message' => (string) $message );
+    private static function result( $status, $message, $evidence = array() ) {
+        return array(
+            'status'   => $status,
+            'message'  => (string) $message,
+            'evidence' => is_array( $evidence ) ? $evidence : array(),
+        );
     }
 
     private static function evaluate( $id ) {
@@ -68,66 +74,190 @@ final class TaxoCommerce_System_Check_Auto_Test {
                 );
             case 'native_php':
                 if ( ! class_exists( 'TaxoCommerce_System_Check_PHP', false ) ) {
-                    return self::result( 'fail', 'El diagnóstico PHP independiente no está cargado.' );
+                    return self::result( 'fail', __( 'El diagnóstico PHP independiente no está cargado.', 'taxocommerce-system-check' ) );
                 }
                 $rows = TaxoCommerce_System_Check_PHP::collect();
                 if ( ! is_array( $rows ) || count( $rows ) < 10 ) {
-                    return self::result( 'fail', 'El diagnóstico PHP no devuelve su inventario completo.' );
+                    return self::result( 'fail', __( 'El diagnóstico PHP no devuelve su inventario completo.', 'taxocommerce-system-check' ) );
                 }
+                $seen = array();
+                $warnings = 0;
                 foreach ( $rows as $row ) {
-                    if ( ! is_array( $row ) || ! isset( $row['id'], $row['status'], $row['value'] ) ) {
-                        return self::result( 'fail', 'El inventario PHP contiene una fila incompleta.' );
+                    if ( ! is_array( $row ) || ! isset( $row['id'], $row['status'], $row['value'], $row['label'], $row['detail'] )
+                        || ! is_string( $row['id'] ) || '' === $row['id']
+                        || ! is_string( $row['label'] ) || '' === $row['label']
+                        || ! is_scalar( $row['value'] ) || ! is_string( $row['detail'] )
+                        || ! in_array( $row['status'], array( 'ok', 'info', 'warning', 'important', 'error' ), true )
+                        || isset( $seen[ $row['id'] ] ) ) {
+                        return self::result( 'fail', __( 'El inventario PHP contiene datos incompletos, duplicados o estados desconocidos.', 'taxocommerce-system-check' ) );
+                    }
+                    $seen[ $row['id'] ] = true;
+                    if ( in_array( $row['status'], array( 'warning', 'important', 'error' ), true ) ) {
+                        ++$warnings;
                     }
                 }
-                $warnings = count( array_filter( $rows, static function ( $row ) {
-                    return 'warning' === $row['status'];
-                } ) );
-                return self::result( 'pass', count( $rows ) . ' comprobaciones PHP disponibles; ' . $warnings . ' recomendaciones de entorno, consultables en Sistema > PHP.' );
+                return self::result(
+                    'pass',
+                    sprintf( __( '%1$d comprobaciones PHP válidas; %2$d avisos del entorno (consultables en Sistema > PHP).', 'taxocommerce-system-check' ), count( $rows ), $warnings ),
+                    array( 'checks' => count( $rows ), 'environment_warnings' => $warnings )
+                );
             case 'server_engine':
-                return function_exists( 'seo_server_status' )
-                    ? self::result( 'pass', 'Motor de estado del servidor disponible.' )
-                    : self::result( 'skip', 'Motor histórico no cargado; comprobar si TaxoCommerce SEO instalado reserva los símbolos globales.' );
+                return is_callable( 'seo_server_status' )
+                    ? self::result( 'pass', __( 'La pantalla de diagnóstico del servidor tiene un motor ejecutable.', 'taxocommerce-system-check' ) )
+                    : self::result( 'fail', __( 'No hay un motor de diagnóstico del servidor ejecutable. Comprueba la carga del módulo independiente.', 'taxocommerce-system-check' ) );
+            case 'server_snapshot':
+                // Only inspect previously stored data: never invoke collect_snapshot(),
+                // get_current_snapshot() or get_reporting_snapshot(), which can scan or write.
+                if ( ! function_exists( 'seo_server_status_load_snapshot' ) ) {
+                    return self::result( 'skip', __( 'La lectura del histórico de servidor no está disponible; no se inicia ningún escaneo.', 'taxocommerce-system-check' ) );
+                }
+                $snapshot = seo_server_status_load_snapshot();
+                if ( empty( $snapshot ) ) {
+                    return self::result( 'skip', __( 'Aún no hay un diagnóstico del servidor guardado. Ejecuta su comprobación desde Sistema.', 'taxocommerce-system-check' ) );
+                }
+                if ( ! is_array( $snapshot ) || ! isset( $snapshot['checks'], $snapshot['generated_at'] )
+                    || ! is_array( $snapshot['checks'] ) || empty( $snapshot['checks'] )
+                    || ! is_numeric( $snapshot['generated_at'] ) || (int) $snapshot['generated_at'] <= 0
+                    || (int) $snapshot['generated_at'] > time() + 60 ) {
+                    return self::result( 'fail', __( 'El último informe guardado del servidor tiene una estructura o fecha inválida.', 'taxocommerce-system-check' ) );
+                }
+                $statuses = array( 'ok' => 0, 'info' => 0, 'warning' => 0, 'important' => 0, 'error' => 0 );
+                $ids = array();
+                foreach ( $snapshot['checks'] as $check ) {
+                    if ( ! is_array( $check ) || empty( $check['code'] )
+                        || ! is_string( $check['code'] ) || ! isset( $check['status'], $check['label'] )
+                        || ! is_string( $check['label'] ) || ! isset( $statuses[ $check['status'] ] )
+                        || isset( $ids[ $check['code'] ] ) ) {
+                        return self::result( 'fail', __( 'El último diagnóstico contiene comprobaciones incompletas o duplicadas.', 'taxocommerce-system-check' ) );
+                    }
+                    $ids[ $check['code'] ] = true;
+                    ++$statuses[ $check['status'] ];
+                }
+                $age = max( 0, time() - (int) $snapshot['generated_at'] );
+                $evidence = array(
+                    'generated_at' => gmdate( 'c', (int) $snapshot['generated_at'] ),
+                    'age_seconds'   => $age,
+                    'checks'        => count( $snapshot['checks'] ),
+                    'statuses'      => $statuses,
+                );
+                if ( $age > 86400 ) {
+                    return self::result( 'skip', __( 'El informe de servidor supera las 24 horas: se conserva como histórico, no como prueba actual.', 'taxocommerce-system-check' ), $evidence );
+                }
+                return self::result(
+                    'pass',
+                    sprintf( __( 'Informe guardado válido: %d comprobaciones; su estado de salud se consulta en Sistema.', 'taxocommerce-system-check' ), count( $snapshot['checks'] ) ),
+                    $evidence
+                );
             case 'modules':
                 if ( ! function_exists( 'taxocommerce_system_check_module_results' ) ) {
-                    return self::result( 'fail', 'Falta la lectura de módulos activos.' );
+                    return self::result( 'fail', __( 'Falta la lectura de módulos activos.', 'taxocommerce-system-check' ) );
                 }
                 $modules = taxocommerce_system_check_module_results();
-                return is_array( $modules ) && isset( $modules['system_check'] )
-                    ? self::result( 'pass', count( $modules ) . ' módulos registrados; esta prueba no certifica su funcionamiento interno.' )
-                    : self::result( 'fail', 'System Check no figura en el resultado de sus módulos.' );
-            case 'url_engine':
+                if ( ! is_array( $modules ) || ! isset( $modules['system_check'] ) ) {
+                    return self::result( 'fail', __( 'System Check no figura en sus módulos registrados.', 'taxocommerce-system-check' ) );
+                }
+                $invalid = array();
+                foreach ( $modules as $id => $module ) {
+                    if ( ! is_array( $module ) || empty( $module['version'] )
+                        || ! isset( $module['status'], $module['checks'] ) || ! is_array( $module['checks'] )
+                        || ! in_array( $module['status'], array( 'ok', 'warning' ), true ) ) {
+                        $invalid[] = (string) $id;
+                        continue;
+                    }
+                    $fails = 0;
+                    foreach ( $module['checks'] as $check ) {
+                        if ( ! is_array( $check ) || ! isset( $check['ok'], $check['label'] )
+                            || ! is_bool( $check['ok'] ) || ! is_string( $check['label'] ) ) {
+                            $invalid[] = (string) $id;
+                            continue 2;
+                        }
+                        if ( ! $check['ok'] ) {
+                            ++$fails;
+                        }
+                    }
+                    if ( ( $fails && 'warning' !== $module['status'] ) || ( ! $fails && 'ok' !== $module['status'] ) || $fails ) {
+                        $invalid[] = (string) $id;
+                    }
+                }
+                if ( $invalid ) {
+                    return self::result(
+                        'fail',
+                        __( 'Hay módulos registrados con contratos inválidos o comprobaciones fallidas.', 'taxocommerce-system-check' ),
+                        array( 'module_count' => count( $modules ), 'affected_modules' => array_values( array_unique( $invalid ) ) )
+                    );
+                }
                 return self::result(
-                    class_exists( 'TaxoCommerce_System_Check_URL_Audit', false )
-                    && is_callable( array( 'TaxoCommerce_System_Check_URL_Audit', 'render' ) )
-                    && is_callable( array( 'TaxoCommerce_System_Check_URL_Audit', 'process_batch' ) ) ? 'pass' : 'fail',
-                    'Motor HTTP y su interfaz disponibles. No se ha solicitado ninguna URL.'
+                    'pass',
+                    sprintf( __( '%d módulos comprobados: versiones, estados y verificaciones coherentes.', 'taxocommerce-system-check' ), count( $modules ) ),
+                    array( 'module_count' => count( $modules ) )
+                );
+            case 'url_engine':
+                if ( ! class_exists( 'TaxoCommerce_System_Check_URL_Audit', false ) ) {
+                    return self::result( 'fail', __( 'No está cargado el auditor HTTP.', 'taxocommerce-system-check' ) );
+                }
+                $required = array( 'render', 'process_batch', 'start', 'download_json', 'handle_action' );
+                foreach ( $required as $method ) {
+                    if ( ! is_callable( array( 'TaxoCommerce_System_Check_URL_Audit', $method ) ) ) {
+                        return self::result( 'fail', sprintf( __( 'Falta el método HTTP ejecutable: %s.', 'taxocommerce-system-check' ), $method ) );
+                    }
+                }
+                return self::result(
+                    'pass',
+                    __( 'Interfaz, inicio, proceso por lotes, controles y descarga HTTP disponibles; no se hace ninguna petición.', 'taxocommerce-system-check' ),
+                    array( 'methods_checked' => count( $required ) )
                 );
             case 'url_hooks':
                 if ( ! class_exists( 'TaxoCommerce_System_Check_URL_Audit', false ) ) {
-                    return self::result( 'fail', 'No se puede verificar el auditor HTTP: clase ausente.' );
+                    return self::result( 'fail', __( 'No se puede verificar el auditor HTTP: clase ausente.', 'taxocommerce-system-check' ) );
                 }
+                $audit = 'TaxoCommerce_System_Check_URL_Audit';
                 $hooks = array(
-                    'admin_post_taxocommerce_system_check_http_json',
-                    TaxoCommerce_System_Check_URL_Audit::HOOK,
-                    TaxoCommerce_System_Check_URL_Audit::RESUME_HOOK,
+                    'admin_post_taxocommerce_system_check_http_json' => array( $audit, 'download_json' ),
+                    $audit::HOOK => array( $audit, 'process_batch' ),
+                    $audit::RESUME_HOOK => array( $audit, 'watchdog' ),
+                    'init' => array( $audit, 'maybe_schedule_watchdog' ),
                 );
-                foreach ( $hooks as $hook ) {
-                    if ( ! has_action( $hook ) ) {
-                        return self::result( 'fail', 'No está registrado el hook ' . $hook . '.' );
+                foreach ( $hooks as $hook => $callback ) {
+                    if ( false === has_action( $hook, $callback ) ) {
+                        return self::result( 'fail', sprintf( __( 'Falta el callback HTTP del hook %s.', 'taxocommerce-system-check' ), $hook ) );
                     }
                 }
-                return self::result( 'pass', 'Exportación, procesador de lotes y vigilancia registrados; no se ejecutan.' );
-            case 'module_export':
+                $schedule = $audit::cron_intervals( array() );
+                if ( ! is_array( $schedule ) || ! isset( $schedule['tcs_five_minutes']['interval'] )
+                    || 300 !== (int) $schedule['tcs_five_minutes']['interval'] ) {
+                    return self::result( 'fail', __( 'El intervalo del vigilante HTTP es inválido.', 'taxocommerce-system-check' ) );
+                }
                 return self::result(
-                    function_exists( 'taxocommerce_system_check_modules_json' )
-                    && has_action( 'admin_post_taxocommerce_system_check_modules_json' ) ? 'pass' : 'fail',
-                    'Exportación JSON de módulos registrada; no se descarga en esta prueba.'
+                    'pass',
+                    __( 'Callbacks HTTP y vigilancia de cinco minutos registrados y consistentes; no se activan procesos.', 'taxocommerce-system-check' ),
+                    array( 'hooks_checked' => count( $hooks ), 'watchdog_interval_seconds' => 300 )
                 );
+            case 'module_export':
+                return function_exists( 'taxocommerce_system_check_modules_json' )
+                    && false !== has_action( 'admin_post_taxocommerce_system_check_modules_json', 'taxocommerce_system_check_modules_json' )
+                    ? self::result( 'pass', __( 'El exportador de módulos tiene función y acción de descarga registradas.', 'taxocommerce-system-check' ) )
+                    : self::result( 'fail', __( 'La exportación JSON de módulos no está correctamente registrada.', 'taxocommerce-system-check' ) );
             case 'legacy_exports':
                 return function_exists( 'seo_system_diagnostics_handle_download_json' )
                     && has_action( 'admin_post_seo_system_diagnostics_download_json' )
-                    ? self::result( 'pass', 'Exportación histórica JSON disponible.' )
-                    : self::result( 'skip', 'Exportación del motor histórico no cargada; no se simula ni se marca como éxito.' );
+                    ? self::result( 'pass', __( 'Exportación histórica JSON disponible (no certifica la vigencia del informe).', 'taxocommerce-system-check' ) )
+                    : self::result( 'skip', __( 'Exportación del motor histórico no cargada; no es requisito del plugin independiente.', 'taxocommerce-system-check' ) );
+            case 'report_json':
+                if ( ! is_callable( 'taxocommerce_system_check_autocheck_export_json' )
+                    || false === has_action( 'admin_post_taxocommerce_system_check_autocheck_json', 'taxocommerce_system_check_autocheck_export_json' ) ) {
+                    return self::result( 'fail', __( 'El endpoint del JSON de Autocheck no está registrado.', 'taxocommerce-system-check' ) );
+                }
+                $fixture = array(
+                    'schema' => 1,
+                    'rows' => array( array( 'id' => 'test', 'status' => 'skip', 'message' => 'No ejecutado' ) ),
+                    'totals' => array( 'pass' => 0, 'fail' => 0, 'skip' => 1 ),
+                );
+                $json = wp_json_encode( $fixture, JSON_UNESCAPED_UNICODE );
+                $decoded = is_string( $json ) ? json_decode( $json, true ) : null;
+                if ( ! is_array( $decoded ) || $fixture !== $decoded ) {
+                    return self::result( 'fail', __( 'La serialización JSON pierde estados o estructura.', 'taxocommerce-system-check' ) );
+                }
+                return self::result( 'pass', __( 'Endpoint disponible y serialización JSON validada, incluido el estado no ejecutado.', 'taxocommerce-system-check' ), array( 'schema' => 1 ) );
             case 'network_uat':
                 return self::result( 'skip', 'No se realizan solicitudes HTTP ni se comprueba la accesibilidad pública. Utiliza la pestaña HTTP.' );
             case 'write_uat':
@@ -156,9 +286,16 @@ final class TaxoCommerce_System_Check_Auto_Test {
             $rows[] = $result;
             ++$totals[ $result['status'] ];
         }
+        $executed = $totals['pass'] + $totals['fail'];
+        $generated_at = gmdate( 'c' );
         return array(
             'version' => TAXOCOMMERCE_SYSTEM_CHECK_VERSION,
-            'generated_at' => gmdate( 'c' ), 'executed_at' => gmdate( 'c' ),
+            'generated_at' => $generated_at, 'executed_at' => $generated_at,
+            'coverage' => array(
+                'executed' => $executed,
+                'total' => count( $rows ),
+                'percentage' => count( $rows ) ? (int) round( 100 * $executed / count( $rows ) ) : 0,
+            ),
             'duration_ms' => (int) round( ( microtime( true ) - $start ) * 1000 ),
             'totals' => $totals,
             'rows' => $rows,
@@ -218,10 +355,11 @@ final class TaxoCommerce_System_Check_Auto_Test {
             set_transient( 'taxocommerce_system_check_autocheck_latest_' . get_current_blog_id() . '_' . get_current_user_id(), $autocheck_report, HOUR_IN_SECONDS );
         }
         self::render_download( $autocheck_report );
-        echo '<p><strong>Resultados:</strong> ' . esc_html( (string) $report['totals']['pass'] ) . ' correctas, '
+        echo '<p><strong>' . esc_html__( 'Resultados:', 'taxocommerce-system-check' ) . '</strong> ' . esc_html( (string) $report['totals']['pass'] ) . ' correctas, '
             . esc_html( (string) $report['totals']['fail'] ) . ' fallidas y '
             . esc_html( (string) $report['totals']['skip'] ) . ' no ejecutadas / no aplicables. '
             . esc_html( (string) $report['duration_ms'] ) . ' ms.</p>';
+        echo '<p>' . esc_html( sprintf( __( 'Cobertura del Autocheck: %1$d de %2$d pruebas (%3$d%%). Los chequeos omitidos no se consideran superados.', 'taxocommerce-system-check' ), $report['coverage']['executed'], $report['coverage']['total'], $report['coverage']['percentage'] ) ) . '</p>';
         foreach ( self::groups() as $group => $label ) {
             echo '<h3>' . esc_html( $label ) . '</h3>';
             echo '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th scope="col">' . esc_html__( 'Comprobación', 'taxocommerce-system-check' ) . '</th>' . '<th scope="col">' . esc_html__( 'Estado', 'taxocommerce-system-check' ) . '</th>' . '<th scope="col">' . esc_html__( 'Evidencia', 'taxocommerce-system-check' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
