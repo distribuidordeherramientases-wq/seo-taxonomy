@@ -229,6 +229,7 @@ if ($is_category) {
     $query = new WP_Query(array(
         'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 24,
         'paged' => $paged, 'no_found_rows' => false, 'fields' => 'ids',
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
         'tax_query' => array(array(
             'taxonomy' => 'product_cat', 'field' => 'term_id',
             'terms' => array((int) $term->term_id), 'include_children' => true,
@@ -265,6 +266,7 @@ if ($is_category) {
         $featured_query = new WP_Query(array(
             'post_type' => 'product', 'post_status' => 'publish',
             'posts_per_page' => 24, 'no_found_rows' => true, 'fields' => 'ids',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
             'tax_query' => array(array(
                 'taxonomy' => 'product_cat', 'field' => 'term_id',
                 'terms' => $category_ids, 'include_children' => true,
