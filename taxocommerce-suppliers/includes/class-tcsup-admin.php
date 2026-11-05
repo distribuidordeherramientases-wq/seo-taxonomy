@@ -226,7 +226,7 @@ final class TCSUP_Admin {
 	}
 
 	private static function render_import() {
-		$templates = TCSUP_CSV::templates();
+		$templates = TCSUP_CSV::import_templates();
 		$state     = TCSUP_CSV::state();
 		$selected  = (string) ( $state['template_id'] ?? 'canonical' );
 		?>
@@ -245,7 +245,7 @@ final class TCSUP_Admin {
 						</select>
 					</label>
 					<label><strong><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></strong>
-						<input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? '' ) ); ?>" placeholder="e.g. SATKIT">
+						<input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? '' ) ); ?>" placeholder="<?php echo esc_attr__( 'Supplier', 'taxocommerce-suppliers' ); ?>">
 					</label>
 					<label><strong><?php esc_html_e( 'CSV file', 'taxocommerce-suppliers' ); ?></strong>
 						<input type="file" name="supplier_csv" accept=".csv,text/csv" required>
@@ -299,9 +299,9 @@ final class TCSUP_Admin {
 			<h2><?php esc_html_e( '2. Review normalization', 'taxocommerce-suppliers' ); ?></h2>
 			<p><strong><?php esc_html_e( 'File:', 'taxocommerce-suppliers' ); ?></strong> <code><?php echo esc_html( (string) $state['filename'] ); ?></code> · <strong><?php esc_html_e( 'Delimiter:', 'taxocommerce-suppliers' ); ?></strong> <code><?php echo "	" === $state['delimiter'] ? 'TAB' : esc_html( $state['delimiter'] ); ?></code></p>
 			<?php if ( 'vevor' === $mode ) : ?>
-				<div class="notice notice-info inline"><p><?php esc_html_e( 'The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made.', 'taxocommerce-suppliers' ); ?></p></div>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'The selected regional feed is processed locally. No network request is made.', 'taxocommerce-suppliers' ); ?></p></div>
 			<?php elseif ( 'price_update' === $mode ) : ?>
-				<div class="notice notice-info inline"><p><?php esc_html_e( 'Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed.', 'taxocommerce-suppliers' ); ?></p></div>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column; include the market country for regional products.', 'taxocommerce-suppliers' ); ?></p></div>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -333,7 +333,7 @@ final class TCSUP_Admin {
 										} elseif ( in_array( $field, array( 'precio_sin_iva', 'precio_con_iva' ), true ) ) {
 											echo esc_html( 'At least one price' );
 										} elseif ( 'pais_origen' === $field ) {
-											echo esc_html( 'Required for VEVOR' );
+											echo esc_html__( 'For regional products', 'taxocommerce-suppliers' );
 										} else {
 											echo esc_html( 'No' );
 										}
