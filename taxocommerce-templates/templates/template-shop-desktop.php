@@ -418,6 +418,7 @@ $root_categories = get_terms(array(
     'taxonomy'   => 'product_cat',
     'hide_empty' => true,
     'parent'     => 0,
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Bounded exclusion prevents repetition or the default product category.
     'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
     'number'     => 12,
     'orderby'    => 'count',
