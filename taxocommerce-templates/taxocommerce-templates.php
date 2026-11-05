@@ -267,7 +267,7 @@ final class TaxoCommerce_Templates {
         }
         check_admin_referer('tct_settings');
         $enabled = isset($_POST['enable']) && is_string($_POST['enable']) &&
-            '1' === wp_unslash($_POST['enable']);
+            '1' === sanitize_text_field(wp_unslash($_POST['enable']));
         // Disable the effective gate FIRST. Re-enable it only after the
         // existing legacy switch has been updated. Safe even after an upgrade.
         update_option(self::REVIEW_CONSENT_OPTION, 0, false);
