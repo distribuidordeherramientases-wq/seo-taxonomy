@@ -317,7 +317,7 @@ final class TCT_Association_Audit {
             "SELECT object_type, object_id FROM %i
              WHERE seo_role = %s AND status = 1
              ORDER BY object_type ASC, object_id ASC LIMIT %d",
-            $role, $limit
+            $nodes, $role, $limit
         ));
     }
 
