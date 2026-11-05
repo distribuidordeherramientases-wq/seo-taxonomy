@@ -10,6 +10,13 @@ if ( 'cli' !== PHP_SAPI ) {
 
 $root = dirname( __DIR__ );
 $cases = array(
+    'taxocommerce-templates.php' => array(
+        'SELECT seo_role FROM %i WHERE object_type=',
+        'SELECT COUNT(*) FROM %i WHERE (source_id=',
+        'SELECT id FROM %i WHERE object_type=',
+        "SELECT object_id, seo_role FROM %i WHERE object_type='page'",
+        "is_string(\$_POST['tct_page_role_nonce'])",
+    ),
     'includes/class-tct-request-registry.php' => array(
         'SELECT seo_role FROM %i',
         'FROM %i WHERE template_key IN ({$slots})',
@@ -27,6 +34,8 @@ $cases = array(
     'includes/class-tct-association-audit.php' => array(
         'FROM %i GROUP BY seo_role',
         'FROM %i ORDER BY mail_key',
+        'SELECT object_type, object_id FROM %i',
+        'SELECT template_key FROM %i',
     ),
     'includes/class-tct-template-editor.php' => array(
         "is_string(\$_POST['filename'])",
