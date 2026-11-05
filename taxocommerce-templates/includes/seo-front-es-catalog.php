@@ -306,7 +306,9 @@ add_action( 'pre_get_posts', static function ( $query ) {
     }
 
     $scoped = seo_front_es_scope_product_query_args( array(
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Reuses existing bounded native product-query filter without creating a new meta query.
         'meta_query' => $query->get( 'meta_query' ),
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Reuses existing taxonomy constraints before applying the ES country visibility policy.
         'tax_query'  => $query->get( 'tax_query' ),
     ) );
     // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Preserve existing country/locale product visibility, using native WP_Query.
