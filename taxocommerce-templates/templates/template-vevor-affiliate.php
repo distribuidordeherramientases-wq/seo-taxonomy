@@ -57,13 +57,13 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Tabla interna y placeholders %d generados localmente; valores enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare(
             "SELECT DISTINCT categoria_proveedor
-             FROM {$table}
+             FROM %i
              WHERE proveedor = %s
-               AND object_id IN ({$id_placeholders})
+               AND object_id IN (" . $id_placeholders . ")
                AND categoria_proveedor IS NOT NULL
                AND categoria_proveedor <> ''
              LIMIT 20",
-            ...array_merge(array('vevor'), array_map('absint', $product_ids))
+            ...array_merge(array($table, 'vevor'), array_map('absint', $product_ids))
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
         $provider_rows = (array) $wpdb->get_col($sql);
@@ -183,13 +183,13 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
                 id, proveedor_id_externo, sku, url_origen, url_canonica,
                 nombre, categoria_proveedor, precio_con_iva, moneda, imagenes,
                 estado_seleccion, estado_sincronizacion
-             FROM {$table}
+             FROM %i
              WHERE proveedor = %s
                AND estado_seleccion = %s
                AND estado_sincronizacion = %s
              ORDER BY RAND()
              LIMIT %d",
-            'vevor', 'descartado', 'ignorado', $limit
+            $table, 'vevor', 'descartado', 'ignorado', $limit
         ),
         ARRAY_A
     );
