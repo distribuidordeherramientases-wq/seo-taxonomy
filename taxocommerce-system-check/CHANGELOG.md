@@ -1,3 +1,9 @@
+## [0.2.17] — 2026-11-05 — Descarga persistente de Autocheck (#2234)
+
+- La descarga JSON del último Autocheck se mantiene visible al volver a la pestaña mientras el informe del usuario y sitio siga disponible (caducidad existente de una hora).
+- Primera visita y después de caducar: no se ofrece descarga sin resultados; nunca se inicia una prueba por descargar.
+- Se preservan el nonce, permisos de administrador, los estados pass/fail/skip y las pruebas; ampliada la regresión de interfaz y persistencia.
+
 ## [0.2.16] — 2026-11-05 — Corrección de arranque y cabecera (#2230)
 
 - El motor local de Server Status ya no se bloquea por la mera presencia en disco del antiguo seo-taxonomy. Si el monolito está activo pero no carga Server Status, se incorpora únicamente el módulo de servidor sin recargar Validation o Reporting.
