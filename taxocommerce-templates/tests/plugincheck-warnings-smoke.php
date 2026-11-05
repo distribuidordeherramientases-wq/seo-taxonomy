@@ -11,7 +11,8 @@ if ( 'cli' !== PHP_SAPI ) {
 $root = dirname( __DIR__ );
 $cases = array(
     'taxocommerce-templates.php' => array(
-        'SELECT seo_role FROM %i WHERE object_type=',
+        "TCT_Request_Registry::role_for_object( 'page', absint( $id ) )",
+        "wp_cache_delete( 'role_page_' . $id, 'taxocommerce_templates' )",
         'SELECT COUNT(*) FROM %i WHERE (source_id=',
         'SELECT id FROM %i WHERE object_type=',
         "SELECT object_id, seo_role FROM %i WHERE object_type='page'",
@@ -19,6 +20,8 @@ $cases = array(
     ),
     'includes/class-tct-request-registry.php' => array(
         'SELECT seo_role FROM %i',
+        "wp_cache_get( $cache_key, 'taxocommerce_templates' )",
+        "wp_cache_set( $cache_key, $role, 'taxocommerce_templates', 15 )",
         'FROM %i WHERE template_key IN ({$slots})',
         'array_merge( array( $table ), $candidates )',
         'FROM %i WHERE template_key = %s',
