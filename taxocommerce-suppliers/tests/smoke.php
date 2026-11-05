@@ -48,4 +48,8 @@ tcsup_assert( false !== strpos( $csv, "check_admin_referer( 'tcsup_import_csv' )
 tcsup_assert( false !== strpos( $products, "check_admin_referer( 'tcsup_price_update' )" ), 'price edits must verify nonce in handler' );
 tcsup_assert( false !== strpos( $products, "sanitize_textarea_field( wp_unslash( \$_POST['image_urls'] ) )" ), 'image URLs must be sanitized' );
 tcsup_assert( false !== strpos( $csv, "map_deep( wp_unslash( \$_POST['mapping'] ), 'sanitize_text_field' )" ), 'CSV mapping must be sanitized' );
+tcsup_assert( false !== strpos( $admin, 'tcsup_create_template' ), 'standalone template creation form' );
+tcsup_assert( false !== strpos( $admin, 'tcsup-template-create' ), 'collapsible template creation UI' );
+tcsup_assert( false !== strpos( $csv, 'parse_template_definition' ), 'safe mapping definition parser' );
+tcsup_assert( false !== strpos( $csv, 'handle_export_template' ), 'JSON export control' );
 echo "OK\n";
