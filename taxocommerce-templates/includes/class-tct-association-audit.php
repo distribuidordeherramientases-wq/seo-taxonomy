@@ -314,7 +314,7 @@ final class TCT_Association_Audit {
         $limit = min(10, max(1, absint($limit)));
         $nodes = TaxoCommerce_Templates::nodes();
         return (array)$wpdb->get_results($wpdb->prepare(
-            "SELECT object_type, object_id FROM {$nodes}
+            "SELECT object_type, object_id FROM %i
              WHERE seo_role = %s AND status = 1
              ORDER BY object_type ASC, object_id ASC LIMIT %d",
             $role, $limit
@@ -381,7 +381,7 @@ final class TCT_Association_Audit {
         $table = TaxoCommerce_Templates::templates();
         $all = self::grouped_nodes();
         $existing = array_fill_keys((array)$wpdb->get_col(
-            "SELECT template_key FROM {$table}"), true);
+            $wpdb->prepare( "SELECT template_key FROM %i", $table )), true);
         $created = 0;
         foreach ($all as $key => $groups) {
             if ($key === '' || isset($existing[$key]) ||
