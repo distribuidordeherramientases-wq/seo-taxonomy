@@ -190,7 +190,7 @@ msgid "9. Autotest y resolución de problemas"
 msgstr ""
 
 msgid "A default WooCommerce product category is required before accepting new products."
-msgstr ""
+msgstr "Debes configurar una categoría de producto predeterminada en WooCommerce antes de aceptar productos nuevos."
 
 msgid "A supplier name is required."
 msgstr "Es obligatorio indicar un proveedor."
@@ -208,7 +208,7 @@ msgid "Analyze CSV"
 msgstr "Analizar CSV"
 
 msgid "Another acceptance process is already working on this supplier product."
-msgstr ""
+msgstr "Ya hay otro proceso aceptando este producto del proveedor."
 
 msgid "Apply"
 msgstr "Aplicar"
@@ -418,7 +418,7 @@ msgid "No hay correspondencias de columnas."
 msgstr ""
 
 msgid "No product brand taxonomy is available."
-msgstr ""
+msgstr "No hay ninguna taxonomía de marcas de producto disponible."
 
 msgid "No se pudo exportar la plantilla."
 msgstr ""
@@ -547,7 +547,7 @@ msgid "Supplier catalogue intake, product decisions, purchasing, price control, 
 msgstr "Entrada de catálogos de proveedores, decisiones sobre productos, compras, control de precios y referencias de imágenes externas."
 
 msgid "Supplier catalogue row was not found."
-msgstr ""
+msgstr "No se ha encontrado la fila del catálogo de proveedores."
 
 msgid "Supplier category"
 msgstr "Categoría del proveedor"
@@ -574,7 +574,7 @@ msgid "Supplier SKU"
 msgstr "SKU del proveedor"
 
 msgid "Supplier SKU is already linked in WooCommerce to a different supplier."
-msgstr ""
+msgstr "El SKU del proveedor ya está vinculado en WooCommerce a otro proveedor."
 
 msgid "Supplier-linked"
 msgstr "Con proveedor vinculado"
@@ -640,10 +640,10 @@ msgid "Without source"
 msgstr "Sin proveedor"
 
 msgid "WooCommerce did not return a product ID."
-msgstr ""
+msgstr "WooCommerce no ha devuelto un ID de producto."
 
 msgid "WooCommerce is required to accept supplier products."
-msgstr ""
+msgstr "Se necesita WooCommerce para aceptar productos de proveedores."
 
 msgid "WooCommerce must be active to resolve sales into supplier purchases."
 msgstr "WooCommerce debe estar activo para relacionar las ventas con las compras a proveedores."
@@ -652,7 +652,7 @@ msgid "WooCommerce product"
 msgstr "Producto de WooCommerce"
 
 msgid "WooCommerce product could not be loaded."
-msgstr ""
+msgstr "No se ha podido cargar el producto de WooCommerce."
 
 msgid "Ya existe una plantilla con ese nombre."
 msgstr ""
