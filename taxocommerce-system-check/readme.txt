@@ -38,6 +38,8 @@ System diagnostics can include server configuration, URLs and error details. Tre
 
 = 0.2.17 =
 * Keep the most recent Autocheck JSON download available on returning to the tab, until the user- and site-scoped report expires. Export does not rerun tests.
+* Validate PHP diagnostic rows, active module results, HTTP callback/schedule contracts and JSON serialization. Include structured evidence and executed/total coverage in Autocheck output.
+* Read the last saved server snapshot without starting another scan: missing or older than 24 hours is reported as not executed, malformed data as failure. Environment warnings do not imply a broken plugin.
 
 = 0.2.16 =
 * Load bundled server diagnostics when legacy SEO is installed but inactive, or active without its Server Status module; avoid duplicate headers and reloading existing global engines.
