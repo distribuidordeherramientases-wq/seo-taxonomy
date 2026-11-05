@@ -121,11 +121,13 @@ $db->rows = array();
 $diag = TCD_Sources::faq_diagnostics();
 $batch = TCD_Sources::batch( 6, 0, 20 );
 faq_expect( 'empty_table' === $diag['status'], 'Empty table diagnosis' );
-faq_expect( is_wp_error( $batch ) && 'tcd_faq_source_empty' === $batch->get_error_code(), 'Empty table explicit error' );
+faq_expect( is_array( $batch ) && empty( $batch['items'] ) && empty( $batch['more'] ), 'An empty FAQ table is a skipped lesson.' );
 
 $db->rows = array( array( 'id'=>22, 'object_type'=>2, 'object_id'=>91, 'question'=>'Inactiva', 'answer'=>'Texto', 'active'=>0 ) );
 $diag = TCD_Sources::faq_diagnostics();
 faq_expect( 'no_active_rows' === $diag['status'], 'Inactive-only diagnosis' );
+$batch = TCD_Sources::batch( 6, 0, 20 );
+faq_expect( is_array( $batch ) && empty( $batch['items'] ), 'FAQs without active sources are skipped, not a PHP error.' );
 
 $db->rows = array( array( 'id'=>23, 'object_type'=>2, 'object_id'=>91, 'question'=>'', 'answer'=>'Texto', 'active'=>1 ) );
 $batch = TCD_Sources::batch( 6, 0, 20 );
@@ -145,5 +147,5 @@ $db->exists = false;
 $diag = TCD_Sources::faq_diagnostics();
 $batch = TCD_Sources::batch( 6, 0, 20 );
 faq_expect( 'missing_table' === $diag['status'], 'Missing table diagnosis' );
-faq_expect( is_wp_error( $batch ) && 'tcd_faq_plugin_missing' === $batch->get_error_code(), 'Missing table explicit error' );
+faq_expect( is_array( $batch ) && empty( $batch['items'] ) && empty( $batch['more'] ), 'Optional FAQ plugin absent is a skipped lesson.' );
 echo "FAQ L6 schema and data regression: OK\n";
