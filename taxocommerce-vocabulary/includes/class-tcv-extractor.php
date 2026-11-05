@@ -244,4 +244,71 @@ final class TCV_Extractor {
         );
     }
 
+
+    /**
+     * Detect a missing canonical concept, following the old novelty guard:
+     * only one review proposal, never create a vocabulary term automatically.
+     */
+    public static function discover( $group, $context, $existing = array() ) {
+        $raw = isset( $context['raw'] ) ? $context['raw'] : array();
+        $title = isset( $raw['title'] ) ? trim( $raw['title'] ) : '';
+        $candidate = '';
+        $source = 'title';
+        if ( 'tipo' === $group ) {
+            $candidate = $title;
+            $brand = isset( $raw['brands'] ) ? trim( $raw['brands'] ) : '';
+            if ( '' !== $brand ) {
+                foreach ( preg_split( '/\s*,\s*/u', $brand ) as $name ) {
+                    $candidate = preg_replace( '/^' . preg_quote( $name, '/' ) . '\b[\s:–—-]*/iu', '', $candidate );
+                }
+            }
+            $candidate = preg_replace( '/^(?:set|juego|pack|lote)\s+de\s+\d+\s+/iu', '', $candidate );
+            $candidate = preg_replace( '/^(?:kit|set|juego|pack)\s+/iu', '', $candidate );
+            $parts = preg_split( '/\s*[;,|]\s*|\s+[–—]\s+|\s+(?:con|para|hasta|incluye)\s+/iu', $candidate, 2 );
+            $candidate = isset( $parts[0] ) ? $parts[0] : '';
+            $candidate = preg_replace( '/\s+\d+(?:[.,]\d+)?\s*(?:mm|cm|kg|v|w|kw|ah|nm|rpm)\b.*$/iu', '', $candidate );
+        } elseif ( 'plataforma' === $group ) {
+            $source = 'technical_platform';
+            $text = implode( ' ', array( $title, isset( $raw['supplier'] ) ? $raw['supplier'] : '' ) );
+            if ( preg_match( '/\b(?:SDS\s*Plus|SDS\s*Max|Starlock(?:\s*Plus|\s*Max)?|X-?LOCK|AMPShare|FLEXVOLT|M12|M18|XGT|LXT)\b/iu', $text, $match ) ) {
+                $candidate = $match[0];
+            }
+        } elseif ( 'aplicacion' === $group ) {
+            $source = 'category';
+            $category = isset( $raw['categories'] ) ? $raw['categories'] : '';
+            if ( preg_match( '/\b(?:perforaci[oó]n|corte|soldadura|mantenimiento|carpinter[ií]a|pintura|limpieza|jardiner[ií]a|medici[oó]n|electricidad)\b/iu', $category, $match ) ) {
+                $candidate = $match[0];
+            }
+        }
+        $candidate = trim( preg_replace( '/\s+/u', ' ', (string) $candidate ), " \t\n\r\0\x0B,.;:|–—-_" );
+        if ( '' === $candidate ) {
+            return null;
+        }
+        $tokens = preg_split( '/\s+/u', $candidate, -1, PREG_SPLIT_NO_EMPTY );
+        if ( 'tipo' === $group && ( count( $tokens ) < 2 || count( $tokens ) > 7 ) ) {
+            return null;
+        }
+        if ( strlen( $candidate ) < 3 || strlen( $candidate ) > 90 ) {
+            return null;
+        }
+        $concepts = self::concepts( $candidate );
+        foreach ( (array) $existing as $term ) {
+            $other = self::concepts( isset( $term['label'] ) ? $term['label'] : '' );
+            $union = count( array_unique( array_merge( $concepts, $other ) ) );
+            $similarity = $union ? count( array_intersect( $concepts, $other ) ) / $union : 0;
+            if ( $similarity >= 0.72 ) {
+                return null;
+            }
+        }
+        return array(
+            'group' => $group,
+            'vocabulary_id' => 0,
+            'label' => sanitize_text_field( $candidate ),
+            'confidence' => 'plataforma' === $group ? 0.88 : ( 'tipo' === $group ? 0.82 : 0.78 ),
+            'state' => 'review',
+            'new_term' => true,
+            'evidence' => array( 'source' => $source, 'reason' => 'missing_canonical_term' ),
+        );
+    }
+
 }
