@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.7
+ * Version: 0.4.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.7' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.8' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -58,13 +58,17 @@ final class TaxoCommerce_Database {
         $table_section = isset( $_GET['section'] ) && is_string( $_GET['section'] )
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation and filtering; GET cannot change data.
             ? sanitize_key( wp_unslash( $_GET['section'] ) ) : 'overview';
+        // The old table export route remains an alias for existing bookmarks.
+        if ( 'table' === $screen && 'export' === $table_section ) {
+            $screen = 'clean';
+            $clean_tab = 'export';
+        }
         $tabs = array(
             'clean:data_errors'     => array( 'Errores en datos', 'clean', 'seo_clean_db_tab', 'data_errors' ),
             'clean:database_cleanup'=> array( 'Limpieza BBDD', 'clean', 'seo_clean_db_tab', 'database_cleanup' ),
             'clean:export'          => array( 'Exportar BBDD', 'clean', 'seo_clean_db_tab', 'export' ),
             'table:overview'        => array( 'Resumen tablas', 'table', 'section', 'overview' ),
             'table:explorer'        => array( 'Explorar tablas', 'table', 'section', 'explorer' ),
-            'table:export'          => array( 'Exportar tablas', 'table', 'section', 'export' ),
             'manual'                => array( 'Manual', 'manual', 'section', 'manual' ),
             'auto-test'             => array( __( 'Autocheck', 'taxocommerce-database' ), 'auto-test', 'section', 'auto-test' ),
         );
@@ -85,6 +89,14 @@ final class TaxoCommerce_Database {
             TCDB_Auto_Test::render();
         } elseif ( 'manual' === $screen ) {
             TCDB_Manual::render();
+        } elseif ( 'clean' === $screen && 'export' === $clean_tab ) {
+            // Preserve both existing export engines, but display their actions together.
+            // The original admin-post handlers and nonce-protected SQL URLs do not change.
+            echo '<div class="wrap seo-clean-db-wrap">';
+            \TCDB_Legacy\seo_data_render_styles();
+            \TCDB_Legacy\seo_clean_db_render_export_tab();
+            \TCDB_Legacy\seo_data_render_export( \TCDB_Legacy\seo_data_get_tables() );
+            echo '</div>';
         } elseif ( 'table' === $screen ) {
             \TCDB_Legacy\seo_data_table_page();
         } else {
