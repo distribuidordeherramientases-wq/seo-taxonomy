@@ -18,6 +18,7 @@ define('TCT_VERSION','0.4.14');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
+require_once TCT_DIR . 'includes/class-tct-read-cache.php';
 require_once TCT_DIR . 'includes/class-tct-router.php';
 require_once TCT_DIR . 'includes/class-tct-request-registry.php';
 require_once TCT_DIR . 'includes/class-tct-request-admin.php';
