@@ -1,3 +1,9 @@
+## [0.2.7] — 2026-11-05 — Internacionalización (#2062)
+
+- Se reutiliza el mecanismo gettext nativo de TaxoCommerce Core, sin introducir un cargador alternativo.
+- Se preparan para gettext las pestañas y textos de administración, etiquetas de campos CSV, mensajes de error y resultados, compras, Autocheck y el manual.
+- Actualización de catálogos por idioma; preservadas las claves, formularios, nonces, estados de proveedor y contratos WooCommerce.
+
 ## Unreleased - Familia i18n #2062
 
 ## [0.2.6] — 2026-11-05
