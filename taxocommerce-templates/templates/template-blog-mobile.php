@@ -110,7 +110,7 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
             $attachment_ids = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
-                     FROM {$usage_table}
+                     FROM %i
                      WHERE object_type = 'product'
                        AND object_id = %d
                        AND attachment_id IS NOT NULL
@@ -124,7 +124,7 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
                        END ASC,
                        fecha DESC
                      LIMIT 10",
-                    $product_id
+                    $usage_table, $product_id
                 )
             );
 
@@ -147,14 +147,14 @@ if (!function_exists('dht_blog_v2_product_image_mobile')) {
             $supplier_url = $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC
                      LIMIT 1",
-                    $product_id
+                    $supplier_table, $product_id
                 )
             );
 
