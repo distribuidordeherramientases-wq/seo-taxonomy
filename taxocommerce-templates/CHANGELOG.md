@@ -1,3 +1,8 @@
+## [0.4.15] — 2026-11-05
+
+- Segundo lote parcial de avisos #2189: identificadores SQL con `%i` en las asignaciones de página, relaciones jerárquicas, ejemplos de auditoría y catálogo de roles; defensas para entradas de administración no escalares y comprobación del tipo del nonce en el metabox.
+- Sin cambios funcionales previstos en las asignaciones. No se declara cero avisos ni compatibilidad WordPress.org, pendiente Plugin Check/UAT y resolución del editor PHP privado (#1522).
+
 ## [0.4.14] — 2026-11-05
 
 - Primer lote de advertencias del nuevo Plugin Check (#2189): identificadores SQL preparados con `%i` en el registro de peticiones, router, asociaciones, guardado de roles y editor; conserva los filtros `IN` parametrizados y las reglas existentes.
