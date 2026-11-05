@@ -201,16 +201,16 @@ final class TCSUP_Purchasing {
 		<section class="tcsup-card">
 			<div class="tcsup-card-head">
 				<div>
-					<h2>Purchasing</h2>
+					<h2><?php esc_html_e( 'Purchasing', 'taxocommerce-suppliers' ); ?></h2>
 					<p>Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics.</p>
 				</div>
 			</div>
 
 			<div class="tcsup-purchasing-summary">
-				<div><strong><?php echo esc_html( count( $dataset['orders'] ) ); ?></strong><span>Active sales</span></div>
-				<div><strong><?php echo esc_html( count( $dataset['lines'] ) ); ?></strong><span>Order lines</span></div>
-				<div><strong><?php echo esc_html( $matched_lines ); ?></strong><span>Supplier-linked</span></div>
-				<div><strong><?php echo esc_html( $missing_lines ); ?></strong><span>Without source</span></div>
+				<div><strong><?php echo esc_html( count( $dataset['orders'] ) ); ?></strong><span><?php esc_html_e( 'Active sales', 'taxocommerce-suppliers' ); ?></span></div>
+				<div><strong><?php echo esc_html( count( $dataset['lines'] ) ); ?></strong><span><?php esc_html_e( 'Order lines', 'taxocommerce-suppliers' ); ?></span></div>
+				<div><strong><?php echo esc_html( $matched_lines ); ?></strong><span><?php esc_html_e( 'Supplier-linked', 'taxocommerce-suppliers' ); ?></span></div>
+				<div><strong><?php echo esc_html( $missing_lines ); ?></strong><span><?php esc_html_e( 'Without source', 'taxocommerce-suppliers' ); ?></span></div>
 			</div>
 
 			<?php if ( empty( $dataset['lines'] ) ) : ?>
@@ -220,16 +220,16 @@ final class TCSUP_Purchasing {
 					<table class="widefat striped">
 						<thead>
 							<tr>
-								<th>Sale</th>
-								<th>Status</th>
-								<th>WooCommerce product</th>
-								<th>Qty.</th>
-								<th>Supplier</th>
-								<th>Supplier ID</th>
-								<th>Supplier SKU</th>
-								<th>Supplier product</th>
-								<th>Cost</th>
-								<th>Purchase</th>
+								<th><?php esc_html_e( 'Sale', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Status', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'WooCommerce product', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Qty.', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Supplier ID', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Supplier SKU', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Supplier product', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Cost', 'taxocommerce-suppliers' ); ?></th>
+								<th><?php esc_html_e( 'Purchase', 'taxocommerce-suppliers' ); ?></th>
 							</tr>
 						</thead>
 						<tbody>

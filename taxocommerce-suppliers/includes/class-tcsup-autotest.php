@@ -91,7 +91,7 @@ final class TCSUP_Autotest {
 		echo '<form method="post">';
 		wp_nonce_field( 'tcsup_autotest' );
 		echo '<input type="hidden" name="tcsup_run_autotest" value="1">';
-		submit_button( 'Ejecutar Autocheck', 'secondary', 'submit', false );
+		submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-suppliers' ), 'secondary', 'submit', false );
 		echo '</form>';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified before executing the diagnostics.
 		if ( ! isset( $_POST['tcsup_run_autotest'] ) ) {
@@ -126,7 +126,7 @@ final class TCSUP_Autotest {
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ]++;
 		}
-		echo '<h3>Resumen</h3><p>' . esc_html( count( $rows ) ) . ' comprobaciones: ' . esc_html( $counts['ok'] ) . ' correctas, ' . esc_html( $counts['warning'] ) . ' avisos y ' . esc_html( $counts['error'] ) . ' errores.</p>';
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . esc_html( count( $rows ) ) . ' comprobaciones: ' . esc_html( $counts['ok'] ) . ' correctas, ' . esc_html( $counts['warning'] ) . ' avisos y ' . esc_html( $counts['error'] ) . ' errores.</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
 			if ( $group !== $row['group'] ) {
@@ -136,7 +136,7 @@ final class TCSUP_Autotest {
 				$group = $row['group'];
 				echo '<h3>' . esc_html( $group ) . '</h3><table class="widefat striped"><thead><tr><th>Comprobación</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
 			}
-			$names = array( 'ok' => 'Correcto', 'warning' => 'Aviso', 'error' => 'Error' );
+			$names = array( 'ok' => __( 'Correcto', 'taxocommerce-suppliers' ), 'warning' => __( 'Aviso', 'taxocommerce-suppliers' ), 'error' => __( 'Error', 'taxocommerce-suppliers' ) );
 			echo '<tr><th scope="row">' . esc_html( $row['name'] ) . '</th><td>' . esc_html( $names[ $row['status'] ] ) . '</td><td>' . esc_html( $row['detail'] ) . '</td></tr>';
 		}
 		if ( $group ) {
