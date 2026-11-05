@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.24
+Stable tag: 0.3.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Learning does not edit the source products. The plugin runs local background tas
 
 1. Install and activate WooCommerce.
 2. Install and activate TaxoCommerce Assistant from its standalone ZIP.
-3. Open its administration page to check learning state and launch or review training.
+3. Open its administration page to check the empty initial learning state and launch or review training. Knowledge is learned only from this site's WooCommerce products, categories, tags and locally available sources.
 4. Add [taxocommerce_dependiente_moderno] to a page to test the new storefront search.
 5. Confirm relevance and resource usage before replacing an existing storefront search.
 
@@ -58,7 +58,16 @@ No. Learning builds and evaluates separate knowledge records.
 
 No. Core provides optional grouped administration.
 
+== Clean installation and local learning ==
+
+A new installation creates the Assistant's learning/lexicon/evidence schemas empty; it does NOT insert example tools, synonyms or knowledge from the developer's store. Only technical configuration, lesson definitions and generic language processing rules are bundled. Start the L1-L10 learning process from the administration screen when you are ready to learn the current site's WooCommerce catalogue. After catalog learning, the Interpreter/Linguist builds evidence-backed lexical relationships from local products and taxonomy. Plugin upgrades do not erase existing learning. No sample dataset is installed automatically.
+
 == Changelog ==
+
+= 0.3.25 =
+* Stop installing the 17 hardcoded tool expressions into the customer lexicon. Fresh tables are empty, while existing learned data and evidence remain untouched.
+* Retain catalog-driven learning, manual start, language grammar and schema upgrade behavior. Add isolated installation/upgrade regression smoke test and CI coverage.
+
 
 = 0.3.24 =
 * Unifica «Autocheck» y permite descargar JSON autenticado de los resultados de la última ejecución, sin modificar servicios ni contenidos.
