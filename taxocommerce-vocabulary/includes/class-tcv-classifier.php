@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCV_Classifier {
-    const VERSION = '0.3.0';
+    const VERSION = '0.3.9';
     const GROUPS = array( 'tipo', 'rol', 'aplicacion', 'plataforma', 'subtipo' );
 
     private static function normalize( $text ) {
@@ -15,20 +15,61 @@ final class TCV_Classifier {
     }
 
     private static function product_context( $product_id ) {
-        $p = get_post( $product_id );
-        if ( ! $p || 'product' !== $p->post_type ) {
-            return new WP_Error( 'tcv_product_missing', 'Producto no encontrado.' );
+        $post = get_post( $product_id );
+        if ( ! $post || 'product' !== $post->post_type ) {
+            return new WP_Error( 'tcv_product_missing', __( 'Product not found.', 'taxocommerce-vocabulary' ) );
         }
         $cats = wp_get_post_terms( $product_id, 'product_cat', array( 'fields' => 'names' ) );
         if ( is_wp_error( $cats ) ) {
             $cats = array();
         }
-        return array(
-            'title'      => self::normalize( $p->post_title ),
-            'excerpt'    => self::normalize( $p->post_excerpt ),
-            'content'    => self::normalize( $p->post_content ),
-            'categories' => self::normalize( implode( ' ', $cats ) ),
+        $tags = array();
+        if ( taxonomy_exists( 'product_tag' ) ) {
+            $tags = wp_get_post_terms( $product_id, 'product_tag', array( 'fields' => 'names' ) );
+            if ( is_wp_error( $tags ) ) {
+                $tags = array();
+            }
+        }
+        $brands = array();
+        // Use installed WordPress/WooCommerce brand taxonomies, without a
+        // dependency on a brand or supplier plugin.
+        foreach ( array( 'product_brand', 'pwb-brand', 'yith_product_brand', 'pa_marca', 'pa_brand' ) as $taxonomy ) {
+            if ( ! taxonomy_exists( $taxonomy ) ) {
+                continue;
+            }
+            $values = wp_get_post_terms( $product_id, $taxonomy, array( 'fields' => 'names' ) );
+            if ( ! is_wp_error( $values ) ) {
+                $brands = array_merge( $brands, (array) $values );
+            }
+        }
+        foreach ( array( '_brand', '_manufacturer', '_seo_fabricante' ) as $key ) {
+            $value = get_post_meta( $product_id, $key, true );
+            if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+                $brands[] = (string) $value;
+            }
+        }
+        $supplier = array();
+        foreach ( array( '_supplier_name', '_supplier_description', '_supplier_category',
+            '_seo_proveedor', '_seo_marca_proveedor' ) as $key ) {
+            $value = get_post_meta( $product_id, $key, true );
+            if ( is_scalar( $value ) && '' !== trim( (string) $value ) ) {
+                $supplier[] = (string) $value;
+            }
+        }
+        $values = array(
+            'title' => $post->post_title,
+            'excerpt' => $post->post_excerpt,
+            'content' => $post->post_content,
+            'categories' => implode( ' ', $cats ),
+            'tags' => implode( ' ', $tags ),
+            'brands' => implode( ' ', array_unique( $brands ) ),
+            'sku' => (string) get_post_meta( $product_id, '_sku', true ),
+            'supplier' => implode( ' ', $supplier ),
         );
+        // Optional read-only integration for any supplier/catalog provider;
+        // no vendor, plugin, or external service is required.
+        $values = apply_filters( 'taxocommerce_vocabulary_classifier_sources', $values, $product_id );
+        return TCV_Extractor::context( is_array( $values ) ? $values : array() );
     }
 
     // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
@@ -55,31 +96,8 @@ final class TCV_Classifier {
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function score_term( $term, $ctx ) {
-        $needle = self::normalize( $term );
-        if ( '' === $needle ) {
-            return 0.0;
-        }
-        $weights = array( 'title' => 1.00, 'categories' => 0.82, 'excerpt' => 0.72, 'content' => 0.52 );
-        $best = 0.0;
-        foreach ( $weights as $field => $weight ) {
-            if ( false !== strpos( ' ' . $ctx[ $field ] . ' ', ' ' . $needle . ' ' ) ) {
-                $best = max( $best, $weight );
-                continue;
-            }
-            $tokens = array_values( array_filter( preg_split( '/\s+/u', $needle ) ) );
-            if ( count( $tokens ) >= 2 ) {
-                $hits = 0;
-                foreach ( $tokens as $token ) {
-                    if ( false !== strpos( ' ' . $ctx[ $field ] . ' ', ' ' . $token . ' ' ) ) {
-                        $hits++;
-                    }
-                }
-                if ( $hits ) {
-                    $best = max( $best, $weight * ( $hits / count( $tokens ) ) * 0.88 );
-                }
-            }
-        }
-        return round( min( 1, $best ), 4 );
+        $matched = TCV_Extractor::score( $term, $ctx );
+        return (float) $matched['score'];
     }
 
     // Classifier must read and update shared canonical vocabulary and proposal tables immediately; external writers cannot invalidate a local cache.
@@ -94,16 +112,7 @@ final class TCV_Classifier {
             ),
             ARRAY_A
         );
-        $scored = array();
-        foreach ( (array) $rows as $row ) {
-            $score = self::score_term( $row['label'], $ctx );
-            if ( $score >= 0.35 ) {
-                $row['score'] = $score;
-                $scored[] = $row;
-            }
-        }
-        usort( $scored, static function ( $a, $b ) { return $b['score'] <=> $a['score']; } );
-        return array_slice( $scored, 0, $limit );
+        return TCV_Extractor::rank( $rows, $ctx, $limit );
     }
 
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
