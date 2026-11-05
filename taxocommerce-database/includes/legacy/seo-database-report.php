@@ -130,21 +130,21 @@ function seo_data_table_label(string $table_name): string
     $key = preg_replace('/^' . preg_quote($wpdb->prefix . 'seo_', '/') . '/', '', $table_name);
 
     $labels = [
-        'relations'             => 'Relaciones SEO',
-        'nodes'                 => 'Nodos SEO',
-        'templates'             => 'Plantillas SEO',
-        'redirects'             => 'Redirecciones SEO',
-        'dictionari'            => 'Diccionario SEO',
-        'attributes'            => 'Atributos SEO',
-        'vocabulary'            => 'Vocabulario SEO',
-        'operations'            => 'Operaciones del Data Layer',
-        'operation_changes'     => 'Cambios del Data Layer',
-        'proveedores_productos' => 'Productos de proveedores',
-        'media_usos'            => 'Usos de imágenes y medios',
-        'images'                => 'Imágenes SEO',
-        'image_inventory'       => 'Inventario de imágenes',
-        'category_tags'         => 'Etiquetas de categorías',
-        'product_tags'          => 'Etiquetas de productos',
+        'relations'             => __( 'Relaciones SEO', 'taxocommerce-database' ),
+        'nodes'                 => __( 'Nodos SEO', 'taxocommerce-database' ),
+        'templates'             => __( 'Plantillas SEO', 'taxocommerce-database' ),
+        'redirects'             => __( 'Redirecciones SEO', 'taxocommerce-database' ),
+        'dictionari'            => __( 'Diccionario SEO', 'taxocommerce-database' ),
+        'attributes'            => __( 'Atributos SEO', 'taxocommerce-database' ),
+        'vocabulary'            => __( 'Vocabulario SEO', 'taxocommerce-database' ),
+        'operations'            => __( 'Operaciones del Data Layer', 'taxocommerce-database' ),
+        'operation_changes'     => __( 'Cambios del Data Layer', 'taxocommerce-database' ),
+        'proveedores_productos' => __( 'Productos de proveedores', 'taxocommerce-database' ),
+        'media_usos'            => __( 'Usos de imágenes y medios', 'taxocommerce-database' ),
+        'images'                => __( 'Imágenes SEO', 'taxocommerce-database' ),
+        'image_inventory'       => __( 'Inventario de imágenes', 'taxocommerce-database' ),
+        'category_tags'         => __( 'Etiquetas de categorías', 'taxocommerce-database' ),
+        'product_tags'          => __( 'Etiquetas de productos', 'taxocommerce-database' ),
     ];
 
     if (isset($labels[$key])) {
@@ -161,20 +161,20 @@ function seo_data_table_description(string $table_name): string
     $key = preg_replace('/^' . preg_quote($wpdb->prefix . 'seo_', '/') . '/', '', $table_name);
 
     $descriptions = [
-        'relations'             => 'Relaciones entre clusters, hubs, categorías y otras entidades.',
-        'nodes'                 => 'Objetos WordPress registrados como nodos y sus roles SEO.',
-        'templates'             => 'Plantillas registradas y archivos asociados.',
-        'redirects'             => 'Redirecciones administradas por el sistema.',
-        'dictionari'            => 'Palabras, términos y puntuaciones del diccionario.',
-        'attributes'            => 'Atributos, textos RAW y metadatos extraídos de productos.',
-        'vocabulary'            => 'Vocabulario semántico utilizado para generación y clasificación.',
-        'operations'            => 'Cabeceras de operaciones auditadas por el Data Layer.',
-        'operation_changes'     => 'Cambios individuales, snapshots y estado de rollback.',
-        'proveedores_productos' => 'Datos importados o normalizados procedentes de proveedores.',
-        'media_usos'            => 'Relación entre imágenes, adjuntos y entidades que las utilizan.',
+        'relations'             => __( 'Relaciones entre clusters, hubs, categorías y otras entidades.', 'taxocommerce-database' ),
+        'nodes'                 => __( 'Objetos WordPress registrados como nodos y sus roles SEO.', 'taxocommerce-database' ),
+        'templates'             => __( 'Plantillas registradas y archivos asociados.', 'taxocommerce-database' ),
+        'redirects'             => __( 'Redirecciones administradas por el sistema.', 'taxocommerce-database' ),
+        'dictionari'            => __( 'Palabras, términos y puntuaciones del diccionario.', 'taxocommerce-database' ),
+        'attributes'            => __( 'Atributos, textos RAW y metadatos extraídos de productos.', 'taxocommerce-database' ),
+        'vocabulary'            => __( 'Vocabulario semántico utilizado para generación y clasificación.', 'taxocommerce-database' ),
+        'operations'            => __( 'Cabeceras de operaciones auditadas por el Data Layer.', 'taxocommerce-database' ),
+        'operation_changes'     => __( 'Cambios individuales, snapshots y estado de rollback.', 'taxocommerce-database' ),
+        'proveedores_productos' => __( 'Datos importados o normalizados procedentes de proveedores.', 'taxocommerce-database' ),
+        'media_usos'            => __( 'Relación entre imágenes, adjuntos y entidades que las utilizan.', 'taxocommerce-database' ),
     ];
 
-    return $descriptions[$key] ?? 'Tabla interna detectada automáticamente por TaxoCommerce SEO.';
+    return $descriptions[$key] ?? __( 'Tabla interna detectada automáticamente por TaxoCommerce SEO.', 'taxocommerce-database' );
 }
 
 /**
@@ -191,8 +191,8 @@ function seo_data_render_overview(array $tables): void
     }
 
     echo '<div class="seo-data-cards">';
-    seo_data_summary_card('Tablas detectadas', count($tables), 'Inventario dinámico');
-    seo_data_summary_card('Filas aproximadas', number_format_i18n($total_rows), 'Todas las tablas SEO');
+    seo_data_summary_card( __( 'Tablas detectadas', 'taxocommerce-database' ), count($tables), __( 'Inventario dinámico', 'taxocommerce-database' ) );
+    seo_data_summary_card( __( 'Filas aproximadas', 'taxocommerce-database' ), number_format_i18n($total_rows), __( 'Todas las tablas SEO', 'taxocommerce-database' ) );
     seo_data_summary_card('Tamaño total', size_format($total_bytes, 2), 'Datos e índices');
     seo_data_summary_card('Versión BBDD', (string) get_option('seo_system_db_version', 'No registrada'), 'TaxoCommerce SEO');
     echo '</div>';
@@ -224,7 +224,7 @@ function seo_data_render_overview(array $tables): void
         echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
         echo '<td>' . esc_html(size_format($table['data_bytes'] + $table['index_bytes'], 2)) . '</td>';
         echo '<td>' . esc_html($table['engine'] ?: '—') . '</td>';
-        echo '<td><a class="button" href="' . esc_url($explore_url) . '">Explorar</a></td>';
+        echo '<td><a class="button" href="' . esc_url($explore_url) . '">' . esc_html__( 'Explorar', 'taxocommerce-database' ) . '</a></td>';
         echo '</tr>';
     }
 
@@ -330,7 +330,7 @@ function seo_data_render_explorer(array $tables): void
     }
     echo '</select></label>';
 
-    echo '<label><strong>Buscar en toda la tabla</strong><input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Texto, ID, URL..."></label>';
+    echo '<label><strong>' . esc_html__( 'Buscar en toda la tabla', 'taxocommerce-database' ) . '</strong><input type="search" name="s" value="' . esc_attr($search) . '" placeholder="' . esc_attr__( 'Texto, ID, URL...', 'taxocommerce-database' ) . '"></label>';
 
     echo '<label>' . '<strong>' . esc_html__( 'Columna', 'taxocommerce-database' ) . '</strong>' . '<select name="filter_column">' . '<option value="">' . esc_html__( 'Todas', 'taxocommerce-database' ) . '</option>';
     foreach ($column_names as $column_name) {
@@ -338,7 +338,7 @@ function seo_data_render_explorer(array $tables): void
     }
     echo '</select></label>';
 
-    echo '<label><strong>Valor</strong><input type="text" name="filter_value" value="' . esc_attr($filter_value) . '"></label>';
+    echo '<label><strong>' . esc_html__( 'Valor', 'taxocommerce-database' ) . '</strong><input type="text" name="filter_value" value="' . esc_attr($filter_value) . '"></label>';
 
     echo '<label>' . '<strong>' . esc_html__( 'Filas', 'taxocommerce-database' ) . '</strong>' . '<select name="per_page">';
     foreach ([25, 50, 100, 250, 500] as $option) {
@@ -347,13 +347,13 @@ function seo_data_render_explorer(array $tables): void
     echo '</select></label>';
 
     echo '<button class="button button-primary">' . esc_html__( 'Aplicar', 'taxocommerce-database' ) . '</button>';
-    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=taxocommerce-database&tcdb_screen=table&section=explorer&table=' . rawurlencode($table_name))) . '">Limpiar</a>';
+    echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=taxocommerce-database&tcdb_screen=table&section=explorer&table=' . rawurlencode($table_name))) . '">' . esc_html__( 'Limpiar', 'taxocommerce-database' ) . '</a>';
     echo '</form>';
 
     echo '<div class="seo-data-meta">';
     echo '<strong>' . esc_html($tables[$table_name]['label']) . '</strong> · ';
     echo '<code>' . esc_html($table_name) . '</code> · ';
-    echo esc_html(number_format_i18n($total_items)) . ' filas encontradas';
+    echo esc_html(number_format_i18n($total_items)) . ' ' . esc_html__( 'filas encontradas', 'taxocommerce-database' );
     echo '</div>';
 
     echo '<div class="seo-data-scroll">';
@@ -441,8 +441,8 @@ function seo_data_render_export(array $tables): void
         echo '<td><code>' . esc_html($table['name']) . '</code></td>';
         echo '<td>' . esc_html($table['description']) . '</td>';
         echo '<td>' . esc_html(number_format_i18n($table['rows'])) . '</td>';
-        echo '<td><a class="button" href="' . esc_url($csv_url) . '">Descargar CSV</a></td>';
-        echo '<td><a class="button" href="' . esc_url($sql_url) . '">Descargar SQL</a></td>';
+        echo '<td><a class="button" href="' . esc_url($csv_url) . '">' . esc_html__( 'Descargar CSV', 'taxocommerce-database' ) . '</a></td>';
+        echo '<td><a class="button" href="' . esc_url($sql_url) . '">' . esc_html__( 'Descargar SQL', 'taxocommerce-database' ) . '</a></td>';
         echo '</tr>';
     }
 
@@ -453,7 +453,7 @@ function seo_data_render_export(array $tables): void
     echo '<h2>' . esc_html__( 'Backup completo', 'taxocommerce-database' ) . '</h2>';
     echo '<p>' . esc_html__( 'Genera un ZIP con todas las tablas detectadas. El paquete incluye un manifiesto JSON con versión, fecha, sitio y lista de tablas.', 'taxocommerce-database' ) . '</p>';
 
-    foreach (['csv' => 'Todas en CSV', 'sql' => 'Todas en SQL', 'both' => 'CSV + SQL'] as $format => $label) {
+    foreach (['csv' => __( 'Todas en CSV', 'taxocommerce-database' ), 'sql' => __( 'Todas en SQL', 'taxocommerce-database' ), 'both' => 'CSV + SQL'] as $format => $label) {
         $url = wp_nonce_url(
             add_query_arg(
                 [

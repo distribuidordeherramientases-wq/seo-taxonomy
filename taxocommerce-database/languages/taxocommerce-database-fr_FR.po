@@ -1,491 +1,890 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-database\n"
+"Project-Id-Version: TaxoCommerce Database 0.4.9\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#. Plugin Name of the plugin
-#: taxocommerce-database.php taxocommerce-database.php:74
-#: taxocommerce-database.php:96 taxocommerce-database.php:101
 msgid "TaxoCommerce Database"
-msgstr "TaxoCommerce Base de données"
+msgstr "TaxoCommerce Database"
 
-#. Description of the plugin
-#: taxocommerce-database.php
-msgid ""
-"Original Clean Database and SEO Data Table migrated into one independent "
-"plugin, without Data Layer."
-msgstr ""
+msgid "Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer."
+msgstr "Les outils Clean Database et SEO Data Table d'origine ont été regroupés dans une extension indépendante, sans Data Layer."
 
-#. Author of the plugin
-#: taxocommerce-database.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
-#: includes/class-tcdb-auto-test.php:173 includes/class-tcdb-auto-test.php:184
 msgid "Sin permisos para Auto Test."
-msgstr "Autorisations insuffisantes pour exécuter l’autotest."
+msgstr "Vous n'avez pas l'autorisation d'exécuter le test automatique."
 
-#: includes/class-tcdb-auto-test.php:188
 msgid "Auto Test de Database"
-msgstr ""
+msgstr "Test automatique de la base de données"
 
-#: includes/class-tcdb-auto-test.php:189
-msgid ""
-"Chequeo de solo lectura de los dos servicios originales, tablas, columnas y "
-"preparación de backups. Los resultados se guardan por usuario durante 30 "
-"días. Ejecutar antes y después de cada subida y comparar los dos últimos "
-"informes."
-msgstr ""
+msgid "Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes."
+msgstr "Vérification en lecture seule des deux services d'origine, des tables, colonnes et préparatifs de sauvegarde. Les résultats sont conservés par utilisateur pendant 30 jours. Exécutez-la avant et après chaque mise à jour, puis comparez les deux derniers rapports."
 
-#: includes/class-tcdb-auto-test.php:194
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr ""
+msgstr "Aucun résultat pour le moment. Cliquez sur Exécuter le test automatique."
 
-#: includes/class-tcdb-auto-test.php:205
-msgid ""
-"No hay informe anterior para comparar. Conserva esta ejecución como "
-"referencia antes de actualizar."
-msgstr ""
+msgid "No hay informe anterior para comparar. Conserva esta ejecución como referencia antes de actualizar."
+msgstr "Aucun rapport précédent à comparer. Conservez ce résultat comme référence avant une mise à jour."
 
-#: includes/class-tcdb-auto-test.php:206
 msgid "Funcionalidad"
-msgstr ""
+msgstr "Fonctionnalité"
 
-#: includes/class-tcdb-auto-test.php:206
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
-#: includes/class-tcdb-auto-test.php:206
-#: includes/legacy/seo-database-clean.php:1419
 msgid "Estado"
-msgstr ""
+msgstr "État"
 
-#: includes/class-tcdb-auto-test.php:206
 msgid "Resultado"
-msgstr ""
+msgstr "Résultat"
 
-#: includes/class-tcdb-auto-test.php:206
 msgid "Tiempo"
-msgstr ""
+msgstr "Durée"
 
-#: includes/class-tcdb-auto-test.php:211
-msgid ""
-"Auto Test comprueba disponibilidad, lectura y contratos de datos; NO "
-"demuestra por sí solo que un backup completo sea restaurable ni que los "
-"borrados funcionen con datos reales."
-msgstr ""
+msgid "Auto Test comprueba disponibilidad, lectura y contratos de datos; NO demuestra por sí solo que un backup completo sea restaurable ni que los borrados funcionen con datos reales."
+msgstr "Le test automatique vérifie la disponibilité, la lecture et les contrats de données ; il ne prouve PAS à lui seul qu'une sauvegarde complète est restaurable ni que les suppressions fonctionnent sur des données réelles."
 
-#: includes/class-tcdb-manual.php:14
 msgid "No tienes permisos para ver este manual."
-msgstr "Vous n’avez pas l’autorisation de consulter ce manuel."
+msgstr "Vous n'avez pas l'autorisation de consulter ce manuel."
 
-#: includes/class-tcdb-manual.php:29
 msgid "Manual de TaxoCommerce Database"
-msgstr ""
+msgstr "Manuel de TaxoCommerce Database"
 
-#: includes/class-tcdb-manual.php:30
-msgid ""
-"Guías de uso y mantenimiento del plugin. La lectura de estos manuales no "
-"ejecuta consultas, limpiezas ni exportaciones."
-msgstr ""
+msgid "Guías de uso y mantenimiento del plugin. La lectura de estos manuales no ejecuta consultas, limpiezas ni exportaciones."
+msgstr "Guides d'utilisation et de maintenance de l'extension. La consultation de ces manuels n'exécute aucune requête, opération de nettoyage ou exportation."
 
-#: includes/class-tcdb-manual.php:31
 msgid "Contenido"
-msgstr ""
+msgstr "Sommaire"
 
-#: includes/class-tcdb-manual.php:50
 msgid "Manual de usuario final"
-msgstr ""
+msgstr "Manuel de l'utilisateur"
 
-#: includes/class-tcdb-manual.php:121
 msgid "Manual técnico para desarrolladores"
-msgstr ""
+msgstr "Manuel technique pour développeurs"
 
-#: includes/legacy/seo-database-clean.php:92
 msgid "Clean Database"
-msgstr ""
+msgstr "Nettoyage de la base de données"
 
-#: includes/legacy/seo-database-clean.php:93
-msgid ""
-"Auditoría, reparación y limpieza controlada de datos del plugin, WordPress y"
-" WooCommerce."
-msgstr ""
+msgid "Auditoría, reparación y limpieza controlada de datos del plugin, WordPress y WooCommerce."
+msgstr "Audit, réparation et nettoyage contrôlé des données de l'extension, de WordPress et de WooCommerce."
 
-#: includes/legacy/seo-database-clean.php:265
 msgid "No tienes permisos para exportar la base de datos."
-msgstr "Vous n’avez pas l’autorisation d’exporter la base de données."
+msgstr "Vous n'avez pas l'autorisation d'exporter la base de données."
 
-#: includes/legacy/seo-database-clean.php:272
 msgid "Tipo de exportación no válido."
-msgstr "Type d’exportation non valide."
+msgstr "Type d'exportation non valide."
 
-#: includes/legacy/seo-database-clean.php:526
 msgid "Bloqueo de aceptación masiva de proveedores"
-msgstr ""
+msgstr "Verrou d'acceptation groupée des fournisseurs"
 
-#: includes/legacy/seo-database-clean.php:527
-msgid ""
-"Este bloqueo evita que dos aceptaciones masivas procesen los mismos "
-"productos al mismo tiempo."
-msgstr ""
+msgid "Este bloqueo evita que dos aceptaciones masivas procesen los mismos productos al mismo tiempo."
+msgstr "Ce verrou empêche deux opérations d'acceptation groupée de traiter les mêmes produits simultanément."
 
-#: includes/legacy/seo-database-clean.php:1327
 msgid "Errores en datos del plugin"
-msgstr ""
+msgstr "Erreurs dans les données de l'extension"
 
-#: includes/legacy/seo-database-clean.php:1328
-msgid ""
-"Audita y repara las tablas internas del plugin sin eliminar productos, "
-"páginas ni términos de WordPress."
-msgstr ""
+msgid "Audita y repara las tablas internas del plugin sin eliminar productos, páginas ni términos de WordPress."
+msgstr "Audite et répare les tables internes de l'extension sans supprimer de produits, de pages ni de termes WordPress."
 
-#: includes/legacy/seo-database-clean.php:1374
 msgid "1. Integridad de relaciones SEO"
-msgstr ""
+msgstr "1. Intégrité des relations SEO"
 
-#: includes/legacy/seo-database-clean.php:1381
 msgid "Tipo de relación"
-msgstr ""
+msgstr "Type de relation"
 
-#: includes/legacy/seo-database-clean.php:1381
-#: includes/legacy/seo-database-clean.php:1447
 msgid "Origen"
-msgstr ""
+msgstr "Source"
 
-#: includes/legacy/seo-database-clean.php:1381
-#: includes/legacy/seo-database-clean.php:1447
 msgid "Destino"
-msgstr ""
+msgstr "Destination"
 
-#: includes/legacy/seo-database-clean.php:1381
 msgid "Problema"
-msgstr ""
+msgstr "Problème"
 
-#: includes/legacy/seo-database-clean.php:1401
 msgid "Avisos de tipos no registrados"
-msgstr ""
+msgstr "Alertes sur les types non enregistrés"
 
-#: includes/legacy/seo-database-clean.php:1413
 msgid "2. Nodos SEO sin objeto WordPress activo"
-msgstr ""
+msgstr "2. Nœuds SEO sans objet WordPress actif"
 
-#: includes/legacy/seo-database-clean.php:1419
 msgid "Registro"
-msgstr ""
+msgstr "Enregistrement"
 
-#: includes/legacy/seo-database-clean.php:1419
-#: includes/legacy/seo-database-clean.php:1460
 msgid "Objeto"
-msgstr ""
+msgstr "Objet"
 
-#: includes/legacy/seo-database-clean.php:1419
-#: includes/legacy/seo-database-clean.php:1460
 msgid "Rol"
-msgstr ""
+msgstr "Rôle"
 
-#: includes/legacy/seo-database-clean.php:1441
 msgid "3. Duplicados exactos"
-msgstr ""
+msgstr "3. Doublons exacts"
 
-#: includes/legacy/seo-database-clean.php:1443
 msgid "Relaciones duplicadas"
-msgstr ""
+msgstr "Relations en double"
 
-#: includes/legacy/seo-database-clean.php:1445
 msgid "✔ No hay relaciones duplicadas."
-msgstr ""
+msgstr "✔ Aucune relation en double."
 
-#: includes/legacy/seo-database-clean.php:1447
-#: includes/legacy/seo-database-clean.php:1460
 msgid "Conservar"
-msgstr ""
+msgstr "Conserver"
 
-#: includes/legacy/seo-database-clean.php:1447
 msgid "Relación"
-msgstr ""
+msgstr "Relation"
 
-#: includes/legacy/seo-database-clean.php:1447
-#: includes/legacy/seo-database-clean.php:1460
 msgid "Copias"
-msgstr ""
+msgstr "Copies"
 
-#: includes/legacy/seo-database-clean.php:1456
 msgid "Registros duplicados en seo_nodes"
-msgstr ""
+msgstr "Enregistrements en double dans seo_nodes"
 
-#: includes/legacy/seo-database-clean.php:1458
-msgid ""
-"✔ No hay registros de nodo duplicados con el mismo tipo de objeto, objeto y "
-"rol."
-msgstr ""
+msgid "✔ No hay registros de nodo duplicados con el mismo tipo de objeto, objeto y rol."
+msgstr "✔ Aucun nœud en double avec le même type d'objet, objet et rôle."
 
-#: includes/legacy/seo-database-clean.php:1460
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
-#: includes/legacy/seo-database-clean.php:1477
 msgid "4. Productos con múltiples ámbitos"
-msgstr ""
+msgstr "4. Produits avec plusieurs portées"
 
-#: includes/legacy/seo-database-clean.php:1484
 msgid "Producto"
-msgstr ""
+msgstr "Produit"
 
-#: includes/legacy/seo-database-clean.php:1484
 msgid "Título"
-msgstr ""
+msgstr "Titre"
 
-#: includes/legacy/seo-database-clean.php:1484
 msgid "Ámbitos"
-msgstr ""
+msgstr "Portées"
 
-#: includes/legacy/seo-database-clean.php:1484
 msgid "Valores registrados"
-msgstr ""
+msgstr "Valeurs enregistrées"
 
-#: includes/legacy/seo-database-clean.php:1484
 msgid "IDs de nodo"
-msgstr ""
+msgstr "ID des nœuds"
 
-#: includes/legacy/seo-database-clean.php:1508
 msgid "5. Jerarquía de categorías de producto"
-msgstr ""
+msgstr "5. Hiérarchie des catégories de produits"
 
-#: includes/legacy/seo-database-clean.php:1509
-msgid ""
-"Detecta categorías cuyo padre ya no existe. La reparación las mueve al nivel"
-" raíz."
-msgstr ""
+msgid "Detecta categorías cuyo padre ya no existe. La reparación las mueve al nivel raíz."
+msgstr "Détecte les catégories dont le parent n'existe plus. La réparation les déplace à la racine."
 
-#: includes/legacy/seo-database-clean.php:1514
 msgid "Nombre"
-msgstr ""
+msgstr "Nom"
 
-#: includes/legacy/seo-database-clean.php:1514
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
-#: includes/legacy/seo-database-clean.php:1514
 msgid "Padre inexistente"
-msgstr ""
+msgstr "Parent introuvable"
 
-#: includes/legacy/seo-database-clean.php:1531
 msgid "6. Restablecimiento manual de un objeto SEO"
-msgstr ""
+msgstr "6. Réinitialisation manuelle d'un objet SEO"
 
-#: includes/legacy/seo-database-clean.php:1532
-msgid ""
-"Elimina de las tablas internas un objeto y sus relaciones para permitir una "
-"asignación limpia."
-msgstr ""
+msgid "Elimina de las tablas internas un objeto y sus relaciones para permitir una asignación limpia."
+msgstr "Supprime un objet et ses relations des tables internes pour permettre une nouvelle affectation correcte."
 
-#: includes/legacy/seo-database-clean.php:1536
 msgid "ID del objeto"
-msgstr ""
+msgstr "ID de l'objet"
 
-#: includes/legacy/seo-database-clean.php:1538
 msgid "Rol SEO"
-msgstr ""
+msgstr "Rôle SEO"
 
-#: includes/legacy/seo-database-clean.php:1540
 msgid "Selecciona un rol"
-msgstr ""
+msgstr "Sélectionner un rôle"
 
-#: includes/legacy/seo-database-clean.php:2030
 msgid "Limpieza BBDD"
-msgstr ""
+msgstr "Nettoyage de la base de données"
 
-#: includes/legacy/seo-database-clean.php:2031
-msgid ""
-"Limpiezas manuales de residuos técnicos habituales de WordPress y "
-"WooCommerce."
-msgstr ""
+msgid "Limpiezas manuales de residuos técnicos habituales de WordPress y WooCommerce."
+msgstr "Nettoyage manuel des résidus techniques courants de WordPress et WooCommerce."
 
-#: includes/legacy/seo-database-clean.php:2032
 msgid "Recomendación:"
-msgstr ""
+msgstr "Recommandation :"
 
-#: includes/legacy/seo-database-clean.php:2032
-msgid ""
-"antes de ejecutar acciones destructivas, descarga un backup SQL. No es "
-"obligatorio, pero está a un clic para evitar sustos."
-msgstr ""
+msgid "antes de ejecutar acciones destructivas, descarga un backup SQL. No es obligatorio, pero está a un clic para evitar sustos."
+msgstr "avant toute opération destructive, téléchargez une sauvegarde SQL. Elle est facultative mais accessible en un clic pour éviter les mauvaises surprises."
 
-#: includes/legacy/seo-database-clean.php:2043
 msgid "Acciones disponibles"
-msgstr ""
+msgstr "Actions disponibles"
 
-#: includes/legacy/seo-database-clean.php:2044
 msgid "Limpieza"
-msgstr ""
+msgstr "Nettoyage"
 
-#: includes/legacy/seo-database-clean.php:2044
 msgid "Encontrados"
-msgstr ""
+msgstr "Trouvés"
 
-#: includes/legacy/seo-database-clean.php:2044
 msgid "Riesgo"
-msgstr ""
+msgstr "Risque"
 
-#: includes/legacy/seo-database-clean.php:2044
 msgid "Acción"
-msgstr ""
+msgstr "Action"
 
-#: includes/legacy/seo-database-clean.php:2110
 msgid "Nada que limpiar"
-msgstr ""
+msgstr "Rien à nettoyer"
 
-#: includes/legacy/seo-database-clean.php:2123
 msgid "Exportar BBDD"
-msgstr ""
+msgstr "Exporter la base de données"
 
-#: includes/legacy/seo-database-clean.php:2124
-msgid ""
-"Descarga un SQL antes de ejecutar limpiezas. En instalaciones grandes, el "
-"backup completo puede depender de límites del hosting."
-msgstr ""
+msgid "Descarga un SQL antes de ejecutar limpiezas. En instalaciones grandes, el backup completo puede depender de límites del hosting."
+msgstr "Téléchargez une sauvegarde SQL avant le nettoyage. Sur les grandes installations, la sauvegarde complète peut être limitée par l'hébergement."
 
-#: includes/legacy/seo-database-clean.php:2127
 msgid "Backup completo de WordPress"
-msgstr ""
+msgstr "Sauvegarde complète de WordPress"
 
-#: includes/legacy/seo-database-clean.php:2134
 msgid "Backup solo TaxoCommerce SEO"
-msgstr ""
+msgstr "Sauvegarde TaxoCommerce SEO uniquement"
 
-#: includes/legacy/seo-database-clean.php:2141
 msgid "Tablas SEO detectadas"
-msgstr ""
+msgstr "Tables SEO détectées"
 
-#: includes/legacy/seo-database-report.php:42
 msgid "No tienes permisos para acceder a esta herramienta."
-msgstr "Vous n’avez pas l’autorisation d’accéder à cet outil."
+msgstr "Vous n'avez pas l'autorisation d'accéder à cet outil."
 
-#: includes/legacy/seo-database-report.php:56
 msgid "SEO Data Table"
-msgstr ""
+msgstr "Table de données SEO"
 
-#: includes/legacy/seo-database-report.php:57
-msgid ""
-"Explorador y sistema de exportación de todas las tablas internas de "
-"TaxoCommerce SEO. Las tablas se detectan automáticamente, incluidas las que "
-"se añadan en futuras versiones."
-msgstr ""
+msgid "Explorador y sistema de exportación de todas las tablas internas de TaxoCommerce SEO. Las tablas se detectan automáticamente, incluidas las que se añadan en futuras versiones."
+msgstr "Explorateur et système d'exportation de toutes les tables internes de TaxoCommerce SEO. Les tables sont détectées automatiquement, y compris celles ajoutées ultérieurement."
 
-#: includes/legacy/seo-database-report.php:201
 msgid "Inventario de tablas SEO"
-msgstr ""
+msgstr "Inventaire des tables SEO"
 
-#: includes/legacy/seo-database-report.php:203
-#: includes/legacy/seo-database-report.php:327
-#: includes/legacy/seo-database-report.php:433
 msgid "Tabla"
-msgstr ""
+msgstr "Table"
 
-#: includes/legacy/seo-database-report.php:203
-#: includes/legacy/seo-database-report.php:433
 msgid "Nombre físico"
-msgstr ""
+msgstr "Nom physique"
 
-#: includes/legacy/seo-database-report.php:203
-#: includes/legacy/seo-database-report.php:433
 msgid "Descripción"
-msgstr ""
+msgstr "Description"
 
-#: includes/legacy/seo-database-report.php:203
-#: includes/legacy/seo-database-report.php:433
 msgid "Filas aprox."
-msgstr ""
+msgstr "Lignes approx."
 
-#: includes/legacy/seo-database-report.php:203
 msgid "Tamaño"
-msgstr ""
+msgstr "Taille"
 
-#: includes/legacy/seo-database-report.php:203
 msgid "Motor"
-msgstr ""
+msgstr "Moteur"
 
-#: includes/legacy/seo-database-report.php:203
 msgid "Acciones"
-msgstr ""
+msgstr "Actions"
 
-#: includes/legacy/seo-database-report.php:206
 msgid "No se han detectado tablas con el prefijo SEO."
-msgstr ""
+msgstr "Aucune table avec le préfixe SEO n'a été détectée."
 
-#: includes/legacy/seo-database-report.php:243
-#: includes/legacy/seo-database-report.php:425
 msgid "No se han detectado tablas SEO."
-msgstr ""
+msgstr "Aucune table SEO détectée."
 
-#: includes/legacy/seo-database-report.php:252
 msgid "No se pudo leer la estructura de la tabla."
-msgstr ""
+msgstr "Impossible de lire la structure de la table."
 
-#: includes/legacy/seo-database-report.php:335
 msgid "Columna"
-msgstr ""
+msgstr "Colonne"
 
-#: includes/legacy/seo-database-report.php:335
 msgid "Todas"
-msgstr ""
+msgstr "Toutes"
 
-#: includes/legacy/seo-database-report.php:343
 msgid "Filas"
-msgstr ""
+msgstr "Lignes"
 
-#: includes/legacy/seo-database-report.php:349
 msgid "Aplicar"
-msgstr ""
+msgstr "Appliquer"
 
-#: includes/legacy/seo-database-report.php:430
 msgid "Exportación individual"
-msgstr ""
+msgstr "Exportation individuelle"
 
-#: includes/legacy/seo-database-report.php:431
-msgid ""
-"Cada tabla puede descargarse en CSV para análisis humano o en SQL para "
-"restauración técnica."
-msgstr ""
+msgid "Cada tabla puede descargarse en CSV para análisis humano o en SQL para restauración técnica."
+msgstr "Chaque table peut être téléchargée au format CSV pour analyse ou SQL pour restauration technique."
 
-#: includes/legacy/seo-database-report.php:433
 msgid "CSV"
-msgstr ""
+msgstr "CSV"
 
-#: includes/legacy/seo-database-report.php:433
 msgid "SQL"
-msgstr ""
+msgstr "SQL"
 
-#: includes/legacy/seo-database-report.php:453
 msgid "Backup completo"
-msgstr ""
+msgstr "Sauvegarde complète"
 
-#: includes/legacy/seo-database-report.php:454
-msgid ""
-"Genera un ZIP con todas las tablas detectadas. El paquete incluye un "
-"manifiesto JSON con versión, fecha, sitio y lista de tablas."
-msgstr ""
+msgid "Genera un ZIP con todas las tablas detectadas. El paquete incluye un manifiesto JSON con versión, fecha, sitio y lista de tablas."
+msgstr "Génère un ZIP contenant toutes les tables détectées. L'archive inclut un manifeste JSON indiquant version, date, site et liste des tables."
 
-#: includes/legacy/seo-database-report.php:471
-msgid ""
-"El backup de tablas SEO no sustituye una copia completa de WordPress, "
-"archivos y base de datos, pero permite trasladar y analizar el estado "
-"interno del plugin."
-msgstr ""
+msgid "El backup de tablas SEO no sustituye una copia completa de WordPress, archivos y base de datos, pero permite trasladar y analizar el estado interno del plugin."
+msgstr "La sauvegarde des tables SEO ne remplace pas une sauvegarde complète de WordPress, des fichiers et de la base de données, mais permet de transférer et d'analyser l'état interne de l'extension."
 
-#: taxocommerce-database.php:40
 msgid "No tienes permisos para esta herramienta."
-msgstr "Vous n’avez pas l’autorisation d’utiliser cet outil."
+msgstr "Vous n'avez pas l'autorisation d'utiliser cet outil."
 
-#: taxocommerce-database.php:96
 msgid "Database"
 msgstr "Base de données"
 
-#: taxocommerce-database.php:101
 msgid "TaxoCommerce DB"
-msgstr "TaxoCommerce BD"
+msgstr "TaxoCommerce DB"
+
+msgid "1. Errores en datos"
+msgstr "1. Erreurs de données"
+
+msgid "2. Limpieza BBDD"
+msgstr "2. Nettoyage de la base de données"
+
+msgid "3. Exportar BBDD"
+msgstr "3. Exporter la base de données"
+
+msgid "4. Resumen tablas y Explorar tablas"
+msgstr "4. Résumé et exploration des tables"
+
+msgid "5. Exportar tablas"
+msgstr "5. Exporter les tables"
+
+msgid "6. Arquitectura y ciclo de carga"
+msgstr "6. Architecture et cycle de chargement"
+
+msgid "6. Auto Test"
+msgstr "6. Test automatique"
+
+msgid "7. Enrutamiento, acciones y seguridad"
+msgstr "7. Routage, actions et sécurité"
+
+msgid "8. Datos, SQL y límites"
+msgstr "8. Données, SQL et limites"
+
+msgid "9. Evolución, compatibilidad y pruebas"
+msgstr "9. Évolution, compatibilité et tests"
+
+msgid "AS claims huérfanos >24 h"
+msgstr "Claims Action Scheduler orphelins >24 h"
+
+msgid "AS logs antiguos >30 días"
+msgstr "Anciens journaux Action Scheduler >30 jours"
+
+msgid "AS logs huérfanos"
+msgstr "Journaux Action Scheduler orphelins"
+
+msgid "Action Scheduler: claims huérfanos (>24 h)"
+msgstr "Action Scheduler : claims orphelins (>24 h)"
+
+msgid "Action Scheduler: logs antiguos completados/cancelados (>30 días)"
+msgstr "Action Scheduler : anciens journaux terminés/annulés (>30 jours)"
+
+msgid "Action Scheduler: logs huérfanos"
+msgstr "Action Scheduler : journaux orphelins"
+
+msgid "Arquitectura"
+msgstr "Architecture"
+
+msgid "Atributos SEO"
+msgstr "Attributs SEO"
+
+msgid "Atributos, textos RAW y metadatos extraídos de productos."
+msgstr "Attributs, textes bruts et métadonnées extraits des produits."
+
+msgid "Auto Test"
+msgstr "Test automatique"
+
+msgid "Autocheck"
+msgstr "Vérification automatique"
+
+msgid "Autocheck comprueba disponibilidad, lectura y contratos de datos; NO demuestra por sí solo que un backup completo sea restaurable ni que los borrados funcionen con datos reales."
+msgstr "La vérification automatique contrôle la disponibilité, l'accès en lecture et les contrats de données ; elle ne prouve PAS à elle seule qu'une sauvegarde complète peut être restaurée ni que les suppressions fonctionnent avec des données réelles."
+
+msgid "Autocheck de Database"
+msgstr "Vérification automatique de la base de données"
+
+msgid "Autoguardados"
+msgstr "Sauvegardes automatiques"
+
+msgid "Autoguardados / auto-drafts"
+msgstr "Sauvegardes automatiques / brouillons automatiques"
+
+msgid "Avisos de configuración"
+msgstr "Alertes de configuration"
+
+msgid "Buscar en toda la tabla"
+msgstr "Rechercher dans toute la table"
+
+msgid "Cabeceras de operaciones auditadas por el Data Layer."
+msgstr "En-têtes des opérations auditées par le Data Layer."
+
+msgid "Cada extremo se valida según su tipo: los roles SEO deben existir en <code>seo_nodes</code> y conservar su objeto WordPress; <code>product_cat</code> debe existir como categoría de WooCommerce."
+msgstr "Chaque extrémité est vérifiée selon son type : les rôles SEO doivent exister dans <code>seo_nodes</code> et conserver leur objet WordPress ; <code>product_cat</code> doit exister en tant que catégorie WooCommerce."
+
+msgid "Cambios del Data Layer"
+msgstr "Modifications du Data Layer"
+
+msgid "Cambios individuales, snapshots y estado de rollback."
+msgstr "Modifications individuelles, instantanés et état de restauration."
+
+msgid "Clean Database y SEO Data Table originales, sin Data Layer."
+msgstr "Outils Clean Database et SEO Data Table d'origine, sans Data Layer."
+
+msgid "Comentarios en papelera"
+msgstr "Commentaires dans la corbeille"
+
+msgid "Comentarios spam"
+msgstr "Commentaires indésirables"
+
+msgid "Commentmeta huérfano"
+msgstr "Métadonnées de commentaires orphelines"
+
+msgid "Comparación:"
+msgstr "Comparaison :"
+
+msgid "Consulta y mantén las tablas de datos de WordPress y WooCommerce."
+msgstr "Consultez et gérez les tables de données de WordPress et WooCommerce."
+
+msgid "Contenido en papelera"
+msgstr "Contenu dans la corbeille"
+
+msgid "Correcto"
+msgstr "Réussi"
+
+msgid "Dato"
+msgstr "Donnée"
+
+msgid "Datos importados o normalizados procedentes de proveedores."
+msgstr "Données importées ou normalisées provenant des fournisseurs."
+
+msgid "Descargar CSV"
+msgstr "Télécharger le CSV"
+
+msgid "Descargar SQL"
+msgstr "Télécharger le SQL"
+
+msgid "Descargar backup SQL completo"
+msgstr "Télécharger la sauvegarde SQL complète"
+
+msgid "Descargar resultados (JSON)"
+msgstr "Télécharger les résultats (JSON)"
+
+msgid "Descargar solo tablas TaxoCommerce SEO"
+msgstr "Télécharger uniquement les tables TaxoCommerce SEO"
+
+msgid "Detecta registros de <code>seo_nodes</code> cuyo contenido fue eliminado o enviado a la papelera."
+msgstr "Détecte les entrées <code>seo_nodes</code> dont le contenu a été supprimé ou placé dans la corbeille."
+
+msgid "Diccionario SEO"
+msgstr "Dictionnaire SEO"
+
+msgid "Ejecuta el autocheck antes de descargar el JSON."
+msgstr "Exécutez la vérification automatique avant de télécharger le JSON."
+
+msgid "Ejecutar Autocheck"
+msgstr "Exécuter la vérification automatique"
+
+msgid "Eliminar autoguardados"
+msgstr "Supprimer les sauvegardes automatiques"
+
+msgid "Eliminar claims huérfanos"
+msgstr "Supprimer les claims orphelins"
+
+msgid "Eliminar comentarios papelera"
+msgstr "Supprimer les commentaires de la corbeille"
+
+msgid "Eliminar commentmeta huérfano"
+msgstr "Supprimer les métadonnées de commentaires orphelines"
+
+msgid "Eliminar copias de nodos"
+msgstr "Supprimer les nœuds en double"
+
+msgid "Eliminar copias de relaciones"
+msgstr "Supprimer les relations en double"
+
+msgid "Eliminar logs huérfanos"
+msgstr "Supprimer les journaux orphelins"
+
+msgid "Eliminar meta huérfano"
+msgstr "Supprimer les métadonnées orphelines"
+
+msgid "Eliminar nodos internos obsoletos"
+msgstr "Supprimer les nœuds internes obsolètes"
+
+msgid "Eliminar postmeta huérfano"
+msgstr "Supprimer les métadonnées de publications orphelines"
+
+msgid "Eliminar relaciones huérfanas"
+msgstr "Supprimer les relations orphelines"
+
+msgid "Eliminar relaciones inválidas"
+msgstr "Supprimer les relations non valides"
+
+msgid "Eliminar reservas expiradas"
+msgstr "Supprimer les réservations expirées"
+
+msgid "Eliminar revisiones"
+msgstr "Supprimer les révisions"
+
+msgid "Eliminar sesiones expiradas"
+msgstr "Supprimer les sessions expirées"
+
+msgid "Eliminar spam"
+msgstr "Supprimer les indésirables"
+
+msgid "Eliminar termmeta huérfano"
+msgstr "Supprimer les métadonnées de termes orphelines"
+
+msgid "Eliminar transients expirados"
+msgstr "Supprimer les transients expirés"
+
+msgid "Eliminar usermeta huérfano"
+msgstr "Supprimer les métadonnées d'utilisateurs orphelines"
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "Errores en datos"
+msgstr "Erreurs de données"
+
+msgid "Estos registros no se eliminan automáticamente. Revisa los filtros <code>seo_clean_db_node_roles</code> y <code>seo_clean_db_relation_schemas</code> si el plugin admite más tipos."
+msgstr "Ces enregistrements ne sont pas supprimés automatiquement. Vérifiez les filtres <code>seo_clean_db_node_roles</code> et <code>seo_clean_db_relation_schemas</code> si l'extension accepte d'autres types."
+
+msgid "Etiquetas de categorías"
+msgstr "Étiquettes des catégories"
+
+msgid "Etiquetas de productos"
+msgstr "Étiquettes des produits"
+
+msgid "Evolución y pruebas"
+msgstr "Évolution et tests"
+
+msgid "Explorar"
+msgstr "Explorer"
+
+msgid "Explorar tablas"
+msgstr "Explorer les tables"
+
+msgid "Exportar tablas"
+msgstr "Exporter les tables"
+
+msgid "Fecha de ejecución:"
+msgstr "Date d'exécution :"
+
+msgid "Filas aproximadas"
+msgstr "Nombre approximatif de lignes"
+
+msgid "Grupos de relaciones duplicadas"
+msgstr "Groupes de relations en double"
+
+msgid "ID no válido"
+msgstr "ID non valide"
+
+msgid "Imágenes SEO"
+msgstr "Images SEO"
+
+msgid "Incluye tablas con el prefijo activo de WordPress:"
+msgstr "Inclut les tables avec le préfixe WordPress actif :"
+
+msgid "Incluye únicamente tablas internas cuyo nombre empieza por"
+msgstr "Inclut uniquement les tables internes dont le nom commence par"
+
+msgid "Inventario de imágenes"
+msgstr "Inventaire des images"
+
+msgid "Inventario dinámico"
+msgstr "Inventaire dynamique"
+
+msgid "Las categorías con padre inexistente se moverán al nivel raíz. ¿Continuar?"
+msgstr "Les catégories dont le parent n'existe plus seront déplacées à la racine. Continuer ?"
+
+msgid "Las filas <code>product</code>, <code>ambito</code>, <code>description</code> y <code>excerpt</code> pueden coexistir legalmente. Esta comprobación solo marca productos que tienen más de una fila <code>ambito</code>."
+msgstr "Les lignes <code>product</code>, <code>ambito</code>, <code>description</code> et <code>excerpt</code> peuvent coexister. Ce contrôle signale uniquement les produits avec plusieurs lignes <code>ambito</code>."
+
+msgid "Limpiar"
+msgstr "Effacer"
+
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Manual de usuario"
+msgstr "Manuel utilisateur"
+
+msgid "Manual técnico"
+msgstr "Manuel technique"
+
+msgid "Modelo de datos"
+msgstr "Modèle de données"
+
+msgid "Mover categorías afectadas a la raíz"
+msgstr "Déplacer les catégories concernées à la racine"
+
+msgid "No ejecutado"
+msgstr "Non exécuté"
+
+msgid "No existen resultados todavía. Pulsa Ejecutar Autocheck."
+msgstr "Aucun résultat pour le moment. Cliquez sur Exécuter la vérification automatique."
+
+msgid "No hay categorías con jerarquía rota."
+msgstr "Aucune catégorie avec une hiérarchie incorrecte."
+
+msgid "No hay productos con múltiples ámbitos."
+msgstr "Aucun produit avec plusieurs portées."
+
+msgid "No se han encontrado relaciones inválidas."
+msgstr "Aucune relation non valide détectée."
+
+msgid "No se pudo generar el informe JSON."
+msgstr "Impossible de générer le rapport JSON."
+
+msgid "Nodos SEO"
+msgstr "Nœuds SEO"
+
+msgid "Nodos sin contenido activo"
+msgstr "Nœuds sans contenu actif"
+
+msgid "Objetos WordPress registrados como nodos y sus roles SEO."
+msgstr "Objets WordPress enregistrés comme nœuds et leurs rôles SEO."
+
+msgid "Operaciones del Data Layer"
+msgstr "Opérations du Data Layer"
+
+msgid "Order item meta huérfano"
+msgstr "Métadonnées d'articles de commande orphelines"
+
+msgid "Palabras, términos y puntuaciones del diccionario."
+msgstr "Mots, termes et scores du dictionnaire."
+
+msgid "Plantillas SEO"
+msgstr "Modèles SEO"
+
+msgid "Plantillas registradas y archivos asociados."
+msgstr "Modèles enregistrés et fichiers associés."
+
+msgid "Postmeta huérfano"
+msgstr "Métadonnées de publications orphelines"
+
+msgid "Productos con varios ámbitos"
+msgstr "Produits avec plusieurs portées"
+
+msgid "Productos de proveedores"
+msgstr "Produits des fournisseurs"
+
+msgid "Purgar logs antiguos"
+msgstr "Purger les anciens journaux"
+
+msgid "Redirecciones SEO"
+msgstr "Redirections SEO"
+
+msgid "Redirecciones administradas por el sistema."
+msgstr "Redirections gérées par le système."
+
+msgid "Relaciones SEO"
+msgstr "Relations SEO"
+
+msgid "Relaciones analizadas"
+msgstr "Relations analysées"
+
+msgid "Relaciones de términos huérfanas"
+msgstr "Relations de termes orphelines"
+
+msgid "Relaciones entre clusters, hubs, categorías y otras entidades."
+msgstr "Relations entre clusters, hubs, catégories et autres entités."
+
+msgid "Relaciones inválidas"
+msgstr "Relations non valides"
+
+msgid "Relaciones términos huérfanas"
+msgstr "Relations de termes orphelines"
+
+msgid "Relación entre imágenes, adjuntos y entidades que las utilizan."
+msgstr "Relations entre images, pièces jointes et entités qui les utilisent."
+
+msgid "Reservas stock WC expiradas"
+msgstr "Réservations de stock WooCommerce expirées"
+
+msgid "Restablecer objeto SEO"
+msgstr "Réinitialiser l'objet SEO"
+
+msgid "Resumen tablas"
+msgstr "Résumé des tables"
+
+msgid "Resumen y explorador"
+msgstr "Résumé et explorateur"
+
+msgid "Revisiones"
+msgstr "Révisions"
+
+msgid "Rutas y seguridad"
+msgstr "Routes et sécurité"
+
+msgid "Se conservará el registro más reciente de cada tipo de objeto, objeto y rol. ¿Continuar?"
+msgstr "L'enregistrement le plus récent de chaque type d'objet, objet et rôle sera conservé. Continuer ?"
+
+msgid "Se conservará la fila más antigua de cada relación exacta. ¿Continuar?"
+msgstr "La ligne la plus ancienne de chaque relation exacte sera conservée. Continuer ?"
+
+msgid "Se eliminará definitivamente el contenido en papelera. ¿Continuar?"
+msgstr "Le contenu de la corbeille sera supprimé définitivement. Continuer ?"
+
+msgid "Se eliminará solo historial de más de 30 días perteneciente a acciones ya completas o canceladas. No se tocarán acciones pendientes, fallidas ni en ejecución. ¿Continuar?"
+msgstr "Seul l'historique de plus de 30 jours des actions terminées ou annulées sera supprimé. Les actions en attente, échouées ou en cours seront conservées. Continuer ?"
+
+msgid "Se eliminarán borradores automáticos. ¿Continuar?"
+msgstr "Les brouillons automatiques seront supprimés. Continuer ?"
+
+msgid "Se eliminarán comentarios en papelera. ¿Continuar?"
+msgstr "Les commentaires dans la corbeille seront supprimés. Continuer ?"
+
+msgid "Se eliminarán comentarios marcados como spam. ¿Continuar?"
+msgstr "Les commentaires indésirables seront supprimés. Continuer ?"
+
+msgid "Se eliminarán el registro SEO y sus relaciones internas. El contenido de WordPress se conservará. ¿Continuar?"
+msgstr "L'enregistrement SEO et ses relations internes seront supprimés. Le contenu WordPress sera conservé. Continuer ?"
+
+msgid "Se eliminarán los registros internos obsoletos y sus relaciones. No se eliminará contenido de WordPress. ¿Continuar?"
+msgstr "Les enregistrements internes obsolètes et leurs relations seront supprimés. Aucun contenu WordPress ne sera supprimé. Continuer ?"
+
+msgid "Se eliminarán metadatos asociados a usuarios que ya no existen. ¿Continuar?"
+msgstr "Les métadonnées associées à des utilisateurs inexistants seront supprimées. Continuer ?"
+
+msgid "Se eliminarán metadatos de líneas de pedido cuyo item padre ya no existe. No se eliminan pedidos ni líneas de pedido. ¿Continuar?"
+msgstr "Les métadonnées des lignes de commande sans article parent seront supprimées. Les commandes et leurs lignes seront conservées. Continuer ?"
+
+msgid "Se eliminarán metadatos sin comentario asociado. ¿Continuar?"
+msgstr "Les métadonnées sans commentaire associé seront supprimées. Continuer ?"
+
+msgid "Se eliminarán metadatos sin post asociado. Recomendado backup previo. ¿Continuar?"
+msgstr "Les métadonnées sans publication associée seront supprimées. Une sauvegarde préalable est recommandée. Continuer ?"
+
+msgid "Se eliminarán metadatos sin término asociado. ¿Continuar?"
+msgstr "Les métadonnées sans terme associé seront supprimées. Continuer ?"
+
+msgid "Se eliminarán relaciones de términos sin objeto asociado. Recomendado backup previo. ¿Continuar?"
+msgstr "Les relations de termes sans objet associé seront supprimées. Une sauvegarde préalable est recommandée. Continuer ?"
+
+msgid "Se eliminarán revisiones de entradas, páginas y productos. ¿Continuar?"
+msgstr "Les révisions des articles, pages et produits seront supprimées. Continuer ?"
+
+msgid "Se eliminarán sesiones WooCommerce expiradas. ¿Continuar?"
+msgstr "Les sessions WooCommerce expirées seront supprimées. Continuer ?"
+
+msgid "Se eliminarán transients expirados. ¿Continuar?"
+msgstr "Les données transitoires expirées seront supprimées. Continuer ?"
+
+msgid "Se eliminarán únicamente claims sin ninguna acción asociada y con más de 24 horas. ¿Continuar?"
+msgstr "Seuls les claims de plus de 24 heures sans action associée seront supprimés. Continuer ?"
+
+msgid "Se eliminarán únicamente las relaciones listadas como inválidas. ¿Continuar?"
+msgstr "Seules les relations répertoriées comme non valides seront supprimées. Continuer ?"
+
+msgid "Se eliminarán únicamente logs cuyo action_id ya no existe. ¿Continuar?"
+msgstr "Seuls les journaux dont le champ action_id n'existe plus seront supprimés. Continuer ?"
+
+msgid "Se eliminarán únicamente reservas de stock cuya fecha de expiración ya ha pasado. ¿Continuar?"
+msgstr "Seules les réservations de stock expirées seront supprimées. Continuer ?"
+
+msgid "Sesiones WC expiradas"
+msgstr "Sessions WooCommerce expirées"
+
+msgid "Sesiones WooCommerce expiradas"
+msgstr "Sessions WooCommerce expirées"
+
+msgid "Sin permisos para Autocheck."
+msgstr "Vous n'avez pas l'autorisation de lancer la vérification automatique."
+
+msgid "Sin permisos para descargar el autocheck."
+msgstr "Vous n'avez pas l'autorisation de télécharger le rapport de vérification."
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Aucune régression de réussi à échoué."
+
+msgid "Sin título o contenido inexistente"
+msgstr "Sans titre ou contenu absent"
+
+msgid "Tabla interna detectada automáticamente por TaxoCommerce SEO."
+msgstr "Table interne détectée automatiquement par TaxoCommerce SEO."
+
+msgid "Tablas detectadas"
+msgstr "Tables détectées"
+
+msgid "Tablas detectadas:"
+msgstr "Tables détectées :"
+
+msgid "Termmeta huérfano"
+msgstr "Métadonnées de termes orphelines"
+
+msgid "Texto, ID, URL..."
+msgstr "Texte, ID, URL..."
+
+msgid "Todas en CSV"
+msgstr "Toutes en CSV"
+
+msgid "Todas en SQL"
+msgstr "Toutes en SQL"
+
+msgid "Todas las tablas SEO"
+msgstr "Toutes les tables SEO"
+
+msgid "Todos los nodos SEO conservan un objeto WordPress activo."
+msgstr "Tous les nœuds SEO conservent un objet WordPress actif."
+
+msgid "Transients expirados"
+msgstr "Transients expirés"
+
+msgid "Usermeta huérfano"
+msgstr "Métadonnées d'utilisateurs orphelines"
+
+msgid "Usos de imágenes y medios"
+msgstr "Utilisations des images et médias"
+
+msgid "Vaciar papelera"
+msgstr "Vider la corbeille"
+
+msgid "Valor"
+msgstr "Valeur"
+
+msgid "Versión"
+msgstr "Version"
+
+msgid "Vocabulario SEO"
+msgstr "Vocabulaire SEO"
+
+msgid "Vocabulario semántico utilizado para generación y clasificación."
+msgstr "Vocabulaire sémantique utilisé pour la génération et la classification."
+
+msgid "WooCommerce: order item meta huérfano"
+msgstr "WooCommerce : métadonnées de lignes de commande orphelines"
+
+msgid "WooCommerce: reservas de stock expiradas"
+msgstr "WooCommerce : réservations de stock expirées"
+
+msgid "correctas"
+msgstr "réussies"
+
+msgid "el objeto de WordPress está en la papelera"
+msgstr "l'objet WordPress est dans la corbeille"
+
+msgid "el objeto de WordPress ya no existe"
+msgstr "l'objet WordPress n'existe plus"
+
+msgid "fallidas"
+msgstr "échouées"
+
+msgid "filas encontradas"
+msgstr "lignes trouvées"
+
+msgid "la categoría de producto no existe"
+msgstr "la catégorie de produit n'existe pas"
+
+msgid "los tipos no coinciden con relation_type"
+msgstr "les types ne correspondent pas à relation_type"
+
+msgid "no existe en seo_nodes con ese rol"
+msgstr "n'existe pas dans seo_nodes avec ce rôle"
+
+msgid "omitidas"
+msgstr "ignorées"
+
+msgid "relation_type está vacío"
+msgstr "relation_type est vide"
+
+msgid "relation_type no está registrado en el validador"
+msgstr "relation_type n'est pas enregistré dans le validateur"
+
+msgid "tipo de extremo desconocido"
+msgstr "type de point de terminaison inconnu"
+
+msgid "Último resultado"
+msgstr "Dernier résultat"
