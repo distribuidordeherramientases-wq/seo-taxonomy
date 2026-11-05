@@ -6,7 +6,6 @@ on:
     paths:
       - 'taxocommerce-templates/**'
       - '.github/workflows/taxocommerce-templates-plugin-check.yml'
-      - '.github/workflows/taxocommerce-templates-plugin-check.yml'
   workflow_dispatch:
 
 permissions:
