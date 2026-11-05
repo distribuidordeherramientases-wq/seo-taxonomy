@@ -14,26 +14,26 @@ final class TCSUP_CSV {
 
 	public static function fields() {
 		return array(
-			'proveedor_id_externo' => array( 'label' => 'Supplier product ID', 'required' => true, 'type' => 'text' ),
-			'sku'                   => array( 'label' => 'Supplier SKU', 'type' => 'text' ),
-			'source_row_key'        => array( 'label' => 'Stable variant key', 'type' => 'text' ),
-			'pais_origen'           => array( 'label' => 'Market country', 'type' => 'country' ),
-			'idioma_origen'         => array( 'label' => 'Source language', 'type' => 'text' ),
-			'mpn'                   => array( 'label' => 'MPN', 'type' => 'text' ),
-			'url_origen'            => array( 'label' => 'Supplier product URL', 'type' => 'url' ),
-			'url_canonica'          => array( 'label' => 'Canonical URL', 'type' => 'url' ),
-			'nombre'                => array( 'label' => 'Product name', 'required' => true, 'type' => 'text' ),
-			'descripcion'           => array( 'label' => 'Description', 'type' => 'html' ),
-			'marca'                 => array( 'label' => 'Brand', 'type' => 'text' ),
-			'categoria_proveedor'   => array( 'label' => 'Supplier category', 'type' => 'text' ),
-			'precio_sin_iva'        => array( 'label' => 'Price excl. tax', 'type' => 'decimal' ),
-			'precio_con_iva'        => array( 'label' => 'Price incl. tax', 'type' => 'decimal' ),
-			'iva_porcentaje'        => array( 'label' => 'Tax %', 'type' => 'decimal' ),
-			'moneda'                => array( 'label' => 'Currency', 'type' => 'currency' ),
-			'stock_estado'          => array( 'label' => 'Stock state', 'type' => 'text' ),
-			'stock_cantidad'        => array( 'label' => 'Stock quantity', 'type' => 'decimal' ),
-			'stock_texto'           => array( 'label' => 'Stock text', 'type' => 'text' ),
-			'imagenes'              => array( 'label' => 'External image URLs', 'type' => 'images' ),
+			'proveedor_id_externo' => array( 'label' => __( 'Supplier product ID', 'taxocommerce-suppliers' ), 'required' => true, 'type' => 'text' ),
+			'sku'                   => array( 'label' => __( 'Supplier SKU', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'source_row_key'        => array( 'label' => __( 'Stable variant key', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'pais_origen'           => array( 'label' => __( 'Market country', 'taxocommerce-suppliers' ), 'type' => 'country' ),
+			'idioma_origen'         => array( 'label' => __( 'Source language', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'mpn'                   => array( 'label' => __( 'MPN', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'url_origen'            => array( 'label' => __( 'Supplier product URL', 'taxocommerce-suppliers' ), 'type' => 'url' ),
+			'url_canonica'          => array( 'label' => __( 'Canonical URL', 'taxocommerce-suppliers' ), 'type' => 'url' ),
+			'nombre'                => array( 'label' => __( 'Product name', 'taxocommerce-suppliers' ), 'required' => true, 'type' => 'text' ),
+			'descripcion'           => array( 'label' => __( 'Description', 'taxocommerce-suppliers' ), 'type' => 'html' ),
+			'marca'                 => array( 'label' => __( 'Brand', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'categoria_proveedor'   => array( 'label' => __( 'Supplier category', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'precio_sin_iva'        => array( 'label' => __( 'Price excl. tax', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'precio_con_iva'        => array( 'label' => __( 'Price incl. tax', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'iva_porcentaje'        => array( 'label' => __( 'Tax %', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'moneda'                => array( 'label' => __( 'Currency', 'taxocommerce-suppliers' ), 'type' => 'currency' ),
+			'stock_estado'          => array( 'label' => __( 'Stock state', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'stock_cantidad'        => array( 'label' => __( 'Stock quantity', 'taxocommerce-suppliers' ), 'type' => 'decimal' ),
+			'stock_texto'           => array( 'label' => __( 'Stock text', 'taxocommerce-suppliers' ), 'type' => 'text' ),
+			'imagenes'              => array( 'label' => __( 'External image URLs', 'taxocommerce-suppliers' ), 'type' => 'images' ),
 		);
 	}
 
@@ -41,7 +41,7 @@ final class TCSUP_CSV {
 		return array(
 			'canonical' => array(
 				'id'       => 'canonical',
-				'name'     => 'TaxoCommerce canonical CSV',
+				'name'     => __( 'TaxoCommerce canonical CSV', 'taxocommerce-suppliers' ),
 				'provider' => '',
 				'mode'     => 'canonical',
 				'builtin'  => true,
@@ -49,7 +49,7 @@ final class TCSUP_CSV {
 			),
 			'price_update' => array(
 				'id'       => 'price_update',
-				'name'     => 'Supplier Price Update CSV',
+				'name'     => __( 'Supplier Price Update CSV', 'taxocommerce-suppliers' ),
 				'provider' => '',
 				'mode'     => 'price_update',
 				'builtin'  => true,
@@ -57,7 +57,7 @@ final class TCSUP_CSV {
 			),
 			'vevor' => array(
 				'id'       => 'vevor',
-				'name'     => 'VEVOR official CSV',
+				'name'     => __( 'VEVOR official CSV', 'taxocommerce-suppliers' ),
 				'provider' => 'VEVOR',
 				'mode'     => 'vevor',
 				'builtin'  => true,
@@ -65,7 +65,7 @@ final class TCSUP_CSV {
 			),
 			'satkit' => array(
 				'id'       => 'satkit',
-				'name'     => 'SATKIT visual mapping',
+				'name'     => __( 'SATKIT visual mapping', 'taxocommerce-suppliers' ),
 				'provider' => 'SATKIT',
 				'mode'     => 'mapping',
 				'builtin'  => true,
@@ -73,7 +73,7 @@ final class TCSUP_CSV {
 			),
 			'todotaladros' => array(
 				'id'       => 'todotaladros',
-				'name'     => 'TodoTaladros visual mapping',
+				'name'     => __( 'TodoTaladros visual mapping', 'taxocommerce-suppliers' ),
 				'provider' => 'TODOTALADROS',
 				'mode'     => 'mapping',
 				'builtin'  => true,
