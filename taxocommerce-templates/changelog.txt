@@ -1,5 +1,9 @@
 TAXOCOMMERCE TEMPLATES — CHANGELOG DEL PLUGIN INDEPENDIENTE
 
+## [0.4.14] — 2026-11-05
+* Revisión parcial de advertencias Plugin Check (#2189): SQL de rutas, roles y auditoría con identificadores `%i`, controles de tipo y sanitización de nombres del editor PHP privado, y versión del CSS internacional.
+* Persisten advertencias y el editor PHP privado no es apto para distribución WordPress.org. No afecta a producción.
+
 ## [0.4.13] — 2026-11-04
 * SQL seguro con %i en 16 archivos de plantillas: corrige 32 errores identificados por Plugin Check. Mantiene relaciones, catálogos y vistas actuales. Nuevos tests y PHP lint en plantillas (#2187).
 * Revisión WordPress.org pendiente de nuevo Plugin Check, avisos restantes y separación del editor PHP ejecutable.
