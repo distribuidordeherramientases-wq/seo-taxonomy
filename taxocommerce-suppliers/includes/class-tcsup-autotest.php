@@ -128,9 +128,14 @@ final class TCSUP_Autotest {
 			$counts[ $row['status'] ]++;
 		}
 		/* translators: 1: checks run, 2: passed checks, 3: warnings, 4: errors. */
-		// translators: 1: total checks, 2: successful checks, 3: warnings, 4: errors.
-		$summary_format = __( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' );
-		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . esc_html( sprintf( $summary_format, absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) ) . '</p>';
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf(
+			// translators: 1: total checks, 2: successful checks, 3: warnings, 4: errors.
+			esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' ),
+			absint( count( $rows ) ),
+			absint( $counts['ok'] ),
+			absint( $counts['warning'] ),
+			absint( $counts['error'] )
+		) . '</p>';
 		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( $summary_format, absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
