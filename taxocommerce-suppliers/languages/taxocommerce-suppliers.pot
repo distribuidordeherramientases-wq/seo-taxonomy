@@ -1475,3 +1475,126 @@ msgstr ""
 
 msgid "— Do not import —"
 msgstr ""
+
+msgid "Sistema"
+msgstr ""
+
+msgid "Plugin y versión"
+msgstr ""
+
+msgid "Constante de versión ausente."
+msgstr ""
+
+msgid "API de pedidos y productos disponible."
+msgstr ""
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr ""
+
+msgid "Clases del plugin"
+msgstr ""
+
+msgid "Faltan: "
+msgstr ""
+
+msgid "Todos los componentes principales están cargados."
+msgstr ""
+
+msgid "Administración"
+msgstr ""
+
+msgid "Controladores registrados"
+msgstr ""
+
+msgid "No registrados: "
+msgstr ""
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr ""
+
+msgid "Servicios"
+msgstr ""
+
+msgid "Funciones públicas"
+msgstr ""
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr ""
+
+msgid "Configuración"
+msgstr ""
+
+msgid "Plantillas CSV personalizadas"
+msgstr ""
+
+msgid "Estructura válida; "
+msgstr ""
+
+msgid " plantillas almacenadas."
+msgstr ""
+
+msgid "La opción no contiene un array."
+msgstr ""
+
+msgid "Formatos CSV genéricos"
+msgstr ""
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr ""
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr ""
+
+msgid "Margen de venta"
+msgstr ""
+
+msgid "Margen regular"
+msgstr ""
+
+msgid "Valor numérico guardado."
+msgstr ""
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr ""
+
+msgid "Persistencia"
+msgstr ""
+
+msgid "Versión del esquema"
+msgstr ""
+
+msgid "Versión guardada: "
+msgstr ""
+
+msgid "sin registrar"
+msgstr ""
+
+msgid ". No se ejecutan migraciones."
+msgstr ""
+
+msgid "Base de datos"
+msgstr ""
+
+msgid "Conexión o esquema no disponibles."
+msgstr ""
+
+msgid "Catálogo intermedio"
+msgstr ""
+
+msgid "Imágenes externas"
+msgstr ""
+
+msgid "No se encuentra la tabla "
+msgstr ""
+
+msgid "Columnas ausentes: "
+msgstr ""
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr ""
+
+msgid "Consulta de estados"
+msgstr ""
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr ""

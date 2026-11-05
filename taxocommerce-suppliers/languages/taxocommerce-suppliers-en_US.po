@@ -1476,3 +1476,126 @@ msgstr "Documentation index"
 
 msgid "— Do not import —"
 msgstr "— Do not import —"
+
+msgid "Sistema"
+msgstr "System"
+
+msgid "Plugin y versión"
+msgstr "Plugin and version"
+
+msgid "Constante de versión ausente."
+msgstr "Version constant missing."
+
+msgid "API de pedidos y productos disponible."
+msgstr "Order and product APIs available."
+
+msgid "WooCommerce no está disponible para productos o compras."
+msgstr "WooCommerce is not available for products or purchasing."
+
+msgid "Clases del plugin"
+msgstr "Plugin classes"
+
+msgid "Faltan: "
+msgstr "Missing: "
+
+msgid "Todos los componentes principales están cargados."
+msgstr "All main components are loaded."
+
+msgid "Administración"
+msgstr "Administration"
+
+msgid "Controladores registrados"
+msgstr "Registered handlers"
+
+msgid "No registrados: "
+msgstr "Not registered: "
+
+msgid "Los 10 controladores están registrados; ninguno se ejecuta."
+msgstr "All 10 handlers are registered; none is executed."
+
+msgid "Servicios"
+msgstr "Services"
+
+msgid "Funciones públicas"
+msgstr "Public functions"
+
+msgid "Consulta de fuentes e imágenes de proveedor (sin invocar operaciones)."
+msgstr "Supplier sources and images lookup (without running operations)."
+
+msgid "Configuración"
+msgstr "Configuration"
+
+msgid "Plantillas CSV personalizadas"
+msgstr "Custom CSV templates"
+
+msgid "Estructura válida; "
+msgstr "Valid structure; "
+
+msgid " plantillas almacenadas."
+msgstr " templates saved."
+
+msgid "La opción no contiene un array."
+msgstr "The option is not an array."
+
+msgid "Formatos CSV genéricos"
+msgstr "Generic CSV formats"
+
+msgid "Solo los dos formatos de importación, sin plantillas de proveedores precargadas."
+msgstr "Only the two generic import formats; no preinstalled supplier templates."
+
+msgid "Se han detectado perfiles de proveedor precargados."
+msgstr "Preinstalled supplier profiles were detected."
+
+msgid "Margen de venta"
+msgstr "Sale margin"
+
+msgid "Margen regular"
+msgstr "Regular margin"
+
+msgid "Valor numérico guardado."
+msgstr "Numeric value stored."
+
+msgid "Opción ausente o no numérica; revisar ajustes."
+msgstr "Option missing or not numeric; check settings."
+
+msgid "Persistencia"
+msgstr "Persistence"
+
+msgid "Versión del esquema"
+msgstr "Schema version"
+
+msgid "Versión guardada: "
+msgstr "Stored version: "
+
+msgid "sin registrar"
+msgstr "not registered"
+
+msgid ". No se ejecutan migraciones."
+msgstr ". No migrations are run."
+
+msgid "Base de datos"
+msgstr "Database"
+
+msgid "Conexión o esquema no disponibles."
+msgstr "Database connection or schema unavailable."
+
+msgid "Catálogo intermedio"
+msgstr "Intermediate catalogue"
+
+msgid "Imágenes externas"
+msgstr "External images"
+
+msgid "No se encuentra la tabla "
+msgstr "Table not found: "
+
+msgid "Columnas ausentes: "
+msgstr "Missing columns: "
+
+msgid "Tabla y columnas esenciales disponibles."
+msgstr "Table and required columns available."
+
+msgid "Consulta de estados"
+msgstr "Status lookup"
+
+msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr "Status filter loaded; orders are neither queried nor modified."

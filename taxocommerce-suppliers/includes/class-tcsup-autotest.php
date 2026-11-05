@@ -14,9 +14,9 @@ final class TCSUP_Autotest {
 	public static function run() {
 		global $wpdb;
 		$rows = array();
-		self::check( $rows, 'Sistema', 'Plugin y versión', defined( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) ? 'ok' : 'error', defined( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) ? 'Suppliers ' . TAXOCOMMERCE_SUPPLIERS_VERSION : 'Constante de versión ausente.' );
+		self::check( $rows, __( 'Sistema', 'taxocommerce-suppliers' ), __( 'Plugin y versión', 'taxocommerce-suppliers' ), defined( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) ? 'ok' : 'error', defined( 'TAXOCOMMERCE_SUPPLIERS_VERSION' ) ? 'Suppliers ' . TAXOCOMMERCE_SUPPLIERS_VERSION : __( 'Constante de versión ausente.', 'taxocommerce-suppliers' ) );
 		$woo = class_exists( 'WooCommerce', false ) && function_exists( 'wc_get_orders' ) && function_exists( 'wc_get_product' );
-		self::check( $rows, 'Sistema', 'WooCommerce', $woo ? 'ok' : 'error', $woo ? 'API de pedidos y productos disponible.' : 'WooCommerce no está disponible para productos o compras.' );
+		self::check( $rows, __( 'Sistema', 'taxocommerce-suppliers' ), 'WooCommerce', $woo ? 'ok' : 'error', $woo ? __( 'API de pedidos y productos disponible.', 'taxocommerce-suppliers' ) : __( 'WooCommerce no está disponible para productos o compras.', 'taxocommerce-suppliers' ) );
 
 		$classes = array( 'TCSUP_Schema', 'TCSUP_CSV', 'TCSUP_Products', 'TCSUP_Purchasing', 'TCSUP_Admin', 'TCSUP_Manual' );
 		$missing = array();
@@ -25,7 +25,7 @@ final class TCSUP_Autotest {
 				$missing[] = $class;
 			}
 		}
-		self::check( $rows, 'Componentes', 'Clases del plugin', $missing ? 'error' : 'ok', $missing ? 'Faltan: ' . implode( ', ', $missing ) : 'Todos los componentes principales están cargados.' );
+		self::check( $rows, __( 'Componentes', 'taxocommerce-suppliers' ), __( 'Clases del plugin', 'taxocommerce-suppliers' ), $missing ? 'error' : 'ok', $missing ? __( 'Faltan: ', 'taxocommerce-suppliers' ) . implode( ', ', $missing ) : __( 'Todos los componentes principales están cargados.', 'taxocommerce-suppliers' ) );
 
 		$hooks = array(
 			'admin_post_tcsup_analyze_csv'      => array( 'TCSUP_CSV', 'handle_analyze' ),
@@ -45,42 +45,42 @@ final class TCSUP_Autotest {
 				$missing[] = $hook;
 			}
 		}
-		self::check( $rows, 'Administración', 'Controladores registrados', $missing ? 'error' : 'ok', $missing ? 'No registrados: ' . implode( ', ', $missing ) : 'Los 10 controladores están registrados; ninguno se ejecuta.' );
-		self::check( $rows, 'Servicios', 'Funciones públicas', function_exists( 'taxocommerce_suppliers_get_sources' ) && function_exists( 'taxocommerce_suppliers_get_external_images' ) ? 'ok' : 'error', 'Consulta de fuentes e imágenes de proveedor (sin invocar operaciones).' );
+		self::check( $rows, __( 'Administración', 'taxocommerce-suppliers' ), __( 'Controladores registrados', 'taxocommerce-suppliers' ), $missing ? 'error' : 'ok', $missing ? __( 'No registrados: ', 'taxocommerce-suppliers' ) . implode( ', ', $missing ) : __( 'Los 10 controladores están registrados; ninguno se ejecuta.', 'taxocommerce-suppliers' ) );
+		self::check( $rows, __( 'Servicios', 'taxocommerce-suppliers' ), __( 'Funciones públicas', 'taxocommerce-suppliers' ), function_exists( 'taxocommerce_suppliers_get_sources' ) && function_exists( 'taxocommerce_suppliers_get_external_images' ) ? 'ok' : 'error', __( 'Consulta de fuentes e imágenes de proveedor (sin invocar operaciones).', 'taxocommerce-suppliers' ) );
 		$templates = get_option( 'taxocommerce_suppliers_csv_templates', array() );
-		self::check( $rows, 'Configuración', 'Plantillas CSV personalizadas', is_array( $templates ) ? 'ok' : 'error', is_array( $templates ) ? 'Estructura válida; ' . count( $templates ) . ' plantillas almacenadas.' : 'La opción no contiene un array.' );
+		self::check( $rows, __( 'Configuración', 'taxocommerce-suppliers' ), __( 'Plantillas CSV personalizadas', 'taxocommerce-suppliers' ), is_array( $templates ) ? 'ok' : 'error', is_array( $templates ) ? __( 'Estructura válida; ', 'taxocommerce-suppliers' ) . count( $templates ) . __( ' plantillas almacenadas.', 'taxocommerce-suppliers' ) : __( 'La opción no contiene un array.', 'taxocommerce-suppliers' ) );
 		$builtin = class_exists( 'TCSUP_CSV', false ) ? TCSUP_CSV::builtin_templates() : array();
 		$expected = array( 'canonical', 'price_update' );
 		$generic_only = array_keys( $builtin ) === $expected;
-		self::check( $rows, 'Configuración', 'Formatos CSV genéricos', $generic_only ? 'ok' : 'error', $generic_only ? 'Solo los dos formatos de importación, sin plantillas de proveedores precargadas.' : 'Se han detectado perfiles de proveedor precargados.' );
-		foreach ( array( 'taxocommerce_suppliers_sale_margin' => 'Margen de venta', 'taxocommerce_suppliers_regular_margin' => 'Margen regular' ) as $option => $label ) {
+		self::check( $rows, __( 'Configuración', 'taxocommerce-suppliers' ), __( 'Formatos CSV genéricos', 'taxocommerce-suppliers' ), $generic_only ? 'ok' : 'error', $generic_only ? __( 'Solo los dos formatos de importación, sin plantillas de proveedores precargadas.', 'taxocommerce-suppliers' ) : __( 'Se han detectado perfiles de proveedor precargados.', 'taxocommerce-suppliers' ) );
+		foreach ( array( 'taxocommerce_suppliers_sale_margin' => __( 'Margen de venta', 'taxocommerce-suppliers' ), 'taxocommerce_suppliers_regular_margin' => __( 'Margen regular', 'taxocommerce-suppliers' ) ) as $option => $label ) {
 			$value = get_option( $option, false );
-			self::check( $rows, 'Configuración', $label, false !== $value && is_numeric( $value ) && is_finite( (float) $value ) ? 'ok' : 'warning', false !== $value && is_numeric( $value ) ? 'Valor numérico guardado.' : 'Opción ausente o no numérica; revisar ajustes.' );
+			self::check( $rows, __( 'Configuración', 'taxocommerce-suppliers' ), $label, false !== $value && is_numeric( $value ) && is_finite( (float) $value ) ? 'ok' : 'warning', false !== $value && is_numeric( $value ) ? __( 'Valor numérico guardado.', 'taxocommerce-suppliers' ) : __( 'Opción ausente o no numérica; revisar ajustes.', 'taxocommerce-suppliers' ) );
 		}
 		$db_version = get_option( 'taxocommerce_suppliers_db_version', '' );
-		self::check( $rows, 'Persistencia', 'Versión del esquema', class_exists( 'TCSUP_Schema', false ) && TCSUP_Schema::DB_VERSION === (string) $db_version ? 'ok' : 'warning', 'Versión guardada: ' . ( $db_version ? $db_version : 'sin registrar' ) . '. No se ejecutan migraciones.' );
+		self::check( $rows, __( 'Persistencia', 'taxocommerce-suppliers' ), __( 'Versión del esquema', 'taxocommerce-suppliers' ), class_exists( 'TCSUP_Schema', false ) && TCSUP_Schema::DB_VERSION === (string) $db_version ? 'ok' : 'warning', __( 'Versión guardada: ', 'taxocommerce-suppliers' ) . ( $db_version ? $db_version : __( 'sin registrar', 'taxocommerce-suppliers' ) ) . __( '. No se ejecutan migraciones.', 'taxocommerce-suppliers' ) );
 		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! class_exists( 'TCSUP_Schema', false ) ) {
-			self::check( $rows, 'Persistencia', 'Base de datos', 'error', 'Conexión o esquema no disponibles.' );
+			self::check( $rows, __( 'Persistencia', 'taxocommerce-suppliers' ), __( 'Base de datos', 'taxocommerce-suppliers' ), 'error', __( 'Conexión o esquema no disponibles.', 'taxocommerce-suppliers' ) );
 		} else {
 			$tables = array(
-				'Catálogo intermedio' => array( TCSUP_Schema::catalog_table(), array( 'id', 'proveedor', 'proveedor_id_externo', 'pais_origen', 'source_row_key', 'estado_seleccion', 'object_id' ) ),
-				'Imágenes externas'   => array( TCSUP_Schema::images_table(), array( 'id', 'supplier', 'supplier_sku', 'product_id', 'image_url', 'status' ) ),
+				__( 'Catálogo intermedio', 'taxocommerce-suppliers' ) => array( TCSUP_Schema::catalog_table(), array( 'id', 'proveedor', 'proveedor_id_externo', 'pais_origen', 'source_row_key', 'estado_seleccion', 'object_id' ) ),
+				__( 'Imágenes externas', 'taxocommerce-suppliers' )   => array( TCSUP_Schema::images_table(), array( 'id', 'supplier', 'supplier_sku', 'product_id', 'image_url', 'status' ) ),
 			);
 			foreach ( $tables as $label => $spec ) {
 				$table = $spec[0];
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit manual inspection, read-only.
 				$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 				if ( $exists !== $table ) {
-					self::check( $rows, 'Persistencia', $label, 'error', 'No se encuentra la tabla ' . $table . '.' );
+					self::check( $rows, __( 'Persistencia', 'taxocommerce-suppliers' ), $label, 'error', __( 'No se encuentra la tabla ', 'taxocommerce-suppliers' ) . $table . '.' );
 					continue;
 				}
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit manual schema inspection.
 				$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
 				$missing_columns = array_diff( $spec[1], is_array( $columns ) ? $columns : array() );
-				self::check( $rows, 'Persistencia', $label, $missing_columns ? 'error' : 'ok', $missing_columns ? 'Columnas ausentes: ' . implode( ', ', $missing_columns ) : 'Tabla y columnas esenciales disponibles.' );
+				self::check( $rows, __( 'Persistencia', 'taxocommerce-suppliers' ), $label, $missing_columns ? 'error' : 'ok', $missing_columns ? __( 'Columnas ausentes: ', 'taxocommerce-suppliers' ) . implode( ', ', $missing_columns ) : __( 'Tabla y columnas esenciales disponibles.', 'taxocommerce-suppliers' ) );
 			}
 		}
-		self::check( $rows, 'Compras', 'Consulta de estados', class_exists( 'TCSUP_Purchasing', false ) && is_array( TCSUP_Purchasing::active_order_statuses() ) ? 'ok' : 'error', 'Filtro de estados cargado; no se consultan ni modifican pedidos.' );
+		self::check( $rows, __( 'Compras', 'taxocommerce-suppliers' ), __( 'Consulta de estados', 'taxocommerce-suppliers' ), class_exists( 'TCSUP_Purchasing', false ) && is_array( TCSUP_Purchasing::active_order_statuses() ) ? 'ok' : 'error', __( 'Filtro de estados cargado; no se consultan ni modifican pedidos.', 'taxocommerce-suppliers' ) );
 		return $rows;
 	}
 
@@ -127,7 +127,9 @@ final class TCSUP_Autotest {
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ]++;
 		}
-		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' ), absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
+		/* translators: 1: checks run, 2: passed checks, 3: warnings, 4: errors. */
+		$summary_format = __( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' );
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . esc_html( sprintf( $summary_format, absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) ) . '</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
 			if ( $group !== $row['group'] ) {
