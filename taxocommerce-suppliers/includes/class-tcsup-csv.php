@@ -520,6 +520,7 @@ final class TCSUP_CSV {
 			? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
 		$format = 'json';
 		$contents = '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File metadata is sanitized and size, extension, upload status and is_uploaded_file() are checked before reading the temporary file.
 		$file = isset( $_FILES['template_file'] ) && is_array( $_FILES['template_file'] ) ? $_FILES['template_file'] : array();
 		$upload_error = (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE );
 		if ( UPLOAD_ERR_NO_FILE !== $upload_error ) {
