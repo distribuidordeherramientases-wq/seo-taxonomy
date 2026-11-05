@@ -25,6 +25,8 @@ $cases = array(
     ),
     'includes/class-tct-request-admin.php' => array(
         'SELECT id FROM %i WHERE template_key = %s LIMIT 1',
+        "is_string(\$_POST['request_key'])",
+        "is_string(\$_POST['template_file'])",
     ),
     'includes/class-tct-router.php' => array(
         'SELECT template_key FROM %i',
