@@ -4,7 +4,7 @@ defined('ABSPATH') || exit;
 function tccampaigns_admin_menu(){
     $parent=(function_exists('taxocommerce_core')||defined('TAXOCOMMERCE_CORE_VERSION'))?'taxocommerce-core':'';
     if($parent){
-        add_submenu_page($parent,__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),__( 'Campaigns', 'taxocommerce-campaigns' ),'manage_options','taxocommerce-campaigns','tccampaigns_admin_render');
+        add_submenu_page($parent,__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),__( 'Marketing campaigns', 'taxocommerce-campaigns' ),'manage_options','taxocommerce-campaigns','tccampaigns_admin_render');
     }else{
         add_menu_page(__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ),'manage_options','taxocommerce-campaigns','tccampaigns_admin_render','dashicons-megaphone',58);
     }
@@ -22,7 +22,7 @@ function tccampaigns_admin_tab_url($tab,$args=array()){
 }
 
 function tccampaigns_handle_settings(){
-    if(!current_user_can('manage_options')) wp_die('No tienes permisos.');
+    if(!current_user_can('manage_options')) wp_die(esc_html__( 'No tienes permisos.', 'taxocommerce-campaigns' ));
     check_admin_referer('tccampaigns_settings');
     $time=isset($_POST['publication_time'])?sanitize_text_field(wp_unslash($_POST['publication_time'])):'18:00';
     if(!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/',$time)) $time='18:00';
@@ -53,15 +53,15 @@ function tccampaigns_render_banners(){
         'facebook'=>array('label'=>'Facebook'),'instagram'=>array('label'=>'Instagram'),'linkedin'=>array('label'=>'LinkedIn'),'pinterest'=>array('label'=>'Pinterest'),'x'=>array('label'=>'X')
     );
     echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Banners públicos', 'taxocommerce-campaigns' ) . '</h2>';
-    echo '<p>Las campañas activas siguen pudiendo mostrarse automáticamente mediante la plantilla <code>template-campaign.php</code> de TaxoCommerce Templates. No se crean posts.</p>';
-    echo '<p>También puedes insertar una campaña en cualquier contenido con <code>[taxocommerce_campaign]</code>, una concreta con <code>[taxocommerce_campaign key="mi-campana"]</code> o usar el alias corto <code>[oferta]</code>. El shortcode usa la campaña activa y sus productos; no registra shortcodes dinámicos como <code>[oferta01]</code>.</p>';
+    echo '<p>' . wp_kses_post( __( 'Las campañas activas pueden mostrarse mediante la plantilla <code>template-campaign.php</code> de TaxoCommerce Templates. No se crean entradas.', 'taxocommerce-campaigns' ) ) . '</p>';
+    echo '<p>' . wp_kses_post( __( 'Puedes insertar una campaña con <code>[taxocommerce_campaign]</code>, seleccionar otra con <code>[taxocommerce_campaign key="mi-campana"]</code> o usar <code>[oferta]</code>. El shortcode usa la campaña activa y sus productos; no crea códigos dinámicos como <code>[oferta01]</code>.', 'taxocommerce-campaigns' ) ) . '</p>';
     echo '</section>';
 
     echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Publicación de ofertas en redes', 'taxocommerce-campaigns' ) . '</h2>';
     echo '<p>' . esc_html__( 'Estas plantillas pertenecen a Campañas. TaxoCommerce Social aporta las conexiones y los publicadores, pero su calendario editorial permanece separado.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="tccampaigns_settings">';
     wp_nonce_field('tccampaigns_settings');
-    echo '<p><label><strong>Hora comercial</strong><br><input type="time" name="publication_time" value="'.esc_attr(tccampaigns_social_fixed_publication_time()).'"></label></p>';
+    echo '<p><label><strong>' . esc_html__( 'Hora de publicación comercial', 'taxocommerce-campaigns' ) . '</strong><br><input type="time" name="publication_time" value="'.esc_attr(tccampaigns_social_fixed_publication_time()).'"></label></p>';
     $saved=get_option('tccampaigns_social_templates_v1',array());
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">';
     foreach($providers as $key=>$provider){
@@ -70,7 +70,7 @@ function tccampaigns_render_banners(){
         echo '<div><label><strong>'.esc_html($label).'</strong></label><textarea style="width:100%;min-height:140px" name="social_templates['.esc_attr($key).']">'.esc_textarea($value).'</textarea></div>';
     }
     echo '</div>' . '<p class="description">' . esc_html__( 'Variables: {producto}, {campana}, {precio_regular}, {precio_oferta}, {descuento_pct}, {fecha_inicio}, {fecha_fin}, {url}, {categorias}, {imagen}.', 'taxocommerce-campaigns' ) . '</p>';
-    submit_button('Guardar publicación de ofertas');
+    submit_button( __( 'Guardar publicación de ofertas', 'taxocommerce-campaigns' ) );
     echo '</form></section>';
 }
 
@@ -85,7 +85,7 @@ function tccampaigns_admin_render(){
     tccampaigns_calendar_styles();
     echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h1>' . '<p class="description">' . esc_html__( 'Campañas de ofertas, precios promocionales, banners y agenda comercial autónoma.', 'taxocommerce-campaigns' ) . '</p>';
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
-    foreach(array('campaigns'=>'Campañas','calendar'=>'Calendario','banners'=>'Banners / Publicación','autotest'=>__( 'Autocheck', 'taxocommerce-campaigns' ),'manual'=>'Manual') as $key=>$label){
+    foreach(array('campaigns'=>__( 'Marketing campaigns', 'taxocommerce-campaigns' ),'calendar'=>__( 'Calendario', 'taxocommerce-campaigns' ),'banners'=>__( 'Banners / Publicación', 'taxocommerce-campaigns' ),'autotest'=>__( 'Autocheck', 'taxocommerce-campaigns' ),'manual'=>__( 'Manual', 'taxocommerce-campaigns' )) as $key=>$label){
         echo '<a class="nav-tab '.($tab===$key?'nav-tab-active':'').'" href="'.esc_url(tccampaigns_admin_tab_url($key)).'">'.esc_html($label).'</a>';
     }
     echo '</nav>';
