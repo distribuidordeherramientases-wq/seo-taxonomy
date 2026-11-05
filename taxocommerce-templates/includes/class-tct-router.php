@@ -66,6 +66,7 @@ final class TCT_Router {
             if (isset($existing[$key])) {
                 continue;
             }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $saved = $wpdb->insert($table, array(
                 'template_key'            => $key,
                 'template_name'           => $row[0],
