@@ -171,14 +171,21 @@ final class TCT_Template_Editor {
         }
         check_admin_referer('tct_save_code');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $name = isset($_POST['filename']) && is_string($_POST['filename'])
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? self::safe_target_name(sanitize_file_name(wp_unslash($_POST['filename']))) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $source = isset($_POST['source_filename']) && is_string($_POST['source_filename'])
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? self::safe_source_name(sanitize_file_name(wp_unslash($_POST['source_filename']))) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $assign = isset($_POST['assign_request']) && is_string($_POST['assign_request'])
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
         // PHP source must retain exact bytes; sanitizing it as plain text would corrupt code.
         // This is a private-only editor gated by edit_plugins, file-mod policy and nonce.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $raw = isset($_POST['code']) && is_string($_POST['code']) ? wp_unslash($_POST['code']) : '';
         $code = is_string($raw) ? $raw : '';
 
@@ -215,6 +222,7 @@ final class TCT_Template_Editor {
         }
 
         $exists = is_file($dest);
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         if ($exists && empty($_POST['confirm_replace'])) {
             self::redirect('El archivo ya existe. Marca reemplazar para confirmar.', $source, $assign);
         }
@@ -267,7 +275,9 @@ final class TCT_Template_Editor {
         }
         check_admin_referer('tct_upload_template');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $assign = isset($_POST['assign_request']) && is_string($_POST['assign_request'])
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
         // WordPress uploads are validated by type, origin, size, extension and PHP parser below.
         $files = isset($_FILES['template_file']) && is_array($_FILES['template_file']) ? $_FILES['template_file'] : null;
@@ -307,6 +317,7 @@ final class TCT_Template_Editor {
         }
 
         if (is_file($target)) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             if (empty($_POST['replace'])) {
                 self::redirect('El archivo ya existe. Marca reemplazar para confirmarlo.', $name, $assign);
             }
@@ -458,6 +469,7 @@ final class TCT_Template_Editor {
     private static function render_library($source) {
         $assignments = self::assignments_by_file();
         $files = TCT_Router::available_files(true);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $search = isset($_GET['tct_file_search']) && is_string($_GET['tct_file_search']) ? sanitize_text_field(wp_unslash($_GET['tct_file_search'])) : '';
 
         echo '<section class="tct-editor-library">';
@@ -575,8 +587,11 @@ final class TCT_Template_Editor {
 
         $can_edit = self::can_edit();
         // The editor route is read-only. Saving and uploading use separate verified POST actions.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $source = isset($_GET['tct_source']) && is_string($_GET['tct_source']) ? self::safe_source_name(sanitize_file_name(wp_unslash($_GET['tct_source']))) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $target = isset($_GET['tct_target']) && is_string($_GET['tct_target']) ? self::safe_target_name(sanitize_file_name(wp_unslash($_GET['tct_target']))) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $assign = isset($_GET['tct_assign']) && is_string($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
 
         $path = self::source($source);
@@ -600,6 +615,7 @@ final class TCT_Template_Editor {
         }
 
         $pending = get_transient('tct_editor_pending_' . get_current_user_id());
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         if (is_array($pending) && isset($_GET['tct_notice']) && isset($pending['code']) &&
             isset($pending['source']) && (string)$pending['source'] === $source) {
             $filename = isset($pending['filename']) && $pending['filename'] !== '' ? (string)$pending['filename'] : $filename;
