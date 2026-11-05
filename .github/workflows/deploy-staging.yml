@@ -86,6 +86,9 @@ jobs:
           php -l taxocommerce-templates/tests/plugincheck-warnings-smoke.php
           php taxocommerce-templates/tests/plugincheck-warnings-smoke.php
           php taxocommerce-vocabulary/tests/auto-test-manual-smoke.php
+          php -l taxocommerce-vocabulary/includes/class-tcv-extractor.php
+          php -l taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
+          php taxocommerce-vocabulary/tests/classifier-extraction-smoke.php
       - name: Import-Export native category CSV contracts and PHP syntax
         run: |
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-csv.php
