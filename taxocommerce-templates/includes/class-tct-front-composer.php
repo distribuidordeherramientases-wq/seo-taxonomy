@@ -149,8 +149,8 @@ final class TCT_Front_Composer {
 
     public static function enqueue( $hook ) {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
-            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             return;
         }
         // This tab is the only caller of the pilot's scripts and styles.

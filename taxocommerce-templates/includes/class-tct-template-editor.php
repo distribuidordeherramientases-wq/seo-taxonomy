@@ -578,7 +578,7 @@ final class TCT_Template_Editor {
         // The editor route is read-only. Saving and uploading use separate verified POST actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $source = isset($_GET['tct_source']) && is_string($_GET['tct_source']) ? self::safe_source_name(sanitize_file_name(wp_unslash($_GET['tct_source']))) : '';
-        $target = isset($_GET['tct_target']) && is_string($_GET['tct_target']) ? self::safe_target_name(sanitize_file_name(wp_unslash($_GET['tct_target']))) : '';
+        $target = isset($_GET['tct_target']) && is_string($_GET['tct_target']) ? self::safe_target_name(sanitize_file_name(wp_unslash($_GET['tct_target']))) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $assign = isset($_GET['tct_assign']) && is_string($_GET['tct_assign']) ? sanitize_key(wp_unslash($_GET['tct_assign'])) : '';
 

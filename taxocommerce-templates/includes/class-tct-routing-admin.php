@@ -12,13 +12,13 @@ defined( 'ABSPATH' ) || exit;
 final class TCT_Routing_Admin {
     public static function enqueue() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
-            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) {
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            || ! is_string( $_GET['page'] ) || 'taxocommerce-templates' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             return;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] )
-            ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'routing';
+        $tab = isset( $_GET['tab'] ) && is_string( $_GET['tab'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'routing'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         if ( ! in_array( $tab, array( 'routing', 'roles', 'requests', 'audit' ), true ) ) {
             return;
         }
@@ -193,12 +193,12 @@ final class TCT_Routing_Admin {
         $group = isset( $_POST['tct_group'] ) && is_string( $_POST['tct_group'] )
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
             ? sanitize_text_field( wp_unslash( $_POST['tct_group'] ) ) : '';
-        $search = isset( $_POST['tct_search'] ) && is_string( $_POST['tct_search'] )
+        $search = isset( $_POST['tct_search'] ) && is_string( $_POST['tct_search'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
-            ? sanitize_text_field( wp_unslash( $_POST['tct_search'] ) ) : '';
-        $view = isset( $_POST['tct_view'] ) && is_string( $_POST['tct_view'] )
+            ? sanitize_text_field( wp_unslash( $_POST['tct_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
+        $view = isset( $_POST['tct_view'] ) && is_string( $_POST['tct_view'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This handler already verifies its form nonce before using these fields.
-            ? sanitize_key( wp_unslash( $_POST['tct_view'] ) ) : 'managed';
+            ? sanitize_key( wp_unslash( $_POST['tct_view'] ) ) : 'managed'; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the handler's existing check_admin_referer guard.
         if ( ! in_array( $view, array( 'managed', 'pending', 'all' ), true ) ) {
             $view = 'managed';
         }

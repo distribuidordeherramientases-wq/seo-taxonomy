@@ -3018,23 +3018,23 @@ if (!function_exists('dht_template_category_catalog_state')) {
         // Los filtros públicos son GET de solo lectura. Se validan tipos antes
         // de convertir a texto: una URL con arrays no debe generar avisos PHP.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $selected_stock = isset($_GET['dht_stock']) && is_scalar($_GET['dht_stock'])
-            ? sanitize_key(wp_unslash((string) $_GET['dht_stock']))
+        $selected_stock = isset($_GET['dht_stock']) && is_scalar($_GET['dht_stock']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? sanitize_key(wp_unslash((string) $_GET['dht_stock'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             : '';
         $selected_stock = 'instock' === $selected_stock ? 'instock' : '';
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $selected_min_price = isset($_GET['dht_min_price']) && is_scalar($_GET['dht_min_price'])
-            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_min_price']))))
+        $selected_min_price = isset($_GET['dht_min_price']) && is_scalar($_GET['dht_min_price']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_min_price'])))) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             : 0.0;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $selected_max_price = isset($_GET['dht_max_price']) && is_scalar($_GET['dht_max_price'])
-            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_max_price']))))
+        $selected_max_price = isset($_GET['dht_max_price']) && is_scalar($_GET['dht_max_price']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? max(0.0, (float) wc_format_decimal(sanitize_text_field(wp_unslash((string) $_GET['dht_max_price'])))) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             : 0.0;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $sort = isset($_GET['dht_sort']) && is_scalar($_GET['dht_sort'])
-            ? sanitize_key(wp_unslash((string) $_GET['dht_sort']))
+        $sort = isset($_GET['dht_sort']) && is_scalar($_GET['dht_sort']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? sanitize_key(wp_unslash((string) $_GET['dht_sort'])) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             : 'relevance';
         $allowed_sorts = array('relevance', 'price_asc', 'price_desc', 'rating', 'newest');
         if (!in_array($sort, $allowed_sorts, true)) {
@@ -3045,8 +3045,8 @@ if (!function_exists('dht_template_category_catalog_state')) {
         foreach ($facets as $type => $facet) {
             $param = 'dht_f_' . $type;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-            $raw_values = isset($_GET[$param])
-                ? map_deep(wp_unslash((array) $_GET[$param]), 'sanitize_text_field')
+            $raw_values = isset($_GET[$param]) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+                ? map_deep(wp_unslash((array) $_GET[$param]), 'sanitize_text_field') // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
                 : array();
             // Las facetas admiten slugs escalares, no arrays anidados.
             $raw_values = array_filter($raw_values, 'is_scalar');

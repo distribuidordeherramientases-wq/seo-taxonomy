@@ -15,8 +15,8 @@ $search_term = get_search_query();
 $requested_post_type = get_query_var('post_type');
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-if (!$requested_post_type && isset($_GET['post_type']) && !is_array($_GET['post_type'])) {
-    $requested_post_type = sanitize_key(wp_unslash($_GET['post_type']));
+if (!$requested_post_type && isset($_GET['post_type']) && !is_array($_GET['post_type'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+    $requested_post_type = sanitize_key(wp_unslash($_GET['post_type'])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
 }
 
 $is_product_search = ('product' === $requested_post_type);

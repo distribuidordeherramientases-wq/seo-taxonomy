@@ -232,11 +232,11 @@ final class TCT_Designs {
 
     public static function enqueue() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) || ! is_string( $_GET['page'] )
-            || 'taxocommerce-templates' !== $_GET['page'] ) { return; }
+        if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] ) || ! is_string( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            || 'taxocommerce-templates' !== $_GET['page'] ) { return; } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $id = isset( $_GET['tct_design'] ) && is_string( $_GET['tct_design'] )
-            ? sanitize_text_field( wp_unslash( $_GET['tct_design'] ) ) : '';
+        $id = isset( $_GET['tct_design'] ) && is_string( $_GET['tct_design'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? sanitize_text_field( wp_unslash( $_GET['tct_design'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         $design = self::get( $id );
         if ( ! $design ) { return; }
         $configs = array();
@@ -262,8 +262,8 @@ final class TCT_Designs {
             return;
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
-        $market = isset( $_GET['market'] ) && is_string( $_GET['market'] )
-            ? strtoupper( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : '';
+        $market = isset( $_GET['market'] ) && is_string( $_GET['market'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
+            ? strtoupper( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
         if ( ! in_array( $market, self::COUNTRIES, true ) ) { $market = $design['countries'][0]; }
         $items = TCT_Routing_Admin::items( false );
         $label = isset( $items[ $design['route'] ] ) ? $items[ $design['route'] ]['label'] : $design['route'];

@@ -105,7 +105,7 @@ final class TCT_Request_Admin {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $search = isset($_GET['tct_search']) && is_string($_GET['tct_search']) ? sanitize_text_field(wp_unslash($_GET['tct_search'])) : '';
-        $page = isset($_GET['tct_paged']) && is_scalar($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1;
+        $page = isset($_GET['tct_paged']) && is_scalar($_GET['tct_paged']) ? max(1,absint($_GET['tct_paged'])) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
 
         $matching = array();
         foreach ($groups[$selected_group] as $key => $def) {
