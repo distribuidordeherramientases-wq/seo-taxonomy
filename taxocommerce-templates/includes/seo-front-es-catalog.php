@@ -31,7 +31,7 @@ function seo_front_es_international_category_ids() {
         'product_cat'
     );
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The SQL above has already been prepared.
-    $rows = $wpdb->get_results( $sql, ARRAY_A );
+    $rows = TCT_Read_Query_Cache::get_results( $sql, ARRAY_A );
     if ( ! is_array( $rows ) ) {
         return $excluded;
     }
@@ -253,13 +253,13 @@ function seo_front_es_product_is_visible( $product ) {
     $table = $wpdb->prefix . 'seo_proveedores_productos';
     static $has_supplier_table = null;
     if ( null === $has_supplier_table ) {
-        $has_supplier_table = $table === $wpdb->get_var(
+        $has_supplier_table = $table === TCT_Read_Query_Cache::get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
         );
     }
     if ( $has_supplier_table ) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A trusted WordPress-prefixed table, with all values bound.
-        $is_foreign = $wpdb->get_var( $wpdb->prepare(
+        $is_foreign = TCT_Read_Query_Cache::get_var( $wpdb->prepare(
             "SELECT id FROM %i
              WHERE object_id = %d AND proveedor = %s
              AND pais_origen NOT IN (%s,%s) LIMIT 1",
@@ -354,7 +354,7 @@ add_filter( 'posts_where', static function ( $where, $query ) {
     static $supplier_table_present = null;
     if ( null === $supplier_table_present ) {
         $supplier_table = $wpdb->prefix . 'seo_proveedores_productos';
-        $supplier_table_present = $supplier_table === $wpdb->get_var(
+        $supplier_table_present = $supplier_table === TCT_Read_Query_Cache::get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $supplier_table ) )
         );
     }
