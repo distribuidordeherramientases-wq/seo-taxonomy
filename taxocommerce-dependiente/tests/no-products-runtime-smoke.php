@@ -98,7 +98,7 @@ check_tcd(
 );
 check_tcd(
     strpos( $source, "'lesson_skipped_empty'" ) !== false &&
-    strpos( $source, "'restart'===$action" ) !== false,
+    strpos( $source, "'restart'===\$action" ) !== false,
     'Empty lessons must be recorded as skipped, and explicit restart remains available.'
 );
 echo "PASS: empty catalogue permits L1, existing snapshot preserved, worker with products scheduled.\n";

@@ -81,7 +81,7 @@ class TCD_Load {
     public static function batch_size() { return 4; }
     public static function delay() { return 1; }
     public static function begin() { return microtime( true ); }
-    public static function finish( $a, $n ) { return array( 'priority' => 3, 'batch' => 4, 'next_batch' => 4, 'elapsed' => 0.001 ); }
+    public static function finish( $a, $n ) { return array( 'priority' => 3, 'batch' => 4, 'next_batch' => 4, 'elapsed' => 0.001, 'cpu_percent' => null, 'memory_percent' => null ); }
 }
 class TCD_Sources {
     public static function syllabus() { return array( 1 => array( 'key' => 'categories' ), 2 => array( 'key' => 'products' ), 3 => array( 'key' => 'vocabulary' ) ); }
