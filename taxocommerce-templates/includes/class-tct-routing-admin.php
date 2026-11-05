@@ -149,13 +149,13 @@ final class TCT_Routing_Admin {
 
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $old = $wpdb->get_row( $wpdb->prepare(
+        $old = TCT_DB::get_row( $wpdb->prepare(
             "SELECT id FROM %i WHERE template_key = %s LIMIT 1", $table, $key
         ) );
         $now = current_time( 'mysql' );
         if ( $old ) {
             // Keep role assignments, type, per-device variants and metadata intact.
-            $saved = $wpdb->update(
+            $saved = TCT_DB::update(
                 $table,
                 array( 'template_file' => $file, 'is_active' => '' !== $file ? 1 : 0, 'updated_at' => $now ),
                 array( 'id' => (int) $old->id )
@@ -169,7 +169,7 @@ final class TCT_Routing_Admin {
             $group = (string) $defs[ $key ][1];
             $type = 0 === strpos( $group, 'WooCommerce - correos' ) ? 'email'
                 : ( 0 === strpos( $group, 'WooCommerce' ) ? 'woocommerce' : 'system' );
-            $saved = $wpdb->insert( $table, array(
+            $saved = TCT_DB::insert( $table, array(
                 'template_key' => $key,
                 'template_name' => (string) $defs[ $key ][0],
                 'template_file' => $file,

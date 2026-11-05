@@ -43,7 +43,7 @@ final class TCT_Association_Audit {
 
     private static function table_exists($table) {
         global $wpdb;
-        return $table === $wpdb->get_var($wpdb->prepare(
+        return $table === TCT_DB::get_var($wpdb->prepare(
             'SHOW TABLES LIKE %s', $wpdb->esc_like($table)
         ));
     }
@@ -51,7 +51,7 @@ final class TCT_Association_Audit {
     public static function grouped_nodes() {
         global $wpdb;
         $table = TaxoCommerce_Templates::nodes();
-        $rows = (array)$wpdb->get_results(
+        $rows = (array)TCT_DB::get_results(
             $wpdb->prepare("SELECT seo_role, object_type, COUNT(*) AS total,
                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS active_total
              FROM %i GROUP BY seo_role, object_type
@@ -188,7 +188,7 @@ final class TCT_Association_Audit {
             return array();
         }
         global $wpdb;
-        $rows = (array)$wpdb->get_results(
+        $rows = (array)TCT_DB::get_results(
             $wpdb->prepare("SELECT mail_key, mail_name, template_key, is_enabled,
                     default_template, default_plain_template
              FROM %i ORDER BY mail_key", $table)
@@ -313,7 +313,7 @@ final class TCT_Association_Audit {
         global $wpdb;
         $limit = min(10, max(1, absint($limit)));
         $nodes = TaxoCommerce_Templates::nodes();
-        return (array)$wpdb->get_results($wpdb->prepare(
+        return (array)TCT_DB::get_results($wpdb->prepare(
             "SELECT object_type, object_id FROM %i
              WHERE seo_role = %s AND status = 1
              ORDER BY object_type ASC, object_id ASC LIMIT %d",
@@ -380,7 +380,7 @@ final class TCT_Association_Audit {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $all = self::grouped_nodes();
-        $existing = array_fill_keys((array)$wpdb->get_col( $wpdb->prepare(
+        $existing = array_fill_keys((array)TCT_DB::get_col( $wpdb->prepare(
             "SELECT template_key FROM %i", $table ) ), true);
         $created = 0;
         foreach ($all as $key => $groups) {
@@ -394,7 +394,7 @@ final class TCT_Association_Audit {
             }
             $is_page = !empty($groups['page']['active']);
             $now = current_time('mysql');
-            $ok = $wpdb->insert($table, array(
+            $ok = TCT_DB::insert($table, array(
                 'template_key' => $key,
                 'template_name' => ucwords(str_replace(array('_','-'), ' ', $key)),
                 'template_file' => '',
