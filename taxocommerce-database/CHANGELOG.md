@@ -1,6 +1,12 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.4.8] — 2026-11-05
+
+- Una sola pestaña «Exportar BBDD»: reúne el SQL completo de WordPress, SQL solo SEO, CSV/SQL por tabla y ZIP de las tablas SEO (CSV, SQL o ambos).
+- Las rutas antiguas `tcdb_screen=table&section=export` y `tcdb_screen=clean&seo_clean_db_tab=export` siguen accediendo a la misma vista.
+- Sin cambios en los exportadores existentes, permisos, nonces, estructura SQL ni datos. Issue #2202.
+
 ## [0.4.7] — 2026-11-03
 
 - Nombre uniforme «Autocheck» y descarga autenticada del último informe JSON, con resultados por comprobación y sin ejecutar operaciones reales.
