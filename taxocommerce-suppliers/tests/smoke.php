@@ -89,4 +89,5 @@ tcsup_assert( 'canonical' === TCSUP_CSV::effective_mode( $generic_formats['canon
 tcsup_assert( false === strpos( $admin, 'placeholder="e.g. SATKIT"' ), 'no foreign supplier example is prefilled in new stores' );
 tcsup_assert( false !== strpos( $admin, 'No templates have been created on this site.' ), 'empty template list has its own message' );
 
+require_once __DIR__ . '/i18n-smoke.php';
 echo "OK\n";

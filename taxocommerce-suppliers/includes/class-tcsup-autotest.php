@@ -127,7 +127,7 @@ final class TCSUP_Autotest {
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ]++;
 		}
-		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . esc_html( count( $rows ) ) . ' comprobaciones: ' . esc_html( $counts['ok'] ) . ' correctas, ' . esc_html( $counts['warning'] ) . ' avisos y ' . esc_html( $counts['error'] ) . ' errores.</p>';
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' ), absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
 			if ( $group !== $row['group'] ) {
@@ -135,7 +135,7 @@ final class TCSUP_Autotest {
 					echo '</tbody></table>';
 				}
 				$group = $row['group'];
-				echo '<h3>' . esc_html( $group ) . '</h3><table class="widefat striped"><thead><tr><th>Comprobación</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
+				echo '<h3>' . esc_html( $group ) . '</h3><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Comprobación', 'taxocommerce-suppliers' ) . '</th><th>' . esc_html__( 'Estado', 'taxocommerce-suppliers' ) . '</th><th>' . esc_html__( 'Detalle', 'taxocommerce-suppliers' ) . '</th></tr></thead><tbody>';
 			}
 			$names = array( 'ok' => __( 'Correcto', 'taxocommerce-suppliers' ), 'warning' => __( 'Aviso', 'taxocommerce-suppliers' ), 'error' => __( 'Error', 'taxocommerce-suppliers' ) );
 			echo '<tr><th scope="row">' . esc_html( $row['name'] ) . '</th><td>' . esc_html( $names[ $row['status'] ] ) . '</td><td>' . esc_html( $row['detail'] ) . '</td></tr>';

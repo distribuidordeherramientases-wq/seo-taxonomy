@@ -198,7 +198,7 @@ final class TCSUP_Admin {
 		}
 		if ( isset( $_GET['imported'] ) ) {
 			printf(
-				'<div class="notice notice-success"><p>CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors.</p></div>',
+				'<div class="notice notice-success"><p>' . esc_html__( 'CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
 				absint( $_GET['processed'] ?? 0 ),
 				absint( $_GET['new'] ?? 0 ),
 				absint( $_GET['updated'] ?? 0 ),
@@ -208,7 +208,7 @@ final class TCSUP_Admin {
 		}
 		if ( isset( $_GET['bulk_done'] ) ) {
 			printf(
-				'<div class="notice notice-success"><p>%1$d supplier rows processed. %2$d errors.</p></div>',
+				'<div class="notice notice-success"><p>' . esc_html__( '%1$d supplier rows processed. %2$d errors.', 'taxocommerce-suppliers' ) . '</p></div>',
 				absint( $_GET['bulk_done'] ),
 				absint( $_GET['bulk_errors'] ?? 0 )
 			);
@@ -398,7 +398,7 @@ final class TCSUP_Admin {
 				<tbody>
 				<?php foreach ( $templates as $id => $template ) : ?>
 					<tr>
-						<td><strong><?php echo esc_html( $template['name'] ); ?></strong><?php echo ! empty( $template['builtin'] ) ? '<br><small>Built in</small>' : ''; ?></td>
+						<td><strong><?php echo esc_html( $template['name'] ); ?></strong><?php echo ! empty( $template['builtin'] ) ? '<br><small>' . esc_html__( 'Built in', 'taxocommerce-suppliers' ) . '</small>' : ''; ?></td>
 						<td><?php echo esc_html( (string) ( $template['provider'] ?? '—' ) ); ?></td>
 						<td><?php echo esc_html( (string) ( $template['mode'] ?? 'mapping' ) ); ?></td>
 						<td><?php echo esc_html( count( (array) ( $template['mapping'] ?? array() ) ) ); ?></td>
@@ -580,13 +580,13 @@ final class TCSUP_Admin {
 		<form method="get" class="tcsup-filter">
 			<input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE ); ?>">
 			<input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">
-			<select name="supplier"><option value="">All suppliers</option>
+			<select name="supplier"><option value=""><?php esc_html_e( 'All suppliers', 'taxocommerce-suppliers' ); ?></option>
 				<?php foreach ( self::providers() as $provider ) : ?><option <?php selected( self::request_filter( 'supplier' ), $provider ); ?>><?php echo esc_html( $provider ); ?></option><?php endforeach; ?>
 			</select>
 			<?php if ( $show_selection ) : ?>
 			<select name="selection">
-				<option value="">All decisions</option>
-				<?php foreach ( array( 'pendiente'=>'Pending','revisar'=>'Review','aceptado'=>'Accepted','descartado'=>'Discarded','publicado'=>'Published · legacy','actualizar'=>'Update · legacy','duplicado'=>'Duplicate · legacy' ) as $value => $label ) : ?>
+				<option value=""><?php esc_html_e( 'All decisions', 'taxocommerce-suppliers' ); ?></option>
+				<?php foreach ( array( 'pendiente'=>__( 'Pending', 'taxocommerce-suppliers' ),'revisar'=>__( 'Review', 'taxocommerce-suppliers' ),'aceptado'=>__( 'Accepted', 'taxocommerce-suppliers' ),'descartado'=>__( 'Discarded', 'taxocommerce-suppliers' ),'publicado'=>__( 'Published · legacy', 'taxocommerce-suppliers' ),'actualizar'=>__( 'Update · legacy', 'taxocommerce-suppliers' ),'duplicado'=>__( 'Duplicate · legacy', 'taxocommerce-suppliers' ) ) as $value => $label ) : ?>
 					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( self::request_filter( 'selection' ), $value ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
@@ -639,18 +639,18 @@ final class TCSUP_Admin {
 				<?php wp_nonce_field( 'tcsup_bulk_action' ); ?>
 				<div class="tcsup-bulk">
 					<select name="bulk_supplier_action">
-						<option value="">Bulk action</option>
-						<option value="accept">Accept / link to WooCommerce</option>
-						<option value="review">Mark for review</option>
-						<option value="discard">Discard</option>
-						<option value="pending">Return to pending</option>
+						<option value=""><?php esc_html_e( 'Bulk action', 'taxocommerce-suppliers' ); ?></option>
+						<option value="accept"><?php esc_html_e( 'Accept / link to WooCommerce', 'taxocommerce-suppliers' ); ?></option>
+						<option value="review"><?php esc_html_e( 'Mark for review', 'taxocommerce-suppliers' ); ?></option>
+						<option value="discard"><?php esc_html_e( 'Discard', 'taxocommerce-suppliers' ); ?></option>
+						<option value="pending"><?php esc_html_e( 'Return to pending', 'taxocommerce-suppliers' ); ?></option>
 					</select>
 					<button class="button button-primary"><?php esc_html_e( 'Apply', 'taxocommerce-suppliers' ); ?></button>
 				</div>
 				<div class="tcsup-scroll"><table class="widefat striped">
 					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="<?php echo esc_attr__( 'Select all rows on this page', 'taxocommerce-suppliers' ); ?>"></th><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'External identity', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Market', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier price', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Stock', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Decision', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Sync', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Woo ID', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Actions', 'taxocommerce-suppliers' ); ?></th></tr></thead>
 					<tbody>
-					<?php if ( ! $rows ) : ?><tr><td colspan="11">No supplier rows match the current filters.</td></tr><?php endif; ?>
+					<?php if ( ! $rows ) : ?><tr><td colspan="11"><?php esc_html_e( 'No supplier rows match the current filters.', 'taxocommerce-suppliers' ); ?></td></tr><?php endif; ?>
 					<?php foreach ( $rows as $row ) : ?>
 						<tr>
 							<td><input type="checkbox" name="row_ids[]" value="<?php echo esc_attr( $row['id'] ); ?>"></td>
@@ -749,14 +749,14 @@ final class TCSUP_Admin {
 					<?php wp_nonce_field( 'tcsup_images_update' ); ?>
 					<h3><?php echo esc_html( $selected['nombre'] ); ?></h3>
 					<p><strong><?php echo esc_html( $selected['proveedor'] ); ?></strong> · <code><?php echo esc_html( $selected['sku'] ); ?></code> · Woo ID <?php echo esc_html( $selected['object_id'] ?: '—' ); ?></p>
-					<label><strong>Image mode</strong>
+					<label><strong><?php esc_html_e( 'Image mode', 'taxocommerce-suppliers' ); ?></strong>
 						<select name="image_mode">
-							<option value="external" <?php selected( $selected['modo_imagenes'], 'external' ); ?>>External references</option>
-							<option value="local" <?php selected( $selected['modo_imagenes'], 'local' ); ?>>Local Media</option>
-							<option value="inherit" <?php selected( $selected['modo_imagenes'], 'inherit' ); ?>>Inherit existing behavior</option>
+							<option value="external" <?php selected( $selected['modo_imagenes'], 'external' ); ?>><?php esc_html_e( 'External references', 'taxocommerce-suppliers' ); ?></option>
+							<option value="local" <?php selected( $selected['modo_imagenes'], 'local' ); ?>><?php esc_html_e( 'Local Media', 'taxocommerce-suppliers' ); ?></option>
+							<option value="inherit" <?php selected( $selected['modo_imagenes'], 'inherit' ); ?>><?php esc_html_e( 'Inherit existing behavior', 'taxocommerce-suppliers' ); ?></option>
 						</select>
 					</label>
-					<label><strong>External image URLs — one per line</strong>
+					<label><strong><?php esc_html_e( 'External image URLs — one per line', 'taxocommerce-suppliers' ); ?></strong>
 						<textarea name="image_urls" rows="12"><?php echo esc_textarea( implode( "\n", $urls ) ); ?></textarea>
 					</label>
 					<?php submit_button( __( 'Save external images', 'taxocommerce-suppliers' ), 'primary', 'submit', false ); ?>
@@ -772,7 +772,7 @@ final class TCSUP_Admin {
 						<td><?php echo esc_html( $row['object_id'] ?: '—' ); ?></td>
 						<td><?php echo esc_html( $row['modo_imagenes'] ); ?></td>
 						<td><?php echo esc_html( count( TCSUP_CSV::image_urls( $row['imagenes'] ?? '' ) ) ); ?></td>
-						<td><a class="button button-small" href="<?php echo esc_url( self::tab_url( 'images', array( 'row_id' => absint( $row['id'] ) ) ) ); ?>">Edit</a></td>
+						<td><a class="button button-small" href="<?php echo esc_url( self::tab_url( 'images', array( 'row_id' => absint( $row['id'] ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'taxocommerce-suppliers' ); ?></a></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>

@@ -202,7 +202,7 @@ final class TCSUP_Purchasing {
 			<div class="tcsup-card-head">
 				<div>
 					<h2><?php esc_html_e( 'Purchasing', 'taxocommerce-suppliers' ); ?></h2>
-					<p>Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics.</p>
+					<p><?php esc_html_e( 'Active WooCommerce sales matched against accepted supplier sources. This is the purchasing/procurement layer; shipping weight and delivery cost remain in TaxoCommerce Logistics.', 'taxocommerce-suppliers' ); ?></p>
 				</div>
 			</div>
 
@@ -214,7 +214,7 @@ final class TCSUP_Purchasing {
 			</div>
 
 			<?php if ( empty( $dataset['lines'] ) ) : ?>
-				<div class="notice notice-info inline"><p>There are no pending, on-hold, or processing WooCommerce order lines to purchase.</p></div>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'There are no pending, on-hold, or processing WooCommerce order lines to purchase.', 'taxocommerce-suppliers' ); ?></p></div>
 			<?php else : ?>
 				<div class="tcsup-scroll">
 					<table class="widefat striped">
@@ -250,14 +250,14 @@ final class TCSUP_Purchasing {
 									<td>
 										<?php if ( $order_url ) : ?><a href="<?php echo esc_url( $order_url ); ?>"><strong>#<?php echo esc_html( $order_id ); ?></strong></a><?php else : ?><strong>#<?php echo esc_html( $order_id ); ?></strong><?php endif; ?>
 										<?php if ( $date_label ) : ?><br><small><?php echo esc_html( $date_label ); ?></small><?php endif; ?>
-										<?php if ( $index > 0 ) : ?><br><small>Alternative source</small><?php endif; ?>
+										<?php if ( $index > 0 ) : ?><br><small><?php esc_html_e( 'Alternative source', 'taxocommerce-suppliers' ); ?></small><?php endif; ?>
 									</td>
 									<td><?php echo esc_html( $status_name ); ?></td>
 									<td>
 										<?php $product_url = $line['product_id'] ? get_edit_post_link( absint( $line['product_id'] ), '' ) : ''; ?>
 										<?php if ( $product_url ) : ?><a href="<?php echo esc_url( $product_url ); ?>"><strong><?php echo esc_html( $line['name'] ); ?></strong></a><?php else : ?><strong><?php echo esc_html( $line['name'] ); ?></strong><?php endif; ?>
-										<?php if ( $line['sku'] ) : ?><br><small>Woo SKU: <code><?php echo esc_html( $line['sku'] ); ?></code></small><?php endif; ?>
-										<?php if ( 'parent' === $match['match_type'] ) : ?><br><small>Source inherited from parent product #<?php echo esc_html( $match['matched_id'] ); ?></small><?php endif; ?>
+										<?php if ( $line['sku'] ) : ?><br><small><?php esc_html_e( 'Woo SKU:', 'taxocommerce-suppliers' ); ?> <code><?php echo esc_html( $line['sku'] ); ?></code></small><?php endif; ?>
+										<?php if ( 'parent' === $match['match_type'] ) : ?><br><small><?php esc_html_e( 'Source inherited from parent product #', 'taxocommerce-suppliers' ); ?><?php echo esc_html( $match['matched_id'] ); ?></small><?php endif; ?>
 									</td>
 									<td><?php echo esc_html( $line['quantity'] ); ?></td>
 									<?php if ( $source ) : ?>
@@ -268,11 +268,11 @@ final class TCSUP_Purchasing {
 										<td><?php echo esc_html( self::supplier_price( $source ) ); ?></td>
 										<td>
 											<?php $purchase_url = self::purchase_url( $source ); ?>
-											<?php if ( $purchase_url ) : ?><a class="button button-primary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $purchase_url ); ?>">Purchase</a><?php endif; ?>
-											<a class="button" href="<?php echo esc_url( self::inventory_url( $source ) ); ?>">Supplier row</a>
+											<?php if ( $purchase_url ) : ?><a class="button button-primary" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( $purchase_url ); ?>"><?php esc_html_e( 'Purchase', 'taxocommerce-suppliers' ); ?></a><?php endif; ?>
+											<a class="button" href="<?php echo esc_url( self::inventory_url( $source ) ); ?>"><?php esc_html_e( 'Supplier row', 'taxocommerce-suppliers' ); ?></a>
 										</td>
 									<?php else : ?>
-										<td colspan="5"><strong>No supplier source linked.</strong> <a class="button" href="<?php echo esc_url( self::inventory_url() ); ?>">Open supplier inventory</a></td>
+										<td colspan="5"><strong><?php esc_html_e( 'No supplier source linked.', 'taxocommerce-suppliers' ); ?></strong> <a class="button" href="<?php echo esc_url( self::inventory_url() ); ?>"><?php esc_html_e( 'Open supplier inventory', 'taxocommerce-suppliers' ); ?></a></td>
 									<?php endif; ?>
 								</tr>
 							<?php endforeach; ?>
