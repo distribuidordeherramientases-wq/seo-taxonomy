@@ -1410,6 +1410,7 @@ if (!function_exists('dht_template_products_for_category_ids')) {
                 'menu_order' => 'ASC',
                 'date'       => 'DESC',
             ),
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
             'tax_query'              => $tax_query,
             'update_post_meta_cache' => true,
             'update_post_term_cache' => false,
@@ -1525,6 +1526,7 @@ if (!function_exists('dht_template_term_image_url')) {
                 'no_found_rows'  => true,
                 'orderby'        => 'date',
                 'order'          => 'DESC',
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
                 'tax_query'      => array(
                     array(
                         'taxonomy'         => 'product_cat',
@@ -2265,6 +2267,7 @@ if (!function_exists('dht_template_front_top_viewed_categories')) {
             'taxonomy'   => 'product_cat',
             'hide_empty' => true,
             'number'     => $limit * 3,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
             'meta_key'   => $pageviews_key,
             'orderby'    => 'meta_value_num',
             'order'      => 'DESC',
@@ -2768,6 +2771,7 @@ if (!function_exists('dht_template_category_all_product_ids')) {
             'ignore_sticky_posts'    => true,
             'orderby'                => 'ID',
             'order'                  => 'ASC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
             'tax_query'              => $tax_query,
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
@@ -2814,7 +2818,9 @@ if (!function_exists('dht_template_category_meta_index')) {
                     continue;
                 }
 
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
                 $meta_key = (string) ($row['meta_key'] ?? '');
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Native product/category query is constrained by explicit taxonomy or metadata and a finite result limit.
                 $meta_value = (string) ($row['meta_value'] ?? '');
 
                 if ('_price' === $meta_key) {
