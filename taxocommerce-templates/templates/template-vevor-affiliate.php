@@ -66,7 +66,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
              LIMIT 20";
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Safe generated %d placeholders; actual IDs passed as bound arguments.
         $sql = $wpdb->prepare(
-            $sql_pattern,
+            $sql_pattern, // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The IN fragment is generated only from %d placeholders; every ID is bound.
             ...array_merge(array($table, 'vevor'), array_map('absint', $product_ids))
         );
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
