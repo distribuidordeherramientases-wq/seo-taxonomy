@@ -58,10 +58,10 @@ final class TCT_Pilot_Router {
             global $wpdb;
             $nodes = $wpdb->prefix . 'seo_nodes';
             $relations = $wpdb->prefix . 'seo_relations';
-            if (!$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))) {
+            if (!TCT_Read_Query_Cache::get_var($wpdb->prepare('SHOW TABLES LIKE %s',$wpdb->esc_like($relations)))) {
                 return '';
             }
-            $role_id = $wpdb->get_var($wpdb->prepare(
+            $role_id = TCT_Read_Query_Cache::get_var($wpdb->prepare(
                 "SELECT id FROM %i
                  WHERE object_type = 'page' AND object_id = %d
                    AND seo_role = 'landing' AND status = 1 LIMIT 1", $nodes, $id
@@ -69,7 +69,7 @@ final class TCT_Pilot_Router {
             if (!$role_id) {
                 return '';
             }
-            $term_ids = (array)$wpdb->get_col($wpdb->prepare(
+            $term_ids = (array)TCT_Read_Query_Cache::get_col($wpdb->prepare(
                 "SELECT target_id FROM %i
                  WHERE source_type = 'landing' AND source_id = %d
                    AND target_type = 'product_cat'
