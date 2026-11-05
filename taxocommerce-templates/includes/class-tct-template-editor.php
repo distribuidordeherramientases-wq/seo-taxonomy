@@ -186,6 +186,7 @@ final class TCT_Template_Editor {
         // PHP source must retain exact bytes; sanitizing it as plain text would corrupt code.
         // This is a private-only editor gated by edit_plugins, file-mod policy and nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Trusted private PHP source must remain byte-exact; capability, nonce, size and PHP syntax are checked.
         $raw = isset($_POST['code']) && is_string($_POST['code']) ? wp_unslash($_POST['code']) : '';
         $code = is_string($raw) ? $raw : '';
 
@@ -280,6 +281,7 @@ final class TCT_Template_Editor {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
         // WordPress uploads are validated by type, origin, size, extension and PHP parser below.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validate upload error, filename, is_uploaded_file, size and PHP syntax before use.
         $files = isset($_FILES['template_file']) && is_array($_FILES['template_file']) ? $_FILES['template_file'] : null;
 
         if (!is_array($files) || !isset($files['error']) || UPLOAD_ERR_OK !== (int)$files['error']) {
