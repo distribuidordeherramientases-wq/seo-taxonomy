@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.7
+Stable tag: 0.2.8
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
@@ -16,8 +16,8 @@ TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalo
 Included:
 * CSV-only supplier imports.
 * Reusable CSV mapping templates.
-* Canonical TaxoCommerce supplier CSV template.
-* Local VEVOR official CSV normalization without web requests.
+* Generic canonical CSV import format and price-only update format; no provider templates preinstalled.
+* Compatibility with existing regional CSV feed parsing without preloading third-party supplier presets.
 * Intermediate inventory with pending, review, accepted, and discarded decisions.
 * WooCommerce product linking/creation on acceptance.
 * Supplier price correction and optional WooCommerce price updates.
@@ -36,6 +36,10 @@ Explicitly excluded:
 * Automatic supplier website extraction.
 
 == Changelog ==
+
+= 0.2.8 =
+* No preloaded supplier-specific templates. Only locally saved mappings appear in CSV Templates, while generic CSV import formats and existing regional feed compatibility remain available.
+
 
 = 0.2.7 =
 * Native WordPress gettext localization aligned with Core (POT, PO, MO and user locale). Administrative labels, manual, purchasing and CSV fields prepared for translations.
