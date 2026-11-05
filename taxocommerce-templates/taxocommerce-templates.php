@@ -186,16 +186,22 @@ final class TaxoCommerce_Templates {
             $count=(int)TCT_Read_Query_Cache::get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (source_id=%d AND source_type IN ('cluster','hub_primary','hub_secondary','landing_page')) OR (target_id=%d AND target_type IN ('cluster','hub_primary','hub_secondary','landing_page'))",$relations,$id,$id));
             if($count>0) return new WP_Error('tct_hierarchy_linked','La página tiene relaciones jerárquicas: desvincúlala en Core antes de cambiar su rol.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         $now=current_time('mysql');$wpdb->query('START TRANSACTION');
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         $disabled=$wpdb->update($table,array('status'=>0,'updated_at'=>$now),array('object_type'=>'page','object_id'=>$id));
         $saved=true;
         if(false!==$disabled&&$role) {
             $existing=TCT_Read_Query_Cache::get_var($wpdb->prepare("SELECT id FROM %i WHERE object_type='page' AND object_id=%d AND seo_role=%s LIMIT 1",$table,$id,$role));
             $saved=$existing?
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
                 false!==$wpdb->update($table,array('status'=>1,'updated_at'=>$now),array('id'=>(int)$existing)):
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
                 false!==$wpdb->insert($table,array('object_type'=>'page','object_id'=>$id,'seo_role'=>$role,'status'=>1,'created_at'=>$now,'updated_at'=>$now));
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         if(false===$disabled||!$saved){$wpdb->query('ROLLBACK');return new WP_Error('tct_save_failed','No se pudo guardar el rol.');}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         $wpdb->query('COMMIT');
         if($role) update_post_meta($id,'_taxocommerce_seo_role',$role);
         else delete_post_meta($id,'_taxocommerce_seo_role');
@@ -243,6 +249,7 @@ final class TaxoCommerce_Templates {
         $table=self::templates();
         $exists=TCT_Read_Query_Cache::get_var($wpdb->prepare("SELECT id FROM %i WHERE template_key=%s", $table, $role));
         if(!$exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
             $wpdb->insert($table,array(
                 'template_key'=>$role,'template_name'=>$name,'template_file'=>'',
                 'template_type'=>'page','assignment_mode'=>'multiple','is_assignable'=>1,
@@ -265,6 +272,7 @@ final class TaxoCommerce_Templates {
         $path=TCT_Router::path($file);
         if(!$path)self::redirect('El archivo no existe en la biblioteca instalada.');
         $fields=array('template_file'=>$file,'is_active'=>1,'updated_at'=>current_time('mysql'));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         $saved=$wpdb->update($table,$fields,array('id'=>(int)$exists));
         self::redirect(false===$saved?'No se pudo guardar la asignación.':'Plantilla asociada.');
     }
@@ -338,6 +346,7 @@ final class TaxoCommerce_Templates {
         if (!$enabled && $plan['dispatcher']) {
             self::redirect('La principal es un dispatcher y necesita sus variantes.');
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Necessary plugin-owned relational-table write or transaction; write operations are never cacheable.
         $saved = $wpdb->update($table, array('device_variants_enabled'=>$enabled, 'updated_at'=>current_time('mysql')), array('template_key'=>$key));
         self::redirect(false === $saved ? 'Error guardando el modo por dispositivo.' : 'Modo por dispositivo actualizado.');
     }
