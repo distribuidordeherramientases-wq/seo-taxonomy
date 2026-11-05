@@ -1,3 +1,10 @@
+## [0.2.16] — 2026-11-05 — Corrección de arranque y cabecera (#2230)
+
+- El motor local de Server Status ya no se bloquea por la mera presencia en disco del antiguo seo-taxonomy. Si el monolito está activo pero no carga Server Status, se incorpora únicamente el módulo de servidor sin recargar Validation o Reporting.
+- La cabecera visual común de admin-branding.php se muestra una sola vez en Sistema, Plugin Validation, HTTP, Autocheck y Manual; pestañas, exportación JSON y controles permanecen en su sitio.
+- Prueba de regresión autónoma para el arranque, una única cabecera y compatibilidad con las rutas existentes; la ejecución de Plugin Check sigue separada del despliegue.
+- No se alteran consultas, informes, tablas, credenciales, permisos, nonces o datos del sitio.
+
 ## Unreleased - Familia i18n #2062
 
 
