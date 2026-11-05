@@ -74,7 +74,9 @@ final class TCT_Designs {
     public static function create() {
         if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'Acceso denegado.' ); }
         check_admin_referer( 'tct_design_create' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $key = isset( $_POST['route_key'] ) && is_string( $_POST['route_key'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_key( wp_unslash( $_POST['route_key'] ) ) : '';
         $items = TCT_Routing_Admin::items();
         if ( ! isset( $items[ $key ] ) ) {
@@ -132,20 +134,31 @@ final class TCT_Designs {
     public static function save() {
         if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'Acceso denegado.' ); }
         check_admin_referer( 'tct_design_save' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $id = isset( $_POST['design_id'] ) && is_string( $_POST['design_id'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_text_field( wp_unslash( $_POST['design_id'] ) ) : '';
         $all = self::all();
         if ( ! isset( $all[ $id ] ) ) { self::redirect( 'Plantilla desconocida.' ); }
         $design = $all[ $id ];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $name = isset( $_POST['template_name'] ) && is_string( $_POST['template_name'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? substr( sanitize_text_field( wp_unslash( $_POST['template_name'] ) ), 0, 100 ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $raw_countries = isset( $_POST['countries'] ) && is_array( $_POST['countries'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? array_map( 'sanitize_text_field', wp_unslash( $_POST['countries'] ) ) : array();
         $countries = self::countries( $raw_countries );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $market = isset( $_POST['market'] ) && is_string( $_POST['market'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? strtoupper( sanitize_text_field( wp_unslash( $_POST['market'] ) ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $file = isset( $_POST['template_file'] ) && is_string( $_POST['template_file'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             ? sanitize_file_name( wp_unslash( $_POST['template_file'] ) ) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
         $active = ! empty( $_POST['is_active'] );
         if ( '' === $name || ! $countries || ! in_array( $market, $countries, true ) ) {
             self::redirect( 'Indica un nombre, selecciona países y edita un país incluido en la plantilla.', $id );
@@ -159,7 +172,9 @@ final class TCT_Designs {
         }
         $layouts = array();
         foreach ( array( 'desktop', 'mobile' ) as $device ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
             $raw = isset( $_POST['layout_' . $device] ) && is_string( $_POST['layout_' . $device] )
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Access requires a verified WP nonce before any mutation.
                 ? wp_unslash( $_POST['layout_' . $device] ) : '';
             $data = strlen( $raw ) < 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
@@ -231,9 +246,13 @@ final class TCT_Designs {
     }
 
     public static function enqueue() {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['page'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             || 'taxocommerce-templates' !== $_GET['page'] ) { return; }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $id = isset( $_GET['tct_design'] ) && is_string( $_GET['tct_design'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? sanitize_text_field( wp_unslash( $_GET['tct_design'] ) ) : '';
         $design = self::get( $id );
         if ( ! $design ) { return; }
@@ -259,7 +278,9 @@ final class TCT_Designs {
             echo '<p>La plantilla no existe. <a href="' . esc_url( TCT_Request_Admin::admin_url( 'routing' ) ) . '">Volver al enrutamiento</a>.</p>';
             return;
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
         $market = isset( $_GET['market'] ) && is_string( $_GET['market'] )
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter; it does not change server state.
             ? strtoupper( sanitize_text_field( wp_unslash( $_GET['market'] ) ) ) : '';
         if ( ! in_array( $market, self::COUNTRIES, true ) ) { $market = $design['countries'][0]; }
         $items = TCT_Routing_Admin::items( false );
