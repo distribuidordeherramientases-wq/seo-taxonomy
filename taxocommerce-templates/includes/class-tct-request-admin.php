@@ -49,7 +49,7 @@ final class TCT_Request_Admin {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $current = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE template_key = %s LIMIT 1", $key
+            "SELECT id FROM %i WHERE template_key = %s LIMIT 1", $table, $key
         ));
         $now = current_time('mysql');
         if ($current) {
