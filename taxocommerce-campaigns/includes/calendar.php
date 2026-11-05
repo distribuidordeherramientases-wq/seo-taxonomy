@@ -84,7 +84,7 @@ function tccampaigns_calendar_render() {
     echo '<strong>'.esc_html(wp_date('F Y',$first->getTimestamp(),$tz)).'</strong> ';
     echo '<a class="button" href="'.esc_url(tccampaigns_calendar_url(array('campaign_month'=>$next))).'">›</a></div></div>';
     echo '<div class="tcc-calendar-grid">';
-    foreach (array('Lun','Mar','Mié','Jue','Vie','Sáb','Dom') as $label) echo '<div class="tcc-calendar-week">'.esc_html($label).'</div>';
+    foreach (array( __( 'Lun', 'taxocommerce-campaigns' ), __( 'Mar', 'taxocommerce-campaigns' ), __( 'Mié', 'taxocommerce-campaigns' ), __( 'Jue', 'taxocommerce-campaigns' ), __( 'Vie', 'taxocommerce-campaigns' ), __( 'Sáb', 'taxocommerce-campaigns' ), __( 'Dom', 'taxocommerce-campaigns' ) ) as $label) echo '<div class="tcc-calendar-week">'.esc_html($label).'</div>';
     for($i=0;$i<$offset;$i++) echo '<div class="tcc-calendar-day is-empty"></div>';
     for($d=1;$d<=$days;$d++){
         $date=sprintf('%s-%02d',$month,$d);
@@ -93,7 +93,7 @@ function tccampaigns_calendar_render() {
         foreach((array)($events[$date]??array()) as $event){
             if('campaign'===$event['kind']){
                 $url=tccampaigns_admin_url(array('campaign_id'=>$event['id']));
-                echo '<a class="tcc-event tcc-event-campaign'.($event['enabled']?'':' is-disabled').'" href="'.esc_url($url).'">'.esc_html($event['label']).'<small>'.esc_html((string)$event['products']).' productos</small></a>';
+                echo '<a class="tcc-event tcc-event-campaign'.($event['enabled']?'':' is-disabled').'" href="'.esc_url($url).'">'.esc_html($event['label']).'<small>'.esc_html((string)$event['products']) . ' ' . esc_html__( 'productos', 'taxocommerce-campaigns' ) . '</small></a>';
             }else{
                 echo '<div class="tcc-event tcc-event-social"><b>'.esc_html($event['time']).' '.esc_html(ucfirst($event['provider'])).'</b><small>'.esc_html($event['campaign'].' · '.$event['label']).'</small></div>';
             }

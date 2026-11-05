@@ -13,7 +13,7 @@ $hub_title  = get_the_title($current_id);
 $table      = $wpdb->prefix . 'seo_relations';
 
 $cluster_id = absint(
-    $wpdb->get_var(
+    TCT_DB::get_var(
         $wpdb->prepare(
             "SELECT source_id
              FROM %i
@@ -32,7 +32,7 @@ if ($cluster_id > 0 && get_post_status($cluster_id) !== 'publish') {
     $cluster_id = 0;
 }
 
-$secondary_hub_ids = $wpdb->get_col(
+$secondary_hub_ids = TCT_DB::get_col(
     $wpdb->prepare(
         "SELECT target_id
          FROM %i
@@ -46,7 +46,7 @@ $secondary_hub_ids = $wpdb->get_col(
 );
 $secondary_hub_ids = dht_template_public_post_ids($secondary_hub_ids);
 
-$category_ids = $wpdb->get_col(
+$category_ids = TCT_DB::get_col(
     $wpdb->prepare(
         "SELECT target_id
          FROM %i

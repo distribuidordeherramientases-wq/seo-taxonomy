@@ -48,13 +48,13 @@ final class TCT_Request_Admin {
 
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $current = $wpdb->get_var($wpdb->prepare(
+        $current = TCT_DB::get_var($wpdb->prepare(
             "SELECT id FROM %i WHERE template_key = %s LIMIT 1", $table, $key
         ));
         $now = current_time('mysql');
         if ($current) {
             // No se modifican tipos, asignaciones, nombres ni relaciones antiguas.
-            $saved = $wpdb->update($table, array(
+            $saved = TCT_DB::update($table, array(
                 'template_file' => $file,
                 'is_active' => $file !== '' ? 1 : 0,
                 'updated_at' => $now
@@ -63,7 +63,7 @@ final class TCT_Request_Admin {
             $group = $defs[$key][1];
             $type = (strpos($group, 'WooCommerce - correos') === 0) ? 'email' :
                     ((strpos($group, 'WooCommerce') === 0) ? 'woocommerce' : 'system');
-            $saved = $wpdb->insert($table, array(
+            $saved = TCT_DB::insert($table, array(
                 'template_key' => $key,
                 'template_name' => $defs[$key][0],
                 'template_file' => $file,

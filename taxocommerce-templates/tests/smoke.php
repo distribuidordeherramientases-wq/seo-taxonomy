@@ -255,6 +255,9 @@ if ( is_file( $legacy_cluster ) ) {
         array( 'FROM {$table}', 'ORDER BY id ASC", $current_id' ),
         $normalized_cluster
     );
+    // The request-local SQL cache has the same query result contract as wpdb.
+    // Normalize its method name only for this legacy source-equivalence check.
+    $normalized_cluster = str_replace( 'TCT_DB::get_col(', '$wpdb->get_col(', $normalized_cluster );
     tct_assert( file_get_contents( $legacy_cluster ) === $normalized_cluster,
         'Legacy and modular international cluster renderers must match except for the stylesheet version.' );
 }

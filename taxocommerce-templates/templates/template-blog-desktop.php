@@ -100,14 +100,14 @@ if (!function_exists('dht_blog_v2_product_image')) {
             : $wpdb->prefix . 'seo_media_usos';
 
         if (null === $usage_table_available) {
-            $usage_table_available = $wpdb->get_var(
+            $usage_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             ) === $usage_table;
         }
 
         if ($usage_table_available) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $usage_table comes from the internal Media table helper and is existence-checked immediately above.
-            $attachment_ids = $wpdb->get_col(
+            $attachment_ids = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
                      FROM %i
@@ -138,13 +138,13 @@ if (!function_exists('dht_blog_v2_product_image')) {
 
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_DB::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -211,6 +211,7 @@ if (!function_exists('dht_blog_v2_term_image')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
@@ -258,7 +259,7 @@ if (!function_exists('dht_blog_v2_post_image')) {
             }
         }
 
-        $related_term_ids = $wpdb->get_col(
+        $related_term_ids = TCT_DB::get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
                  FROM %i

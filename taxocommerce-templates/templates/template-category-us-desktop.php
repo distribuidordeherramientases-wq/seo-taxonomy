@@ -72,7 +72,7 @@ global $wpdb;
  * Excerpt canonico: el editor de categorias lo guarda en seo_nodes.
  * Se conserva el term meta solo como respaldo legacy.
  */
-$excerpt = (string) $wpdb->get_var(
+$excerpt = (string) TCT_DB::get_var(
     $wpdb->prepare(
         "SELECT keywords
          FROM {$wpdb->prefix}seo_nodes
@@ -90,7 +90,7 @@ if (trim(wp_strip_all_tags($excerpt)) === '') {
     $excerpt = (string) get_term_meta($term->term_id, 'seo_excerpt', true);
 }
 
-$keywords = (string) $wpdb->get_var(
+$keywords = (string) TCT_DB::get_var(
     $wpdb->prepare(
         "SELECT keywords
          FROM {$wpdb->prefix}seo_nodes
@@ -104,7 +104,7 @@ $keywords = (string) $wpdb->get_var(
     )
 );
 
-$category_description = (string) $wpdb->get_var(
+$category_description = (string) TCT_DB::get_var(
     $wpdb->prepare(
         "SELECT keywords
          FROM {$wpdb->prefix}seo_nodes
@@ -130,7 +130,7 @@ $category_description_plain = trim(wp_strip_all_tags($category_description));
  * publica en la categoria, no de contrato de datos.
  */
 $faq_table = $wpdb->prefix . 'seo_faq';
-$category_faqs = (array) $wpdb->get_results(
+$category_faqs = (array) TCT_DB::get_results(
     $wpdb->prepare(
         "SELECT id, question, answer
          FROM %i
@@ -597,6 +597,7 @@ $json = array(
             $related_categories = get_terms([
                 'taxonomy'   => 'product_cat',
                 'parent'     => (int) $term->parent,
+                // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Finite catalog query or taxonomy filter; retaining exact product/category selection.
                 'exclude'    => [(int) $term->term_id],
                 'hide_empty' => true,
                 'number'     => 6,
@@ -644,7 +645,7 @@ $json = array(
                             $related_image = dht_template_placeholder_image_url('woocommerce_thumbnail');
                         }
 
-                        $related_description_html = (string) $wpdb->get_var(
+                        $related_description_html = (string) TCT_DB::get_var(
                             $wpdb->prepare(
                                 "SELECT keywords
                                  FROM {$wpdb->prefix}seo_nodes

@@ -120,14 +120,14 @@ if (!function_exists('dht_landing_v6_product_image_mobile')) {
             : $wpdb->prefix . 'seo_media_usos';
 
         if (null === $usage_table_available) {
-            $usage_table_available = $wpdb->get_var(
+            $usage_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             ) === $usage_table;
         }
 
         if ($usage_table_available) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $usage_table comes from the internal Media table helper and is existence-checked immediately above.
-            $attachment_ids = $wpdb->get_col(
+            $attachment_ids = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
                      FROM %i
@@ -160,13 +160,13 @@ if (!function_exists('dht_landing_v6_product_image_mobile')) {
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
 
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_DB::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -236,6 +236,7 @@ if (!function_exists('dht_landing_v6_term_image_mobile')) {
             'ignore_sticky_posts' => true,
             'orderby' => 'date',
             'order' => 'DESC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
             'tax_query' => array(
                 array(
                     'taxonomy' => 'product_cat',
@@ -287,7 +288,7 @@ if (!function_exists('dht_landing_v6_hub_image_mobile')) {
             return $source;
         }
 
-        $term_ids = $wpdb->get_col(
+        $term_ids = TCT_DB::get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT target_id
                  FROM %i
@@ -344,7 +345,7 @@ if (!function_exists('dht_landing_v6_img_mobile')) {
  * Landing relations.
  * ========================================================== */
 
-$related_cat_ids = $wpdb->get_col(
+$related_cat_ids = TCT_DB::get_col(
     $wpdb->prepare(
         "SELECT DISTINCT r.target_id
          FROM %i r
@@ -404,8 +405,10 @@ if (function_exists('wc_get_product')) {
             'fields' => 'ids',
             'no_found_rows' => true,
             'ignore_sticky_posts' => true,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded frontend content query; role and language filters are required to retain existing results.
             'meta_key' => 'total_sales',
             'orderby' => array('meta_value_num' => 'DESC', 'date' => 'DESC'),
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
             'tax_query' => array(
                 array(
                     'taxonomy' => 'product_cat',

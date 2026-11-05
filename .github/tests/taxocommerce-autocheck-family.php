@@ -80,7 +80,12 @@ foreach ( $ui as $slug => $path ) {
         $errors[] = "$slug: fecha de ejecución ausente del JSON o de la interfaz";
     }
     // Each new timestamp is generated in the manually executed report; never on download.
-    if ( false === strpos( $code, "'executed_at' => gmdate( 'c' )" ) ) {
+    // Support a single UTC timestamp shared by both generated_at and executed_at.
+    // Do not force plugins to call gmdate twice just to satisfy a textual test.
+    $inline_utc = false !== strpos( $code, "'executed_at' => gmdate( 'c' )" );
+    $shared_utc = false !== strpos( $code, "$" . "generated_at = gmdate( 'c' )" )
+        && false !== strpos( $code, "'executed_at' => $" . "generated_at" );
+    if ( ! $inline_utc && ! $shared_utc ) {
         $errors[] = "$slug: no se registra la ejecución en UTC";
     }
     if ( false === strpos( $code, 'nonce' ) && false === strpos( $code, 'NONCE' ) ) {

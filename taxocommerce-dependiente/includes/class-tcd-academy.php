@@ -18,6 +18,8 @@ final class TCD_Academy {
     const LOCK='tcd_learning_tick_lock';
     const LOCK_TTL=300;
     const WATCHDOG='tcd_learning_watchdog_last';
+    const LAST_TICK='tcd_learning_last_tick';
+    const ADMIN_FALLBACK='tcd_learning_admin_fallback_last';
     const SCHEMA_OPTION='tcd_learning_schema_version';
     const SCHEMA_VERSION='3.0.0';
 
@@ -215,24 +217,38 @@ final class TCD_Academy {
      *
      * Existing sites and reactivations continue using the explicit Start button.
      */
+
+    /**
+     * Read only one published product, without altering the customer's catalog.
+     * Starting L1-L10 in an entirely empty shop cannot complete L2/L4/L9.
+     */
+    public static function has_published_catalog_products() {
+        if ( ! function_exists( 'post_type_exists' )
+            || ! post_type_exists( 'product' )
+            || ! function_exists( 'get_posts' ) ) {
+            return false;
+        }
+        $products = get_posts( array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'fields' => 'ids',
+            'posts_per_page' => 1,
+            'no_found_rows' => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+        ) );
+        return is_array( $products ) && ! empty( $products );
+    }
+
     public static function start_first_install_catalog() {
-        if ( ! function_exists( 'post_type_exists' ) || ! post_type_exists( 'product' ) ||
-            ! function_exists( 'get_posts' ) ) {
+        if ( ! self::has_published_catalog_products() ) {
             return false;
         }
         $state = self::state();
         if ( 'idle' !== (string) ( $state['status'] ?? '' ) || ! empty( $state['run_id'] ) ) {
             return false;
         }
-        // One bounded read: installation must never clone a developer catalogue.
-        $products = get_posts( array(
-            'post_type' => 'product', 'post_status' => 'publish', 'fields' => 'ids',
-            'posts_per_page' => 1, 'no_found_rows' => true,
-            'update_post_meta_cache' => false, 'update_post_term_cache' => false,
-        ) );
-        if ( ! is_array( $products ) || ! $products ) {
-            return false;
-        }
+        // The bounded read-only product check above is shared with manual start.
         // Refuse to start automatically if older knowledge/snapshots survive.
         // A missing state option is not proof that a database is new.
         global $wpdb;
@@ -280,6 +296,8 @@ final class TCD_Academy {
         $state=self::state();
         $result='';
 
+        // L1 learns categories even without products; later empty lessons
+        // are recorded as skipped rather than blocking the whole curriculum.
         if('thresholds'===$action){
             $values=isset($_POST['thresholds']) && is_array($_POST['thresholds'])
                 ? map_deep(wp_unslash($_POST['thresholds']),'sanitize_text_field')
@@ -485,6 +503,48 @@ final class TCD_Academy {
         ));
     }
 
+    /**
+     * Recover a missing background worker while an authorized administrator
+     * views the Academy. Core's optional supervisor is not required.
+     *
+     * At most four standard, owner-locked ticks per admin request and 2 seconds
+     * total; leave large catalogues and long quality tests to WP-Cron.
+     */
+    public static function admin_fallback_tick() {
+        if ( function_exists( 'seo_process_supervisor_nudge' ) ) return 0;
+        if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) return 0;
+        $state = self::state();
+        if ( 'running' !== (string) ( $state['status'] ?? '' )
+            || absint( $state['lesson'] ?? 0 ) > 10
+            || get_option( 'tcd_learning_stop', '' ) === (string) ( $state['run_id'] ?? '' ) ) return 0;
+
+        $now = time();
+        $last_tick = absint( get_option( self::LAST_TICK, 0 ) );
+        $last_fallback = absint( get_option( self::ADMIN_FALLBACK, 0 ) );
+        if ( ( $last_tick && $now - $last_tick < 12 )
+            || ( $last_fallback && $now - $last_fallback < 12 ) ) return 0;
+        update_option( self::ADMIN_FALLBACK, $now, false );
+
+        $started = microtime( true );
+        $ticks = 0;
+        while ( $ticks < 4 && microtime( true ) - $started < 2.0 ) {
+            $current = self::state();
+            if ( 'running' !== (string) ( $current['status'] ?? '' )
+                || absint( $current['lesson'] ?? 0 ) > 10
+                || get_option( 'tcd_learning_stop', '' ) === (string) ( $current['run_id'] ?? '' ) ) break;
+            // A concurrent worker owns its lock; do not spin on its queue.
+            $lock = (string) get_option( self::LOCK, '' );
+            $lock_started = absint( explode( ':', $lock, 2 )[0] );
+            if ( $lock && $lock_started && time() - $lock_started < self::LOCK_TTL ) break;
+            self::tick();
+            ++$ticks;
+        }
+        if ( $ticks ) self::trace( 'INFO', 'admin_fallback_progress', array(
+            'ticks' => $ticks, 'lesson' => absint( self::state()['lesson'] ?? 0 ),
+        ) );
+        return $ticks;
+    }
+
     private static function queue($delay=null){
         if('running'!==self::state()['status'])return;
         $delay=null===$delay ? TCD_Load::delay() : max(1,absint($delay));
@@ -584,6 +644,7 @@ final class TCD_Academy {
             }
         }
         self::trace('DEBUG','lock_acquired');
+        update_option( self::LAST_TICK, time(), false );
         try{
             self::run_one($state);
         }finally{
@@ -758,6 +819,43 @@ final class TCD_Academy {
         return $id;
     }
 
+    /** A genuine empty source is not a failed exam or a passed lesson. */
+    private static function skip_empty_lesson( $state, $snapshot_id ) {
+        global $wpdb;
+        $lesson = absint( $state['lesson'] ?? 0 );
+        $snapshot_id = absint( $snapshot_id );
+        $when = current_time( 'mysql' );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Store the authoritative per-run snapshot status immediately; do not cache mutable audit records.
+        if ( false === $wpdb->update( self::snapshots_table(), array(
+            'status' => 'skipped_empty',
+            'source_count' => 0,
+            'source_signature' => hash( 'sha256', '' ),
+            'sealed_at' => $when,
+            'completed_at' => $when,
+        ), array( 'id' => $snapshot_id ) ) ) {
+            self::trace_db_error( 'snapshot_skip_empty', self::snapshots_table() );
+            throw new RuntimeException( 'No se pudo registrar la omisión de la lección vacía.' );
+        }
+        $next = $lesson + 1;
+        $next_label = $next <= 10 ? 'L' . $next : 'M11';
+        self::save( array(
+            'lesson' => $next,
+            'phase' => $next <= 10 ? 'snapshot' : 'interpreter',
+            'snapshot_id' => 0,
+            'snapshot_cursor' => 0,
+            'learning_cursor' => 0,
+            'identity_backfill_done' => 0,
+            'identity_backfill_total' => 0,
+            'last_error' => '',
+            'last_message' => sprintf( 'L%d · sin material; omitida, sin evaluación ni aprendizaje ficticio. Preparando %s.', $lesson, $next_label ),
+        ) );
+        self::log( 'lesson_skipped_empty', array(
+            'lesson' => $lesson, 'snapshot_id' => $snapshot_id, 'next_lesson' => $next,
+        ) );
+        self::queue( 1 );
+        return 0;
+    }
+
     private static function build_snapshot($state){
         global $wpdb;
         $lesson=absint($state['lesson']);
@@ -822,7 +920,11 @@ final class TCD_Academy {
         $items=self::items_table();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $count=absint($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE snapshot_id=%d",$items, $snapshot_id)));
-        if($count<1)throw new RuntimeException( esc_html( 'L'.$lesson.' no ha encontrado material formativo; no se inicia el aprendizaje.') );
+        if ( $wpdb->last_error ) {
+            self::trace_db_error( 'snapshot_count', $items );
+            throw new RuntimeException( 'Error de base de datos al contabilizar la foto fija.' );
+        }
+        if ( 0 === $count ) return self::skip_empty_lesson( $state, $snapshot_id );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy updates or inspects mutable plugin-owned lesson/snapshot tables; direct $wpdb is required and live state must not be cached.
         $signatures=$wpdb->get_col($wpdb->prepare("SELECT signature FROM %i WHERE snapshot_id=%d ORDER BY sequence_no ASC,id ASC",$items, $snapshot_id));
         $signature=hash('sha256',implode('|',array_map('strval',(array)$signatures)));

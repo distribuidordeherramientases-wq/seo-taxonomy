@@ -109,7 +109,7 @@ if (!function_exists('dht_post_v12_product_image')) {
             : $wpdb->prefix . 'seo_media_usos';
 
         if (null === $usage_table_available) {
-            $usage_table_available = $wpdb->get_var(
+            $usage_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             ) === $usage_table;
         }
@@ -135,7 +135,7 @@ if (!function_exists('dht_post_v12_product_image')) {
                 $product_id
             );
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $attachment_sql es el resultado de $wpdb->prepare().
-            $attachment_ids = $wpdb->get_col($attachment_sql);
+            $attachment_ids = TCT_DB::get_col($attachment_sql);
 
             foreach ((array) $attachment_ids as $attachment_id) {
                 $source = dht_post_v12_local_image($attachment_id, $size, true);
@@ -149,13 +149,13 @@ if (!function_exists('dht_post_v12_product_image')) {
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
 
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_DB::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -230,6 +230,7 @@ if (!function_exists('dht_post_v12_term_image')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Explicit product taxonomy filter is bounded by the storefront query's result limit.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
@@ -348,7 +349,7 @@ while (have_posts()) :
        Fuente única: wp_seo_relations / post_to_category.
     ========================================================== */
 
-    $related_category_ids = $wpdb->get_col(
+    $related_category_ids = TCT_DB::get_col(
         $wpdb->prepare(
             "SELECT DISTINCT r.target_id
              FROM %i r
@@ -406,7 +407,7 @@ while (have_posts()) :
     $category_descriptions = array();
 
     foreach ($related_product_cats as $product_cat) {
-        $description_html = (string) $wpdb->get_var(
+        $description_html = (string) TCT_DB::get_var(
             $wpdb->prepare(
                 "SELECT keywords
                  FROM %i
@@ -455,7 +456,7 @@ while (have_posts()) :
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Lista de marcadores %d generada localmente; tablas %i e IDs enlazados mediante $wpdb->prepare().
         $prepared_sql = $wpdb->prepare($sql, ...$params);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $prepared_sql es el resultado de $wpdb->prepare().
-        $related_post_ids = $wpdb->get_col($prepared_sql);
+        $related_post_ids = TCT_DB::get_col($prepared_sql);
         $related_post_ids = array_values(array_unique(array_filter(array_map('absint', (array) $related_post_ids))));
     }
 

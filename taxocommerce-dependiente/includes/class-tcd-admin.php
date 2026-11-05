@@ -277,6 +277,9 @@ final class TCD_Admin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- La pestaña GET solo selecciona una vista de lectura, con una lista blanca.
         $tab=isset($_GET['tab']) ? sanitize_key(wp_unslash((string)$_GET['tab'])) : 'overview';
         if(!in_array($tab,array('overview','knowledge','backup','learning-log','auto-test','user-guide'),true))$tab='overview';
+        // With no external process supervisor, an authorized view can advance
+        // a handful of owner-locked Academy ticks when WP-Cron stalls.
+        if ( 'overview' === $tab ) TCD_Academy::admin_fallback_tick();
 
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Dependiente', 'taxocommerce-dependiente' ) . '</h1>';
         self::tabs($tab);
@@ -403,12 +406,14 @@ final class TCD_Admin {
         // La tabla L1-L10 ya muestra el progreso dinámico de la lección activa.
         // Evitamos duplicar aquí una segunda barra; mantenemos solo la
         // autoactualización para que la fila inferior avance en tiempo real.
-        if(
-            'quality'===(string)($state['phase']??'')
-            && ($quality_progress || $identity_backfill_active)
-            && 'running'===(string)($state['status']??'')
-        ){
-            echo '<script>window.setTimeout(function(){window.location.reload();},4000);</script>';
+        if ( 'running' === (string) ( $state['status'] ?? '' ) ) {
+            // The overview must update during snapshot and learning too.
+            // Avoid reloading hidden tabs or while an administrator edits a form.
+            $refresh_ms = (
+                'quality' === (string) ( $state['phase'] ?? '' )
+                && ( $quality_progress || $identity_backfill_active )
+            ) ? 4000 : 20000;
+            echo '<script>window.setTimeout(function(){if(document.visibilityState==="hidden")return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;window.location.reload();},'.absint($refresh_ms).');</script>';
         }
 
         if(!empty($state['last_error']))echo '<div class="notice notice-error inline"><p>'.esc_html((string)$state['last_error']).'</p></div>';
@@ -447,6 +452,11 @@ final class TCD_Admin {
                 $progress_total=absint($quality_progress['total']??0);
                 $progress_text='casos evaluados del examen de calidad';
                 $status='reevaluando';
+            }elseif('skipped_empty'===$status){
+                $progress_value=0;
+                $progress_total=0;
+                $status=__( 'Sin material', 'taxocommerce-dependiente' );
+                $progress_text=__( 'Lección omitida; no evaluada', 'taxocommerce-dependiente' );
             }elseif($building || !$sources){
                 $progress_value=$is_current?absint($state['snapshot_cursor']??0):0;
                 $progress_total=$planned;

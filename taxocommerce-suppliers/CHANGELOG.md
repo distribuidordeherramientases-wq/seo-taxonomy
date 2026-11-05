@@ -1,3 +1,10 @@
+### Plugin Check 2.1.0: corrección de i18n (Issues #2219 y #2223)
+
+- Corregidos los cuatro errores de comentarios para traductores en los textos con marcadores de formato.
+- Eliminadas de gettext las 24 etiquetas formadas exclusivamente por identificadores técnicos con `<code>`, sin cambiar su presentación ni traducciones del contenido funcional.
+- Internacionalizados los resultados del Autocheck; se preserva una sola cabecera de resumen y los contratos de JSON, importación y plantillas.
+- Añadida regresión para impedir que se vuelvan a traducir identificadores de código sin texto.
+
 ## [0.2.9] — 2026-11-05 — Internacionalización completa ES/EN/FR/DE (#2219)
 
 - Manual de usuario y técnico traducido en los cuatro idiomas: 49 párrafos, 121 celdas, 19 cabeceras, 5 elementos de lista y 19 enlaces de navegación.

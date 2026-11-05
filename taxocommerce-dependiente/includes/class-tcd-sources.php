@@ -438,7 +438,10 @@ final class TCD_Sources {
         global $wpdb;
         $table = $wpdb->prefix . 'seo_faq';
         if ( ! self::table_exists( $table ) ) {
-            return new WP_Error( 'tcd_faq_plugin_missing', 'TaxoCommerce FAQs no está disponible: falta la tabla seo_faq.' );
+            if ( $wpdb->last_error ) return new WP_Error( 'tcd_faq_source_query', sanitize_text_field( (string) $wpdb->last_error ) );
+            // FAQs is optional. No installed table means no training material,
+            // not an error: build_snapshot will audit the skipped lesson.
+            return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
         }
 
         // Optional legacy/modern FAQ fields vary. The batch size is bounded
@@ -462,6 +465,9 @@ final class TCD_Sources {
         if ( 0 === $cursor && ! $rows ) {
             $diagnosis = self::faq_diagnostics();
             $message = (string) $diagnosis['message'];
+            if ( in_array( (string) $diagnosis['status'], array( 'empty_table', 'no_active_rows' ), true ) ) {
+                return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
+            }
             if ( 'ready' === $diagnosis['status'] ) {
                 $message .= ' Sin embargo, el lote de lectura devuelve 0 filas. Verifica la versión del plugin y el acceso SQL; no se considera una lección vacía.';
             }
@@ -506,9 +512,15 @@ final class TCD_Sources {
         global $wpdb;
         $voc = $wpdb->prefix . 'seo_vocabulary';
         $rel = $wpdb->prefix . 'seo_object_vocabulary';
-        if ( ! self::table_exists( $voc ) || ! self::table_exists( $rel ) ) {
-            return new WP_Error( 'tcd_vocabulary_missing', 'Vocabulary no está disponible para L3.' );
+        $voc_exists = self::table_exists( $voc );
+        if ( $wpdb->last_error ) return new WP_Error( 'tcd_vocabulary_query', sanitize_text_field( (string) $wpdb->last_error ) );
+        if ( ! $voc_exists ) {
+            return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
         }
+        $rel_exists = self::table_exists( $rel );
+        if ( $wpdb->last_error ) return new WP_Error( 'tcd_vocabulary_query', sanitize_text_field( (string) $wpdb->last_error ) );
+        // Vocabulary terms remain useful even if the optional object mapping
+        // table has not yet been installed on a new site.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT id,semantic_group,slug,label FROM %i
@@ -516,16 +528,26 @@ final class TCD_Sources {
              ORDER BY id ASC LIMIT %d OFFSET %d",
             $voc, $limit + 1, $cursor
         ), ARRAY_A );
-        $more = count( (array) $rows ) > $limit;
-        $rows = array_slice( (array) $rows, 0, $limit );
+        if ( $wpdb->last_error || ! is_array( $rows ) ) {
+            return new WP_Error( 'tcd_vocabulary_query', 'Error de lectura de Vocabulary: ' . sanitize_text_field( (string) $wpdb->last_error ) );
+        }
+        $more = count( $rows ) > $limit;
+        $rows = array_slice( $rows, 0, $limit );
         $items = array();
         foreach ( $rows as $row ) {
             $id=absint($row['id']??0); if(!$id)continue;
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
-            $product_ids=$wpdb->get_col($wpdb->prepare(
-                "SELECT object_id FROM %i WHERE object_type='product' AND vocabulary_id=%d AND status=1 ORDER BY object_id ASC LIMIT 200",
-                $rel, $id
-            ));
+            $product_ids = array();
+            if ( $rel_exists ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read live optional vocabulary links while building an immutable lesson snapshot.
+                $product_ids = $wpdb->get_col( $wpdb->prepare(
+                    "SELECT object_id FROM %i WHERE object_type='product' AND vocabulary_id=%d AND status=1 ORDER BY object_id ASC LIMIT 200",
+                    $rel, $id
+                ) );
+                if ( $wpdb->last_error || ! is_array( $product_ids ) ) {
+                    return new WP_Error( 'tcd_vocabulary_query', 'Error al consultar las relaciones de Vocabulary: ' . sanitize_text_field( (string) $wpdb->last_error ) );
+                }
+            }
             $facts=array(
                 'group'=>sanitize_key((string)$row['semantic_group']),
                 'slug'=>sanitize_title((string)$row['slug']),
@@ -541,8 +563,12 @@ final class TCD_Sources {
         global $wpdb;
         $voc=$wpdb->prefix.'seo_vocabulary';
         $rel=$wpdb->prefix.'seo_object_vocabulary';
-        if(!self::table_exists($voc)||!self::table_exists($rel)){
-            return new WP_Error('tcd_cross_missing','Vocabulary no está disponible para L7.');
+        $voc_exists = self::table_exists( $voc );
+        if ( $wpdb->last_error ) return new WP_Error( 'tcd_cross_query', sanitize_text_field( (string) $wpdb->last_error ) );
+        $rel_exists = self::table_exists( $rel );
+        if ( $wpdb->last_error ) return new WP_Error( 'tcd_cross_query', sanitize_text_field( (string) $wpdb->last_error ) );
+        if ( ! $voc_exists || ! $rel_exists ) {
+            return array( 'items'=>array(), 'cursor'=>$cursor, 'more'=>false );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Academy source batches read live plugin-owned data with prepared queries; caching would conceal new lesson records.
         $rows=$wpdb->get_results($wpdb->prepare(
@@ -556,8 +582,11 @@ final class TCD_Sources {
              ORDER BY v.id ASC LIMIT %d OFFSET %d",
             $voc, $rel, $limit + 1,$cursor
         ),ARRAY_A);
-        $more=count((array)$rows)>$limit;
-        $rows=array_slice((array)$rows,0,$limit);
+        if ( $wpdb->last_error || ! is_array( $rows ) ) {
+            return new WP_Error( 'tcd_cross_query', 'Error de lectura de relaciones Vocabulary: ' . sanitize_text_field( (string) $wpdb->last_error ) );
+        }
+        $more=count($rows)>$limit;
+        $rows=array_slice($rows,0,$limit);
         $items=array();
         foreach($rows as $row){
             $items[]=self::item(7,'cross',absint($row['id']),(string)$row['label'],'',array(

@@ -123,14 +123,14 @@ final class TCT_Template_Editor {
 
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $id = $wpdb->get_var($wpdb->prepare(
+        $id = TCT_DB::get_var($wpdb->prepare(
             "SELECT id FROM %i WHERE template_key=%s LIMIT 1",
             $table, $request_key
         ));
         $now = current_time('mysql');
 
         if ($id) {
-            $saved = $wpdb->update(
+            $saved = TCT_DB::update(
                 $table,
                 array(
                     'template_file' => $filename,
@@ -143,7 +143,7 @@ final class TCT_Template_Editor {
             $group = (string)$definitions[$request_key][1];
             $type = (0 === strpos($group, 'WooCommerce - correos')) ? 'email' :
                 ((0 === strpos($group, 'WooCommerce')) ? 'woocommerce' : 'system');
-            $saved = $wpdb->insert(
+            $saved = TCT_DB::insert(
                 $table,
                 array(
                     'template_key'     => $request_key,

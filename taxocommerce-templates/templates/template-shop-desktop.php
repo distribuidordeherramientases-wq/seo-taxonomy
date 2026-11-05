@@ -162,14 +162,14 @@ if (!function_exists('dht_shop_get_media_candidates')) {
         $tables_key = $usage_table . '|' . $images_table;
 
         if (!array_key_exists($tables_key, $tables_available)) {
-            $usage_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
-            $images_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
+            $usage_exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
+            $images_exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
             $tables_available[$tables_key] = ($usage_exists === $usage_table && $images_exists === $images_table);
         }
 
         if ($tables_available[$tables_key]) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and both tables are existence-checked above.
-            $rows = $wpdb->get_results(
+            $rows = TCT_DB::get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
                      FROM %i u
@@ -221,13 +221,13 @@ if (!function_exists('dht_shop_get_supplier_candidates')) {
         static $table_exists = null;
 
         if (null === $table_exists) {
-            $table_exists = $wpdb->get_var(
+            $table_exists = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($table_exists) {
-            $urls = $wpdb->get_col(
+            $urls = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -418,6 +418,7 @@ $root_categories = get_terms(array(
     'taxonomy'   => 'product_cat',
     'hide_empty' => true,
     'parent'     => 0,
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Finite catalog query uses essential category or metadata selection without unbounded pagination.
     'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
     'number'     => 12,
     'orderby'    => 'count',

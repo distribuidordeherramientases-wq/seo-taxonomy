@@ -155,7 +155,7 @@ $landing_categories = array();
 if ($is_landing) {
     global $wpdb;
     $table = $wpdb->prefix . 'seo_relations';
-    $linked_ids = $wpdb->get_col($wpdb->prepare(
+    $linked_ids = TCT_DB::get_col($wpdb->prepare(
         "SELECT target_id FROM %i
           WHERE source_type = 'landing' AND source_id = %d
           AND target_type = 'product_cat' AND relation_type = 'landing_to_category'
@@ -205,14 +205,14 @@ $hero_image = '';
 if ($is_category) {
     global $wpdb;
     $seo_table = $wpdb->prefix . 'seo_nodes';
-    $category_excerpt = (string) $wpdb->get_var($wpdb->prepare(
+    $category_excerpt = (string) TCT_DB::get_var($wpdb->prepare(
         "SELECT keywords FROM %i WHERE object_type = 'category' AND object_id = %d AND seo_role = 'excerpt' AND status = 1 ORDER BY updated_at DESC, id DESC LIMIT 1", $seo_table,
         (int) $term->term_id
     ));
     if (trim(wp_strip_all_tags($category_excerpt)) === '') {
         $category_excerpt = (string) get_term_meta($term->term_id, 'seo_excerpt', true);
     }
-    $category_description = (string) $wpdb->get_var($wpdb->prepare(
+    $category_description = (string) TCT_DB::get_var($wpdb->prepare(
         "SELECT keywords FROM %i WHERE object_type = 'category' AND object_id = %d AND seo_role = 'description' AND status = 1 ORDER BY updated_at DESC, id DESC LIMIT 1", $seo_table,
         (int) $term->term_id
     ));
@@ -229,6 +229,7 @@ if ($is_category) {
     $query = new WP_Query(array(
         'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 24,
         'paged' => $paged, 'no_found_rows' => false, 'fields' => 'ids',
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
         'tax_query' => array(array(
             'taxonomy' => 'product_cat', 'field' => 'term_id',
             'terms' => array((int) $term->term_id), 'include_children' => true,
@@ -265,6 +266,7 @@ if ($is_category) {
         $featured_query = new WP_Query(array(
             'post_type' => 'product', 'post_status' => 'publish',
             'posts_per_page' => 24, 'no_found_rows' => true, 'fields' => 'ids',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
             'tax_query' => array(array(
                 'taxonomy' => 'product_cat', 'field' => 'term_id',
                 'terms' => $category_ids, 'include_children' => true,

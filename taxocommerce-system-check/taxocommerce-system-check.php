@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.15
+ * Version: 0.2.17
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.15' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.17' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -26,14 +26,15 @@ define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
  * global; loading the original modules twice would cause PHP fatal errors.
  */
 function taxocommerce_system_check_boot() {
-    $legacy_active = defined( 'SEO_SYSTEM_FILE' )
-        && wp_normalize_path( (string) SEO_SYSTEM_FILE ) !== wp_normalize_path( TAXOCOMMERCE_SYSTEM_CHECK_FILE );
+    $legacy_active = (
+        defined( 'SEO_SYSTEM_FILE' )
+        && wp_normalize_path( (string) SEO_SYSTEM_FILE ) !== wp_normalize_path( TAXOCOMMERCE_SYSTEM_CHECK_FILE )
+    ) || function_exists( 'seo_server_status' );
 
-    // The installed legacy plugin owns SEO_SYSTEM_* constants, even when
-    // temporarily inactive (for example during WordPress activation sandbox).
-    // Never claim its global namespace from this independent extension.
-    $legacy_installed = is_readable( WP_PLUGIN_DIR . '/seo-taxonomy/seo-taxonomy.php' );
-    if ( ! $legacy_active && ! $legacy_installed ) {
+    // The legacy plugin's presence on disk does not mean it is active.
+    // Load our bundled engine when the old plugin is installed but inactive;
+    // only an already-loaded runtime can own the historical seo_* namespace.
+    if ( ! $legacy_active ) {
         if ( ! defined( 'SEO_SYSTEM_FILE' ) ) {
             define( 'SEO_SYSTEM_FILE', TAXOCOMMERCE_SYSTEM_CHECK_FILE );
         }
@@ -63,6 +64,17 @@ function taxocommerce_system_check_boot() {
             if ( is_readable( $path ) ) {
                 require_once $path;
             }
+        }
+    }
+
+    // The active SEO monolith may register its global constants and its
+    // validation/reporting modules without loading the Server Status module.
+    // Restore only the missing server engine from this plugin; loading the
+    // other modules again here would redeclare their global seo_* functions.
+    if ( $legacy_active && ! function_exists( 'seo_server_status' ) ) {
+        $server_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/system-check/seo-system-server-status.php';
+        if ( is_readable( $server_module ) ) {
+            require_once $server_module;
         }
     }
 
@@ -236,10 +248,8 @@ function taxocommerce_system_check_home() {
     }
     $tab = taxocommerce_system_check_active_tab();
     echo '<div class="wrap tcc-family-screen">';
-    echo '<header class="tcc-page-header"><span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-shield-alt"></span></span>';
-    echo '<div class="tcc-page-header__content"><p class="tcc-page-header__eyebrow">' . esc_html__( 'Familia TaxoCommerce', 'taxocommerce-system-check' ) . '</p>';
-    echo '<h1>' . esc_html__( 'TaxoCommerce System Check', 'taxocommerce-system-check' ) . '</h1>';
-    echo '<p>' . esc_html__( 'Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde una única interfaz.', 'taxocommerce-system-check' ) . '</p></div></header>';
+    // The shared family hero is rendered once by includes/admin-branding.php
+    // on admin_notices. Do not print another page banner inside this screen.
     taxocommerce_system_check_render_tabs( $tab );
     // Each tab downloads its stored results. No scan is started here.
     $exports = array(

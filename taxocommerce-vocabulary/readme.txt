@@ -4,7 +4,7 @@ Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.8
+Stable tag: 0.3.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,8 @@ Canonical semantic vocabulary, product characteristics and assisted classificati
 TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
 
 * Uses canonical existing vocabulary, role-mapping and technical attribute storage on migrating installations.
-* Provides a classifier with proposals based on product data; classification is not applied automatically.
+* Provides a classifier with proposals based on product titles, descriptions, WooCommerce tags, brands, categories, SKU and optional supplier metadata; classification is not applied automatically.
+* Recovers controlled term aliases and technical unit extraction from the original classifier, with reviewable source evidence, without a monolith dependency.
 * Supports CSV management of semantic and attribute masters and portable JSON import/export of assignments.
 * Mandatory import simulation and MERGE/MIRROR modes make bulk updates reviewable.
 * Numeric source IDs are audit-only: portable references are resolved against the target site's real objects.
@@ -30,6 +31,10 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 4. Simulate JSON imports, review unresolved objects and then approve intentional changes.
 
 == Changelog ==
+
+= 0.3.9 =
+* Restore independent semantic extraction from product content, tags, brand and SKU, including technical units and controlled aliases. Preserve reviewable proposals and JSON; no automatic product changes.
+
 
 = 0.3.8 =
 * Nombre uniforme «Autocheck» y exportación JSON autenticada de los resultados con detalle por prueba.

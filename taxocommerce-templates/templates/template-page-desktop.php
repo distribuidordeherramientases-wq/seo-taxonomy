@@ -126,10 +126,10 @@ if (!function_exists('dht_page_product_image_source')) {
             : $wpdb->prefix . 'seo_media_imagenes';
 
         if (null === $media_tables_available) {
-            $usage_exists = $wpdb->get_var(
+            $usage_exists = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             );
-            $images_exists = $wpdb->get_var(
+            $images_exists = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table))
             );
             $media_tables_available = ($usage_exists === $usage_table && $images_exists === $images_table);
@@ -137,7 +137,7 @@ if (!function_exists('dht_page_product_image_source')) {
 
         if ($media_tables_available) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and are existence-checked immediately above.
-            $attachment_ids = $wpdb->get_col(
+            $attachment_ids = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT u.attachment_id
                      FROM %i u
@@ -170,13 +170,13 @@ if (!function_exists('dht_page_product_image_source')) {
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
 
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_DB::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -251,6 +251,7 @@ if (!function_exists('dht_page_term_image_source')) {
             'ignore_sticky_posts' => true,
             'orderby'             => 'date',
             'order'               => 'DESC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
             'tax_query'           => array(
                 array(
                     'taxonomy'         => 'product_cat',
@@ -369,11 +370,13 @@ if (!function_exists('dht_page_related_products_by_category')) {
                 'fields'              => 'ids',
                 'no_found_rows'       => true,
                 'ignore_sticky_posts' => true,
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Bounded frontend content query; role and language filters are required to retain existing results.
                 'meta_key'            => 'total_sales',
                 'orderby'             => array(
                     'meta_value_num' => 'DESC',
                     'date'           => 'DESC',
                 ),
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded frontend content query; role and language filters are required to retain existing results.
                 'tax_query'           => array(
                     array(
                         'taxonomy'         => 'product_cat',
@@ -442,7 +445,7 @@ while (have_posts()) :
     $nodes_table = $wpdb->prefix . 'seo_nodes';
     $relations_table = $wpdb->prefix . 'seo_relations';
 
-    $seo_role = (string) $wpdb->get_var(
+    $seo_role = (string) TCT_DB::get_var(
         $wpdb->prepare(
             "SELECT seo_role
              FROM %i
@@ -468,7 +471,7 @@ while (have_posts()) :
     $related_term_ids = array();
 
     if ($is_landing) {
-        $related_term_ids = $wpdb->get_col(
+        $related_term_ids = TCT_DB::get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT r.target_id
                  FROM %i r

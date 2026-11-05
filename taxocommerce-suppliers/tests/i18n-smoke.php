@@ -98,4 +98,12 @@ foreach ( $locales as $locale ) {
         tcsup_i18n_fail( 'English translation for manual heading is wrong' );
     }
 }
+
+// WordPress Plugin Check: only prose belongs in gettext catalogs.
+if ( preg_match( '/__\\s*\\(\\s*\x27<code>[^<]+<\\/code>(?:[, ]+<code>[^<]+<\\/code>)*\x27\\s*,/', $manual ) ) {
+    tcsup_i18n_fail( 'technical code-only identifiers must not be translated' );
+}
+if ( 1 !== substr_count( file_get_contents( $base . '/includes/class-tcsup-autotest.php' ), "echo '<h3>' . esc_html__( 'Resumen'" ) ) {
+    tcsup_i18n_fail( 'Autocheck must render the summary once' );
+}
 echo "Suppliers i18n smoke passed: four complete catalogs, native gettext and manual UI\n";
