@@ -83,7 +83,7 @@ $gallery_ids      = array_values(array_unique(array_filter(
 global $wpdb;
 
 $faq_table = $wpdb->prefix . 'seo_faq';
-$product_faqs = (array) $wpdb->get_results(
+$product_faqs = (array) TCT_DB::get_results(
     $wpdb->prepare(
         "SELECT id, question, answer
          FROM %i
@@ -112,13 +112,13 @@ $external_images = [];
  */
 $supplier_images_table = $wpdb->prefix . 'seo_supplier_images';
 
-$supplier_images_exists = $wpdb->get_var(
+$supplier_images_exists = TCT_DB::get_var(
     $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_images_table))
 ) === $supplier_images_table;
 
 if ($supplier_images_exists) {
     // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $supplier_images_table is an internal prefixed table and is existence-checked above.
-    $external_rows = $wpdb->get_results(
+    $external_rows = TCT_DB::get_results(
         $wpdb->prepare(
             "SELECT
                 id,

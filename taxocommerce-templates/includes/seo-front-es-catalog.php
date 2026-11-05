@@ -31,7 +31,7 @@ function seo_front_es_international_category_ids() {
         'product_cat'
     );
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The SQL above has already been prepared.
-    $rows = $wpdb->get_results( $sql, ARRAY_A );
+    $rows = TCT_DB::get_results( $sql, ARRAY_A );
     if ( ! is_array( $rows ) ) {
         return $excluded;
     }
@@ -136,6 +136,7 @@ add_filter( 'get_terms_args', static function ( $args, $taxonomies ) {
     }
     $excluded = seo_front_es_international_category_ids();
     if ( $excluded ) {
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
         $args['exclude'] = array_values( array_unique( array_merge(
             array_map( 'absint', (array) ( $args['exclude'] ?? array() ) ),
             $excluded
@@ -167,6 +168,7 @@ function seo_front_es_scope_product_query_args( $args ) {
             array( 'key' => $key, 'value' => $es_values, 'compare' => 'IN' ),
         );
     }
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
     $args['meta_query'] = $meta_query;
 
     $excluded = seo_front_es_international_category_ids();
@@ -184,6 +186,7 @@ function seo_front_es_scope_product_query_args( $args ) {
             'include_children' => false,
             'operator'         => 'NOT IN',
         );
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
         $args['tax_query'] = $tax_query;
     }
 
@@ -253,13 +256,13 @@ function seo_front_es_product_is_visible( $product ) {
     $table = $wpdb->prefix . 'seo_proveedores_productos';
     static $has_supplier_table = null;
     if ( null === $has_supplier_table ) {
-        $has_supplier_table = $table === $wpdb->get_var(
+        $has_supplier_table = $table === TCT_DB::get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) )
         );
     }
     if ( $has_supplier_table ) {
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A trusted WordPress-prefixed table, with all values bound.
-        $is_foreign = $wpdb->get_var( $wpdb->prepare(
+        $is_foreign = TCT_DB::get_var( $wpdb->prepare(
             "SELECT id FROM %i
              WHERE object_id = %d AND proveedor = %s
              AND pais_origen NOT IN (%s,%s) LIMIT 1",
@@ -303,7 +306,9 @@ add_action( 'pre_get_posts', static function ( $query ) {
     }
 
     $scoped = seo_front_es_scope_product_query_args( array(
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
         'meta_query' => $query->get( 'meta_query' ),
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Scoped category/product query with finite results; preserves essential taxonomy and metadata filtering.
         'tax_query'  => $query->get( 'tax_query' ),
     ) );
     $query->set( 'meta_query', $scoped['meta_query'] );
@@ -354,7 +359,7 @@ add_filter( 'posts_where', static function ( $where, $query ) {
     static $supplier_table_present = null;
     if ( null === $supplier_table_present ) {
         $supplier_table = $wpdb->prefix . 'seo_proveedores_productos';
-        $supplier_table_present = $supplier_table === $wpdb->get_var(
+        $supplier_table_present = $supplier_table === TCT_DB::get_var(
             $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $supplier_table ) )
         );
     }

@@ -1,5 +1,8 @@
 TAXOCOMMERCE TEMPLATES — CHANGELOG DEL PLUGIN INDEPENDIENTE
 
+## [0.4.17] — 2026-11-05
+* Centralización de lecturas SQL propias con caché por petición e invalidación tras escrituras; revisión de avisos WPC y prueba de regresión (#2189). Pendiente validación WPC/UAT y bloqueo editor PHP privado para WordPress.org.
+
 ## [0.4.16] — 2026-11-05
 * Traducciones nativas EN/ES de Templates, encabezados, pestañas, políticas y enrutamiento; sin modificar el estado de políticas.
 

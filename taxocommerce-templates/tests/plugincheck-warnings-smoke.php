@@ -108,10 +108,12 @@ foreach ( $prepared_templates as $template => $minimum ) {
 
 $plugin = file_get_contents( $root . '/taxocommerce-templates.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
-if ( false === strpos( $plugin, 'Version: 0.4.16' ) ||
-    false === strpos( $plugin, "define('TCT_VERSION','0.4.16');" ) ||
-    false === strpos( $readme, 'Stable tag: 0.4.16' ) ) {
+if ( false === strpos( $plugin, 'Version: 0.4.17' ) ||
+    false === strpos( $plugin, "define('TCT_VERSION','0.4.17');" ) ||
+    false === strpos( $readme, 'Stable tag: 0.4.17' ) ) {
     fwrite( STDERR, "FAIL inconsistent Templates version\n" );
     exit( 1 );
 }
 echo "PASS: Templates Plugin Check first-batch SQL, admin input and version regression\n";
+
+require_once __DIR__ . '/tct-db-cache-smoke.php';

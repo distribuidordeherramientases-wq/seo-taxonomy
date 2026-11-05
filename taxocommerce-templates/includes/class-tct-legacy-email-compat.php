@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
 final class TCT_Legacy_Email_Compat {
     public static function table_exists($table) {
         global $wpdb;
-        return $table === $wpdb->get_var($wpdb->prepare(
+        return $table === TCT_DB::get_var($wpdb->prepare(
             'SHOW TABLES LIKE %s', $wpdb->esc_like($table)
         ));
     }
@@ -27,7 +27,7 @@ final class TCT_Legacy_Email_Compat {
             return array();
         }
 
-        $rows = (array)$wpdb->get_results(
+        $rows = (array)TCT_DB::get_results(
             $wpdb->prepare("SELECT mail.mail_key, tpl.template_file
              FROM %i AS mail
              INNER JOIN %i AS tpl

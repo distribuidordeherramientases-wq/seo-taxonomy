@@ -87,14 +87,14 @@ if (!function_exists('dht_solutions_v2_product_image_mobile')) {
             : $wpdb->prefix . 'seo_media_usos';
 
         if (null === $usage_table_available) {
-            $usage_table_available = $wpdb->get_var(
+            $usage_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table))
             ) === $usage_table;
         }
 
         if ($usage_table_available) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $usage_table comes from the internal Media table helper and is existence-checked immediately above.
-            $attachment_ids = $wpdb->get_col(
+            $attachment_ids = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT attachment_id
                      FROM %i
@@ -124,13 +124,13 @@ if (!function_exists('dht_solutions_v2_product_image_mobile')) {
 
         $supplier_table = $wpdb->prefix . 'seo_supplier_images';
         if (null === $supplier_table_available) {
-            $supplier_table_available = $wpdb->get_var(
+            $supplier_table_available = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         if ($supplier_table_available) {
-            $supplier_url = $wpdb->get_var(
+            $supplier_url = TCT_DB::get_var(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -172,7 +172,7 @@ if (!function_exists('dht_solutions_v2_related_terms_mobile')) {
             return $cache[$landing_id];
         }
 
-        $term_ids = $wpdb->get_col(
+        $term_ids = TCT_DB::get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT r.target_id
                  FROM %i r
@@ -226,6 +226,7 @@ if (!function_exists('dht_solutions_v2_term_image_mobile')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Finite catalog query uses essential category or metadata selection without unbounded pagination.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
@@ -351,7 +352,7 @@ $paged       = max(1, (int) get_query_var('paged'), (int) get_query_var('page'))
 $per_page    = 18;
 $nodes_table = $wpdb->prefix . 'seo_nodes';
 
-$landing_ids = $wpdb->get_col(
+$landing_ids = TCT_DB::get_col(
     $wpdb->prepare("SELECT DISTINCT n.object_id
      FROM %i n
      INNER JOIN %i p ON p.ID = n.object_id
@@ -375,7 +376,7 @@ $landing_query = new WP_Query(array(
     'ignore_sticky_posts' => true,
 ));
 
-$cluster_ids = $wpdb->get_col(
+$cluster_ids = TCT_DB::get_col(
     $wpdb->prepare("SELECT DISTINCT n.object_id
      FROM %i n
      INNER JOIN %i p ON p.ID = n.object_id

@@ -151,14 +151,14 @@ if (!function_exists('dht_shop_template_get_media_product_image_candidates')) {
         static $media_tables_available = array();
         $media_key = $usage_table . '|' . $images_table;
         if (!array_key_exists($media_key, $media_tables_available)) {
-            $usage_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
-            $images_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
+            $usage_exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($usage_table)));
+            $images_exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($images_table)));
             $media_tables_available[$media_key] = ($usage_exists === $usage_table && $images_exists === $images_table);
         }
 
         if ($media_tables_available[$media_key]) {
             // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Media table names come from internal helpers and both tables are existence-checked above.
-            $rows = $wpdb->get_results(
+            $rows = TCT_DB::get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
                      FROM %i u
@@ -210,14 +210,14 @@ if (!function_exists('dht_shop_template_get_supplier_product_image_candidates'))
         static $supplier_table_exists = null;
 
         if (null === $supplier_table_exists) {
-            $supplier_table_exists = $wpdb->get_var(
+            $supplier_table_exists = TCT_DB::get_var(
                 $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($supplier_table))
             ) === $supplier_table;
         }
 
         /* La tabla manda: recorremos TODAS las activas en su orden. */
         if ($supplier_table_exists) {
-            $supplier_urls = $wpdb->get_col(
+            $supplier_urls = TCT_DB::get_col(
                 $wpdb->prepare(
                     "SELECT image_url
                      FROM %i
@@ -405,6 +405,7 @@ $root_categories = get_terms(array(
     'taxonomy'   => 'product_cat',
     'hide_empty' => true,
     'parent'     => 0,
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Finite catalog query uses essential category or metadata selection without unbounded pagination.
     'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
     'number'     => 16,
     'orderby'    => 'count',
@@ -420,6 +421,7 @@ $get_children = static function ($term_id, $limit = 4) use ($default_product_cat
         'taxonomy'   => 'product_cat',
         'hide_empty' => true,
         'parent'     => absint($term_id),
+        // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Finite catalog query uses essential category or metadata selection without unbounded pagination.
         'exclude'    => $default_product_cat ? array($default_product_cat) : array(),
         'number'     => absint($limit),
         'orderby'    => 'count',
@@ -452,6 +454,7 @@ $get_term_image = static function ($term, $size = 'medium_large') use ($wpdb) {
         'no_found_rows'  => true,
         'orderby'        => 'date',
         'order'          => 'DESC',
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Finite catalog query uses essential category or metadata selection without unbounded pagination.
         'tax_query'      => array(array(
             'taxonomy'         => 'product_cat',
             'field'            => 'term_id',
@@ -554,10 +557,10 @@ $render_products = static function ($products, $extra_class = '') {
 /* Clusters reales del sistema SEO, si existe la tabla de relaciones. */
 $cluster_ids = array();
 $relations_table = $wpdb->prefix . 'seo_relations';
-$table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
+$table_exists = TCT_DB::get_var($wpdb->prepare('SHOW TABLES LIKE %s', $relations_table));
 
 if ($table_exists === $relations_table) {
-    $cluster_ids = $wpdb->get_col(
+    $cluster_ids = TCT_DB::get_col(
         $wpdb->prepare("SELECT DISTINCT source_id
          FROM %i
          WHERE source_type = 'cluster'
@@ -574,7 +577,7 @@ $get_cluster_image = static function ($cluster_id) use ($wpdb, $relations_table,
     }
 
     $term_id = absint(
-        $wpdb->get_var(
+        TCT_DB::get_var(
             $wpdb->prepare(
                 "SELECT target_id
                  FROM %i

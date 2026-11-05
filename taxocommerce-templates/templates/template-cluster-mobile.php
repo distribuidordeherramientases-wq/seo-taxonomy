@@ -19,7 +19,7 @@ $current_id    = absint(get_queried_object_id());
 $cluster_title = get_the_title($current_id);
 $table         = $wpdb->prefix . 'seo_relations';
 
-$hub_ids = $wpdb->get_col(
+$hub_ids = TCT_DB::get_col(
     $wpdb->prepare(
         "SELECT target_id
          FROM %i
@@ -36,7 +36,7 @@ $hub_ids = dht_template_public_post_ids($hub_ids);
 /* Categorias directas: solo las relacionadas de forma explicita con el cluster.
  * No heredamos automaticamente las categorias de los hubs primarios: asi se
  * conserva la jerarquia Cluster -> Hub primario -> Hub secundario/categoria. */
-$direct_category_ids = $wpdb->get_col(
+$direct_category_ids = TCT_DB::get_col(
     $wpdb->prepare(
         "SELECT target_id
          FROM %i

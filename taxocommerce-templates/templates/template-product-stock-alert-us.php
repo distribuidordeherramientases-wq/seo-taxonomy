@@ -39,7 +39,7 @@ if (!function_exists('dht_supplier_product_stock_state')) {
         global $wpdb;
 
         $table = $wpdb->prefix . 'seo_proveedores_productos';
-        $table_exists = $wpdb->get_var(
+        $table_exists = TCT_DB::get_var(
             $wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))
         ) === $table;
 
@@ -52,7 +52,7 @@ if (!function_exists('dht_supplier_product_stock_state')) {
             return $cache[$product_id];
         }
 
-        $raw_states = $wpdb->get_col(
+        $raw_states = TCT_DB::get_col(
             $wpdb->prepare(
                 "SELECT stock_estado
                  FROM %i

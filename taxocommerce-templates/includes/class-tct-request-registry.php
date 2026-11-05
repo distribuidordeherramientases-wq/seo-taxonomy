@@ -301,11 +301,12 @@ final class TCT_Request_Registry {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $slots = implode(', ', array_fill(0, count($candidates), '%s'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The IN clause contains ONLY generated %s placeholders; values are bound below.
-        $rows = $wpdb->get_results($wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The IN clause contains only generated %s placeholders and all values are bound by wpdb::prepare().
+        $rows = TCT_DB::get_results($wpdb->prepare(
             "SELECT template_key,template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key IN ({$slots}) AND is_active = 1", array_merge( array( $table ), $candidates )
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $by_key = array();
         foreach ((array)$rows as $row) {
             $by_key[$row->template_key] = $row;
@@ -330,7 +331,7 @@ final class TCT_Request_Registry {
         }
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
-        $row = $wpdb->get_row($wpdb->prepare(
+        $row = TCT_DB::get_row($wpdb->prepare(
             "SELECT template_file,is_active,device_variants_enabled FROM %i WHERE template_key = %s LIMIT 1",
             $table, 'comments'
         ));
@@ -364,7 +365,7 @@ final class TCT_Request_Registry {
         global $wpdb;
         $table = TaxoCommerce_Templates::templates();
         $key = self::woocommerce_key($relative);
-        $row = $wpdb->get_row($wpdb->prepare(
+        $row = TCT_DB::get_row($wpdb->prepare(
             "SELECT template_file,is_active,device_variants_enabled
              FROM %i WHERE template_key = %s AND is_active = 1 LIMIT 1", $table, $key
         ));
