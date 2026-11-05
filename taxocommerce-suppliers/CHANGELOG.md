@@ -1,3 +1,8 @@
+### Hotfix de validación WPC — Issue #2223
+- Comentarios para traductores en los cuatro mensajes con marcadores de formato; 24 identificadores técnicos HTML salen de gettext, conservando su presentación.
+- Autocheck traduce grupos, pruebas y resultados en los cuatro idiomas; PO, MO y POT recompilados y prueba de regresión ampliada.
+- Ningún cambio en el procesamiento de CSV, inventario, pedidos, plantillas instaladas, nonces ni datos del sitio.
+
 ## [0.2.9] — 2026-11-05 — Internacionalización completa ES/EN/FR/DE (#2219)
 
 - Manual de usuario y técnico traducido en los cuatro idiomas: 49 párrafos, 121 celdas, 19 cabeceras, 5 elementos de lista y 19 enlaces de navegación.

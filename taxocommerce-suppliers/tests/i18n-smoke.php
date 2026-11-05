@@ -7,6 +7,7 @@
 $base = dirname( __DIR__ );
 $locales = array( 'en_US', 'fr_FR', 'es_ES', 'de_DE' );
 $manual = file_get_contents( $base . '/includes/class-tcsup-manual.php' );
+$autotest = file_get_contents( $base . '/includes/class-tcsup-autotest.php' );
 $admin  = file_get_contents( $base . '/includes/class-tcsup-admin.php' );
 
 function tcsup_i18n_fail( $message ) {
@@ -59,11 +60,22 @@ foreach ( array(
     }
 }
 
+
+// Technical identifiers are not translatable and must stay outside gettext.
+if ( preg_match( "/__\(\s*'<code>[^']*<\/code>'\s*,\s*'taxocommerce-suppliers'/", $manual ) ) {
+    tcsup_i18n_fail( 'code-only HTML wrongly wrapped in gettext' );
+}
+foreach ( array( 'Sistema', 'Configuración', 'Persistencia', 'Consulta de estados' ) as $diagnostic ) {
+    if ( false === strpos( $autotest, "'$diagnostic', 'taxocommerce-suppliers'" ) ) {
+        tcsup_i18n_fail( 'Autocheck diagnostic is not localized: ' . $diagnostic );
+    }
+}
+
 $key_sets = null;
 foreach ( $locales as $locale ) {
     $prefix = $base . '/languages/taxocommerce-suppliers-' . $locale;
     $po = tcsup_i18n_parse_po( $prefix . '.po' );
-    if ( count( $po ) < 491 ) {
+    if ( count( $po ) < 510 ) {
         tcsup_i18n_fail( $locale . ' catalog has too few entries: ' . count( $po ) );
     }
     foreach ( $po as $key => $value ) {
