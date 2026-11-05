@@ -67,6 +67,17 @@ function taxocommerce_system_check_boot() {
         }
     }
 
+    // The active SEO monolith may register its global constants and its
+    // validation/reporting modules without loading the Server Status module.
+    // Restore only the missing server engine from this plugin; loading the
+    // other modules again here would redeclare their global seo_* functions.
+    if ( $legacy_active && ! function_exists( 'seo_server_status' ) ) {
+        $server_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/system-check/seo-system-server-status.php';
+        if ( is_readable( $server_module ) ) {
+            require_once $server_module;
+        }
+    }
+
     // Load the existing health inventory schema only when the SEO monolith
     // has not already registered its global functions and REST routes.
     if ( ! function_exists( 'seo_health_scan_tables' ) ) {

@@ -25,6 +25,10 @@ $checks = array(
         false !== strpos( $entry, 'if ( ! $legacy_active ) {' )
         && false !== strpos( $entry, "'seo-system-server-status.php'" )
         && false !== strpos( $entry, 'require_once $path;' ),
+    'When legacy SEO is active but omits Server Status, load only its missing server module' =>
+        false !== strpos( $entry, "if ( \$legacy_active && ! function_exists( 'seo_server_status' ) ) {" )
+        && false !== strpos( $entry, 'require_once $server_module;' )
+        && false !== strpos( $entry, 'seo-system-server-status.php' ),
     'The family banner is rendered exactly once by shared branding' =>
         1 === substr_count( $branding, '<header class="tc-family-hero">' )
         && false === strpos( $entry, 'tcc-page-header__eyebrow' )

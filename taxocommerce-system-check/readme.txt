@@ -37,7 +37,7 @@ System diagnostics can include server configuration, URLs and error details. Tre
 == Changelog ==
 
 = 0.2.16 =
-* Load bundled server diagnostics when the legacy SEO plugin is installed but inactive; avoid duplicate System Check header and preserve legacy-active compatibility.
+* Load bundled server diagnostics when legacy SEO is installed but inactive, or active without its Server Status module; avoid duplicate headers and reloading existing global engines.
 
 
 = 0.2.15 =
