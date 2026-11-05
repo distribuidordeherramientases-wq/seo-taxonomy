@@ -1154,7 +1154,7 @@ msgid "Resumen"
 msgstr "Resumen"
 
 msgid "Return to pending"
-msgstr "Return to pending"
+msgstr "Volver a pendiente"
 
 msgid "Review"
 msgstr "Revisar"
