@@ -127,7 +127,9 @@ final class TCSUP_Autotest {
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ]++;
 		}
-		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' ), absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
+		/* translators: 1: checks run, 2: passed checks, 3: warnings, 4: errors. */
+		$summary_format = esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' );
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( $summary_format, absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
 			if ( $group !== $row['group'] ) {
