@@ -226,6 +226,7 @@ if (!function_exists('dht_solutions_v2_term_image')) {
             'order'                  => 'DESC',
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Bounded category/metadata selection uses the native WordPress query API.
             'tax_query'              => array(
                 array(
                     'taxonomy'         => 'product_cat',
