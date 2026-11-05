@@ -251,6 +251,7 @@ if (!function_exists('dht_page_term_image_source_mobile')) {
             'ignore_sticky_posts' => true,
             'orderby'             => 'date',
             'order'               => 'DESC',
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
             'tax_query'           => array(
                 array(
                     'taxonomy'         => 'product_cat',
@@ -369,11 +370,13 @@ if (!function_exists('dht_page_related_products_by_category_mobile')) {
                 'fields'              => 'ids',
                 'no_found_rows'       => true,
                 'ignore_sticky_posts' => true,
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
                 'meta_key'            => 'total_sales',
                 'orderby'             => array(
                     'meta_value_num' => 'DESC',
                     'date'           => 'DESC',
                 ),
+                // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- WordPress taxonomy/metadata lookup is necessary for the bounded, country/category-scoped product view.
                 'tax_query'           => array(
                     array(
                         'taxonomy'         => 'product_cat',
