@@ -38,9 +38,11 @@ $checks = array(
         && false !== strpos( $entry, 'taxocommerce_system_check_render_tabs( $tab );' )
         && false !== strpos( $entry, "seo_server_status();" ),
     'Plugin version and readme are aligned' =>
-        false !== strpos( $entry, "* Version: 0.2.16" )
-        && false !== strpos( $entry, "'0.2.16'" )
-        && false !== strpos( file_get_contents( $base . '/readme.txt' ), 'Stable tag: 0.2.16' ),
+        preg_match( '/\\* Version: ([0-9]+\\.[0-9]+\\.[0-9]+)/', $entry, $header_version )
+        && preg_match( "/define\\( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '([0-9]+\\.[0-9]+\\.[0-9]+)' \\);/", $entry, $constant_version )
+        && preg_match( '/Stable tag: ([0-9]+\\.[0-9]+\\.[0-9]+)/', file_get_contents( $base . '/readme.txt' ), $stable_version )
+        && $header_version[1] === $constant_version[1]
+        && $header_version[1] === $stable_version[1],
 );
 foreach ( $checks as $name => $ok ) {
     if ( ! $ok ) {
