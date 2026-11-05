@@ -16,14 +16,14 @@ $cluster_id = absint(
     $wpdb->get_var(
         $wpdb->prepare(
             "SELECT source_id
-             FROM {$table}
+             FROM %i
              WHERE source_type = 'cluster'
                AND target_type = 'hub_primary'
                AND target_id = %d
                AND relation_type IN ('cluster_to_primary', 'cluster_to_hub_primary')
              ORDER BY id ASC
              LIMIT 1",
-            $current_id
+            $table, $current_id
         )
     )
 );
@@ -35,13 +35,13 @@ if ($cluster_id > 0 && get_post_status($cluster_id) !== 'publish') {
 $secondary_hub_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
-         FROM {$table}
+         FROM %i
          WHERE source_type = 'hub_primary'
            AND source_id = %d
            AND target_type = 'hub_secondary'
            AND relation_type = 'hub_primary_to_hub_secondary'
          ORDER BY id ASC",
-        $current_id
+        $table, $current_id
     )
 );
 $secondary_hub_ids = dht_template_public_post_ids($secondary_hub_ids);
@@ -49,13 +49,13 @@ $secondary_hub_ids = dht_template_public_post_ids($secondary_hub_ids);
 $category_ids = $wpdb->get_col(
     $wpdb->prepare(
         "SELECT target_id
-         FROM {$table}
+         FROM %i
          WHERE source_type = 'hub_primary'
            AND source_id = %d
            AND target_type = 'product_cat'
            AND relation_type = 'hub_primary_to_category'
          ORDER BY id ASC",
-        $current_id
+        $table, $current_id
     )
 );
 $category_ids = dht_template_public_term_ids($category_ids, 'product_cat');
