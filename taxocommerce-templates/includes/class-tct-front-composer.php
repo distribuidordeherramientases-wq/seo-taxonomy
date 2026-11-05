@@ -120,8 +120,8 @@ final class TCT_Front_Composer {
         $input = array();
         foreach ( array( 'desktop', 'mobile' ) as $device ) {
             $key = 'layout_' . $device;
-            $raw = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] )
-                ? wp_unslash( $_POST[ $key ] ) : '';
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- This is JSON, validated by json_decode and normalized against allowed module IDs and sanitized fields below.
+            $raw = isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';
             $data = strlen( $raw ) <= 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
                 self::redirect( $market, 'Composición inválida. No se ha guardado.' );

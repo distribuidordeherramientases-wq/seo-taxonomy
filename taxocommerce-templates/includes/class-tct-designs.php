@@ -159,8 +159,8 @@ final class TCT_Designs {
         }
         $layouts = array();
         foreach ( array( 'desktop', 'mobile' ) as $device ) {
-            $raw = isset( $_POST['layout_' . $device] ) && is_string( $_POST['layout_' . $device] )
-                ? wp_unslash( $_POST['layout_' . $device] ) : '';
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Keep JSON valid until decoding, then normalize each module and sanitize its text fields.
+            $raw = isset( $_POST['layout_' . $device] ) && is_string( $_POST['layout_' . $device] ) ? wp_unslash( $_POST['layout_' . $device] ) : '';
             $data = strlen( $raw ) < 20000 ? json_decode( $raw, true ) : null;
             if ( ! is_array( $data ) || json_last_error() !== JSON_ERROR_NONE ) {
                 self::redirect( 'La composición no es válida. No se ha guardado.', $id, $market );

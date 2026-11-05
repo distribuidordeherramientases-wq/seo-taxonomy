@@ -179,6 +179,7 @@ final class TCT_Template_Editor {
             ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
         // PHP source must retain exact bytes; sanitizing it as plain text would corrupt code.
         // This is a private-only editor gated by edit_plugins, file-mod policy and nonce.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP source must remain byte-for-byte intact; edit capability, nonce, size limit and PHP validation guard the write.
         $raw = isset($_POST['code']) && is_string($_POST['code']) ? wp_unslash($_POST['code']) : '';
         $code = is_string($raw) ? $raw : '';
 
@@ -270,9 +271,17 @@ final class TCT_Template_Editor {
         $assign = isset($_POST['assign_request']) && is_string($_POST['assign_request'])
             ? sanitize_key(wp_unslash($_POST['assign_request'])) : '';
         // WordPress uploads are validated by type, origin, size, extension and PHP parser below.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata requires strict structural validation, not HTML sanitization; origin, filename, size and parser are checked before use.
         $files = isset($_FILES['template_file']) && is_array($_FILES['template_file']) ? $_FILES['template_file'] : null;
 
-        if (!is_array($files) || !isset($files['error']) || UPLOAD_ERR_OK !== (int)$files['error']) {
+        // Reject malformed nested upload fields before type-sensitive native calls.
+        if (!is_array($files)
+            || !isset($files['error'], $files['name'], $files['tmp_name'], $files['size'])
+            || !is_int($files['error'])
+            || !is_string($files['name'])
+            || !is_string($files['tmp_name'])
+            || !is_int($files['size'])
+            || UPLOAD_ERR_OK !== $files['error']) {
             self::redirect('Error en la subida del archivo.', '', $assign);
         }
 
