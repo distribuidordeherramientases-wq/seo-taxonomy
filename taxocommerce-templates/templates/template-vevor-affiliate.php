@@ -68,7 +68,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         );
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
-        $provider_rows = (array) $wpdb->get_col($sql);
+        $provider_rows = (array) TCT_Read_Query_Cache::get_col($sql);
         $provider_categories = array_values(array_filter(array_map('trim', $provider_rows)));
     }
 
@@ -121,7 +121,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- WHERE y placeholders se generan internamente; valores enlazados mediante $wpdb->prepare().
         $sql = $wpdb->prepare($sql, ...$args);
         // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.PreparedSQL.NotPrepared -- $sql es el resultado de $wpdb->prepare().
-        $candidates = $wpdb->get_results($sql, ARRAY_A);
+        $candidates = TCT_Read_Query_Cache::get_results($sql, ARRAY_A);
 
         $category_keys = array_fill_keys(array_map(static function ($value) {
             return sanitize_title(remove_accents(mb_strtolower((string) $value)));
@@ -179,7 +179,7 @@ if ($category_context instanceof WP_Term && 'product_cat' === $category_context-
     }
 } else {
     // En otros contextos conservamos el comportamiento anterior.
-    $items = $wpdb->get_results(
+    $items = TCT_Read_Query_Cache::get_results(
         $wpdb->prepare(
             "SELECT
                 id, proveedor_id_externo, sku, url_origen, url_canonica,
