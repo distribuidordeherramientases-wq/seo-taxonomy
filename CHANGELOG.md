@@ -1,5 +1,11 @@
 # Changelog
 
+## GitHub Actions: tres workflows permanentes - 05/11/2026 (Issue #2205)
+
+- Se conservan exclusivamente `.github/workflows/deploy-staging.yml` (STAGING y Focazul), `.github/workflows/despliege_de_main_a_pro.yml` (PRO solo por `workflow_dispatch`) y `.github/workflows/taxocommerce-plugin-check.yml` (Plugin Check oficial generico).
+- Se retiran 12 workflows de QA, auditoria, diagnostico y operaciones puntuales. Los scripts y tests auxiliares permanecen intactos y disponibles para los workflows conservados.
+- No se modifican plugins ni se despliegan archivos a instalaciones WordPress mediante este cambio. Las entradas historicas de Actions pueden seguir visibles en GitHub aunque los YAML ya no existan en `staging`.
+
 ## Restauración del despliegue modular STAGING → PRO — 03/11/2026 (#2119)
 
 - Se recupera el procedimiento de paquetes ZIP individuales y aplicación/verificación desde WordPress de la versión histórica comprobada en la acción GitHub #41243555528 (origen 03cb678b, 31/10/2026). Aquella ejecución verificó por SHA-256 10 plugins instalados, y la nueva versión conserva la detección dinámica de todos los módulos instalados, estén activos o no.
