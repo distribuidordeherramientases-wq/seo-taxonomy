@@ -365,7 +365,7 @@ final class TCT_Routing_Admin {
             if ( '' !== $item['native'] ) {
                 echo '<br><small>WordPress: <code>' . esc_html( $item['native'] ) . '</code></small>';
             }
-            echo '</td><td>' . ( '' !== $item['role'] ? '<code>' . esc_html( $item['role'] ) . '</code>' : __( 'Automático / sin rol SEO', 'taxocommerce-templates' ) ) . '</td>';
+            echo '</td><td>' . ( '' !== $item['role'] ? '<code>' . esc_html( $item['role'] ) . '</code>' : esc_html__( 'Automático / sin rol SEO', 'taxocommerce-templates' ) ) . '</td>';
             echo '<td>';
             echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post">';
             wp_nonce_field( 'tct_save_route_mapping' );
