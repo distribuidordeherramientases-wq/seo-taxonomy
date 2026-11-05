@@ -63,11 +63,11 @@ $GLOBALS['tcd_scheduled'][ TCD_Academy::CRON_HOOK ] = time() + 30;
 check_tcd( ! TCD_Academy::has_published_catalog_products(), 'Empty WooCommerce site must be detected.' );
 TCD_Academy::watchdog_running_process();
 $after = TCD_Academy::state();
-check_tcd( 'error' === $after['status'], 'A new empty-catalogue job must not remain running.' );
-check_tcd( false !== strpos( $after['last_error'], 'No hay productos WooCommerce' ), 'Missing explicit diagnostic.' );
-check_tcd( ! wp_next_scheduled( TCD_Academy::CRON_HOOK ), 'No more ticks should be scheduled.' );
+check_tcd( 'running' === $after['status'], 'L1 must be allowed to learn categories in an empty product catalogue.' );
+check_tcd( '' === $after['last_error'], 'An empty product catalogue is not a technical error for L1.' );
+check_tcd( wp_next_scheduled( TCD_Academy::CRON_HOOK ), 'L1 should retain its scheduled worker.' );
 check_tcd( 'empty-site' === $after['run_id'] && 0 === $after['snapshot_id'], 'Run and snapshots must be preserved.' );
-check_tcd( count( TCD_Academy::logs() ) === 1, 'One audit event expected for the failed preflight.' );
+check_tcd( count( TCD_Academy::logs() ) === 0, 'A shop without products must not record a fake failure.' );
 
 // A real published product leaves a new run eligible for the worker.
 $GLOBALS['tcd_products'] = array( 123 );
@@ -93,12 +93,12 @@ check_tcd( 'running' === TCD_Academy::state()['status'], 'A frozen snapshot must
 check_tcd( 18 === TCD_Academy::state()['snapshot_id'], 'Frozen snapshot must be preserved.' );
 $source = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcd-academy.php' );
 check_tcd(
-    strpos( $source, "'restart' === \$action || self::requires_catalog_guard( \$state )" ) !== false,
-    'Manual Start/Restart must have a product preflight.'
+    strpos( $source, 'requires_catalog_guard' ) === false,
+    'The obsolete product gate must not prevent L1 categories or empty-lesson skips.'
 );
 check_tcd(
-    strpos( $source, "'no_products'" ) !== false &&
+    strpos( $source, "'lesson_skipped_empty'" ) !== false &&
     strpos( $source, "'restart'===$action" ) !== false,
-    'Manual restart path must remain guarded without removing its explicit action.'
+    'Empty lessons must be recorded as skipped, and explicit restart remains available.'
 );
-echo "PASS: empty catalogue blocked, existing snapshot preserved, worker with products scheduled.\n";
+echo "PASS: empty catalogue permits L1, existing snapshot preserved, worker with products scheduled.\n";
