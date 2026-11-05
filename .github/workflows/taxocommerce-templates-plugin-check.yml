@@ -1,0 +1,65 @@
+name: TaxoCommerce Templates Plugin Check
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-templates/**'
+      - '.github/workflows/taxocommerce-templates-plugin-check.yml'
+      - '.github/workflows/taxocommerce-templates-plugin-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-plugin-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Package Templates without CI tests or hidden FTP state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/taxocommerce-templates
+          rsync -a \
+            --exclude='tests/' \
+            --exclude='.*' \
+            --exclude='*.json.bak' \
+            --exclude='README.md' \
+            --exclude='*.bak' \
+            --exclude='*.log' \
+            taxocommerce-templates/ build/taxocommerce-templates/
+          test -f build/taxocommerce-templates/taxocommerce-templates.php
+          test -f build/taxocommerce-templates/readme.txt
+          find build/taxocommerce-templates -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          python3 .github/scripts/taxocommerce_family_readme_check.py taxocommerce-templates build/taxocommerce-templates
+          ( cd build && zip -qr ../taxocommerce-templates.zip taxocommerce-templates )
+          unzip -t taxocommerce-templates.zip
+          if unzip -Z1 taxocommerce-templates.zip | grep -E '(^|/)(tests/|[.][^/]+)'; then
+            echo "::error::Templates package includes tests or hidden files"
+            exit 1
+          fi
+      - name: WordPress Plugin Check including warnings
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./build/taxocommerce-templates
+          slug: taxocommerce-templates
+          wp-version: latest
+          ignore-warnings: false
+          ignore-errors: false
+          strict: true
+      - name: Save distributable ZIP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: templates-plugin-check-zip
+          path: taxocommerce-templates.zip
+          retention-days: 14
+          if-no-files-found: warn
