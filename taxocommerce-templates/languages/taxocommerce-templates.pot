@@ -696,3 +696,171 @@ msgstr ""
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
 msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicación de políticas de plantillas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Estado:"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicando las políticas de Templates"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Políticas suspendidas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Guardar estado de las políticas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutamiento"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Diseñador de plantillas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Autocheck"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en seo_templates, sin modificar archivos PHP."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce habilitado."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce desactivado."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Mis plantillas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Por configurar"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Todas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Vista de enrutamiento"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Rol, petición o archivo"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Filtrar"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas»."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas."
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "plantillas y rutas propias"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "tipos pendientes"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "opciones y plantillas"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Rutas heredadas existentes"
+msgstr ""
+
+#. TaxoCommerce Templates administration UI
+msgid "Catálogo de peticiones"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr ""
+
+#. Templates administrative UI
+msgid "Versión"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Todas las peticiones"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Guardar"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Asociar archivo"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Desasignar"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Asignar pagina"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Crear rol"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Automático / sin rol SEO"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr ""
+
+#. Templates administrative UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Ir al Diseñador de plantillas"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Ver archivo PHP"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr ""
+
+#. Templates administrative UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr ""

@@ -50,8 +50,9 @@ final class TCSUP_Autotest {
 		$templates = get_option( 'taxocommerce_suppliers_csv_templates', array() );
 		self::check( $rows, 'Configuración', 'Plantillas CSV personalizadas', is_array( $templates ) ? 'ok' : 'error', is_array( $templates ) ? 'Estructura válida; ' . count( $templates ) . ' plantillas almacenadas.' : 'La opción no contiene un array.' );
 		$builtin = class_exists( 'TCSUP_CSV', false ) ? TCSUP_CSV::builtin_templates() : array();
-		$expected = array( 'canonical', 'price_update', 'vevor', 'satkit', 'todotaladros' );
-		self::check( $rows, 'Configuración', 'Plantillas integradas', ! array_diff( $expected, array_keys( $builtin ) ) ? 'ok' : 'error', 'Comprobación de los cinco modelos integrados sin importar CSV.' );
+		$expected = array( 'canonical', 'price_update' );
+		$generic_only = array_keys( $builtin ) === $expected;
+		self::check( $rows, 'Configuración', 'Formatos CSV genéricos', $generic_only ? 'ok' : 'error', $generic_only ? 'Solo los dos formatos de importación, sin plantillas de proveedores precargadas.' : 'Se han detectado perfiles de proveedor precargados.' );
 		foreach ( array( 'taxocommerce_suppliers_sale_margin' => 'Margen de venta', 'taxocommerce_suppliers_regular_margin' => 'Margen regular' ) as $option => $label ) {
 			$value = get_option( $option, false );
 			self::check( $rows, 'Configuración', $label, false !== $value && is_numeric( $value ) && is_finite( (float) $value ) ? 'ok' : 'warning', false !== $value && is_numeric( $value ) ? 'Valor numérico guardado.' : 'Opción ausente o no numérica; revisar ajustes.' );
@@ -126,7 +127,7 @@ final class TCSUP_Autotest {
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ]++;
 		}
-		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . esc_html( count( $rows ) ) . ' comprobaciones: ' . esc_html( $counts['ok'] ) . ' correctas, ' . esc_html( $counts['warning'] ) . ' avisos y ' . esc_html( $counts['error'] ) . ' errores.</p>';
+		echo '<h3>' . esc_html__( 'Resumen', 'taxocommerce-suppliers' ) . '</h3><p>' . sprintf( esc_html__( '%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores.', 'taxocommerce-suppliers' ), absint( count( $rows ) ), absint( $counts['ok'] ), absint( $counts['warning'] ), absint( $counts['error'] ) ) . '</p>';
 		$group = '';
 		foreach ( $rows as $row ) {
 			if ( $group !== $row['group'] ) {
@@ -134,7 +135,7 @@ final class TCSUP_Autotest {
 					echo '</tbody></table>';
 				}
 				$group = $row['group'];
-				echo '<h3>' . esc_html( $group ) . '</h3><table class="widefat striped"><thead><tr><th>Comprobación</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>';
+				echo '<h3>' . esc_html( $group ) . '</h3><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Comprobación', 'taxocommerce-suppliers' ) . '</th><th>' . esc_html__( 'Estado', 'taxocommerce-suppliers' ) . '</th><th>' . esc_html__( 'Detalle', 'taxocommerce-suppliers' ) . '</th></tr></thead><tbody>';
 			}
 			$names = array( 'ok' => __( 'Correcto', 'taxocommerce-suppliers' ), 'warning' => __( 'Aviso', 'taxocommerce-suppliers' ), 'error' => __( 'Error', 'taxocommerce-suppliers' ) );
 			echo '<tr><th scope="row">' . esc_html( $row['name'] ) . '</th><td>' . esc_html( $names[ $row['status'] ] ) . '</td><td>' . esc_html( $row['detail'] ) . '</td></tr>';

@@ -39,5 +39,7 @@ tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( "<?php system('
 tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( str_repeat( 'A', 65537 ), 'json' ) ), 'reject oversized content' );
 tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( "proveedor_id_externo;id\nproveedor_id_externo;id2\nnombre;name\n", 'csv' ) ), 'reject duplicate mappings' );
 tcsup_verify( is_wp_error( TCSUP_CSV::parse_template_definition( "{", 'json' ) ), 'reject invalid JSON' );
-tcsup_verify( 'canonical' === TCSUP_CSV::templates()['canonical']['id'], 'keep built-in templates' );
+tcsup_verify( ! isset( TCSUP_CSV::templates()['canonical'] ), 'generic import modes are not supplier templates' );
+tcsup_verify( 'canonical' === TCSUP_CSV::import_templates()['canonical']['id'], 'keep canonical CSV import available' );
+tcsup_verify( count( TCSUP_CSV::templates() ) === 2, 'only the two user-created templates are listed' );
 echo "OK: Suppliers template creation and validation\n";

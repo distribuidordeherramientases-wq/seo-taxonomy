@@ -18,6 +18,9 @@ $cases = array(
         "SELECT object_id, seo_role FROM %i WHERE object_type='page'",
         "is_string(\$_POST['tct_page_role_nonce'])",
     ),
+    'includes/class-tct-routing-admin.php' => array(
+        "esc_html__( 'Automático / sin rol SEO', 'taxocommerce-templates' )",
+    ),
     'includes/class-tct-request-registry.php' => array(
         'SELECT seo_role FROM %i',
         "wp_cache_get( \$cache_key, 'taxocommerce_templates' )",
@@ -48,10 +51,9 @@ $cases = array(
         "is_string(\$_POST['code'])",
         'check_admin_referer(',
         'self::validate_php(',
-        "        "is_string(\$files['name'])",
+        "is_string(\$files['name'])",
         "is_string(\$files['tmp_name'])",
         "is_int(\$files['size'])",
-undefined
     ),
     'templates/template-cluster-international.php' => array(
         "'dht-cluster-international-base'",
@@ -106,9 +108,9 @@ foreach ( $prepared_templates as $template => $minimum ) {
 
 $plugin = file_get_contents( $root . '/taxocommerce-templates.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
-if ( false === strpos( $plugin, 'Version: 0.4.15' ) ||
-    false === strpos( $plugin, "define('TCT_VERSION','0.4.15');" ) ||
-    false === strpos( $readme, 'Stable tag: 0.4.15' ) ) {
+if ( false === strpos( $plugin, 'Version: 0.4.16' ) ||
+    false === strpos( $plugin, "define('TCT_VERSION','0.4.16');" ) ||
+    false === strpos( $readme, 'Stable tag: 0.4.16' ) ) {
     fwrite( STDERR, "FAIL inconsistent Templates version\n" );
     exit( 1 );
 }

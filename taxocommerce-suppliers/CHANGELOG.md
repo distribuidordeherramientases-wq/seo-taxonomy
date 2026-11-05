@@ -1,3 +1,18 @@
+## [0.2.9] — 2026-11-05 — Internacionalización completa ES/EN/FR/DE (#2219)
+
+- Manual de usuario y técnico traducido en los cuatro idiomas: 49 párrafos, 121 celdas, 19 cabeceras, 5 elementos de lista y 19 enlaces de navegación.
+- Textos de inventario, plantillas, imágenes, compras y Autocheck pasados a gettext; PO/POT/MO completos con pruebas de regresión.
+- Conserva el aislamiento de plantillas y los formatos de importación genéricos incorporados en 0.2.8 (#2218). No se restauran plantillas de proveedor precargadas.
+- No altera consultas SQL, permisos, nonces, persistencia, aceptación o logística. Neerlandés sigue como idioma adicional sin cobertura completa garantizada.
+
+## [0.2.8] — 2026-11-05 — Aislamiento de plantillas por instalación (Issue #2218)
+
+- Eliminados los perfiles comerciales VEVOR, SATKIT y TodoTaladros que venían incorporados en PHP y aparecían automáticamente en todas las tiendas.
+- «Plantillas CSV» muestra exclusivamente las asignaciones personalizadas guardadas en la opción local de cada WordPress; una instalación nueva muestra una lista vacía y permite crear, importar y exportar plantillas propias.
+- Los formatos genéricos CSV canónico y actualización de precios siguen disponibles en el importador, sin contarse como plantillas de proveedor.
+- Se mantiene la compatibilidad con el importador regional existente mediante selección explícita del proveedor y comprobación de cabeceras, sin precargar una plantilla comercial.
+- Ajustes de Autocheck y pruebas de regresión para aislamiento entre tiendas, importación y protección de plantillas personalizadas.
+
 ## [0.2.7] — 2026-11-05 — Internacionalización (#2062)
 
 - Se reutiliza el mecanismo gettext nativo de TaxoCommerce Core, sin introducir un cargador alternativo.

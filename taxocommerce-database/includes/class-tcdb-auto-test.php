@@ -217,7 +217,7 @@ final class TCDB_Auto_Test {
         echo '<p>' . esc_html__( 'Chequeo de solo lectura de los dos servicios originales, tablas, columnas y preparación de backups. Los resultados se guardan por usuario durante 30 días. Ejecutar antes y después de cada subida y comparar los dos últimos informes.', 'taxocommerce-database' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcdb_auto_nonce' );
-        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
+        submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-database' ), 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) { echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Autocheck.', 'taxocommerce-database' ) . '</p>' . '</div>'; return; }
         $totals = $current['totals'];
@@ -226,19 +226,19 @@ final class TCDB_Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-database' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Último resultado · ' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-database' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
-        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
+        echo '<h3>' . esc_html__( 'Último resultado', 'taxocommerce-database' ) . ' · ' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-database' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' ' . esc_html__( 'correctas', 'taxocommerce-database' ) . '</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' ' . esc_html__( 'fallidas', 'taxocommerce-database' ) . '</strong> · ' . esc_html( (string) $totals['skip'] ) . ' ' . esc_html__( 'omitidas', 'taxocommerce-database' ) . ' · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $before = array();
             foreach ( $previous['rows'] as $row ) { $before[ $row['id'] ] = $row['status']; }
             $regressions = array();
             foreach ( $current['rows'] as $row ) { if ( 'fail' === $row['status'] && isset( $before[ $row['id'] ] ) && 'pass' === $before[ $row['id'] ] ) { $regressions[] = $row['label']; } }
-            echo '<p><strong>Comparación:</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
-            echo $regressions ? '<strong style="color:#b32d2e">Regresiones detectadas: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.'; echo '</p>';
+            echo '<p><strong>' . esc_html__( 'Comparación:', 'taxocommerce-database' ) . '</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
+            echo $regressions ? '<strong style="color:#b32d2e">Regresiones detectadas: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : esc_html__( 'Sin regresiones de correcto a fallido.', 'taxocommerce-database' ); echo '</p>';
         } else { echo '<p>' . esc_html__( 'No hay informe anterior para comparar. Conserva esta ejecución como referencia antes de actualizar.', 'taxocommerce-database' ) . '</p>'; }
         echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Funcionalidad', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-database' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-database' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $current['rows'] as $row ) {
-            $status_label = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
+            $status_label = array( 'pass' => __( 'Correcto', 'taxocommerce-database' ), 'fail' => __( 'Error', 'taxocommerce-database' ), 'skip' => __( 'No ejecutado', 'taxocommerce-database' ) );
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $status_label[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
         echo '</tbody>' . '</table>' . '</div>' . '<p class="description">' . esc_html__( 'Autocheck comprueba disponibilidad, lectura y contratos de datos; NO demuestra por sí solo que un backup completo sea restaurable ni que los borrados funcionen con datos reales.', 'taxocommerce-database' ) . '</p>' . '</div>';

@@ -30,25 +30,25 @@ final class TCDB_Manual {
         echo '<p>' . esc_html__( 'Guías de uso y mantenimiento del plugin. La lectura de estos manuales no ejecuta consultas, limpiezas ni exportaciones.', 'taxocommerce-database' ) . '</p>';
         echo '<nav class="tcdb-manual-index" aria-label="Índice de documentación">' . '<strong>' . esc_html__( 'Contenido', 'taxocommerce-database' ) . '</strong>' . '<div>';
         foreach ( array(
-            'usuario' => 'Manual de usuario',
-            'errores' => 'Errores en datos',
-            'limpieza' => 'Limpieza BBDD',
-            'backup' => 'Exportar BBDD',
-            'tablas' => 'Resumen y explorador',
-            'exportar-tablas' => 'Exportar tablas',
-            'auto-test' => 'Auto Test',
-            'desarrollador' => 'Manual técnico',
-            'arquitectura' => 'Arquitectura',
-            'api' => 'Rutas y seguridad',
-            'modelo' => 'Modelo de datos',
-            'desarrollo' => 'Evolución y pruebas',
+            'usuario' => __( 'Manual de usuario', 'taxocommerce-database' ),
+            'errores' => __( 'Errores en datos', 'taxocommerce-database' ),
+            'limpieza' => __( 'Limpieza BBDD', 'taxocommerce-database' ),
+            'backup' => __( 'Exportar BBDD', 'taxocommerce-database' ),
+            'tablas' => __( 'Resumen y explorador', 'taxocommerce-database' ),
+            'exportar-tablas' => __( 'Exportar tablas', 'taxocommerce-database' ),
+            'auto-test' => __( 'Auto Test', 'taxocommerce-database' ),
+            'desarrollador' => __( 'Manual técnico', 'taxocommerce-database' ),
+            'arquitectura' => __( 'Arquitectura', 'taxocommerce-database' ),
+            'api' => __( 'Rutas y seguridad', 'taxocommerce-database' ),
+            'modelo' => __( 'Modelo de datos', 'taxocommerce-database' ),
+            'desarrollo' => __( 'Evolución y pruebas', 'taxocommerce-database' ),
         ) as $anchor => $label ) {
             echo '<a href="#' . esc_attr( $anchor ) . '">' . esc_html( $label ) . '</a>';
         }
         echo '</div></nav>';
 
         echo '<h1 id="usuario">' . esc_html__( 'Manual de usuario final', 'taxocommerce-database' ) . '</h1>';
-        self::section( 'errores', '1. Errores en datos', '
+        self::section( 'errores', __( '1. Errores en datos', 'taxocommerce-database' ), '
             <p>Comprueba la integridad de los nodos y relaciones SEO. Los indicadores muestran relaciones analizadas, incidencias, avisos de configuración, nodos sin contenido activo, duplicados y productos con varios ámbitos. Los resultados normales no requieren acción.</p>
             <h3>Acciones de reparación disponibles</h3>
             <div class="tcdb-manual-table"><table><thead><tr><th>Botón o sección</th><th>Qué hace</th><th>Qué debe comprobar el administrador</th></tr></thead><tbody>
@@ -62,7 +62,7 @@ final class TCDB_Manual {
             </tbody></table></div>
             <p><strong>Comprobaciones informativas:</strong> los avisos de tipos de relación no registrados y de productos con varios ámbitos no reparan automáticamente datos; pueden ser situaciones legítimas que requieren revisión de la configuración.</p>
         ');
-        self::section( 'limpieza', '2. Limpieza BBDD', '
+        self::section( 'limpieza', __( '2. Limpieza BBDD', 'taxocommerce-database' ), '
             <p>Muestra cuántos registros son candidatos a eliminación y permite ejecutar cada limpieza con su propio botón. Si una fila indica <em>Nada que limpiar</em>, no hay acción disponible. El nivel Bajo/Medio es una orientación, no una garantía de reversibilidad.</p>
             <p><strong>Antes de borrar:</strong> descargar un backup SQL. La limpieza se inicia manualmente, tras el diálogo de confirmación; no existe una tarea en segundo plano con progreso ni un historial de rollback. Los botones no se limitan a 100 registros en total, pero una operación grande puede agotar los recursos o el tiempo del hosting.</p>
             <div class="tcdb-manual-table"><table><thead><tr><th>Botón</th><th>Registros afectados</th></tr></thead><tbody>
@@ -86,14 +86,14 @@ final class TCDB_Manual {
             </tbody></table></div>
             <p>Los botones <strong>Descargar backup SQL completo</strong> y <strong>Descargar solo tablas TaxoCommerce SEO</strong> permiten guardar una copia antes de limpiar.</p>
         ');
-        self::section( 'backup', '3. Exportar BBDD', '
+        self::section( 'backup', __( '3. Exportar BBDD', 'taxocommerce-database' ), '
             <h3>Descargar backup SQL completo</h3>
             <p>Genera una descarga SQL con estructura y datos de las tablas cuyo nombre empieza por el prefijo activo de WordPress. Puede contener información personal y credenciales; consérvela de forma segura. No incluye archivos subidos al servidor.</p>
             <h3>Descargar solo tablas TaxoCommerce SEO</h3>
             <p>Descarga exclusivamente las tablas que empiezan por el prefijo WordPress seguido de <code>seo_</code>. La lista de tablas detectadas permite verificar el alcance.</p>
             <p><strong>Importante:</strong> la exportación es una descarga manual, no una copia periódica ni una restauración automática. En bases grandes depende de los límites de tiempo y recursos del servidor. Compruebe que el archivo descargado está completo antes de utilizarlo como respaldo.</p>
         ');
-        self::section( 'tablas', '4. Resumen tablas y Explorar tablas', '
+        self::section( 'tablas', __( '4. Resumen tablas y Explorar tablas', 'taxocommerce-database' ), '
             <h3>Resumen tablas</h3><p>Presenta inventario de tablas <code>seo_*</code>, filas aproximadas, tamaños, motor y enlace <strong>Explorar</strong>. Ese botón abre la tabla seleccionada sin modificarla.</p>
             <h3>Explorar tablas: controles</h3>
             <div class="tcdb-manual-table"><table><thead><tr><th>Control</th><th>Función</th></tr></thead><tbody>
@@ -107,19 +107,19 @@ final class TCDB_Manual {
             <tr><td>Paginación</td><td>Permite recorrer resultados sin cargarlos todos en pantalla.</td></tr>
             </tbody></table></div>
         ');
-        self::section( 'exportar-tablas', '5. Exportar tablas', '
+        self::section( 'exportar-tablas', __( '5. Exportar tablas', 'taxocommerce-database' ), '
             <h3>Descargar CSV / Descargar SQL</h3><p>Cada fila ofrece dos botones: CSV para análisis en hojas de cálculo, o SQL para conservar esquema y registros de esa tabla.</p>
             <h3>Todas en CSV / Todas en SQL / CSV + SQL</h3><p>Descargan un archivo ZIP con todas las tablas SEO detectadas, en el formato elegido, e incluyen un manifiesto JSON. Necesitan <code>ZipArchive</code> en PHP y espacio temporal en el servidor.</p>
             <p><strong>Esta copia ZIP no es un backup completo de WordPress.</strong> No incorpora necesariamente otras tablas de WordPress ni los archivos multimedia.</p>
         ');
 
-        self::section( 'auto-test', '6. Auto Test', '
+        self::section( 'auto-test', __( '6. Auto Test', 'taxocommerce-database' ), '
             <p>El botón <strong>Ejecutar Auto Test</strong> revisa la disponibilidad de los servicios, conexión MySQL, esquema SEO, consultas de lectura, inventario y preparación de exportaciones. Informa de resultados correctos, errores y comprobaciones no ejecutadas. Conserva los dos informes más recientes por administrador durante 30 días para comparar antes y después de una actualización.</p>
             <p><strong>Importante:</strong> sin tablas exportables el test no marca la exportación como correcta. La ausencia de tablas SEO se indica como prueba no ejecutada. El Auto Test no borra datos, no repara relaciones ni genera o restaura backups completos; esas operaciones requieren pruebas específicas con datos aislados.</p>
         ');
 
         echo '<h1 id="desarrollador">' . esc_html__( 'Manual técnico para desarrolladores', 'taxocommerce-database' ) . '</h1>';
-        self::section( 'arquitectura', '6. Arquitectura y ciclo de carga', '
+        self::section( 'arquitectura', __( '6. Arquitectura y ciclo de carga', 'taxocommerce-database' ), '
             <p>Plugin independiente de WordPress, mínimo PHP 7.4 y WordPress 6.5. El punto de entrada <code>taxocommerce-database.php</code> declara versión/rutas e incluye cuatro archivos: Clean DB, SEO Data Table, el Auto Test y este manual. No requiere TaxoCommerce Core: con Core aparece como submenú; sin Core registra menú propio.</p>
             <div class="tcdb-manual-table"><table><thead><tr><th>Archivo</th><th>Responsabilidad</th></tr></thead><tbody>
             <tr><td><code>taxocommerce-database.php</code></td><td>Bootstrap, registro de menú, barra de pestañas y enrutamiento.</td></tr>
@@ -131,7 +131,7 @@ final class TCDB_Manual {
             </tbody></table></div>
             <p>Los dos servicios originales utilizan el namespace <code>TCDB_Legacy</code> para evitar choques con el monolito. <code>TCDB_Manual</code> es una clase separada sin queries SQL. No se incorpora Data Layer ni rollback histórico transversal; las reparaciones SEO emplean transacciones SQL locales.</p>
         ');
-        self::section( 'api', '7. Enrutamiento, acciones y seguridad', '
+        self::section( 'api', __( '7. Enrutamiento, acciones y seguridad', 'taxocommerce-database' ), '
             <h3>Pestañas de administración</h3><p>Ruta base: <code>wp-admin/admin.php?page=taxocommerce-database</code>. Limpieza e integridad: <code>tcdb_screen=clean&amp;seo_clean_db_tab=data_errors|database_cleanup|export</code>. Tablas: <code>tcdb_screen=table&amp;section=overview|explorer|export</code>. Manual: <code>tcdb_screen=manual</code>. Auto Test: <code>tcdb_screen=auto-test</code>. La navegación es GET de solo lectura.</p>
             <h3>Acciones de limpieza y reparación</h3><p>Los formularios POST usan <code>seo_clean_db_action</code>, nonce <code>seo_clean_db_nonce</code> y <code>check_admin_referer(\'seo_clean_db_action\', \'seo_clean_db_nonce\')</code>. El controlador <code>seo_clean_db_handle_post_actions()</code> despacha a <code>seo_clean_db_handle_data_error_action()</code> o <code>seo_clean_db_handle_database_cleanup_action()</code>. La capacidad requerida es <code>manage_options</code>.</p>
             <h3>Descargas SQL Clean Database</h3><p><code>admin_init</code> ejecuta <code>seo_clean_db_maybe_export_sql()</code> cuando recibe <code>seo_clean_db_export=full|seo</code> y valida el nonce <code>seo_clean_db_export_nonce</code>. <code>seo_clean_db_stream_sql_export()</code> envía el SQL por streaming directamente a la respuesta.</p>
@@ -139,14 +139,14 @@ final class TCDB_Manual {
             <h3>Auto Test</h3><p>El POST <code>admin_post_tcdb_run_auto_test</code> utiliza el nonce <code>tcdb_auto_nonce</code>, exige <code>manage_options</code> y genera un informe sin operaciones destructivas. Las pruebas de contrato en <code>tests/auto-test-results-smoke.php</code> verifican las 17 rutas de limpieza y que las exportaciones vacías no se notifiquen como correctas.</p>
             <p>No cambie nombres de acciones, nonces ni parámetros URL sin mantener compatibilidad: afectan a formularios, descargas, filtros y favoritos ya existentes.</p>
         ');
-        self::section( 'modelo', '8. Datos, SQL y límites', '
+        self::section( 'modelo', __( '8. Datos, SQL y límites', 'taxocommerce-database' ), '
             <p>El plugin utiliza el objeto global <code>$wpdb</code>, el prefijo de instalación y detecta tablas internamente, sin crear nuevas tablas propias al visualizar el manual.</p>
             <h3>Tablas principales</h3><p><code>{prefix}seo_nodes</code> representa objetos/roles SEO y <code>{prefix}seo_relations</code> representa relaciones. Las tablas de categorías de productos, posts y términos proceden de WordPress/WooCommerce. El explorador selecciona tablas existentes cuyo nombre comienza por <code>{prefix}seo_</code>.</p>
             <h3>Consultas y recursos</h3><p>La exploración usa recuentos y consultas SELECT con filtros, LIMIT/OFFSET y orden validado por columnas detectadas. Los backups SQL recorren tablas en bloques; la exportación ZIP escribe archivos temporales. Las operaciones de limpieza son manuales y síncronas; <strong>no hay cola asíncrona ni control dinámico de CPU</strong>.</p>
             <p>Las reparaciones de relaciones/nodos emplean transacciones locales y borrados en fragmentos SQL. Esos fragmentos no implican un límite total de 100 registros. Algunas eliminaciones genéricas se ejecutan con consultas SQL sobre tablas de WordPress y requieren especial cuidado y backups.</p>
             <h3>Seguridad y privacidad</h3><p>Revisar siempre <code>manage_options</code>, nonces, allowlists de tablas/columnas, sanitización de filtros, escaping HTML y acceso a archivos temporales. Los backups pueden contener datos personales; no guardarlos en rutas públicas. Para grandes tablas, medir memoria, tiempo y carga en staging antes de producción.</p>
         ');
-        self::section( 'desarrollo', '9. Evolución, compatibilidad y pruebas', '
+        self::section( 'desarrollo', __( '9. Evolución, compatibilidad y pruebas', 'taxocommerce-database' ), '
             <h3>Cómo incorporar una mejora</h3><ol>
             <li>Inventariar primero las capacidades existentes y su llamada real en la interfaz.</li>
             <li>Añadir o modificar una función sin eliminar botones, rutas, datos ni exportaciones existentes.</li>

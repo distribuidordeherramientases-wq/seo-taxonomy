@@ -55,30 +55,6 @@ final class TCSUP_CSV {
 				'builtin'  => true,
 				'mapping'  => array(),
 			),
-			'vevor' => array(
-				'id'       => 'vevor',
-				'name'     => __( 'VEVOR official CSV', 'taxocommerce-suppliers' ),
-				'provider' => 'VEVOR',
-				'mode'     => 'vevor',
-				'builtin'  => true,
-				'mapping'  => array(),
-			),
-			'satkit' => array(
-				'id'       => 'satkit',
-				'name'     => __( 'SATKIT visual mapping', 'taxocommerce-suppliers' ),
-				'provider' => 'SATKIT',
-				'mode'     => 'mapping',
-				'builtin'  => true,
-				'mapping'  => array(),
-			),
-			'todotaladros' => array(
-				'id'       => 'todotaladros',
-				'name'     => __( 'TodoTaladros visual mapping', 'taxocommerce-suppliers' ),
-				'provider' => 'TODOTALADROS',
-				'mode'     => 'mapping',
-				'builtin'  => true,
-				'mapping'  => array(),
-			),
 		);
 	}
 
@@ -142,12 +118,54 @@ final class TCSUP_CSV {
 		return $aliases[ $key ] ?? '';
 	}
 
+	/**
+	 * Only templates explicitly saved on this WordPress installation.
+	 * Built-in CSV import formats are not supplier templates.
+	 *
+	 * @return array
+	 */
 	public static function templates() {
 		$templates = get_option( self::TEMPLATE_OPTION, array() );
 		if ( ! is_array( $templates ) ) {
-			$templates = array();
+			return array();
 		}
-		return array_merge( self::builtin_templates(), $templates );
+		return array_filter(
+			$templates,
+			static function ( $template, $id ) {
+				return is_string( $id ) && 0 === strpos( $id, 'custom_' )
+					&& is_array( $template ) && empty( $template['builtin'] );
+			},
+			ARRAY_FILTER_USE_BOTH
+		);
+	}
+
+	/**
+	 * Generic CSV import modes plus templates saved by this store.
+	 * No commercial supplier preset is installed automatically.
+	 *
+	 * @return array
+	 */
+	public static function import_templates() {
+		return array_merge( self::builtin_templates(), self::templates() );
+	}
+
+	/**
+	 * Preserve the existing official regional feed parser without exposing
+	 * another store's supplier as a preconfigured template. Detection requires
+	 * both an explicitly entered supplier and the complete source header.
+	 *
+	 * @param array  $template Selected import format or user mapping.
+	 * @param array  $header   CSV header columns.
+	 * @param string $provider Supplier chosen by the current user.
+	 * @return string Import mode.
+	 */
+	public static function effective_mode( $template, $header, $provider ) {
+		$mode = (string) ( $template['mode'] ?? 'mapping' );
+		if ( 'canonical' !== $mode || 'VEVOR' !== strtoupper( trim( (string) $provider ) ) ) {
+			return $mode;
+		}
+		$official_header = array( 'Name', 'URL to product', 'categoryPath', 'URL to image', 'Currency', 'Sales' );
+		return ! array_diff( $official_header, (array) $header ) ? 'vevor' : $mode;
 	}
 
 	private static function guard() {
@@ -213,7 +231,7 @@ final class TCSUP_CSV {
 		check_admin_referer( 'tcsup_analyze_csv' );
 
 		$template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : 'canonical';
-		$templates   = self::templates();
+		$templates   = self::import_templates();
 		$template    = isset( $templates[ $template_id ] ) ? $templates[ $template_id ] : $templates['canonical'];
 		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
 		if ( '' === trim( $provider ) ) {
@@ -681,7 +699,7 @@ final class TCSUP_CSV {
 			self::redirect( array( 'tc_error' => 'state' ) );
 		}
 
-		$templates   = self::templates();
+		$templates   = self::import_templates();
 		$template_id = isset( $_POST['template_id'] ) ? sanitize_key( wp_unslash( $_POST['template_id'] ) ) : (string) ( $state['template_id'] ?? 'canonical' );
 		$template    = isset( $templates[ $template_id ] ) ? $templates[ $template_id ] : $templates['canonical'];
 		$provider    = isset( $_POST['provider'] ) ? sanitize_text_field( wp_unslash( $_POST['provider'] ) ) : '';
@@ -704,7 +722,7 @@ final class TCSUP_CSV {
 		$header = $handle->fgetcsv();
 		$header = is_array( $header ) ? array_map( array( __CLASS__, 'clean_header' ), $header ) : array();
 
-		$mode = (string) ( $template['mode'] ?? 'mapping' );
+		$mode = self::effective_mode( $template, $header, $provider );
 		$posted_mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] )
 			? map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' )
 			: array();
