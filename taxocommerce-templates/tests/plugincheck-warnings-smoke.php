@@ -48,10 +48,9 @@ $cases = array(
         "is_string(\$_POST['code'])",
         'check_admin_referer(',
         'self::validate_php(',
-        "        "is_string(\$files['name'])",
+        "is_string(\$files['name'])",
         "is_string(\$files['tmp_name'])",
         "is_int(\$files['size'])",
-undefined
     ),
     'templates/template-cluster-international.php' => array(
         "'dht-cluster-international-base'",
