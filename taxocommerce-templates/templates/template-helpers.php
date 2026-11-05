@@ -2708,6 +2708,7 @@ if (!function_exists('dht_template_render_dependiente_cta')) {
 if (!function_exists('dht_template_category_has_filter_query')) {
     function dht_template_category_has_filter_query()
     {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only detection of frontend filter parameters; no mutation.
         foreach (array_keys((array) $_GET) as $key) {
             $key = (string) $key;
             if (0 === strpos($key, 'dht_')) {
