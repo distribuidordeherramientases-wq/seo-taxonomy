@@ -208,6 +208,61 @@ final class TCD_Academy {
         ));
     }
 
+    /**
+     * On the first activation only, begin bounded learning from this site's
+     * published WooCommerce products. The caller must verify that the Academy
+     * state did not exist before installation. Never adopt or reset legacy data.
+     *
+     * Existing sites and reactivations continue using the explicit Start button.
+     */
+    public static function start_first_install_catalog() {
+        if ( ! function_exists( 'post_type_exists' ) || ! post_type_exists( 'product' ) ||
+            ! function_exists( 'get_posts' ) ) {
+            return false;
+        }
+        $state = self::state();
+        if ( 'idle' !== (string) ( $state['status'] ?? '' ) || ! empty( $state['run_id'] ) ) {
+            return false;
+        }
+        // One bounded read: installation must never clone a developer catalogue.
+        $products = get_posts( array(
+            'post_type' => 'product', 'post_status' => 'publish', 'fields' => 'ids',
+            'posts_per_page' => 1, 'no_found_rows' => true,
+            'update_post_meta_cache' => false, 'update_post_term_cache' => false,
+        ) );
+        if ( ! is_array( $products ) || ! $products ) {
+            return false;
+        }
+        // Refuse to start automatically if older knowledge/snapshots survive.
+        // A missing state option is not proof that a database is new.
+        global $wpdb;
+        foreach ( array(
+            self::knowledge_table(), self::snapshots_table(), self::items_table(),
+            TCD_Original_Interprete_DB::table(),
+        ) as $table ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- First-activation read of mutable local plugin tables; never reuse a stale cached answer.
+            $existing = $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i LIMIT 1', $table ) );
+            if ( '' !== (string) $wpdb->last_error || null !== $existing ) {
+                return false;
+            }
+        }
+        if ( get_option( 'tcd_learning_stop', '' ) ) {
+            return false;
+        }
+        $run = wp_generate_uuid4();
+        self::save( array(
+            'run_id' => $run,
+            'status' => 'running',
+            'phase' => 'snapshot',
+            'last_error' => '',
+            'last_message' => 'Aprendizaje inicial programado con los productos publicados de esta tienda.',
+        ) );
+        // Schedule only. No training or expensive catalogue scan in activation.
+        self::queue( 5 );
+        self::log( 'initial_catalog_learning_scheduled', array( 'source' => 'local_woocommerce_products' ) );
+        return true;
+    }
+
     public static function boot(){
         self::maybe_upgrade();
         add_action(self::CRON_HOOK,array(__CLASS__,'tick'));
