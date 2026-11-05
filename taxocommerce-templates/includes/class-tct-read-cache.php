@@ -14,6 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class TCT_Read_Query_Cache {
+    const MAX_ENTRIES = 32;
     private static $items = array();
     private static $last_query_count = null;
 
@@ -37,6 +38,10 @@ final class TCT_Read_Query_Cache {
         }
         $result = self::direct_read( $method, $query, $options );
         self::$last_query_count = (int) $wpdb->num_queries;
+        // Keep retained result sets bounded on large product catalogues.
+        if ( count( self::$items ) >= self::MAX_ENTRIES ) {
+            array_shift( self::$items );
+        }
         self::$items[ $key ] = $result;
         return $result;
     }
