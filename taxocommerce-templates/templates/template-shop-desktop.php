@@ -172,8 +172,8 @@ if (!function_exists('dht_shop_get_media_candidates')) {
             $rows = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT u.attachment_id, u.tipo_uso, i.url_origen
-                     FROM {$usage_table} u
-                     LEFT JOIN {$images_table} i ON i.attachment_id = u.attachment_id
+                     FROM %i u
+                     LEFT JOIN %i i ON i.attachment_id = u.attachment_id
                      WHERE u.object_id = %d
                        AND u.object_type = 'product'
                      ORDER BY CASE u.tipo_uso
@@ -182,7 +182,7 @@ if (!function_exists('dht_shop_get_media_candidates')) {
                          WHEN 'content' THEN 3
                          ELSE 9 END ASC,
                          u.fecha DESC",
-                    $product_id
+                    $usage_table, $images_table, $product_id
                 )
             );
 
@@ -230,13 +230,13 @@ if (!function_exists('dht_shop_get_supplier_candidates')) {
             $urls = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT image_url
-                     FROM {$supplier_table}
+                     FROM %i
                      WHERE product_id = %d
                        AND status = 'active'
                        AND image_url IS NOT NULL
                        AND TRIM(image_url) <> ''
                      ORDER BY is_primary DESC, position ASC, id ASC",
-                    $product_id
+                    $supplier_table, $product_id
                 )
             );
 
