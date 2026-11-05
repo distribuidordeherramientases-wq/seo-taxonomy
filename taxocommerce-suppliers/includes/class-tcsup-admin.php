@@ -232,22 +232,22 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( '1. Upload supplier CSV', 'taxocommerce-suppliers' ); ?></h2>
-			<p>Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction.</p>
+			<p><?php esc_html_e( 'Only supplier-provided CSV files are processed. This plugin contains no scraper, crawler, remote runner, or automatic web extraction.', 'taxocommerce-suppliers' ); ?></p>
 			<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="tcsup_analyze_csv">
 				<?php wp_nonce_field( 'tcsup_analyze_csv' ); ?>
 				<div class="tcsup-form-grid">
-					<label><strong>CSV template</strong>
+					<label><strong><?php esc_html_e( 'CSV template', 'taxocommerce-suppliers' ); ?></strong>
 						<select name="template_id">
 							<?php foreach ( $templates as $id => $template ) : ?>
 								<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $selected, $id ); ?>><?php echo esc_html( $template['name'] ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</label>
-					<label><strong>Supplier</strong>
+					<label><strong><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></strong>
 						<input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? '' ) ); ?>" placeholder="e.g. SATKIT">
 					</label>
-					<label><strong>CSV file</strong>
+					<label><strong><?php esc_html_e( 'CSV file', 'taxocommerce-suppliers' ); ?></strong>
 						<input type="file" name="supplier_csv" accept=".csv,text/csv" required>
 					</label>
 				</div>
@@ -297,21 +297,21 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( '2. Review normalization', 'taxocommerce-suppliers' ); ?></h2>
-			<p><strong>File:</strong> <code><?php echo esc_html( (string) $state['filename'] ); ?></code> · <strong>Delimiter:</strong> <code><?php echo "	" === $state['delimiter'] ? 'TAB' : esc_html( $state['delimiter'] ); ?></code></p>
+			<p><strong><?php esc_html_e( 'File:', 'taxocommerce-suppliers' ); ?></strong> <code><?php echo esc_html( (string) $state['filename'] ); ?></code> · <strong><?php esc_html_e( 'Delimiter:', 'taxocommerce-suppliers' ); ?></strong> <code><?php echo "	" === $state['delimiter'] ? 'TAB' : esc_html( $state['delimiter'] ); ?></code></p>
 			<?php if ( 'vevor' === $mode ) : ?>
-				<div class="notice notice-info inline"><p>The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made.</p></div>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'The VEVOR preset maps the official feed locally: product URL → external ID/SKU/market, Name → name, categoryPath → supplier category, Sales → price, Currency → currency, URL to image → external image. No network request is made.', 'taxocommerce-suppliers' ); ?></p></div>
 			<?php elseif ( 'price_update' === $mode ) : ?>
-				<div class="notice notice-info inline"><p>Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed.</p></div>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'Price update mode never creates supplier catalogue rows. Map supplier external ID or SKU plus at least one price column. For VEVOR, map external ID and market country so regional products cannot be mixed.', 'taxocommerce-suppliers' ); ?></p></div>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="tcsup_import_csv">
 				<input type="hidden" name="template_id" value="<?php echo esc_attr( (string) $state['template_id'] ); ?>">
 				<?php wp_nonce_field( 'tcsup_import_csv' ); ?>
-				<p><label><strong>Supplier</strong> <input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? $template['provider'] ?? '' ) ); ?>" required></label></p>
+				<p><label><strong><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></strong> <input type="text" name="provider" value="<?php echo esc_attr( (string) ( $state['provider'] ?? $template['provider'] ?? '' ) ); ?>" required></label></p>
 				<?php if ( 'vevor' !== $mode ) : ?>
 					<table class="widefat striped tcsup-map-table">
-						<thead><tr><th>TaxoCommerce field</th><th>CSV column</th><th>Required</th></tr></thead>
+						<thead><tr><th><?php esc_html_e( 'TaxoCommerce field', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'CSV column', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Required', 'taxocommerce-suppliers' ); ?></th></tr></thead>
 						<tbody>
 						<?php foreach ( TCSUP_CSV::fields() as $field => $definition ) : ?>
 							<?php $suggested = self::suggested_index( $field, $header, $template ); ?>
@@ -350,7 +350,7 @@ final class TCSUP_Admin {
 				<?php if ( 'vevor' !== $mode ) : ?>
 					<details class="tcsup-template-save">
 						<summary><?php esc_html_e( 'Save this mapping as a reusable template', 'taxocommerce-suppliers' ); ?></summary>
-						<p><input type="text" name="save_template_name" placeholder="Optional template name"></p>
+						<p><input type="text" name="save_template_name" placeholder="<?php echo esc_attr__( 'Optional template name', 'taxocommerce-suppliers' ); ?>"></p>
 					</details>
 				<?php endif; ?>
 				<p class="submit"><?php submit_button( __( 'Import into intermediate inventory', 'taxocommerce-suppliers' ), 'primary', 'submit', false ); ?></p>
@@ -394,7 +394,7 @@ final class TCSUP_Admin {
 			</details>
 			<p><a class="button button-primary" href="<?php echo esc_url( $download ); ?>"><?php esc_html_e( 'Descargar cabecera CSV canónica', 'taxocommerce-suppliers' ); ?></a></p>
 			<table class="widefat striped">
-				<thead><tr><th>Template</th><th>Supplier</th><th>Mode</th><th>Columns mapped</th><th></th></tr></thead>
+				<thead><tr><th><?php esc_html_e( 'Template', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Mode', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Columns mapped', 'taxocommerce-suppliers' ); ?></th><th></th></tr></thead>
 				<tbody>
 				<?php foreach ( $templates as $id => $template ) : ?>
 					<tr>
@@ -588,8 +588,8 @@ final class TCSUP_Admin {
 				<?php endforeach; ?>
 			</select>
 			<?php endif; ?>
-			<input type="text" name="country" value="<?php echo esc_attr( self::request_filter( 'country' ) ); ?>" placeholder="Country">
-			<input type="search" name="s" value="<?php echo esc_attr( self::request_filter( 's' ) ); ?>" placeholder="Name, SKU or external ID">
+			<input type="text" name="country" value="<?php echo esc_attr( self::request_filter( 'country' ) ); ?>" placeholder="<?php echo esc_attr__( 'Country', 'taxocommerce-suppliers' ); ?>">
+			<input type="search" name="s" value="<?php echo esc_attr( self::request_filter( 's' ) ); ?>" placeholder="<?php echo esc_attr__( 'Name, SKU or external ID', 'taxocommerce-suppliers' ); ?>">
 			<button class="button"><?php esc_html_e( 'Filter', 'taxocommerce-suppliers' ); ?></button>
 		</form>
 		<?php
@@ -629,7 +629,7 @@ final class TCSUP_Admin {
 		$rows = $result['rows'];
 		?>
 		<section class="tcsup-card">
-			<div class="tcsup-card-head"><div><h2><?php esc_html_e( 'Intermediate supplier inventory', 'taxocommerce-suppliers' ); ?></h2><p>CSV rows stay here until they are accepted, sent to review, or discarded.</p></div></div>
+			<div class="tcsup-card-head"><div><h2><?php esc_html_e( 'Intermediate supplier inventory', 'taxocommerce-suppliers' ); ?></h2><p><?php esc_html_e( 'CSV rows stay here until they are accepted, sent to review, or discarded.', 'taxocommerce-suppliers' ); ?></p></div></div>
 			<?php self::filter_bar( 'inventory', true ); ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="tcsup_bulk_action">
@@ -645,7 +645,7 @@ final class TCSUP_Admin {
 					<button class="button button-primary"><?php esc_html_e( 'Apply', 'taxocommerce-suppliers' ); ?></button>
 				</div>
 				<div class="tcsup-scroll"><table class="widefat striped">
-					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="Select all rows on this page"></th><th>Supplier</th><th>External identity</th><th>Product</th><th>Market</th><th>Supplier price</th><th>Stock</th><th>Decision</th><th>Sync</th><th>Woo ID</th><th>Actions</th></tr></thead>
+					<thead><tr><th><input type="checkbox" id="tcsup-select-page" aria-label="<?php echo esc_attr__( 'Select all rows on this page', 'taxocommerce-suppliers' ); ?>"></th><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'External identity', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Market', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Supplier price', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Stock', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Decision', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Sync', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Woo ID', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Actions', 'taxocommerce-suppliers' ); ?></th></tr></thead>
 					<tbody>
 					<?php if ( ! $rows ) : ?><tr><td colspan="11">No supplier rows match the current filters.</td></tr><?php endif; ?>
 					<?php foreach ( $rows as $row ) : ?>
@@ -661,9 +661,9 @@ final class TCSUP_Admin {
 							<td><?php echo esc_html( self::sync_label( $row['estado_sincronizacion'] ) ); ?><?php echo $row['cambios_detectados'] ? '<br><small>' . esc_html( $row['cambios_detectados'] ) . '</small>' : ''; ?></td>
 							<td><?php echo $row['object_id'] ? '<a href="' . esc_url( get_edit_post_link( absint( $row['object_id'] ) ) ) . '">#' . esc_html( $row['object_id'] ) . '</a>' : '—'; ?></td>
 							<td class="tcsup-row-actions">
-								<button class="button button-small button-primary" name="row_action" value="accept:<?php echo esc_attr( $row['id'] ); ?>">Accept</button>
-								<button class="button button-small" name="row_action" value="review:<?php echo esc_attr( $row['id'] ); ?>">Review</button>
-								<button class="button button-small" name="row_action" value="discard:<?php echo esc_attr( $row['id'] ); ?>">Discard</button>
+								<button class="button button-small button-primary" name="row_action" value="accept:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Accept', 'taxocommerce-suppliers' ); ?></button>
+								<button class="button button-small" name="row_action" value="review:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Review', 'taxocommerce-suppliers' ); ?></button>
+								<button class="button button-small" name="row_action" value="discard:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Discard', 'taxocommerce-suppliers' ); ?></button>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -692,12 +692,12 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( 'Price control', 'taxocommerce-suppliers' ); ?></h2>
-			<p>Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV.</p>
+			<p><?php esc_html_e( 'Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV.', 'taxocommerce-suppliers' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcsup-settings">
 				<input type="hidden" name="action" value="tcsup_settings">
 				<?php wp_nonce_field( 'tcsup_settings' ); ?>
-				<label>Default sale margin % <input type="number" step="0.01" name="sale_margin" value="<?php echo esc_attr( $sale_margin ); ?>"></label>
-				<label>Default regular margin % <input type="number" step="0.01" name="regular_margin" value="<?php echo esc_attr( $regular_margin ); ?>"></label>
+				<label><?php esc_html_e( 'Default sale margin %', 'taxocommerce-suppliers' ); ?> <input type="number" step="0.01" name="sale_margin" value="<?php echo esc_attr( $sale_margin ); ?>"></label>
+				<label><?php esc_html_e( 'Default regular margin %', 'taxocommerce-suppliers' ); ?> <input type="number" step="0.01" name="regular_margin" value="<?php echo esc_attr( $regular_margin ); ?>"></label>
 				<button class="button"><?php esc_html_e( 'Save margins', 'taxocommerce-suppliers' ); ?></button>
 			</form>
 			<?php self::filter_bar( 'prices', true ); ?>
@@ -711,13 +711,13 @@ final class TCSUP_Admin {
 					<input type="hidden" name="row_id" value="<?php echo esc_attr( $row['id'] ); ?>">
 					<?php wp_nonce_field( 'tcsup_price_update' ); ?>
 					<div><strong><?php echo esc_html( $row['nombre'] ); ?></strong><br><small><?php echo esc_html( $row['proveedor'] . ' · ' . $row['sku'] ); ?></small></div>
-					<label>Excl. tax<input name="precio_sin_iva" value="<?php echo esc_attr( $row['precio_sin_iva'] ); ?>"></label>
-					<label>Incl. tax<input name="precio_con_iva" value="<?php echo esc_attr( $row['precio_con_iva'] ); ?>"></label>
-					<label>Tax %<input name="iva_porcentaje" value="<?php echo esc_attr( $row['iva_porcentaje'] ); ?>"></label>
-					<label>Currency<input name="moneda" value="<?php echo esc_attr( $row['moneda'] ); ?>"></label>
-					<label>Woo regular<input name="woo_regular" value="<?php echo esc_attr( $product ? $product->get_regular_price() : '' ); ?>" <?php disabled( ! $product ); ?>></label>
-					<label>Woo sale<input name="woo_sale" value="<?php echo esc_attr( $product ? $product->get_sale_price() : '' ); ?>" <?php disabled( ! $product ); ?>></label>
-					<label class="tcsup-check"><input type="checkbox" name="apply_woo" value="1" <?php disabled( ! $product ); ?>> Apply Woo prices</label>
+					<label><?php esc_html_e( 'Excl. tax', 'taxocommerce-suppliers' ); ?> <input name="precio_sin_iva" value="<?php echo esc_attr( $row['precio_sin_iva'] ); ?>"></label>
+					<label><?php esc_html_e( 'Incl. tax', 'taxocommerce-suppliers' ); ?> <input name="precio_con_iva" value="<?php echo esc_attr( $row['precio_con_iva'] ); ?>"></label>
+					<label><?php esc_html_e( 'Tax %', 'taxocommerce-suppliers' ); ?> <input name="iva_porcentaje" value="<?php echo esc_attr( $row['iva_porcentaje'] ); ?>"></label>
+					<label><?php esc_html_e( 'Currency', 'taxocommerce-suppliers' ); ?> <input name="moneda" value="<?php echo esc_attr( $row['moneda'] ); ?>"></label>
+					<label><?php esc_html_e( 'Woo regular', 'taxocommerce-suppliers' ); ?> <input name="woo_regular" value="<?php echo esc_attr( $product ? $product->get_regular_price() : '' ); ?>" <?php disabled( ! $product ); ?>></label>
+					<label><?php esc_html_e( 'Woo sale', 'taxocommerce-suppliers' ); ?> <input name="woo_sale" value="<?php echo esc_attr( $product ? $product->get_sale_price() : '' ); ?>" <?php disabled( ! $product ); ?>></label>
+					<label class="tcsup-check"><input type="checkbox" name="apply_woo" value="1" <?php disabled( ! $product ); ?>> <?php esc_html_e( 'Apply Woo prices', 'taxocommerce-suppliers' ); ?></label>
 					<button class="button button-primary"><?php esc_html_e( 'Save', 'taxocommerce-suppliers' ); ?></button>
 				</form>
 			<?php endforeach; ?>
@@ -736,7 +736,7 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( 'External Images', 'taxocommerce-suppliers' ); ?></h2>
-			<p>External image URLs are stored as references in <code>seo_supplier_images</code>. They are not downloaded into WordPress Media.</p>
+			<p><?php esc_html_e( 'External image URLs are stored as references in', 'taxocommerce-suppliers' ); ?> <code>seo_supplier_images</code>. <?php esc_html_e( 'They are not downloaded into WordPress Media.', 'taxocommerce-suppliers' ); ?></p>
 			<?php self::filter_bar( 'images', true ); ?>
 			<?php if ( $selected ) : ?>
 				<?php $urls = TCSUP_CSV::image_urls( $selected['imagenes'] ?? '' ); ?>
@@ -760,7 +760,7 @@ final class TCSUP_Admin {
 				</form>
 			<?php endif; ?>
 			<div class="tcsup-scroll"><table class="widefat striped">
-				<thead><tr><th>Supplier</th><th>Product</th><th>Woo ID</th><th>Mode</th><th>URLs</th><th></th></tr></thead>
+				<thead><tr><th><?php esc_html_e( 'Supplier', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Product', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Woo ID', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'Mode', 'taxocommerce-suppliers' ); ?></th><th><?php esc_html_e( 'URLs', 'taxocommerce-suppliers' ); ?></th><th></th></tr></thead>
 				<tbody>
 				<?php foreach ( $rows as $row ) : ?>
 					<tr>
