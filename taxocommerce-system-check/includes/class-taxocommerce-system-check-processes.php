@@ -178,13 +178,22 @@ final class TaxoCommerce_System_Check_Processes {
 	}
 
 	private static function cancel_action( $id ) {
-		foreach ( self::actions() as $row ) {
-			if ( $row['id'] === $id && $row['can_cancel'] && class_exists( 'ActionScheduler' ) ) {
-				ActionScheduler::store()->cancel_action( $id );
-				return true;
-			}
+		if ( ! $id || ! class_exists( 'ActionScheduler' ) ) {
+			return false;
 		}
-		return false;
+		try {
+			$store = ActionScheduler::store();
+			$action = $store->fetch_action( $id );
+			if ( ! is_object( $action ) || ! method_exists( $action, 'get_hook' )
+				|| 'pending' !== $store->get_status( $id )
+				|| ! self::is_safe_hook( (string) $action->get_hook(), (string) $action->get_group() ) ) {
+				return false;
+			}
+			$store->cancel_action( $id );
+			return true;
+		} catch ( Exception $exception ) {
+			return false;
+		}
 	}
 
 	private static function cancel_cron( $hook, $timestamp, $signature ) {
