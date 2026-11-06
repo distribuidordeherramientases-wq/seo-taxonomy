@@ -777,7 +777,7 @@ final class TCD_Original_Interprete {
             return '';
         }
         $candidates = array();
-        foreach ((array) TCD_Original_Interprete_DB::active_rows() as $row) {
+        foreach ((array) TCD_Original_Interprete_DB::action_rows_for_concept($concept) as $row) {
             $relation = sanitize_key((string) ($row['relation_type'] ?? ''));
             if (!in_array($relation, array('verb_to_tool','phrase_to_tool'), true)) {
                 continue;
