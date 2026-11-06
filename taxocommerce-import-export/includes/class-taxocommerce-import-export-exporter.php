@@ -382,8 +382,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$delay = max( 0, absint( $delay ) );
 		$args = array( $user_id, (string) $job );
 		if ( function_exists( 'as_schedule_single_action' ) ) {
-			// Do not use a unique action: the currently running action has not
-			// yet finished when it schedules the next sequential block.
+			if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::WORKER_HOOK, $args, self::WORKER_GROUP ) ) {
+				return;
+			}
 			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, $args, self::WORKER_GROUP, false, 10 );
 		} elseif ( ! wp_next_scheduled( self::WORKER_HOOK, $args ) ) {
 			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK, $args );
@@ -424,10 +425,6 @@ final class TaxoCommerce_Import_Export_Exporter {
 		try {
 			$state = $this->state();
 			if ( ! $state || ! hash_equals( (string) $state['id'], $job ) || ! empty( $state['complete'] ) ) {
-				return;
-			}
-			if ( get_option( $this->cancel_key(), '' ) === $job ) {
-				$this->cancel_queued_job( $job );
 				return;
 			}
 			$token = $this->acquire_lock( $job );
@@ -502,8 +499,8 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! $state || ! empty( $state['complete'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'No hay una exportación pendiente.', 'taxocommerce-import-export' ) ), 409 );
 		}
-		if ( 'cancelling' === ( $state['status'] ?? '' ) ) {
-			wp_send_json_error( array( 'message' => __( 'La exportación se está cancelando.', 'taxocommerce-import-export' ) ), 409 );
+		if ( 'failed' !== ( $state['status'] ?? '' ) ) {
+			wp_send_json_error( array( 'message' => __( 'La exportación está en ejecución o cancelándose.', 'taxocommerce-import-export' ) ), 409 );
 		}
 		$state['status'] = 'queued';
 		$state['error'] = '';
@@ -527,7 +524,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		}
 		$state = $this->state();
 		if ( ! $state || ! empty( $state['complete'] ) ||
-			in_array( (string) ( $state['status'] ?? '' ), array( 'failed', 'cancelling' ), true ) ||
+			'failed' === (string) ( $state['status'] ?? '' ) ||
 			time() - absint( $state['updated'] ?? 0 ) < 90 ||
 			get_option( $this->lock_key(), false ) ) {
 			return;
@@ -588,14 +585,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 		}
 		// Cancellation must not unlink a file while its writer still has it open.
 		update_option( $this->cancel_key(), (string) $state['id'], false );
-		if ( ! get_option( $this->lock_key(), false ) ) {
-			$this->delete_current_job();
-			delete_option( $this->cancel_key() );
-			$this->unschedule_worker( get_current_user_id(), (string) $state['id'] );
-			wp_send_json_success( array( 'cancelled' => true ) );
-		}
 		$state['status'] = 'cancelling';
 		$this->store_state( $state );
+		// Always let the server worker perform deletion under its lock.
+		// Deleting here would race with an in-flight CSV writer.
+		$this->schedule_worker( get_current_user_id(), (string) $state['id'], 0 );
 		wp_send_json_success( array( 'cancelled' => false ) );
 	}
 
