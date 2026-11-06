@@ -84,3 +84,5 @@ verify( strpos( $admin, 'self::render_scope_controls( $selected )' ) !== false, 
 verify( strpos( $admin, "'categories' === \$scope" ) !== false, 'Category-only report view still available' );
 
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
+
+require __DIR__ . '/i18n-catalog-smoke.php';
