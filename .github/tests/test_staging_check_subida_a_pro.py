@@ -27,7 +27,7 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", self.pipeline)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
-        self.assertNotIn("\\n  push:\\n", self.staging)
+        self.assertNotIn("  push:", self.staging)
 
     def test_order_and_strict_family_check(self):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
