@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.15
+Stable tag: 0.4.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,11 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.16 =
+* Exportaciones CSV procesadas en segundo plano en servidor con Action Scheduler y alternativa WP-Cron, incluso si el navegador se cierra. La pantalla solo consulta progreso.
+* Mantiene cinco velocidades, regulación adaptativa, trabajo por bloques, recuperación, cancelación y descarga segura.
+* Para procesar sin visitas en instalaciones sin cron activo, configurar el cron del alojamiento que invoque wp-cron.php.
 
 = 0.4.15 =
 * Autocheck manual unificado con dos acciones: «Ejecutar Autocheck» y «Descargar resultados (JSON)» del último informe.
