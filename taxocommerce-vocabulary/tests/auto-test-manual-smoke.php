@@ -122,6 +122,6 @@ tcv_test( strpos( $auto, 'Ejecutar Autocheck' ) !== false, 'autotest form displa
 tcv_test( strpos( $auto, 'tcv_auto_nonce' ) !== false, 'autotest form includes nonce' );
 
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcv-admin.php' );
-tcv_test( strpos( $admin, "'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' )" ) !== false && strpos( $admin, "'manual'=>'Manual'" ) !== false, 'tabs wired' );
+tcv_test( strpos( $admin, "'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' )" ) !== false && strpos( $admin, "'manual'=>__( 'Manual', 'taxocommerce-vocabulary' )" ) !== false, 'tabs wired and translated' );
 tcv_test( strpos( $admin, "'control' === \$tab" ) !== false, 'original control route preserved' );
 echo "Vocabulary Auto Test and Manual smoke passed.\n";
