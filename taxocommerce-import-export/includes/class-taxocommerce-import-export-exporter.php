@@ -16,7 +16,10 @@ final class TaxoCommerce_Import_Export_Exporter {
 
 	const STATE_PREFIX = 'taxocommerce_ie_export_';
 	const LOCK_PREFIX  = 'taxocommerce_ie_export_lock_';
-	const TTL          = 7200;
+	const TTL          = 172800;
+	const WORKER_HOOK  = 'taxocommerce_ie_export_background_worker';
+	const WORKER_GROUP = 'taxocommerce-import-export';
+	const CANCEL_PREFIX = 'taxocommerce_ie_export_cancel_';
 
 	/**
 	 * CSV formatter.
@@ -44,8 +47,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 		add_action( 'wp_ajax_taxocommerce_ie_export_step', array( $this, 'ajax_step' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_export_status', array( $this, 'ajax_status' ) );
 		add_action( 'wp_ajax_taxocommerce_ie_export_cancel', array( $this, 'ajax_cancel' ) );
+		add_action( 'wp_ajax_taxocommerce_ie_export_resume', array( $this, 'ajax_resume' ) );
 		add_action( 'admin_post_taxocommerce_ie_export_download', array( $this, 'download' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( self::WORKER_HOOK, array( $this, 'background_worker' ), 10, 2 );
+		add_action( 'init', array( $this, 'watchdog' ), 99 );
 	}
 
 	/**
@@ -282,7 +288,12 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( is_wp_error( $saved ) ) {
 			wp_send_json_error( array( 'message' => $saved->get_error_message() ), 400 );
 		}
+		$previous = $this->state();
+		if ( $previous && empty( $previous['complete'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Ya existe una exportación en curso. Cancélala antes de iniciar otra.', 'taxocommerce-import-export' ) ), 409 );
+		}
 		$this->delete_current_job();
+		delete_option( $this->cancel_key() );
 
 		$filters = $this->filters_from_request( $type );
 		$scope   = 'wp_categories' === $type
@@ -335,10 +346,13 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'file_size' => (int) filesize( $path ),
 			'total'     => absint( $total ),
 			'complete'  => false,
+			'status'    => 'queued',
+			'error'     => '',
 			'created'   => time(),
 			'updated'   => time(),
 		);
 		$this->store_state( $state );
+		$this->schedule_worker( get_current_user_id(), $job_id, 0 );
 
 		wp_send_json_success(
 			array(
@@ -353,6 +367,179 @@ final class TaxoCommerce_Import_Export_Exporter {
 		);
 	}
 
+
+	/**
+	 * Schedule one short server-side step. Action Scheduler is provided by
+	 * WooCommerce; WP-Cron is used when it is unavailable.
+	 *
+	 * @param int    $user_id Job owner.
+	 * @param string $job Job identifier.
+	 * @param int    $delay Seconds before next step.
+	 * @return void
+	 */
+	private function schedule_worker( $user_id, $job, $delay ) {
+		$user_id = absint( $user_id );
+		$delay = max( 0, absint( $delay ) );
+		$args = array( $user_id, (string) $job );
+		if ( function_exists( 'as_schedule_single_action' ) ) {
+			// Do not use a unique action: the currently running action has not
+			// yet finished when it schedules the next sequential block.
+			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, $args, self::WORKER_GROUP, false, 10 );
+		} elseif ( ! wp_next_scheduled( self::WORKER_HOOK, $args ) ) {
+			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK, $args );
+		}
+	}
+
+	/**
+	 * Remove all pending continuations of one export.
+	 *
+	 * @param int    $user_id Owner.
+	 * @param string $job Job identifier.
+	 * @return void
+	 */
+	private function unschedule_worker( $user_id, $job ) {
+		$args = array( absint( $user_id ), (string) $job );
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( self::WORKER_HOOK, $args, self::WORKER_GROUP );
+		}
+		wp_clear_scheduled_hook( self::WORKER_HOOK, $args );
+	}
+
+	/**
+	 * Execute one bounded block in the correct owner context, independent
+	 * of browser sessions and tab visibility.
+	 *
+	 * @param int    $user_id Job owner.
+	 * @param string $job Job UUID.
+	 * @return void
+	 */
+	public function background_worker( $user_id, $job ) {
+		$user_id = absint( $user_id );
+		$job = sanitize_text_field( (string) $job );
+		if ( ! $user_id || ! preg_match( '/^[a-f0-9-]{36}$/i', $job ) ) {
+			return;
+		}
+		$previous_user = get_current_user_id();
+		wp_set_current_user( $user_id );
+		try {
+			$state = $this->state();
+			if ( ! $state || ! hash_equals( (string) $state['id'], $job ) || ! empty( $state['complete'] ) ) {
+				return;
+			}
+			if ( get_option( $this->cancel_key(), '' ) === $job ) {
+				$this->cancel_queued_job( $job );
+				return;
+			}
+			$token = $this->acquire_lock( $job );
+			if ( '' === $token ) {
+				// A concurrent worker is already writing this CSV.
+				return;
+			}
+			try {
+				$state = $this->state();
+				if ( ! $state || ! hash_equals( (string) $state['id'], $job ) ) {
+					return;
+				}
+				if ( get_option( $this->cancel_key(), '' ) === $job ) {
+					$this->cancel_queued_job( $job );
+					return;
+				}
+				$result = $this->process_block( $state );
+				if ( is_wp_error( $result ) ) {
+					$state['status'] = 'failed';
+					$state['error'] = $result->get_error_message();
+					$state['updated'] = time();
+					$this->store_state( $state );
+					return;
+				}
+				$result['status'] = ! empty( $result['complete'] ) ? 'completed' : 'running';
+				$result['error'] = '';
+				$this->store_state( $result );
+				if ( get_option( $this->cancel_key(), '' ) === $job ) {
+					$this->cancel_queued_job( $job );
+					return;
+				}
+				if ( empty( $result['complete'] ) ) {
+					$this->schedule_worker( $user_id, $job, TaxoCommerce_IE_Load::delay( 'export' ) );
+				}
+			} catch ( Throwable $e ) {
+				$state = $this->state();
+				if ( $state && hash_equals( (string) $state['id'], $job ) ) {
+					$state['status'] = 'failed';
+					$state['error'] = sanitize_text_field( $e->getMessage() );
+					$state['updated'] = time();
+					$this->store_state( $state );
+				}
+			} finally {
+				$this->release_lock( $token );
+			}
+		} finally {
+			wp_set_current_user( $previous_user );
+		}
+	}
+
+	/**
+	 * Remove a job safely while the caller owns its writer lock.
+	 *
+	 * @param string $job Job UUID.
+	 * @return void
+	 */
+	private function cancel_queued_job( $job ) {
+		$this->delete_current_job();
+		delete_option( $this->cancel_key() );
+		$this->unschedule_worker( get_current_user_id(), $job );
+	}
+
+	/**
+	 * Request a retry without writing any CSV rows inside the AJAX call.
+	 *
+	 * @return void
+	 */
+	public function ajax_resume() {
+		$this->guard_ajax();
+		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
+		$state = $this->state();
+		if ( ! $state || ! empty( $state['complete'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'No hay una exportación pendiente.', 'taxocommerce-import-export' ) ), 409 );
+		}
+		if ( 'cancelling' === ( $state['status'] ?? '' ) ) {
+			wp_send_json_error( array( 'message' => __( 'La exportación se está cancelando.', 'taxocommerce-import-export' ) ), 409 );
+		}
+		$state['status'] = 'queued';
+		$state['error'] = '';
+		$state['updated'] = time();
+		$this->store_state( $state );
+		$this->schedule_worker( get_current_user_id(), $state['id'], 0 );
+		wp_send_json_success( $this->response_state( $state ) );
+	}
+
+	/**
+	 * Restore jobs after failed hosting dispatch, at most one check per owner
+	 * and only after 90 seconds without progress. For guaranteed unattended
+	 * operation on zero-traffic sites an external server cron is required.
+	 *
+	 * @return void
+	 */
+	public function watchdog() {
+		$user_id = get_current_user_id();
+		if ( ! $user_id ) {
+			return;
+		}
+		$state = $this->state();
+		if ( ! $state || ! empty( $state['complete'] ) ||
+			in_array( (string) ( $state['status'] ?? '' ), array( 'failed', 'cancelling' ), true ) ||
+			time() - absint( $state['updated'] ?? 0 ) < 90 ||
+			get_option( $this->lock_key(), false ) ) {
+			return;
+		}
+		$last = absint( get_transient( 'taxocommerce_ie_export_recovery_' . $user_id ) );
+		if ( $last && time() - $last < 90 ) {
+			return;
+		}
+		set_transient( 'taxocommerce_ie_export_recovery_' . $user_id, time(), 120 );
+		$this->schedule_worker( $user_id, $state['id'], 0 );
+	}
+
 	/**
 	 * Process one bounded export block.
 	 *
@@ -361,35 +548,13 @@ final class TaxoCommerce_Import_Export_Exporter {
 	public function ajax_step() {
 		$this->guard_ajax();
 		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
-
 		$state = $this->state();
-		$job   = isset( $_POST['job'] ) ? sanitize_text_field( wp_unslash( $_POST['job'] ) ) : '';
-		if ( ! $state || ! $job || ! hash_equals( (string) $state['id'], $job ) ) {
+		$job = isset( $_POST['job'] ) ? sanitize_text_field( wp_unslash( $_POST['job'] ) ) : '';
+		if ( ! $state || ! hash_equals( (string) $state['id'], $job ) ) {
 			wp_send_json_error( array( 'message' => __( 'La exportación ha caducado o pertenece a otra sesión.', 'taxocommerce-import-export' ) ), 409 );
 		}
-		if ( ! empty( $state['complete'] ) ) {
-			wp_send_json_success( $this->response_state( $state ) );
-		}
-
-		$token = $this->acquire_lock( $job );
-		if ( '' === $token ) {
-			wp_send_json_error( array( 'message' => __( 'Ya hay un bloque de exportación en curso. Reintenta en unos segundos.', 'taxocommerce-import-export' ) ), 409 );
-		}
-
-		try {
-			$result = $this->process_block( $state );
-		} catch ( Throwable $e ) {
-			$this->release_lock( $token );
-			wp_send_json_error( array( 'message' => sanitize_text_field( $e->getMessage() ) ), 500 );
-		}
-		$this->release_lock( $token );
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
-		}
-
-		$this->store_state( $result );
-		wp_send_json_success( $this->response_state( $result ) );
+		// Backward compatibility: this endpoint no longer writes CSV rows.
+		wp_send_json_success( $this->response_state( $state ) );
 	}
 
 	/**
@@ -417,9 +582,21 @@ final class TaxoCommerce_Import_Export_Exporter {
 	public function ajax_cancel() {
 		$this->guard_ajax();
 		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
-		$this->delete_current_job();
-		delete_option( $this->lock_key() );
-		wp_send_json_success( array( 'cancelled' => true ) );
+		$state = $this->state();
+		if ( ! $state ) {
+			wp_send_json_success( array( 'cancelled' => true ) );
+		}
+		// Cancellation must not unlink a file while its writer still has it open.
+		update_option( $this->cancel_key(), (string) $state['id'], false );
+		if ( ! get_option( $this->lock_key(), false ) ) {
+			$this->delete_current_job();
+			delete_option( $this->cancel_key() );
+			$this->unschedule_worker( get_current_user_id(), (string) $state['id'] );
+			wp_send_json_success( array( 'cancelled' => true ) );
+		}
+		$state['status'] = 'cancelling';
+		$this->store_state( $state );
+		wp_send_json_success( array( 'cancelled' => false ) );
 	}
 
 	/**
@@ -945,7 +1122,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! is_array( $paths ) ) {
 			return;
 		}
-		$cutoff = time() - DAY_IN_SECONDS;
+		$cutoff = time() - 2 * DAY_IN_SECONDS;
 		foreach ( $paths as $path ) {
 			if ( ! is_file( $path ) ) {
 				continue;
@@ -976,6 +1153,8 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'nextBatch'   => TaxoCommerce_IE_Load::batch_size( 'export' ),
 			'total'       => absint( $state['total'] ?? 0 ),
 			'complete'    => ! empty( $state['complete'] ),
+			'status'      => sanitize_key( (string) ( $state['status'] ?? 'running' ) ),
+			'error'       => sanitize_text_field( (string) ( $state['error'] ?? '' ) ),
 			'downloadUrl' => ! empty( $state['complete'] ) ? $this->download_url( $state ) : '',
 		);
 	}
@@ -1013,6 +1192,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 	 */
 	private function lock_key() {
 		return self::LOCK_PREFIX . get_current_user_id();
+	}
+
+	/** Persistent cancellation flag while a worker holds the write lock. */
+	private function cancel_key() {
+		return self::CANCEL_PREFIX . get_current_user_id();
 	}
 
 	/**
