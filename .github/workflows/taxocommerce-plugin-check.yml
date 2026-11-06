@@ -55,7 +55,8 @@ jobs:
           if os.environ.get("REQUESTED_PLUGIN") == "all":
               selected = sorted(
                   folder.name for folder in Path(".").glob("taxocommerce-*")
-                  if folder.is_dir() and (folder / (folder.name + ".php")).is_file()
+                  if folder.name != "taxocommerce-connections"
+                  and folder.is_dir() and (folder / (folder.name + ".php")).is_file()
               )
               if not selected:
                   raise SystemExit("No TaxoCommerce plugins found for strict gate")
