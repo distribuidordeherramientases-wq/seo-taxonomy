@@ -4,7 +4,7 @@
  *
  * Bing is a secondary source: it complements Google Search Console with
  * Bing traffic, query/page visibility and crawl/index health. It does not
- * submit URLs because IndexNow is already handled by Cloudflare.
+ * submit URLs itself. The optional IndexNow queue is configured in Insights Connections.
  */
 
 defined('ABSPATH') || exit;
@@ -385,7 +385,7 @@ if (!function_exists('seo_analista_render_bing_settings_form')) {
         echo '<p><strong>API key de Bing Webmaster</strong><br><input class="regular-text" type="password" autocomplete="new-password" name="bing_api_key" value="" placeholder="' . esc_attr($configured ? 'Clave ya configurada; dejala vacia para conservarla' : 'Pega aqui la API key') . '"></p>';
         if ($configured && !defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p>' . '<label>' . '<input type="checkbox" name="bing_clear_api_key" value="1">' . ' ' . esc_html__( 'Eliminar la API key guardada', 'taxocommerce-google-bing' ) . '</label>' . '</p>';
         if (defined('SEO_BING_WEBMASTER_API_KEY')) echo '<p class="description">' . esc_html__( 'La clave se esta leyendo desde SEO_BING_WEBMASTER_API_KEY y no se guarda en Analista.', 'taxocommerce-google-bing' ) . '</p>';
-        echo '<p class="description">' . esc_html__( 'IndexNow no se duplica: Cloudflare sigue siendo el responsable de los envios. Bing se usa aqui solo para lectura y comparacion.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'IndexNow puede activarse desde Conexiones de Insights si otro sistema no lo está gestionando. Bing Webmaster se usa aquí para informes de lectura.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button('Guardar Bing', 'secondary', 'submit', false);
         echo '</form></details>';
     }
