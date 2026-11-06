@@ -57,7 +57,7 @@ $checks = array(
     strpos( $csv, "product_inventory_reduced" ) !== false,
     strpos( $csv, "product_vocabulary_export_payload" ) !== false,
     strpos( $csv, "product_seo_attributes_export_payload" ) !== false,
-    strpos( $exporter_js, "Generando por bloques" ) !== false,
+    strpos( $exporter_js, "Generando en segundo plano" ) !== false,
     strpos( $exporter_js, "Reintentar bloque" ) === false || strpos( $exporter, "Reintentar bloque" ) !== false,
     strpos( $core, "Importación por lotes" ) !== false,
     strpos( $core, "new TaxoCommerce_Import_Export_Batch" ) !== false,
