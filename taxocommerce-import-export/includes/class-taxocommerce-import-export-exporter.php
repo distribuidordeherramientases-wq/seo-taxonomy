@@ -539,7 +539,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 					return;
 				}
 				if ( empty( $result['complete'] ) ) {
-					$this->dispatch_next( $user_id, $job, TaxoCommerce_IE_Load::delay( 'export' ) );
+					$continue = true;
 				}
 			} catch ( Throwable $e ) {
 				$state = $this->state();
@@ -551,6 +551,11 @@ final class TaxoCommerce_Import_Export_Exporter {
 				}
 			} finally {
 				$this->release_lock( $token );
+			}
+			// Launch the next loopback only after the exclusive writer lock
+			// is released: otherwise short requests can see BUSY and stop.
+			if ( ! empty( $continue ) ) {
+				$this->dispatch_next( $user_id, $job, TaxoCommerce_IE_Load::delay( 'export' ) );
 			}
 		} finally {
 			wp_set_current_user( $previous_user );
