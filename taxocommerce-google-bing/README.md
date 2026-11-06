@@ -90,3 +90,16 @@ The GitHub Actions workflow validates PHP syntax, local-only report rendering, e
 - Redirected the old Connections tab to TaxoCommerce Connections.
 - Kept existing internal slugs/options for backward compatibility.
 - Standardized active Insights UI text to English.
+
+## Etiquetas dinámicas de cabecera (Head tags)
+
+La pestaña **Etiquetas de cabecera** de Insights permite a un administrador con permisos `manage_options` y `unfiltered_html` pegar el **fragmento HTML completo** facilitado por Google, Bing, Microsoft Clarity u otro proveedor, sin editar `header.php`, archivos de tema ni plantillas.
+
+- **Verificación**: admite exclusivamente etiquetas `<meta ...>` (por ejemplo, Search Console o Bing Webmaster) y las imprime en `wp_head` cuando la entrada está activa. No requieren cookies.
+- **Seguimiento**: admite el código `<script>...</script>` del proveedor, pero solo se imprime con consentimiento de estadísticas afirmativo mediante WP Consent API (`wp_has_consent('statistics')`) o una integración explícita con el filtro `taxocommerce_insights_head_tracking_allowed`. Si no hay consentimiento conocido, no se imprime el script.
+- Cada entrada dispone de nombre, tipo, editor de código, activación/desactivación y eliminación; el límite es de 20 entradas de hasta 12 KB. El sistema rechaza HTML de página, iframes y código PHP.
+- No se copian scripts arbitrarios de fuentes desconocidas. En multisitio, el permiso `unfiltered_html` queda normalmente restringido a superadministradores.
+- **Evitar duplicados:** si GA4 ya está habilitado mediante la integración existente, no se debe pegar de nuevo el mismo código de Google Analytics en esta pantalla. La integración de Analytics no se migra ni se sobrescribe.
+- Las etiquetas se aplican a la web pública; no se insertan en las pantallas de administración ni en feeds. Cada instalación WordPress mantiene sus propias opciones.
+
+Prueba de humo autocontenida: `php taxocommerce-google-bing/tests/head-tags-smoke.php` (sin llamadas a proveedores).
