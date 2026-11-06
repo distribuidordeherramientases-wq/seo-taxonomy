@@ -27,22 +27,22 @@ final class Auto_Test {
 
     public static function cases() {
         return array(
-            'runtime'    => array( 'Plugin', 'Servicios Auditor cargados' ),
-            'hooks'      => array( 'Seguridad', 'Rutas protegidas y proceso por lotes registrados' ),
-            'scopes'     => array( 'Ámbitos', 'Cinco tipos de contenido' ),
-            'products'   => array( 'Productos', 'WooCommerce y productos disponibles' ),
-            'categories' => array( 'Categorías', 'Taxonomía de productos disponible' ),
-            'faqs'       => array( 'FAQs', 'Fuente FAQ opcional o alternativa' ),
-            'quality'    => array( 'Calidad', 'Ponderaciones y bandas de puntuación' ),
-            'priority'   => array( 'Calidad', 'Prioridad y revisión editorial' ),
-            'filters'    => array( 'Auditorías', 'Filtros y límites disponibles' ),
-            'runner'     => array( 'Auditorías', 'Motor por lotes y controles de ejecución' ),
-            'storage'    => array( 'Exportación', 'Contratos del almacén JSONL y descarga' ),
-            'state'      => array( 'Informes', 'Acceso a estados e informes guardados' ),
-            'history'    => array( 'Informes', 'Historial de los cinco ámbitos' ),
-            'context'    => array( 'Integraciones', 'Lectura de evidencia local y opcional' ),
-            'manual'     => array( 'Manual', 'Guías de usuario y técnico' ),
-            'operations' => array( 'Seguridad', 'Auditorías completas, exportaciones y cambios' ),
+            'runtime'    => array( __( 'Plugin', 'taxocommerce-auditor' ), __( 'Servicios Auditor cargados', 'taxocommerce-auditor' ) ),
+            'hooks'      => array( __( 'Seguridad', 'taxocommerce-auditor' ), __( 'Rutas protegidas y proceso por lotes registrados', 'taxocommerce-auditor' ) ),
+            'scopes'     => array( __( 'Ámbitos', 'taxocommerce-auditor' ), __( 'Cinco tipos de contenido', 'taxocommerce-auditor' ) ),
+            'products'   => array( __( 'Productos', 'taxocommerce-auditor' ), __( 'WooCommerce y productos disponibles', 'taxocommerce-auditor' ) ),
+            'categories' => array( __( 'Categorías', 'taxocommerce-auditor' ), __( 'Taxonomía de productos disponible', 'taxocommerce-auditor' ) ),
+            'faqs'       => array( __( 'FAQs', 'taxocommerce-auditor' ), __( 'Fuente FAQ opcional o alternativa', 'taxocommerce-auditor' ) ),
+            'quality'    => array( __( 'Calidad', 'taxocommerce-auditor' ), __( 'Ponderaciones y bandas de puntuación', 'taxocommerce-auditor' ) ),
+            'priority'   => array( __( 'Calidad', 'taxocommerce-auditor' ), __( 'Prioridad y revisión editorial', 'taxocommerce-auditor' ) ),
+            'filters'    => array( __( 'Auditorías', 'taxocommerce-auditor' ), __( 'Filtros y límites disponibles', 'taxocommerce-auditor' ) ),
+            'runner'     => array( __( 'Auditorías', 'taxocommerce-auditor' ), __( 'Motor por lotes y controles de ejecución', 'taxocommerce-auditor' ) ),
+            'storage'    => array( __( 'Exportación', 'taxocommerce-auditor' ), __( 'Contratos del almacén JSONL y descarga', 'taxocommerce-auditor' ) ),
+            'state'      => array( __( 'Informes', 'taxocommerce-auditor' ), __( 'Acceso a estados e informes guardados', 'taxocommerce-auditor' ) ),
+            'history'    => array( __( 'Informes', 'taxocommerce-auditor' ), __( 'Historial de los cinco ámbitos', 'taxocommerce-auditor' ) ),
+            'context'    => array( __( 'Integraciones', 'taxocommerce-auditor' ), __( 'Lectura de evidencia local y opcional', 'taxocommerce-auditor' ) ),
+            'manual'     => array( __( 'Manual', 'taxocommerce-auditor' ), __( 'Guías de usuario y técnico', 'taxocommerce-auditor' ) ),
+            'operations' => array( __( 'Seguridad', 'taxocommerce-auditor' ), __( 'Auditorías completas, exportaciones y cambios', 'taxocommerce-auditor' ) ),
         );
     }
 
@@ -78,7 +78,7 @@ final class Auto_Test {
     private static function test_runtime() {
         foreach ( array( 'Plugin', 'Admin', 'Runner', 'Rules', 'Priority', 'Editorial_Specialist', 'Category_Review', 'FAQ_Source', 'Export_Store', 'Decision_Context', 'Manual' ) as $class ) {
             if ( ! class_exists( __NAMESPACE__ . '\\' . $class ) ) {
-                return self::fail( 'Falta la clase ' . $class . '.' );
+                return self::fail( __( 'Falta la clase', 'taxocommerce-auditor' ) . ' ' . $class . '.' );
             }
         }
         return self::pass( 'Auditor ' . Plugin::VERSION . ': componentes cargados.' );
@@ -92,7 +92,7 @@ final class Auto_Test {
             Runner::HOOK,
         ) as $hook ) {
             if ( ! has_action( $hook ) ) {
-                return self::fail( 'No está registrado: ' . $hook . '.' );
+                return self::fail( __( 'No está registrado:', 'taxocommerce-auditor' ) . ' ' . $hook . '.' );
             }
         }
         return self::pass( __( 'Formularios, descargas, Autocheck y callback de lotes registrados, sin invocarlos.', 'taxocommerce-auditor' ) );
@@ -158,7 +158,7 @@ final class Auto_Test {
     private static function test_runner() {
         foreach ( array( 'start', 'pause', 'resume', 'run_batch', 'ensure_scheduled', 'report' ) as $method ) {
             if ( ! method_exists( __NAMESPACE__ . '\\Runner', $method ) ) {
-                return self::fail( 'Falta Runner::' . $method . '.' );
+                return self::fail( __( 'Falta Runner::', 'taxocommerce-auditor' ) . $method . '.' );
             }
         }
         return Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 100
@@ -169,7 +169,7 @@ final class Auto_Test {
     private static function test_storage() {
         foreach ( array( 'begin', 'append', 'rows', 'exists', 'stream_report' ) as $method ) {
             if ( ! method_exists( __NAMESPACE__ . '\\Export_Store', $method ) ) {
-                return self::fail( 'Falta Export_Store::' . $method . '.' );
+                return self::fail( __( 'Falta Export_Store::', 'taxocommerce-auditor' ) . $method . '.' );
             }
         }
         return self::pass( __( 'Almacén JSONL y descarga completa disponibles, sin crear ni abrir archivos.', 'taxocommerce-auditor' ) );
@@ -283,7 +283,7 @@ final class Auto_Test {
                 if ( 'fail' === $row['status'] && ( $old[ $row['id'] ] ?? '' ) === 'pass' ) $regressions[] = $row['label'];
             }
             echo '<p><strong>Comparativa:</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
-            echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.';
+            echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : __( 'Sin regresiones de correcto a fallido.', 'taxocommerce-auditor' );
             echo '</p>';
         } else {
             echo '<p>' . esc_html__( 'No hay una ejecución anterior para comparar.', 'taxocommerce-auditor' ) . '</p>';
