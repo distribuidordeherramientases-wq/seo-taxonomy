@@ -6,6 +6,15 @@ final class TCD_Admin {
         add_action('admin_menu',array(__CLASS__,'menu'),30);
     }
 
+    /** Completion of an empty snapshot is workflow progress, not an exam score. */
+    public static function lesson_progress_percent( $status, $processed, $total ) {
+        if ( 'skipped_empty' === (string) $status ) {
+            return 100;
+        }
+        $total = absint( $total );
+        return $total > 0 ? (int) min( 100, round( 100 * absint( $processed ) / $total ) ) : 0;
+    }
+
     public static function menu(){
         if (function_exists('taxocommerce_core')) {
             add_submenu_page('taxocommerce-core',__( 'TaxoCommerce Sales Assistant', 'taxocommerce-dependiente' ),__( 'Sales Assistant', 'taxocommerce-dependiente' ),'manage_woocommerce',
@@ -467,7 +476,7 @@ final class TCD_Admin {
                 $progress_total=$sources;
                 $progress_text='elementos procesados de la foto fija';
             }
-            $percent=$progress_total>0 ? min(100,round(($progress_value/$progress_total)*100)) : 0;
+            $percent=self::lesson_progress_percent( (string) ( $snapshot['status'] ?? '' ), $progress_value, $progress_total );
             echo '<tr>';
             echo '<td><strong>L'.esc_html((string)$no).'</strong> '.esc_html((string)$lesson['name']).'<div class="description"><code>'.esc_html((string)$lesson['key']).'</code></div></td>';
             echo '<td>'.esc_html((string)$lesson['objective']).'<div class="description">Fuente: '.esc_html((string)$lesson['source']).'</div></td>';

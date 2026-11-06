@@ -1,6 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.29] — 2026-11-06
+
+- Mostrar 100 % de progreso para snapshots de lecciones vacías (`skipped_empty`) ya cerradas, con 0/0 elementos y sin aprobar exámenes ni crear aprendizaje ficticio.
+- Los estados pendientes, en ejecución y con error conservan su progreso real. No cambia el motor L1-L10 ni el mantenimiento incremental M12. Issue #2243.
+
 ## [0.3.28] — 2026-11-05
 
 - Las lecciones con cero fuentes se registran como `skipped_empty`, sin puntuación ficticia ni conocimiento inventado; la formación continúa en la siguiente lección.
