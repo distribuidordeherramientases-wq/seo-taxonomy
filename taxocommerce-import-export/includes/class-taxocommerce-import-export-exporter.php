@@ -382,9 +382,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$delay = max( 0, absint( $delay ) );
 		$args = array( $user_id, (string) $job );
 		if ( function_exists( 'as_schedule_single_action' ) ) {
-			if ( function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::WORKER_HOOK, $args, self::WORKER_GROUP ) ) {
-				return;
-			}
+			// The running action may still be marked in-progress while it
+			// schedules its successor. A non-unique action is intentional;
+			// the per-job lock prevents concurrent writes.
 			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, $args, self::WORKER_GROUP, false, 10 );
 		} elseif ( ! wp_next_scheduled( self::WORKER_HOOK, $args ) ) {
 			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK, $args );
