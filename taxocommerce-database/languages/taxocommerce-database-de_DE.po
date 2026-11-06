@@ -888,3 +888,37 @@ msgstr "unbekannter Endpunkttyp"
 
 msgid "Último resultado"
 msgstr "Letztes Ergebnis"
+
+msgid "Usuario ID %d"
+msgstr "Benutzer-ID %d"
+
+msgid "No disponible"
+msgstr "Nicht verfügbar"
+
+msgid "Existe un bloqueo activo."
+msgstr "Eine aktive Sperre ist vorhanden."
+
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr "Prüfen Sie vor dem Aufheben der Sperre, dass kein weiterer Sammelannahmeprozess ausgeführt wird."
+
+msgid "Opción de WordPress"
+msgstr "WordPress-Option"
+
+msgid "Usuario que inició el proceso"
+msgstr "Benutzer, der den Vorgang gestartet hat"
+
+msgid "Fecha de inicio"
+msgstr "Startdatum"
+
+msgid "Antigüedad"
+msgstr "Verstrichene Zeit"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Desbloquear aceptación masiva"
+msgstr "Sammelannahme entsperren"
+
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr "Heben Sie die Sperre nur auf, wenn kein weiterer Sammelannahmeprozess ausgeführt wird. Fortfahren?"
+

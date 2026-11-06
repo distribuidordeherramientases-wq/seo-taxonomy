@@ -889,3 +889,36 @@ msgstr "tipo de extremo desconocido"
 msgid "Último resultado"
 msgstr "Último resultado"
 
+msgid "Usuario ID %d"
+msgstr "Usuario ID %d"
+
+msgid "No disponible"
+msgstr "No disponible"
+
+msgid "Existe un bloqueo activo."
+msgstr "Existe un bloqueo activo."
+
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+
+msgid "Opción de WordPress"
+msgstr "Opción de WordPress"
+
+msgid "Usuario que inició el proceso"
+msgstr "Usuario que inició el proceso"
+
+msgid "Fecha de inicio"
+msgstr "Fecha de inicio"
+
+msgid "Antigüedad"
+msgstr "Antigüedad"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Desbloquear aceptación masiva"
+msgstr "Desbloquear aceptación masiva"
+
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+
