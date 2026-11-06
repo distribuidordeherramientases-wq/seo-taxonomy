@@ -12,7 +12,7 @@ final class TCD_Admin {
             return 100;
         }
         $total = absint( $total );
-        return $total > 0 ? min( 100, round( 100 * absint( $processed ) / $total ) ) : 0;
+        return $total > 0 ? (int) min( 100, round( 100 * absint( $processed ) / $total ) ) : 0;
     }
 
     public static function menu(){
