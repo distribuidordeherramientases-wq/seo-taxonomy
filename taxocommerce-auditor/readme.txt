@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.5
+Stable tag: 0.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,11 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.6 =
+* Internationalization of Auditor UI using native WordPress gettext, with updated locale dictionaries.
+* Preserves audit engine, reporting, exports, settings, permissions and existing plugin functions.
+
 
 = 0.3.5 =
 * Nombre uniforme «Autocheck» y descarga autenticada del último informe JSON, con resultados por comprobación y sin ejecutar operaciones reales.

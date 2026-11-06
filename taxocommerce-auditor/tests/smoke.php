@@ -5,6 +5,10 @@
  */
 define( 'ABSPATH', __DIR__ );
 
+// WordPress gettext returns its source string for unloaded locale in offline tests.
+function __( $text, $domain = '' ) { return $text; }
+function esc_html_e( $text, $domain = '' ) { echo htmlspecialchars( __( $text, $domain ), ENT_QUOTES, 'UTF-8' ); }
+function esc_attr__( $text, $domain = '' ) { return __( $text, $domain ); }
 function remove_accents( $v ) { return $v; }
 function wp_strip_all_tags( $v ) { return strip_tags( (string) $v ); }
 function strip_shortcodes( $v ) { return $v; }

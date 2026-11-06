@@ -1,3 +1,9 @@
+## [0.3.6] — 2026-11-06 — Internacionalización Auditor (#2062)
+
+- Revisión de textos visibles, botones, estados, pestañas, informes, KPI, autochequeo, manual y mensajes de reglas con gettext nativo de WordPress.
+- Conservados los identificadores de API, filtros, CSS, SQL, las funciones de auditoría y los formatos de exportación JSON.
+- Actualizados los diccionarios por idioma y las pruebas de regresión. Cambios exclusivamente en TaxoCommerce Auditor.
+
 ## Unreleased - Familia i18n #2062
 
 
