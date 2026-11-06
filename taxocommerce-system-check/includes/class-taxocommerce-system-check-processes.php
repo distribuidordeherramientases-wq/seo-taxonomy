@@ -199,7 +199,7 @@ final class TaxoCommerce_System_Check_Processes {
 	private static function cancel_cron( $hook, $timestamp, $signature ) {
 		foreach ( self::cron() as $row ) {
 			if ( $row['hook'] === $hook && $row['due'] === $timestamp && $row['can_cancel']
-				&& hash_equals( md5( serialize( $row['args'] ) ), $signature ) ) {
+				&& hash_equals( md5( wp_json_encode( $row['args'] ) ), $signature ) ) {
 				return false !== wp_unschedule_event( $timestamp, $hook, $row['args'] );
 			}
 		}
@@ -236,7 +236,7 @@ final class TaxoCommerce_System_Check_Processes {
 				}
 			}
 			foreach ( self::cron() as $event ) {
-				if ( $event['can_cancel'] && self::cancel_cron( $event['hook'], $event['due'], md5( serialize( $event['args'] ) ) ) ) {
+				if ( $event['can_cancel'] && self::cancel_cron( $event['hook'], $event['due'], md5( wp_json_encode( $event['args'] ) ) ) ) {
 					++$success;
 				}
 			}
@@ -246,6 +246,9 @@ final class TaxoCommerce_System_Check_Processes {
 	}
 
 	private static function button( $operation, $label, $fields = array(), $confirm = false ) {
+		if ( $confirm ) {
+			echo '<details><summary>' . esc_html__( 'Mostrar confirmación de parada global', 'taxocommerce-system-check' ) . '</summary>';
+		}
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
 		echo '<input type="hidden" name="operation" value="' . esc_attr( $operation ) . '">';
@@ -254,10 +257,10 @@ final class TaxoCommerce_System_Check_Processes {
 		}
 		wp_nonce_field( self::ACTION );
 		echo '<button type="submit" class="button"';
-		if ( $confirm ) {
-			echo ' onclick="return confirm(' . esc_attr( wp_json_encode( __( '¿Detener todos los trabajos cancelables? Esta operación no se puede deshacer.', 'taxocommerce-system-check' ) ) ) . ')"';
-		}
 		echo '>' . esc_html( $label ) . '</button></form>';
+		if ( $confirm ) {
+			echo '</details>';
+		}
 	}
 
 	public static function render() {
