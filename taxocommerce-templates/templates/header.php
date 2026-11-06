@@ -558,9 +558,7 @@ if (!function_exists('dht_header_render_breadcrumbs')) {
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <?php if (is_front_page() && get_bloginfo('description') !== '') : ?>
-        <meta name="description" content="<?php echo esc_attr(get_bloginfo('description')); ?>">
-    <?php endif; ?>
+    <?php // dht_template_render_wp_head() owns the unique contextual meta description. ?>
     <?php dht_template_render_wp_head(); ?>
 </head>
 <body <?php body_class('dht-template-body'); ?>>
