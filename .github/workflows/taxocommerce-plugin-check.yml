@@ -159,34 +159,3 @@ jobs:
             test "$CHECK" = success
             echo "All selected plugins passed the official WordPress Plugin Check."
           fi
-
-  auditor-i18n-temporary:
-    name: Auditor translations (temporary branch-only generation)
-    if: github.event_name == 'pull_request' && github.head_ref == 'fix/auditor-complete-wordpress-i18n-20261106'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix/auditor-complete-wordpress-i18n-20261106
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install development-time gettext translator
-        run: python -m pip install polib requests
-      - name: Update only Auditor WordPress PO/MO files
-        run: python .github/scripts/auditor-i18n-2062-ci.py
-      - name: Commit catalogs to feature branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'TaxoCommerce CI'
-          git config user.email 'taxocommerce-ci@users.noreply.github.com'
-          git add taxocommerce-auditor/languages/
-          if ! git diff --cached --quiet; then
-            git commit -m 'Auditor: generate 5 native WordPress PO/MO catalogs (#2062)'
-            git push origin HEAD:refs/heads/fix/auditor-complete-wordpress-i18n-20261106
-          fi
