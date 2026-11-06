@@ -155,6 +155,10 @@ msgstr ""
 msgid "2.7 Pruebas de regresión y distribución"
 msgstr ""
 
+#: includes/class-admin.php:587
+msgid "Abrir categoría"
+msgstr ""
+
 #: includes/class-auto-test.php:41
 msgid "Acceso a estados e informes guardados"
 msgstr ""
@@ -189,6 +193,10 @@ msgstr ""
 
 #: includes/class-admin.php:390
 msgid "Alta"
+msgstr ""
+
+#: includes/class-admin.php:580
+msgid "Ambiguos:"
 msgstr ""
 
 #: includes/class-auto-test.php:32
@@ -259,7 +267,7 @@ msgstr ""
 msgid "Auditar todo"
 msgstr ""
 
-#: includes/class-admin.php:41 includes/class-admin.php:49 includes/class-manual.php:22
+#: includes/class-admin.php:41 includes/class-admin.php:49 includes/class-auto-test.php:84 includes/class-manual.php:22
 msgid "Auditor"
 msgstr ""
 
@@ -439,6 +447,14 @@ msgstr ""
 msgid "Código de hallazgo"
 msgstr ""
 
+#: includes/class-auto-test.php:285
+msgid "Comparativa:"
+msgstr ""
+
+#: includes/class-admin.php:146
+msgid "completa"
+msgstr ""
+
 #: includes/class-admin.php:63
 msgid "Completado"
 msgstr ""
@@ -449,6 +465,10 @@ msgstr ""
 
 #: includes/class-rules.php:534
 msgid "Completar o retirar la pregunta."
+msgstr ""
+
+#: includes/class-auto-test.php:84
+msgid "componentes cargados."
 msgstr ""
 
 #: includes/class-rules.php:385
@@ -477,6 +497,10 @@ msgstr ""
 
 #: includes/class-runner.php:556
 msgid "Con un solo producto"
+msgstr ""
+
+#: includes/class-admin.php:574
+msgid "Concentración en hermana"
 msgstr ""
 
 #: includes/class-admin.php:452
@@ -533,6 +557,10 @@ msgstr ""
 
 #: includes/class-admin.php:465
 msgid "Correcta"
+msgstr ""
+
+#: includes/class-auto-test.php:277
+msgid "correctas"
 msgstr ""
 
 #: includes/class-auto-test.php:292
@@ -607,6 +635,10 @@ msgstr ""
 msgid "Descripción, jerarquía, estructura, cobertura y propuestas de revisión para dividir o concentrar categorías con evidencia."
 msgstr ""
 
+#: includes/class-admin.php:582
+msgid "Destino sugerido:"
+msgstr ""
+
 #: includes/class-admin.php:270
 msgid "Detalle del informe"
 msgstr ""
@@ -631,6 +663,10 @@ msgstr ""
 msgid "Dimensiones"
 msgstr ""
 
+#: includes/class-admin.php:574
+msgid "División por TIPO"
+msgstr ""
+
 #: includes/class-manual.php:15
 msgid "Documentación integrada de la versión independiente: guía de uso y referencia técnica. Consultarla no ejecuta auditorías ni modifica el catálogo."
 msgstr ""
@@ -641,6 +677,10 @@ msgstr ""
 
 #: includes/class-admin.php:619
 msgid "Duración"
+msgstr ""
+
+#: includes/class-admin.php:385
+msgid "Duración:"
 msgstr ""
 
 #: includes/class-auto-test.php:165
@@ -673,6 +713,10 @@ msgstr ""
 
 #: includes/class-admin.php:426
 msgid "El índice de calidad es una evaluación interna para ordenar revisiones. No equivale a una puntuación de Google ni de Bing."
+msgstr ""
+
+#: includes/class-admin.php:496
+msgid "El listado es una muestra priorizada de"
 msgstr ""
 
 #: includes/class-rules.php:579
@@ -729,6 +773,10 @@ msgstr ""
 
 #: includes/class-admin.php:470
 msgid "Entidades con menor puntuación"
+msgstr ""
+
+#: includes/class-admin.php:448
+msgid "Entidades puntuadas:"
 msgstr ""
 
 #: includes/class-admin.php:387
@@ -795,6 +843,10 @@ msgstr ""
 msgid "Exportación"
 msgstr ""
 
+#: includes/class-auto-test.php:277
+msgid "fallidas"
+msgstr ""
+
 #: includes/class-auto-test.php:172
 msgid "Falta Export_Store::"
 msgstr ""
@@ -823,12 +875,24 @@ msgstr ""
 msgid "Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta búsquedas."
 msgstr ""
 
+#: includes/class-admin.php:146
+msgid "filtrada"
+msgstr ""
+
 #: includes/class-auto-test.php:154
 msgid "Filtros acotados y modo completo distinguidos sin ejecutar auditorías."
 msgstr ""
 
 #: includes/class-auto-test.php:38
 msgid "Filtros y límites disponibles"
+msgstr ""
+
+#: includes/class-admin.php:385
+msgid "Finalizado:"
+msgstr ""
+
+#: includes/class-auto-test.php:181
+msgid "Formato de estado o informe inválido para"
 msgstr ""
 
 #: includes/class-auto-test.php:59
@@ -845,6 +909,10 @@ msgstr ""
 
 #: includes/class-admin.php:66
 msgid "Fuente no disponible"
+msgstr ""
+
+#: includes/class-admin.php:596
+msgid "Fuentes nativas disponibles para esta ejecución:"
 msgstr ""
 
 #: includes/class-admin.php:192
@@ -871,12 +939,20 @@ msgstr ""
 msgid "Guías de usuario y técnico"
 msgstr ""
 
+#: includes/class-admin.php:150
+msgid "hallazgos"
+msgstr ""
+
 #: includes/class-admin.php:282 includes/class-admin.php:388 includes/class-admin.php:414 includes/class-admin.php:619 includes/class-runner.php:533
 msgid "Hallazgos"
 msgstr ""
 
 #: includes/class-admin.php:532
 msgid "Hallazgos por regla"
+msgstr ""
+
+#: includes/class-admin.php:496
+msgid "hallazgos. Consulta los contadores completos en Resumen."
 msgstr ""
 
 #: includes/class-auto-test.php:136
@@ -899,6 +975,10 @@ msgstr ""
 msgid "Historial de los cinco ámbitos"
 msgstr ""
 
+#: includes/class-auto-test.php:190
+msgid "Historial no disponible:"
+msgstr ""
+
 #: includes/class-rules.php:481
 msgid "Hub sin padre identificado en post_meta de Core."
 msgstr ""
@@ -913,6 +993,10 @@ msgstr ""
 
 #: includes/class-runner.php:534
 msgid "Incidencias con mayor severidad."
+msgstr ""
+
+#: includes/class-admin.php:357
+msgid "Indicadores específicos de calidad, integridad y errores a corregir sobre la última"
 msgstr ""
 
 #: includes/class-runner.php:537
@@ -953,6 +1037,10 @@ msgstr ""
 
 #: includes/class-editorial-specialist.php:338
 msgid "La categoría concentra la intención comercial; verificar que el post sea realmente informativo."
+msgstr ""
+
+#: includes/class-admin.php:607
+msgid "La comparación es parcial por límite de seguridad."
 msgstr ""
 
 #: includes/class-rules.php:418
@@ -1039,6 +1127,10 @@ msgstr ""
 msgid "Los indicadores agrupan entidades revisadas, hallazgos, severidad, puntuación y nivel de calidad. Las cinco dimensiones internas de evaluación son"
 msgstr ""
 
+#: includes/class-runner.php:602
+msgid "Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing."
+msgstr ""
+
 #: includes/class-admin.php:225
 msgid "Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este bloque. Para indicadores representativos del conjunto, utiliza"
 msgstr ""
@@ -1071,12 +1163,20 @@ msgstr ""
 msgid "Manual técnico"
 msgstr ""
 
+#: includes/class-admin.php:606
+msgid "Mapa editorial indexado:"
+msgstr ""
+
 #: includes/class-admin.php:106 includes/class-admin.php:457
 msgid "Máximo"
 msgstr ""
 
 #: includes/class-admin.php:391
 msgid "Media"
+msgstr ""
+
+#: includes/class-admin.php:449
+msgid "Media:"
 msgstr ""
 
 #: includes/class-admin.php:465
@@ -1113,6 +1213,10 @@ msgstr ""
 
 #: includes/class-auto-test.php:296
 msgid "No demuestra por sí mismo que una auditoría completa o la exportación JSONL funcionen con un catálogo real."
+msgstr ""
+
+#: includes/class-admin.php:449
+msgid "No disponible"
 msgstr ""
 
 #: includes/class-auto-test.php:292 includes/class-manual.php:44
@@ -1199,6 +1303,10 @@ msgstr ""
 msgid "No se encuentra la documentación integrada."
 msgstr ""
 
+#: includes/class-auto-test.php:62
+msgid "No se ha podido completar la comprobación:"
+msgstr ""
+
 #: includes/class-auto-test.php:242
 msgid "No se pudo generar el informe JSON."
 msgstr ""
@@ -1213,6 +1321,14 @@ msgstr ""
 
 #: includes/class-manual.php:58
 msgid "o un CPT FAQ admitido. El contexto de otros plugins es opcional y se obtiene de datos locales ya persistidos, nunca de peticiones remotas. No añadas nuevas tablas ni acoples Auditor a archivos del monolito."
+msgstr ""
+
+#: includes/class-admin.php:606
+msgid "objetos"
+msgstr ""
+
+#: includes/class-auto-test.php:277
+msgid "omitidas"
 msgstr ""
 
 #: includes/class-runner.php:588
@@ -1233,6 +1349,10 @@ msgstr ""
 
 #: includes/class-runner.php:582
 msgid "Páginas estructurales sin relación padre esperada."
+msgstr ""
+
+#: includes/class-admin.php:396
+msgid "Páginas funcionales/corporativas excluidas del diagnóstico editorial:"
 msgstr ""
 
 #: includes/class-runner.php:577
@@ -1367,6 +1487,10 @@ msgstr ""
 msgid "Producto WooCommerce y su API de lectura disponibles."
 msgstr ""
 
+#: includes/class-admin.php:578
+msgid "productos"
+msgstr ""
+
 #: includes/class-admin.php:345 includes/class-admin.php:567 includes/class-auto-test.php:33 includes/class-manual.php:25
 msgid "Productos"
 msgstr ""
@@ -1475,6 +1599,10 @@ msgstr ""
 msgid "Reglas con más incidencias"
 msgstr ""
 
+#: includes/class-auto-test.php:286
+msgid "Regresiones:"
+msgstr ""
+
 #: includes/class-admin.php:451
 msgid "Relevancia y utilidad"
 msgstr ""
@@ -1517,6 +1645,10 @@ msgstr ""
 
 #: includes/class-manual.php:33
 msgid "revisa el subconjunto solicitado."
+msgstr ""
+
+#: includes/class-admin.php:150
+msgid "revisados"
 msgstr ""
 
 #: includes/class-admin.php:619
@@ -1643,6 +1775,10 @@ msgstr ""
 msgid "Se utilizan APIs nativas de WordPress ("
 msgstr ""
 
+#: includes/class-admin.php:385
+msgid "segundos"
+msgstr ""
+
 #: includes/class-auto-test.php:31 includes/class-auto-test.php:45
 msgid "Seguridad"
 msgstr ""
@@ -1661,6 +1797,10 @@ msgstr ""
 
 #: includes/class-manual.php:34
 msgid "Si el proceso está en cola o ejecución, muestra estado, progreso y botones"
+msgstr ""
+
+#: includes/class-admin.php:583
+msgid "Similitud de nombre:"
 msgstr ""
 
 #: includes/class-runner.php:546 includes/class-runner.php:590
@@ -1709,6 +1849,10 @@ msgstr ""
 
 #: includes/class-auto-test.php:230
 msgid "Sin permisos para descargar el autocheck."
+msgstr ""
+
+#: includes/class-admin.php:137
+msgid "sin recuento disponible"
 msgstr ""
 
 #: includes/class-auto-test.php:286
@@ -1763,6 +1907,10 @@ msgstr ""
 msgid "Sólo ordena dentro de la prioridad P existente; no cambia la clase de Auditor."
 msgstr ""
 
+#: includes/class-runner.php:646
+msgid "Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones."
+msgstr ""
+
 #: includes/class-manual.php:60
 msgid "solo selecciona pantallas; los identificadores se validan con las listas permitidas."
 msgstr ""
@@ -1781,6 +1929,10 @@ msgstr ""
 
 #: includes/class-runner.php:535
 msgid "Tareas que requieren revisión prioritaria."
+msgstr ""
+
+#: includes/class-admin.php:496
+msgid "tareas sobre"
 msgstr ""
 
 #: includes/class-decision-context.php:222
@@ -1863,7 +2015,7 @@ msgstr ""
 msgid "Total de incidencias detectadas."
 msgstr ""
 
-#: includes/class-admin.php:148
+#: includes/class-admin.php:148 includes/class-auto-test.php:276
 msgid "Último informe"
 msgstr ""
 
@@ -1917,6 +2069,10 @@ msgstr ""
 
 #: includes/class-admin.php:293
 msgid "Vistas del informe"
+msgstr ""
+
+#: includes/class-admin.php:583
+msgid "Vocabulary:"
 msgstr ""
 
 #: includes/class-rules.php:248
