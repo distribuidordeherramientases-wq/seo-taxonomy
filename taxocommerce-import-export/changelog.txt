@@ -1,3 +1,6 @@
+= 0.4.17 (2026-11-06) =
+* Cancelación inmediata segura de CSV heredados y recuperación de estados bloqueados; despacho del siguiente bloque tras liberar el lock y pruebas de regresión.
+
 = 0.4.16 (2026-11-06) =
 * Exportación CSV desacoplada del navegador: worker por llamadas internas del servidor y recuperación Action Scheduler/WP-Cron con cola de bloques, seguimiento, cancelación y recuperación, conservando regulador adaptativo.
 
