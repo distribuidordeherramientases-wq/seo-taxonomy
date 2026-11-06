@@ -196,6 +196,10 @@ msgstr "2.6 Diagnostics and safety"
 msgid "2.7 Pruebas de regresión y distribución"
 msgstr "2.7 Regression and distribution testing"
 
+#: includes/class-admin.php:587
+msgid "Abrir categoría"
+msgstr "Open category"
+
 #: includes/class-auto-test.php:41
 msgid "Acceso a estados e informes guardados"
 msgstr "Access to saved statuses and reports"
@@ -238,6 +242,10 @@ msgstr ""
 #: includes/class-admin.php:390
 msgid "Alta"
 msgstr "High"
+
+#: includes/class-admin.php:580
+msgid "Ambiguos:"
+msgstr "Ambiguous:"
 
 #: includes/class-auto-test.php:32
 msgid "Ámbitos"
@@ -323,7 +331,7 @@ msgid "Auditar todo"
 msgstr "Audit everything"
 
 #: includes/class-admin.php:41 includes/class-admin.php:49
-#: includes/class-manual.php:22
+#: includes/class-auto-test.php:84 includes/class-manual.php:22
 msgid "Auditor"
 msgstr "Auditor"
 
@@ -521,6 +529,14 @@ msgstr "Clean coverage"
 msgid "Código de hallazgo"
 msgstr "Find code"
 
+#: includes/class-auto-test.php:285
+msgid "Comparativa:"
+msgstr "Comparison:"
+
+#: includes/class-admin.php:146
+msgid "completa"
+msgstr "complete"
+
 #: includes/class-admin.php:63
 msgid "Completado"
 msgstr "Completed"
@@ -532,6 +548,10 @@ msgstr "Fill in the value or remove the empty attribute."
 #: includes/class-rules.php:534
 msgid "Completar o retirar la pregunta."
 msgstr "Complete or withdraw the question."
+
+#: includes/class-auto-test.php:84
+msgid "componentes cargados."
+msgstr "loaded components."
 
 #: includes/class-rules.php:385
 msgid "Comprobar la jerarquía nativa de producto."
@@ -570,6 +590,10 @@ msgstr ""
 #: includes/class-runner.php:556
 msgid "Con un solo producto"
 msgstr "With a single product"
+
+#: includes/class-admin.php:574
+msgid "Concentración en hermana"
+msgstr "Focus on sister"
 
 #: includes/class-admin.php:452
 msgid "Confianza y rigor"
@@ -645,6 +669,10 @@ msgstr "controls batches/states;"
 #: includes/class-admin.php:465
 msgid "Correcta"
 msgstr "Correct"
+
+#: includes/class-auto-test.php:277
+msgid "correctas"
+msgstr "correct"
 
 #: includes/class-auto-test.php:292
 msgid "Correcto"
@@ -730,6 +758,10 @@ msgstr ""
 "Description, hierarchy, structure, coverage and revision proposals to divide"
 " or concentrate categories with evidence."
 
+#: includes/class-admin.php:582
+msgid "Destino sugerido:"
+msgstr "Suggested destination:"
+
 #: includes/class-admin.php:270
 msgid "Detalle del informe"
 msgstr "Report detail"
@@ -758,6 +790,10 @@ msgstr "Dimension"
 msgid "Dimensiones"
 msgstr "Dimensions"
 
+#: includes/class-admin.php:574
+msgid "División por TIPO"
+msgstr "Division by TYPE"
+
 #: includes/class-manual.php:15
 msgid ""
 "Documentación integrada de la versión independiente: guía de uso y "
@@ -774,6 +810,10 @@ msgstr "Duplicated in the same owner"
 #: includes/class-admin.php:619
 msgid "Duración"
 msgstr "Duration"
+
+#: includes/class-admin.php:385
+msgid "Duración:"
+msgstr "Duration:"
 
 #: includes/class-auto-test.php:165
 msgid "Ejecución por lotes y controles disponibles; ningún cron se dispara."
@@ -814,6 +854,10 @@ msgid ""
 msgstr ""
 "The quality index is an internal evaluation to order revisions. It is not "
 "equivalent to a Google or Bing score."
+
+#: includes/class-admin.php:496
+msgid "El listado es una muestra priorizada de"
+msgstr "The list is a prioritized sample of"
 
 #: includes/class-rules.php:579
 msgid ""
@@ -882,6 +926,10 @@ msgstr "Entities classified in the lowest internal band."
 #: includes/class-admin.php:470
 msgid "Entidades con menor puntuación"
 msgstr "Entities with the lowest score"
+
+#: includes/class-admin.php:448
+msgid "Entidades puntuadas:"
+msgstr "Rated entities:"
 
 #: includes/class-admin.php:387
 msgid "Entidades revisadas"
@@ -962,6 +1010,10 @@ msgstr "Explain which products you understand and which you don't."
 msgid "Exportación"
 msgstr "Export"
 
+#: includes/class-auto-test.php:277
+msgid "fallidas"
+msgstr "failed"
+
 #: includes/class-auto-test.php:172
 msgid "Falta Export_Store::"
 msgstr "Export_Store is missing::"
@@ -995,6 +1047,10 @@ msgstr ""
 "Persistent local feedback from TaxoCommerce Assistant/Dependent; does not "
 "run searches."
 
+#: includes/class-admin.php:146
+msgid "filtrada"
+msgstr "filtered"
+
 #: includes/class-auto-test.php:154
 msgid "Filtros acotados y modo completo distinguidos sin ejecutar auditorías."
 msgstr "Bounded filters and full mode distinguished without running audits."
@@ -1002,6 +1058,14 @@ msgstr "Bounded filters and full mode distinguished without running audits."
 #: includes/class-auto-test.php:38
 msgid "Filtros y límites disponibles"
 msgstr "Filters and limits available"
+
+#: includes/class-admin.php:385
+msgid "Finalizado:"
+msgstr "Finished:"
+
+#: includes/class-auto-test.php:181
+msgid "Formato de estado o informe inválido para"
+msgstr "Invalid status or report format for"
 
 #: includes/class-auto-test.php:59
 msgid "Formato de resultado de prueba no reconocido."
@@ -1022,6 +1086,10 @@ msgstr "Optional or alternative FAQ source"
 #: includes/class-admin.php:66
 msgid "Fuente no disponible"
 msgstr "Source not available"
+
+#: includes/class-admin.php:596
+msgid "Fuentes nativas disponibles para esta ejecución:"
+msgstr "Native fonts available for this run:"
 
 #: includes/class-admin.php:192
 msgid "Fuentes:"
@@ -1047,6 +1115,10 @@ msgstr "Integrated user guide and technical guide."
 msgid "Guías de usuario y técnico"
 msgstr "User and technical guides"
 
+#: includes/class-admin.php:150
+msgid "hallazgos"
+msgstr "findings"
+
 #: includes/class-admin.php:282 includes/class-admin.php:388
 #: includes/class-admin.php:414 includes/class-admin.php:619
 #: includes/class-runner.php:533
@@ -1056,6 +1128,10 @@ msgstr "Findings"
 #: includes/class-admin.php:532
 msgid "Hallazgos por regla"
 msgstr "Findings by rule"
+
+#: includes/class-admin.php:496
+msgid "hallazgos. Consulta los contadores completos en Resumen."
+msgstr "findings. See the complete counters in Summary."
 
 #: includes/class-auto-test.php:136
 msgid "Hay un desajuste en los criterios de calidad."
@@ -1078,6 +1154,10 @@ msgstr "Five scope history available; can be empty without being an error."
 msgid "Historial de los cinco ámbitos"
 msgstr "History of the five areas"
 
+#: includes/class-auto-test.php:190
+msgid "Historial no disponible:"
+msgstr "History not available:"
+
 #: includes/class-rules.php:481
 msgid "Hub sin padre identificado en post_meta de Core."
 msgstr "Hub with no parent identified in Core post_meta."
@@ -1093,6 +1173,14 @@ msgstr "Incidents"
 #: includes/class-runner.php:534
 msgid "Incidencias con mayor severidad."
 msgstr "Incidents with greater severity."
+
+#: includes/class-admin.php:357
+msgid ""
+"Indicadores específicos de calidad, integridad y errores a corregir sobre la"
+" última"
+msgstr ""
+"Specific indicators of quality, integrity and errors to be corrected on the "
+"last"
 
 #: includes/class-runner.php:537
 msgid "Índice interno de calidad; no es una métrica de Google."
@@ -1137,6 +1225,10 @@ msgid ""
 msgstr ""
 "The category concentrates the commercial intention; verify that the post is "
 "really informative."
+
+#: includes/class-admin.php:607
+msgid "La comparación es parcial por límite de seguridad."
+msgstr "The comparison is partial due to the safety limit."
 
 #: includes/class-rules.php:418
 msgid "La descripción está poco alineada literalmente con el título."
@@ -1252,6 +1344,14 @@ msgstr ""
 "The indicators group reviewed entities, findings, severity, score and "
 "quality level. The five internal dimensions of evaluation are"
 
+#: includes/class-runner.php:602
+msgid ""
+"Los KPI describen calidad interna y errores del contenido auditado. No son "
+"métricas de posicionamiento de Google/Bing."
+msgstr ""
+"KPIs describe internal quality and errors of the audited content. They are "
+"not Google/Bing positioning metrics."
+
 #: includes/class-admin.php:225
 msgid ""
 "Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
@@ -1291,6 +1391,10 @@ msgstr "User manual"
 msgid "Manual técnico"
 msgstr "Technical manual"
 
+#: includes/class-admin.php:606
+msgid "Mapa editorial indexado:"
+msgstr "Indexed editorial map:"
+
 #: includes/class-admin.php:106 includes/class-admin.php:457
 msgid "Máximo"
 msgstr "Maximum"
@@ -1298,6 +1402,10 @@ msgstr "Maximum"
 #: includes/class-admin.php:391
 msgid "Media"
 msgstr "Medium"
+
+#: includes/class-admin.php:449
+msgid "Media:"
+msgstr "Medium:"
 
 #: includes/class-admin.php:465
 msgid "Mejorable"
@@ -1342,6 +1450,10 @@ msgid ""
 msgstr ""
 "It doesn't by itself prove that a full audit or JSONL export will work with "
 "a real catalog."
+
+#: includes/class-admin.php:449
+msgid "No disponible"
+msgstr "Not available"
 
 #: includes/class-auto-test.php:292 includes/class-manual.php:44
 msgid "No ejecutado"
@@ -1449,6 +1561,10 @@ msgstr "The published owner cannot be found or its type does not correspond."
 msgid "No se encuentra la documentación integrada."
 msgstr "Integrated documentation is not found."
 
+#: includes/class-auto-test.php:62
+msgid "No se ha podido completar la comprobación:"
+msgstr "The verification could not be completed:"
+
 #: includes/class-auto-test.php:242
 msgid "No se pudo generar el informe JSON."
 msgstr "The JSON report could not be generated."
@@ -1471,6 +1587,14 @@ msgstr ""
 "obtained from local data already persisted, never from remote requests. Do "
 "not add new tables or attach Auditor to monolith files."
 
+#: includes/class-admin.php:606
+msgid "objetos"
+msgstr "objects"
+
+#: includes/class-auto-test.php:277
+msgid "omitidas"
+msgstr "omitted"
+
 #: includes/class-runner.php:588
 msgid "Owner huérfano"
 msgstr "Orphaned Owner"
@@ -1490,6 +1614,10 @@ msgstr "Pages whose SEO role is not resolved."
 #: includes/class-runner.php:582
 msgid "Páginas estructurales sin relación padre esperada."
 msgstr "Structural pages with no expected parent relationship."
+
+#: includes/class-admin.php:396
+msgid "Páginas funcionales/corporativas excluidas del diagnóstico editorial:"
+msgstr "Functional/corporate pages excluded from the editorial diagnosis:"
 
 #: includes/class-runner.php:577
 msgid "Páginas sin clasificación semántica nativa."
@@ -1638,6 +1766,10 @@ msgstr "Product without linked row in TaxoCommerce Suppliers."
 msgid "Producto WooCommerce y su API de lectura disponibles."
 msgstr "WooCommerce product and its reading API available."
 
+#: includes/class-admin.php:578
+msgid "productos"
+msgstr "products"
+
 #: includes/class-admin.php:345 includes/class-admin.php:567
 #: includes/class-auto-test.php:33 includes/class-manual.php:25
 msgid "Productos"
@@ -1755,6 +1887,10 @@ msgstr "Rule"
 msgid "Reglas con más incidencias"
 msgstr "Rules with the most incidents"
 
+#: includes/class-auto-test.php:286
+msgid "Regresiones:"
+msgstr "Regressions:"
+
 #: includes/class-admin.php:451
 msgid "Relevancia y utilidad"
 msgstr "Relevance and usefulness"
@@ -1806,6 +1942,10 @@ msgstr ""
 #: includes/class-manual.php:33
 msgid "revisa el subconjunto solicitado."
 msgstr "check the requested subset."
+
+#: includes/class-admin.php:150
+msgid "revisados"
+msgstr "reviewed"
 
 #: includes/class-admin.php:619
 msgid "Revisados"
@@ -1971,6 +2111,10 @@ msgstr "registers"
 msgid "Se utilizan APIs nativas de WordPress ("
 msgstr "Native WordPress APIs are used ("
 
+#: includes/class-admin.php:385
+msgid "segundos"
+msgstr "seconds"
+
 #: includes/class-auto-test.php:31 includes/class-auto-test.php:45
 msgid "Seguridad"
 msgstr "Security"
@@ -1992,6 +2136,10 @@ msgid ""
 "Si el proceso está en cola o ejecución, muestra estado, progreso y botones"
 msgstr ""
 "If the process is queued or running, shows status, progress and buttons"
+
+#: includes/class-admin.php:583
+msgid "Similitud de nombre:"
+msgstr "Name similarity:"
 
 #: includes/class-runner.php:546 includes/class-runner.php:590
 msgid "Sin categoría"
@@ -2040,6 +2188,10 @@ msgstr "Without permission to consult this manual."
 #: includes/class-auto-test.php:230
 msgid "Sin permisos para descargar el autocheck."
 msgstr "No permissions to download the autocheck."
+
+#: includes/class-admin.php:137
+msgid "sin recuento disponible"
+msgstr "no count available"
 
 #: includes/class-auto-test.php:286
 msgid "Sin regresiones de correcto a fallido."
@@ -2104,6 +2256,14 @@ msgstr ""
 "Only sorts within the existing P priority; it does not change the Auditor "
 "class."
 
+#: includes/class-runner.php:646
+msgid ""
+"Solo propuestas de revisión. No se mueven ni eliminan categorías y no se "
+"crean redirecciones."
+msgstr ""
+"Only revision proposals. No categories are moved or deleted and no redirects"
+" are created."
+
 #: includes/class-manual.php:60
 msgid ""
 "solo selecciona pantallas; los identificadores se validan con las listas "
@@ -2137,6 +2297,10 @@ msgstr "Lot size outside the expected contract."
 #: includes/class-runner.php:535
 msgid "Tareas que requieren revisión prioritaria."
 msgstr "Tasks that require priority review."
+
+#: includes/class-admin.php:496
+msgid "tareas sobre"
+msgstr "tasks about"
 
 #: includes/class-decision-context.php:222
 msgid "TaxoCommerce Assistant/Dependiente no está disponible."
@@ -2225,7 +2389,7 @@ msgstr "There are no results yet. Press Run Autocheck."
 msgid "Total de incidencias detectadas."
 msgstr "Total incidents detected."
 
-#: includes/class-admin.php:148
+#: includes/class-admin.php:148 includes/class-auto-test.php:276
 msgid "Último informe"
 msgstr "Latest report"
 
@@ -2309,6 +2473,10 @@ msgstr "Version"
 #: includes/class-admin.php:293
 msgid "Vistas del informe"
 msgstr "Report Views"
+
+#: includes/class-admin.php:583
+msgid "Vocabulary:"
+msgstr "Vocabulary:"
 
 #: includes/class-rules.php:248
 msgid "WooCommerce no pudo cargar el producto."
