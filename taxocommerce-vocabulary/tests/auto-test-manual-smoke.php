@@ -21,6 +21,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function esc_html__( $value, $domain ) { return $value; }
+function esc_html_e( $value, $domain ) { echo esc_html( $value ); }
 function wp_nonce_field( $action, $field = '_wpnonce' ) { echo '<input type="hidden" name="' . esc_attr($field) . '" value="nonce">'; }
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function wp_die( $message ) { throw new RuntimeException( $message ); }
