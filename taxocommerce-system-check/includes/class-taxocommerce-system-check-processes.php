@@ -55,7 +55,7 @@ final class TaxoCommerce_System_Check_Processes {
 						'status'     => $status,
 						'can_cancel' => 'pending' === $status && self::is_safe_hook( $hook, $group ),
 					);
-				} catch ( Exception $exception ) {
+				} catch ( Throwable $exception ) {
 					continue;
 				}
 			}
@@ -135,7 +135,7 @@ final class TaxoCommerce_System_Check_Processes {
 				$rows[] = array(
 					'id' => 'import', 'label' => __( 'Cola de importación', 'taxocommerce-system-check' ),
 					'status' => sanitize_key( (string) ( $state['status'] ?? 'idle' ) ),
-					'detail' => sanitize_text_field( (string) ( $state['current_file'] ?? '' ) ),
+					'detail' => is_scalar( $state['current_file'] ?? '' ) ? sanitize_text_field( (string) $state['current_file'] ) : '',
 					'can_stop' => ! empty( $state['enabled'] ) || in_array( (string) ( $state['status'] ?? '' ), array( 'processing', 'waiting_next', 'stopping' ), true ),
 				);
 			}
@@ -151,6 +151,9 @@ final class TaxoCommerce_System_Check_Processes {
 				}
 				try {
 					$job_action = ActionScheduler::store()->fetch_action( $entry['id'] );
+					if ( ! is_object( $job_action ) || ! method_exists( $job_action, 'get_args' ) ) {
+						continue;
+					}
 					$args = $job_action->get_args();
 					$user_id = absint( $args[0] ?? 0 );
 					$job_id = sanitize_text_field( (string) ( $args[1] ?? '' ) );
@@ -169,7 +172,7 @@ final class TaxoCommerce_System_Check_Processes {
 						'detail' => sanitize_text_field( (string) ( $state['type_label'] ?? '' ) ),
 						'can_stop' => ! in_array( (string) ( $state['status'] ?? '' ), array( 'failed', 'cancelling', 'cancelled', 'completed' ), true ),
 					);
-				} catch ( Exception $exception ) {
+				} catch ( Throwable $exception ) {
 					continue;
 				}
 			}
@@ -252,7 +255,7 @@ final class TaxoCommerce_System_Check_Processes {
 			}
 			$store->cancel_action( $id );
 			return true;
-		} catch ( Exception $exception ) {
+		} catch ( Throwable $exception ) {
 			return false;
 		}
 	}
