@@ -1,3 +1,12 @@
+## [1.1.17] — 2026-11-06 — IndexNow independiente de Cloudflare (#2259)
+
+- Emisor IndexNow opcional por tienda dentro de Insights > Connections > Bing, desactivado por defecto para evitar duplicaciones con proveedores SEO o CDN.
+- Clave pública aleatoria generada por instalación, URL de verificación virtual y cola deduplicada de hasta 1000 cambios; envío por WP-Cron de 100 URL como máximo, con reintentos controlados para 429, 5xx y errores de red.
+- Notifica cambios de entradas, productos y taxonomías publicadas, sin enviar URL de otros dominios ni contenido privado. Formulario para notificar una URL concreta del sitio.
+- Estado visible: URL de clave, pendientes y último HTTP; sin dependencia de otros plugins TaxoCommerce ni credenciales Bing Webmaster.
+- Se elimina la suposición histórica de que Cloudflare siempre gestiona IndexNow. Activarlo y comprobar la URL de clave en la tienda pertinente antes de esperar avisos Bing.
+- Test offline de permisos de dominio, cola, deduplicación y reintentos; ningún envío a producción.
+
 ## Unreleased - Familia i18n #2062
 
 
