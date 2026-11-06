@@ -78,6 +78,11 @@ final class TCD_Original_Linguista {
             'exam_auto_learned'  => 0,
             'exam_ambiguous'     => 0,
             'exam_invalid'       => 0,
+            'exam_inflight_id'   => 0,
+            'exam_inflight_phase' => '',
+            'exam_inflight_attempt' => 0,
+            'exam_inflight_started' => 0,
+            'exam_quarantined'   => 0,
             'exam_active_max_id' => 0,
             'exam_candidate_max_id' => 0,
             'l9_review_pass'     => 0,
@@ -785,19 +790,20 @@ final class TCD_Original_Linguista {
                 $batch_started = microtime(true);
                 $result = self::run_current_lesson_batch($state);
                 $duration = max(0.001, microtime(true) - $batch_started);
-                $did_work = $did_work || !empty($result['processed']) || !empty($result['done']);
+                $did_work = $did_work || !empty($result['processed']) || !empty($result['case_done']) || !empty($result['done']);
                 $processed = absint($result['processed'] ?? 0);
+                $reported = absint($result['case_done'] ?? $processed);
                 $learned = absint($result['learned'] ?? 0);
                 $rejected = absint($result['rejected'] ?? 0);
-                $processed_window += $processed;
-                $learned_window += $learned;
-                $rejected_window += $rejected;
+                $processed_window += $reported;
+                $learned_window += absint($result['case_learned'] ?? $learned);
+                $rejected_window += absint($result['case_rejected'] ?? $rejected);
 
                 $state = self::save_state(array(
                     'heartbeat_at'     => time(),
                     'last_activity_at' => time(),
                     'last_duration'    => $duration,
-                    'last_processed'   => $processed,
+                    'last_processed'   => $reported,
                     'lesson_processed' => absint($state['lesson_processed'] ?? 0) + $processed,
                     'lesson_learned'   => absint($state['lesson_learned'] ?? 0) + $learned,
                     'lesson_rejected'  => absint($state['lesson_rejected'] ?? 0) + $rejected,
@@ -1539,6 +1545,86 @@ final class TCD_Original_Linguista {
      * ambiguos; si necesitan contexto, solo se activan cuando ese contexto ya
      * existe. El uso real posterior puede elevar o reducir su confianza.
      */
+
+    /**
+     * Persist the currently evaluated expression *before* running expensive
+     * interpretation. If PHP is killed, the next worker can identify the
+     * exact repeated ID and avoid an endless retry at the same cursor.
+     *
+     * @param string $phase Active regression or candidate phase.
+     * @param int    $id Lexicon record ID.
+     * @return bool False if two previous interrupted attempts exhausted retry.
+     */
+    private static function exam_begin_case($phase, $id) {
+        $current = self::state();
+        $repeat = $id === absint($current['exam_inflight_id'] ?? 0)
+            && $phase === (string) ($current['exam_inflight_phase'] ?? '');
+        $attempt = $repeat ? absint($current['exam_inflight_attempt'] ?? 0) + 1 : 1;
+        self::save_state(array(
+            'exam_inflight_id' => $id,
+            'exam_inflight_phase' => $phase,
+            'exam_inflight_attempt' => $attempt,
+            'exam_inflight_started' => time(),
+            'heartbeat_at' => time(),
+        ));
+        if ($attempt <= 2) {
+            return true;
+        }
+        if (class_exists('TCD_Learning_Log', false)) {
+            TCD_Learning_Log::write('ERROR', 'linguist_exam_quarantined', array(
+                'phase' => $phase, 'record_id' => $id,
+                'attempts' => $attempt, 'reason' => 'interrupted_before_checkpoint',
+            ));
+        }
+        return false;
+    }
+
+    /**
+     * Record confirmed progress exactly once for a completed case. Both the
+     * current cursor and quality counters are stored together in a single
+     * WordPress option write; the generic manager does not add them again.
+     *
+     * @param string $phase Exam phase.
+     * @param int    $id Last evaluated lexicon ID.
+     * @param array  $delta Per-case counters.
+     * @param float  $duration Seconds spent on this case.
+     * @return void
+     */
+    private static function exam_commit_case($phase, $id, $delta, $duration) {
+        $state = self::state();
+        $changes = array(
+            'cursor' => $id,
+            'exam_inflight_id' => 0,
+            'exam_inflight_phase' => '',
+            'exam_inflight_attempt' => 0,
+            'exam_inflight_started' => 0,
+            'heartbeat_at' => time(),
+            'last_activity_at' => time(),
+            'lesson_processed' => absint($state['lesson_processed'] ?? 0) + 1,
+            'processed_total' => absint($state['processed_total'] ?? 0) + 1,
+            'lesson_learned' => absint($state['lesson_learned'] ?? 0) + absint($delta['learned'] ?? 0),
+            'learned_total' => absint($state['learned_total'] ?? 0) + absint($delta['learned'] ?? 0),
+            'lesson_rejected' => absint($state['lesson_rejected'] ?? 0) + absint($delta['fail'] ?? 0),
+            'rejected_total' => absint($state['rejected_total'] ?? 0) + absint($delta['fail'] ?? 0),
+        );
+        foreach (array('pass','fail','exact','semantic','learned','ambiguous','invalid','quarantined') as $field) {
+            $column = array(
+                'learned' => 'exam_auto_learned',
+                'quarantined' => 'exam_quarantined',
+            );
+            $key = $column[$field] ?? 'exam_' . $field;
+            $changes[$key] = absint($state[$key] ?? 0) + absint($delta[$field] ?? 0);
+        }
+        self::save_state($changes);
+        if (($duration >= 2.0 || !empty($delta['quarantined'])) && class_exists('TCD_Learning_Log', false)) {
+            TCD_Learning_Log::write('WARN', 'linguist_exam_case_slow', array(
+                'phase' => $phase, 'record_id' => $id,
+                'seconds' => round($duration, 3),
+                'quarantined' => !empty($delta['quarantined']),
+            ));
+        }
+    }
+
     private static function lesson_exam($state) {
         global $wpdb;
 
