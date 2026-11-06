@@ -17,6 +17,8 @@ final class TCD_Original_Interprete_DB {
 
     private static $rows_cache = null;
     private static $fuzzy_index = null;
+    private static $exact_index = null;
+    private static $action_index = null;
     private static $table_exists = null;
     private static $evidence_table_exists = null;
     private static $usage_columns_ready = null;
@@ -567,25 +569,93 @@ final class TCD_Original_Interprete_DB {
     /**
      * Coincidencias literales activas, priorizando contexto específico.
      */
+    /**
+     * Build lightweight request-local lookup indexes. Store offsets into the
+     * authoritative row cache rather than duplicating every lexicon record.
+     * Invalidated by clear_cache() whenever training writes an expression.
+     */
+    private static function build_exact_index() {
+        if (is_array(self::$exact_index) && is_array(self::$action_index)) {
+            return;
+        }
+        self::$exact_index = array();
+        self::$action_index = array();
+        foreach (self::active_rows() as $position => $row) {
+            $expression = (string) ($row['normalized_expression'] ?? '');
+            if ('' !== $expression) {
+                $words = explode(' ', $expression);
+                $first = (string) ($words[0] ?? '');
+                if ('' !== $first) {
+                    self::$exact_index[$first][] = $position;
+                }
+            }
+            $relation = (string) ($row['relation_type'] ?? '');
+            if (!in_array($relation, array('verb_to_tool', 'phrase_to_tool'), true)) {
+                continue;
+            }
+            foreach (array('canonical_term', 'target_search') as $field) {
+                $concept = self::normalize((string) ($row[$field] ?? ''));
+                if ('' !== $concept) {
+                    self::$action_index[$concept][$position] = $position;
+                }
+            }
+        }
+    }
+
+    /**
+     * Find expressions literally contained in a normalized query, including
+     * multi-word phrases, without comparing every active row per request.
+     */
     public static function matching_rows($normalized_query) {
         $normalized_query = self::normalize($normalized_query);
         if ('' === $normalized_query || !self::table_exists()) {
             return array();
         }
-
+        self::build_exact_index();
+        $rows = self::active_rows();
         $matches = array();
-        foreach (self::active_rows() as $row) {
-            $expression = (string) ($row['normalized_expression'] ?? '');
-            if ('' === $expression || false === strpos(' ' . $normalized_query . ' ', ' ' . $expression . ' ')) {
-                continue;
+        $seen = array();
+        foreach (array_unique(array_filter(explode(' ', $normalized_query))) as $token) {
+            foreach ((array) (self::$exact_index[$token] ?? array()) as $position) {
+                if (isset($seen[$position])) {
+                    continue;
+                }
+                $seen[$position] = true;
+                $row = $rows[$position] ?? array();
+                $expression = (string) ($row['normalized_expression'] ?? '');
+                if ('' === $expression || false === strpos(' ' . $normalized_query . ' ', ' ' . $expression . ' ')) {
+                    continue;
+                }
+                $row = self::apply_context_match($row, $normalized_query);
+                if ($row) {
+                    $matches[] = $row;
+                }
             }
-            $row = self::apply_context_match($row, $normalized_query);
-            if (!$row) {
-                continue;
-            }
-            $matches[] = $row;
         }
         self::sort_matches($matches);
+        return $matches;
+    }
+
+    /**
+     * Find action relations for a target concept; returns the same order as
+     * the active lexicon and preserves the interpreter's candidate ranking.
+     *
+     * @param string $concept Normalized canonical or target term.
+     * @return array
+     */
+    public static function action_rows_for_concept($concept) {
+        $concept = self::normalize($concept);
+        if ('' === $concept || !self::table_exists()) {
+            return array();
+        }
+        self::build_exact_index();
+        $rows = self::active_rows();
+        $matches = array();
+        foreach ((array) (self::$action_index[$concept] ?? array()) as $position) {
+            if (isset($rows[$position])) {
+                $matches[] = $rows[$position];
+            }
+        }
         return $matches;
     }
 
@@ -799,5 +869,7 @@ final class TCD_Original_Interprete_DB {
     private static function clear_cache() {
         self::$rows_cache = null;
         self::$fuzzy_index = null;
+        self::$exact_index = null;
+        self::$action_index = null;
     }
 }
