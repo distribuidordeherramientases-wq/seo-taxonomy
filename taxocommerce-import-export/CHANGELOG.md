@@ -1,6 +1,6 @@
 ## [0.4.16] — 2026-11-06 (Issue #2245)
 
-- La exportación CSV deja de depender de AJAX repetido del navegador: un worker del servidor continúa por bloques mediante Action Scheduler de WooCommerce, con respaldo WP-Cron.
+- La exportación CSV deja de depender de AJAX repetido del navegador: un worker del servidor continúa por bloques mediante autollamadas internas del servidor, con recuperación mediante Action Scheduler de WooCommerce y WP-Cron.
 - Se conservan los cinco perfiles de velocidad y el regulador adaptativo de tiempo y memoria; el progreso se consulta sin ejecutar filas desde la pantalla.
 - Estado recuperable al volver a la pantalla, cancelación serializada con bloqueo del escritor, reintento manual tras errores y descarga autenticada del CSV terminado.
 - Caducidad de estado y archivos temporales ampliada a 48 horas para exportaciones largas.
