@@ -140,6 +140,40 @@ final class TaxoCommerce_System_Check_Processes {
 				);
 			}
 		}
+		// Export jobs are per owner. Discover their identifiers via the
+		// application's already scheduled action, not by scanning user data.
+		if ( class_exists( 'TaxoCommerce_Import_Export_Exporter', false )
+			&& class_exists( 'ActionScheduler' ) ) {
+			$seen = array();
+			foreach ( self::actions() as $entry ) {
+				if ( 'taxocommerce_ie_export_background_worker' !== $entry['hook'] ) {
+					continue;
+				}
+				try {
+					$job_action = ActionScheduler::store()->fetch_action( $entry['id'] );
+					$args = $job_action->get_args();
+					$user_id = absint( $args[0] ?? 0 );
+					$job_id = sanitize_text_field( (string) ( $args[1] ?? '' ) );
+					if ( ! $user_id || ! preg_match( '/^[a-f0-9-]{36}$/i', $job_id ) || isset( $seen[ $job_id ] ) ) {
+						continue;
+					}
+					$state = get_transient( 'taxocommerce_ie_export_' . $user_id );
+					if ( ! is_array( $state ) || ! hash_equals( $job_id, (string) ( $state['id'] ?? '' ) ) || ! empty( $state['complete'] ) ) {
+						continue;
+					}
+					$seen[ $job_id ] = true;
+					$rows[] = array(
+						'id' => 'export:' . $user_id . ':' . $job_id,
+						'label' => __( 'Exportación CSV', 'taxocommerce-system-check' ),
+						'status' => sanitize_key( (string) ( $state['status'] ?? 'queued' ) ),
+						'detail' => sanitize_text_field( (string) ( $state['type_label'] ?? '' ) ),
+						'can_stop' => ! in_array( (string) ( $state['status'] ?? '' ), array( 'failed', 'cancelling', 'cancelled', 'completed' ), true ),
+					);
+				} catch ( Exception $exception ) {
+					continue;
+				}
+			}
+		}
 		return (array) apply_filters( 'taxocommerce_system_check_process_workers', $rows );
 	}
 
@@ -170,6 +204,33 @@ final class TaxoCommerce_System_Check_Processes {
 			wp_clear_scheduled_hook( 'taxocommerce_ie_batch_worker' );
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( 'taxocommerce_ie_batch_worker', array(), 'taxocommerce-import-export-batch' );
+			}
+			return true;
+		}
+		if ( 0 === strpos( $id, 'export:' ) && class_exists( 'TaxoCommerce_Import_Export_Exporter', false ) ) {
+			$parts = explode( ':', $id, 3 );
+			$user_id = absint( $parts[1] ?? 0 );
+			$job_id = sanitize_text_field( (string) ( $parts[2] ?? '' ) );
+			if ( $user_id < 1 || ! preg_match( '/^[a-f0-9-]{36}$/i', $job_id ) ) {
+				return false;
+			}
+			$key = 'taxocommerce_ie_export_' . $user_id;
+			$state = get_transient( $key );
+			if ( ! is_array( $state ) || ! hash_equals( (string) ( $state['id'] ?? '' ), $job_id ) || ! empty( $state['complete'] ) ) {
+				return false;
+			}
+			update_option( 'taxocommerce_ie_export_cancel_' . $user_id, $job_id, false );
+			$state['status'] = 'cancelling';
+			set_transient( $key, $state, TaxoCommerce_Import_Export_Exporter::TTL );
+			$args = array( $user_id, $job_id );
+			$hook = TaxoCommerce_Import_Export_Exporter::WORKER_HOOK;
+			$group = TaxoCommerce_Import_Export_Exporter::WORKER_GROUP;
+			// Leave an existing scheduled worker intact: it must acquire the
+			// export lock to safely delete its partial CSV file.
+			if ( function_exists( 'as_schedule_single_action' ) ) {
+				as_schedule_single_action( time() + 5, $hook, $args, $group, false );
+			} elseif ( ! wp_next_scheduled( $hook, $args ) ) {
+				wp_schedule_single_event( time() + 5, $hook, $args );
 			}
 			return true;
 		}
@@ -272,7 +333,7 @@ final class TaxoCommerce_System_Check_Processes {
 		$crons   = self::cron();
 		echo '<div class="wrap"><h2>' . esc_html__( 'Procesos de WordPress y WooCommerce', 'taxocommerce-system-check' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Tareas de aplicación, no procesos Linux. Detener no interrumpe una petición PHP ya en marcha. Se preservan los trabajos críticos de WordPress y WooCommerce.', 'taxocommerce-system-check' ) . '</p>';
-		self::button( 'stop_all', __( 'Detener todos los trabajos cancelables', 'taxocommerce-system-check' ), array(), true );
+		self::button( 'stop_all', __( 'Detener los trabajos cancelables mostrados', 'taxocommerce-system-check' ), array(), true );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status feedback.
 		$stopped = isset( $_GET['stopped'] ) ? absint( wp_unslash( $_GET['stopped'] ) ) : null;
 		if ( null !== $stopped ) {
