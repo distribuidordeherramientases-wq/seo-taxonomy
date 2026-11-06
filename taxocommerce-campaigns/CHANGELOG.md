@@ -1,3 +1,8 @@
+## [Unreleased] — Etiquetas de diseños localizables (#2239)
+
+- Las tres etiquetas de diseños de imágenes sociales ahora utilizan gettext y el catálogo de TaxoCommerce Campaigns.
+- Se aprovechan traducciones ES/EN/FR/DE/NL ya presentes en POT/PO/MO. Sin cambios en gráficos, colores, imágenes o procesos de campaña.
+
 ## [0.1.4] — 2026-11-05 — Traducciones de campañas de marketing (#2239)
 
 - Menú y pestañas con nombre funcional «Campañas de marketing» en español y equivalentes naturales en inglés, francés, alemán y neerlandés.
