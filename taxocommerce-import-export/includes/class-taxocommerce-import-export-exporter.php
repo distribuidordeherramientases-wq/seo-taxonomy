@@ -20,6 +20,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 	const WORKER_HOOK  = 'taxocommerce_ie_export_background_worker';
 	const WORKER_GROUP = 'taxocommerce-import-export';
 	const CANCEL_PREFIX = 'taxocommerce_ie_export_cancel_';
+	const CONTINUE_ACTION = 'taxocommerce_ie_export_continue';
 
 	/**
 	 * CSV formatter.
@@ -51,6 +52,8 @@ final class TaxoCommerce_Import_Export_Exporter {
 		add_action( 'admin_post_taxocommerce_ie_export_download', array( $this, 'download' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 		add_action( self::WORKER_HOOK, array( $this, 'background_worker' ), 10, 2 );
+		add_action( 'wp_ajax_' . self::CONTINUE_ACTION, array( $this, 'internal_continue' ) );
+		add_action( 'wp_ajax_nopriv_' . self::CONTINUE_ACTION, array( $this, 'internal_continue' ) );
 		add_action( 'init', array( $this, 'watchdog' ), 99 );
 	}
 
@@ -347,12 +350,13 @@ final class TaxoCommerce_Import_Export_Exporter {
 			'total'     => absint( $total ),
 			'complete'  => false,
 			'status'    => 'queued',
+			'dispatch_token' => wp_generate_password( 48, false, false ),
 			'error'     => '',
 			'created'   => time(),
 			'updated'   => time(),
 		);
 		$this->store_state( $state );
-		$this->schedule_worker( get_current_user_id(), $job_id, 0 );
+		$this->dispatch_next( get_current_user_id(), $job_id, 0 );
 
 		wp_send_json_success(
 			array(
@@ -385,10 +389,85 @@ final class TaxoCommerce_Import_Export_Exporter {
 			// The running action may still be marked in-progress while it
 			// schedules its successor. A non-unique action is intentional;
 			// the per-job lock prevents concurrent writes.
-			as_schedule_single_action( time() + $delay, self::WORKER_HOOK, $args, self::WORKER_GROUP, false, 10 );
+			if ( ! function_exists( 'as_has_scheduled_action' ) || ! as_has_scheduled_action( self::WORKER_HOOK, $args, self::WORKER_GROUP ) ) {
+				as_schedule_single_action( time() + $delay, self::WORKER_HOOK, $args, self::WORKER_GROUP, false, 10 );
+			}
 		} elseif ( ! wp_next_scheduled( self::WORKER_HOOK, $args ) ) {
 			wp_schedule_single_event( time() + $delay, self::WORKER_HOOK, $args );
 		}
+	}
+
+
+	/**
+	 * Trigger the next step entirely on the server, without a browser.
+	 * The short internal HTTP request observes the configured speed by
+	 * sleeping before running; an Action Scheduler/WP-Cron recovery job
+	 * is always armed first. Only one file writer owns the per-user lock.
+	 *
+	 * @param int    $user_id Job owner.
+	 * @param string $job Job ID.
+	 * @param int    $delay Server-side throttle in seconds.
+	 * @return void
+	 */
+	private function dispatch_next( $user_id, $job, $delay ) {
+		$user_id = absint( $user_id );
+		$job = sanitize_text_field( (string) $job );
+		$state = get_transient( self::STATE_PREFIX . $user_id );
+		if ( ! is_array( $state ) || ! hash_equals( (string) ( $state['id'] ?? '' ), $job ) ||
+			empty( $state['dispatch_token'] ) ) {
+			return;
+		}
+		// Backup only: background loopbacks are the primary worker dispatcher.
+		$this->schedule_worker( $user_id, $job, 60 );
+		$response = wp_remote_post(
+			admin_url( 'admin-ajax.php' ),
+			array(
+				'blocking' => false,
+				'timeout' => 1,
+				'redirection' => 0,
+				'sslverify' => true,
+				'body' => array(
+					'action' => self::CONTINUE_ACTION,
+					'user_id' => $user_id,
+					'job' => $job,
+					'token' => (string) $state['dispatch_token'],
+					'delay' => max( 0, min( 15, absint( $delay ) ) ),
+				),
+			)
+		);
+		// The scheduled backup remains valid if the loopback fails.
+		if ( is_wp_error( $response ) ) {
+			return;
+		}
+	}
+
+	/**
+	 * Privileged internal continuation, authenticated by a server-held random
+	 * job token. No nonce or token is exposed to the browser.
+	 *
+	 * @return void
+	 */
+	public function internal_continue() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Internal job bearer token is verified below.
+		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Internal job bearer token is verified below.
+		$job = isset( $_POST['job'] ) ? sanitize_text_field( wp_unslash( $_POST['job'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Internal job bearer token is verified below.
+		$token = isset( $_POST['token'] ) && is_string( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Internal job bearer token is verified below.
+		$delay = isset( $_POST['delay'] ) ? absint( wp_unslash( $_POST['delay'] ) ) : 0;
+		$state = $user_id ? get_transient( self::STATE_PREFIX . $user_id ) : false;
+		$expected = is_array( $state ) ? (string) ( $state['dispatch_token'] ?? '' ) : '';
+		if ( ! $user_id || ! is_array( $state ) || '' === $expected ||
+			strlen( $token ) > 64 || ! hash_equals( $expected, $token ) ||
+			! hash_equals( (string) ( $state['id'] ?? '' ), (string) $job ) ) {
+			wp_die( 'Acceso denegado', '', array( 'response' => 403 ) );
+		}
+		if ( $delay ) {
+			sleep( min( 15, $delay ) );
+		}
+		$this->background_worker( $user_id, $job );
+		wp_die( '', '', array( 'response' => 200 ) );
 	}
 
 	/**
@@ -460,7 +539,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 					return;
 				}
 				if ( empty( $result['complete'] ) ) {
-					$this->schedule_worker( $user_id, $job, TaxoCommerce_IE_Load::delay( 'export' ) );
+					$this->dispatch_next( $user_id, $job, TaxoCommerce_IE_Load::delay( 'export' ) );
 				}
 			} catch ( Throwable $e ) {
 				$state = $this->state();
@@ -509,7 +588,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$state['error'] = '';
 		$state['updated'] = time();
 		$this->store_state( $state );
-		$this->schedule_worker( get_current_user_id(), $state['id'], 0 );
+		$this->dispatch_next( get_current_user_id(), $state['id'], 0 );
 		wp_send_json_success( $this->response_state( $state ) );
 	}
 
@@ -537,7 +616,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 			return;
 		}
 		set_transient( 'taxocommerce_ie_export_recovery_' . $user_id, time(), 120 );
-		$this->schedule_worker( $user_id, $state['id'], 0 );
+		$this->dispatch_next( $user_id, $state['id'], 0 );
 	}
 
 	/**
@@ -592,7 +671,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$this->store_state( $state );
 		// Always let the server worker perform deletion under its lock.
 		// Deleting here would race with an in-flight CSV writer.
-		$this->schedule_worker( get_current_user_id(), (string) $state['id'], 0 );
+		$this->dispatch_next( get_current_user_id(), (string) $state['id'], 0 );
 		wp_send_json_success( array( 'cancelled' => false ) );
 	}
 
