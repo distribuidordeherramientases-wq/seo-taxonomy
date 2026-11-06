@@ -1,3 +1,6 @@
+= 0.4.18 (2026-11-06) =
+* Unica meta description SEO y fallback contextual condicionado; pruebas de wp_head, canonical, páginas y productos. Issue #2259.
+
 TAXOCOMMERCE TEMPLATES — CHANGELOG DEL PLUGIN INDEPENDIENTE
 
 ## [0.4.17] — 2026-11-05

@@ -1,3 +1,10 @@
+## [0.4.18] — 2026-11-06 — Meta descriptions para Bing (#2259)
+
+- Elimina el meta description genérico de la portada cuando wp_head ya añade otro. Conserva una sola descripción SEO por documento, sin interferir en otras etiquetas ni scripts de wp_head.
+- Genera descripción de reserva solo si WordPress/SEO no proporciona ninguna, a partir del extracto/contenido de la página, descripción de taxonomía o lema de portada; no genera etiquetas en 404/búsquedas.
+- Preserva la canonical de la política ya existente de Templates y comprueba regresiones con y sin proveedor SEO.
+- No modifica productos, categorías ni páginas existentes; los avisos por URL exacta de Bing requieren CSV para identificar el contenido afectado.
+
 ## [0.4.17] — 2026-11-05 — Corrección de advertencias WPC (#2189)
 
 - Centralizados los accesos a tablas propias mediante `TCT_DB`, con caché de lectura limitada a la petición, claves efímeras e invalidación tras escrituras. Conserva los mismos SQL, datos, filtros y contratos públicos; no depende de otros plugins TaxoCommerce.
