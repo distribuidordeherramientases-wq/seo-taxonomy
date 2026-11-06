@@ -20,11 +20,14 @@ class GatedPipelineContract(unittest.TestCase):
         cls.check = CHECK.read_text(encoding="utf-8")
         cls.pro = PRO.read_text(encoding="utf-8")
 
-    def test_manual_workflow_and_staging_branch_guard(self):
+    def test_automatic_release_on_staging_merge_and_manual_fallback(self):
         self.assertIn("workflow_dispatch:", self.pipeline)
+        self.assertIn("  push:", self.pipeline)
         self.assertIn("refs/heads/staging", self.pipeline)
-        self.assertNotIn("\n  push:\n", self.pipeline)
         self.assertIn("cancel-in-progress: false", self.pipeline)
+        self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
+        self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
+        self.assertNotIn("\\n  push:\\n", self.staging)
 
     def test_order_and_strict_family_check(self):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
@@ -57,7 +60,11 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("report-failure:", self.pipeline)
         self.assertIn("gh issue create", self.pipeline)
         self.assertIn("issues: write", self.pipeline)
-        self.assertIn("Manual repair", self.pipeline.replace("manual repair", "Manual repair"))
+        self.assertIn("repair required", self.pipeline)
+        self.assertIn("COPILOT_AGENT_TOKEN", self.pipeline)
+        self.assertIn("copilot-swe-agent[bot]", self.pipeline)
+        self.assertIn("reruns automatically on push", self.pipeline)
+        self.assertIn("for attempt in 1 2 3", self.staging)
         self.assertNotIn("gh pr merge", self.pipeline)
         self.assertNotIn("gh workflow run", self.pipeline)
 
