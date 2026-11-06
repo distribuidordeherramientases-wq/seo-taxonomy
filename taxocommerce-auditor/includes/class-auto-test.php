@@ -283,7 +283,7 @@ final class Auto_Test {
                 if ( 'fail' === $row['status'] && ( $old[ $row['id'] ] ?? '' ) === 'pass' ) $regressions[] = $row['label'];
             }
             echo '<p><strong>' . esc_html__( 'Comparativa:', 'taxocommerce-auditor' ) . '</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
-            echo $regressions ? '<strong style="color:#b32d2e">' . esc_html__( 'Regresiones:', 'taxocommerce-auditor' ) . ' ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : __( 'Sin regresiones de correcto a fallido.', 'taxocommerce-auditor' );
+            echo $regressions ? '<strong style="color:#b32d2e">' . esc_html__( 'Regresiones:', 'taxocommerce-auditor' ) . ' ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : esc_html__( 'Sin regresiones de correcto a fallido.', 'taxocommerce-auditor' );
             echo '</p>';
         } else {
             echo '<p>' . esc_html__( 'No hay una ejecución anterior para comparar.', 'taxocommerce-auditor' ) . '</p>';
