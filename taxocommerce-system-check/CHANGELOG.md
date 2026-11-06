@@ -1,3 +1,10 @@
+## [0.2.18] — 2026-11-06 — Supervisión de procesos de WordPress (#2250)
+
+- Nueva pestaña Procesos: inventario acotado de Action Scheduler y WP-Cron (100 registros por estado), más los procesos conocidos de Dependiente e Import-Export si están activos.
+- Cancelación protegida por permisos y nonce de acciones pendientes, eventos programados y parada cooperativa de los workers integrados; botón global limitado a tareas consideradas cancelables, excluyendo infraestructura crítica de WordPress/WooCommerce.
+- No se ejecutan comandos de sistema ni se interrumpen peticiones PHP en curso. Las operaciones se verifican posteriormente en el estado del proceso; la solicitud no certifica la detención física.
+- Sin dependencia obligatoria de otros plugins TaxoCommerce; filtros para que otras extensiones registren sus workers y política de cancelación.
+
 ## [0.2.17] — 2026-11-05 — Descarga persistente de Autocheck (#2234)
 
 - La descarga JSON del último Autocheck se mantiene visible al volver a la pestaña mientras el informe del usuario y sitio siga disponible (caducidad existente de una hora).
