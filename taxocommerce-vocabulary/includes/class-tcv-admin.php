@@ -128,7 +128,7 @@ final class TCV_Admin {
         );
         echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Diccionario', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Etiqueta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Slug', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $r ) {
-            echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? __( 'Activa', 'taxocommerce-vocabulary' ) : __( 'Inactiva', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
+            echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? esc_html__( 'Activa', 'taxocommerce-vocabulary' ) : esc_html__( 'Inactiva', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
         }
         echo '</tbody>' . '</table>' . '<p class="description">' . esc_html__( 'Se muestran como máximo 300 filas en esta vista.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
     }
@@ -153,7 +153,7 @@ final class TCV_Admin {
         );
         echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Atributos técnicos canónicos', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce.', 'taxocommerce-vocabulary' ) . '</p>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Atributo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Unidad', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Términos', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Aliases', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $attrs as $a ) {
-            echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? __( 'Activo', 'taxocommerce-vocabulary' ) : __( 'Inactivo', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? esc_html__( 'Activo', 'taxocommerce-vocabulary' ) : esc_html__( 'Inactivo', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
@@ -287,7 +287,7 @@ final class TCV_Admin {
                     $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
                 );
             }
-            echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? __( 'OK', 'taxocommerce-vocabulary' ) : __( 'Falta', 'taxocommerce-vocabulary' ) ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
+            echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? esc_html__( 'OK', 'taxocommerce-vocabulary' ) : esc_html__( 'Falta', 'taxocommerce-vocabulary' ) ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
