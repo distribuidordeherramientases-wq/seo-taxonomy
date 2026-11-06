@@ -352,6 +352,7 @@ final class TaxoCommerce_System_Check_Processes {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only status feedback.
 		$stopped = isset( $_GET['stopped'] ) ? absint( wp_unslash( $_GET['stopped'] ) ) : null;
 		if ( null !== $stopped ) {
+			/* translators: %d: Number of jobs whose cancellation was requested or completed. */
 			echo '<p role="status">' . esc_html( sprintf( __( 'Operaciones de detención solicitadas o completadas: %d.', 'taxocommerce-system-check' ), $stopped ) ) . '</p>';
 		}
 		echo '<h3>' . esc_html__( 'Procesos de larga duración', 'taxocommerce-system-check' ) . '</h3>';
