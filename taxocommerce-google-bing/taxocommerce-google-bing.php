@@ -39,6 +39,7 @@ if ( ! class_exists( 'TaxoCommerce_Connections_Admin', false ) ) {
     require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connections-admin.php';
 }
 
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-indexnow.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connections-guide.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
@@ -61,6 +62,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Connections_Amazon::boot();
     TaxoCommerce_Connections_Pinterest::boot();
     TaxoCommerce_Connections_Google_Bing::boot();
+    TaxoCommerce_Insights_IndexNow::register();
     TaxoCommerce_Connections_Admin::boot();
     TaxoCommerce_Connections_Status::register();
     TaxoCommerce_Google_Bing_Reports::register();
