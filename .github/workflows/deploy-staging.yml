@@ -1,6 +1,13 @@
 name: Immediate deployment to STAGING
 
 on:
+  workflow_call:
+    inputs:
+      full_sync:
+        description: 'Allow a full reconciliation when called by the gated pipeline'
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - staging
@@ -41,6 +48,7 @@ jobs:
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
+          python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
