@@ -1,6 +1,13 @@
 name: Immediate deployment to STAGING
 
 on:
+  workflow_call:
+    inputs:
+      full_sync:
+        description: 'Allow a full reconciliation when called by the gated pipeline'
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - staging
