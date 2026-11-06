@@ -3937,36 +3937,36 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "No tienes permisos para enviar URL a IndexNow."
-msgstr "Vous n’avez pas l’autorisation d’envoyer des URL à IndexNow."
+msgstr "You do not have permission to submit URLs to IndexNow."
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "Activar IndexNow para avisar a Bing de URL creadas, modificadas o eliminadas. No actives esta opción si otro servicio ya envía estas notificaciones."
-msgstr "Activez IndexNow pour signaler à Bing les URL créées, modifiées ou supprimées. N’activez pas cette option si un autre service envoie déjà ces notifications."
+msgstr "Enable IndexNow notifications for created, updated or deleted URLs. Do not enable this if another service already sends these notifications."
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "IndexNow (independiente de Cloudflare)"
-msgstr "IndexNow (indépendant de Cloudflare)"
+msgstr "IndexNow (independent of Cloudflare)"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "Archivo público de verificación:"
-msgstr "Fichier public de vérification :"
+msgstr "Public verification file:"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "URL pendientes: %d"
-msgstr "URL en attente : %d"
+msgstr "Pending URLs: %d"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "Último envío: HTTP %1$d — %2$s"
-msgstr "Dernier envoi : HTTP %1$d — %2$s"
+msgstr "Last submission: HTTP %1$d — %2$s"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "Notificar una URL propia actualizada:"
-msgstr "Signaler une URL mise à jour sur ce site :"
+msgstr "Notify an updated URL on this site:"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "Añadir a la cola IndexNow"
-msgstr "Ajouter à la file IndexNow"
+msgstr "Add to IndexNow queue"
 
 #: includes/class-taxocommerce-connections-admin.php includes/class-taxocommerce-google-bing-indexnow.php
 msgid "IndexNow puede activarse desde Conexiones de Insights si otro sistema no lo está gestionando. Bing Webmaster se usa aquí para informes de lectura."
-msgstr "Vous pouvez activer IndexNow dans les connexions Insights si aucun autre système ne le gère déjà. Bing Webmaster sert ici uniquement aux rapports en lecture."
+msgstr "You can enable IndexNow in Insights Connections if no other system already handles it. Bing Webmaster is used here for read-only reports."
