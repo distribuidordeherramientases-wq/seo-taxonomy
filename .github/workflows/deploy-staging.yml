@@ -8,9 +8,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - staging
   workflow_dispatch:
     inputs:
       full_sync:
@@ -183,7 +180,7 @@ jobs:
         id: changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAXOCOMMERCE_FULL_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.full_sync && '1' || '0' }}
+          TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
@@ -210,7 +207,18 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::STAGING deployment still failing after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}
@@ -234,7 +242,18 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Focazul deployment still failing after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
 
   verify:
     name: Require successful delivery to every applicable site
