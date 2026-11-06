@@ -248,9 +248,9 @@ final class TaxoCommerce_Insights_Head_Tags {
                 if (kind.value !== 'tracking') {
                     return;
                 }
-                var match = code.value.match(/\\}\\s*\\)\\s*\\(\\s*window\\s*,\\s*document\\s*,\\s*["']clarity["']\\s*,\\s*["']script["']\\s*,\\s*["']([a-z0-9]{6,32})["']\\s*\\)/i);
+                var match = code.value.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
                 if (!match) {
-                    match = code.value.match(/https:\\/\\/(?:www\\.)?clarity\\.ms\\/tag\\/([a-z0-9]{6,32})/i);
+                    match = code.value.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
                 }
                 if (match) {
                     idField.value = match[1].toLowerCase();
