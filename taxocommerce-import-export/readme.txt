@@ -52,7 +52,7 @@ The package transports original image files plus title, ALT, caption, descriptio
 == Changelog ==
 
 = 0.4.16 =
-* Exportaciones CSV procesadas en segundo plano en servidor con Action Scheduler y alternativa WP-Cron, incluso si el navegador se cierra. La pantalla solo consulta progreso.
+* Exportaciones CSV procesadas en segundo plano en servidor mediante autollamadas internas del servidor, con Action Scheduler/WP-Cron para recuperación, incluso si el navegador se cierra. La pantalla solo consulta progreso.
 * Mantiene cinco velocidades, regulación adaptativa, trabajo por bloques, recuperación, cancelación y descarga segura.
 * Para procesar sin visitas en instalaciones sin cron activo, configurar el cron del alojamiento que invoque wp-cron.php.
 
