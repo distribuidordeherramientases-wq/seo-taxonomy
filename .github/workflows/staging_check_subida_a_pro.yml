@@ -1,6 +1,18 @@
 name: STAGING -> Plugin Check -> PRO (gated)
 
 on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-*/**'
+      - '.github/scripts/deploy_staging_delta.py'
+      - '.github/scripts/fetch_pro_installed_modules.py'
+      - '.github/scripts/audit_core_dual_sites.py'
+      - '.github/workflows/deploy-staging.yml'
+      - '.github/workflows/taxocommerce-plugin-check.yml'
+      - '.github/workflows/despliege_de_main_a_pro.yml'
+      - '.github/workflows/staging_check_subida_a_pro.yml'
   workflow_dispatch:
     inputs:
       full_sync:
@@ -12,33 +24,49 @@ on:
 permissions:
   contents: read
 
-# Deliberately manual: merges already trigger the independent STAGING workflow.
-# Automatic triggering here would run two competing FTPS deployments.
+# This is the only push-to-staging deployment entry point.
+# Independent workflows remain available for manual runs and PR validation.
 concurrency:
   group: taxocommerce-staging-check-pro
   cancel-in-progress: false
 
 jobs:
   preflight:
-    name: Require the staging branch
+    name: Require current staging revision
     runs-on: ubuntu-latest
+    outputs:
+      current: ${{ steps.version.outputs.current }}
     steps:
-      - name: Never deploy a non-staging ref
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Reject non-staging refs and skip obsolete queued releases
+        id: version
         env:
           SOURCE_REF: ${{ github.ref }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           if [ "$SOURCE_REF" != 'refs/heads/staging' ]; then
-            echo "::error::Select branch staging when running this pipeline. Ref: $SOURCE_REF"
+            echo "::error::This release must run from staging. Ref: $SOURCE_REF"
             exit 1
+          fi
+          latest="$(git ls-remote origin refs/heads/staging | cut -f1)"
+          test -n "$latest"
+          if [ "$latest" != "$SOURCE_SHA" ]; then
+            echo "Superseded release: $SOURCE_SHA; latest staging: $latest"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
           fi
 
   staging:
     name: '1 / Deliver STAGING and Focazul'
     needs: preflight
+    if: needs.preflight.outputs.current == 'true'
     uses: ./.github/workflows/deploy-staging.yml
     with:
-      full_sync: ${{ inputs.full_sync }}
+      full_sync: ${{ inputs.full_sync || false }}
     secrets: inherit
     permissions:
       contents: read
@@ -85,12 +113,13 @@ jobs:
           SOURCE_SHA: ${{ github.sha }}
           PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SELECTED_PLUGIN: all
-          FULL_SYNC: ${{ inputs.full_sync }}
+          FULL_SYNC: ${{ inputs.full_sync || false }}
+          COPILOT_AGENT_TOKEN: ${{ secrets.COPILOT_AGENT_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           {
-            echo '## Pipeline halted: manual repair is required'
+            echo '## Pipeline halted: repair required'
             echo
             echo "Run: $PIPELINE_URL"
             echo "Source SHA: \`$SOURCE_SHA\`"
@@ -108,10 +137,24 @@ jobs:
             echo '1. Inspect the failed job logs and identify the actual root cause.'
             echo '2. Correct the source or deployment configuration in a dedicated branch.'
             echo '3. Open a PR to staging, validate it, then merge.'
-            echo '4. Run staging_check_subida_a_pro.yml again from staging.'
+            echo '4. Merge the fix into staging: the 3-phase pipeline reruns automatically on push.'
             echo
             echo '**Never force a production deployment past a failed gate.**'
           } > pipeline-failure.md
-          gh issue create \
+          issue_url="$(gh issue create \
             --title "Pipeline STAGING -> Check -> PRO failed (run $GITHUB_RUN_ID)" \
-            --body-file pipeline-failure.md
+            --body-file pipeline-failure.md)"
+          echo "Opened failure issue: $issue_url"
+          # Copilot can investigate and propose a repair PR if its user-to-server
+          # token is explicitly configured. A GITHUB_TOKEN alone is insufficient.
+          # The agent cannot bypass PR checks or directly publish to production.
+          if [ -n "$COPILOT_AGENT_TOKEN" ]; then
+            issue_number="${issue_url##*/}"
+            printf '{"assignees":["copilot-swe-agent[bot]"],"agent_assignment":{"target_repo":"%s","base_branch":"staging","custom_instructions":"Investigate failed pipeline run, propose the minimal correction, run tests, and open a PR targeting staging. Do not deploy to PRO, skip checks or alter credentials."}}' "$GH_REPO" > /tmp/agent-assignment.json
+            GH_TOKEN="$COPILOT_AGENT_TOKEN" gh api \
+              --method POST \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/$GH_REPO/issues/$issue_number/assignees" \
+              --input /tmp/agent-assignment.json \
+              || echo "::warning::Copilot assignment unavailable. Issue remains available for repair."
+          fi
