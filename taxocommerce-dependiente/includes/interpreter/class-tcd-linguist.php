@@ -799,6 +799,9 @@ final class TCD_Original_Linguista {
                 $learned_window += absint($result['case_learned'] ?? $learned);
                 $rejected_window += absint($result['case_rejected'] ?? $rejected);
 
+                // Exam cases have already committed cursor and counters;
+                // refresh before the supervisor writes its own telemetry.
+                $state = self::state();
                 $state = self::save_state(array(
                     'heartbeat_at'     => time(),
                     'last_activity_at' => time(),
@@ -1685,72 +1688,81 @@ final class TCD_Original_Linguista {
 
             foreach ($rows as $row) {
                 $row_id = absint($row['id'] ?? 0);
-                $case = self::l8_build_case($row);
-                if (!$case || !class_exists('TCD_Original_Interprete')) {
-                    $fail++;
-                    $invalid++;
-                    $processed++;
-                    $last_id = $row_id ?: $last_id;
+                if (!$row_id) {
                     continue;
                 }
-
-                try {
-                    $interpretation = TCD_Original_Interprete::interpret((string) $case['question']);
-                    $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
-                    if ('exact' === $evaluation) {
-                        $pass++;
-                        $exact++;
-                    } elseif ('semantic' === $evaluation) {
-                        $pass++;
-                        $semantic++;
+                $started = microtime(true);
+                $delta = array('pass'=>0,'fail'=>0,'exact'=>0,'semantic'=>0,
+                    'learned'=>0,'invalid'=>0,'quarantined'=>0);
+                if (!self::exam_begin_case('active_regression', $row_id)) {
+                    $delta['fail'] = 1;
+                    $delta['invalid'] = 1;
+                    $delta['quarantined'] = 1;
+                } else {
+                    $case = self::l8_build_case($row);
+                    if (!$case || !class_exists('TCD_Original_Interprete')) {
+                        $delta['fail'] = 1;
+                        $delta['invalid'] = 1;
                     } else {
-                        $auto_id = self::l8_learn_safe_variant($row, $case);
-                        if ($auto_id) {
-                            $learned++;
+                        try {
                             $interpretation = TCD_Original_Interprete::interpret((string) $case['question']);
                             $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
-                            if ('exact' === $evaluation) {
-                                $pass++;
-                                $exact++;
-                            } elseif ('semantic' === $evaluation) {
-                                $pass++;
-                                $semantic++;
+                            if ('exact' === $evaluation || 'semantic' === $evaluation) {
+                                $delta['pass'] = 1;
+                                $delta[$evaluation] = 1;
                             } else {
-                                $fail++;
+                                $auto_id = self::l8_learn_safe_variant($row, $case);
+                                if ($auto_id) {
+                                    $delta['learned'] = 1;
+                                    $interpretation = TCD_Original_Interprete::interpret((string) $case['question']);
+                                    $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                                    if ('exact' === $evaluation || 'semantic' === $evaluation) {
+                                        $delta['pass'] = 1;
+                                        $delta[$evaluation] = 1;
+                                    } else {
+                                        $delta['fail'] = 1;
+                                    }
+                                } else {
+                                    $delta['fail'] = 1;
+                                }
                             }
-                        } else {
-                            $fail++;
+                        } catch (Throwable $e) {
+                            $delta['fail'] = 1;
+                            if (class_exists('TCD_Learning_Log', false)) {
+                                TCD_Learning_Log::write('ERROR', 'linguist_exam_case_exception', array(
+                                    'phase' => 'active_regression', 'record_id' => $row_id,
+                                    'error' => sanitize_text_field($e->getMessage()),
+                                ));
+                            }
                         }
                     }
-                } catch (Throwable $e) {
-                    $fail++;
                 }
-
+                $pass += $delta['pass'];
+                $fail += $delta['fail'];
+                $learned += $delta['learned'];
+                $exact += $delta['exact'];
+                $semantic += $delta['semantic'];
+                $invalid += $delta['invalid'];
                 $processed++;
-                if ($row_id) {
-                    $last_id = $row_id;
-                }
-                if ($processed > 0 && microtime(true) >= $soft_deadline) {
+                $last_id = $row_id;
+                self::exam_commit_case('active_regression', $row_id, $delta, microtime(true) - $started);
+                if (microtime(true) >= $soft_deadline) {
                     break;
                 }
             }
 
             return array(
                 'done' => false,
-                'processed' => $processed,
-                'learned' => $learned,
-                'rejected' => $fail,
-                'message' => 'L8 · regresión lingüística: ' . number_format_i18n($pass) . ' correctas, ' . number_format_i18n($learned) . ' autocorregidas y ' . number_format_i18n($fail) . ' fallos reales en este lote.',
-                'state_changes' => array(
-                    'cursor' => $last_id,
-                    'exam_active_max_id' => $max_id,
-                    'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
-                    'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
-                    'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
-                    'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
-                    'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
-                    'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
-                ),
+                'processed' => 0,
+                'learned' => 0,
+                'rejected' => 0,
+                'case_done' => $processed,
+                'case_learned' => $learned,
+                'case_rejected' => $fail,
+                'message' => 'L8 · regresión lingüística: ' . number_format_i18n($pass)
+                    . ' correctas, ' . number_format_i18n($learned)
+                    . ' autocorregidas y ' . number_format_i18n($fail) . ' fallos reales en este lote.',
+                'state_changes' => array('exam_active_max_id' => $max_id),
             );
         }
 
@@ -1806,84 +1818,99 @@ final class TCD_Original_Linguista {
 
         foreach ($rows as $row) {
             $row_id = absint($row['id'] ?? 0);
-            $expression = TCD_Original_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
-            $target = TCD_Original_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
-            $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
-            $contexts = is_array($contexts) ? array_values(array_filter($contexts)) : array();
-
-            if (!$row_id || '' === $expression || '' === $target) {
-                $invalid++;
-                $fail++;
+            if (!$row_id) {
+                continue;
+            }
+            $started = microtime(true);
+            $delta = array('pass'=>0,'fail'=>0,'exact'=>0,'semantic'=>0,
+                'learned'=>0,'ambiguous'=>0,'invalid'=>0,'quarantined'=>0);
+            if (!self::exam_begin_case('candidate_learning', $row_id)) {
+                $delta['fail'] = 1;
+                $delta['invalid'] = 1;
+                $delta['quarantined'] = 1;
             } else {
-                $canonical_count = TCD_Original_Interprete_DB::canonical_count_for_expression($expression);
-                $needs_context = $canonical_count > 1;
-                if ($needs_context && !$contexts) {
-                    // No se elige un sinonimo global a ciegas si la misma forma
-                    // apunta a varios conceptos y no tenemos contexto para separarlos.
-                    $ambiguous++;
+                $expression = TCD_Original_Interprete_DB::normalize((string) ($row['normalized_expression'] ?? $row['expression'] ?? ''));
+                $target = TCD_Original_Interprete_DB::normalize((string) ($row['target_search'] ?? ''));
+                $contexts = json_decode((string) ($row['context_terms'] ?? ''), true);
+                $contexts = is_array($contexts) ? array_values(array_filter($contexts)) : array();
+                if ('' === $expression || '' === $target) {
+                    $delta['invalid'] = 1;
+                    $delta['fail'] = 1;
                 } else {
-                    $confidence = self::l8_candidate_confidence($row);
-                    TCD_Original_Interprete_DB::update_row($row_id, array(
-                        'active' => 1,
-                        'validated' => 1,
-                        'context_required' => $needs_context ? 1 : !empty($row['context_required']),
-                        'confidence' => $confidence,
-                        'source' => 'linguista_l8_auto',
-                        'lesson_key' => 'ling_l8_exam',
-                    ));
-                    $learned++;
-
-                    $case = self::l8_build_case($row, false);
                     try {
-                        $interpretation = TCD_Original_Interprete::interpret((string) ($case['question'] ?? $expression));
-                        $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
-                        if ('exact' === $evaluation) {
-                            $pass++;
-                            $exact++;
-                        } elseif ('semantic' === $evaluation) {
-                            $pass++;
-                            $semantic++;
+                        $canonical_count = TCD_Original_Interprete_DB::canonical_count_for_expression($expression);
+                        $needs_context = $canonical_count > 1;
+                        if ($needs_context && !$contexts) {
+                            $delta['ambiguous'] = 1;
                         } else {
-                            // Se conserva como hipotesis activa de confianza baja:
-                            // el uso real decidira si se consolida o pierde peso.
+                            $confidence = self::l8_candidate_confidence($row);
                             TCD_Original_Interprete_DB::update_row($row_id, array(
-                                'confidence' => min($confidence, 0.68),
+                                'active' => 1,
+                                'validated' => 1,
+                                'context_required' => $needs_context ? 1 : !empty($row['context_required']),
+                                'confidence' => $confidence,
+                                'source' => 'linguista_l8_auto',
+                                'lesson_key' => 'ling_l8_exam',
                             ));
-                            $fail++;
+                            $delta['learned'] = 1;
+                            $case = self::l8_build_case($row, false);
+                            try {
+                                $interpretation = TCD_Original_Interprete::interpret((string) ($case['question'] ?? $expression));
+                                $evaluation = self::l8_evaluate_case($row, $case, $interpretation);
+                                if ('exact' === $evaluation || 'semantic' === $evaluation) {
+                                    $delta['pass'] = 1;
+                                    $delta[$evaluation] = 1;
+                                } else {
+                                    TCD_Original_Interprete_DB::update_row($row_id, array(
+                                        'confidence' => min($confidence, 0.68),
+                                    ));
+                                    $delta['fail'] = 1;
+                                }
+                            } catch (Throwable $e) {
+                                TCD_Original_Interprete_DB::update_row($row_id, array(
+                                    'confidence' => min($confidence, 0.68),
+                                ));
+                                $delta['fail'] = 1;
+                            }
                         }
                     } catch (Throwable $e) {
-                        TCD_Original_Interprete_DB::update_row($row_id, array('confidence' => min($confidence, 0.68)));
-                        $fail++;
+                        $delta['fail'] = 1;
+                        if (class_exists('TCD_Learning_Log', false)) {
+                            TCD_Learning_Log::write('ERROR', 'linguist_exam_case_exception', array(
+                                'phase' => 'candidate_learning', 'record_id' => $row_id,
+                                'error' => sanitize_text_field($e->getMessage()),
+                            ));
+                        }
                     }
                 }
             }
-
+            $pass += $delta['pass'];
+            $fail += $delta['fail'];
+            $learned += $delta['learned'];
+            $exact += $delta['exact'];
+            $semantic += $delta['semantic'];
+            $ambiguous += $delta['ambiguous'];
+            $invalid += $delta['invalid'];
             $processed++;
-            if ($row_id) {
-                $last_id = $row_id;
-            }
-            if ($processed > 0 && microtime(true) >= $soft_deadline) {
+            $last_id = $row_id;
+            self::exam_commit_case('candidate_learning', $row_id, $delta, microtime(true) - $started);
+            if (microtime(true) >= $soft_deadline) {
                 break;
             }
         }
 
         return array(
             'done' => false,
-            'processed' => $processed,
-            'learned' => $learned,
-            'rejected' => $fail,
-            'message' => 'L8 · hipótesis: ' . number_format_i18n($learned) . ' activadas, ' . number_format_i18n($ambiguous) . ' ambiguas retenidas y ' . number_format_i18n($fail) . ' fallos.',
-            'state_changes' => array(
-                'cursor' => $last_id,
-                'exam_candidate_max_id' => $max_id,
-                'exam_pass' => absint($state['exam_pass'] ?? 0) + $pass,
-                'exam_fail' => absint($state['exam_fail'] ?? 0) + $fail,
-                'exam_exact' => absint($state['exam_exact'] ?? 0) + $exact,
-                'exam_semantic' => absint($state['exam_semantic'] ?? 0) + $semantic,
-                'exam_auto_learned' => absint($state['exam_auto_learned'] ?? 0) + $learned,
-                'exam_ambiguous' => absint($state['exam_ambiguous'] ?? 0) + $ambiguous,
-                'exam_invalid' => absint($state['exam_invalid'] ?? 0) + $invalid,
-            ),
+            'processed' => 0,
+            'learned' => 0,
+            'rejected' => 0,
+            'case_done' => $processed,
+            'case_learned' => $learned,
+            'case_rejected' => $fail,
+            'message' => 'L8 · hipótesis: ' . number_format_i18n($learned)
+                . ' activadas, ' . number_format_i18n($ambiguous)
+                . ' ambiguas retenidas y ' . number_format_i18n($fail) . ' fallos.',
+            'state_changes' => array('exam_candidate_max_id' => $max_id),
         );
     }
 
