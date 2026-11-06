@@ -308,7 +308,7 @@ final class Editorial_Specialist {
                     ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                     $entity,
                     'El post comparte identidad de título o slug con ' . self::reference( $exact ),
-                    'La página estructural debe conservar la intención amplia. Revisar si el post aporta una intención informativa distinta.',
+                    __( 'La página estructural debe conservar la intención amplia. Revisar si el post aporta una intención informativa distinta.', 'taxocommerce-auditor' ),
                     $exact
                 );
                 return $findings;
@@ -321,7 +321,7 @@ final class Editorial_Specialist {
                     ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                     $entity,
                     'El post comparte identidad con ' . self::reference( $exact ),
-                    'Revisar qué URL debe cubrir la necesidad transversal y diferenciar el post informativo.',
+                    __( 'Revisar qué URL debe cubrir la necesidad transversal y diferenciar el post informativo.', 'taxocommerce-auditor' ),
                     $exact
                 );
                 return $findings;
@@ -335,7 +335,7 @@ final class Editorial_Specialist {
                         'medium',
                         $entity,
                         'Título prácticamente idéntico al de la categoría #' . $category['id'],
-                        'La categoría concentra la intención comercial; verificar que el post sea realmente informativo.'
+                        __( 'La categoría concentra la intención comercial; verificar que el post sea realmente informativo.', 'taxocommerce-auditor' )
                     );
                     return $findings;
                 }
@@ -348,7 +348,7 @@ final class Editorial_Specialist {
                     'low',
                     $entity,
                     'Solapamiento semántico apoyado por términos nativos con ' . self::reference( $near ),
-                    'Diferenciar intención informativa y cobertura estructural antes de enriquecer.',
+                    __( 'Diferenciar intención informativa y cobertura estructural antes de enriquecer.', 'taxocommerce-auditor' ),
                     $near
                 );
             }
@@ -360,8 +360,8 @@ final class Editorial_Specialist {
                 'editorial_page_role_unclassified',
                 'low',
                 $entity,
-                'Página editorial sin función SEO definida en Core.',
-                'Clasificar la página existente antes de crear nuevas URLs.'
+                __( 'Página editorial sin función SEO definida en Core.', 'taxocommerce-auditor' ),
+                __( 'Clasificar la página existente antes de crear nuevas URLs.', 'taxocommerce-auditor' )
             );
             return $findings;
         }
@@ -374,7 +374,7 @@ final class Editorial_Specialist {
                     ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                     $entity,
                     'La página estructural coincide con ' . self::reference( $exact ),
-                    'Conservar la intención amplia en el cluster/hub y revisar el post duplicado.',
+                    __( 'Conservar la intención amplia en el cluster/hub y revisar el post duplicado.', 'taxocommerce-auditor' ),
                     $exact
                 );
             }
@@ -388,7 +388,7 @@ final class Editorial_Specialist {
                 ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                 $entity,
                 'La landing duplica identidad con ' . self::reference( $exact ),
-                'La landing solo se justifica para una necesidad transversal diferente de la jerarquía.',
+                __( 'La landing solo se justifica para una necesidad transversal diferente de la jerarquía.', 'taxocommerce-auditor' ),
                 $exact
             );
         } else {
@@ -399,7 +399,7 @@ final class Editorial_Specialist {
                     'low',
                     $entity,
                     'Posible solapamiento con ' . self::reference( $near ),
-                    'Revisar la intención transversal de esta landing.',
+                    __( 'Revisar la intención transversal de esta landing.', 'taxocommerce-auditor' ),
                     $near
                 );
             }
@@ -412,7 +412,7 @@ final class Editorial_Specialist {
                 ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                 $entity,
                 'Landing coincidente con ' . self::reference( $exact ),
-                'Valorar consolidar contenido y mantener una sola URL propietaria.',
+                __( 'Valorar consolidar contenido y mantener una sola URL propietaria.', 'taxocommerce-auditor' ),
                 $exact
             );
         } else {
@@ -423,7 +423,7 @@ final class Editorial_Specialist {
                     'low',
                     $entity,
                     'Dos landings comparten intención y Vocabulary: ' . self::reference( $near ),
-                    'Candidatas a revisar para posible fusión; no aplicar automáticamente.',
+                    __( 'Candidatas a revisar para posible fusión; no aplicar automáticamente.', 'taxocommerce-auditor' ),
                     $near
                 );
             }
@@ -436,7 +436,7 @@ final class Editorial_Specialist {
                 ! empty( $exact['exact_slug'] ) ? 'high' : 'medium',
                 $entity,
                 'La landing coincide con ' . self::reference( $exact ),
-                'Conservar la landing transversal y revisar el alcance del post informativo.',
+                __( 'Conservar la landing transversal y revisar el alcance del post informativo.', 'taxocommerce-auditor' ),
                 $exact
             );
         }
@@ -449,7 +449,7 @@ final class Editorial_Specialist {
                     'medium',
                     $entity,
                     'Landing prácticamente equivalente al nombre de categoría #' . $category['id'],
-                    'Revisar si la landing duplica innecesariamente la categoría comercial.'
+                    __( 'Revisar si la landing duplica innecesariamente la categoría comercial.', 'taxocommerce-auditor' )
                 );
                 break;
             }
