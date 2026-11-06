@@ -103,3 +103,6 @@ $GLOBALS['tcie_test_export'] = array( 'status' => 'processing' );
 assert_ie( 'fail' === $queue->invoke( null )['status'], 'active queue blocks deployment' );
 assert_ie( 'fail' === $export->invoke( null )['status'], 'active export blocks deployment' );
 echo "Import-Export: two Autocheck buttons, one latest JSON, 35 checks and safe site-scoped rendering verified." . PHP_EOL;
+
+// Include the server-side export contract in existing CI Autocheck coverage.
+require __DIR__ . '/background-export-smoke.php';
