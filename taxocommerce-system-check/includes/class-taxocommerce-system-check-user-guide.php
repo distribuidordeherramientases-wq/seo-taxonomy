@@ -56,7 +56,7 @@ final class TaxoCommerce_System_Check_User_Guide {
                     'body'  => 'La pestaña Procesos consulta Action Scheduler y WP-Cron sin shell ni acceso a procesos Linux. Los inventarios son acotados y las acciones requieren manage_options y nonce.',
                     'parts' => array(
                         array( 'Cancelación segura', 'Solo se cancela una acción pendiente con namespace considerado no crítico; los pagos, el mantenimiento de WordPress y WooCommerce quedan protegidos. Una acción en ejecución no puede terminarse físicamente desde otra petición PHP.' ),
-                        array( 'Trabajos de larga duración', 'Los adaptadores opcionales de Dependiente e Import-Export establecen la marca de detención del trabajador y conservan su cursor. Los plugins de terceros pueden registrar su estado y parada cooperativa mediante filtros sin depender de System Check.' ),
+                        array( 'Trabajos de larga duración', 'Los adaptadores opcionales de Dependiente, Import-Export y el auditor HTTP establecen las señales de detención y preservan los avances pertinentes. La exportación CSV realiza la limpieza bajo el bloqueo de su propio worker. Los plugins de terceros pueden registrar su estado y parada cooperativa mediante filtros sin depender de System Check.' ),
                         array( 'Parada global', 'Aplica controles sobre las tareas elegibles de la página, sin detener Apache, PHP-FPM, MySQL ni trabajos de sistema. Las tareas en ejecución requieren una comprobación posterior para confirmar su finalización.' ),
                     ),
                 ),
