@@ -39,10 +39,6 @@ msgstr ""
 msgid "; una auditoría pausada puede"
 msgstr ""
 
-#: includes/class-manual.php:70
-msgid "?php\n    }\n}"
-msgstr ""
-
 #: includes/class-manual.php:62
 msgid ". Ejecuta"
 msgstr ""
@@ -351,6 +347,10 @@ msgstr ""
 msgid "Calidad media / 100"
 msgstr ""
 
+#: includes/class-editorial-specialist.php:426
+msgid "Candidatas a revisar para posible fusión; no aplicar automáticamente."
+msgstr ""
+
 #: includes/class-runner.php:570 includes/class-runner.php:579
 msgid "Canibalización"
 msgstr ""
@@ -427,6 +427,10 @@ msgstr ""
 msgid "Clasificación P1 requiere verificación de fuente; no se crea ningún hallazgo."
 msgstr ""
 
+#: includes/class-editorial-specialist.php:364
+msgid "Clasificar la página existente antes de crear nuevas URLs."
+msgstr ""
+
 #: includes/class-runner.php:532
 msgid "Cobertura limpia"
 msgstr ""
@@ -481,6 +485,14 @@ msgstr ""
 
 #: includes/class-runner.php:549
 msgid "Conflictos de atributos"
+msgstr ""
+
+#: includes/class-editorial-specialist.php:377
+msgid "Conservar la intención amplia en el cluster/hub y revisar el post duplicado."
+msgstr ""
+
+#: includes/class-editorial-specialist.php:439
+msgid "Conservar la landing transversal y revisar el alcance del post informativo."
 msgstr ""
 
 #: includes/class-runner.php:567 includes/class-runner.php:576
@@ -607,6 +619,10 @@ msgstr ""
 msgid "Diferenciación / canibalización"
 msgstr ""
 
+#: includes/class-editorial-specialist.php:351
+msgid "Diferenciar intención informativa y cobertura estructural antes de enriquecer."
+msgstr ""
+
 #: includes/class-admin.php:457
 msgid "Dimensión"
 msgstr ""
@@ -645,6 +661,10 @@ msgstr ""
 
 #: includes/class-rules.php:398
 msgid "El campo de resumen nativo suministrado está vacío."
+msgstr ""
+
+#: includes/class-decision-context.php:499
+msgid "El contexto sólo puede ordenar dentro de la misma P1-P5; no cambia la clase del hallazgo."
 msgstr ""
 
 #: includes/class-auto-test.php:147
@@ -751,6 +771,18 @@ msgstr ""
 msgid "Evidencia"
 msgstr ""
 
+#: includes/class-decision-context.php:425
+msgid "Evidencia local agregada de productos de esta categoría."
+msgstr ""
+
+#: includes/class-decision-context.php:392
+msgid "Evidencia local asociada directamente al producto."
+msgstr ""
+
+#: includes/class-category-review.php:205
+msgid "Examinar los productos ambiguos y validar manualmente los destinos de cada cohorte antes de dividir."
+msgstr ""
+
 #: includes/class-manual.php:62
 msgid "exige"
 msgstr ""
@@ -785,6 +817,10 @@ msgstr ""
 
 #: includes/class-admin.php:619
 msgid "Fecha UTC"
+msgstr ""
+
+#: includes/class-decision-context.php:228
+msgid "Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta búsquedas."
 msgstr ""
 
 #: includes/class-auto-test.php:154
@@ -915,6 +951,10 @@ msgstr ""
 msgid "KPIs específicos"
 msgstr ""
 
+#: includes/class-editorial-specialist.php:338
+msgid "La categoría concentra la intención comercial; verificar que el post sea realmente informativo."
+msgstr ""
+
 #: includes/class-rules.php:418
 msgid "La descripción está poco alineada literalmente con el título."
 msgstr ""
@@ -927,12 +967,24 @@ msgstr ""
 msgid "La generación de propuestas está activa. La aprobación/aplicación con movimiento de productos y redirecciones 301 sigue deshabilitada en esta migración: requiere una capa transaccional nativa validada."
 msgstr ""
 
+#: includes/class-editorial-specialist.php:391
+msgid "La landing solo se justifica para una necesidad transversal diferente de la jerarquía."
+msgstr ""
+
+#: includes/class-editorial-specialist.php:311
+msgid "La página estructural debe conservar la intención amplia. Revisar si el post aporta una intención informativa distinta."
+msgstr ""
+
 #: includes/class-manual.php:43
 msgid "La pestaña"
 msgstr ""
 
 #: includes/class-admin.php:565
 msgid "La tabla contiene una muestra de propuestas, no el total."
+msgstr ""
+
+#: includes/class-decision-context.php:447
+msgid "La tabla de TaxoCommerce Suppliers no está disponible."
 msgstr ""
 
 #: includes/class-auto-test.php:117
@@ -1083,8 +1135,16 @@ msgstr ""
 msgid "No están disponibles los lectores FAQ esperados."
 msgstr ""
 
+#: includes/class-decision-context.php:238
+msgid "No existe la tabla persistida de perfiles de Comparador."
+msgstr ""
+
 #: includes/class-admin.php:616
 msgid "No existen ejecuciones completadas todavía."
+msgstr ""
+
+#: includes/class-decision-context.php:442
+msgid "No hay contexto de proveedor nativo aplicable a esta entidad."
 msgstr ""
 
 #: includes/class-admin.php:374
@@ -1093,6 +1153,10 @@ msgstr ""
 
 #: includes/class-admin.php:681
 msgid "No hay informe completo que exportar."
+msgstr ""
+
+#: includes/class-decision-context.php:54
+msgid "No hay perfiles persistidos de Comparador disponibles."
 msgstr ""
 
 #: includes/class-admin.php:561
@@ -1157,6 +1221,10 @@ msgstr ""
 
 #: includes/class-runner.php:589
 msgid "Owner inválido"
+msgstr ""
+
+#: includes/class-editorial-specialist.php:363
+msgid "Página editorial sin función SEO definida en Core."
 msgstr ""
 
 #: includes/class-runner.php:581
@@ -1291,6 +1359,10 @@ msgstr ""
 msgid "Producto sin descripción larga útil."
 msgstr ""
 
+#: includes/class-decision-context.php:464
+msgid "Producto sin fila enlazada en TaxoCommerce Suppliers."
+msgstr ""
+
 #: includes/class-auto-test.php:111
 msgid "Producto WooCommerce y su API de lectura disponibles."
 msgstr ""
@@ -1349,6 +1421,10 @@ msgstr ""
 
 #: includes/class-manual.php:24
 msgid "Qué revisa"
+msgstr ""
+
+#: taxocommerce-auditor.php:4
+msgid "Read-only WordPress and WooCommerce content quality audits with detailed KPIs and full JSON exports."
 msgstr ""
 
 #: includes/class-admin.php:174
@@ -1459,12 +1535,20 @@ msgstr ""
 msgid "Revisar concentración"
 msgstr ""
 
+#: includes/class-category-review.php:196
+msgid "Revisar el tamaño y la coherencia semántica. No dividir únicamente por cantidad."
+msgstr ""
+
 #: includes/class-rules.php:248
 msgid "Revisar integridad del producto antes de editar sus datos."
 msgstr ""
 
 #: includes/class-rules.php:286
 msgid "Revisar la fuente original; esta señal por sí sola no prueba que se haya copiado otro producto."
+msgstr ""
+
+#: includes/class-editorial-specialist.php:402
+msgid "Revisar la intención transversal de esta landing."
 msgstr ""
 
 #: includes/class-rules.php:263
@@ -1483,6 +1567,14 @@ msgstr ""
 msgid "Revisar por división"
 msgstr ""
 
+#: includes/class-editorial-specialist.php:324
+msgid "Revisar qué URL debe cubrir la necesidad transversal y diferenciar el post informativo."
+msgstr ""
+
+#: includes/class-category-review.php:215
+msgid "Revisar si conviene conservarla o agruparla con una categoría hermana coherente."
+msgstr ""
+
 #: includes/class-rules.php:427
 msgid "Revisar si el slug sigue representando la categoría."
 msgstr ""
@@ -1493,6 +1585,10 @@ msgstr ""
 
 #: includes/class-rules.php:381
 msgid "Revisar si la categoría aporta navegación o merece una familia más amplia."
+msgstr ""
+
+#: includes/class-editorial-specialist.php:452
+msgid "Revisar si la landing duplica innecesariamente la categoría comercial."
 msgstr ""
 
 #: includes/class-rules.php:506
@@ -1639,6 +1735,10 @@ msgstr ""
 msgid "Slug vacío."
 msgstr ""
 
+#: includes/class-decision-context.php:67
+msgid "Snapshot local de TaxoCommerce Insights/Analyst; Auditor no descarga datos externos."
+msgstr ""
+
 #: includes/class-runner.php:561
 msgid "Sobre-dimensionadas"
 msgstr ""
@@ -1657,6 +1757,10 @@ msgstr ""
 
 #: includes/class-manual.php:53
 msgid "solo lee evidencias locales;"
+msgstr ""
+
+#: includes/class-decision-context.php:539
+msgid "Sólo ordena dentro de la prioridad P existente; no cambia la clase de Auditor."
 msgstr ""
 
 #: includes/class-manual.php:60
@@ -1679,8 +1783,16 @@ msgstr ""
 msgid "Tareas que requieren revisión prioritaria."
 msgstr ""
 
+#: includes/class-decision-context.php:222
+msgid "TaxoCommerce Assistant/Dependiente no está disponible."
+msgstr ""
+
 #: includes/class-admin.php:48
 msgid "TaxoCommerce Auditor"
+msgstr ""
+
+#: taxocommerce-auditor.php:3
+msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
 msgstr ""
 
 #: includes/class-admin.php:190
@@ -1689,6 +1801,10 @@ msgstr ""
 
 #: includes/class-manual.php:22
 msgid "TaxoCommerce Core → Auditor"
+msgstr ""
+
+#: includes/class-decision-context.php:49
+msgid "TaxoCommerce Insights no está disponible."
 msgstr ""
 
 #: includes/class-auto-test.php:34
@@ -1771,12 +1887,20 @@ msgstr ""
 msgid "utilidad (25), confianza (20), diferenciación (20), arquitectura (20) y técnica (15)"
 msgstr ""
 
+#: includes/class-editorial-specialist.php:415
+msgid "Valorar consolidar contenido y mantener una sola URL propietaria."
+msgstr ""
+
 #: includes/class-runner.php:536
 msgid "Verificación de fuente"
 msgstr ""
 
 #: includes/class-rules.php:481
 msgid "Verificar el vínculo nativo con el nivel superior antes de modificar la jerarquía."
+msgstr ""
+
+#: includes/class-category-review.php:224
+msgid "Verificar landings, estructura y reglas de redirección antes de aprobar cualquier concentración."
 msgstr ""
 
 #: includes/class-rules.php:308
