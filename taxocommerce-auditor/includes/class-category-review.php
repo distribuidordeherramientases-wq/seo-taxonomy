@@ -193,7 +193,7 @@ final class Category_Review {
                 'low',
                 $term,
                 'La categoría contiene ' . $count . ' productos; referencia operativa antigua: 5-10.',
-                'Revisar el tamaño y la coherencia semántica. No dividir únicamente por cantidad.'
+                __( 'Revisar el tamaño y la coherencia semántica. No dividir únicamente por cantidad.', 'taxocommerce-auditor' )
             );
             $proposal = self::split_candidate( $term );
             if ( $proposal ) {
@@ -202,7 +202,7 @@ final class Category_Review {
                     'medium',
                     $term,
                     'Se identifican ' . count( $proposal['cohorts'] ) . ' cohortes TIPO de productos con apoyo de Vocabulary nativo.',
-                    'Examinar los productos ambiguos y validar manualmente los destinos de cada cohorte antes de dividir.',
+                    __( 'Examinar los productos ambiguos y validar manualmente los destinos de cada cohorte antes de dividir.', 'taxocommerce-auditor' ),
                     $proposal
                 );
             }
@@ -212,7 +212,7 @@ final class Category_Review {
                 'low',
                 $term,
                 'La categoría contiene ' . $count . ' productos; referencia operativa antigua: 5-10.',
-                'Revisar si conviene conservarla o agruparla con una categoría hermana coherente.'
+                __( 'Revisar si conviene conservarla o agruparla con una categoría hermana coherente.', 'taxocommerce-auditor' )
             );
             $proposal = self::merge_candidate( $term );
             if ( $proposal ) {
@@ -221,7 +221,7 @@ final class Category_Review {
                     'medium',
                     $term,
                     'Existe una categoría hermana con identidad semántica próxima: ' . $proposal['target_name'] . ' #' . $proposal['target_id'] . '.',
-                    'Verificar landings, estructura y reglas de redirección antes de aprobar cualquier concentración.',
+                    __( 'Verificar landings, estructura y reglas de redirección antes de aprobar cualquier concentración.', 'taxocommerce-auditor' ),
                     $proposal
                 );
             }

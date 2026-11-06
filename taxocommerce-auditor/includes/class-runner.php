@@ -20,11 +20,11 @@ final class Runner {
 
     public static function scopes() {
         return array(
-            'products'   => 'Productos · contenido e identidad',
-            'categories' => 'Categorías y arquitectura',
-            'posts'      => 'Posts',
-            'pages'      => 'Páginas y landings',
-            'faqs'       => 'FAQs',
+            'products'   => __( 'Productos · contenido e identidad', 'taxocommerce-auditor' ),
+            'categories' => __( 'Categorías y arquitectura', 'taxocommerce-auditor' ),
+            'posts'      => __( 'Posts', 'taxocommerce-auditor' ),
+            'pages'      => __( 'Páginas y landings', 'taxocommerce-auditor' ),
+            'faqs'       => __( 'FAQs', 'taxocommerce-auditor' ),
         );
     }
 
@@ -527,69 +527,69 @@ final class Runner {
         $clean_pct = $audited ? round( ( $clean / $audited ) * 100, 1 ) : null;
 
         $general = array(
-            self::kpi_row( 'entities_reviewed', 'Entidades auditadas', $audited, '', $excluded ? 'Entidades realmente evaluadas; se excluyen ' . $excluded . ' páginas funcionales/corporativas.' : 'Universo realmente evaluado en esta ejecución.' ),
-            self::kpi_row( 'clean_entities', 'Sin incidencias detectadas', $clean, '', 'Entidades auditadas sin hallazgos en las reglas activas.', $clean === $audited && $audited ? 'good' : 'neutral' ),
-            self::kpi_row( 'clean_rate', 'Cobertura limpia', null === $clean_pct ? 'N/D' : $clean_pct, null === $clean_pct ? '' : '%', 'Porcentaje de entidades sin hallazgos en esta ejecución.', null !== $clean_pct && $clean_pct >= 90 ? 'good' : ( null !== $clean_pct && $clean_pct < 70 ? 'bad' : 'warn' ) ),
-            self::kpi_row( 'findings', 'Hallazgos', absint( $report['finding_count'] ?? 0 ), '', 'Total de incidencias detectadas.' ),
-            self::kpi_row( 'critical_high', 'Críticos + alta', absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ), '', 'Incidencias con mayor severidad.', ( absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ) ) ? 'bad' : 'good' ),
-            self::kpi_row( 'p1', 'Prioridad P1', absint( $priority['P1'] ?? 0 ), '', 'Tareas que requieren revisión prioritaria.', absint( $priority['P1'] ?? 0 ) ? 'bad' : 'good' ),
-            self::kpi_row( 'source_verification', 'Verificación de fuente', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ), '', 'Casos que no deben corregirse sin contrastar fabricante/proveedor.', absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ) ? 'warn' : 'good' ),
-            self::kpi_row( 'quality_average', 'Calidad media', null === ( $quality['average'] ?? null ) ? 'N/D' : (float) $quality['average'], null === ( $quality['average'] ?? null ) ? '' : '/100', 'Índice interno de calidad; no es una métrica de Google.', null !== ( $quality['average'] ?? null ) && (float) $quality['average'] >= 80 ? 'good' : ( null !== ( $quality['average'] ?? null ) && (float) $quality['average'] < 60 ? 'bad' : 'warn' ) ),
-            self::kpi_row( 'weak_quality', 'Calidad débil', absint( $bands['debil'] ?? 0 ), '', 'Entidades clasificadas en la banda interna más baja.', absint( $bands['debil'] ?? 0 ) ? 'warn' : 'good' ),
+            self::kpi_row( 'entities_reviewed', __( 'Entidades auditadas', 'taxocommerce-auditor' ), $audited, '', $excluded ? 'Entidades realmente evaluadas; se excluyen ' . $excluded . ' páginas funcionales/corporativas.' : 'Universo realmente evaluado en esta ejecución.' ),
+            self::kpi_row( 'clean_entities', __( 'Sin incidencias detectadas', 'taxocommerce-auditor' ), $clean, '', __( 'Entidades auditadas sin hallazgos en las reglas activas.', 'taxocommerce-auditor' ), $clean === $audited && $audited ? 'good' : 'neutral' ),
+            self::kpi_row( 'clean_rate', __( 'Cobertura limpia', 'taxocommerce-auditor' ), null === $clean_pct ? 'N/D' : $clean_pct, null === $clean_pct ? '' : '%', __( 'Porcentaje de entidades sin hallazgos en esta ejecución.', 'taxocommerce-auditor' ), null !== $clean_pct && $clean_pct >= 90 ? 'good' : ( null !== $clean_pct && $clean_pct < 70 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'findings', __( 'Hallazgos', 'taxocommerce-auditor' ), absint( $report['finding_count'] ?? 0 ), '', __( 'Total de incidencias detectadas.', 'taxocommerce-auditor' ) ),
+            self::kpi_row( 'critical_high', __( 'Críticos + alta', 'taxocommerce-auditor' ), absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ), '', __( 'Incidencias con mayor severidad.', 'taxocommerce-auditor' ), ( absint( $severity['critical'] ?? 0 ) + absint( $severity['high'] ?? 0 ) ) ? 'bad' : 'good' ),
+            self::kpi_row( 'p1', __( 'Prioridad P1', 'taxocommerce-auditor' ), absint( $priority['P1'] ?? 0 ), '', __( 'Tareas que requieren revisión prioritaria.', 'taxocommerce-auditor' ), absint( $priority['P1'] ?? 0 ) ? 'bad' : 'good' ),
+            self::kpi_row( 'source_verification', __( 'Verificación de fuente', 'taxocommerce-auditor' ), absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ), '', __( 'Casos que no deben corregirse sin contrastar fabricante/proveedor.', 'taxocommerce-auditor' ), absint( $statuses['NEEDS_SOURCE_VERIFICATION'] ?? 0 ) ? 'warn' : 'good' ),
+            self::kpi_row( 'quality_average', __( 'Calidad media', 'taxocommerce-auditor' ), null === ( $quality['average'] ?? null ) ? 'N/D' : (float) $quality['average'], null === ( $quality['average'] ?? null ) ? '' : '/100', __( 'Índice interno de calidad; no es una métrica de Google.', 'taxocommerce-auditor' ), null !== ( $quality['average'] ?? null ) && (float) $quality['average'] >= 80 ? 'good' : ( null !== ( $quality['average'] ?? null ) && (float) $quality['average'] < 60 ? 'bad' : 'warn' ) ),
+            self::kpi_row( 'weak_quality', __( 'Calidad débil', 'taxocommerce-auditor' ), absint( $bands['debil'] ?? 0 ), '', __( 'Entidades clasificadas en la banda interna más baja.', 'taxocommerce-auditor' ), absint( $bands['debil'] ?? 0 ) ? 'warn' : 'good' ),
         );
 
         $specific = array();
         if ( 'products' === $scope ) {
             $specific = array(
-                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['product_missing_description'] ?? 0 ), '', 'Producto sin descripción larga útil.', absint( $rules['product_missing_description'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'missing_excerpt', 'Sin resumen', absint( $rules['product_missing_excerpt'] ?? 0 ), '', 'Producto sin descripción corta/resumen.', absint( $rules['product_missing_excerpt'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'without_category', 'Sin categoría', absint( $rules['product_without_category'] ?? 0 ), '', 'Productos publicados sin product_cat.', absint( $rules['product_without_category'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['product_without_native_vocabulary'] ?? 0 ), '', 'Productos sin clasificación semántica nativa.', absint( $rules['product_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'identity_drift', 'Deriva de identidad', self::rule_total( $rules, array( 'product_title_excerpt_drift', 'product_description_identity_drift', 'product_description_alignment_weak', 'product_tag_identity_drift' ) ), '', 'Título, resumen, descripción o tags con señales de incoherencia.', 'warn' ),
-                self::kpi_row( 'attribute_conflicts', 'Conflictos de atributos', self::rule_total( $rules, array( 'product_attribute_title_conflict', 'attribute_value_malformed', 'attribute_without_name', 'attribute_without_value' ) ), '', 'Atributos que requieren validación o normalización.', 'warn' ),
+                self::kpi_row( 'missing_description', __( 'Sin descripción', 'taxocommerce-auditor' ), absint( $rules['product_missing_description'] ?? 0 ), '', __( 'Producto sin descripción larga útil.', 'taxocommerce-auditor' ), absint( $rules['product_missing_description'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_excerpt', __( 'Sin resumen', 'taxocommerce-auditor' ), absint( $rules['product_missing_excerpt'] ?? 0 ), '', __( 'Producto sin descripción corta/resumen.', 'taxocommerce-auditor' ), absint( $rules['product_missing_excerpt'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_category', __( 'Sin categoría', 'taxocommerce-auditor' ), absint( $rules['product_without_category'] ?? 0 ), '', __( 'Productos publicados sin product_cat.', 'taxocommerce-auditor' ), absint( $rules['product_without_category'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'without_vocabulary', __( 'Sin vocabulario', 'taxocommerce-auditor' ), absint( $rules['product_without_native_vocabulary'] ?? 0 ), '', __( 'Productos sin clasificación semántica nativa.', 'taxocommerce-auditor' ), absint( $rules['product_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'identity_drift', __( 'Deriva de identidad', 'taxocommerce-auditor' ), self::rule_total( $rules, array( 'product_title_excerpt_drift', 'product_description_identity_drift', 'product_description_alignment_weak', 'product_tag_identity_drift' ) ), '', __( 'Título, resumen, descripción o tags con señales de incoherencia.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'attribute_conflicts', __( 'Conflictos de atributos', 'taxocommerce-auditor' ), self::rule_total( $rules, array( 'product_attribute_title_conflict', 'attribute_value_malformed', 'attribute_without_name', 'attribute_without_value' ) ), '', __( 'Atributos que requieren validación o normalización.', 'taxocommerce-auditor' ), 'warn' ),
                 self::kpi_row( 'unstable_sku', 'SKU no estable', absint( $rules['product_no_stable_sku'] ?? 0 ), '', 'Productos sin identificador SKU estable.', absint( $rules['product_no_stable_sku'] ?? 0 ) ? 'warn' : 'good' ),
             );
         } elseif ( 'categories' === $scope ) {
             $rebalance = (array) ( $report['category_rebalance']['summary'] ?? array() );
             $specific = array(
-                self::kpi_row( 'empty_categories', 'Categorías vacías', absint( $rules['category_empty'] ?? 0 ), '', 'Categorías sin productos.', absint( $rules['category_empty'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'single_product', 'Con un solo producto', absint( $rules['category_single_product'] ?? 0 ), '', 'Categorías con profundidad comercial mínima.', 'warn' ),
-                self::kpi_row( 'missing_description', 'Sin descripción', absint( $rules['category_missing_description'] ?? 0 ), '', 'Categorías sin contenido descriptivo.', absint( $rules['category_missing_description'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['category_without_native_vocabulary'] ?? 0 ), '', 'Categorías sin clasificación semántica nativa.', absint( $rules['category_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'without_secondary_hub', 'Sin Hub secundario', absint( $rules['category_no_native_secondary_hub'] ?? 0 ), '', 'Categorías sin encaje arquitectónico nativo.', absint( $rules['category_no_native_secondary_hub'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'underfilled', 'Infra-dimensionadas', absint( $rules['category_underfilled'] ?? 0 ), '', 'Categorías candidatas a revisión por poca profundidad.', 'warn' ),
-                self::kpi_row( 'oversized', 'Sobre-dimensionadas', absint( $rules['category_oversized'] ?? 0 ), '', 'Categorías candidatas a división.', 'warn' ),
-                self::kpi_row( 'split_proposals', 'Propuestas de división', absint( $rebalance['split_proposals'] ?? 0 ), '', 'Propuestas basadas en evidencia semántica; no ejecutan cambios.', 'neutral' ),
-                self::kpi_row( 'merge_proposals', 'Propuestas de unión', absint( $rebalance['merge_proposals'] ?? 0 ), '', 'Propuestas de consolidación para revisión humana.', 'neutral' ),
+                self::kpi_row( 'empty_categories', __( 'Categorías vacías', 'taxocommerce-auditor' ), absint( $rules['category_empty'] ?? 0 ), '', __( 'Categorías sin productos.', 'taxocommerce-auditor' ), absint( $rules['category_empty'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'single_product', __( 'Con un solo producto', 'taxocommerce-auditor' ), absint( $rules['category_single_product'] ?? 0 ), '', __( 'Categorías con profundidad comercial mínima.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'missing_description', __( 'Sin descripción', 'taxocommerce-auditor' ), absint( $rules['category_missing_description'] ?? 0 ), '', __( 'Categorías sin contenido descriptivo.', 'taxocommerce-auditor' ), absint( $rules['category_missing_description'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', __( 'Sin vocabulario', 'taxocommerce-auditor' ), absint( $rules['category_without_native_vocabulary'] ?? 0 ), '', __( 'Categorías sin clasificación semántica nativa.', 'taxocommerce-auditor' ), absint( $rules['category_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_secondary_hub', __( 'Sin Hub secundario', 'taxocommerce-auditor' ), absint( $rules['category_no_native_secondary_hub'] ?? 0 ), '', __( 'Categorías sin encaje arquitectónico nativo.', 'taxocommerce-auditor' ), absint( $rules['category_no_native_secondary_hub'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'underfilled', __( 'Infra-dimensionadas', 'taxocommerce-auditor' ), absint( $rules['category_underfilled'] ?? 0 ), '', __( 'Categorías candidatas a revisión por poca profundidad.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'oversized', __( 'Sobre-dimensionadas', 'taxocommerce-auditor' ), absint( $rules['category_oversized'] ?? 0 ), '', __( 'Categorías candidatas a división.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'split_proposals', __( 'Propuestas de división', 'taxocommerce-auditor' ), absint( $rebalance['split_proposals'] ?? 0 ), '', __( 'Propuestas basadas en evidencia semántica; no ejecutan cambios.', 'taxocommerce-auditor' ), 'neutral' ),
+                self::kpi_row( 'merge_proposals', __( 'Propuestas de unión', 'taxocommerce-auditor' ), absint( $rebalance['merge_proposals'] ?? 0 ), '', __( 'Propuestas de consolidación para revisión humana.', 'taxocommerce-auditor' ), 'neutral' ),
             );
         } elseif ( 'posts' === $scope ) {
             $specific = array(
-                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Posts con cuerpo insuficiente para su función.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Posts sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'title_drift', 'Título/contenido incoherente', absint( $rules['editorial_title_content_drift'] ?? 0 ), '', 'Señales de desalineación entre título y cuerpo.', 'warn' ),
-                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_post_canonical_cannibalization', 'editorial_post_category_cannibalization', 'editorial_post_landing_cannibalization' ) ), '', 'Solapamientos de intención con categorías, landings u otras URL canónicas.', 'bad' ),
-                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_post_structural_overlap'] ?? 0 ), '', 'Posts que compiten con piezas estructurales del sitio.', 'warn' ),
-                self::kpi_row( 'duplicate_titles', 'Títulos duplicados', absint( $rules['duplicate_editorial_title'] ?? 0 ), '', 'Identidades editoriales repetidas dentro del bloque.', 'warn' ),
+                self::kpi_row( 'thin_content', __( 'Contenido débil', 'taxocommerce-auditor' ), absint( $rules['editorial_thin_content'] ?? 0 ), '', __( 'Posts con cuerpo insuficiente para su función.', 'taxocommerce-auditor' ), absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', __( 'Sin vocabulario', 'taxocommerce-auditor' ), absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', __( 'Posts sin clasificación semántica nativa.', 'taxocommerce-auditor' ), absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'title_drift', __( 'Título/contenido incoherente', 'taxocommerce-auditor' ), absint( $rules['editorial_title_content_drift'] ?? 0 ), '', __( 'Señales de desalineación entre título y cuerpo.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'cannibalization', __( 'Canibalización', 'taxocommerce-auditor' ), self::rule_total( $rules, array( 'editorial_post_canonical_cannibalization', 'editorial_post_category_cannibalization', 'editorial_post_landing_cannibalization' ) ), '', __( 'Solapamientos de intención con categorías, landings u otras URL canónicas.', 'taxocommerce-auditor' ), 'bad' ),
+                self::kpi_row( 'structural_overlap', __( 'Solapamiento estructural', 'taxocommerce-auditor' ), absint( $rules['editorial_post_structural_overlap'] ?? 0 ), '', __( 'Posts que compiten con piezas estructurales del sitio.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'duplicate_titles', __( 'Títulos duplicados', 'taxocommerce-auditor' ), absint( $rules['duplicate_editorial_title'] ?? 0 ), '', __( 'Identidades editoriales repetidas dentro del bloque.', 'taxocommerce-auditor' ), 'warn' ),
             );
         } elseif ( 'pages' === $scope ) {
             $specific = array(
-                self::kpi_row( 'thin_content', 'Contenido débil', absint( $rules['editorial_thin_content'] ?? 0 ), '', 'Páginas/landings con cuerpo insuficiente.', absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'without_vocabulary', 'Sin vocabulario', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', 'Páginas sin clasificación semántica nativa.', absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'landing_duplicates', 'Landings duplicadas', absint( $rules['editorial_landing_duplicate'] ?? 0 ), '', 'Landings con identidad editorial repetida.', absint( $rules['editorial_landing_duplicate'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'cannibalization', 'Canibalización', self::rule_total( $rules, array( 'editorial_canonical_post_cannibalization', 'editorial_landing_canonical_cannibalization', 'editorial_landing_post_cannibalization', 'editorial_landing_category_overlap' ) ), '', 'Solapamientos entre páginas estructurales, landings, posts y categorías.', 'bad' ),
-                self::kpi_row( 'structural_overlap', 'Solapamiento estructural', absint( $rules['editorial_landing_structural_overlap'] ?? 0 ), '', 'Landings que invaden funciones de otras piezas estructurales.', 'warn' ),
-                self::kpi_row( 'unclassified_role', 'Rol sin clasificar', absint( $rules['editorial_page_role_unclassified'] ?? 0 ), '', 'Páginas cuyo rol SEO no está resuelto.', 'warn' ),
-                self::kpi_row( 'missing_parent', 'Sin padre nativo', absint( $rules['page_missing_native_parent'] ?? 0 ), '', 'Páginas estructurales sin relación padre esperada.', 'warn' ),
+                self::kpi_row( 'thin_content', __( 'Contenido débil', 'taxocommerce-auditor' ), absint( $rules['editorial_thin_content'] ?? 0 ), '', __( 'Páginas/landings con cuerpo insuficiente.', 'taxocommerce-auditor' ), absint( $rules['editorial_thin_content'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'without_vocabulary', __( 'Sin vocabulario', 'taxocommerce-auditor' ), absint( $rules['editorial_without_native_vocabulary'] ?? 0 ), '', __( 'Páginas sin clasificación semántica nativa.', 'taxocommerce-auditor' ), absint( $rules['editorial_without_native_vocabulary'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'landing_duplicates', __( 'Landings duplicadas', 'taxocommerce-auditor' ), absint( $rules['editorial_landing_duplicate'] ?? 0 ), '', __( 'Landings con identidad editorial repetida.', 'taxocommerce-auditor' ), absint( $rules['editorial_landing_duplicate'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'cannibalization', __( 'Canibalización', 'taxocommerce-auditor' ), self::rule_total( $rules, array( 'editorial_canonical_post_cannibalization', 'editorial_landing_canonical_cannibalization', 'editorial_landing_post_cannibalization', 'editorial_landing_category_overlap' ) ), '', __( 'Solapamientos entre páginas estructurales, landings, posts y categorías.', 'taxocommerce-auditor' ), 'bad' ),
+                self::kpi_row( 'structural_overlap', __( 'Solapamiento estructural', 'taxocommerce-auditor' ), absint( $rules['editorial_landing_structural_overlap'] ?? 0 ), '', __( 'Landings que invaden funciones de otras piezas estructurales.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'unclassified_role', __( 'Rol sin clasificar', 'taxocommerce-auditor' ), absint( $rules['editorial_page_role_unclassified'] ?? 0 ), '', __( 'Páginas cuyo rol SEO no está resuelto.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'missing_parent', __( 'Sin padre nativo', 'taxocommerce-auditor' ), absint( $rules['page_missing_native_parent'] ?? 0 ), '', __( 'Páginas estructurales sin relación padre esperada.', 'taxocommerce-auditor' ), 'warn' ),
             );
         } elseif ( 'faqs' === $scope ) {
             $specific = array(
-                self::kpi_row( 'thin_answer', 'Respuesta insuficiente', absint( $rules['faq_thin_answer'] ?? 0 ), '', 'FAQs con respuesta vacía o demasiado escueta.', absint( $rules['faq_thin_answer'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'empty_question', 'Pregunta vacía', absint( $rules['faq_empty_question'] ?? 0 ), '', 'FAQs sin pregunta utilizable.', absint( $rules['faq_empty_question'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'orphan_owner', 'Owner huérfano', absint( $rules['faq_orphan_owner'] ?? 0 ), '', 'FAQs cuyo destino canónico ya no existe.', absint( $rules['faq_orphan_owner'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'invalid_owner', 'Owner inválido', absint( $rules['faq_invalid_owner_type'] ?? 0 ), '', 'FAQs fuera del modelo canónico página/hub, categoría o producto.', absint( $rules['faq_invalid_owner_type'] ?? 0 ) ? 'bad' : 'good' ),
-                self::kpi_row( 'missing_category', 'Sin categoría', absint( $rules['faq_missing_product_category'] ?? 0 ), '', 'FAQs sin product_cat_id válido.', absint( $rules['faq_missing_product_category'] ?? 0 ) ? 'warn' : 'good' ),
-                self::kpi_row( 'semantic_drift', 'Deriva semántica', absint( $rules['faq_owner_semantic_drift'] ?? 0 ), '', 'Pregunta posiblemente alejada del owner confirmado.', 'warn' ),
-                self::kpi_row( 'duplicate_same_owner', 'Duplicadas en mismo owner', absint( $rules['duplicate_faq_same_owner'] ?? 0 ), '', 'Preguntas equivalentes repetidas para el mismo destino.', 'warn' ),
+                self::kpi_row( 'thin_answer', __( 'Respuesta insuficiente', 'taxocommerce-auditor' ), absint( $rules['faq_thin_answer'] ?? 0 ), '', 'FAQs con respuesta vacía o demasiado escueta.', absint( $rules['faq_thin_answer'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'empty_question', __( 'Pregunta vacía', 'taxocommerce-auditor' ), absint( $rules['faq_empty_question'] ?? 0 ), '', 'FAQs sin pregunta utilizable.', absint( $rules['faq_empty_question'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'orphan_owner', __( 'Owner huérfano', 'taxocommerce-auditor' ), absint( $rules['faq_orphan_owner'] ?? 0 ), '', 'FAQs cuyo destino canónico ya no existe.', absint( $rules['faq_orphan_owner'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'invalid_owner', __( 'Owner inválido', 'taxocommerce-auditor' ), absint( $rules['faq_invalid_owner_type'] ?? 0 ), '', 'FAQs fuera del modelo canónico página/hub, categoría o producto.', absint( $rules['faq_invalid_owner_type'] ?? 0 ) ? 'bad' : 'good' ),
+                self::kpi_row( 'missing_category', __( 'Sin categoría', 'taxocommerce-auditor' ), absint( $rules['faq_missing_product_category'] ?? 0 ), '', 'FAQs sin product_cat_id válido.', absint( $rules['faq_missing_product_category'] ?? 0 ) ? 'warn' : 'good' ),
+                self::kpi_row( 'semantic_drift', __( 'Deriva semántica', 'taxocommerce-auditor' ), absint( $rules['faq_owner_semantic_drift'] ?? 0 ), '', __( 'Pregunta posiblemente alejada del owner confirmado.', 'taxocommerce-auditor' ), 'warn' ),
+                self::kpi_row( 'duplicate_same_owner', __( 'Duplicadas en mismo owner', 'taxocommerce-auditor' ), absint( $rules['duplicate_faq_same_owner'] ?? 0 ), '', __( 'Preguntas equivalentes repetidas para el mismo destino.', 'taxocommerce-auditor' ), 'warn' ),
             );
         }
 
@@ -599,7 +599,7 @@ final class Runner {
             'coverage' => 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'complete_scope' : 'filtered_sample',
             'general'  => $general,
             'specific' => $specific,
-            'note'     => 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.',
+            'note'     => __( 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.', 'taxocommerce-auditor' ),
         );
     }
 
@@ -643,7 +643,7 @@ final class Runner {
                         + (int) $state['rebalance_summary']['merge_proposals']
                     ) > count( $state['rebalance_proposals'] ),
                     'apply_actions_enabled' => false,
-                    'note' => 'Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones.',
+                    'note' => __( 'Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones.', 'taxocommerce-auditor' ),
                 )
                 : null,
             'editorial_comparison' => in_array( $scope, array( 'posts', 'pages' ), true )

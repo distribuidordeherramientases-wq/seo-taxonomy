@@ -1,3 +1,6 @@
+= 0.3.30 (2026-11-06) =
+* M11: índices de consulta, cursor confirmado por expresión, cuarentena auditada de interrupciones repetidas y prueba de memoria lingüística de 33.409 expresiones. Se preservan L1-L10, M12 y las cinco velocidades.
+
 HISTORIAL LEGADO — TAXOCOMMERCE ASSISTANT / DEPENDIENTE
 
 TaxoCommerce SEO monolítico, versiones previas a la división modular.

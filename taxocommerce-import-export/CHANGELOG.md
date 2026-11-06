@@ -1,3 +1,10 @@
+## [0.4.17] — 2026-11-06 (Issue #2248)
+
+- Corregida la cancelación de exportaciones CSV creadas antes de 0.4.16 sin token de autollamada: limpieza inmediata si no hay escritor activo, con bloqueo exclusivo y aislamiento por usuario.
+- Las cancelaciones en curso se completan al quedar libre el escritor; la lectura de estado y el watchdog recuperan bloqueos huérfanos, sin borrar el CSV mientras se está escribiendo.
+- Los trabajos fallidos o antiguos pueden regenerar su token en la reanudación; el siguiente bloque se despacha después de liberar el bloqueo para evitar pérdidas de continuidad.
+- Pruebas de ejecución simulada con archivos reales: cancelación heredada, escritor activo, lock caducado, consulta de estado y separación de usuarios. Sin despliegue a producción.
+
 ## [0.4.16] — 2026-11-06 (Issue #2245)
 
 - La exportación CSV deja de depender de AJAX repetido del navegador: un worker del servidor continúa por bloques mediante autollamadas internas del servidor, con recuperación mediante Action Scheduler de WooCommerce y WP-Cron.

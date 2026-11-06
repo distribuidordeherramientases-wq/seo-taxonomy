@@ -24,7 +24,7 @@ final class TaxoCommerce_System_Check_User_Guide {
                     'title' => 'Arranque y navegación',
                     'body'  => 'El plugin arranca en plugins_loaded con prioridad 100, registra sus acciones, integra Core si está disponible y añade un menú principal independiente o un submenú de Core.',
                     'parts' => array(
-                        array( 'Pestañas', 'Sistema, Plugin Validation, HTTP, Auto Test y Manual utilizan la página taxocommerce-system-check y el parámetro tcs_tab. En Manual, tcs_manual selecciona user o technical sin cambios de estado.' ),
+                        array( 'Pestañas', 'Sistema, Plugin Validation, HTTP, Procesos, Auto Test y Manual utilizan la página taxocommerce-system-check y el parámetro tcs_tab. En Manual, tcs_manual selecciona user o technical sin cambios de estado.' ),
                         array( 'Seguridad', 'La administración usa manage_options. Las acciones sensibles se protegen con nonces; Auto Test solo acepta un enlace firmado y no realiza escrituras.' ),
                     ),
                 ),
@@ -49,6 +49,15 @@ final class TaxoCommerce_System_Check_User_Guide {
                     'body'  => 'taxocommerce_system_check_registered_modules() consulta los módulos activos registrados en Core. module_checks() comprueba carga, versión y, para System Check, disponibilidad de motores. Este inventario es básico y no sustituye las pruebas funcionales de cada extensión.',
                     'parts' => array(
                         array( 'Exportación', 'El endpoint admin-post taxocommerce_system_check_modules_json genera una descarga JSON protegida por permisos y nonce; no modifica el inventario.' ),
+                    ),
+                ),
+                'processes' => array(
+                    'title' => 'Control de procesos de aplicación',
+                    'body'  => 'La pestaña Procesos consulta Action Scheduler y WP-Cron sin shell ni acceso a procesos Linux. Los inventarios son acotados y las acciones requieren manage_options y nonce.',
+                    'parts' => array(
+                        array( 'Cancelación segura', 'Solo se cancela una acción pendiente con namespace considerado no crítico; los pagos, el mantenimiento de WordPress y WooCommerce quedan protegidos. Una acción en ejecución no puede terminarse físicamente desde otra petición PHP.' ),
+                        array( 'Trabajos de larga duración', 'Los adaptadores opcionales de Dependiente, Import-Export y el auditor HTTP establecen las señales de detención y preservan los avances pertinentes. La exportación CSV realiza la limpieza bajo el bloqueo de su propio worker. Los plugins de terceros pueden registrar su estado y parada cooperativa mediante filtros sin depender de System Check.' ),
+                        array( 'Parada global', 'Aplica controles sobre las tareas elegibles de la página, sin detener Apache, PHP-FPM, MySQL ni trabajos de sistema. Las tareas en ejecución requieren una comprobación posterior para confirmar su finalización.' ),
                     ),
                 ),
                 'http' => array(
@@ -100,6 +109,14 @@ final class TaxoCommerce_System_Check_User_Guide {
                 'parts' => array(
                     array( 'Diagnóstico PHP independiente', 'Utiliza el enlace «Abrir diagnóstico PHP independiente» para ver versión de PHP, memoria, límites de ejecución, extensiones y otras observaciones sin iniciar un análisis remoto.' ),
                     array( 'Cómo leer los avisos', 'Una advertencia de entorno no implica necesariamente que una función haya fallado. Revisa cada detalle y compáralo con las necesidades de tu tienda.' ),
+                ),
+            ),
+            'processes' => array(
+                'title' => 'Pestaña Procesos',
+                'body' => 'Permite consultar tareas de WordPress y WooCommerce gestionadas por Action Scheduler, WP-Cron y los procesos integrados. No requiere acceso al servidor.',
+                'parts' => array(
+                    array( 'Detener', 'Puedes cancelar tareas pendientes elegibles o solicitar que los trabajos compatibles no ejecuten nuevos lotes. La parada no interrumpe el PHP que ya esté ejecutándose.' ),
+                    array( 'Detener todos', 'Actúa solo sobre tareas de aplicación consideradas cancelables y conserva los trabajos internos críticos. Comprueba el estado después: solicitar una parada no equivale a confirmar su finalización.' ),
                 ),
             ),
             'plugin' => array(

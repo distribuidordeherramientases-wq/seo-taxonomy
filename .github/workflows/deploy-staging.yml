@@ -54,6 +54,7 @@ jobs:
           php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
+          php taxocommerce-system-check/tests/processes-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
           php taxocommerce-dependiente/tests/clean-install-smoke.php
@@ -65,6 +66,8 @@ jobs:
           php taxocommerce-dependiente/tests/empty-lesson-progression-smoke.php
           php -l taxocommerce-dependiente/tests/optional-sources-empty-smoke.php
           php taxocommerce-dependiente/tests/optional-sources-empty-smoke.php
+          php -l taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
+          php taxocommerce-dependiente/tests/m11-checkpoint-large-lexicon.php
           php taxocommerce-distribution/tests/manual-autocheck-smoke.php
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php

@@ -192,9 +192,14 @@
 			try {
 				var data = await request('taxocommerce_ie_export_status');
 				if (!data.active) {
+					if (activeJob) {
+						message.textContent = 'No hay exportación activa. Ya puedes iniciar una nueva.';
+						bar.value = 0;
+					}
 					activeJob = '';
 					setBusy(false);
 					cancel.style.display = 'none';
+					retry.style.display = 'none';
 					return;
 				}
 				activeJob = data.job || '';

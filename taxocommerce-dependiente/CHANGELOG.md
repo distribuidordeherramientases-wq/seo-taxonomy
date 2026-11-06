@@ -1,6 +1,14 @@
 ## Unreleased - Familia i18n #2062
 
 
+## [0.3.30] — 2026-11-06 (Issue #2252)
+
+- La regresión lingüística de M11 utiliza índices por primera palabra y concepto de acción, sin recorrer las más de 33.000 expresiones activas por cada consulta. La memoria se invalida tras altas o actualizaciones.
+- Cada expresión de la regresión activa o la fase de hipótesis guarda un marcador antes de evaluarse y confirma el cursor y los contadores al terminar, sin doble cómputo desde el supervisor.
+- Ante dos interrupciones consecutivas del mismo identificador, se registra el caso como deuda de evaluación (rechazado y en cuarentena), se avanza y se mantiene el progreso de L1–L10; errores PHP recuperables quedan asociados al identificador.
+- Se registran identificador y duración de evaluaciones lentas, preservando el curso anterior, las cinco velocidades y la memoria aprendida.
+- Prueba autónoma con 33.409 expresiones y recuperación de cursor 348 tras interrupciones; sin modificar datos de ninguna tienda.
+
 ## [0.3.29] — 2026-11-06
 
 - Mostrar 100 % de progreso para snapshots de lecciones vacías (`skipped_empty`) ya cerradas, con 0/0 elementos y sin aprobar exámenes ni crear aprendizaje ficticio.
