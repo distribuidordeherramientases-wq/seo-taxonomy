@@ -72,6 +72,7 @@ jobs:
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php
+          php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
           php taxocommerce-import-export/tests/auto-test-smoke.php
           php taxocommerce-logistica/tests/auto-test-smoke.php
