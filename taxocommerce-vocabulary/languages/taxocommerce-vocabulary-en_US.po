@@ -284,3 +284,151 @@ msgid ""
 "atributos; por seguridad no borra maestros canónicos que no estén en el "
 "paquete."
 msgstr "MIRROR replaces the included product/category assignments and their attributes; for safety, it does not delete canonical master records missing from the package."
+
+msgid "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+msgstr "Shared canonical vocabulary and technical attributes. The classifier suggests; Vocabulary stores the canonical data."
+
+msgid "Etiquetas"
+msgstr "Labels"
+
+msgid "Atributos"
+msgstr "Attributes"
+
+msgid "Importar / Exportar"
+msgstr "Import / Export"
+
+msgid "Control"
+msgstr "Checks"
+
+msgid "Autocheck"
+msgstr "Auto Check"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Alta de etiqueta"
+msgstr "Add label"
+
+msgid "Nombre visible"
+msgstr "Display name"
+
+msgid "Activa"
+msgstr "Active"
+
+msgid "Inactiva"
+msgstr "Inactive"
+
+msgid "Activo"
+msgstr "Active"
+
+msgid "Inactivo"
+msgstr "Inactive"
+
+msgid "Buscar"
+msgstr "Search"
+
+msgid "Producto, SKU o ID"
+msgstr "Product, SKU or ID"
+
+msgid "Cobertura incompleta (falta alguna)"
+msgstr "Incomplete coverage (some missing)"
+
+msgid "Sin etiquetas semánticas"
+msgstr "No semantic labels"
+
+msgid "Sin TIPO"
+msgstr "Missing TYPE"
+
+msgid "Sin ROL"
+msgstr "Missing ROLE"
+
+msgid "Sin APLICACIÓN"
+msgstr "Missing APPLICATION"
+
+msgid "Sin PLATAFORMA"
+msgstr "Missing PLATFORM"
+
+msgid "Sin SUBTIPO"
+msgstr "Missing SUBTYPE"
+
+msgid "Todas las anomalías"
+msgstr "All issues"
+
+msgid "P1 · falta TIPO"
+msgstr "P1 · missing TYPE"
+
+msgid "P2 · falta ROL"
+msgstr "P2 · missing ROLE"
+
+msgid "P3 · falta APLICACIÓN"
+msgstr "P3 · missing APPLICATION"
+
+msgid "P4 · falta SUBTIPO"
+msgstr "P4 · missing SUBTYPE"
+
+msgid "P5 · falta PLATAFORMA"
+msgstr "P5 · missing PLATFORM"
+
+msgid "Último análisis filtrado"
+msgstr "Last filtered analysis"
+
+msgid "Procesados:"
+msgstr "Processed:"
+
+msgid "Generado:"
+msgstr "Generated:"
+
+msgid "Exportar JSON del análisis"
+msgstr "Export analysis JSON"
+
+msgid "Análisis puntual de categoría"
+msgstr "Single-category analysis"
+
+msgid "Para revisar una categoría concreta sin recorrer el catálogo completo."
+msgstr "Review a specific category without scanning the entire catalog."
+
+msgid "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+msgstr "Export/import ROLE, TYPE, APPLICATION, PLATFORM and SUBTYPE terms, and the TYPE → ROLE mapping."
+
+msgid "Exportar CSV de etiquetas"
+msgstr "Export label CSV"
+
+msgid "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+msgstr "Export/import attribute definitions, controlled terms and aliases. Does not include values assigned to products."
+
+msgid "Exportar CSV de atributos"
+msgstr "Export attribute CSV"
+
+msgid "Importar CSV"
+msgstr "Import CSV"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Falta"
+msgstr "Missing"
+
+msgid "Exportar catálogo"
+msgstr "Export catalog"
+
+msgid "Maestros: Vocabulary, TIPO → ROL y atributos"
+msgstr "Master data: Vocabulary, TYPE → ROLE and attributes"
+
+msgid "Producto → Vocabulary"
+msgstr "Product → Vocabulary"
+
+msgid "Categoría → Vocabulary"
+msgstr "Category → Vocabulary"
+
+msgid "Producto → atributos canónicos"
+msgstr "Product → canonical attributes"
+
+msgid "Producto → etiquetas WooCommerce"
+msgstr "Product → WooCommerce tags"
+
+msgid "Última simulación:"
+msgstr "Last simulation:"
+
+msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+msgstr "Cross-cutting inventory of labels and attributes with an automatic classifier and local processing."
+

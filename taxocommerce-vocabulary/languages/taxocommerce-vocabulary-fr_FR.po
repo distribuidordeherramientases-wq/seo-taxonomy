@@ -284,3 +284,151 @@ msgid ""
 "atributos; por seguridad no borra maestros canónicos que no estén en el "
 "paquete."
 msgstr "MIRROR remplace les associations incluses des produits/catégories et leurs attributs ; par sécurité, il ne supprime pas les données canoniques de référence absentes du paquet."
+
+msgid "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+msgstr "Vocabulaire canonique partagé et attributs techniques. Le classificateur propose ; Vocabulary conserve les données canoniques."
+
+msgid "Etiquetas"
+msgstr "Étiquettes"
+
+msgid "Atributos"
+msgstr "Attributs"
+
+msgid "Importar / Exportar"
+msgstr "Importer / Exporter"
+
+msgid "Control"
+msgstr "Contrôle"
+
+msgid "Autocheck"
+msgstr "Vérification automatique"
+
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Alta de etiqueta"
+msgstr "Ajouter une étiquette"
+
+msgid "Nombre visible"
+msgstr "Nom affiché"
+
+msgid "Activa"
+msgstr "Active"
+
+msgid "Inactiva"
+msgstr "Inactive"
+
+msgid "Activo"
+msgstr "Actif"
+
+msgid "Inactivo"
+msgstr "Inactif"
+
+msgid "Buscar"
+msgstr "Rechercher"
+
+msgid "Producto, SKU o ID"
+msgstr "Produit, SKU ou ID"
+
+msgid "Cobertura incompleta (falta alguna)"
+msgstr "Couverture incomplète (éléments manquants)"
+
+msgid "Sin etiquetas semánticas"
+msgstr "Sans étiquettes sémantiques"
+
+msgid "Sin TIPO"
+msgstr "Sans TYPE"
+
+msgid "Sin ROL"
+msgstr "Sans RÔLE"
+
+msgid "Sin APLICACIÓN"
+msgstr "Sans APPLICATION"
+
+msgid "Sin PLATAFORMA"
+msgstr "Sans PLATEFORME"
+
+msgid "Sin SUBTIPO"
+msgstr "Sans SOUS-TYPE"
+
+msgid "Todas las anomalías"
+msgstr "Toutes les anomalies"
+
+msgid "P1 · falta TIPO"
+msgstr "P1 · TYPE manquant"
+
+msgid "P2 · falta ROL"
+msgstr "P2 · RÔLE manquant"
+
+msgid "P3 · falta APLICACIÓN"
+msgstr "P3 · APPLICATION manquante"
+
+msgid "P4 · falta SUBTIPO"
+msgstr "P4 · SOUS-TYPE manquant"
+
+msgid "P5 · falta PLATAFORMA"
+msgstr "P5 · PLATEFORME manquante"
+
+msgid "Último análisis filtrado"
+msgstr "Dernière analyse filtrée"
+
+msgid "Procesados:"
+msgstr "Traités :"
+
+msgid "Generado:"
+msgstr "Généré :"
+
+msgid "Exportar JSON del análisis"
+msgstr "Exporter le JSON de l'analyse"
+
+msgid "Análisis puntual de categoría"
+msgstr "Analyse d'une catégorie spécifique"
+
+msgid "Para revisar una categoría concreta sin recorrer el catálogo completo."
+msgstr "Examiner une catégorie précise sans parcourir l'ensemble du catalogue."
+
+msgid "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+msgstr "Exporter/importer les termes RÔLE, TYPE, APPLICATION, PLATEFORME, SOUS-TYPE et les correspondances TYPE → RÔLE."
+
+msgid "Exportar CSV de etiquetas"
+msgstr "Exporter le CSV des étiquettes"
+
+msgid "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+msgstr "Exporter/importer les définitions d'attributs, les termes contrôlés et les alias. N'inclut pas les valeurs attribuées aux produits."
+
+msgid "Exportar CSV de atributos"
+msgstr "Exporter le CSV des attributs"
+
+msgid "Importar CSV"
+msgstr "Importer un CSV"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Falta"
+msgstr "Manquant"
+
+msgid "Exportar catálogo"
+msgstr "Exporter le catalogue"
+
+msgid "Maestros: Vocabulary, TIPO → ROL y atributos"
+msgstr "Référentiels : Vocabulary, TYPE → RÔLE et attributs"
+
+msgid "Producto → Vocabulary"
+msgstr "Produit → Vocabulary"
+
+msgid "Categoría → Vocabulary"
+msgstr "Catégorie → Vocabulary"
+
+msgid "Producto → atributos canónicos"
+msgstr "Produit → attributs canoniques"
+
+msgid "Producto → etiquetas WooCommerce"
+msgstr "Produit → étiquettes WooCommerce"
+
+msgid "Última simulación:"
+msgstr "Dernière simulation :"
+
+msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+msgstr "Inventaire transversal d'étiquettes et d'attributs avec classificateur automatique et traitement local."
+
