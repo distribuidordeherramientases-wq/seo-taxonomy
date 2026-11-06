@@ -1,5 +1,5 @@
 = 0.4.16 (2026-11-06) =
-* Exportación CSV desacoplada del navegador: worker Action Scheduler/WP-Cron con cola de bloques, seguimiento, cancelación y recuperación, conservando regulador adaptativo.
+* Exportación CSV desacoplada del navegador: worker por llamadas internas del servidor y recuperación Action Scheduler/WP-Cron con cola de bloques, seguimiento, cancelación y recuperación, conservando regulador adaptativo.
 
 HISTORIAL LEGADO — TAXOCOMMERCE IMPORT-EXPORT
 
