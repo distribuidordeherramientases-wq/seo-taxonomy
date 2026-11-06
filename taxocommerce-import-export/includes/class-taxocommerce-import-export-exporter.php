@@ -424,7 +424,7 @@ final class TaxoCommerce_Import_Export_Exporter {
 		wp_set_current_user( $user_id );
 		try {
 			$state = $this->state();
-			if ( ! $state || ! hash_equals( (string) $state['id'], $job ) || ! empty( $state['complete'] ) ) {
+			if ( ! $state || ! hash_equals( (string) $state['id'], $job ) ) {
 				return;
 			}
 			$token = $this->acquire_lock( $job );
@@ -439,6 +439,9 @@ final class TaxoCommerce_Import_Export_Exporter {
 				}
 				if ( get_option( $this->cancel_key(), '' ) === $job ) {
 					$this->cancel_queued_job( $job );
+					return;
+				}
+				if ( ! empty( $state['complete'] ) ) {
 					return;
 				}
 				$result = $this->process_block( $state );
