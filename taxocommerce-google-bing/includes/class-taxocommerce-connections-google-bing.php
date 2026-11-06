@@ -37,13 +37,15 @@ final class TaxoCommerce_Connections_Google_Bing {
 
 	public static function bing_settings() {
 		$defaults = array(
-			'enabled'  => true,
-			'site_url' => home_url( '/' ),
-			'api_key'  => '',
+			'enabled'          => true,
+			'indexnow_enabled' => false,
+			'site_url'         => home_url( '/' ),
+			'api_key'          => '',
 		);
 		$saved = get_option( self::BING_OPTION, array() );
 		$settings = wp_parse_args( is_array( $saved ) ? $saved : array(), $defaults );
 		$settings['enabled'] = ! empty( $settings['enabled'] );
+		$settings['indexnow_enabled'] = ! empty( $settings['indexnow_enabled'] );
 		$settings['site_url'] = esc_url_raw( (string) $settings['site_url'] );
 		if ( '' === $settings['site_url'] ) {
 			$settings['site_url'] = home_url( '/' );
@@ -175,15 +177,22 @@ final class TaxoCommerce_Connections_Google_Bing {
 			$site = home_url( '/' );
 		}
 
+		$indexnow_enabled = ! empty( $_POST['indexnow_enabled'] );
 		update_option(
 			self::BING_OPTION,
 			array(
-				'enabled'  => ! empty( $_POST['enabled'] ),
-				'site_url' => $site,
-				'api_key'  => sanitize_text_field( $key ),
+				'enabled'          => ! empty( $_POST['enabled'] ),
+				'indexnow_enabled' => $indexnow_enabled,
+				'site_url'         => $site,
+				'api_key'          => sanitize_text_field( $key ),
 			),
 			false
 		);
+		if ( $indexnow_enabled ) {
+			TaxoCommerce_Insights_IndexNow::key();
+		} else {
+			TaxoCommerce_Insights_IndexNow::disabled();
+		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		self::redirect( 'bing_saved' );
 	}
