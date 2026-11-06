@@ -650,6 +650,82 @@ final class TaxoCommerce_System_Check_URL_Audit {
         return $result;
     }
 
+    /**
+     * Read-only inventory for the System Check Processes tab.
+     *
+     * @return array
+     */
+    public static function process_rows() {
+        if ( ! function_exists( 'seo_health_scan_active_run' ) ) {
+            return array();
+        }
+        $rows = array();
+        foreach ( self::scopes() as $scope => $label ) {
+            $run = seo_health_scan_active_run( $scope );
+            if ( ! is_array( $run ) || 'local' !== (string) ( $run['mode'] ?? '' ) ) {
+                continue;
+            }
+            $status = sanitize_key( (string) ( $run['status'] ?? '' ) );
+            if ( ! in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
+                continue;
+            }
+            $rows[] = array(
+                'id' => 'http:' . absint( $run['id'] ),
+                /* translators: %s: Content type for a running HTTP audit (pages, posts, images or products). */
+                'label' => sprintf( __( 'Auditoría HTTP: %s', 'taxocommerce-system-check' ), $label ),
+                'status' => $status,
+                'detail' => __( 'Trabajo local por lotes', 'taxocommerce-system-check' ),
+                'can_stop' => true,
+            );
+        }
+        return $rows;
+    }
+
+    /**
+     * Cancel one local audit cooperatively; do not interrupt active PHP.
+     *
+     * @param int $run_id Existing audit ID.
+     * @return bool
+     */
+    public static function stop_process( $run_id ) {
+        $run_id = absint( $run_id );
+        if ( ! $run_id ) {
+            return false;
+        }
+        $found = false;
+        foreach ( self::process_rows() as $row ) {
+            if ( 'http:' . $run_id === $row['id'] ) {
+                $found = true;
+                break;
+            }
+        }
+        if ( ! $found ) {
+            return false;
+        }
+        global $wpdb;
+        $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Coordinate live, plugin-owned audit state.
+        $updated = $wpdb->update(
+            self::table( 'runs' ),
+            array( 'status' => 'cancelled', 'completed_at' => $now, 'updated_at' => $now, 'error_message' => __( 'Cancelado desde System Check.', 'taxocommerce-system-check' ), 'callback_token_hash' => '' ),
+            array( 'id' => $run_id, 'mode' => 'local' ),
+            array( '%s', '%s', '%s', '%s', '%s' ),
+            array( '%d', '%s' )
+        );
+        if ( false === $updated || 0 === $updated ) {
+            return false;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Release queued audit items after state cancellation.
+        $wpdb->query(
+            $wpdb->prepare( 'UPDATE %i SET queued_scan_id=0,queued_at=NULL WHERE queued_scan_id=%d', self::table( 'items' ), $run_id )
+        );
+        wp_clear_scheduled_hook( self::HOOK, array( $run_id ) );
+        if ( function_exists( 'as_unschedule_all_actions' ) ) {
+            as_unschedule_all_actions( self::HOOK, array( $run_id ), self::GROUP );
+        }
+        return true;
+    }
+
     public static function handle_action() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No autorizado.', 'taxocommerce-system-check' ) );

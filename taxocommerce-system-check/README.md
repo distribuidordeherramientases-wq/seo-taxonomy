@@ -1,5 +1,12 @@
 # TaxoCommerce System Check
 
+## Procesos (0.2.18)
+
+La pestaña **Procesos** muestra el inventario acotado de Action Scheduler y WP-Cron y el estado lógico de workers compatibles, sin permisos shell y sin depender de Core. Las acciones requieren `manage_options`, nonce y revisión del estado. Solo se ofrece cancelación de tareas de aplicación consideradas no críticas. Para detener trabajos largos, la detención es cooperativa: se impiden nuevos lotes pero **no** se mata una petición PHP ya ejecutándose. El botón global no borra pagos, tareas internas de WooCommerce ni trabajos del sistema operativo.
+
+La lista de tareas está acotada para evitar costes excesivos. Los filtros `taxocommerce_system_check_process_workers`, `taxocommerce_system_check_stop_worker` y `taxocommerce_system_check_can_cancel_action` permiten integrar trabajos de terceros sin dependencia comercial ni técnica obligatoria.
+
+
 Plugin WordPress independiente en `taxocommerce-system-check/`.
 
 ## Alcance inicial
