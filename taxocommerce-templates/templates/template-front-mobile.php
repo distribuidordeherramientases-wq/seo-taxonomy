@@ -871,7 +871,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             $dht_interest_image = $get_term_image($dht_interest_term, 'woocommerce_thumbnail');
                             ?>
                             <a class="sf-mobile-front-interest-card" href="<?php echo esc_url(dht_template_safe_term_link($dht_interest_term)); ?>">
-                                <span><?php if ($dht_interest_image) : ?><img src="<?php echo esc_url($dht_interest_image); ?>" alt="" loading="lazy"><?php endif; ?></span>
+                                <span><?php if ($dht_interest_image) : ?><img src="<?php echo esc_url($dht_interest_image); ?>" alt="<?php echo esc_attr($dht_interest_term->name); ?>" loading="lazy"><?php endif; ?></span>
                                 <strong><?php echo esc_html($dht_interest_term->name); ?></strong>
                             </a>
                         <?php endforeach; ?>
@@ -938,7 +938,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                                 : $get_cluster_image($dht_area_id);
                             ?>
                             <a class="sf-mobile-cluster sf-mobile-cluster--light<?php echo 'hub_primary' === $dht_area_type ? ' sf-mobile-cluster--hub' : ''; ?>" href="<?php echo esc_url(get_permalink($dht_area_id)); ?>">
-                                <span><?php if ($dht_area_image) : ?><img src="<?php echo esc_url($dht_area_image); ?>" alt="" loading="lazy"><?php else : ?><span class="sf-structure-placeholder" aria-hidden="true"><?php echo 'hub_primary' === $dht_area_type ? 'Taller' : 'Área'; ?></span><?php endif; ?></span>
+                                <span><?php if ($dht_area_image) : ?><img src="<?php echo esc_url($dht_area_image); ?>" alt="<?php echo esc_attr(get_the_title($dht_area_id)); ?>" loading="lazy"><?php else : ?><span class="sf-structure-placeholder" aria-hidden="true"><?php echo 'hub_primary' === $dht_area_type ? 'Taller' : 'Área'; ?></span><?php endif; ?></span>
                                 <strong><?php echo esc_html(get_the_title($dht_area_id)); ?></strong>
                             </a>
                         <?php endforeach; ?>
@@ -992,7 +992,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                         $image = $get_term_image($term, 'woocommerce_thumbnail');
                         ?>
                         <a class="sf-mobile-category" href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>">
-                            <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></span>
+                            <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($term->name); ?>" loading="lazy"><?php endif; ?></span>
                             <strong><?php echo esc_html($term->name); ?></strong>
                         </a>
                     <?php endforeach; ?>
@@ -1020,7 +1020,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             $image = dht_template_post_image_url($article->ID, 'thumbnail');
                             ?>
                             <a class="sf-mobile-article" href="<?php echo esc_url(get_permalink($article)); ?>">
-                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></span>
+                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr(get_the_title($article)); ?>" loading="lazy"><?php endif; ?></span>
                                 <strong><?php echo esc_html(get_the_title($article)); ?></strong>
                             </a>
                         <?php endforeach; ?>
