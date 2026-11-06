@@ -19,8 +19,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Require the staging branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Never deploy a non-staging ref
+        env:
+          SOURCE_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$SOURCE_REF" != 'refs/heads/staging' ]; then
+            echo "::error::Select branch staging when running this pipeline. Ref: $SOURCE_REF"
+            exit 1
+          fi
+
   staging:
     name: '1 / Deliver STAGING and Focazul'
+    needs: preflight
     uses: ./.github/workflows/deploy-staging.yml
     with:
       full_sync: ${{ inputs.full_sync }}
@@ -52,8 +67,8 @@ jobs:
 
   report-failure:
     name: 'Stop and open an issue on failure'
-    needs: [staging, plugin-check, production]
-    if: ${{ always() && (needs.staging.result == 'failure' || needs.plugin-check.result == 'failure' || needs.production.result == 'failure') }}
+    needs: [preflight, staging, plugin-check, production]
+    if: ${{ always() && (needs.preflight.result == 'failure' || needs.staging.result == 'failure' || needs.plugin-check.result == 'failure' || needs.production.result == 'failure') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,6 +78,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           STAGING_RESULT: ${{ needs.staging.result }}
           PLUGIN_CHECK_RESULT: ${{ needs.plugin-check.result }}
           PRO_RESULT: ${{ needs.production.result }}
@@ -83,6 +99,7 @@ jobs:
             echo
             echo "| Phase | Result |"
             echo "|---|---|"
+            echo "| 0. Source branch | $PREFLIGHT_RESULT |"
             echo "| 1. STAGING + Focazul | $STAGING_RESULT |"
             echo "| 2. Official Plugin Check | $PLUGIN_CHECK_RESULT |"
             echo "| 3. PRO | $PRO_RESULT |"
