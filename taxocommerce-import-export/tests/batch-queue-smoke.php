@@ -108,3 +108,6 @@ foreach ( $checks as $index => $ok ) {
 }
 
 echo "TaxoCommerce Import-Export batch queue guards passed.\n";
+
+// Runtime regression for abandoned and legacy CSV exports.
+require __DIR__ . '/legacy-export-cancel-smoke.php';
