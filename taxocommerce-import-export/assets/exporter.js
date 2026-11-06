@@ -183,7 +183,7 @@
 		}
 
 		// The browser only observes persisted server progress. It never executes
-		// CSV blocks: Action Scheduler continues them after the tab is closed.
+		// CSV blocks: Server-side workers continue them after the tab is closed.
 		async function pollStatus() {
 			if (polling) {
 				return;
