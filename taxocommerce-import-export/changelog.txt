@@ -1,3 +1,6 @@
+= 0.4.16 (2026-11-06) =
+* Exportación CSV desacoplada del navegador: worker Action Scheduler/WP-Cron con cola de bloques, seguimiento, cancelación y recuperación, conservando regulador adaptativo.
+
 HISTORIAL LEGADO — TAXOCOMMERCE IMPORT-EXPORT
 
 Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.
