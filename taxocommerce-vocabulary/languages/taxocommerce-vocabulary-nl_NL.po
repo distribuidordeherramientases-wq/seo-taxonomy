@@ -432,3 +432,69 @@ msgstr "Laatste simulatie:"
 msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
 msgstr "Overkoepelende inventaris van labels en kenmerken met automatische classificatie en lokale verwerking."
 
+msgid "Manual de TaxoCommerce Vocabulary"
+msgstr "Handleiding TaxoCommerce Vocabulary"
+
+msgid "Manual de usuario"
+msgstr "Gebruikershandleiding"
+
+msgid "Manual técnico"
+msgstr "Technische handleiding"
+
+msgid "1. Manual de usuario"
+msgstr "1. Gebruikershandleiding"
+
+msgid "1.1 Para qué sirve Vocabulary"
+msgstr "1.1 Waarvoor dient Vocabulary?"
+
+msgid "1.2 Acceso y estructura"
+msgstr "1.2 Toegang en structuur"
+
+msgid "1.3 Etiquetas: altas y diccionario"
+msgstr "1.3 Labels: toevoegen en woordenboek"
+
+msgid "1.4 Atributos técnicos"
+msgstr "1.4 Technische kenmerken"
+
+msgid "1.5 Clasificador"
+msgstr "1.5 Classificatie"
+
+msgid "1.6 Importar / Exportar: CSV"
+msgstr "1.6 Importeren / Exporteren: CSV"
+
+msgid "1.7 Catálogo portable: JSON"
+msgstr "1.7 Draagbare catalogus: JSON"
+
+msgid "1.8 Control de integridad"
+msgstr "1.8 Integriteitscontrole"
+
+msgid "1.9 Auto Test"
+msgstr "1.9 Auto Test"
+
+msgid "1.10 Secuencia recomendada"
+msgstr "1.10 Aanbevolen stappen"
+
+msgid "2. Manual técnico"
+msgstr "2. Technische handleiding"
+
+msgid "2.1 Componentes y arranque"
+msgstr "2.1 Onderdelen en opstarten"
+
+msgid "2.2 Modelo de datos existente"
+msgstr "2.2 Bestaand gegevensmodel"
+
+msgid "2.3 Contratos del clasificador"
+msgstr "2.3 Classificatiecontracten"
+
+msgid "2.4 Rutas y seguridad"
+msgstr "2.4 Routes en beveiliging"
+
+msgid "2.5 Importaciones y portabilidad"
+msgstr "2.5 Import en overdraagbaarheid"
+
+msgid "2.6 Auto Test: alcance y persistencia"
+msgstr "2.6 Auto Test: bereik en opslag"
+
+msgid "2.7 Límites y pruebas"
+msgstr "2.7 Beperkingen en tests"
+

@@ -432,3 +432,69 @@ msgstr "Dernière simulation :"
 msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
 msgstr "Inventaire transversal d'étiquettes et d'attributs avec classificateur automatique et traitement local."
 
+msgid "Manual de TaxoCommerce Vocabulary"
+msgstr "Guide TaxoCommerce Vocabulary"
+
+msgid "Manual de usuario"
+msgstr "Guide utilisateur"
+
+msgid "Manual técnico"
+msgstr "Guide technique"
+
+msgid "1. Manual de usuario"
+msgstr "1. Guide utilisateur"
+
+msgid "1.1 Para qué sirve Vocabulary"
+msgstr "1.1 À quoi sert Vocabulary"
+
+msgid "1.2 Acceso y estructura"
+msgstr "1.2 Accès et structure"
+
+msgid "1.3 Etiquetas: altas y diccionario"
+msgstr "1.3 Étiquettes : ajout et dictionnaire"
+
+msgid "1.4 Atributos técnicos"
+msgstr "1.4 Attributs techniques"
+
+msgid "1.5 Clasificador"
+msgstr "1.5 Classificateur"
+
+msgid "1.6 Importar / Exportar: CSV"
+msgstr "1.6 Importation / Exportation : CSV"
+
+msgid "1.7 Catálogo portable: JSON"
+msgstr "1.7 Catalogue portable : JSON"
+
+msgid "1.8 Control de integridad"
+msgstr "1.8 Contrôle d'intégrité"
+
+msgid "1.9 Auto Test"
+msgstr "1.9 Auto Test"
+
+msgid "1.10 Secuencia recomendada"
+msgstr "1.10 Procédure recommandée"
+
+msgid "2. Manual técnico"
+msgstr "2. Guide technique"
+
+msgid "2.1 Componentes y arranque"
+msgstr "2.1 Composants et démarrage"
+
+msgid "2.2 Modelo de datos existente"
+msgstr "2.2 Modèle de données existant"
+
+msgid "2.3 Contratos del clasificador"
+msgstr "2.3 Contrats du classificateur"
+
+msgid "2.4 Rutas y seguridad"
+msgstr "2.4 Routes et sécurité"
+
+msgid "2.5 Importaciones y portabilidad"
+msgstr "2.5 Importations et portabilité"
+
+msgid "2.6 Auto Test: alcance y persistencia"
+msgstr "2.6 Auto Test : portée et conservation"
+
+msgid "2.7 Límites y pruebas"
+msgstr "2.7 Limites et tests"
+
