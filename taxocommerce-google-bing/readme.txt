@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.17
+Stable tag: 1.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.18 =
+* Restore the editable head verification and tracking tags tab in Insights, preserving IndexNow and provider connections.
+
 
 = 1.1.17 =
 * Added optional per-site IndexNow with public ownership key, bounded queue and manual URL notification. Bing Webmaster API credentials are not required for IndexNow.
