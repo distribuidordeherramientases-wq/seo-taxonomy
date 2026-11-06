@@ -624,7 +624,10 @@ final class TaxoCommerce_Import_Export_Exporter {
 			return;
 		}
 		set_transient( 'taxocommerce_ie_export_recovery_' . $user_id, time(), 120 );
-		if ( 'cancelling' === (string) ( $state['status'] ?? '' ) ) {
+		if ( 'cancelling' === (string) ( $state['status'] ?? '' ) ||
+			(string) get_option( $this->cancel_key(), '' ) === (string) $state['id'] ) {
+			$state['status'] = 'cancelling';
+			$this->store_state( $state );
 			$this->finish_cancellation( $state );
 			return;
 		}
@@ -661,7 +664,12 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$this->guard_ajax();
 		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
 		$state = $this->state();
-		if ( $state && 'cancelling' === (string) ( $state['status'] ?? '' ) ) {
+		if ( $state && ( 'cancelling' === (string) ( $state['status'] ?? '' ) ||
+			(string) get_option( $this->cancel_key(), '' ) === (string) $state['id'] ) ) {
+			// A concurrent writer may have persisted an older 'running'
+			// snapshot after the cancellation request. The durable flag wins.
+			$state['status'] = 'cancelling';
+			$this->store_state( $state );
 			$this->finish_cancellation( $state );
 			$state = $this->state();
 		}
