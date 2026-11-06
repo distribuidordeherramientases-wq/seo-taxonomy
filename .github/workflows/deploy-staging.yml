@@ -46,6 +46,7 @@ jobs:
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
           python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
+          python3 -m unittest discover -s .github/tests -p test_insights_head_tags_bootstrap.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
@@ -77,6 +78,7 @@ jobs:
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php
+          php taxocommerce-google-bing/tests/head-tags-smoke.php
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
