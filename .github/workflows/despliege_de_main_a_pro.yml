@@ -1,6 +1,12 @@
 name: STAGING a PRODUCCION - plugins TaxoCommerce (ZIP REST verificado)
 
 on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: 'Exact STAGING commit approved by the prior two phases'
+        required: true
+        type: string
   workflow_dispatch:
 
 permissions:
@@ -30,6 +36,21 @@ jobs:
           echo "PRO source: staging @ $(git rev-parse HEAD)"
           test "$GITHUB_REF_NAME" = "staging"
           test "$(git branch --show-current)" = "staging"
+
+      - name: Reject untested source revisions before any production write
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$EXPECTED_SHA" ]; then
+            ACTUAL_SHA="$(git rev-parse HEAD)"
+            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+              echo "::error::STAGING moved after Plugin Check: expected $EXPECTED_SHA, got $ACTUAL_SHA. PRO deployment aborted."
+              exit 1
+            fi
+            echo "Approved source SHA: $ACTUAL_SHA"
+          fi
 
       - name: Comprobar restauracion del despliegue modular sin escribir en PRO
         run: |
