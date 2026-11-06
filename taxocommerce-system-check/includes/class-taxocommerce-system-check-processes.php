@@ -68,6 +68,11 @@ final class TaxoCommerce_System_Check_Processes {
 	 * WooCommerce payment/order infrastructure and WP core must remain intact.
 	 */
 	private static function is_safe_hook( $hook, $group ) {
+		// These logical jobs require their own cooperative stop/cleanup;
+		// removing their queue action alone would leave a stale running state.
+		if ( in_array( $hook, array( 'taxocommerce_ie_export_background_worker', 'taxocommerce_system_check_process_url_batch' ), true ) ) {
+			return false;
+		}
 		if ( preg_match( '/^(woocommerce_|wc_|action_scheduler_|wp_|delete_|recovery_mode_)/', $hook ) ) {
 			return false;
 		}
@@ -140,6 +145,10 @@ final class TaxoCommerce_System_Check_Processes {
 				);
 			}
 		}
+		if ( class_exists( 'TaxoCommerce_System_Check_URL_Audit', false )
+			&& is_callable( array( 'TaxoCommerce_System_Check_URL_Audit', 'process_rows' ) ) ) {
+			$rows = array_merge( $rows, TaxoCommerce_System_Check_URL_Audit::process_rows() );
+		}
 		// Export jobs are per owner. Discover their identifiers via the
 		// application's already scheduled action, not by scanning user data.
 		if ( class_exists( 'TaxoCommerce_Import_Export_Exporter', false )
@@ -209,6 +218,9 @@ final class TaxoCommerce_System_Check_Processes {
 				as_unschedule_all_actions( 'taxocommerce_ie_batch_worker', array(), 'taxocommerce-import-export-batch' );
 			}
 			return true;
+		}
+		if ( 0 === strpos( $id, 'http:' ) && class_exists( 'TaxoCommerce_System_Check_URL_Audit', false ) ) {
+			return TaxoCommerce_System_Check_URL_Audit::stop_process( absint( substr( $id, 5 ) ) );
 		}
 		if ( 0 === strpos( $id, 'export:' ) && class_exists( 'TaxoCommerce_Import_Export_Exporter', false ) ) {
 			$parts = explode( ':', $id, 3 );
