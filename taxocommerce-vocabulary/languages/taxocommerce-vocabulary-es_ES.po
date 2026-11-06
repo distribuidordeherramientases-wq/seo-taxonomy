@@ -12,174 +12,174 @@ msgstr ""
 #: taxocommerce-vocabulary.php includes/class-tcv-admin.php:20
 #: includes/class-tcv-admin.php:30
 msgid "TaxoCommerce Vocabulary"
-msgstr ""
+msgstr "TaxoCommerce Vocabulary"
 
 #. Description of the plugin
 #: taxocommerce-vocabulary.php
 msgid ""
 "Vocabulario semántico, atributos técnicos, clasificación asistida e "
 "importación/exportación para TaxoCommerce."
-msgstr ""
+msgstr "Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce."
 
 #. Author of the plugin
 #: taxocommerce-vocabulary.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tcv-admin.php:21 includes/class-tcv-admin.php:31
 msgid "Vocabulary"
-msgstr ""
+msgstr "Vocabulary"
 
 #: includes/class-tcv-admin.php:120
 msgid "Dar de alta"
-msgstr ""
+msgstr "Dar de alta"
 
 #: includes/class-tcv-admin.php:129
 msgid "Diccionario"
-msgstr ""
+msgstr "Diccionario"
 
 #: includes/class-tcv-admin.php:129 includes/class-tcv-admin.php:227
 #: includes/class-tcv-admin.php:239 includes/class-tcv-auto-test.php:257
 msgid "Grupo"
-msgstr ""
+msgstr "Grupo"
 
 #: includes/class-tcv-admin.php:129
 msgid "Etiqueta"
-msgstr ""
+msgstr "Etiqueta"
 
 #: includes/class-tcv-admin.php:129
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
 #: includes/class-tcv-admin.php:129
 msgid "Origen"
-msgstr ""
+msgstr "Origen"
 
 #: includes/class-tcv-admin.php:129 includes/class-tcv-admin.php:154
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 #: includes/class-tcv-admin.php:281 includes/class-tcv-auto-test.php:257
 msgid "Estado"
-msgstr ""
+msgstr "Estado"
 
 #: includes/class-tcv-admin.php:133
 msgid "Se muestran como máximo 300 filas en esta vista."
-msgstr ""
+msgstr "Se muestran como máximo 300 filas en esta vista."
 
 #: includes/class-tcv-admin.php:154
 msgid "Atributos técnicos canónicos"
-msgstr ""
+msgstr "Atributos técnicos canónicos"
 
 #: includes/class-tcv-admin.php:154
 msgid ""
 "Definiciones propias de TaxoCommerce. No se convierten automáticamente en "
 "atributos WooCommerce."
-msgstr ""
+msgstr "Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce."
 
 #: includes/class-tcv-admin.php:154
 msgid "Atributo"
-msgstr ""
+msgstr "Atributo"
 
 #: includes/class-tcv-admin.php:154
 msgid "Tipo"
-msgstr ""
+msgstr "Tipo"
 
 #: includes/class-tcv-admin.php:154
 msgid "Unidad"
-msgstr ""
+msgstr "Unidad"
 
 #: includes/class-tcv-admin.php:154
 msgid "Términos"
-msgstr ""
+msgstr "Términos"
 
 #: includes/class-tcv-admin.php:154
 msgid "Aliases"
-msgstr ""
+msgstr "Aliases"
 
 #: includes/class-tcv-admin.php:180
 msgid "Clasificador"
-msgstr ""
+msgstr "Clasificador"
 
 #: includes/class-tcv-admin.php:180
 msgid ""
 "El análisis es correctivo y limitado. No recorre todo el catálogo: primero "
 "filtra y después analiza como máximo el número de filas seleccionado."
-msgstr ""
+msgstr "El análisis es correctivo y limitado. No recorre todo el catálogo: primero filtra y después analiza como máximo el número de filas seleccionado."
 
 #: includes/class-tcv-admin.php:185 includes/class-tcv-admin.php:239
 msgid "Categoría"
-msgstr ""
+msgstr "Categoría"
 
 #: includes/class-tcv-admin.php:185
 msgid "Todas"
-msgstr ""
+msgstr "Todas"
 
 #: includes/class-tcv-admin.php:199
 msgid "Cobertura"
-msgstr ""
+msgstr "Cobertura"
 
 #: includes/class-tcv-admin.php:205
 msgid "Prioridad"
-msgstr ""
+msgstr "Prioridad"
 
 #: includes/class-tcv-admin.php:210 includes/class-tcv-admin.php:281
 msgid "Filas"
-msgstr ""
+msgstr "Filas"
 
 #: includes/class-tcv-admin.php:215
 msgid "Analizar filtro"
-msgstr ""
+msgstr "Analizar filtro"
 
 #: includes/class-tcv-admin.php:227
 msgid "Propuestas recientes"
-msgstr ""
+msgstr "Propuestas recientes"
 
 #: includes/class-tcv-admin.php:227
 msgid "Producto"
-msgstr ""
+msgstr "Producto"
 
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 msgid "Propuesta"
-msgstr ""
+msgstr "Propuesta"
 
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 msgid "Confianza"
-msgstr ""
+msgstr "Confianza"
 
 #: includes/class-tcv-admin.php:227
 msgid "Actualizado"
-msgstr ""
+msgstr "Actualizado"
 
 #: includes/class-tcv-admin.php:236
 msgid "Categoría ID"
-msgstr ""
+msgstr "Categoría ID"
 
 #: includes/class-tcv-admin.php:236
 msgid "Analizar categoría"
-msgstr ""
+msgstr "Analizar categoría"
 
 #: includes/class-tcv-admin.php:239
 msgid "Propuestas recientes de categorías"
-msgstr ""
+msgstr "Propuestas recientes de categorías"
 
 #: includes/class-tcv-admin.php:281
 msgid "Control de integridad"
-msgstr ""
+msgstr "Control de integridad"
 
 #: includes/class-tcv-admin.php:281
 msgid "Tabla"
-msgstr ""
+msgstr "Tabla"
 
 #: includes/class-tcv-auto-test.php:219
 msgid "No tienes permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "No tienes permisos para ejecutar Auto Test."
 
 #: includes/class-tcv-auto-test.php:231
 msgid "No tienes permisos para Auto Test."
-msgstr ""
+msgstr "No tienes permisos para Auto Test."
 
 #: includes/class-tcv-auto-test.php:235
 msgid "Auto Test de Vocabulary"
-msgstr ""
+msgstr "Auto Test de Vocabulary"
 
 #: includes/class-tcv-auto-test.php:235
 msgid ""
@@ -187,100 +187,100 @@ msgid ""
 "consultas limitadas y disponibilidad de exportación. No corrige datos ni "
 "ejecuta procesos. Se conservan los dos últimos informes por usuario durante "
 "30 días."
-msgstr ""
+msgstr "Comprobación de solo lectura de servicios, rutas, tablas, columnas, consultas limitadas y disponibilidad de exportación. No corrige datos ni ejecuta procesos. Se conservan los dos últimos informes por usuario durante 30 días."
 
 #: includes/class-tcv-auto-test.php:240
 msgid "No hay un informe previo. Ejecuta Auto Test."
-msgstr ""
+msgstr "No hay un informe previo. Ejecuta Auto Test."
 
 #: includes/class-tcv-auto-test.php:255
 msgid "No hay una ejecución anterior con la que comparar."
-msgstr ""
+msgstr "No hay una ejecución anterior con la que comparar."
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Prueba"
-msgstr ""
+msgstr "Prueba"
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnóstico"
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Tiempo"
-msgstr ""
+msgstr "Tiempo"
 
 #: includes/class-tcv-auto-test.php:262
 msgid ""
 "Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad"
 " del catálogo ni prueba importaciones/restauraciones reales."
-msgstr ""
+msgstr "Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad del catálogo ni prueba importaciones/restauraciones reales."
 
 #: includes/class-tcv-io.php:14 includes/class-tcv-portable.php:23
 msgid "No tienes permisos para gestionar Vocabulary."
-msgstr ""
+msgstr "No tienes permisos para gestionar Vocabulary."
 
 #: includes/class-tcv-manual.php:8
 msgid "No tienes permisos para consultar este manual."
-msgstr ""
+msgstr "No tienes permisos para consultar este manual."
 
 #: includes/class-tcv-portable.php:33
 msgid "Catálogo completo · JSON portable"
-msgstr ""
+msgstr "Catálogo completo · JSON portable"
 
 #: includes/class-tcv-portable.php:34
 msgid ""
 "Copia portable para backup, análisis externo o traslado entre instalaciones."
 " Los IDs numéricos viajan solo como auditoría; el destino se resuelve "
 "mediante claves portables."
-msgstr ""
+msgstr "Copia portable para backup, análisis externo o traslado entre instalaciones. Los IDs numéricos viajan solo como auditoría; el destino se resuelve mediante claves portables."
 
 #: includes/class-tcv-portable.php:50
 msgid "Descargar JSON completo"
-msgstr ""
+msgstr "Descargar JSON completo"
 
 #: includes/class-tcv-portable.php:51
 msgid ""
 "No incluye productos completos, imágenes, pedidos, usuarios ni configuración"
 " general de WordPress."
-msgstr ""
+msgstr "No incluye productos completos, imágenes, pedidos, usuarios ni configuración general de WordPress."
 
 #: includes/class-tcv-portable.php:53
 msgid "Importar catálogo"
-msgstr ""
+msgstr "Importar catálogo"
 
 #: includes/class-tcv-portable.php:54
 msgid "La simulación es obligatoria."
-msgstr ""
+msgstr "La simulación es obligatoria."
 
 #: includes/class-tcv-portable.php:54
 msgid ""
 "Para aplicar debes volver a subir exactamente el mismo archivo y mantener el"
 " mismo modo."
-msgstr ""
+msgstr "Para aplicar debes volver a subir exactamente el mismo archivo y mantener el mismo modo."
 
 #: includes/class-tcv-portable.php:59
 msgid "Modo"
-msgstr ""
+msgstr "Modo"
 
 #: includes/class-tcv-portable.php:60
 msgid "MERGE · añadir/actualizar sin retirar asignaciones locales"
-msgstr ""
+msgstr "MERGE · añadir/actualizar sin retirar asignaciones locales"
 
 #: includes/class-tcv-portable.php:61
 msgid "MIRROR · igualar asignaciones de los objetos incluidos"
-msgstr ""
+msgstr "MIRROR · igualar asignaciones de los objetos incluidos"
 
 #: includes/class-tcv-portable.php:63
 msgid "1. Simular importación"
-msgstr ""
+msgstr "1. Simular importación"
 
 #: includes/class-tcv-portable.php:64
 msgid "2. Aplicar archivo simulado"
-msgstr ""
+msgstr "2. Aplicar archivo simulado"
 
 #: includes/class-tcv-portable.php:69
 msgid ""
 "MIRROR sustituye las asignaciones incluidas de productos/categorías y sus "
 "atributos; por seguridad no borra maestros canónicos que no estén en el "
 "paquete."
-msgstr ""
+msgstr "MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete."

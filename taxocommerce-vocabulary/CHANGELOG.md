@@ -1,3 +1,9 @@
+## [Unreleased] — Completar los cinco catálogos de Vocabulary (#2263)
+
+- Traducidas las 62 cadenas gettext del catálogo del plugin a español, inglés, francés, alemán y neerlandés.
+- Regenerados los cinco catálogos binarios GNU gettext (PO/MO) conservando el text domain y la selección de locale de WordPress.
+- Sin cambios en importación/exportación, clasificación, datos o interfaces de otros plugins. La cobertura de POT no sustituye las pruebas visuales en WordPress.
+
 ## [0.3.9] — 2026-11-05 — Recuperación del clasificador monolítico (#2232)
 
 - Recuperado el análisis contextual local: título, descripción corta/larga, categorías, etiquetas WooCommerce, marcas, SKU y metadatos genéricos/de migración de proveedores, con extensión opcional mediante un filtro estándar.
