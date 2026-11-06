@@ -907,7 +907,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             <a class="sf-front-interest-card" href="<?php echo esc_url(dht_template_safe_term_link($dht_interest_term)); ?>">
                                 <span class="sf-front-interest-media">
                                     <?php if ($dht_interest_image) : ?>
-                                        <img src="<?php echo esc_url($dht_interest_image); ?>" alt="" loading="lazy">
+                                        <img src="<?php echo esc_url($dht_interest_image); ?>" alt="<?php echo esc_attr($dht_interest_term->name); ?>" loading="lazy">
                                     <?php else : ?>
                                         <span class="sf-structure-placeholder" aria-hidden="true">Cat.</span>
                                     <?php endif; ?>
@@ -1006,7 +1006,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             <a class="sf-structure-cluster<?php echo 'hub_primary' === $dht_area_type ? ' sf-structure-cluster--hub' : ''; ?>" href="<?php echo esc_url(get_permalink($dht_area_id)); ?>">
                                 <span class="sf-structure-cluster-media">
                                     <?php if ($dht_area_image) : ?>
-                                        <img src="<?php echo esc_url($dht_area_image); ?>" alt="" loading="lazy">
+                                        <img src="<?php echo esc_url($dht_area_image); ?>" alt="<?php echo esc_attr(get_the_title($dht_area_id)); ?>" loading="lazy">
                                     <?php else : ?>
                                         <span class="sf-structure-placeholder" aria-hidden="true"><?php echo 'hub_primary' === $dht_area_type ? 'Taller' : 'Área'; ?></span>
                                     <?php endif; ?>
@@ -1044,7 +1044,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                                 <a class="sf-primary-hub-main" href="<?php echo esc_url(get_permalink($hub_id)); ?>">
                                     <span class="sf-primary-hub-media">
                                         <?php if ($hub_image) : ?>
-                                            <img src="<?php echo esc_url($hub_image); ?>" alt="" loading="lazy">
+                                            <img src="<?php echo esc_url($hub_image); ?>" alt="<?php echo esc_attr(get_the_title($hub_id)); ?>" loading="lazy">
                                         <?php else : ?>
                                             <span class="sf-structure-placeholder" aria-hidden="true">DHT</span>
                                         <?php endif; ?>
@@ -1142,7 +1142,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             $image = $get_term_image($term, 'woocommerce_thumbnail');
                             ?>
                             <a class="sf-category-mini" href="<?php echo esc_url(dht_template_safe_term_link($term)); ?>">
-                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></span>
+                                <span><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($term->name); ?>" loading="lazy"><?php endif; ?></span>
                                 <strong><?php echo esc_html($term->name); ?></strong>
                             </a>
                         <?php endforeach; ?>
@@ -1170,7 +1170,7 @@ $dht_dependiente_image = (string) apply_filters('dht_front_dependiente_image_url
                             $image = dht_template_post_image_url($article->ID, 'medium_large');
                             ?>
                             <article class="sf-article-card">
-                                <a class="sf-article-media" href="<?php echo esc_url(get_permalink($article)); ?>"><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="" loading="lazy"><?php endif; ?></a>
+                                <a class="sf-article-media" href="<?php echo esc_url(get_permalink($article)); ?>"><?php if ($image) : ?><img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr(get_the_title($article)); ?>" loading="lazy"><?php endif; ?></a>
                                 <div class="sf-article-body">
                                     <h3><a href="<?php echo esc_url(get_permalink($article)); ?>"><?php echo esc_html(get_the_title($article)); ?></a></h3>
                                     <p><?php echo esc_html(dht_template_post_summary($article->ID, 18)); ?></p>

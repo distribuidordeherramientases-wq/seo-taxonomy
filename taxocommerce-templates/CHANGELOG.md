@@ -1,3 +1,10 @@
+## [0.4.19] — 2026-11-06 — Bing: títulos de archivo y ALT de portada (#2259)
+
+- Cuando el título nativo de WordPress supera 69 caracteres, omite la coletilla del nombre del sitio; no renombra categorías, entradas, páginas ni sus URLs. Solo cuando están activas las políticas de Templates.
+- Las imágenes enlazadas de categorías, clústeres, hubs y artículos de portada reciben un texto alternativo contextual y escapado en variantes de escritorio y móvil, en vez de alt vacío.
+- Prueba de regresión aislada que verifica títulos cortos sin cambios, preservación del título principal, ausencia de afectación al administrador y ALT informativos.
+- Requiere comprobación del HTML real en STAGING y producción cuando se autorice instalar esta versión. Los avisos históricos de Bing pueden persistir hasta nuevo rastreo.
+
 ## [0.4.18] — 2026-11-06 — Meta descriptions para Bing (#2259)
 
 - Elimina el meta description genérico de la portada cuando wp_head ya añade otro. Conserva una sola descripción SEO por documento, sin interferir en otras etiquetas ni scripts de wp_head.
