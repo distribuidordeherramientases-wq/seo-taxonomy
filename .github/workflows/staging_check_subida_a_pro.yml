@@ -20,11 +20,17 @@ on:
         type: boolean
         required: false
         default: false
+      deploy_pro:
+        description: 'Explicit approval: update PRO only on a manual workflow run'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
 
-# This is the only push-to-staging deployment entry point.
+# Pushes to staging may deploy only to STAGING/Focazul.
+# PRO requires a manual workflow_dispatch with deploy_pro=true.
 # Independent workflows remain available for manual runs and PR validation.
 concurrency:
   group: taxocommerce-staging-check-pro
@@ -85,7 +91,7 @@ jobs:
   production:
     name: '3 / Deploy to PRO (approved revision only)'
     needs: [staging, plugin-check]
-    if: needs.staging.result == 'success' && needs.plugin-check.result == 'success'
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_pro == true && needs.staging.result == 'success' && needs.plugin-check.result == 'success' }}
     uses: ./.github/workflows/despliege_de_main_a_pro.yml
     with:
       source_sha: ${{ github.sha }}
