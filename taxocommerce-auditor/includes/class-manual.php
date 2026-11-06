@@ -67,6 +67,6 @@ final class Manual {
                 <p><?php esc_html_e( 'El repositorio contiene', 'taxocommerce-auditor' ); ?> <code>taxocommerce-auditor/tests/smoke.php</code> (paridad de las reglas y los cinco ámbitos) y <code>tests/auto-test-manual-smoke.php</code> (contratos del nuevo Auto Test y manuales). Ejecuta ambas pruebas con PHP 7.4 y 8.4, más la comprobación de sintaxis, antes del merge. El workflow de publicación excluye <code>tests/</code><?php esc_html_e( ', archivos de desarrollo y el estado FTP del ZIP; el archivo', 'taxocommerce-auditor' ); ?> <code>readme.txt</code> <?php esc_html_e( 'se mantiene y debe reflejar la versión del encabezado PHP.', 'taxocommerce-auditor' ); ?></p>
             </div>
         </section>
-        <?php esc_html_e( '?php
+        <?php
     }
-}', 'taxocommerce-auditor' ); ?>
+}
