@@ -26,6 +26,8 @@
 
 		var activeJob = '';
 		var processing = false;
+		var polling = false;
+		var pollTimer = null;
 
 		function selectedMeta() {
 			return config.types && config.types[type.value] ? config.types[type.value] : {};
@@ -150,12 +152,15 @@
 				processed + ' filas escritas · ' + examined + (total ? ' / ' + total : '') +
 				' registros revisados · ' + blocks + ' bloques' +
 				(skipped ? ' · ' + skipped + ' omitidos' : '') +
-				(data.complete ? '. CSV terminado.' : '. Generando por bloques…');
+				(data.complete ? '. CSV terminado.' : (data.status === 'cancelling' ? '. Cancelando…' : '. Generando en segundo plano…'));
+			if (data.status === 'failed') {
+				message.textContent = 'Exportación interrumpida: ' + (data.error || 'Error desconocido del servidor.');
+			}
 		}
 
 		function setBusy(value) {
 			processing = value;
-			start.disabled = value;
+			start.disabled = value || (!!activeJob && !value);
 			cancel.style.display = activeJob && !value ? '' : (activeJob ? '' : 'none');
 		}
 
@@ -173,41 +178,51 @@
 			download.href = data.downloadUrl || '#';
 			download.style.display = data.downloadUrl ? '' : 'none';
 			setProgress(data);
-			if (data.downloadUrl) {
-				download.click();
-			}
+			activeJob = '';
+			start.disabled = false;
 		}
 
-		function waitBriefly() {
-			return new Promise(function (resolve) {
-				window.setTimeout(resolve, 120);
-			});
-		}
-
-		async function runJob() {
-			if (!activeJob || processing) {
+		// The browser only observes persisted server progress. It never executes
+		// CSV blocks: Action Scheduler continues them after the tab is closed.
+		async function pollStatus() {
+			if (polling) {
 				return;
 			}
-			setBusy(true);
-			retry.style.display = 'none';
-			download.style.display = 'none';
+			polling = true;
 			try {
-				for (;;) {
-					var fields = new URLSearchParams();
-					fields.append('job', activeJob);
-					var data = await request('taxocommerce_ie_export_step', fields);
-					showPanel();
-					setProgress(data);
-					if (data.complete) {
-						showComplete(data);
-						return;
-					}
-					await new Promise(function (resolve) { window.setTimeout(resolve, Math.max(100, Number(data.delay || 1000))); });
+				var data = await request('taxocommerce_ie_export_status');
+				if (!data.active) {
+					activeJob = '';
+					setBusy(false);
+					cancel.style.display = 'none';
+					return;
+				}
+				activeJob = data.job || '';
+				showPanel();
+				setProgress(data);
+				if (data.complete) {
+					showComplete(data);
+					return;
+				}
+				setBusy(false);
+				cancel.style.display = '';
+				retry.style.display = data.status === 'failed' ? '' : 'none';
+				if (data.status !== 'failed') {
+					pollTimer = window.setTimeout(pollStatus, 5000);
 				}
 			} catch (error) {
-				setBusy(false);
 				showError(error);
+				pollTimer = window.setTimeout(pollStatus, 15000);
+			} finally {
+				polling = false;
 			}
+		}
+
+		function runJob() {
+			if (pollTimer) {
+				window.clearTimeout(pollTimer);
+			}
+			pollStatus();
 		}
 
 		form.addEventListener('submit', async function (event) {
@@ -238,15 +253,24 @@
 					throw new Error('El servidor no devolvió un identificador de exportación.');
 				}
 				cancel.style.display = '';
-				await runJob();
+				runJob();
 			} catch (error) {
 				setBusy(false);
 				showError(error);
 			}
 		});
 
-		retry.addEventListener('click', function () {
-			runJob();
+		retry.addEventListener('click', async function () {
+			retry.disabled = true;
+			try {
+				await request('taxocommerce_ie_export_resume');
+				retry.style.display = 'none';
+				runJob();
+			} catch (error) {
+				showError(error);
+			} finally {
+				retry.disabled = false;
+			}
 		});
 
 		cancel.addEventListener('click', async function () {
@@ -255,15 +279,20 @@
 			}
 			cancel.disabled = true;
 			try {
-				await request('taxocommerce_ie_export_cancel');
-				activeJob = '';
-				processing = false;
-				message.textContent = 'Exportación cancelada. El archivo parcial se ha eliminado.';
-				bar.value = 0;
-				retry.style.display = 'none';
-				cancel.style.display = 'none';
-				download.style.display = 'none';
-				start.disabled = false;
+				var result = await request('taxocommerce_ie_export_cancel');
+				if (result.cancelled) {
+					activeJob = '';
+					processing = false;
+					message.textContent = 'Exportación cancelada. El archivo parcial se ha eliminado.';
+					bar.value = 0;
+					retry.style.display = 'none';
+					cancel.style.display = 'none';
+					download.style.display = 'none';
+					start.disabled = false;
+				} else {
+					message.textContent = 'Cancelación solicitada: el servidor terminará el bloque activo antes de eliminar el CSV.';
+					runJob();
+				}
 			} catch (error) {
 				showError(error);
 			} finally {
@@ -295,22 +324,7 @@
 		updateTypeUi();
 		updateHierarchy();
 
-		request('taxocommerce_ie_export_status').then(function (data) {
-			if (!data.active) {
-				return;
-			}
-			activeJob = data.job || '';
-			showPanel();
-			setProgress(data);
-			if (data.complete) {
-				showComplete(data);
-				return;
-			}
-			cancel.style.display = '';
-			runJob();
-		}).catch(function () {
-			// La pantalla de exportación sigue siendo utilizable aunque no se pueda recuperar un job anterior.
-		});
+		pollStatus();
 	}
 
 	if (document.readyState === 'loading') {
