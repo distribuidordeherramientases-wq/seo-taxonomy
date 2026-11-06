@@ -134,7 +134,7 @@ final class Admin {
         echo '<h2> ' . esc_html__( 'Auditoría de', 'taxocommerce-auditor' ) . ' ' . esc_html( Runner::scopes()[ $scope ] ) . '</h2>';
         echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  ' . esc_html( self::state_label( $status ) );
         if ( in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
-            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? 'sin recuento disponible' : (string) $expected );
+            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected );
         }
         echo '</p>';
         if ( ! empty( $state['reason'] ) ) {
@@ -143,11 +143,11 @@ final class Admin {
         echo '</div>';
 
         if ( $report ) {
-            $mode = 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'completa' : 'filtrada';
+            $mode = 'full' === (string) ( $report['run_mode'] ?? '' ) ? __( 'completa', 'taxocommerce-auditor' ) : __( 'filtrada', 'taxocommerce-auditor' );
             echo '<div class="taxocommerce-auditor-last-run">';
             echo '<strong>' . esc_html__( 'Último informe', 'taxocommerce-auditor' ) . '</strong>';
             echo '<span>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</span>';
-            echo '<span>' . esc_html( ucfirst( $mode ) ) . ' · ' . esc_html( (string) absint( $report['processed'] ?? 0 ) ) . ' revisados · ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' hallazgos</span>';
+            echo '<span>' . esc_html( ucfirst( $mode ) ) . ' · ' . esc_html( (string) absint( $report['processed'] ?? 0 ) ) . ' ' . esc_html__( 'revisados', 'taxocommerce-auditor' ) . ' · ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' ' . esc_html__( 'hallazgos', 'taxocommerce-auditor' ) . '</span>';
             $export = wp_nonce_url(
                 add_query_arg( array( 'action' => 'taxocommerce_auditor_export', 'scope' => $scope ), admin_url( 'admin-post.php' ) ),
                 'taxocommerce_auditor_export_' . $scope
@@ -222,7 +222,7 @@ final class Admin {
         } else {
             echo '<section class="taxocommerce-auditor-empty-report">';
             echo '<h2> ' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scopes[ $selected ] ) . '</h2>';
-            echo '<p>' . esc_html__( 'Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este bloque. Para indicadores representativos del conjunto, utiliza', 'taxocommerce-auditor' ) . ' ' . '<strong>' . esc_html__( __( 'Auditar todo', 'taxocommerce-auditor' ), 'taxocommerce-auditor' ) . '</strong>' . '.' . '</p>';
+            echo '<p>' . esc_html__( 'Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este bloque. Para indicadores representativos del conjunto, utiliza', 'taxocommerce-auditor' ) . ' ' . '<strong>' . esc_html__( 'Auditar todo', 'taxocommerce-auditor' ) . '</strong>' . '.' . '</p>';
             echo '</section>';
         }
 
@@ -354,7 +354,7 @@ final class Admin {
 
         echo '<div class="taxocommerce-auditor-kpi-head">';
         echo '<div><h3> ' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scope_labels[ $scope ] ?? $scope ) . '</h3>';
-        echo '<p>Indicadores específicos de calidad, integridad y errores a corregir sobre la última ' . esc_html( $coverage ) . '.</p></div>';
+        echo '<p>' . esc_html__( 'Indicadores específicos de calidad, integridad y errores a corregir sobre la última', 'taxocommerce-auditor' ) . ' ' . esc_html( $coverage ) . '.</p></div>';
         echo '<span class="taxocommerce-auditor-kpi-mode">' . esc_html( $coverage ) . '</span>';
         echo '</div>';
 
@@ -382,7 +382,7 @@ final class Admin {
         $counts = (array) ( $report['severity_counts'] ?? array() );
         $quality = (array) ( $report['quality'] ?? array() );
         echo '<h3>' . esc_html__( 'Resumen del último análisis', 'taxocommerce-auditor' ) . '</h3>';
-        echo '<p>Finalizado: <strong>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</strong> · Duración: ' . esc_html( (string) absint( $report['duration_seconds'] ?? 0 ) ) . ' segundos.</p>';
+        echo '<p>' . esc_html__( 'Finalizado:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</strong> · ' . esc_html__( 'Duración:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $report['duration_seconds'] ?? 0 ) ) . ' ' . esc_html__( 'segundos', 'taxocommerce-auditor' ) . '.</p>';
         echo '<div class="taxocommerce-auditor-metrics">';
         self::render_metric( absint( $report['processed'] ?? 0 ), __( 'Entidades revisadas', 'taxocommerce-auditor' ) );
         self::render_metric( absint( $report['finding_count'] ?? 0 ), __( 'Hallazgos', 'taxocommerce-auditor' ) );
@@ -393,7 +393,7 @@ final class Admin {
         echo '</div>';
 
         if ( absint( $report['excluded'] ?? 0 ) ) {
-            echo '<p>Páginas funcionales/corporativas excluidas del diagnóstico editorial: <strong>' . esc_html( (string) absint( $report['excluded'] ) ) . '</strong>.</p>';
+            echo '<p>' . esc_html__( 'Páginas funcionales/corporativas excluidas del diagnóstico editorial:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) absint( $report['excluded'] ) ) . '</strong>.</p>';
         }
         self::render_priority_counts( (array) ( $report['priority_counts'] ?? array() ) );
 
@@ -445,8 +445,8 @@ final class Admin {
     private static function render_quality( $report ) {
         $quality = (array) ( $report['quality'] ?? array() );
         echo '<h3>' . esc_html__( 'Puntuación interna de calidad', 'taxocommerce-auditor' ) . '</h3>' . '<p>' . esc_html__( 'Se conservan las cinco dimensiones del Auditor anterior; es una señal de priorización propia, no el algoritmo de un buscador.', 'taxocommerce-auditor' ) . '</p>';
-        echo '<p>Entidades puntuadas: ' . esc_html( (string) absint( $quality['scored'] ?? 0 ) );
-        echo ' · Media: <strong>' . esc_html( null === ( $quality['average'] ?? null ) ? 'No disponible' : (string) $quality['average'] . '/100' ) . '</strong>.</p>';
+        echo '<p>' . esc_html__( 'Entidades puntuadas:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $quality['scored'] ?? 0 ) );
+        echo ' · ' . esc_html__( 'Media:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( null === ( $quality['average'] ?? null ) ? __( 'No disponible', 'taxocommerce-auditor' ) : (string) $quality['average'] . '/100' ) . '</strong>.</p>';
         $dimensions = array(
             'utility'         => __( 'Relevancia y utilidad', 'taxocommerce-auditor' ),
             'trust'           => __( 'Confianza y rigor', 'taxocommerce-auditor' ),
@@ -493,7 +493,7 @@ final class Admin {
         echo '<h3>' . esc_html__( 'Plan de revisión priorizado', 'taxocommerce-auditor' ) . '</h3>';
         echo '<p>' . esc_html__( 'Cada tarea incluye prioridad, estado, evidencia y recomendación. Una prioridad alta no autoriza a modificar automáticamente contenidos.', 'taxocommerce-auditor' ) . '</p>';
         if ( ! empty( $report['findings_sample_truncated'] ) ) {
-            echo '<p>El listado es una muestra priorizada de ' . esc_html( (string) count( $rows ) ) . ' tareas sobre ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' hallazgos. Consulta los contadores completos en Resumen.</p>';
+            echo '<p>' . esc_html__( 'El listado es una muestra priorizada de', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) count( $rows ) ) . ' ' . esc_html__( 'tareas sobre', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' ' . esc_html__( 'hallazgos. Consulta los contadores completos en Resumen.', 'taxocommerce-auditor' ) . '</p>';
         }
         if ( ! $rows ) {
             echo '<p>' . esc_html__( 'Sin hallazgos.', 'taxocommerce-auditor' ) . '</p>';
@@ -571,20 +571,20 @@ final class Admin {
             $proposal = (array) ( $row['proposal'] ?? array() );
             $split = ! empty( $row['split_proposal'] );
             echo '<tr><td><strong>' . esc_html( (string) ( $row['category_name'] ?? '' ) ) . '</strong><br><code>#' . esc_html( (string) $id ) . '</code></td>';
-            echo '<td>' . esc_html( $split ? 'División por TIPO' : 'Concentración en hermana' ) . '</td>';
+            echo '<td>' . esc_html( $split ? __( 'División por TIPO', 'taxocommerce-auditor' ) : __( 'Concentración en hermana', 'taxocommerce-auditor' ) ) . '</td>';
             echo '<td>' . esc_html( (string) absint( $row['products'] ?? 0 ) ) . '</td><td>';
             if ( $split ) {
                 foreach ( array_slice( (array) ( $proposal['cohorts'] ?? array() ), 0, 8 ) as $cohort ) {
-                    echo '<p><strong>' . esc_html( (string) ( $cohort['label'] ?? '' ) ) . '</strong>: ' . esc_html( (string) absint( $cohort['products'] ?? 0 ) ) . ' productos</p>';
+                    echo '<p><strong>' . esc_html( (string) ( $cohort['label'] ?? '' ) ) . '</strong>: ' . esc_html( (string) absint( $cohort['products'] ?? 0 ) ) . ' ' . esc_html__( 'productos', 'taxocommerce-auditor' ) . '</p>';
                 }
-                echo '<small>Ambiguos: ' . esc_html( (string) absint( $proposal['ambiguous_products'] ?? 0 ) ) . '</small>';
+                echo '<small>' . esc_html__( 'Ambiguos:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $proposal['ambiguous_products'] ?? 0 ) ) . '</small>';
             } else {
-                echo 'Destino sugerido: <strong>' . esc_html( (string) ( $proposal['target_name'] ?? '' ) ) . '</strong> #' . esc_html( (string) absint( $proposal['target_id'] ?? 0 ) );
-                echo '<p>Similitud de nombre: ' . esc_html( (string) ( $proposal['title_similarity'] ?? 'N/D' ) ) . ' · Vocabulary: ' . esc_html( (string) ( $proposal['concept_overlap'] ?? 'N/D' ) ) . '</p>';
+                echo esc_html__( 'Destino sugerido:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $proposal['target_name'] ?? '' ) ) . '</strong> #' . esc_html( (string) absint( $proposal['target_id'] ?? 0 ) );
+                echo '<p>' . esc_html__( 'Similitud de nombre:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) ( $proposal['title_similarity'] ?? 'N/D' ) ) . ' · ' . esc_html__( 'Vocabulary:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) ( $proposal['concept_overlap'] ?? 'N/D' ) ) . '</p>';
             }
             echo '</td><td>';
             if ( $url ) {
-                echo '<a class="button" href="' . esc_url( $url ) . '">Abrir categoría</a>';
+                echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html__( 'Abrir categoría', 'taxocommerce-auditor' ) . '</a>';
             }
             echo '<p>' . '<small>' . esc_html__( 'Revisión; no hay cambios automáticos.', 'taxocommerce-auditor' ) . '</small>' . '</p>' . '</td>' . '</tr>';
         }
@@ -593,7 +593,7 @@ final class Admin {
 
     private static function render_context( $report ) {
         echo '<h3>' . esc_html__( 'Contexto de decisión', 'taxocommerce-auditor' ) . '</h3>' . '<p>' . esc_html__( 'Auditor evalúa consistencia interna y no consulta directamente APIs de buscadores, compras ni analítica.', 'taxocommerce-auditor' ) . '</p>';
-        echo '<p>Fuentes nativas disponibles para esta ejecución: <strong>' . esc_html( (string) ( $report['source_model'] ?? 'WordPress / WooCommerce' ) ) . '</strong>.</p>';
+        echo '<p>' . esc_html__( 'Fuentes nativas disponibles para esta ejecución:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $report['source_model'] ?? 'WordPress / WooCommerce' ) ) . '</strong>.</p>';
         $context = $report['decision_context'] ?? null;
         if ( ! is_array( $context ) || ! $context ) {
             echo '<p>' . '<strong>' . esc_html__( 'Analista, Ojeador, Dependiente y Comparador:', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( 'datos no disponibles para este informe. Ausente no significa cero; no se ha inventado ningún valor.', 'taxocommerce-auditor' ) . '</p>';
@@ -603,8 +603,8 @@ final class Admin {
         }
         if ( ! empty( $report['editorial_comparison'] ) ) {
             $map = (array) $report['editorial_comparison'];
-            echo '<p>Mapa editorial indexado: ' . esc_html( (string) absint( $map['indexed_posts_pages'] ?? 0 ) ) . ' objetos.';
-            echo ! empty( $map['partial'] ) ? ' La comparación es parcial por límite de seguridad.</p>' : '</p>';
+            echo '<p>' . esc_html__( 'Mapa editorial indexado:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $map['indexed_posts_pages'] ?? 0 ) ) . ' ' . esc_html__( 'objetos', 'taxocommerce-auditor' ) . '.';
+            echo ! empty( $map['partial'] ) ? ' ' . esc_html__( 'La comparación es parcial por límite de seguridad.', 'taxocommerce-auditor' ) . '</p>' : '</p>';
         }
         echo '<p>' . esc_html__( 'Los enlaces a fuentes y el contraste externo son tareas distintas de la auditoría de contenidos.', 'taxocommerce-auditor' ) . '</p>';
     }

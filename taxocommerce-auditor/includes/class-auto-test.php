@@ -59,7 +59,7 @@ final class Auto_Test {
                     $result = self::fail( __( 'Formato de resultado de prueba no reconocido.', 'taxocommerce-auditor' ) );
                 }
             } catch ( \Throwable $error ) {
-                $result = self::fail( 'No se ha podido completar la comprobación: ' . $error->getMessage() );
+                $result = self::fail( __( 'No se ha podido completar la comprobación:', 'taxocommerce-auditor' ) . ' ' . $error->getMessage() );
             }
             $rows[] = array(
                 'id' => $id, 'group' => $labels[0], 'label' => $labels[1],
@@ -81,7 +81,7 @@ final class Auto_Test {
                 return self::fail( __( 'Falta la clase', 'taxocommerce-auditor' ) . ' ' . $class . '.' );
             }
         }
-        return self::pass( 'Auditor ' . Plugin::VERSION . ': componentes cargados.' );
+        return self::pass( __( 'Auditor', 'taxocommerce-auditor' ) . ' ' . Plugin::VERSION . ': ' . __( 'componentes cargados.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_hooks() {
@@ -178,7 +178,7 @@ final class Auto_Test {
     private static function test_state() {
         foreach ( array_keys( Runner::scopes() ) as $scope ) {
             if ( ! is_array( Runner::state( $scope ) ) || ! is_array( Runner::report( $scope ) ) ) {
-                return self::fail( 'Formato de estado o informe inválido para ' . $scope . '.' );
+                return self::fail( __( 'Formato de estado o informe inválido para', 'taxocommerce-auditor' ) . ' ' . $scope . '.' );
             }
         }
         return self::pass( __( 'Estados e informes de los cinco ámbitos legibles; no se procesan datos.', 'taxocommerce-auditor' ) );
@@ -187,7 +187,7 @@ final class Auto_Test {
     private static function test_history() {
         foreach ( array_keys( Runner::scopes() ) as $scope ) {
             if ( ! is_array( Runner::history( $scope ) ) ) {
-                return self::fail( 'Historial no disponible: ' . $scope . '.' );
+                return self::fail( __( 'Historial no disponible:', 'taxocommerce-auditor' ) . ' ' . $scope . '.' );
             }
         }
         return self::pass( __( 'Historial de cinco ámbitos disponible; puede estar vacío sin ser un error.', 'taxocommerce-auditor' ) );
@@ -273,8 +273,8 @@ final class Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-auditor' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Último informe · v' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-auditor' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
-        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
+        echo '<h3>' . esc_html__( 'Último informe', 'taxocommerce-auditor' ) . ' · v' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-auditor' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' ' . esc_html__( 'correctas', 'taxocommerce-auditor' ) . '</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' ' . esc_html__( 'fallidas', 'taxocommerce-auditor' ) . '</strong> · ' . esc_html( (string) $totals['skip'] ) . ' ' . esc_html__( 'omitidas', 'taxocommerce-auditor' ) . ' · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $old = array();
             foreach ( $previous['rows'] as $row ) $old[ $row['id'] ] = $row['status'];
@@ -282,8 +282,8 @@ final class Auto_Test {
             foreach ( $current['rows'] as $row ) {
                 if ( 'fail' === $row['status'] && ( $old[ $row['id'] ] ?? '' ) === 'pass' ) $regressions[] = $row['label'];
             }
-            echo '<p><strong>Comparativa:</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
-            echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : __( 'Sin regresiones de correcto a fallido.', 'taxocommerce-auditor' );
+            echo '<p><strong>' . esc_html__( 'Comparativa:', 'taxocommerce-auditor' ) . '</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
+            echo $regressions ? '<strong style="color:#b32d2e">' . esc_html__( 'Regresiones:', 'taxocommerce-auditor' ) . ' ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : __( 'Sin regresiones de correcto a fallido.', 'taxocommerce-auditor' );
             echo '</p>';
         } else {
             echo '<p>' . esc_html__( 'No hay una ejecución anterior para comparar.', 'taxocommerce-auditor' ) . '</p>';

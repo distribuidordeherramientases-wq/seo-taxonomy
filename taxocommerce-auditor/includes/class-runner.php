@@ -599,7 +599,7 @@ final class Runner {
             'coverage' => 'full' === (string) ( $report['run_mode'] ?? '' ) ? 'complete_scope' : 'filtered_sample',
             'general'  => $general,
             'specific' => $specific,
-            'note'     => 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.',
+            'note'     => __( 'Los KPI describen calidad interna y errores del contenido auditado. No son métricas de posicionamiento de Google/Bing.', 'taxocommerce-auditor' ),
         );
     }
 
@@ -643,7 +643,7 @@ final class Runner {
                         + (int) $state['rebalance_summary']['merge_proposals']
                     ) > count( $state['rebalance_proposals'] ),
                     'apply_actions_enabled' => false,
-                    'note' => 'Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones.',
+                    'note' => __( 'Solo propuestas de revisión. No se mueven ni eliminan categorías y no se crean redirecciones.', 'taxocommerce-auditor' ),
                 )
                 : null,
             'editorial_comparison' => in_array( $scope, array( 'posts', 'pages' ), true )
