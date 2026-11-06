@@ -31,7 +31,7 @@ msgstr ""
 
 #: includes/class-manual.php:55
 msgid ", lotes de"
-msgstr ", lots of"
+msgstr ", batches of"
 
 #: includes/class-manual.php:58
 msgid ", posts, taxonomías y metadatos), WooCommerce ("
@@ -50,7 +50,7 @@ msgstr ""
 
 #: includes/class-manual.php:34
 msgid "; una auditoría pausada puede"
-msgstr "; a leisurely audit can"
+msgstr "; a paused audit can"
 
 #: includes/class-manual.php:62
 msgid ". Ejecuta"
@@ -107,9 +107,7 @@ msgstr ""
 msgid ""
 ". Las ejecuciones largas dependen de WP-Cron. No repitas el arranque "
 "mientras esté procesándose el mismo ámbito."
-msgstr ""
-". Long runs depend on WP-Cron. Do not repeat the boot while the same scope "
-"is being processed."
+msgstr ". Long-running audits rely on WP-Cron. Do not start another audit while the same scope is still being processed."
 
 #: includes/class-manual.php:52
 msgid ". No depende del arranque del monolito ni de sus clases globales."
