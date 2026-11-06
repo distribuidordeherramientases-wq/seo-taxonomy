@@ -68,6 +68,23 @@ final class TaxoCommerce_Insights_Head_Tags {
         return ! preg_match( '~<\\s*/?(?:head|html|body|iframe|object|embed|form)\\b~i', $remaining );
     }
 
+    /**
+     * Generate the canonical Clarity loader from a validated project identifier.
+     * The browser sends only the ID, never executable HTML, to admin-post.php.
+     *
+     * @param string $project_id Project identifier.
+     * @return string
+     */
+    private static function clarity_code( $project_id ) {
+        return '<script type="text/javascript">' . "\n"
+            . '(function(c,l,a,r,i,t,y){' . "\n"
+            . 'c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};' . "\n"
+            . 't=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;' . "\n"
+            . 'y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);' . "\n"
+            . '})(window,document,"clarity","script","' . $project_id . '");' . "\n"
+            . '</script>';
+    }
+
     public static function save() {
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'No tienes permiso para insertar codigo HTML sin filtrar.', 'taxocommerce-google-bing' ) );
@@ -80,8 +97,17 @@ final class TaxoCommerce_Insights_Head_Tags {
         $enabled = ! empty( $_POST['entry_enabled'] );
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Explicit unfiltered_html capability; checked before storing.
         $code    = isset( $_POST['entry_code'] ) && is_string( $_POST['entry_code'] ) ? trim( wp_unslash( $_POST['entry_code'] ) ) : '';
+        $clarity_id = isset( $_POST['entry_clarity_id'] ) && is_string( $_POST['entry_clarity_id'] )
+            ? sanitize_text_field( wp_unslash( $_POST['entry_clarity_id'] ) )
+            : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
+        if ( '' !== $clarity_id ) {
+            if ( 'tracking' !== $kind || ! preg_match( '/\\A[a-z0-9]{6,32}\\z/', $clarity_id ) ) {
+                self::redirect( 'invalid' );
+            }
+            $code = self::clarity_code( $clarity_id );
+        }
         if ( ! in_array( $kind, array( 'verification', 'tracking' ), true ) || ! self::validate_code( $code, $kind ) || '' === $name ) {
             self::redirect( 'invalid' );
         }
@@ -188,8 +214,9 @@ final class TaxoCommerce_Insights_Head_Tags {
         }
 
         echo '<h3>' . esc_html( $current ? __( 'Editar etiqueta', 'taxocommerce-google-bing' ) : __( 'Nueva etiqueta', 'taxocommerce-google-bing' ) ) . '</h3>';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<form id="tgb-head-tags-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_head_tag_save"><input type="hidden" name="entry_id" value="' . esc_attr( $current ? $edit : '' ) . '">';
+        echo '<input type="hidden" name="entry_clarity_id" id="tgb-head-tags-clarity-id" value="">';
         wp_nonce_field( self::NONCE );
         echo '<p><label><strong>' . esc_html__( 'Nombre del proveedor', 'taxocommerce-google-bing' ) . '</strong><br><input class="regular-text" name="entry_name" required maxlength="200" value="' . esc_attr( $current['name'] ?? '' ) . '" placeholder="Microsoft Clarity"></label></p>';
         echo '<p><label><strong>' . esc_html__( 'Tipo de codigo', 'taxocommerce-google-bing' ) . '</strong><br><select name="entry_kind">';
@@ -202,5 +229,36 @@ final class TaxoCommerce_Insights_Head_Tags {
         echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento solo se publican si existe consentimiento estadistico confirmado mediante WP Consent API o el filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( $current ? __( 'Guardar cambios', 'taxocommerce-google-bing' ) : __( 'Añadir etiqueta', 'taxocommerce-google-bing' ) );
         echo '</form>';
+
+        // A host WAF may reject POST requests containing raw <script> markup.
+        // Extract only a known Clarity project ID in the browser, and generate
+        // the official snippet server-side after checking the nonce and caps.
+        ?>
+        <script>
+        (function () {
+            'use strict';
+            var form = document.getElementById('tgb-head-tags-form');
+            var code = form && form.querySelector('textarea[name="entry_code"]');
+            var kind = form && form.querySelector('select[name="entry_kind"]');
+            var idField = document.getElementById('tgb-head-tags-clarity-id');
+            if (!form || !code || !kind || !idField) {
+                return;
+            }
+            form.addEventListener('submit', function () {
+                if (kind.value !== 'tracking') {
+                    return;
+                }
+                var match = code.value.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
+                if (!match) {
+                    match = code.value.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
+                }
+                if (match) {
+                    idField.value = match[1].toLowerCase();
+                    code.disabled = true;
+                }
+            });
+        }());
+        </script>
+        <?php
     }
 }
