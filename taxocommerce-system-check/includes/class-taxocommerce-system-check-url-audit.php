@@ -671,6 +671,7 @@ final class TaxoCommerce_System_Check_URL_Audit {
             }
             $rows[] = array(
                 'id' => 'http:' . absint( $run['id'] ),
+                /* translators: %s: Content type for a running HTTP audit (pages, posts, images or products). */
                 'label' => sprintf( __( 'Auditoría HTTP: %s', 'taxocommerce-system-check' ), $label ),
                 'status' => $status,
                 'detail' => __( 'Trabajo local por lotes', 'taxocommerce-system-check' ),
