@@ -3,32 +3,6 @@ name: STAGING -> Plugin Check -> PRO (gated)
 on:
   workflow_dispatch:
     inputs:
-      plugin:
-        description: 'Plugin to validate (all = entire TaxoCommerce family)'
-        type: choice
-        required: true
-        options:
-          - all
-          - taxocommerce-auditor
-          - taxocommerce-campaigns
-          - taxocommerce-core
-          - taxocommerce-database
-          - taxocommerce-dependiente
-          - taxocommerce-distribution
-          - taxocommerce-facturacion
-          - taxocommerce-faqs
-          - taxocommerce-google-bing
-          - taxocommerce-images
-          - taxocommerce-import-export
-          - taxocommerce-logistica
-          - taxocommerce-redirects
-          - taxocommerce-scrappers
-          - taxocommerce-social
-          - taxocommerce-suppliers
-          - taxocommerce-system-check
-          - taxocommerce-templates
-          - taxocommerce-vocabulary
-        default: all
       full_sync:
         description: 'Full STAGING/Focazul reconciliation; default deploy only changed files'
         type: boolean
@@ -61,7 +35,7 @@ jobs:
     if: needs.staging.result == 'success'
     uses: ./.github/workflows/taxocommerce-plugin-check.yml
     with:
-      plugin: ${{ inputs.plugin }}
+      plugin: all
     permissions:
       contents: read
 
@@ -94,7 +68,7 @@ jobs:
           PRO_RESULT: ${{ needs.production.result }}
           SOURCE_SHA: ${{ github.sha }}
           PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SELECTED_PLUGIN: ${{ inputs.plugin }}
+          SELECTED_PLUGIN: all
           FULL_SYNC: ${{ inputs.full_sync }}
         shell: bash
         run: |
