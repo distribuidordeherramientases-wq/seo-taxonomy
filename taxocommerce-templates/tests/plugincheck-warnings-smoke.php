@@ -108,9 +108,9 @@ foreach ( $prepared_templates as $template => $minimum ) {
 
 $plugin = file_get_contents( $root . '/taxocommerce-templates.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
-if ( false === strpos( $plugin, 'Version: 0.4.18' ) ||
-    false === strpos( $plugin, "define('TCT_VERSION','0.4.18');" ) ||
-    false === strpos( $readme, 'Stable tag: 0.4.18' ) ) {
+if ( false === strpos( $plugin, 'Version: 0.4.19' ) ||
+    false === strpos( $plugin, "define('TCT_VERSION','0.4.19');" ) ||
+    false === strpos( $readme, 'Stable tag: 0.4.19' ) ) {
     fwrite( STDERR, "FAIL inconsistent Templates version\n" );
     exit( 1 );
 }
