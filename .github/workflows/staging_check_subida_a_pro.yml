@@ -1,0 +1,126 @@
+name: STAGING -> Plugin Check -> PRO (gated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: 'Plugin to validate (all = entire TaxoCommerce family)'
+        type: choice
+        required: true
+        options:
+          - all
+          - taxocommerce-auditor
+          - taxocommerce-campaigns
+          - taxocommerce-core
+          - taxocommerce-database
+          - taxocommerce-dependiente
+          - taxocommerce-distribution
+          - taxocommerce-facturacion
+          - taxocommerce-faqs
+          - taxocommerce-google-bing
+          - taxocommerce-images
+          - taxocommerce-import-export
+          - taxocommerce-logistica
+          - taxocommerce-redirects
+          - taxocommerce-scrappers
+          - taxocommerce-social
+          - taxocommerce-suppliers
+          - taxocommerce-system-check
+          - taxocommerce-templates
+          - taxocommerce-vocabulary
+        default: all
+      full_sync:
+        description: 'Full STAGING/Focazul reconciliation; default deploy only changed files'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+# Deliberately manual: merges already trigger the independent STAGING workflow.
+# Automatic triggering here would run two competing FTPS deployments.
+concurrency:
+  group: taxocommerce-staging-check-pro
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: '1 / Deliver STAGING and Focazul'
+    uses: ./.github/workflows/deploy-staging.yml
+    with:
+      full_sync: ${{ inputs.full_sync }}
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: read
+
+  plugin-check:
+    name: '2 / Official WordPress Plugin Check (strict)'
+    needs: staging
+    if: needs.staging.result == 'success'
+    uses: ./.github/workflows/taxocommerce-plugin-check.yml
+    with:
+      plugin: ${{ inputs.plugin }}
+    permissions:
+      contents: read
+
+  production:
+    name: '3 / Deploy to PRO (approved revision only)'
+    needs: [staging, plugin-check]
+    if: needs.staging.result == 'success' && needs.plugin-check.result == 'success'
+    uses: ./.github/workflows/despliege_de_main_a_pro.yml
+    with:
+      source_sha: ${{ github.sha }}
+    secrets: inherit
+    permissions:
+      contents: read
+
+  report-failure:
+    name: 'Stop and open an issue on failure'
+    needs: [staging, plugin-check, production]
+    if: ${{ always() && (needs.staging.result == 'failure' || needs.plugin-check.result == 'failure' || needs.production.result == 'failure') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Report failed phase and open an actionable GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          STAGING_RESULT: ${{ needs.staging.result }}
+          PLUGIN_CHECK_RESULT: ${{ needs.plugin-check.result }}
+          PRO_RESULT: ${{ needs.production.result }}
+          SOURCE_SHA: ${{ github.sha }}
+          PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SELECTED_PLUGIN: ${{ inputs.plugin }}
+          FULL_SYNC: ${{ inputs.full_sync }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Pipeline halted: manual repair is required'
+            echo
+            echo "Run: $PIPELINE_URL"
+            echo "Source SHA: \`$SOURCE_SHA\`"
+            echo "Plugin scope: \`$SELECTED_PLUGIN\`"
+            echo "Full STAGING sync: \`$FULL_SYNC\`"
+            echo
+            echo "| Phase | Result |"
+            echo "|---|---|"
+            echo "| 1. STAGING + Focazul | $STAGING_RESULT |"
+            echo "| 2. Official Plugin Check | $PLUGIN_CHECK_RESULT |"
+            echo "| 3. PRO | $PRO_RESULT |"
+            echo
+            echo '### Next steps'
+            echo '1. Inspect the failed job logs and identify the actual root cause.'
+            echo '2. Correct the source or deployment configuration in a dedicated branch.'
+            echo '3. Open a PR to staging, validate it, then merge.'
+            echo '4. Run staging_check_subida_a_pro.yml again from staging.'
+            echo
+            echo '**Never force a production deployment past a failed gate.**'
+          } > pipeline-failure.md
+          gh issue create \
+            --title "Pipeline STAGING -> Check -> PRO failed (run $GITHUB_RUN_ID)" \
+            --body-file pipeline-failure.md
