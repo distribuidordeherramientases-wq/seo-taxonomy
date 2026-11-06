@@ -1053,3 +1053,37 @@ msgstr "unknown endpoint type"
 
 msgid "Último resultado"
 msgstr "Latest result"
+
+msgid "Usuario ID %d"
+msgstr "User ID %d"
+
+msgid "No disponible"
+msgstr "Unavailable"
+
+msgid "Existe un bloqueo activo."
+msgstr "An active lock exists."
+
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr "Check that no other bulk acceptance process is running before removing the lock."
+
+msgid "Opción de WordPress"
+msgstr "WordPress option"
+
+msgid "Usuario que inició el proceso"
+msgstr "User who started the process"
+
+msgid "Fecha de inicio"
+msgstr "Start date"
+
+msgid "Antigüedad"
+msgstr "Elapsed time"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Desbloquear aceptación masiva"
+msgstr "Unlock bulk acceptance"
+
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr "Remove the lock only if you have verified that no other bulk acceptance process is running. Continue?"
+

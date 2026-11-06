@@ -1,3 +1,9 @@
+## [Unreleased] — Internacionalización del desbloqueo masivo (#2271)
+
+- Localizadas con gettext las etiquetas, el aviso, el usuario, la fecha y la acción de desbloqueo de aceptación masiva, sin alterar los identificadores técnicos, los tokens ni la lógica de seguridad.
+- Sincronizadas 11 cadenas nuevas en POT y catálogos de español, inglés, francés, alemán y neerlandés; regenerados los cinco MO.
+- El resto de textos heredados de Database sigue pendiente de auditoría para garantizar una interfaz íntegramente traducible.
+
 ## [0.4.9] — 2026-11-05 (i18n Database #2213)
 
 - Carga de textos de administración según idioma de WordPress: pestañas, KPIs, controles, títulos y ayudas vinculados a gettext; traducción nativa inglesa corregida.
