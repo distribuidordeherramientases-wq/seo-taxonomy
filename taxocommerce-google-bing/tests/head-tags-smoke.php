@@ -18,6 +18,12 @@ $verify = '<meta name="google-site-verification" content="sample-token" />';
 $bing = '<meta name="msvalidate.01" content="sample-token" />';
 $clarity = '<script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};})(window,document,"clarity","script","x");</script>';
 $google = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-TEST123"></script><script>window.dataLayer=window.dataLayer||[];</script>';
+$clarity_builder = new ReflectionMethod( 'TaxoCommerce_Insights_Head_Tags', 'clarity_code' );
+$clarity_builder->setAccessible( true );
+$generated_clarity = $clarity_builder->invoke( null, 'ww0i0jxbs8' );
+if ( false === strpos( $generated_clarity, 'https://www.clarity.ms/tag/' ) || false === strpos( $generated_clarity, '"ww0i0jxbs8"' ) ) {
+    throw new RuntimeException( 'Canonical Clarity loader missing project identifier' );
+}
 $validator = new ReflectionMethod( 'TaxoCommerce_Insights_Head_Tags', 'validate_code' );
 $validator->setAccessible( true );
 foreach ( array( $verify, $bing ) as $example ) {
@@ -25,7 +31,7 @@ foreach ( array( $verify, $bing ) as $example ) {
         throw new RuntimeException( 'Valid verification meta tag rejected' );
     }
 }
-foreach ( array( $clarity, $google ) as $example ) {
+foreach ( array( $clarity, $google, $generated_clarity ) as $example ) {
     if ( ! $validator->invoke( null, $example, 'tracking' ) ) {
         throw new RuntimeException( 'Valid tracking snippet rejected' );
     }
