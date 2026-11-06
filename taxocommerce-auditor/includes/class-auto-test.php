@@ -56,7 +56,7 @@ final class Auto_Test {
                 $method = 'test_' . $id;
                 $result = self::$method();
                 if ( ! is_array( $result ) || ! isset( $result['status'], $result['message'] ) || ! isset( $totals[ $result['status'] ] ) ) {
-                    $result = self::fail( 'Formato de resultado de prueba no reconocido.' );
+                    $result = self::fail( __( 'Formato de resultado de prueba no reconocido.', 'taxocommerce-auditor' ) );
                 }
             } catch ( \Throwable $error ) {
                 $result = self::fail( 'No se ha podido completar la comprobación: ' . $error->getMessage() );
@@ -95,27 +95,27 @@ final class Auto_Test {
                 return self::fail( 'No está registrado: ' . $hook . '.' );
             }
         }
-        return self::pass( 'Formularios, descargas, Autocheck y callback de lotes registrados, sin invocarlos.' );
+        return self::pass( __( 'Formularios, descargas, Autocheck y callback de lotes registrados, sin invocarlos.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_scopes() {
         $expected = array( 'products', 'categories', 'posts', 'pages', 'faqs' );
         return array_keys( Runner::scopes() ) === $expected
             && ! Runner::valid_scope( 'unknown' )
-            ? self::pass( 'Los cinco ámbitos de auditoría están disponibles.' )
-            : self::fail( 'Los ámbitos difieren del contrato de Auditor.' );
+            ? self::pass( __( 'Los cinco ámbitos de auditoría están disponibles.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'Los ámbitos difieren del contrato de Auditor.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_products() {
         return function_exists( 'wc_get_product' ) && post_type_exists( 'product' )
-            ? self::pass( 'Producto WooCommerce y su API de lectura disponibles.' )
-            : self::fail( 'WooCommerce o el tipo product no están disponibles.' );
+            ? self::pass( __( 'Producto WooCommerce y su API de lectura disponibles.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'WooCommerce o el tipo product no están disponibles.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_categories() {
         return taxonomy_exists( 'product_cat' )
-            ? self::pass( 'La taxonomía product_cat está registrada.' )
-            : self::fail( 'No está registrada product_cat; comprueba WooCommerce.' );
+            ? self::pass( __( 'La taxonomía product_cat está registrada.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'No está registrada product_cat; comprueba WooCommerce.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_faqs() {
@@ -123,8 +123,8 @@ final class Auto_Test {
         return method_exists( __NAMESPACE__ . '\\FAQ_Source', 'available' )
             && method_exists( __NAMESPACE__ . '\\FAQ_Source', 'batch' )
             && method_exists( __NAMESPACE__ . '\\Runner', 'faq_post_type' )
-            ? self::pass( 'Adaptador FAQ canónico y alternativa por CPT disponibles; la fuente puede ser opcional.' )
-            : self::fail( 'No están disponibles los lectores FAQ esperados.' );
+            ? self::pass( __( 'Adaptador FAQ canónico y alternativa por CPT disponibles; la fuente puede ser opcional.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'No están disponibles los lectores FAQ esperados.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_quality() {
@@ -132,8 +132,8 @@ final class Auto_Test {
         return 100 === $total && 'fuerte' === Rules::band( 85 )
             && 'correcta' === Rules::band( 70 ) && 'mejorable' === Rules::band( 55 )
             && 'debil' === Rules::band( 54 ) && 'no_aplica' === Rules::band( null )
-            ? self::pass( 'Cinco dimensiones suman 100 y las bandas responden como se espera.' )
-            : self::fail( 'Hay un desajuste en los criterios de calidad.' );
+            ? self::pass( __( 'Cinco dimensiones suman 100 y las bandas responden como se espera.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'Hay un desajuste en los criterios de calidad.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_priority() {
@@ -143,16 +143,16 @@ final class Auto_Test {
         ) );
         return is_array( $row ) && 'P1' === ( $row['priority'] ?? '' )
             && ! empty( $row['requires_source_check'] )
-            ? self::pass( 'Clasificación P1 requiere verificación de fuente; no se crea ningún hallazgo.' )
-            : self::fail( 'El contrato de prioridades no coincide.' );
+            ? self::pass( __( 'Clasificación P1 requiere verificación de fuente; no se crea ningún hallazgo.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'El contrato de prioridades no coincide.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_filters() {
         $filtered = Runner::sanitize_filters( 'products', array( 'mode' => 'filtered', 'rows' => 999 ) );
         $full = Runner::sanitize_filters( 'categories', array( 'mode' => 'full', 'rows' => 10 ) );
         return 25 === $filtered['rows'] && 0 === $full['rows'] && 'full' === $full['mode']
-            ? self::pass( 'Filtros acotados y modo completo distinguidos sin ejecutar auditorías.' )
-            : self::fail( 'Los límites de búsqueda han cambiado inesperadamente.' );
+            ? self::pass( __( 'Filtros acotados y modo completo distinguidos sin ejecutar auditorías.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'Los límites de búsqueda han cambiado inesperadamente.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_runner() {
@@ -162,8 +162,8 @@ final class Auto_Test {
             }
         }
         return Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 100
-            ? self::pass( 'Ejecución por lotes y controles disponibles; ningún cron se dispara.' )
-            : self::fail( 'Tamaño de lote fuera del contrato esperado.' );
+            ? self::pass( __( 'Ejecución por lotes y controles disponibles; ningún cron se dispara.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'Tamaño de lote fuera del contrato esperado.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_storage() {
@@ -172,7 +172,7 @@ final class Auto_Test {
                 return self::fail( 'Falta Export_Store::' . $method . '.' );
             }
         }
-        return self::pass( 'Almacén JSONL y descarga completa disponibles, sin crear ni abrir archivos.' );
+        return self::pass( __( 'Almacén JSONL y descarga completa disponibles, sin crear ni abrir archivos.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_state() {
@@ -181,7 +181,7 @@ final class Auto_Test {
                 return self::fail( 'Formato de estado o informe inválido para ' . $scope . '.' );
             }
         }
-        return self::pass( 'Estados e informes de los cinco ámbitos legibles; no se procesan datos.' );
+        return self::pass( __( 'Estados e informes de los cinco ámbitos legibles; no se procesan datos.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_history() {
@@ -190,24 +190,24 @@ final class Auto_Test {
                 return self::fail( 'Historial no disponible: ' . $scope . '.' );
             }
         }
-        return self::pass( 'Historial de cinco ámbitos disponible; puede estar vacío sin ser un error.' );
+        return self::pass( __( 'Historial de cinco ámbitos disponible; puede estar vacío sin ser un error.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_context() {
         return class_exists( __NAMESPACE__ . '\\Decision_Context' )
             && method_exists( __NAMESPACE__ . '\\Decision_Context', 'decorate' )
-            ? self::pass( 'Contrato de evidencia local disponible; no se consultan servicios externos.' )
-            : self::fail( 'No está disponible el contrato de contexto local.' );
+            ? self::pass( __( 'Contrato de evidencia local disponible; no se consultan servicios externos.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'No está disponible el contrato de contexto local.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_manual() {
         return class_exists( __NAMESPACE__ . '\\Manual' ) && method_exists( __NAMESPACE__ . '\\Manual', 'render' )
-            ? self::pass( 'Guía de usuario y guía técnica integradas.' )
-            : self::fail( 'No se encuentra la documentación integrada.' );
+            ? self::pass( __( 'Guía de usuario y guía técnica integradas.', 'taxocommerce-auditor' ) )
+            : self::fail( __( 'No se encuentra la documentación integrada.', 'taxocommerce-auditor' ) );
     }
 
     private static function test_operations() {
-        return self::skip( 'No se ejecutan auditorías, procesos WP-Cron, escrituras de JSONL, descargas completas ni cambios editoriales. Probarlos en staging.' );
+        return self::skip( __( 'No se ejecutan auditorías, procesos WP-Cron, escrituras de JSONL, descargas completas ni cambios editoriales. Probarlos en staging.', 'taxocommerce-auditor' ) );
     }
 
     public static function handle() {
@@ -261,7 +261,7 @@ final class Auto_Test {
         echo '<p>' . esc_html__( 'Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y disponibilidad de exportación. Es de solo lectura: no inicia procesos ni modifica contenidos. Se guardan dos resultados por usuario durante 30 días.', 'taxocommerce-auditor' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'taxocommerce_auditor_auto_nonce' );
-        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
+        submit_button( __( 'Ejecutar Autocheck', 'taxocommerce-auditor' ), 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
             echo '<p>' . esc_html__( 'Todavía no hay resultados. Pulsa Ejecutar Autocheck.', 'taxocommerce-auditor' ) . '</p>' . '</section>';
@@ -289,7 +289,7 @@ final class Auto_Test {
             echo '<p>' . esc_html__( 'No hay una ejecución anterior para comparar.', 'taxocommerce-auditor' ) . '</p>';
         }
         echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Resultado', 'taxocommerce-auditor' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-auditor' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
-        $names = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
+        $names = array( 'pass' => __( 'Correcto', 'taxocommerce-auditor' ), 'fail' => __( 'Error', 'taxocommerce-auditor' ), 'skip' => __( 'No ejecutado', 'taxocommerce-auditor' ) );
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $names[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }
