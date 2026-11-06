@@ -78,7 +78,7 @@ final class Admin {
         echo '<input type="hidden" name="scope" value="' . esc_attr( $scope ) . '">';
         echo '<input type="hidden" name="task" value="' . esc_attr( $task ) . '">';
         wp_nonce_field( 'taxocommerce_auditor_action_' . $scope );
-        echo '<button type="submit" class="' . esc_attr( $primary ? __( 'button button-primary', 'taxocommerce-auditor' ) : 'button' ) . '">' . esc_html( $label ) . '</button>';
+        echo '<button type="submit" class="' . esc_attr( $primary ? 'button button-primary' : 'button' ) . '">' . esc_html( $label ) . '</button>';
         echo '</form>';
     }
 
@@ -91,7 +91,7 @@ final class Admin {
         echo '<input type="hidden" name="scope" value="' . esc_attr( $scope ) . '">';
         echo '<input type="hidden" name="task" value="start">';
         wp_nonce_field( 'taxocommerce_auditor_action_' . $scope );
-        echo '<label>Buscar <input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="Título o ID"></label>';
+        echo '<label>' . esc_html__( 'Buscar', 'taxocommerce-auditor' ) . ' <input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="' . esc_attr__( 'Título o ID', 'taxocommerce-auditor' ) . '"></label>';
         if ( 'products' === $scope ) {
             $categories = get_terms( array( 'taxonomy'=>'product_cat', 'hide_empty'=>false, 'number'=>250, 'orderby'=>'name', 'order'=>'ASC' ) );
             if ( is_wp_error( $categories ) ) {
@@ -131,10 +131,10 @@ final class Admin {
 
         echo '<section class="card taxocommerce-auditor-scope-controls">';
         echo '<div class="taxocommerce-auditor-scope-status"><div>';
-        echo '<h2>' . esc_html__( 'Auditoría de', 'taxocommerce-auditor' ) . ' ' . esc_html( Runner::scopes()[ $scope ] ) . '</h2>';
-        echo '<p><strong>' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '</strong> ' . esc_html( self::state_label( $status ) );
+        echo '<h2> ' . esc_html__( 'Auditoría de', 'taxocommerce-auditor' ) . ' ' . esc_html( Runner::scopes()[ $scope ] ) . '</h2>';
+        echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  ' . esc_html( self::state_label( $status ) );
         if ( in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
-            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected );
+            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? 'sin recuento disponible' : (string) $expected );
         }
         echo '</p>';
         if ( ! empty( $state['reason'] ) ) {
@@ -147,12 +147,12 @@ final class Admin {
             echo '<div class="taxocommerce-auditor-last-run">';
             echo '<strong>' . esc_html__( 'Último informe', 'taxocommerce-auditor' ) . '</strong>';
             echo '<span>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</span>';
-            echo '<span>' . esc_html( ucfirst( $mode ) ) . ' · ' . esc_html( (string) absint( $report['processed'] ?? 0 ) ) . __( ' revisados · ', 'taxocommerce-auditor' ) . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' hallazgos</span>';
+            echo '<span>' . esc_html( ucfirst( $mode ) ) . ' · ' . esc_html( (string) absint( $report['processed'] ?? 0 ) ) . ' revisados · ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' hallazgos</span>';
             $export = wp_nonce_url(
                 add_query_arg( array( 'action' => 'taxocommerce_auditor_export', 'scope' => $scope ), admin_url( 'admin-post.php' ) ),
                 'taxocommerce_auditor_export_' . $scope
             );
-            echo '<a class="button" href="' . esc_url( $export ) . '">JSON completo</a>';
+            echo '<a class="button" href="' . esc_url( $export ) . '"> ' . esc_html__( 'JSON completo', 'taxocommerce-auditor' ) . '</a>';
             echo '</div>';
         }
         echo '</div>';
@@ -187,16 +187,16 @@ final class Admin {
             $selected = 'products';
         }
 
-        echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Auditor de contenidos', 'taxocommerce-auditor' ) . ' <small>v' . esc_html( Plugin::VERSION ) . '</small></h1>';
+        echo '<div class="wrap"><h1> ' . esc_html__( 'TaxoCommerce Auditor de contenidos', 'taxocommerce-auditor' ) . ' <small>v' . esc_html( Plugin::VERSION ) . '</small></h1>';
         echo '<p>' . esc_html__( 'Especialista de solo lectura en calidad e integridad del contenido. Detecta errores, incoherencias y trabajo pendiente; no publica, borra, mueve ni redirige contenidos.', 'taxocommerce-auditor' ) . '</p>';
         echo '<p>' . '<strong>' . esc_html__( 'Fuentes:', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( 'WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local persistido de otros módulos cuando existe. No ejecuta APIs externas durante la auditoría.', 'taxocommerce-auditor' ) . '</p>';
 
-        echo '<nav class="nav-tab-wrapper taxocommerce-auditor-scope-tabs" ' . esc_attr__( 'Tipos de contenido', 'taxocommerce-auditor' ) . '>';
+        echo '<nav class="nav-tab-wrapper taxocommerce-auditor-scope-tabs" aria-label="' . esc_attr__( 'Tipos de contenido', 'taxocommerce-auditor' ) . '">';
         foreach ( $scopes as $scope => $label ) {
-            echo '<a href="' . esc_url( self::scope_tab_url( $scope ) ) . __( '" class="nav-tab', 'taxocommerce-auditor' ) . ( $selected === $scope ? ' nav-tab-active' : '' ) . '"' . ( $selected === $scope ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
+            echo '<a href="' . esc_url( self::scope_tab_url( $scope ) ) . '" class="nav-tab' . ( $selected === $scope ? ' nav-tab-active' : '' ) . '"' . ( $selected === $scope ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
         }
         foreach ( array( 'auto-test' => __( 'Autocheck', 'taxocommerce-auditor' ), 'manual' => __( 'Manual', 'taxocommerce-auditor' ) ) as $key => $label ) {
-            echo '<a href="' . esc_url( self::scope_tab_url( $key ) ) . __( '" class="nav-tab', 'taxocommerce-auditor' ) . ( $selected === $key ? ' nav-tab-active' : '' ) . '"' . ( $selected === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
+            echo '<a href="' . esc_url( self::scope_tab_url( $key ) ) . '" class="nav-tab' . ( $selected === $key ? ' nav-tab-active' : '' ) . '"' . ( $selected === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $label ) . '</a>';
         }
         echo '</nav>';
 
@@ -221,8 +221,8 @@ final class Admin {
             self::render_report( $selected );
         } else {
             echo '<section class="taxocommerce-auditor-empty-report">';
-            echo '<h2>' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scopes[ $selected ] ) . '</h2>';
-            echo '<p>' . esc_html__( 'Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este bloque. Para indicadores representativos del conjunto, utiliza', 'taxocommerce-auditor' ) . ' ' . '<strong>' . esc_html__( 'Auditar todo', 'taxocommerce-auditor' ) . '</strong>' . '.' . '</p>';
+            echo '<h2> ' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scopes[ $selected ] ) . '</h2>';
+            echo '<p>' . esc_html__( 'Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este bloque. Para indicadores representativos del conjunto, utiliza', 'taxocommerce-auditor' ) . ' ' . '<strong>' . esc_html__( __( 'Auditar todo', 'taxocommerce-auditor' ), 'taxocommerce-auditor' ) . '</strong>' . '.' . '</p>';
             echo '</section>';
         }
 
@@ -290,9 +290,9 @@ final class Admin {
             $view = 'summary';
         }
 
-        echo '<nav class="nav-tab-wrapper taxocommerce-auditor-tabs" ' . esc_attr__( 'Vistas del informe', 'taxocommerce-auditor' ) . '>';
+        echo '<nav class="nav-tab-wrapper taxocommerce-auditor-tabs" aria-label="' . esc_attr__( 'Vistas del informe', 'taxocommerce-auditor' ) . '">';
         foreach ( $views as $key => $name ) {
-            echo '<a href="' . esc_url( self::report_url( $scope, $key ) ) . __( '" class="nav-tab', 'taxocommerce-auditor' ) . ( $view === $key ? ' nav-tab-active' : '' ) . '"' . ( $view === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $name ) . '</a>';
+            echo '<a href="' . esc_url( self::report_url( $scope, $key ) ) . '" class="nav-tab' . ( $view === $key ? ' nav-tab-active' : '' ) . '"' . ( $view === $key ? ' aria-current="page"' : '' ) . '>' . esc_html( $name ) . '</a>';
         }
         echo '</nav>';
 
@@ -349,12 +349,12 @@ final class Admin {
             'faqs'       => 'FAQs',
         );
         $coverage = 'complete_scope' === (string) ( $kpis['coverage'] ?? '' )
-            ? __( 'auditoría completa', 'taxocommerce-auditor' )
-            : __( 'auditoría filtrada', 'taxocommerce-auditor' );
+            ? 'auditoría completa'
+            : 'auditoría filtrada';
 
         echo '<div class="taxocommerce-auditor-kpi-head">';
-        echo '<div><h3>' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scope_labels[ $scope ] ?? $scope ) . '</h3>';
-        echo '<p>' . esc_html__( 'Indicadores específicos de calidad, integridad y errores a corregir sobre la última', 'taxocommerce-auditor' ) . ' ' . esc_html( $coverage ) . '.</p></div>';
+        echo '<div><h3> ' . esc_html__( 'KPIs de', 'taxocommerce-auditor' ) . ' ' . esc_html( $scope_labels[ $scope ] ?? $scope ) . '</h3>';
+        echo '<p>Indicadores específicos de calidad, integridad y errores a corregir sobre la última ' . esc_html( $coverage ) . '.</p></div>';
         echo '<span class="taxocommerce-auditor-kpi-mode">' . esc_html( $coverage ) . '</span>';
         echo '</div>';
 
@@ -382,7 +382,7 @@ final class Admin {
         $counts = (array) ( $report['severity_counts'] ?? array() );
         $quality = (array) ( $report['quality'] ?? array() );
         echo '<h3>' . esc_html__( 'Resumen del último análisis', 'taxocommerce-auditor' ) . '</h3>';
-        echo '<p>' . esc_html__( 'Finalizado:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</strong>' . ' ' . esc_html__( '· Duración:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $report['duration_seconds'] ?? 0 ) ) . ' segundos.</p>';
+        echo '<p>Finalizado: <strong>' . esc_html( (string) ( $report['completed_gmt'] ?? '' ) ) . ' UTC</strong> · Duración: ' . esc_html( (string) absint( $report['duration_seconds'] ?? 0 ) ) . ' segundos.</p>';
         echo '<div class="taxocommerce-auditor-metrics">';
         self::render_metric( absint( $report['processed'] ?? 0 ), __( 'Entidades revisadas', 'taxocommerce-auditor' ) );
         self::render_metric( absint( $report['finding_count'] ?? 0 ), __( 'Hallazgos', 'taxocommerce-auditor' ) );
@@ -393,7 +393,7 @@ final class Admin {
         echo '</div>';
 
         if ( absint( $report['excluded'] ?? 0 ) ) {
-            echo '<p>' . esc_html__( 'Páginas funcionales/corporativas excluidas del diagnóstico editorial:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) absint( $report['excluded'] ) ) . '</strong>.</p>';
+            echo '<p>Páginas funcionales/corporativas excluidas del diagnóstico editorial: <strong>' . esc_html( (string) absint( $report['excluded'] ) ) . '</strong>.</p>';
         }
         self::render_priority_counts( (array) ( $report['priority_counts'] ?? array() ) );
 
@@ -445,8 +445,8 @@ final class Admin {
     private static function render_quality( $report ) {
         $quality = (array) ( $report['quality'] ?? array() );
         echo '<h3>' . esc_html__( 'Puntuación interna de calidad', 'taxocommerce-auditor' ) . '</h3>' . '<p>' . esc_html__( 'Se conservan las cinco dimensiones del Auditor anterior; es una señal de priorización propia, no el algoritmo de un buscador.', 'taxocommerce-auditor' ) . '</p>';
-        echo '<p>' . esc_html__( 'Entidades puntuadas:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $quality['scored'] ?? 0 ) );
-        echo ' ' . esc_html__( '· Media:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( null === ( $quality['average'] ?? null ) ? __( 'No disponible', 'taxocommerce-auditor' ) : (string) $quality['average'] . '/100' ) . '</strong>.</p>';
+        echo '<p>Entidades puntuadas: ' . esc_html( (string) absint( $quality['scored'] ?? 0 ) );
+        echo ' · Media: <strong>' . esc_html( null === ( $quality['average'] ?? null ) ? 'No disponible' : (string) $quality['average'] . '/100' ) . '</strong>.</p>';
         $dimensions = array(
             'utility'         => __( 'Relevancia y utilidad', 'taxocommerce-auditor' ),
             'trust'           => __( 'Confianza y rigor', 'taxocommerce-auditor' ),
@@ -493,7 +493,7 @@ final class Admin {
         echo '<h3>' . esc_html__( 'Plan de revisión priorizado', 'taxocommerce-auditor' ) . '</h3>';
         echo '<p>' . esc_html__( 'Cada tarea incluye prioridad, estado, evidencia y recomendación. Una prioridad alta no autoriza a modificar automáticamente contenidos.', 'taxocommerce-auditor' ) . '</p>';
         if ( ! empty( $report['findings_sample_truncated'] ) ) {
-            echo '<p>' . esc_html__( 'El listado es una muestra priorizada de', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) count( $rows ) ) . __( ' tareas sobre ', 'taxocommerce-auditor' ) . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' ' . esc_html__( 'hallazgos. Consulta los contadores completos en Resumen.', 'taxocommerce-auditor' ) . '</p>';
+            echo '<p>El listado es una muestra priorizada de ' . esc_html( (string) count( $rows ) ) . ' tareas sobre ' . esc_html( (string) absint( $report['finding_count'] ?? 0 ) ) . ' hallazgos. Consulta los contadores completos en Resumen.</p>';
         }
         if ( ! $rows ) {
             echo '<p>' . esc_html__( 'Sin hallazgos.', 'taxocommerce-auditor' ) . '</p>';
@@ -520,7 +520,7 @@ final class Admin {
             echo '<br><small>' . esc_html( (string) ( $row['task_id'] ?? '' ) ) . '</small></td>';
             echo '<td>' . esc_html( (string) ( $row['evidence'] ?? '' ) );
             if ( ! empty( $row['context'] ) ) {
-                echo '<details><summary>Datos de contexto</summary><pre>' . esc_html( wp_json_encode( $row['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre></details>';
+                echo '<details><summary>' . esc_html__( 'Datos de contexto', 'taxocommerce-auditor' ) . '</summary><pre>' . esc_html( wp_json_encode( $row['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre></details>';
             }
             echo '</td><td>' . esc_html( (string) ( $row['recommendation'] ?? '' ) ) . '</td>';
             echo '<td>' . esc_html( (string) ( $row['status'] ?? 'REVIEW_REQUIRED' ) ) . '</td></tr>';
@@ -571,16 +571,16 @@ final class Admin {
             $proposal = (array) ( $row['proposal'] ?? array() );
             $split = ! empty( $row['split_proposal'] );
             echo '<tr><td><strong>' . esc_html( (string) ( $row['category_name'] ?? '' ) ) . '</strong><br><code>#' . esc_html( (string) $id ) . '</code></td>';
-            echo '<td>' . esc_html( $split ? __( 'División por TIPO', 'taxocommerce-auditor' ) : __( 'Concentración en hermana', 'taxocommerce-auditor' ) ) . '</td>';
+            echo '<td>' . esc_html( $split ? 'División por TIPO' : 'Concentración en hermana' ) . '</td>';
             echo '<td>' . esc_html( (string) absint( $row['products'] ?? 0 ) ) . '</td><td>';
             if ( $split ) {
                 foreach ( array_slice( (array) ( $proposal['cohorts'] ?? array() ), 0, 8 ) as $cohort ) {
                     echo '<p><strong>' . esc_html( (string) ( $cohort['label'] ?? '' ) ) . '</strong>: ' . esc_html( (string) absint( $cohort['products'] ?? 0 ) ) . ' productos</p>';
                 }
-                echo '<small>' . esc_html__( 'Ambiguos:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $proposal['ambiguous_products'] ?? 0 ) ) . '</small>';
+                echo '<small>Ambiguos: ' . esc_html( (string) absint( $proposal['ambiguous_products'] ?? 0 ) ) . '</small>';
             } else {
-                echo esc_html__( 'Destino sugerido:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $proposal['target_name'] ?? '' ) ) . '</strong> #' . esc_html( (string) absint( $proposal['target_id'] ?? 0 ) );
-                echo '<p>' . esc_html__( 'Similitud de nombre:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) ( $proposal['title_similarity'] ?? 'N/D' ) ) . __( ' · Vocabulary: ', 'taxocommerce-auditor' ) . esc_html( (string) ( $proposal['concept_overlap'] ?? 'N/D' ) ) . '</p>';
+                echo 'Destino sugerido: <strong>' . esc_html( (string) ( $proposal['target_name'] ?? '' ) ) . '</strong> #' . esc_html( (string) absint( $proposal['target_id'] ?? 0 ) );
+                echo '<p>Similitud de nombre: ' . esc_html( (string) ( $proposal['title_similarity'] ?? 'N/D' ) ) . ' · Vocabulary: ' . esc_html( (string) ( $proposal['concept_overlap'] ?? 'N/D' ) ) . '</p>';
             }
             echo '</td><td>';
             if ( $url ) {
@@ -593,7 +593,7 @@ final class Admin {
 
     private static function render_context( $report ) {
         echo '<h3>' . esc_html__( 'Contexto de decisión', 'taxocommerce-auditor' ) . '</h3>' . '<p>' . esc_html__( 'Auditor evalúa consistencia interna y no consulta directamente APIs de buscadores, compras ni analítica.', 'taxocommerce-auditor' ) . '</p>';
-        echo '<p>' . esc_html__( 'Fuentes nativas disponibles para esta ejecución:', 'taxocommerce-auditor' ) . ' <strong>' . esc_html( (string) ( $report['source_model'] ?? __( 'WordPress / WooCommerce', 'taxocommerce-auditor' ) ) ) . '</strong>.</p>';
+        echo '<p>Fuentes nativas disponibles para esta ejecución: <strong>' . esc_html( (string) ( $report['source_model'] ?? 'WordPress / WooCommerce' ) ) . '</strong>.</p>';
         $context = $report['decision_context'] ?? null;
         if ( ! is_array( $context ) || ! $context ) {
             echo '<p>' . '<strong>' . esc_html__( 'Analista, Ojeador, Dependiente y Comparador:', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( 'datos no disponibles para este informe. Ausente no significa cero; no se ha inventado ningún valor.', 'taxocommerce-auditor' ) . '</p>';
@@ -603,8 +603,8 @@ final class Admin {
         }
         if ( ! empty( $report['editorial_comparison'] ) ) {
             $map = (array) $report['editorial_comparison'];
-            echo '<p>' . esc_html__( 'Mapa editorial indexado:', 'taxocommerce-auditor' ) . ' ' . esc_html( (string) absint( $map['indexed_posts_pages'] ?? 0 ) ) . ' objetos.';
-            echo ! empty( $map['partial'] ) ? ' ' . esc_html__( 'La comparación es parcial por límite de seguridad.', 'taxocommerce-auditor' ) . '</p>' : '</p>';
+            echo '<p>Mapa editorial indexado: ' . esc_html( (string) absint( $map['indexed_posts_pages'] ?? 0 ) ) . ' objetos.';
+            echo ! empty( $map['partial'] ) ? ' La comparación es parcial por límite de seguridad.</p>' : '</p>';
         }
         echo '<p>' . esc_html__( 'Los enlaces a fuentes y el contraste externo son tareas distintas de la auditoría de contenidos.', 'taxocommerce-auditor' ) . '</p>';
     }
@@ -681,9 +681,9 @@ final class Admin {
             wp_die( esc_html__( 'No hay informe completo que exportar.', 'taxocommerce-auditor' ), '', array( 'response' => 404 ) );
         }
         nocache_headers();
-        header( __( 'X-Content-Type-Options: nosniff', 'taxocommerce-auditor' ) );
-        header( __( 'Content-Type: application/json; charset=utf-8', 'taxocommerce-auditor' ) );
-        header( __( 'Content-Disposition: attachment; filename="taxocommerce-auditor-', 'taxocommerce-auditor' ) . $scope . '-' . gmdate( __( 'Ymd-His', 'taxocommerce-auditor' ) ) . '.json"' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="taxocommerce-auditor-' . $scope . '-' . gmdate( 'Ymd-His' ) . '.json"' );
         if ( ! Export_Store::stream_report( $scope, $report ) ) {
             // Backward compatibility for reports created before the complete
             // JSON spool existed.
