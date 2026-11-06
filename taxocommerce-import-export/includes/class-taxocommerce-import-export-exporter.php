@@ -581,12 +581,15 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! $state || ! empty( $state['complete'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'No hay una exportación pendiente.', 'taxocommerce-import-export' ) ), 409 );
 		}
-		if ( 'failed' !== ( $state['status'] ?? '' ) ) {
+		if ( 'failed' !== ( $state['status'] ?? '' ) && 'legacy' !== ( $state['status'] ?? '' ) ) {
 			wp_send_json_error( array( 'message' => __( 'La exportación está en ejecución o cancelándose.', 'taxocommerce-import-export' ) ), 409 );
 		}
 		$state['status'] = 'queued';
 		$state['error'] = '';
 		$state['updated'] = time();
+		if ( empty( $state['dispatch_token'] ) ) {
+			$state['dispatch_token'] = wp_generate_password( 48, false, false );
+		}
 		$this->store_state( $state );
 		$this->dispatch_next( get_current_user_id(), $state['id'], 0 );
 		wp_send_json_success( $this->response_state( $state ) );
@@ -616,6 +619,14 @@ final class TaxoCommerce_Import_Export_Exporter {
 			return;
 		}
 		set_transient( 'taxocommerce_ie_export_recovery_' . $user_id, time(), 120 );
+		if ( 'cancelling' === (string) ( $state['status'] ?? '' ) ) {
+			$this->finish_cancellation( $state );
+			return;
+		}
+		if ( empty( $state['dispatch_token'] ) ) {
+			$state['dispatch_token'] = wp_generate_password( 48, false, false );
+			$this->store_state( $state );
+		}
 		$this->dispatch_next( $user_id, $state['id'], 0 );
 	}
 
@@ -645,6 +656,10 @@ final class TaxoCommerce_Import_Export_Exporter {
 		$this->guard_ajax();
 		check_ajax_referer( 'taxocommerce_ie_exporter', 'nonce' );
 		$state = $this->state();
+		if ( $state && 'cancelling' === (string) ( $state['status'] ?? '' ) ) {
+			$this->finish_cancellation( $state );
+			$state = $this->state();
+		}
 		if ( ! $state ) {
 			wp_send_json_success( array( 'active' => false ) );
 		}
@@ -665,14 +680,46 @@ final class TaxoCommerce_Import_Export_Exporter {
 		if ( ! $state ) {
 			wp_send_json_success( array( 'cancelled' => true ) );
 		}
-		// Cancellation must not unlink a file while its writer still has it open.
+		// Mark cancellation before acquiring the file-writer lock.
+		// This also works with 0.4.15 jobs without a dispatch token.
 		update_option( $this->cancel_key(), (string) $state['id'], false );
 		$state['status'] = 'cancelling';
 		$this->store_state( $state );
-		// Always let the server worker perform deletion under its lock.
-		// Deleting here would race with an in-flight CSV writer.
-		$this->dispatch_next( get_current_user_id(), (string) $state['id'], 0 );
-		wp_send_json_success( array( 'cancelled' => false ) );
+		$cancelled = $this->finish_cancellation( $state );
+		wp_send_json_success( array( 'cancelled' => $cancelled ) );
+	}
+
+
+	/**
+	 * Finish an outstanding cancellation only while holding the exclusive
+	 * file-writer lock. Works for legacy jobs with no dispatch token and
+	 * recovers an abandoned writer lock through acquire_lock().
+	 *
+	 * @param array $state Active job snapshot.
+	 * @return bool Whether the cancellation is fully completed.
+	 */
+	private function finish_cancellation( $state ) {
+		$job = (string) ( $state['id'] ?? '' );
+		if ( '' === $job || 'cancelling' !== (string) ( $state['status'] ?? '' ) ) {
+			return false;
+		}
+		$token = $this->acquire_lock( $job );
+		if ( '' === $token ) {
+			return false;
+		}
+		try {
+			$current = $this->state();
+			if ( ! $current || ! hash_equals( (string) $current['id'], $job ) ) {
+				return false;
+			}
+			if ( 'cancelling' !== (string) ( $current['status'] ?? '' ) ) {
+				return false;
+			}
+			$this->cancel_queued_job( $job );
+			return true;
+		} finally {
+			$this->release_lock( $token );
+		}
 	}
 
 	/**
