@@ -79,6 +79,7 @@ jobs:
           php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/head-tags-smoke.php
+          node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
