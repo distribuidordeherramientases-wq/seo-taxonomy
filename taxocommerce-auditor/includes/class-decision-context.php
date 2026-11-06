@@ -46,12 +46,12 @@ final class Decision_Context {
     private static function build_snapshot() {
         $snapshot = array(
             'generated_at' => current_time( 'mysql' ),
-            'insights' => self::state_reference( false, 'unavailable', 'TaxoCommerce Insights no está disponible.' ),
+            'insights' => self::state_reference( false, 'unavailable', __( 'TaxoCommerce Insights no está disponible.', 'taxocommerce-auditor' ) ),
             'insights_targets' => array(),
             'market_categories' => array(),
             'dependiente' => self::dependiente_global(),
             'suppliers' => self::state_reference( class_exists( 'TCSUP_Schema' ), class_exists( 'TCSUP_Schema' ) ? 'fresh' : 'unavailable', class_exists( 'TCSUP_Schema' ) ? 'TaxoCommerce Suppliers disponible.' : 'TaxoCommerce Suppliers no está disponible.' ),
-            'comparador' => self::state_reference( false, 'unavailable', 'No hay perfiles persistidos de Comparador disponibles.' ),
+            'comparador' => self::state_reference( false, 'unavailable', __( 'No hay perfiles persistidos de Comparador disponibles.', 'taxocommerce-auditor' ) ),
             'comparador_categories' => array(),
         );
 
@@ -64,7 +64,7 @@ final class Decision_Context {
             $snapshot['insights'] = self::state_reference(
                 true,
                 'fresh',
-                'Snapshot local de TaxoCommerce Insights/Analyst; Auditor no descarga datos externos.'
+                __( 'Snapshot local de TaxoCommerce Insights/Analyst; Auditor no descarga datos externos.', 'taxocommerce-auditor' )
             );
 
             foreach ( (array) ( $report['direction']['rows'] ?? array() ) as $row ) {
@@ -219,13 +219,13 @@ final class Decision_Context {
 
     private static function dependiente_global() {
         if ( ! class_exists( 'TCD_Feedback' ) || ! method_exists( 'TCD_Feedback', 'stats' ) ) {
-            return self::state_reference( false, 'unavailable', 'TaxoCommerce Assistant/Dependiente no está disponible.' );
+            return self::state_reference( false, 'unavailable', __( 'TaxoCommerce Assistant/Dependiente no está disponible.', 'taxocommerce-auditor' ) );
         }
         $stats = (array) \TCD_Feedback::stats();
         return array(
             'state'     => 'fresh',
             'available' => true,
-            'detail'    => 'Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta búsquedas.',
+            'detail'    => __( 'Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta búsquedas.', 'taxocommerce-auditor' ),
             'summary'   => $stats,
         );
     }
@@ -235,7 +235,7 @@ final class Decision_Context {
         $table = $wpdb->prefix . 'seo_comparador_profiles';
         if ( ! self::table_exists( $table ) ) {
             return array(
-                'state' => self::state_reference( false, 'unavailable', 'No existe la tabla persistida de perfiles de Comparador.' ),
+                'state' => self::state_reference( false, 'unavailable', __( 'No existe la tabla persistida de perfiles de Comparador.', 'taxocommerce-auditor' ) ),
                 'categories' => array(),
             );
         }
@@ -389,7 +389,7 @@ final class Decision_Context {
                     'events'    => absint( $row['events'] ?? 0 ),
                     'clicks'    => absint( $row['clicks'] ?? 0 ),
                     'queries'   => absint( $row['queries'] ?? 0 ),
-                    'detail'    => 'Evidencia local asociada directamente al producto.',
+                    'detail'    => __( 'Evidencia local asociada directamente al producto.', 'taxocommerce-auditor' ),
                 );
             }
         }
@@ -422,7 +422,7 @@ final class Decision_Context {
                         'events'     => absint( $row['events'] ?? 0 ),
                         'clicks'     => absint( $row['clicks'] ?? 0 ),
                         'queries'    => absint( $row['queries'] ?? 0 ),
-                        'detail'     => 'Evidencia local agregada de productos de esta categoría.',
+                        'detail'     => __( 'Evidencia local agregada de productos de esta categoría.', 'taxocommerce-auditor' ),
                     );
                 }
             }
@@ -439,12 +439,12 @@ final class Decision_Context {
 
     private static function supplier_context( $type, $id ) {
         if ( 'product' !== self::normalize_type( $type ) || ! $id || ! class_exists( 'TCSUP_Schema' ) || ! method_exists( 'TCSUP_Schema', 'catalog_table' ) ) {
-            return self::state_reference( false, 'unavailable', 'No hay contexto de proveedor nativo aplicable a esta entidad.' );
+            return self::state_reference( false, 'unavailable', __( 'No hay contexto de proveedor nativo aplicable a esta entidad.', 'taxocommerce-auditor' ) );
         }
         global $wpdb;
         $table = \TCSUP_Schema::catalog_table();
         if ( ! self::table_exists( $table ) ) {
-            return self::state_reference( false, 'unavailable', 'La tabla de TaxoCommerce Suppliers no está disponible.' );
+            return self::state_reference( false, 'unavailable', __( 'La tabla de TaxoCommerce Suppliers no está disponible.', 'taxocommerce-auditor' ) );
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only latest Supplier sync status from a canonical custom table is limited to one product row; cached evidence could mask a new failure.
         $row = $wpdb->get_row(
@@ -461,7 +461,7 @@ final class Decision_Context {
             ARRAY_A
         );
         if ( ! is_array( $row ) || ! $row ) {
-            return self::state_reference( false, 'unavailable', 'Producto sin fila enlazada en TaxoCommerce Suppliers.' );
+            return self::state_reference( false, 'unavailable', __( 'Producto sin fila enlazada en TaxoCommerce Suppliers.', 'taxocommerce-auditor' ) );
         }
         return array(
             'state'                  => empty( $row['ultimo_error_sync'] ) ? 'fresh' : 'partial',
@@ -496,7 +496,7 @@ final class Decision_Context {
             'policy' => array(
                 'no_external_api_calls' => true,
                 'zero_is_not_missing'    => true,
-                'priority_rule'          => 'El contexto sólo puede ordenar dentro de la misma P1-P5; no cambia la clase del hallazgo.',
+                'priority_rule'          => __( 'El contexto sólo puede ordenar dentro de la misma P1-P5; no cambia la clase del hallazgo.', 'taxocommerce-auditor' ),
             ),
         );
     }
@@ -536,7 +536,7 @@ final class Decision_Context {
             'insights_priority' => $priority,
             'source_state'      => (string) ( $insights['state'] ?? 'unavailable' ),
             'boost'             => $boost,
-            'rule'              => 'Sólo ordena dentro de la prioridad P existente; no cambia la clase de Auditor.',
+            'rule'              => __( 'Sólo ordena dentro de la prioridad P existente; no cambia la clase de Auditor.', 'taxocommerce-auditor' ),
         );
         $finding['priority_score'] = $base + $boost;
         return $finding;

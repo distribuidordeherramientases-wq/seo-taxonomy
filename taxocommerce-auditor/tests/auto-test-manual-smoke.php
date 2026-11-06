@@ -79,8 +79,10 @@ foreach ( array(
 
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-admin.php' );
 verify( strpos( $admin, "'auto-test' => __( 'Autocheck', 'taxocommerce-auditor' )" ) !== false, 'Auto Test tab wired' );
-verify( strpos( $admin, "'manual' => 'Manual'" ) !== false, 'Manual tab wired' );
+verify( strpos( $admin, "'manual' => __( 'Manual', 'taxocommerce-auditor' )" ) !== false, 'Manual tab wired' );
 verify( strpos( $admin, 'self::render_scope_controls( $selected )' ) !== false, 'Five legacy scope controls unchanged' );
 verify( strpos( $admin, "'categories' === \$scope" ) !== false, 'Category-only report view still available' );
 
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
+
+require __DIR__ . '/i18n-catalog-smoke.php';

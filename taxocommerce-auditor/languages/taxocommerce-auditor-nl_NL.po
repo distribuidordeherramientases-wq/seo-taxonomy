@@ -1,79 +1,956 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-auditor\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.6\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: taxocommerce-auditor\n"
 
-#. Plugin Name of the plugin
-#: taxocommerce-auditor.php
-msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
-msgstr ""
+#: includes/class-manual.php:67
+msgid ", archivos de desarrollo y el estado FTP del ZIP; el archivo"
+msgstr ", ontwikkelingsbestanden en de FTP-status van de ZIP; het bestand"
 
-#. Description of the plugin
-#: taxocommerce-auditor.php
+#: includes/class-manual.php:62
 msgid ""
-"Read-only WordPress and WooCommerce content quality audits with detailed "
-"KPIs and full JSON exports."
+", con caducidad de 30 días. No se añaden tablas, opciones permanentes ni "
+"procesos programados."
 msgstr ""
+", met een vervaldatum van 30 dagen. Er worden geen tabellen, permanente "
+"opties of geplande processen toegevoegd."
 
-#. Author of the plugin
-#: taxocommerce-auditor.php
-msgid "David Perez"
+#: includes/class-manual.php:38
+msgid ""
+", con propuestas de división/concentración basadas en evidencia local. El "
+"plan indica qué revisar primero y qué necesita contrastar fuentes;"
 msgstr ""
+", met splitsings-/concentratievoorstellen gebaseerd op lokaal "
+"bewijsmateriaal. Het plan geeft aan wat eerst moet worden beoordeeld en wat "
+"moet worden geverifieerd;"
 
-#: includes/class-admin.php:32
-msgid "No tienes permisos para consultar Auditor."
-msgstr ""
+#: includes/class-manual.php:55
+msgid ", lotes de"
+msgstr ", veel"
 
-#: includes/class-admin.php:40
-msgid "Auditor de contenidos"
-msgstr ""
+#: includes/class-manual.php:58
+msgid ", posts, taxonomías y metadatos), WooCommerce ("
+msgstr ", berichten, taxonomieën en metadata), WooCommerce ("
 
-#: includes/class-admin.php:41 includes/class-admin.php:49
-msgid "Auditor"
-msgstr ""
+#: includes/class-manual.php:52
+msgid "; Core puede asociarlo como módulo mediante"
+msgstr "; Core kan het als een module associëren met behulp van"
 
-#: includes/class-admin.php:48
-msgid "TaxoCommerce Auditor"
+#: includes/class-manual.php:60
+msgid ""
+"; el segundo transmite el JSON de un ámbito con informe existente. Ambos "
+"requieren"
 msgstr ""
+"; de tweede verzendt de JSON van een bestaande rapportagescope. Beide "
+"vereisen"
 
-#: includes/class-admin.php:88
-msgid "Auditoría filtrada"
-msgstr ""
+#: includes/class-manual.php:34
+msgid "; una auditoría pausada puede"
+msgstr "; een ontspannen audit kan"
 
-#: includes/class-admin.php:88
-msgid "· revisión rápida de una muestra o búsqueda concreta."
-msgstr ""
+#: includes/class-manual.php:62
+msgid ". Ejecuta"
+msgstr ". Rennen"
 
-#: includes/class-admin.php:100
-msgid "Categoría"
-msgstr ""
+#: includes/class-manual.php:60
+msgid ". El primero admite tareas"
+msgstr ". De eerste ondersteunt taken"
 
-#: includes/class-admin.php:100
-msgid "Todas"
-msgstr ""
+#: includes/class-manual.php:38
+msgid ". En Categorías aparece además"
+msgstr ". In Categorieën verschijnt het ook"
 
-#: includes/class-admin.php:106 includes/class-admin.php:457
-msgid "Máximo"
-msgstr ""
+#: includes/class-manual.php:55
+msgid ". La ejecución usa el hook"
+msgstr ". De uitvoering maakt gebruik van de haak"
 
-#: includes/class-admin.php:148
-msgid "Último informe"
+#: includes/class-manual.php:56
+msgid ""
+". La memoria de la interfaz retiene una muestra acotada. La ruta de "
+"almacenamiento debe tener permisos de escritura para las auditorías reales, "
+"pero Auto Test"
 msgstr ""
+". Het interfacegeheugen bewaart een begrensd monster. Het opslagpad moet "
+"schrijfbaar zijn voor daadwerkelijke audits, maar voor automatische tests"
 
-#: includes/class-admin.php:161
-msgid "Auditoría completa"
+#: includes/class-manual.php:39
+msgid ""
+". La tabla mostrada en pantalla está acotada para no sobrecargar el "
+"navegador, pero los resultados completos se almacenan como JSONL y se "
+"transmiten al exportar. Si no existe un informe completo anterior, la opción"
+" de exportación no está disponible."
 msgstr ""
+". De tabel die op het scherm wordt weergegeven, is begrensd om de browser "
+"niet te overbelasten, maar de volledige resultaten worden opgeslagen als "
+"JSONL en verzonden bij het exporteren. Als er geen eerder volledig rapport "
+"bestaat, is de exportoptie niet beschikbaar."
+
+#: includes/class-manual.php:63
+msgid ". La última comprobación se marca No ejecutado intencionadamente."
+msgstr ""
+". De laatste controle wordt gemarkeerd als Niet opzettelijk uitgevoerd."
+
+#: includes/class-manual.php:36
+msgid ""
+". Las bandas orientativas son fuerte (85–100), correcta (70–84), mejorable "
+"(55–69) y débil (menos de 55). Si no hay evidencia suficiente, la calidad "
+"puede aparecer como no disponible; no debe interpretarse como cero."
+msgstr ""
+". De indicatieve banden zijn sterk (85–100), correct (70–84), verbeterbaar "
+"(55–69) en zwak (minder dan 55). Als er onvoldoende bewijs is, kan de "
+"kwaliteit onbeschikbaar lijken; mag niet als nul worden geïnterpreteerd."
+
+#: includes/class-manual.php:34
+msgid ""
+". Las ejecuciones largas dependen de WP-Cron. No repitas el arranque "
+"mientras esté procesándose el mismo ámbito."
+msgstr ""
+". Lange runs zijn afhankelijk van WP-Cron. Herhaal het opstarten niet "
+"terwijl dezelfde scope wordt verwerkt."
+
+#: includes/class-manual.php:52
+msgid ". No depende del arranque del monolito ni de sus clases globales."
+msgstr ""
+". Het hangt niet af van het opstarten van de monoliet of zijn mondiale "
+"klassen."
 
 #: includes/class-admin.php:161
 msgid ""
 "· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la"
 " cola."
 msgstr ""
+"· Doorloopt het volledige gepubliceerde blok in batch en genereert een JSON "
+"zonder de wachtrij af te korten."
+
+#: includes/class-admin.php:88
+msgid "· revisión rápida de una muestra o búsqueda concreta."
+msgstr "· snelle beoordeling van een monster of specifieke zoekopdracht."
+
+#: includes/class-manual.php:19
+msgid "1. Manual de usuario"
+msgstr "1. Gebruikershandleiding"
+
+#: includes/class-manual.php:20
+msgid "1.1 Objetivo y acceso"
+msgstr "1.1 Doelstelling en toegang"
+
+#: includes/class-manual.php:23
+msgid "1.2 Los cinco ámbitos"
+msgstr "1.2 De vijf gebieden"
+
+#: includes/class-manual.php:32
+msgid "1.3 Auditoría filtrada y auditoría completa"
+msgstr "1.3 Gefilterde audit en volledige audit"
+
+#: includes/class-manual.php:35
+msgid "1.4 Cómo leer los KPIs"
+msgstr "1.4 KPI's lezen"
+
+#: includes/class-manual.php:37
+msgid "1.5 Vistas de informe"
+msgstr "1.5 Rapportweergaven"
+
+#: includes/class-manual.php:40
+msgid "1.6 Prioridades y fuentes"
+msgstr "1.6 Prioriteiten en bronnen"
+
+#: includes/class-manual.php:42
+msgid "1.7 Auto Test"
+msgstr "1.7 Zelftest"
+
+#: includes/class-manual.php:45
+msgid "1.8 Secuencia recomendada"
+msgstr "1.8 Aanbevolen volgorde"
+
+#: includes/class-manual.php:50
+msgid "2. Manual técnico"
+msgstr "2. Technische handleiding"
+
+#: includes/class-manual.php:51
+msgid "2.1 Punto de entrada y arquitectura"
+msgstr "2.1 Instappunt en architectuur"
+
+#: includes/class-manual.php:54
+msgid "2.2 Estado, opciones y lotes"
+msgstr "2.2 Status, opties en kavels"
+
+#: includes/class-manual.php:57
+msgid "2.3 Fuentes y dependencias"
+msgstr "2.3 Bronnen en afhankelijkheden"
+
+#: includes/class-manual.php:59
+msgid "2.4 Acciones administrativas y permisos"
+msgstr "2.4 Administratieve acties en machtigingen"
+
+#: includes/class-manual.php:61
+msgid "2.5 Auto Test: contrato y almacenamiento"
+msgstr "2.5 Zelftest: contract en opslag"
+
+#: includes/class-manual.php:64
+msgid "2.6 Diagnóstico y seguridad"
+msgstr "2.6 Diagnostiek en veiligheid"
+
+#: includes/class-manual.php:66
+msgid "2.7 Pruebas de regresión y distribución"
+msgstr "2.7 Regressie- en distributietesten"
+
+#: includes/class-admin.php:587
+msgid "Abrir categoría"
+msgstr "Categorie openen"
+
+#: includes/class-auto-test.php:41
+msgid "Acceso a estados e informes guardados"
+msgstr "Toegang tot opgeslagen statussen en rapporten"
+
+#: includes/class-manual.php:22
+msgid "Acceso: en el administrador de WordPress,"
+msgstr "Toegang: in de WordPress-beheerder,"
+
+#: includes/class-admin.php:567
+msgid "Acción"
+msgstr "Actie"
+
+#: includes/class-admin.php:665
+msgid "Acción no reconocida."
+msgstr "Onbekende actie."
+
+#: includes/class-manual.php:53
+msgid "adapta FAQs;"
+msgstr "past veelgestelde vragen aan;"
+
+#: includes/class-auto-test.php:126
+msgid ""
+"Adaptador FAQ canónico y alternativa por CPT disponibles; la fuente puede "
+"ser opcional."
+msgstr ""
+"Canonieke FAQ-adapter en alternatief van CPT beschikbaar; lettertype kan "
+"optioneel zijn."
+
+#: includes/class-manual.php:41
+msgid "al hacer el análisis."
+msgstr "bij het uitvoeren van de analyse."
+
+#: includes/class-auto-test.php:175
+msgid ""
+"Almacén JSONL y descarga completa disponibles, sin crear ni abrir archivos."
+msgstr ""
+"JSONL-magazijn en volledige download beschikbaar, zonder bestanden te maken "
+"of te openen."
+
+#: includes/class-admin.php:390
+msgid "Alta"
+msgstr "Hoog"
+
+#: includes/class-admin.php:580
+msgid "Ambiguos:"
+msgstr "Dubbelzinnig:"
+
+#: includes/class-auto-test.php:32
+msgid "Ámbitos"
+msgstr "Bereik"
+
+#: includes/class-rules.php:272
+msgid "Añadir datos técnicos y comerciales comprobables."
+msgstr "Voeg verifieerbare technische en commerciële gegevens toe."
+
+#: includes/class-admin.php:599
+msgid "Analista, Ojeador, Dependiente y Comparador:"
+msgstr "Analist, Scout, Afhankelijk en Vergelijker:"
+
+#: includes/class-manual.php:43
+msgid ""
+"antes y después de actualizar. El resultado incluye 16 pruebas agrupadas, "
+"estados Correcto, Error y No ejecutado, versión, tiempo de ejecución y "
+"comparación con la anterior. Se conservan los dos últimos informes de cada "
+"usuario durante 30 días."
+msgstr ""
+"voor en na het updaten. Het resultaat omvat 16 gegroepeerde tests, de "
+"statussen Succes, Fout en Niet uitgevoerd, versie, uitvoeringstijd en "
+"vergelijking met de vorige. De laatste twee rapporten van elke gebruiker "
+"worden 30 dagen bewaard."
+
+#: includes/class-rules.php:537
+msgid "Aportar una respuesta concreta y verificable."
+msgstr "Geef een concreet en verifieerbaar antwoord."
+
+#: includes/class-admin.php:454
+msgid "Arquitectura semántica"
+msgstr "Semantische architectuur"
+
+#: includes/class-rules.php:580
+msgid "Asignar un owner canónico del tipo correcto."
+msgstr "Wijs een canonieke eigenaar van het juiste type toe."
+
+#: includes/class-rules.php:260
+msgid "Asignar un título identificativo."
+msgstr "Geef een identificerende titel."
+
+#: includes/class-rules.php:266
+msgid "Asignar una categoría existente apropiada."
+msgstr "Wijs een geschikte bestaande categorie toe."
+
+#: includes/class-rules.php:563
+msgid ""
+"Asignar una categoría real de WooCommerce para conservar contexto comercial "
+"y semántico."
+msgstr ""
+"Wijs een echte WooCommerce-categorie toe om de zakelijke en semantische "
+"context te behouden."
+
+#: includes/class-admin.php:424
+msgid "Atención:"
+msgstr "Let op:"
+
+#: includes/class-admin.php:432
+msgid "Atender primero / verificar incidencias"
+msgstr "Eerst aanwezig zijn/incidenten verifiëren"
+
+#: includes/class-rules.php:302
+msgid "Atributo con valor pero sin nombre."
+msgstr "Attribuut met waarde maar geen naam."
+
+#: includes/class-runner.php:549
+msgid "Atributos que requieren validación o normalización."
+msgstr "Kenmerken die validatie of normalisatie vereisen."
+
+#: includes/admin-branding.php:47
+msgid ""
+"Audita la calidad del contenido, los indicadores y los informes de "
+"WooCommerce."
+msgstr ""
+"Controleer de kwaliteit van WooCommerce-inhoud, statistieken en rapporten."
+
+#: includes/class-admin.php:164 includes/class-manual.php:33
+msgid "Auditar filtro"
+msgstr "Controlefilter"
+
+#: includes/class-admin.php:162 includes/class-admin.php:225
+#: includes/class-manual.php:33
+msgid "Auditar todo"
+msgstr "Controleer alles"
+
+#: includes/class-admin.php:41 includes/class-admin.php:49
+#: includes/class-auto-test.php:84 includes/class-manual.php:22
+msgid "Auditor"
+msgstr "Accountant"
+
+#: includes/class-admin.php:40
+msgid "Auditor de contenidos"
+msgstr "Inhoudsauditor"
+
+#: includes/class-manual.php:21
+msgid ""
+"Auditor detecta incidencias de calidad editorial y estructura, propone "
+"prioridades de revisión y presenta informes."
+msgstr ""
+"Auditor detecteert incidenten met redactionele kwaliteit en structuur, stelt"
+" beoordelingsprioriteiten voor en presenteert rapporten."
+
+#: includes/class-admin.php:595
+msgid ""
+"Auditor evalúa consistencia interna y no consulta directamente APIs de "
+"buscadores, compras ni analítica."
+msgstr ""
+"Auditor evalueert de interne consistentie en raadpleegt niet rechtstreeks "
+"zoekmachine-, inkoop- of analyse-API's."
+
+#: includes/class-manual.php:41
+msgid "Auditor no consulta Google, Bing ni APIs externas"
+msgstr "Auditor raadpleegt geen Google, Bing of externe API's"
+
+#: includes/class-admin.php:161
+msgid "Auditoría completa"
+msgstr "Volledige audit"
+
+#: includes/class-admin.php:134
+msgid "Auditoría de"
+msgstr "Controle van"
+
+#: taxocommerce-auditor.php:59
+msgid "Auditoria de calidad editorial por bloques, solo lectura."
+msgstr "Redactionele kwaliteitscontrole per blok, alleen-lezen."
+
+#: includes/class-admin.php:88 includes/class-manual.php:33
+msgid "Auditoría filtrada"
+msgstr "Gelekte audit"
+
+#: includes/class-auto-test.php:38 includes/class-auto-test.php:39
+msgid "Auditorías"
+msgstr "Audits"
+
+#: includes/class-auto-test.php:45
+msgid "Auditorías completas, exportaciones y cambios"
+msgstr "Volledige audits, exports en wijzigingen"
+
+#: includes/class-manual.php:31 includes/class-manual.php:43
+msgid "Auto Test"
+msgstr "Zelftest"
+
+#: includes/class-admin.php:198
+msgid "Autocheck"
+msgstr "Zelfcontrole"
+
+#: includes/class-auto-test.php:260
+msgid "Autocheck de Auditor"
+msgstr "Zelfcontrole door auditor"
+
+#: includes/class-admin.php:641 includes/class-admin.php:676
+msgid "Bloque Auditor no reconocido."
+msgstr "Auditorblok niet herkend."
+
+#: includes/class-admin.php:94
+msgid "Buscar"
+msgstr "Zoeken"
+
+#: includes/class-admin.php:494
+msgid ""
+"Cada tarea incluye prioridad, estado, evidencia y recomendación. Una "
+"prioridad alta no autoriza a modificar automáticamente contenidos."
+msgstr ""
+"Elke taak omvat prioriteit, status, bewijsmateriaal en aanbeveling. Een hoge"
+" prioriteit staat geen automatische wijziging van de inhoud toe."
+
+#: includes/class-admin.php:471 includes/class-auto-test.php:36
+#: includes/class-auto-test.php:37
+msgid "Calidad"
+msgstr "Kwaliteit"
+
+#: includes/class-runner.php:538
+msgid "Calidad débil"
+msgstr "Zwakke kwaliteit"
+
+#: includes/class-admin.php:280
+msgid "Calidad interna"
+msgstr "Interne kwaliteit"
+
+#: includes/class-runner.php:537
+msgid "Calidad media"
+msgstr "Gemiddelde kwaliteit"
+
+#: includes/class-admin.php:392
+msgid "Calidad media / 100"
+msgstr "Gemiddelde kwaliteit / 100"
+
+#: includes/class-editorial-specialist.php:426
+msgid "Candidatas a revisar para posible fusión; no aplicar automáticamente."
+msgstr ""
+"Kandidaten ter beoordeling van een mogelijke fusie; niet automatisch van "
+"toepassing."
+
+#: includes/class-runner.php:570 includes/class-runner.php:579
+msgid "Canibalización"
+msgstr "Kannibalisatie"
+
+#: includes/class-runner.php:536
+msgid "Casos que no deben corregirse sin contrastar fabricante/proveedor."
+msgstr ""
+"Gevallen die niet mogen worden gecorrigeerd zonder de fabrikant/leverancier "
+"te vergelijken."
+
+#: includes/class-admin.php:100
+msgid "Categoría"
+msgstr "Categorie"
+
+#: includes/class-rules.php:373
+msgid "Categoría con productos y sin descripción."
+msgstr "Categorie met producten en geen beschrijving."
+
+#: includes/class-admin.php:567
+msgid "Categoría origen"
+msgstr "Oorsprong Categorie"
+
+#: includes/class-rules.php:385
+msgid "Categoría padre no encontrada."
+msgstr "Bovenliggende categorie niet gevonden."
+
+#: includes/class-admin.php:346 includes/class-auto-test.php:34
+msgid "Categorías"
+msgstr "Categorieën"
+
+#: includes/class-runner.php:561
+msgid "Categorías candidatas a división."
+msgstr "Kandidaatcategorieën voor divisie."
+
+#: includes/class-runner.php:560
+msgid "Categorías candidatas a revisión por poca profundidad."
+msgstr "Kandidaatcategorieën voor beoordeling wegens gebrek aan diepgang."
+
+#: includes/class-runner.php:556
+msgid "Categorías con profundidad comercial mínima."
+msgstr "Categorieën met minimale commerciële diepgang."
+
+#: includes/class-runner.php:558
+msgid "Categorías sin clasificación semántica nativa."
+msgstr "Categorieën zonder native semantische classificatie."
+
+#: includes/class-runner.php:557
+msgid "Categorías sin contenido descriptivo."
+msgstr "Categorieën zonder beschrijvende inhoud."
+
+#: includes/class-runner.php:559
+msgid "Categorías sin encaje arquitectónico nativo."
+msgstr "Categorieën zonder native architecturale fit."
+
+#: includes/class-runner.php:555
+msgid "Categorías sin productos."
+msgstr "Categorieën zonder producten."
+
+#: includes/class-runner.php:555
+msgid "Categorías vacías"
+msgstr "Lege categorieën"
+
+#: includes/class-manual.php:26 includes/class-runner.php:24
+msgid "Categorías y arquitectura"
+msgstr "Categorieën en architectuur"
+
+#: includes/class-auto-test.php:135
+msgid "Cinco dimensiones suman 100 y las bandas responden como se espera."
+msgstr "Vijf dimensies zijn samen 100 en de banden reageren zoals verwacht."
+
+#: includes/class-auto-test.php:32
+msgid "Cinco tipos de contenido"
+msgstr "Vijf soorten inhoud"
+
+#: includes/class-auto-test.php:146
+msgid ""
+"Clasificación P1 requiere verificación de fuente; no se crea ningún "
+"hallazgo."
+msgstr ""
+"P1-classificatie vereist bronverificatie; er wordt geen bevinding gemaakt."
+
+#: includes/class-editorial-specialist.php:364
+msgid "Clasificar la página existente antes de crear nuevas URLs."
+msgstr "Classificeer de bestaande pagina voordat u nieuwe URL's maakt."
+
+#: includes/class-runner.php:532
+msgid "Cobertura limpia"
+msgstr "Schone dekking"
+
+#: includes/class-admin.php:536
+msgid "Código de hallazgo"
+msgstr "Vind code"
+
+#: includes/class-auto-test.php:285
+msgid "Comparativa:"
+msgstr "Vergelijking:"
+
+#: includes/class-admin.php:146
+msgid "completa"
+msgstr "compleet"
+
+#: includes/class-admin.php:63
+msgid "Completado"
+msgstr "Voltooid"
+
+#: includes/class-rules.php:304
+msgid "Completar el valor o retirar el atributo vacío."
+msgstr "Vul de waarde in of verwijder het lege attribuut."
+
+#: includes/class-rules.php:534
+msgid "Completar o retirar la pregunta."
+msgstr "Vul de vraag in of trek deze in."
+
+#: includes/class-auto-test.php:84
+msgid "componentes cargados."
+msgstr "geladen componenten."
+
+#: includes/class-rules.php:385
+msgid "Comprobar la jerarquía nativa de producto."
+msgstr "Controleer de native producthiërarchie."
+
+#: includes/class-rules.php:465
+msgid "Comprobar la URL de esta publicación."
+msgstr "Controleer de URL van dit bericht."
+
+#: includes/class-rules.php:432
+msgid ""
+"Comprobar si el vínculo existe en el modelo nativo o la categoría es "
+"deliberadamente independiente."
+msgstr ""
+"Controleer of de link bestaat in het native model of dat de categorie "
+"opzettelijk onafhankelijk is."
+
+#: includes/class-rules.php:347
+msgid "Comprobar si existe otro identificador estable en el proveedor."
+msgstr ""
+"Controleer of er een andere stabiele identificatie bestaat op de provider."
+
+#: includes/class-rules.php:338
+msgid "Comprobar si la etiqueta describe realmente el producto."
+msgstr "Controleer of het etiket het product echt beschrijft."
+
+#: includes/class-auto-test.php:261
+msgid ""
+"Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y "
+"disponibilidad de exportación. Es de solo lectura: no inicia procesos ni "
+"modifica contenidos. Se guardan dos resultados por usuario durante 30 días."
+msgstr ""
+"Controleer services, routes, scopes, kwaliteit, opties, geschiedenis, FAQ en"
+" exportbeschikbaarheid. Het is alleen-lezen: het start geen processen en "
+"wijzigt de inhoud niet. Per gebruiker worden twee resultaten gedurende 30 "
+"dagen bewaard."
+
+#: includes/class-runner.php:556
+msgid "Con un solo producto"
+msgstr "Met één product"
+
+#: includes/class-admin.php:574
+msgid "Concentración en hermana"
+msgstr "Focus op zus"
+
+#: includes/class-admin.php:452
+msgid "Confianza y rigor"
+msgstr "Vertrouwen en nauwkeurigheid"
+
+#: includes/class-runner.php:549
+msgid "Conflictos de atributos"
+msgstr "Attribute-conflicten"
+
+#: includes/class-editorial-specialist.php:377
+msgid ""
+"Conservar la intención amplia en el cluster/hub y revisar el post duplicado."
+msgstr ""
+"Houd de brede intentie in het cluster/hub en bekijk het dubbele bericht."
+
+#: includes/class-editorial-specialist.php:439
+msgid ""
+"Conservar la landing transversal y revisar el alcance del post informativo."
+msgstr ""
+"Handhaaf de transversale landing en bekijk de reikwijdte van het "
+"informatieve bericht."
+
+#: includes/class-runner.php:567 includes/class-runner.php:576
+msgid "Contenido débil"
+msgstr "Zwakke inhoud"
+
+#: includes/class-manual.php:28
+msgid ""
+"Contenido, títulos, estructura, jerarquía y roles SEO disponibles en "
+"metadatos locales."
+msgstr ""
+"Inhoud, titels, structuur, hiërarchie en SEO-rollen beschikbaar in lokale "
+"metadata."
+
+#: includes/class-admin.php:283 includes/class-admin.php:595
+msgid "Contexto de decisión"
+msgstr "Beslissingscontext"
+
+#: includes/class-admin.php:601
+msgid ""
+"Contexto leído exclusivamente de proveedores persistidos mediante el filtro "
+"de integración del nuevo Auditor."
+msgstr ""
+"Context die uitsluitend van providers werd gelezen, bleef bestaan met behulp"
+" van het nieuwe Auditor-integratiefilter."
+
+#: includes/class-rules.php:407
+msgid "Contrastar el resumen con la familia correcta."
+msgstr "Vergelijk de samenvatting met de juiste familie."
+
+#: includes/class-rules.php:276
+msgid ""
+"Contrastar título y resumen con la fuente original; posible desplazamiento "
+"de contenido."
+msgstr ""
+"Vergelijk titel en samenvatting met de originele bron; mogelijke "
+"inhoudsverplaatsing."
+
+#: includes/class-auto-test.php:199
+msgid ""
+"Contrato de evidencia local disponible; no se consultan servicios externos."
+msgstr ""
+"Lokaal bewijscontract beschikbaar; externe diensten worden niet "
+"geraadpleegd."
+
+#: includes/class-auto-test.php:40
+msgid "Contratos del almacén JSONL y descarga"
+msgstr "JSONL-magazijncontracten en downloaden"
+
+#: includes/class-manual.php:53
+msgid "controla lotes/estados;"
+msgstr "controleert batches/staten;"
+
+#: includes/class-admin.php:465
+msgid "Correcta"
+msgstr "Juist"
+
+#: includes/class-auto-test.php:277
+msgid "correctas"
+msgstr "juist"
+
+#: includes/class-auto-test.php:292
+msgid "Correcto"
+msgstr "Juist"
+
+#: includes/class-rules.php:302
+msgid "Corregir el nombre del atributo mediante WooCommerce."
+msgstr "Corrigeer de attribuutnaam met WooCommerce."
+
+#: includes/class-manual.php:33
+msgid ""
+"crea una auditoría completa por lotes del ámbito elegido; el informe solo se"
+" considera representativo del conjunto cuando termina sin interrupciones."
+msgstr ""
+"creëert een volledige batchaudit van de gekozen scope; Het rapport wordt pas"
+" als representatief voor het geheel beschouwd als het zonder onderbrekingen "
+"eindigt."
+
+#: includes/class-admin.php:389
+msgid "Críticos"
+msgstr "Critici"
+
+#: includes/class-runner.php:534
+msgid "Críticos + alta"
+msgstr "Critici + hoog"
+
+#: includes/class-manual.php:22
+msgid "cuando Core está instalado, o menú propio"
+msgstr "wanneer Core is geïnstalleerd, of een eigen menu"
+
+#: includes/class-admin.php:523
+msgid "Datos de contexto"
+msgstr "Contextgegevens"
+
+#: includes/class-admin.php:599
+msgid ""
+"datos no disponibles para este informe. Ausente no significa cero; no se ha "
+"inventado ningún valor."
+msgstr ""
+"gegevens zijn niet beschikbaar voor dit rapport. Afwezig betekent niet nul; "
+"er is geen waarde uitgevonden."
+
+#: includes/class-admin.php:465
+msgid "Débil"
+msgstr "Zwak"
+
+#: includes/class-manual.php:52
+msgid "declara el plugin y la clase"
+msgstr "declareer de plug-in en de klasse"
+
+#: includes/class-manual.php:53
+msgid "definen la inspección y la priorización;"
+msgstr "inspectie en prioritering definiëren;"
+
+#: includes/class-rules.php:462
+msgid "Definir un título útil para la intención real."
+msgstr "Definieer een bruikbare titel voor de werkelijke bedoeling."
+
+#: includes/class-runner.php:548
+msgid "Deriva de identidad"
+msgstr "Identiteitsdrift"
+
+#: includes/class-runner.php:591
+msgid "Deriva semántica"
+msgstr "Semantische drift"
+
+#: includes/class-auto-test.php:273
+msgid "Descargar resultados (JSON)"
+msgstr "Resultaten downloaden (JSON)"
+
+#: includes/class-rules.php:269
+msgid "Descripción corta vacía."
+msgstr "Lege korte beschrijving."
+
+#: includes/class-rules.php:272
+msgid "Descripción larga vacía."
+msgstr "Lege lange beschrijving."
+
+#: includes/class-manual.php:26
+msgid ""
+"Descripción, jerarquía, estructura, cobertura y propuestas de revisión para "
+"dividir o concentrar categorías con evidencia."
+msgstr ""
+"Beschrijving, hiërarchie, structuur, dekking en herzieningsvoorstellen om "
+"categorieën met bewijsmateriaal te verdelen of te concentreren."
+
+#: includes/class-admin.php:582
+msgid "Destino sugerido:"
+msgstr "Voorgestelde bestemming:"
+
+#: includes/class-admin.php:270
+msgid "Detalle del informe"
+msgstr "Rapportdetails"
+
+#: includes/class-admin.php:368
+msgid "Diagnóstico específico"
+msgstr "Specifieke diagnose"
+
+#: includes/class-admin.php:453
+msgid "Diferenciación / canibalización"
+msgstr "Differentiatie/kannibalisatie"
+
+#: includes/class-editorial-specialist.php:351
+msgid ""
+"Diferenciar intención informativa y cobertura estructural antes de "
+"enriquecer."
+msgstr ""
+"Maak onderscheid tussen informatieve intentie en structurele dekking voordat"
+" u gaat verrijken."
+
+#: includes/class-admin.php:457
+msgid "Dimensión"
+msgstr "Afmeting"
+
+#: includes/class-admin.php:471
+msgid "Dimensiones"
+msgstr "Afmetingen"
+
+#: includes/class-admin.php:574
+msgid "División por TIPO"
+msgstr "Verdeling op TYPE"
+
+#: includes/class-manual.php:15
+msgid ""
+"Documentación integrada de la versión independiente: guía de uso y "
+"referencia técnica. Consultarla no ejecuta auditorías ni modifica el "
+"catálogo."
+msgstr ""
+"Geïntegreerde documentatie van de standalone versie: gebruikershandleiding "
+"en technische referentie. Als u deze raadpleegt, worden er geen audits "
+"uitgevoerd en wordt de catalogus niet gewijzigd."
+
+#: includes/class-runner.php:592
+msgid "Duplicadas en mismo owner"
+msgstr "Gedupliceerd in dezelfde eigenaar"
+
+#: includes/class-admin.php:619
+msgid "Duración"
+msgstr "Duur"
+
+#: includes/class-admin.php:385
+msgid "Duración:"
+msgstr "Duur:"
+
+#: includes/class-auto-test.php:165
+msgid "Ejecución por lotes y controles disponibles; ningún cron se dispara."
+msgstr ""
+"Batchuitvoering en controles beschikbaar; er wordt geen cron afgevuurd."
+
+#: includes/class-auto-test.php:236
+msgid "Ejecuta el autocheck antes de descargar el JSON."
+msgstr "Voer de autocheck uit voordat u de JSON downloadt."
+
+#: includes/class-manual.php:43
+msgid "Ejecutar Auto Test"
+msgstr "Voer een zelftest uit"
+
+#: includes/class-auto-test.php:264
+msgid "Ejecutar Autocheck"
+msgstr "Voer Autocheck uit"
+
+#: includes/class-rules.php:398
+msgid "El campo de resumen nativo suministrado está vacío."
+msgstr "Het opgegeven native samenvattingsveld is leeg."
+
+#: includes/class-decision-context.php:499
+msgid ""
+"El contexto sólo puede ordenar dentro de la misma P1-P5; no cambia la clase "
+"del hallazgo."
+msgstr ""
+"De context kan alleen binnen dezelfde P1-P5 worden geordend; het verandert "
+"de klasse van de vondst niet."
+
+#: includes/class-auto-test.php:147
+msgid "El contrato de prioridades no coincide."
+msgstr "Het voorrangscontract komt niet overeen."
+
+#: includes/class-admin.php:426
+msgid ""
+"El índice de calidad es una evaluación interna para ordenar revisiones. No "
+"equivale a una puntuación de Google ni de Bing."
+msgstr ""
+"De kwaliteitsindex is een interne evaluatie om herzieningen te bestellen. "
+"Het is niet gelijk aan een Google- of Bing-score."
+
+#: includes/class-admin.php:496
+msgid "El listado es una muestra priorizada de"
+msgstr "De lijst is een geprioriteerd voorbeeld van"
+
+#: includes/class-rules.php:579
+msgid ""
+"El owner de FAQ no pertenece a los tipos canónicos página/hub, categoría o "
+"producto."
+msgstr ""
+"De eigenaar van de FAQ behoort niet tot de canonieke typenpagina/hub, "
+"categorie of product."
+
+#: includes/class-admin.php:408
+msgid ""
+"El panel completo de KPIs de este tipo se muestra encima del detalle del "
+"informe."
+msgstr ""
+"Het volledige paneel met KPI's van dit type wordt boven de rapportdetails "
+"weergegeven."
+
+#: includes/class-manual.php:67
+msgid "El repositorio contiene"
+msgstr "De repository bevat"
+
+#: includes/class-rules.php:406
+msgid "El resumen no parece corresponder al nombre de la categoría."
+msgstr "De samenvatting lijkt niet overeen te komen met de categorienaam."
+
+#: includes/class-rules.php:320
+msgid ""
+"El título y los atributos muestran valores técnicos incompatibles; "
+"contrastar con el fabricante."
+msgstr ""
+"De titel en attributen tonen incompatibele technische waarden; Vergelijk met"
+" de fabrikant."
+
+#: includes/class-manual.php:22
+msgid "en caso contrario. El administrador debe contar con permiso"
+msgstr "anders. De beheerder moet toestemming hebben"
+
+#: includes/class-admin.php:61
+msgid "En cola"
+msgstr "in de wachtrij"
+
+#: includes/class-admin.php:62
+msgid "En curso"
+msgstr "In uitvoering"
+
+#: includes/class-manual.php:39
+msgid "En los informes completos puedes descargar"
+msgstr "In de volledige rapporten kunt u downloaden"
+
+#: includes/class-admin.php:471 includes/class-admin.php:504
+msgid "Entidad"
+msgstr "Entiteit"
+
+#: includes/class-runner.php:530
+msgid "Entidades auditadas"
+msgstr "Gecontroleerde entiteiten"
+
+#: includes/class-runner.php:531
+msgid "Entidades auditadas sin hallazgos en las reglas activas."
+msgstr "Gecontroleerde entiteiten zonder bevindingen in actieve regels."
+
+#: includes/class-runner.php:538
+msgid "Entidades clasificadas en la banda interna más baja."
+msgstr "Entiteiten geclassificeerd in de laagste interne band."
+
+#: includes/class-admin.php:470
+msgid "Entidades con menor puntuación"
+msgstr "Entiteiten met de laagste score"
+
+#: includes/class-admin.php:448
+msgid "Entidades puntuadas:"
+msgstr "Beoordeelde entiteiten:"
+
+#: includes/class-admin.php:387
+msgid "Entidades revisadas"
+msgstr "Beoordeelde entiteiten"
+
+#: includes/class-admin.php:65 includes/class-auto-test.php:292
+msgid "Error"
+msgstr "Fout"
 
 #: includes/class-admin.php:191
 msgid ""
@@ -81,199 +958,305 @@ msgid ""
 "errores, incoherencias y trabajo pendiente; no publica, borra, mueve ni "
 "redirige contenidos."
 msgstr ""
+"Alleen-lezen specialist in contentkwaliteit en integriteit. Detecteert "
+"fouten, inconsistenties en hangend werk; publiceert, verwijdert, verplaatst "
+"of stuurt geen inhoud door."
 
-#: includes/class-admin.php:192
-msgid "Fuentes:"
-msgstr ""
-
-#: includes/class-admin.php:192
-msgid ""
-"WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local"
-" persistido de otros módulos cuando existe. No ejecuta APIs externas durante"
-" la auditoría."
-msgstr ""
-
-#: includes/class-admin.php:225
-msgid ""
-"Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
-"bloque. Para indicadores representativos del conjunto, utiliza"
-msgstr ""
-
-#: includes/class-admin.php:225
-msgid "Auditar todo"
-msgstr ""
-
-#: includes/class-admin.php:270
-msgid "Detalle del informe"
-msgstr ""
-
-#: includes/class-admin.php:272
-msgid ""
-"No hay todavía un informe finalizado para este bloque. Ejecuta Auditar y "
-"consulta su estado."
-msgstr ""
-
-#: includes/class-admin.php:361
-msgid "Estado general"
-msgstr ""
-
-#: includes/class-admin.php:368
-msgid "Diagnóstico específico"
-msgstr ""
-
-#: includes/class-admin.php:374
-msgid "No hay indicadores específicos disponibles para este bloque."
-msgstr ""
-
-#: includes/class-admin.php:384
-msgid "Resumen del último análisis"
-msgstr ""
-
-#: includes/class-admin.php:403
-msgid "KPIs específicos"
-msgstr ""
-
-#: includes/class-admin.php:408
-msgid ""
-"El panel completo de KPIs de este tipo se muestra encima del detalle del "
-"informe."
-msgstr ""
-
-#: includes/class-admin.php:413
-msgid "Reglas con más incidencias"
-msgstr ""
-
-#: includes/class-admin.php:414
-msgid "Regla"
-msgstr ""
-
-#: includes/class-admin.php:414 includes/class-admin.php:619
-msgid "Hallazgos"
-msgstr ""
-
-#: includes/class-admin.php:419
-msgid "Sin incidencias registradas."
-msgstr ""
-
-#: includes/class-admin.php:424
-msgid "Atención:"
-msgstr ""
-
-#: includes/class-admin.php:424
-msgid ""
-"se conservan los recuentos completos por regla y prioridad, pero las tareas "
-"mostradas son una muestra acotada para evitar informes demasiado pesados."
-msgstr ""
-
-#: includes/class-admin.php:426
-msgid ""
-"El índice de calidad es una evaluación interna para ordenar revisiones. No "
-"equivale a una puntuación de Google ni de Bing."
-msgstr ""
-
-#: includes/class-admin.php:430
-msgid "Plan de trabajo · prioridades P1–P5"
-msgstr ""
-
-#: includes/class-admin.php:447
-msgid "Puntuación interna de calidad"
-msgstr ""
-
-#: includes/class-admin.php:447
-msgid ""
-"Se conservan las cinco dimensiones del Auditor anterior; es una señal de "
-"priorización propia, no el algoritmo de un buscador."
-msgstr ""
-
-#: includes/class-admin.php:457
-msgid "Dimensión"
-msgstr ""
-
-#: includes/class-admin.php:470
-msgid "Entidades con menor puntuación"
-msgstr ""
-
-#: includes/class-admin.php:471 includes/class-admin.php:504
-msgid "Entidad"
-msgstr ""
-
-#: includes/class-admin.php:471
-msgid "Calidad"
-msgstr ""
-
-#: includes/class-admin.php:471
-msgid "Dimensiones"
-msgstr ""
-
-#: includes/class-admin.php:493
-msgid "Plan de revisión priorizado"
-msgstr ""
-
-#: includes/class-admin.php:494
-msgid ""
-"Cada tarea incluye prioridad, estado, evidencia y recomendación. Una "
-"prioridad alta no autoriza a modificar automáticamente contenidos."
-msgstr ""
-
-#: includes/class-admin.php:499
-msgid "Sin hallazgos."
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Prioridad"
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Problema"
-msgstr ""
-
-#: includes/class-admin.php:504 includes/class-admin.php:567
-msgid "Evidencia"
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Recomendación"
-msgstr ""
-
-#: includes/class-admin.php:504 includes/class-auto-test.php:258
-msgid "Estado"
-msgstr ""
-
-#: includes/class-admin.php:532
-msgid "Hallazgos por regla"
-msgstr ""
+#: includes/class-admin.php:433
+msgid "Esperar enriquecimiento"
+msgstr "Verwacht verrijking"
 
 #: includes/class-admin.php:535
 msgid ""
 "Esta vista resume la totalidad de incidencias contabilizadas, no solo las "
 "que caben en la muestra de tareas."
 msgstr ""
+"Deze weergave vat alle geregistreerde incidenten samen, niet alleen de "
+"incidenten die in het taakvoorbeeld passen."
 
-#: includes/class-admin.php:536
-msgid "Código de hallazgo"
+#: includes/class-admin.php:504 includes/class-auto-test.php:291
+msgid "Estado"
+msgstr "Status"
+
+#: includes/class-admin.php:361
+msgid "Estado general"
+msgstr "Algemene staat"
+
+#: includes/class-admin.php:135
+msgid "Estado:"
+msgstr "Status:"
+
+#: includes/class-auto-test.php:184
+msgid ""
+"Estados e informes de los cinco ámbitos legibles; no se procesan datos."
 msgstr ""
+"Staten en rapporten van de vijf leesbare gebieden; er worden geen gegevens "
+"verwerkt."
+
+#: includes/class-admin.php:504 includes/class-admin.php:567
+msgid "Evidencia"
+msgstr "Bewijs"
+
+#: includes/class-decision-context.php:425
+msgid "Evidencia local agregada de productos de esta categoría."
+msgstr "Geaggregeerd lokaal bewijs van producten in deze categorie."
+
+#: includes/class-decision-context.php:392
+msgid "Evidencia local asociada directamente al producto."
+msgstr ""
+"Lokaal bewijsmateriaal dat rechtstreeks verband houdt met het product."
+
+#: includes/class-category-review.php:205
+msgid ""
+"Examinar los productos ambiguos y validar manualmente los destinos de cada "
+"cohorte antes de dividir."
+msgstr ""
+"Onderzoek dubbelzinnige producten en valideer handmatig bestemmingen voor "
+"elk cohort voordat u het opsplitst."
+
+#: includes/class-manual.php:62
+msgid "exige"
+msgstr "eisen"
+
+#: includes/class-rules.php:373
+msgid "Explicar qué productos comprende y cuáles no."
+msgstr "Leg uit welke producten u begrijpt en welke niet."
+
+#: includes/class-auto-test.php:40
+msgid "Exportación"
+msgstr "Exporteren"
+
+#: includes/class-auto-test.php:277
+msgid "fallidas"
+msgstr "mislukt"
+
+#: includes/class-auto-test.php:172
+msgid "Falta Export_Store::"
+msgstr "Export_Store ontbreekt::"
+
+#: includes/class-auto-test.php:81
+msgid "Falta la clase"
+msgstr "klasse ontbreekt"
+
+#: includes/class-auto-test.php:161
+msgid "Falta Runner::"
+msgstr "Loper ontbreekt::"
+
+#: includes/class-auto-test.php:35 includes/class-manual.php:29
+#: includes/class-runner.php:27
+msgid "FAQs"
+msgstr "Veelgestelde vragen"
+
+#: includes/class-auto-test.php:276
+msgid "Fecha de ejecución:"
+msgstr "Uitvoeringsdatum:"
+
+#: includes/class-admin.php:619
+msgid "Fecha UTC"
+msgstr "UTC-datum"
+
+#: includes/class-decision-context.php:228
+msgid ""
+"Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta "
+"búsquedas."
+msgstr ""
+"Aanhoudende lokale feedback van TaxoCommerce Assistant/Dependent; voert geen"
+" zoekopdrachten uit."
+
+#: includes/class-admin.php:146
+msgid "filtrada"
+msgstr "gefilterd"
+
+#: includes/class-auto-test.php:154
+msgid "Filtros acotados y modo completo distinguidos sin ejecutar auditorías."
+msgstr ""
+"Gelimiteerde filters en volledige modus onderscheiden zonder audits uit te "
+"voeren."
+
+#: includes/class-auto-test.php:38
+msgid "Filtros y límites disponibles"
+msgstr "Filters en limieten beschikbaar"
+
+#: includes/class-admin.php:385
+msgid "Finalizado:"
+msgstr "Klaar:"
+
+#: includes/class-auto-test.php:181
+msgid "Formato de estado o informe inválido para"
+msgstr "Ongeldige status of rapportindeling voor"
+
+#: includes/class-auto-test.php:59
+msgid "Formato de resultado de prueba no reconocido."
+msgstr "Niet-herkend formaat van testresultaten."
+
+#: includes/class-auto-test.php:98
+msgid ""
+"Formularios, descargas, Autocheck y callback de lotes registrados, sin "
+"invocarlos."
+msgstr ""
+"Formulieren, downloads, Autocheck en terugbellen van geregistreerde batches,"
+" zonder deze aan te roepen."
+
+#: includes/class-auto-test.php:35
+msgid "Fuente FAQ opcional o alternativa"
+msgstr "Optionele of alternatieve FAQ-bron"
+
+#: includes/class-admin.php:66
+msgid "Fuente no disponible"
+msgstr "Bron niet beschikbaar"
+
+#: includes/class-admin.php:596
+msgid "Fuentes nativas disponibles para esta ejecución:"
+msgstr "Native lettertypen beschikbaar voor deze run:"
+
+#: includes/class-admin.php:192
+msgid "Fuentes:"
+msgstr "Bronnen:"
+
+#: includes/class-admin.php:465
+msgid "Fuerte"
+msgstr "sterk"
+
+#: includes/class-manual.php:53
+msgid "gestiona JSONL;"
+msgstr "beheert JSONL;"
+
+#: includes/class-auto-test.php:291
+msgid "Grupo"
+msgstr "Groep"
+
+#: includes/class-auto-test.php:205
+msgid "Guía de usuario y guía técnica integradas."
+msgstr "Geïntegreerde gebruikershandleiding en technische gids."
+
+#: includes/class-auto-test.php:44
+msgid "Guías de usuario y técnico"
+msgstr "Gebruikers- en technische handleidingen"
+
+#: includes/class-admin.php:150
+msgid "hallazgos"
+msgstr "bevindingen"
+
+#: includes/class-admin.php:282 includes/class-admin.php:388
+#: includes/class-admin.php:414 includes/class-admin.php:619
+#: includes/class-runner.php:533
+msgid "Hallazgos"
+msgstr "Bevindingen"
+
+#: includes/class-admin.php:532
+msgid "Hallazgos por regla"
+msgstr "Bevindingen per regel"
+
+#: includes/class-admin.php:496
+msgid "hallazgos. Consulta los contadores completos en Resumen."
+msgstr "bevindingen. Bekijk de volledige tellers in Samenvatting."
+
+#: includes/class-auto-test.php:136
+msgid "Hay un desajuste en los criterios de calidad."
+msgstr "Er is sprake van een discrepantie tussen de kwaliteitscriteria."
+
+#: includes/class-admin.php:284
+msgid "Historial"
+msgstr "Geschiedenis"
+
+#: includes/class-admin.php:614
+msgid "Historial de auditorías completadas"
+msgstr "Geschiedenis van voltooide audits"
+
+#: includes/class-auto-test.php:193
+msgid ""
+"Historial de cinco ámbitos disponible; puede estar vacío sin ser un error."
+msgstr ""
+"Vijf scopegeschiedenis beschikbaar; kan leeg zijn zonder dat er sprake is "
+"van een fout."
+
+#: includes/class-auto-test.php:42
+msgid "Historial de los cinco ámbitos"
+msgstr "Geschiedenis van de vijf gebieden"
+
+#: includes/class-auto-test.php:190
+msgid "Historial no disponible:"
+msgstr "Geschiedenis niet beschikbaar:"
+
+#: includes/class-rules.php:481
+msgid "Hub sin padre identificado en post_meta de Core."
+msgstr "Hub zonder ouder geïdentificeerd in Core post_meta."
+
+#: includes/class-runner.php:572
+msgid "Identidades editoriales repetidas dentro del bloque."
+msgstr "Herhaalde redactionele identiteiten binnen het blok."
 
 #: includes/class-admin.php:536
 msgid "Incidencias"
-msgstr ""
+msgstr "Incidenten"
 
-#: includes/class-admin.php:541
-msgid "Ninguna incidencia."
-msgstr ""
+#: includes/class-runner.php:534
+msgid "Incidencias con mayor severidad."
+msgstr "Incidenten met grotere ernst."
 
-#: includes/class-admin.php:549
-msgid "Reequilibrio de categorías"
-msgstr ""
-
-#: includes/class-admin.php:550
+#: includes/class-admin.php:357
 msgid ""
-"Se conserva la referencia histórica de 5–10 productos por categoría. El "
-"tamaño solo señala casos para revisar:"
+"Indicadores específicos de calidad, integridad y errores a corregir sobre la"
+" última"
 msgstr ""
+"Specifieke indicatoren van kwaliteit, integriteit en fouten die op de "
+"laatste manier moeten worden gecorrigeerd"
 
-#: includes/class-admin.php:550
-msgid "no justifica por sí solo dividir, fusionar ni crear una URL"
+#: includes/class-runner.php:537
+msgid "Índice interno de calidad; no es una métrica de Google."
+msgstr "Interne kwaliteitsindex; Het is geen Google-statistiek."
+
+#: includes/class-admin.php:436
+msgid "Informativo"
+msgstr "Informatief"
+
+#: includes/class-auto-test.php:41 includes/class-auto-test.php:42
+msgid "Informes"
+msgstr "Rapporten"
+
+#: includes/class-runner.php:560
+msgid "Infra-dimensionadas"
+msgstr "Ondermaats"
+
+#: includes/class-auto-test.php:43
+msgid "Integraciones"
+msgstr "Integraties"
+
+#: includes/class-admin.php:155 includes/class-manual.php:39
+msgid "JSON completo"
+msgstr "Volledige JSON"
+
+#: includes/class-manual.php:56
+msgid "JSON Lines"
+msgstr "JSON-lijnen"
+
+#: includes/class-admin.php:224 includes/class-admin.php:356
+msgid "KPIs de"
+msgstr "KPI's van"
+
+#: includes/class-admin.php:403
+msgid "KPIs específicos"
+msgstr "Specifieke KPI’s"
+
+#: includes/class-editorial-specialist.php:338
+msgid ""
+"La categoría concentra la intención comercial; verificar que el post sea "
+"realmente informativo."
 msgstr ""
+"De categorie concentreert de commerciële intentie; Controleer of het bericht"
+" echt informatief is."
+
+#: includes/class-admin.php:607
+msgid "La comparación es parcial por límite de seguridad."
+msgstr "De vergelijking is gedeeltelijk vanwege de veiligheidslimiet."
+
+#: includes/class-rules.php:418
+msgid "La descripción está poco alineada literalmente con el título."
+msgstr "De beschrijving sluit letterlijk slecht aan bij de titel."
+
+#: includes/class-rules.php:285
+msgid "La descripción presenta muy poca coincidencia literal con el título."
+msgstr "De beschrijving komt letterlijk weinig overeen met de titel."
 
 #: includes/class-admin.php:557
 msgid ""
@@ -281,6 +1264,263 @@ msgid ""
 "movimiento de productos y redirecciones 301 sigue deshabilitada en esta "
 "migración: requiere una capa transaccional nativa validada."
 msgstr ""
+"Het genereren van voorstellen is actief. Goedkeuring/applicatie met "
+"productverplaatsing en 301-omleidingen blijft uitgeschakeld tijdens deze "
+"migratie - vereist een gevalideerde native transactionele laag."
+
+#: includes/class-editorial-specialist.php:391
+msgid ""
+"La landing solo se justifica para una necesidad transversal diferente de la "
+"jerarquía."
+msgstr ""
+"De landing is alleen gerechtvaardigd voor een transversale behoefte die "
+"verschilt van de hiërarchie."
+
+#: includes/class-editorial-specialist.php:311
+msgid ""
+"La página estructural debe conservar la intención amplia. Revisar si el post"
+" aporta una intención informativa distinta."
+msgstr ""
+"De structurele pagina moet de brede intentie behouden. Controleer of het "
+"bericht een andere informatieve intentie heeft."
+
+#: includes/class-manual.php:43
+msgid "La pestaña"
+msgstr "Het tabblad"
+
+#: includes/class-admin.php:565
+msgid "La tabla contiene una muestra de propuestas, no el total."
+msgstr "De tabel bevat een voorbeeld van voorstellen, niet het totaal."
+
+#: includes/class-decision-context.php:447
+msgid "La tabla de TaxoCommerce Suppliers no está disponible."
+msgstr "TaxoCommerce Leverancierstabel is niet beschikbaar."
+
+#: includes/class-auto-test.php:117
+msgid "La taxonomía product_cat está registrada."
+msgstr "De product_cat-taxonomie is geregistreerd."
+
+#: includes/class-runner.php:578
+msgid "Landings con identidad editorial repetida."
+msgstr "Landingen met herhaalde redactionele identiteit."
+
+#: includes/class-runner.php:578
+msgid "Landings duplicadas"
+msgstr "Dubbele landingen"
+
+#: includes/class-runner.php:580
+msgid "Landings que invaden funciones de otras piezas estructurales."
+msgstr "Landingen die functies van andere structurele delen binnendringen."
+
+#: includes/class-rules.php:497
+msgid "Las etiquetas asignadas no encuentran apoyo en el título o resumen."
+msgstr "De toegekende labels vinden geen steun in de titel of samenvatting."
+
+#: includes/class-manual.php:31
+msgid "Las pestañas"
+msgstr "De wimpers"
+
+#: includes/class-manual.php:41
+msgid ""
+"Las prioridades P1–P5 y los estados de revisión indican urgencia, evidencia "
+"necesaria y acciones pendientes. El contexto puede mostrar información local"
+" de Insights, Suppliers, Dependiente u otras extensiones si ya estaba "
+"guardada:"
+msgstr ""
+"De P1-P5-prioriteiten en beoordelingsstatussen geven de urgentie, het "
+"benodigde bewijsmateriaal en lopende acties aan. De context kan lokale "
+"informatie weergeven van Insights, Suppliers, Dependent of andere extensies "
+"als deze al is opgeslagen:"
+
+#: includes/class-auto-test.php:43
+msgid "Lectura de evidencia local y opcional"
+msgstr "Lokaal en optioneel bewijsmateriaal lezen"
+
+#: includes/class-auto-test.php:106
+msgid "Los ámbitos difieren del contrato de Auditor."
+msgstr "De scopes wijken af van het Auditorcontract."
+
+#: includes/class-manual.php:53
+msgid "Los archivos"
+msgstr "De bestanden"
+
+#: includes/class-auto-test.php:105
+msgid "Los cinco ámbitos de auditoría están disponibles."
+msgstr "Alle vijf auditscopes zijn beschikbaar."
+
+#: includes/class-admin.php:609
+msgid ""
+"Los enlaces a fuentes y el contraste externo son tareas distintas de la "
+"auditoría de contenidos."
+msgstr ""
+"Koppelingen naar bronnen en externe verificatie zijn andere taken dan "
+"inhoudscontrole."
+
+#: includes/class-manual.php:36
+msgid ""
+"Los indicadores agrupan entidades revisadas, hallazgos, severidad, "
+"puntuación y nivel de calidad. Las cinco dimensiones internas de evaluación "
+"son"
+msgstr ""
+"De indicatorengroep beoordeelde entiteiten, bevindingen, ernst, score en "
+"kwaliteitsniveau. De vijf interne dimensies van evaluatie zijn:"
+
+#: includes/class-runner.php:602
+msgid ""
+"Los KPI describen calidad interna y errores del contenido auditado. No son "
+"métricas de posicionamiento de Google/Bing."
+msgstr ""
+"KPI's beschrijven de interne kwaliteit en fouten van de gecontroleerde "
+"inhoud. Het zijn geen positioneringsstatistieken van Google/Bing."
+
+#: includes/class-admin.php:225
+msgid ""
+"Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
+"bloque. Para indicadores representativos del conjunto, utiliza"
+msgstr ""
+"Zodra de eerste audit van dit blok is afgerond, verschijnen hier de KPI’s. "
+"Gebruik voor indicatoren die representatief zijn voor de set"
+
+#: includes/class-auto-test.php:155
+msgid "Los límites de búsqueda han cambiado inesperadamente."
+msgstr "Zoeklimieten zijn onverwacht gewijzigd."
+
+#: includes/class-manual.php:56
+msgid ""
+"Los resultados completos no se cargan íntegramente como una opción: se "
+"escriben como"
+msgstr ""
+"Volledige resultaten worden optioneel niet volledig geladen: ze worden "
+"geschreven als"
+
+#: includes/class-manual.php:53
+msgid "mantiene la interfaz."
+msgstr "onderhoudt de interface."
+
+#: includes/class-admin.php:198 includes/class-auto-test.php:44
+#: includes/class-manual.php:31
+msgid "Manual"
+msgstr "handleiding"
+
+#: includes/class-manual.php:14
+msgid "Manual de TaxoCommerce Auditor · v"
+msgstr "TaxoCommerce Auditorhandleiding · v"
+
+#: includes/class-manual.php:16
+msgid "Manual de usuario"
+msgstr "Gebruikershandleiding"
+
+#: includes/class-manual.php:16
+msgid "Manual técnico"
+msgstr "Technische handleiding"
+
+#: includes/class-admin.php:606
+msgid "Mapa editorial indexado:"
+msgstr "Geïndexeerde redactionele kaart:"
+
+#: includes/class-admin.php:106 includes/class-admin.php:457
+msgid "Máximo"
+msgstr "Maximaal"
+
+#: includes/class-admin.php:391
+msgid "Media"
+msgstr "Middelmatig"
+
+#: includes/class-admin.php:449
+msgid "Media:"
+msgstr "Middel:"
+
+#: includes/class-admin.php:465
+msgid "Mejorable"
+msgstr "Kan worden verbeterd"
+
+#: includes/class-admin.php:434
+msgid "Migrar a Solucionador"
+msgstr "Migreren naar Resolver"
+
+#: includes/class-auto-test.php:39
+msgid "Motor por lotes y controles de ejecución"
+msgstr "Batch-engine en uitvoeringscontroles"
+
+#: includes/class-rules.php:276
+msgid "Muy pocas palabras del título aparecen en el resumen."
+msgstr "In de samenvatting komen zeer weinig woorden uit de titel voor."
+
+#: includes/class-rules.php:266
+msgid "Ninguna categoría WooCommerce asignada."
+msgstr "Er is geen WooCommerce-categorie toegewezen."
+
+#: includes/class-admin.php:541
+msgid "Ninguna incidencia."
+msgstr "Geen incident."
+
+#: includes/class-rules.php:432
+msgid "No consta un Hub secundario en term_meta de Core."
+msgstr "Er is geen secundaire Hub in Core's term_meta."
+
+#: includes/class-manual.php:21
+msgid ""
+"No corrige, publica, elimina, mueve ni redirige productos, categorías, "
+"entradas, páginas ni preguntas frecuentes."
+msgstr ""
+"Er worden geen producten, categorieën, berichten, pagina's of veelgestelde "
+"vragen gecorrigeerd, gepubliceerd, verwijderd, verplaatst of omgeleid."
+
+#: includes/class-auto-test.php:296
+msgid ""
+"No demuestra por sí mismo que una auditoría completa o la exportación JSONL "
+"funcionen con un catálogo real."
+msgstr ""
+"Het bewijst op zichzelf niet dat een volledige audit of JSONL-export zal "
+"werken met een echte catalogus."
+
+#: includes/class-admin.php:449
+msgid "No disponible"
+msgstr "Niet beschikbaar"
+
+#: includes/class-auto-test.php:292 includes/class-manual.php:44
+msgid "No ejecutado"
+msgstr "Niet uitgevoerd"
+
+#: includes/class-auto-test.php:200
+msgid "No está disponible el contrato de contexto local."
+msgstr "Lokaal contextcontract is niet beschikbaar."
+
+#: includes/class-auto-test.php:118
+msgid "No está registrada product_cat; comprueba WooCommerce."
+msgstr "product_cat is niet geregistreerd; controleer WooCommerce."
+
+#: includes/class-auto-test.php:95
+msgid "No está registrado:"
+msgstr "Niet geregistreerd:"
+
+#: includes/class-auto-test.php:127
+msgid "No están disponibles los lectores FAQ esperados."
+msgstr "De verwachte FAQ-lezers zijn niet beschikbaar."
+
+#: includes/class-decision-context.php:238
+msgid "No existe la tabla persistida de perfiles de Comparador."
+msgstr "De persistente tabel met vergelijkingsprofielen bestaat niet."
+
+#: includes/class-admin.php:616
+msgid "No existen ejecuciones completadas todavía."
+msgstr "Er zijn nog geen voltooide executies."
+
+#: includes/class-decision-context.php:442
+msgid "No hay contexto de proveedor nativo aplicable a esta entidad."
+msgstr "Er is geen native providercontext van toepassing op deze entiteit."
+
+#: includes/class-admin.php:374
+msgid "No hay indicadores específicos disponibles para este bloque."
+msgstr "Voor dit blok zijn geen specifieke indicatoren beschikbaar."
+
+#: includes/class-admin.php:681
+msgid "No hay informe completo que exportar."
+msgstr "Er is geen volledig rapport om te exporteren."
+
+#: includes/class-decision-context.php:54
+msgid "No hay perfiles persistidos de Comparador disponibles."
+msgstr "Er zijn geen permanente Comparator-profielen beschikbaar."
 
 #: includes/class-admin.php:561
 msgid ""
@@ -288,146 +1528,1045 @@ msgid ""
 "categorías fuera del tamaño de referencia siguen reflejadas como hallazgos "
 "para revisión manual."
 msgstr ""
+"Er zijn geen voorstellen die door voldoende semantisch bewijs worden "
+"ondersteund. Categorieën buiten de referentieomvang worden nog steeds "
+"weergegeven als bevindingen voor handmatige beoordeling."
 
-#: includes/class-admin.php:565
-msgid "La tabla contiene una muestra de propuestas, no el total."
+#: includes/class-rules.php:350
+msgid "No hay términos tc_semantic_tag asignados."
+msgstr "Er zijn geen tc_semantic_tag-termen toegewezen."
+
+#: includes/class-admin.php:272
+msgid ""
+"No hay todavía un informe finalizado para este bloque. Ejecuta Auditar y "
+"consulta su estado."
 msgstr ""
+"Er is nog geen definitief rapport voor dit blok. Voer Audit uit en "
+"controleer de status ervan."
 
-#: includes/class-admin.php:567
-msgid "Categoría origen"
+#: includes/class-auto-test.php:289
+msgid "No hay una ejecución anterior para comparar."
+msgstr "Er is geen eerdere run om te vergelijken."
+
+#: includes/class-manual.php:44
+msgid ""
+"No inicia auditorías, no consulta APIs externas, no genera archivos JSONL y "
+"no modifica contenidos. Un ámbito sin informe previo no equivale a error "
+"técnico. Las operaciones reales que podrían modificar opciones, lanzar "
+"procesos o producir archivos aparecen como"
 msgstr ""
+"Het initieert geen audits, raadpleegt geen externe API’s, genereert geen "
+"JSONL-bestanden en wijzigt de inhoud niet. Een gebied zonder voorafgaande "
+"melding staat niet gelijk aan een technische fout. Werkelijke bewerkingen "
+"die opties kunnen wijzigen, processen kunnen starten of bestanden kunnen "
+"produceren, verschijnen als"
 
-#: includes/class-admin.php:567
-msgid "Tipo"
+#: includes/class-manual.php:56
+msgid "no intenta crearla ni escribir en ella"
+msgstr "probeert het niet te maken of ernaar te schrijven"
+
+#: includes/class-admin.php:550
+msgid "no justifica por sí solo dividir, fusionar ni crear una URL"
 msgstr ""
+"rechtvaardigt op zichzelf niet het splitsen, samenvoegen of aanmaken van een"
+" URL"
 
-#: includes/class-admin.php:567
+#: includes/class-auto-test.php:210
+msgid ""
+"No se ejecutan auditorías, procesos WP-Cron, escrituras de JSONL, descargas "
+"completas ni cambios editoriales. Probarlos en staging."
+msgstr ""
+"Er worden geen audits, WP-Cron-processen, JSONL-schrijfbewerkingen, "
+"volledige downloads of redactionele wijzigingen uitgevoerd. Test ze in "
+"enscenering."
+
+#: includes/class-rules.php:597
+msgid "No se encuentra el owner publicado o su tipo no corresponde."
+msgstr ""
+"De gepubliceerde eigenaar kan niet worden gevonden of het type komt niet "
+"overeen."
+
+#: includes/class-auto-test.php:206
+msgid "No se encuentra la documentación integrada."
+msgstr "Er is geen geïntegreerde documentatie gevonden."
+
+#: includes/class-auto-test.php:62
+msgid "No se ha podido completar la comprobación:"
+msgstr "De verificatie kon niet worden voltooid:"
+
+#: includes/class-auto-test.php:242
+msgid "No se pudo generar el informe JSON."
+msgstr "Het JSON-rapport kan niet worden gegenereerd."
+
+#: includes/class-admin.php:32
+msgid "No tienes permisos para consultar Auditor."
+msgstr "U heeft geen toestemming om Auditor te raadplegen."
+
+#: includes/class-rules.php:426
+msgid "Nombre y slug describen términos distintos."
+msgstr "Naam en naaktslak beschrijven verschillende termen."
+
+#: includes/class-manual.php:58
+msgid ""
+"o un CPT FAQ admitido. El contexto de otros plugins es opcional y se obtiene"
+" de datos locales ya persistidos, nunca de peticiones remotas. No añadas "
+"nuevas tablas ni acoples Auditor a archivos del monolito."
+msgstr ""
+"of een ondersteunde CPT FAQ. De context van andere plug-ins is optioneel en "
+"wordt verkregen uit lokale gegevens die al bewaard zijn, nooit uit externe "
+"verzoeken. Voeg geen nieuwe tabellen toe en voeg geen Auditor toe aan "
+"monolietbestanden."
+
+#: includes/class-admin.php:606
+msgid "objetos"
+msgstr "voorwerpen"
+
+#: includes/class-auto-test.php:277
+msgid "omitidas"
+msgstr "weggelaten"
+
+#: includes/class-runner.php:588
+msgid "Owner huérfano"
+msgstr "Verweesde eigenaar"
+
+#: includes/class-runner.php:589
+msgid "Owner inválido"
+msgstr "Ongeldige eigenaar"
+
+#: includes/class-editorial-specialist.php:363
+msgid "Página editorial sin función SEO definida en Core."
+msgstr "Redactionele pagina zonder SEO-functie gedefinieerd in Core."
+
+#: includes/class-runner.php:581
+msgid "Páginas cuyo rol SEO no está resuelto."
+msgstr "Pagina's waarvan de SEO-rol nog niet is opgelost."
+
+#: includes/class-runner.php:582
+msgid "Páginas estructurales sin relación padre esperada."
+msgstr "Structurele pagina's zonder verwachte ouderrelatie."
+
+#: includes/class-admin.php:396
+msgid "Páginas funcionales/corporativas excluidas del diagnóstico editorial:"
+msgstr ""
+"Functionele/bedrijfspagina's uitgesloten van de redactionele diagnose:"
+
+#: includes/class-runner.php:577
+msgid "Páginas sin clasificación semántica nativa."
+msgstr "Pagina's zonder native semantische classificatie."
+
+#: includes/class-admin.php:348 includes/class-manual.php:28
+#: includes/class-runner.php:26
+msgid "Páginas y landings"
+msgstr "Pagina's en landingen"
+
+#: includes/class-runner.php:576
+msgid "Páginas/landings con cuerpo insuficiente."
+msgstr "Pagina's/landingen met onvoldoende body."
+
+#: includes/class-manual.php:55
+msgid "para impedir solapamientos."
+msgstr "om overlappingen te voorkomen."
+
+#: includes/class-admin.php:64
+msgid "Pausado"
+msgstr "Gepauzeerd"
+
+#: includes/class-admin.php:170 includes/class-manual.php:34
+msgid "Pausar"
+msgstr "Pauze"
+
+#: includes/class-manual.php:24
+msgid "Pestaña"
+msgstr "Tab"
+
+#: includes/class-admin.php:493
+msgid "Plan de revisión priorizado"
+msgstr "Geprioriteerd beoordelingsplan"
+
+#: includes/class-admin.php:430
+msgid "Plan de trabajo · prioridades P1–P5"
+msgstr "Werkplan · prioriteiten P1–P5"
+
+#: includes/class-admin.php:281
+msgid "Plan priorizado"
+msgstr "Geprioriteerd plan"
+
+#: includes/class-auto-test.php:30
+msgid "Plugin"
+msgstr "plug-in"
+
+#: includes/class-rules.php:506
+msgid "Poca coincidencia entre palabras específicas del título y texto."
+msgstr ""
+"Slechte overeenstemming tussen specifieke woorden in de titel en de tekst."
+
+#: includes/class-auto-test.php:36
+msgid "Ponderaciones y bandas de puntuación"
+msgstr "Wegingen en scorebanden"
+
+#: includes/class-runner.php:532
+msgid "Porcentaje de entidades sin hallazgos en esta ejecución."
+msgstr "Percentage entiteiten zonder bevindingen in deze run."
+
+#: includes/class-admin.php:347 includes/class-manual.php:27
+#: includes/class-runner.php:25
+msgid "Posts"
+msgstr "Berichten"
+
+#: includes/class-runner.php:567
+msgid "Posts con cuerpo insuficiente para su función."
+msgstr "Berichten met onvoldoende body voor hun functie."
+
+#: includes/class-runner.php:571
+msgid "Posts que compiten con piezas estructurales del sitio."
+msgstr "Berichten die concurreren met structurele delen van de site."
+
+#: includes/class-runner.php:568
+msgid "Posts sin clasificación semántica nativa."
+msgstr "Berichten zonder native semantische classificatie."
+
+#: includes/class-runner.php:591
+msgid "Pregunta posiblemente alejada del owner confirmado."
+msgstr "Vraag mogelijk ver van de bevestigde eigenaar."
+
+#: includes/class-runner.php:587
+msgid "Pregunta vacía"
+msgstr "lege vraag"
+
+#: includes/class-manual.php:29
+msgid ""
+"Pregunta, respuesta, titularidad, destino en producto/categoría y "
+"coherencia. El módulo FAQs es opcional."
+msgstr ""
+"Vraag, antwoord, eigenaarschap, bestemming in product/categorie en "
+"samenhang. De module Veelgestelde vragen is optioneel."
+
+#: includes/class-runner.php:592
+msgid "Preguntas equivalentes repetidas para el mismo destino."
+msgstr "Gelijkwaardige vragen herhaald voor dezelfde bestemming."
+
+#: includes/class-admin.php:455
+msgid "Preparación técnica"
+msgstr "Technische voorbereiding"
+
+#: includes/class-manual.php:46
+msgid ""
+"Primero ejecuta Auto Test. Después selecciona un ámbito y comienza por una "
+"muestra filtrada. Revisa los indicadores, los hallazgos y las prioridades; "
+"contrasta los avisos críticos antes de editar en WordPress. Si necesitas un "
+"diagnóstico global, ejecuta la auditoría completa, comprueba que finaliza y "
+"descarga su JSON."
+msgstr ""
+"Voer eerst de Autotest uit. Selecteer vervolgens een scope en begin met een "
+"gefilterd monster. Beoordeel indicatoren, bevindingen en prioriteiten; "
+"Controleer kritische mededelingen voordat u deze in WordPress bewerkt. Als u"
+" een globale diagnose nodig heeft, voert u de volledige audit uit, "
+"controleert u of deze is voltooid en downloadt u de JSON ervan."
+
+#: includes/class-admin.php:504
+msgid "Prioridad"
+msgstr "Prioriteit"
+
+#: includes/class-runner.php:535
+msgid "Prioridad P1"
+msgstr "P1 prioriteit"
+
+#: includes/class-auto-test.php:37
+msgid "Prioridad y revisión editorial"
+msgstr "Redactionele prioriteit en beoordeling"
+
+#: includes/class-admin.php:504
+msgid "Problema"
+msgstr "Probleem"
+
+#: includes/class-admin.php:169 includes/class-manual.php:34
+msgid "Procesar siguiente lote"
+msgstr "Verwerk de volgende batch"
+
+#: includes/class-runner.php:545
+msgid "Producto sin descripción corta/resumen."
+msgstr "Product zonder korte beschrijving/samenvatting."
+
+#: includes/class-runner.php:544
+msgid "Producto sin descripción larga útil."
+msgstr "Product zonder nuttige lange beschrijving."
+
+#: includes/class-decision-context.php:464
+msgid "Producto sin fila enlazada en TaxoCommerce Suppliers."
+msgstr "Product zonder gekoppelde rij in TaxoCommerce Leveranciers."
+
+#: includes/class-auto-test.php:111
+msgid "Producto WooCommerce y su API de lectura disponibles."
+msgstr "WooCommerce-product en de lees-API beschikbaar."
+
+#: includes/class-admin.php:578
+msgid "productos"
+msgstr "producten"
+
+#: includes/class-admin.php:345 includes/class-admin.php:567
+#: includes/class-auto-test.php:33 includes/class-manual.php:25
 msgid "Productos"
-msgstr ""
+msgstr "Producten"
 
-#: includes/class-admin.php:567
-msgid "Acción"
-msgstr ""
+#: includes/class-runner.php:23
+msgid "Productos · contenido e identidad"
+msgstr "Producten · inhoud en identiteit"
 
-#: includes/class-admin.php:589
-msgid "Revisión; no hay cambios automáticos."
-msgstr ""
+#: includes/class-runner.php:546
+msgid "Productos publicados sin product_cat."
+msgstr "Producten gepubliceerd zonder product_cat."
 
-#: includes/class-admin.php:595
-msgid "Contexto de decisión"
-msgstr ""
+#: includes/class-runner.php:547
+msgid "Productos sin clasificación semántica nativa."
+msgstr "Producten zonder native semantische classificatie."
 
-#: includes/class-admin.php:595
+#: includes/class-manual.php:55
+msgid "proporciona los cinco ámbitos. Por ámbito se guardan opciones"
+msgstr "biedt de vijf gebieden. Opties worden per gebied opgeslagen"
+
+#: includes/class-runner.php:562
+msgid "Propuestas basadas en evidencia semántica; no ejecutan cambios."
+msgstr ""
+"Voorstellen gebaseerd op semantisch bewijs; Ze brengen geen veranderingen "
+"aan."
+
+#: includes/class-admin.php:555
+msgid "Propuestas de concentración"
+msgstr "Concentratievoorstellen"
+
+#: includes/class-runner.php:563
+msgid "Propuestas de consolidación para revisión humana."
+msgstr "Consolidatievoorstellen voor menselijke beoordeling."
+
+#: includes/class-admin.php:553 includes/class-runner.php:562
+msgid "Propuestas de división"
+msgstr "Voorstellen voor divisies"
+
+#: includes/class-runner.php:563
+msgid "Propuestas de unión"
+msgstr "Voorstellen van de Unie"
+
+#: includes/class-auto-test.php:291
+msgid "Prueba"
+msgstr "Testen"
+
+#: includes/class-manual.php:33
 msgid ""
-"Auditor evalúa consistencia interna y no consulta directamente APIs de "
-"buscadores, compras ni analítica."
+"puedes buscar por título o ID; en Productos también por categoría. El límite"
+" seleccionable es 10, 25, 50, 100 o 250 elementos."
 msgstr ""
+"u kunt zoeken op titel of ID; in Producten ook per categorie. De "
+"selecteerbare limiet is 10, 25, 50, 100 of 250 elementen."
 
-#: includes/class-admin.php:599
-msgid "Analista, Ojeador, Dependiente y Comparador:"
-msgstr ""
+#: includes/class-admin.php:447
+msgid "Puntuación interna de calidad"
+msgstr "Interne kwaliteitsscore"
 
-#: includes/class-admin.php:599
+#: includes/class-manual.php:24
+msgid "Qué revisa"
+msgstr "Wat review je?"
+
+#: taxocommerce-auditor.php:4
 msgid ""
-"datos no disponibles para este informe. Ausente no significa cero; no se ha "
-"inventado ningún valor."
+"Read-only WordPress and WooCommerce content quality audits with detailed "
+"KPIs and full JSON exports."
 msgstr ""
+"Alleen-lezen WordPress- en WooCommerce-inhoudskwaliteitsaudits met "
+"gedetailleerde KPI's en volledige JSON-exports."
 
-#: includes/class-admin.php:601
+#: includes/class-admin.php:174
+msgid "Reanudar"
+msgstr "Hervatten"
+
+#: includes/class-manual.php:34
+msgid "Reanudarse"
+msgstr "Hervatten"
+
+#: includes/class-admin.php:504
+msgid "Recomendación"
+msgstr "Aanbeveling"
+
+#: includes/class-rules.php:376
+msgid "Recuento nativo de productos: 0."
+msgstr "Aantal inheemse producten: 0."
+
+#: includes/class-manual.php:55
+msgid "recupera impulsos de cron perdidos sin reiniciar el progreso."
+msgstr "herstelt verloren cron-pushs zonder de voortgang opnieuw te starten."
+
+#: includes/class-rules.php:269
+msgid "Redactar un resumen específico del producto."
+msgstr "Schrijf een specifieke samenvatting van het product."
+
+#: includes/class-rules.php:399
+msgid "Redactar un resumen específico para esta familia."
+msgstr "Schrijf een specifieke samenvatting voor deze familie."
+
+#: includes/class-admin.php:287 includes/class-manual.php:38
+msgid "Reequilibrio"
+msgstr "Opnieuw in evenwicht brengen"
+
+#: includes/class-admin.php:549
+msgid "Reequilibrio de categorías"
+msgstr "Herbalancering van categorieën"
+
+#: includes/class-manual.php:60
+msgid "registra"
+msgstr "registreren"
+
+#: includes/class-admin.php:414
+msgid "Regla"
+msgstr "Regel"
+
+#: includes/class-admin.php:413
+msgid "Reglas con más incidencias"
+msgstr "Regels met de meeste incidenten"
+
+#: includes/class-auto-test.php:286
+msgid "Regresiones:"
+msgstr "Regressies:"
+
+#: includes/class-admin.php:451
+msgid "Relevancia y utilidad"
+msgstr "Relevantie en bruikbaarheid"
+
+#: includes/class-admin.php:162
+msgid "Repetir auditoría completa"
+msgstr "Herhaal de volledige audit"
+
+#: includes/class-admin.php:164
+msgid "Repetir filtro"
+msgstr "Herhaal filteren"
+
+#: includes/class-rules.php:537
+msgid "Respuesta ausente o demasiado escueta."
+msgstr "Afwezige of te korte reactie."
+
+#: includes/class-runner.php:586
+msgid "Respuesta insuficiente"
+msgstr "Onvoldoende reactie"
+
+#: includes/class-auto-test.php:291
+msgid "Resultado"
+msgstr "Resultaat"
+
+#: includes/class-admin.php:279
+msgid "Resumen"
+msgstr "Samenvatting"
+
+#: includes/class-admin.php:384
+msgid "Resumen del último análisis"
+msgstr "Samenvatting van de laatste analyse"
+
+#: includes/class-manual.php:38
 msgid ""
-"Contexto leído exclusivamente de proveedores persistidos mediante el filtro "
-"de integración del nuevo Auditor."
+"Resumen, Calidad interna, Plan priorizado, Hallazgos, Contexto de decisión e"
+" Historial"
 msgstr ""
+"Samenvatting, interne kwaliteit, geprioriteerd plan, bevindingen, "
+"beslissingscontext en geschiedenis"
 
-#: includes/class-admin.php:609
+#: includes/class-manual.php:43
 msgid ""
-"Los enlaces a fuentes y el contraste externo son tareas distintas de la "
-"auditoría de contenidos."
+"revisa disponibilidad de módulos, rutas, cinco ámbitos, calidad, "
+"prioridades, filtros, lector de estados, historial y exportación. Pulsa"
 msgstr ""
+"controleer beschikbaarheid van modules, routes, vijf gebieden, kwaliteit, "
+"prioriteiten, filters, statuslezer, geschiedenis en export. Druk op"
 
-#: includes/class-admin.php:614
-msgid "Historial de auditorías completadas"
-msgstr ""
+#: includes/class-manual.php:33
+msgid "revisa el subconjunto solicitado."
+msgstr "controleer de gevraagde subset."
 
-#: includes/class-admin.php:616
-msgid "No existen ejecuciones completadas todavía."
-msgstr ""
-
-#: includes/class-admin.php:619
-msgid "Fecha UTC"
-msgstr ""
-
-#: includes/class-admin.php:619
-msgid "Duración"
-msgstr ""
+#: includes/class-admin.php:150
+msgid "revisados"
+msgstr "beoordeeld"
 
 #: includes/class-admin.php:619
 msgid "Revisados"
-msgstr ""
+msgstr "Beoordeeld"
 
-#: includes/class-admin.php:641 includes/class-admin.php:676
-msgid "Bloque Auditor no reconocido."
+#: includes/class-admin.php:435
+msgid "Revisar"
+msgstr "Beoordeling"
+
+#: includes/class-rules.php:388
+msgid "Revisar asignaciones aprobadas en Vocabulary."
+msgstr "Controleer goedgekeurde opdrachten in Woordenschat."
+
+#: includes/class-admin.php:554
+msgid "Revisar concentración"
+msgstr "Controleer de concentratie"
+
+#: includes/class-category-review.php:196
+msgid ""
+"Revisar el tamaño y la coherencia semántica. No dividir únicamente por "
+"cantidad."
 msgstr ""
+"Beoordelingsgrootte en semantische samenhang. Deel niet alleen op "
+"hoeveelheid."
+
+#: includes/class-rules.php:248
+msgid "Revisar integridad del producto antes de editar sus datos."
+msgstr "Controleer de productintegriteit voordat u de gegevens ervan bewerkt."
+
+#: includes/class-rules.php:286
+msgid ""
+"Revisar la fuente original; esta señal por sí sola no prueba que se haya "
+"copiado otro producto."
+msgstr ""
+"Bekijk de originele bron; Dit teken alleen bewijst niet dat een ander "
+"product is gekopieerd."
+
+#: includes/class-editorial-specialist.php:402
+msgid "Revisar la intención transversal de esta landing."
+msgstr "Bekijk de transversale bedoeling van deze landing."
+
+#: includes/class-rules.php:263
+msgid "Revisar la URL canónica."
+msgstr "Controleer de canonieke URL."
+
+#: includes/class-rules.php:498
+msgid "Revisar las etiquetas y la intención antes de modificar el contenido."
+msgstr "Controleer tags en intentie voordat u de inhoud wijzigt."
+
+#: includes/class-rules.php:350
+msgid ""
+"Revisar las propuestas del Clasificador sin asignar etiquetas "
+"automáticamente."
+msgstr ""
+"Classificatievoorstellen beoordelen zonder automatisch tags toe te wijzen."
+
+#: includes/class-admin.php:552
+msgid "Revisar por división"
+msgstr "Beoordeling per divisie"
+
+#: includes/class-editorial-specialist.php:324
+msgid ""
+"Revisar qué URL debe cubrir la necesidad transversal y diferenciar el post "
+"informativo."
+msgstr ""
+"Bekijk welke URL de transversale behoefte moet dekken en differentieer de "
+"informatieve post."
+
+#: includes/class-category-review.php:215
+msgid ""
+"Revisar si conviene conservarla o agruparla con una categoría hermana "
+"coherente."
+msgstr ""
+"Bekijk of het raadzaam is om deze te behouden of te groeperen met een "
+"samenhangende zustercategorie."
+
+#: includes/class-rules.php:427
+msgid "Revisar si el slug sigue representando la categoría."
+msgstr "Controleer of de naaktslak nog steeds de categorie vertegenwoordigt."
+
+#: includes/class-rules.php:376
+msgid "Revisar si está reservada, debe poblarse o retirarse con redirección."
+msgstr ""
+"Controleer of het gereserveerd is, moet worden ingevuld of verwijderd met "
+"omleiding."
+
+#: includes/class-rules.php:381
+msgid ""
+"Revisar si la categoría aporta navegación o merece una familia más amplia."
+msgstr ""
+"Controleer of de categorie navigatie biedt of een grotere familie verdient."
+
+#: includes/class-editorial-specialist.php:452
+msgid "Revisar si la landing duplica innecesariamente la categoría comercial."
+msgstr ""
+"Controleer of de landingspagina onnodig de commerciële categorie dupliceert."
+
+#: includes/class-rules.php:506
+msgid "Revisar si la publicación satisface su intención original."
+msgstr "Controleer of de publicatie voldoet aan de oorspronkelijke bedoeling."
+
+#: includes/class-rules.php:468
+msgid ""
+"Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras"
+" SEO."
+msgstr ""
+"Beoordeel het nut en de reactie op de intentie; Er is geen minimum aantal "
+"SEO-woorden."
+
+#: includes/class-rules.php:471
+msgid "Revisar Vocabulary y añadir solo términos pertinentes."
+msgstr "Controleer de woordenschat en voeg alleen relevante termen toe."
+
+#: includes/class-admin.php:589
+msgid "Revisión; no hay cambios automáticos."
+msgstr "Beoordeling; er zijn geen automatische wijzigingen."
+
+#: includes/class-runner.php:581
+msgid "Rol sin clasificar"
+msgstr "Niet-geclassificeerde rol"
+
+#: includes/class-auto-test.php:31
+msgid "Rutas protegidas y proceso por lotes registrados"
+msgstr "Beschermde routes en geregistreerde batchverwerking"
+
+#: includes/class-admin.php:550
+msgid ""
+"Se conserva la referencia histórica de 5–10 productos por categoría. El "
+"tamaño solo señala casos para revisar:"
+msgstr ""
+"De historische referentie van 5–10 producten per categorie blijft behouden. "
+"De maat geeft alleen cases aan die beoordeeld moeten worden:"
+
+#: includes/class-admin.php:447
+msgid ""
+"Se conservan las cinco dimensiones del Auditor anterior; es una señal de "
+"priorización propia, no el algoritmo de un buscador."
+msgstr ""
+"De vijf dimensies van de vorige Auditor blijven behouden; Het is een signaal"
+" van eigen prioriteiten, niet van het algoritme van een zoekmachine."
+
+#: includes/class-admin.php:424
+msgid ""
+"se conservan los recuentos completos por regla y prioridad, pero las tareas "
+"mostradas son una muestra acotada para evitar informes demasiado pesados."
+msgstr ""
+"Volledige tellingen per regel en prioriteit worden behouden, maar de "
+"weergegeven taken zijn een beperkte steekproef om al te zware rapportage te "
+"voorkomen."
+
+#: includes/class-manual.php:67
+msgid "se mantiene y debe reflejar la versión del encabezado PHP."
+msgstr "wordt onderhouden en moet de versie van de PHP-header weerspiegelen."
+
+#: includes/class-manual.php:31
+msgid ""
+"se muestran después de los cinco ámbitos. No son ámbitos de contenido ni "
+"generan informes de auditoría."
+msgstr ""
+"worden na de vijf gebieden weergegeven. Het zijn geen inhoudsgebieden en ze "
+"genereren ook geen auditrapporten."
+
+#: includes/class-manual.php:52
+msgid "se registra"
+msgstr "registreert"
+
+#: includes/class-manual.php:58
+msgid "Se utilizan APIs nativas de WordPress ("
+msgstr "Er worden native WordPress API's gebruikt ("
+
+#: includes/class-admin.php:385
+msgid "segundos"
+msgstr "seconden"
+
+#: includes/class-auto-test.php:31 includes/class-auto-test.php:45
+msgid "Seguridad"
+msgstr "Beveiliging"
+
+#: includes/class-manual.php:33
+msgid "Selecciona un ámbito. En"
+msgstr "Selecteer een bereik. In"
+
+#: includes/class-runner.php:569
+msgid "Señales de desalineación entre título y cuerpo."
+msgstr "Tekenen van verkeerde uitlijning tussen titel en hoofdtekst."
+
+#: includes/class-auto-test.php:30
+msgid "Servicios Auditor cargados"
+msgstr "Auditorservices geladen"
+
+#: includes/class-manual.php:34
+msgid ""
+"Si el proceso está en cola o ejecución, muestra estado, progreso y botones"
+msgstr ""
+"Als het proces in de wachtrij staat of actief is, worden de status, "
+"voortgang en knoppen weergegeven"
+
+#: includes/class-admin.php:583
+msgid "Similitud de nombre:"
+msgstr "Naam gelijkenis:"
+
+#: includes/class-runner.php:546 includes/class-runner.php:590
+msgid "Sin categoría"
+msgstr "Niet gecategoriseerd"
+
+#: includes/class-runner.php:544 includes/class-runner.php:557
+msgid "Sin descripción"
+msgstr "Geen beschrijving"
+
+#: includes/class-admin.php:68
+msgid "Sin ejecutar"
+msgstr "Niet uitgevoerd"
+
+#: includes/class-rules.php:471
+msgid "Sin etiquetas semánticas asignadas."
+msgstr "Er zijn geen semantische tags toegewezen."
+
+#: includes/class-admin.php:499
+msgid "Sin hallazgos."
+msgstr "Geen bevindingen."
+
+#: includes/class-runner.php:559
+msgid "Sin Hub secundario"
+msgstr "Geen secundaire hub"
+
+#: includes/class-runner.php:531
+msgid "Sin incidencias detectadas"
+msgstr "Geen incidenten geconstateerd"
+
+#: includes/class-admin.php:419
+msgid "Sin incidencias registradas."
+msgstr "Geen incidenten geregistreerd."
+
+#: includes/class-runner.php:582
+msgid "Sin padre nativo"
+msgstr "Geen inheemse vader"
+
+#: includes/class-auto-test.php:215 includes/class-auto-test.php:255
+msgid "Sin permisos para Autocheck."
+msgstr "Geen rechten voor Autocheck."
+
+#: includes/class-manual.php:10
+msgid "Sin permisos para consultar este manual."
+msgstr "Zonder toestemming deze handleiding te raadplegen."
+
+#: includes/class-auto-test.php:230
+msgid "Sin permisos para descargar el autocheck."
+msgstr "Geen rechten om de autocheck te downloaden."
+
+#: includes/class-admin.php:137
+msgid "sin recuento disponible"
+msgstr "geen telling beschikbaar"
+
+#: includes/class-auto-test.php:286
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Geen regressie van succesvol naar mislukt."
+
+#: includes/class-runner.php:545
+msgid "Sin resumen"
+msgstr "Geen samenvatting"
+
+#: includes/class-rules.php:388
+msgid "Sin términos semánticos asignados."
+msgstr "Er zijn geen semantische termen toegewezen."
+
+#: includes/class-runner.php:547 includes/class-runner.php:558
+#: includes/class-runner.php:568 includes/class-runner.php:577
+msgid "Sin vocabulario"
+msgstr "Geen woordenschat"
+
+#: includes/class-manual.php:53
+msgid "sirven únicamente a las nuevas pestañas."
+msgstr "Ze serveren alleen nieuwe tabbladen."
+
+#: includes/class-rules.php:263 includes/class-rules.php:465
+msgid "Slug vacío."
+msgstr "Lege slak."
+
+#: includes/class-decision-context.php:67
+msgid ""
+"Snapshot local de TaxoCommerce Insights/Analyst; Auditor no descarga datos "
+"externos."
+msgstr ""
+"TaxoCommerce Insights/Analist Lokale momentopname; Auditor downloadt geen "
+"externe gegevens."
+
+#: includes/class-runner.php:561
+msgid "Sobre-dimensionadas"
+msgstr "Extra groot"
+
+#: includes/class-runner.php:571 includes/class-runner.php:580
+msgid "Solapamiento estructural"
+msgstr "Structurele overlap"
+
+#: includes/class-runner.php:570
+msgid ""
+"Solapamientos de intención con categorías, landings u otras URL canónicas."
+msgstr ""
+"Intentie overlapt met categorieën, landingen of andere canonieke URL's."
+
+#: includes/class-runner.php:579
+msgid ""
+"Solapamientos entre páginas estructurales, landings, posts y categorías."
+msgstr ""
+"Overlappingen tussen structurele pagina's, landingen, berichten en "
+"categorieën."
+
+#: includes/class-manual.php:53
+msgid "solo lee evidencias locales;"
+msgstr "lees alleen lokaal bewijsmateriaal;"
+
+#: includes/class-decision-context.php:539
+msgid ""
+"Sólo ordena dentro de la prioridad P existente; no cambia la clase de "
+"Auditor."
+msgstr ""
+"Sorteert alleen binnen de bestaande P-prioriteit; het verandert de klasse "
+"Auditor niet."
+
+#: includes/class-runner.php:646
+msgid ""
+"Solo propuestas de revisión. No se mueven ni eliminan categorías y no se "
+"crean redirecciones."
+msgstr ""
+"Alleen revisievoorstellen. Er worden geen categorieën verplaatst of "
+"verwijderd en er worden geen omleidingen gemaakt."
+
+#: includes/class-manual.php:60
+msgid ""
+"solo selecciona pantallas; los identificadores se validan con las listas "
+"permitidas."
+msgstr ""
+"alleen geselecteerde schermen; Identificatiegegevens worden gevalideerd op "
+"basis van acceptatielijsten."
+
+#: includes/class-manual.php:21
+msgid ""
+"Su fuente principal es WordPress/WooCommerce; otros módulos aportan contexto"
+" local cuando está disponible."
+msgstr ""
+"De belangrijkste bron is WordPress/WooCommerce; andere modules bieden lokale"
+" context indien beschikbaar."
+
+#: includes/class-manual.php:63
+msgid ""
+"Sus 16 verificaciones se limitan a contratos de clases, acciones "
+"registradas, disponibilidad WooCommerce, cinco ámbitos, bandas y "
+"prioridades, saneamiento de filtros, APIs del runner, almacenamiento y "
+"lectura de estados/informes/historial. No llama a"
+msgstr ""
+"De 16 controles zijn beperkt tot klassencontracten, geregistreerde acties, "
+"beschikbaarheid van WooCommerce, vijf scopes, banden en prioriteiten, "
+"filteropschoning, runner-API's, het opslaan en lezen van "
+"statussen/rapporten/geschiedenis. Belt niet"
+
+#: includes/class-auto-test.php:166
+msgid "Tamaño de lote fuera del contrato esperado."
+msgstr "Kavelgrootte buiten het verwachte contract."
+
+#: includes/class-runner.php:535
+msgid "Tareas que requieren revisión prioritaria."
+msgstr "Taken waarvoor prioriteitsbeoordeling vereist is."
+
+#: includes/class-admin.php:496
+msgid "tareas sobre"
+msgstr "taken over"
+
+#: includes/class-decision-context.php:222
+msgid "TaxoCommerce Assistant/Dependiente no está disponible."
+msgstr "TaxoCommerce Assistent/Verkoper is niet beschikbaar."
+
+#: includes/class-admin.php:48
+msgid "TaxoCommerce Auditor"
+msgstr "TaxoCommerce-auditor"
+
+#: taxocommerce-auditor.php:3
+msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
+msgstr "TaxoCommerce Auditor - Inhoudskwaliteit voor WooCommerce"
+
+#: includes/class-admin.php:190
+msgid "TaxoCommerce Auditor de contenidos"
+msgstr "TaxoCommerce-inhoudscontroleur"
+
+#: includes/class-manual.php:22
+msgid "TaxoCommerce Core → Auditor"
+msgstr "TaxoCommerce Core → Auditor"
+
+#: includes/class-decision-context.php:49
+msgid "TaxoCommerce Insights no está disponible."
+msgstr "TaxoCommerce Insights is niet beschikbaar."
+
+#: includes/class-auto-test.php:34
+msgid "Taxonomía de productos disponible"
+msgstr "Beschikbare producttaxonomie"
+
+#: includes/class-auto-test.php:291
+msgid "Tiempo"
+msgstr "Tijd"
+
+#: includes/class-admin.php:567
+msgid "Tipo"
+msgstr "Typ"
+
+#: includes/class-admin.php:194
+msgid "Tipos de contenido"
+msgstr "Inhoudstypen"
+
+#: includes/class-admin.php:94
+msgid "Título o ID"
+msgstr "Titel of ID"
+
+#: includes/class-rules.php:260 includes/class-rules.php:462
+msgid "Título vacío."
+msgstr "Lege titel."
+
+#: includes/class-runner.php:548
+msgid "Título, resumen, descripción o tags con señales de incoherencia."
+msgstr ""
+"Titel, samenvatting, beschrijving of tags met tekenen van inconsistentie."
+
+#: includes/class-runner.php:569
+msgid "Título/contenido incoherente"
+msgstr "Inconsistente titel/inhoud"
+
+#: includes/class-runner.php:572
+msgid "Títulos duplicados"
+msgstr "Dubbele titels"
+
+#: includes/class-manual.php:25
+msgid ""
+"Títulos, descripciones, extractos, SKU, categorías, atributos, vocabulario, "
+"duplicidad y coherencia técnica."
+msgstr ""
+"Titels, beschrijvingen, uittreksels, SKU's, categorieën, attributen, "
+"woordenschat, dubbelhartigheid en technische consistentie."
+
+#: includes/class-manual.php:27
+msgid ""
+"Títulos, slugs, contenido y posible solapamiento con otras entradas o "
+"landings."
+msgstr ""
+"Titels, slugs, inhoud en mogelijke overlap met andere inzendingen of "
+"landingen."
+
+#: includes/class-admin.php:100
+msgid "Todas"
+msgstr "Allemaal"
+
+#: includes/class-auto-test.php:267
+msgid "Todavía no hay resultados. Pulsa Ejecutar Autocheck."
+msgstr "Er zijn nog geen resultaten. Druk op Automatische controle uitvoeren."
+
+#: includes/class-runner.php:533
+msgid "Total de incidencias detectadas."
+msgstr "Totaal aantal gedetecteerde incidenten."
+
+#: includes/class-admin.php:148 includes/class-auto-test.php:276
+msgid "Último informe"
+msgstr "Laatste rapport"
+
+#: includes/class-manual.php:65
+msgid ""
+"Un Auto Test satisfactorio significa que los componentes y contratos están "
+"disponibles; no sustituye una auditoría completa de prueba ni verifica que "
+"se puedan exportar y recuperar datos desde el filesystem real. Para "
+"anomalías: verifica permisos, estado WP-Cron, instalación de WooCommerce, "
+"registro de las rutas, espacio del almacenamiento JSONL y errores PHP. Si "
+"falla una fuente opcional de FAQs, consulta las dependencias antes de "
+"modificar código."
+msgstr ""
+"Een succesvolle Zelftest betekent dat componenten en contracten beschikbaar "
+"zijn; Het is geen vervanging voor een volledige testaudit of verificatie dat"
+" gegevens kunnen worden geëxporteerd en hersteld vanuit het daadwerkelijke "
+"bestandssysteem. Voor afwijkingen: controleer rechten, WP-Cron-status, "
+"WooCommerce-installatie, padregistratie, JSONL-opslagruimte en PHP-fouten. "
+"Als een optionele FAQ-bron faalt, controleer dan de afhankelijkheden voordat"
+" u de code wijzigt."
+
+#: includes/class-manual.php:38
+msgid "una sugerencia no es una orden de modificación automática"
+msgstr "een suggestie is geen automatische wijzigingsopdracht"
+
+#: includes/class-rules.php:381
+msgid "Una única referencia publicada."
+msgstr "Eén gepubliceerde referentie."
+
+#: includes/class-manual.php:38
+msgid "Una vez finalizada la auditoría, accede a"
+msgstr "Zodra de audit is voltooid, opent u"
+
+#: includes/class-manual.php:36
+msgid ""
+"utilidad (25), confianza (20), diferenciación (20), arquitectura (20) y "
+"técnica (15)"
+msgstr ""
+"nut (25), vertrouwen (20), differentiatie (20), architectuur (20) en "
+"techniek (15)"
+
+#: includes/class-editorial-specialist.php:415
+msgid "Valorar consolidar contenido y mantener una sola URL propietaria."
+msgstr "Overweeg om inhoud te consolideren en één eigen URL te behouden."
+
+#: includes/class-runner.php:536
+msgid "Verificación de fuente"
+msgstr "Bronverificatie"
+
+#: includes/class-rules.php:481
+msgid ""
+"Verificar el vínculo nativo con el nivel superior antes de modificar la "
+"jerarquía."
+msgstr ""
+"Controleer de oorspronkelijke koppeling naar het hoogste niveau voordat u de"
+" hiërarchie wijzigt."
+
+#: includes/class-category-review.php:224
+msgid ""
+"Verificar landings, estructura y reglas de redirección antes de aprobar "
+"cualquier concentración."
+msgstr ""
+"Controleer de landings-, structuur- en omleidingsregels voordat u een "
+"concentratie goedkeurt."
+
+#: includes/class-rules.php:308
+msgid "Verificar si hay texto o datos desplazados procedentes del proveedor."
+msgstr "Controleer op verplaatste tekst of gegevens van de provider."
+
+#: includes/class-rules.php:419
+msgid ""
+"Verificar su pertinencia; una explicación técnica válida puede no repetir el"
+" título."
+msgstr ""
+"Controleer de relevantie ervan; een geldige technische uitleg mag de titel "
+"niet herhalen."
+
+#: includes/admin-branding.php:49
+msgid "Versión"
+msgstr "Versie"
+
+#: includes/class-admin.php:293
+msgid "Vistas del informe"
+msgstr "Rapportweergaven"
+
+#: includes/class-admin.php:583
+msgid "Vocabulary:"
+msgstr "Woordenschat:"
+
+#: includes/class-rules.php:248
+msgid "WooCommerce no pudo cargar el producto."
+msgstr "WooCommerce kan het product niet laden."
+
+#: includes/class-auto-test.php:112
+msgid "WooCommerce o el tipo product no están disponibles."
+msgstr "WooCommerce of het producttype zijn niet beschikbaar."
+
+#: includes/class-auto-test.php:33
+msgid "WooCommerce y productos disponibles"
+msgstr "WooCommerce en beschikbare producten"
+
+#: includes/class-admin.php:192
+msgid ""
+"WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local"
+" persistido de otros módulos cuando existe. No ejecuta APIs externas durante"
+" la auditoría."
+msgstr ""
+"Native WordPress/WooCommerce, Woordenschat, TaxoCommerce Veelgestelde vragen"
+" en aanhoudende lokale context van andere modules wanneer deze bestaat. "
+"Voert geen externe API's uit tijdens de audit."
+
+#: includes/class-manual.php:62
+msgid ""
+"y almacena solo los dos últimos resultados en el transitorio por usuario"
+msgstr ""
+"en slaat alleen de laatste twee resultaten op in de transiënt per gebruiker"
+
+#: includes/class-manual.php:62
+msgid "y nonce"
+msgstr "en nonce"
+
+#: includes/class-manual.php:60
+msgid "y un nonce asociado a cada ámbito. La navegación por"
+msgstr "en een nonce die aan elke reikwijdte is gekoppeld. Navigatie door"
 
 #: includes/class-admin.php:655
 msgid ""
 "Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote"
 " antes de reiniciarla."
 msgstr ""
-
-#: includes/class-admin.php:665
-msgid "Acción no reconocida."
-msgstr ""
-
-#: includes/class-admin.php:681
-msgid "No hay informe completo que exportar."
-msgstr ""
-
-#: includes/class-auto-test.php:213 includes/class-auto-test.php:227
-msgid "Sin permisos para Auto Test."
-msgstr ""
-
-#: includes/class-auto-test.php:232
-msgid "Auto Test de Auditor"
-msgstr ""
-
-#: includes/class-auto-test.php:233
-msgid ""
-"Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y "
-"disponibilidad de exportación. Es de solo lectura: no inicia procesos ni "
-"modifica contenidos. Se guardan dos resultados por usuario durante 30 días."
-msgstr ""
-
-#: includes/class-auto-test.php:239
-msgid "Todavía no hay resultados. Pulsa Ejecutar Auto Test."
-msgstr ""
-
-#: includes/class-auto-test.php:256
-msgid "No hay una ejecución anterior para comparar."
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Grupo"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Prueba"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Resultado"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Tiempo"
-msgstr ""
-
-#: includes/class-auto-test.php:263
-msgid ""
-"No demuestra por sí mismo que una auditoría completa o la exportación JSONL "
-"funcionen con un catálogo real."
-msgstr ""
-
-#: includes/class-manual.php:10
-msgid "Sin permisos para consultar este manual."
-msgstr ""
+"Er is al een audit van dit blok dat wordt verwerkt. Wacht tot de batch is "
+"voltooid voordat u deze opnieuw start."

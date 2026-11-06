@@ -1,79 +1,943 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-auditor\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.6\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: taxocommerce-auditor\n"
 
-#. Plugin Name of the plugin
-#: taxocommerce-auditor.php
-msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
-msgstr ""
+#: includes/class-manual.php:67
+msgid ", archivos de desarrollo y el estado FTP del ZIP; el archivo"
+msgstr ", development files and the FTP status of the ZIP; the file"
 
-#. Description of the plugin
-#: taxocommerce-auditor.php
+#: includes/class-manual.php:62
 msgid ""
-"Read-only WordPress and WooCommerce content quality audits with detailed "
-"KPIs and full JSON exports."
+", con caducidad de 30 días. No se añaden tablas, opciones permanentes ni "
+"procesos programados."
 msgstr ""
+", with an expiration of 30 days. No tables, permanent options or scheduled "
+"processes are added."
 
-#. Author of the plugin
-#: taxocommerce-auditor.php
-msgid "David Perez"
+#: includes/class-manual.php:38
+msgid ""
+", con propuestas de división/concentración basadas en evidencia local. El "
+"plan indica qué revisar primero y qué necesita contrastar fuentes;"
 msgstr ""
+", with division/concentration proposals based on local evidence. The plan "
+"indicates what to review first and what needs to be verified;"
 
-#: includes/class-admin.php:32
-msgid "No tienes permisos para consultar Auditor."
-msgstr ""
+#: includes/class-manual.php:55
+msgid ", lotes de"
+msgstr ", lots of"
 
-#: includes/class-admin.php:40
-msgid "Auditor de contenidos"
-msgstr ""
+#: includes/class-manual.php:58
+msgid ", posts, taxonomías y metadatos), WooCommerce ("
+msgstr ", posts, taxonomies and metadata), WooCommerce ("
 
-#: includes/class-admin.php:41 includes/class-admin.php:49
-msgid "Auditor"
-msgstr ""
+#: includes/class-manual.php:52
+msgid "; Core puede asociarlo como módulo mediante"
+msgstr "; Core can associate it as a module using"
 
-#: includes/class-admin.php:48
-msgid "TaxoCommerce Auditor"
+#: includes/class-manual.php:60
+msgid ""
+"; el segundo transmite el JSON de un ámbito con informe existente. Ambos "
+"requieren"
 msgstr ""
+"; the second transmits the JSON of an existing reporting scope. Both require"
 
-#: includes/class-admin.php:88
-msgid "Auditoría filtrada"
-msgstr ""
+#: includes/class-manual.php:34
+msgid "; una auditoría pausada puede"
+msgstr "; a leisurely audit can"
 
-#: includes/class-admin.php:88
-msgid "· revisión rápida de una muestra o búsqueda concreta."
-msgstr ""
+#: includes/class-manual.php:62
+msgid ". Ejecuta"
+msgstr ". Run"
 
-#: includes/class-admin.php:100
-msgid "Categoría"
-msgstr ""
+#: includes/class-manual.php:60
+msgid ". El primero admite tareas"
+msgstr ". The first one supports tasks"
 
-#: includes/class-admin.php:100
-msgid "Todas"
-msgstr ""
+#: includes/class-manual.php:38
+msgid ". En Categorías aparece además"
+msgstr ". In Categories it also appears"
 
-#: includes/class-admin.php:106 includes/class-admin.php:457
-msgid "Máximo"
-msgstr ""
+#: includes/class-manual.php:55
+msgid ". La ejecución usa el hook"
+msgstr ". The execution uses the hook"
 
-#: includes/class-admin.php:148
-msgid "Último informe"
+#: includes/class-manual.php:56
+msgid ""
+". La memoria de la interfaz retiene una muestra acotada. La ruta de "
+"almacenamiento debe tener permisos de escritura para las auditorías reales, "
+"pero Auto Test"
 msgstr ""
+". The interface memory retains a bounded sample. The storage path must be "
+"writable for actual audits, but Auto Test"
 
-#: includes/class-admin.php:161
-msgid "Auditoría completa"
+#: includes/class-manual.php:39
+msgid ""
+". La tabla mostrada en pantalla está acotada para no sobrecargar el "
+"navegador, pero los resultados completos se almacenan como JSONL y se "
+"transmiten al exportar. Si no existe un informe completo anterior, la opción"
+" de exportación no está disponible."
 msgstr ""
+". The table displayed on the screen is bounded so as not to overload the "
+"browser, but the complete results are stored as JSONL and transmitted when "
+"exporting. If a previous full report does not exist, the export option is "
+"not available."
+
+#: includes/class-manual.php:63
+msgid ". La última comprobación se marca No ejecutado intencionadamente."
+msgstr ". The last check is marked Not executed intentionally."
+
+#: includes/class-manual.php:36
+msgid ""
+". Las bandas orientativas son fuerte (85–100), correcta (70–84), mejorable "
+"(55–69) y débil (menos de 55). Si no hay evidencia suficiente, la calidad "
+"puede aparecer como no disponible; no debe interpretarse como cero."
+msgstr ""
+". The indicative bands are strong (85–100), correct (70–84), improvable "
+"(55–69) and weak (less than 55). If there is insufficient evidence, the "
+"quality may appear unavailable; should not be interpreted as zero."
+
+#: includes/class-manual.php:34
+msgid ""
+". Las ejecuciones largas dependen de WP-Cron. No repitas el arranque "
+"mientras esté procesándose el mismo ámbito."
+msgstr ""
+". Long runs depend on WP-Cron. Do not repeat the boot while the same scope "
+"is being processed."
+
+#: includes/class-manual.php:52
+msgid ". No depende del arranque del monolito ni de sus clases globales."
+msgstr ""
+". It does not depend on the startup of the monolith or its global classes."
 
 #: includes/class-admin.php:161
 msgid ""
 "· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la"
 " cola."
 msgstr ""
+"· Iterates through the entire published block in batch and generates a JSON "
+"without truncating the queue."
+
+#: includes/class-admin.php:88
+msgid "· revisión rápida de una muestra o búsqueda concreta."
+msgstr "· quick review of a sample or specific search."
+
+#: includes/class-manual.php:19
+msgid "1. Manual de usuario"
+msgstr "1. User Manual"
+
+#: includes/class-manual.php:20
+msgid "1.1 Objetivo y acceso"
+msgstr "1.1 Objective and access"
+
+#: includes/class-manual.php:23
+msgid "1.2 Los cinco ámbitos"
+msgstr "1.2 The five areas"
+
+#: includes/class-manual.php:32
+msgid "1.3 Auditoría filtrada y auditoría completa"
+msgstr "1.3 Filtered audit and full audit"
+
+#: includes/class-manual.php:35
+msgid "1.4 Cómo leer los KPIs"
+msgstr "1.4 How to read KPIs"
+
+#: includes/class-manual.php:37
+msgid "1.5 Vistas de informe"
+msgstr "1.5 Report views"
+
+#: includes/class-manual.php:40
+msgid "1.6 Prioridades y fuentes"
+msgstr "1.6 Priorities and sources"
+
+#: includes/class-manual.php:42
+msgid "1.7 Auto Test"
+msgstr "1.7 Self Test"
+
+#: includes/class-manual.php:45
+msgid "1.8 Secuencia recomendada"
+msgstr "1.8 Recommended sequence"
+
+#: includes/class-manual.php:50
+msgid "2. Manual técnico"
+msgstr "2. Technical manual"
+
+#: includes/class-manual.php:51
+msgid "2.1 Punto de entrada y arquitectura"
+msgstr "2.1 Entry point and architecture"
+
+#: includes/class-manual.php:54
+msgid "2.2 Estado, opciones y lotes"
+msgstr "2.2 Status, options and lots"
+
+#: includes/class-manual.php:57
+msgid "2.3 Fuentes y dependencias"
+msgstr "2.3 Sources and dependencies"
+
+#: includes/class-manual.php:59
+msgid "2.4 Acciones administrativas y permisos"
+msgstr "2.4 Administrative actions and permissions"
+
+#: includes/class-manual.php:61
+msgid "2.5 Auto Test: contrato y almacenamiento"
+msgstr "2.5 Self Test: contract and storage"
+
+#: includes/class-manual.php:64
+msgid "2.6 Diagnóstico y seguridad"
+msgstr "2.6 Diagnostics and safety"
+
+#: includes/class-manual.php:66
+msgid "2.7 Pruebas de regresión y distribución"
+msgstr "2.7 Regression and distribution testing"
+
+#: includes/class-admin.php:587
+msgid "Abrir categoría"
+msgstr "Open category"
+
+#: includes/class-auto-test.php:41
+msgid "Acceso a estados e informes guardados"
+msgstr "Access to saved statuses and reports"
+
+#: includes/class-manual.php:22
+msgid "Acceso: en el administrador de WordPress,"
+msgstr "Access: in the WordPress admin,"
+
+#: includes/class-admin.php:567
+msgid "Acción"
+msgstr "Action"
+
+#: includes/class-admin.php:665
+msgid "Acción no reconocida."
+msgstr "Unrecognized action."
+
+#: includes/class-manual.php:53
+msgid "adapta FAQs;"
+msgstr "adapts FAQs;"
+
+#: includes/class-auto-test.php:126
+msgid ""
+"Adaptador FAQ canónico y alternativa por CPT disponibles; la fuente puede "
+"ser opcional."
+msgstr ""
+"Canonical FAQ adapter and alternative by CPT available; font may be "
+"optional."
+
+#: includes/class-manual.php:41
+msgid "al hacer el análisis."
+msgstr "when doing the analysis."
+
+#: includes/class-auto-test.php:175
+msgid ""
+"Almacén JSONL y descarga completa disponibles, sin crear ni abrir archivos."
+msgstr ""
+"JSONL warehouse and full download available, without creating or opening "
+"files."
+
+#: includes/class-admin.php:390
+msgid "Alta"
+msgstr "High"
+
+#: includes/class-admin.php:580
+msgid "Ambiguos:"
+msgstr "Ambiguous:"
+
+#: includes/class-auto-test.php:32
+msgid "Ámbitos"
+msgstr "Scopes"
+
+#: includes/class-rules.php:272
+msgid "Añadir datos técnicos y comerciales comprobables."
+msgstr "Add verifiable technical and commercial data."
+
+#: includes/class-admin.php:599
+msgid "Analista, Ojeador, Dependiente y Comparador:"
+msgstr "Analyst, Scout, Dependent and Comparator:"
+
+#: includes/class-manual.php:43
+msgid ""
+"antes y después de actualizar. El resultado incluye 16 pruebas agrupadas, "
+"estados Correcto, Error y No ejecutado, versión, tiempo de ejecución y "
+"comparación con la anterior. Se conservan los dos últimos informes de cada "
+"usuario durante 30 días."
+msgstr ""
+"before and after updating. The result includes 16 grouped tests, Success, "
+"Error and Not executed statuses, version, execution time and comparison with"
+" the previous one. The last two reports for each user are retained for 30 "
+"days."
+
+#: includes/class-rules.php:537
+msgid "Aportar una respuesta concreta y verificable."
+msgstr "Provide a concrete and verifiable answer."
+
+#: includes/class-admin.php:454
+msgid "Arquitectura semántica"
+msgstr "Semantic architecture"
+
+#: includes/class-rules.php:580
+msgid "Asignar un owner canónico del tipo correcto."
+msgstr "Assign a canonical owner of the correct type."
+
+#: includes/class-rules.php:260
+msgid "Asignar un título identificativo."
+msgstr "Assign an identifying title."
+
+#: includes/class-rules.php:266
+msgid "Asignar una categoría existente apropiada."
+msgstr "Assign an appropriate existing category."
+
+#: includes/class-rules.php:563
+msgid ""
+"Asignar una categoría real de WooCommerce para conservar contexto comercial "
+"y semántico."
+msgstr ""
+"Assign an actual WooCommerce category to preserve business and semantic "
+"context."
+
+#: includes/class-admin.php:424
+msgid "Atención:"
+msgstr "Attention:"
+
+#: includes/class-admin.php:432
+msgid "Atender primero / verificar incidencias"
+msgstr "Attend first / verify incidents"
+
+#: includes/class-rules.php:302
+msgid "Atributo con valor pero sin nombre."
+msgstr "Attribute with value but no name."
+
+#: includes/class-runner.php:549
+msgid "Atributos que requieren validación o normalización."
+msgstr "Attributes that require validation or normalization."
+
+#: includes/admin-branding.php:47
+msgid ""
+"Audita la calidad del contenido, los indicadores y los informes de "
+"WooCommerce."
+msgstr "Audit the quality of WooCommerce content, metrics, and reports."
+
+#: includes/class-admin.php:164 includes/class-manual.php:33
+msgid "Auditar filtro"
+msgstr "Audit filter"
+
+#: includes/class-admin.php:162 includes/class-admin.php:225
+#: includes/class-manual.php:33
+msgid "Auditar todo"
+msgstr "Audit everything"
+
+#: includes/class-admin.php:41 includes/class-admin.php:49
+#: includes/class-auto-test.php:84 includes/class-manual.php:22
+msgid "Auditor"
+msgstr "Auditor"
+
+#: includes/class-admin.php:40
+msgid "Auditor de contenidos"
+msgstr "Content auditor"
+
+#: includes/class-manual.php:21
+msgid ""
+"Auditor detecta incidencias de calidad editorial y estructura, propone "
+"prioridades de revisión y presenta informes."
+msgstr ""
+"Auditor detects incidents of editorial quality and structure, proposes "
+"review priorities and presents reports."
+
+#: includes/class-admin.php:595
+msgid ""
+"Auditor evalúa consistencia interna y no consulta directamente APIs de "
+"buscadores, compras ni analítica."
+msgstr ""
+"Auditor evaluates internal consistency and does not directly consult search "
+"engine, purchasing or analytics APIs."
+
+#: includes/class-manual.php:41
+msgid "Auditor no consulta Google, Bing ni APIs externas"
+msgstr "Auditor does not consult Google, Bing or external APIs"
+
+#: includes/class-admin.php:161
+msgid "Auditoría completa"
+msgstr "Complete audit"
+
+#: includes/class-admin.php:134
+msgid "Auditoría de"
+msgstr "Audit of"
+
+#: taxocommerce-auditor.php:59
+msgid "Auditoria de calidad editorial por bloques, solo lectura."
+msgstr "Editorial quality audit by blocks, read only."
+
+#: includes/class-admin.php:88 includes/class-manual.php:33
+msgid "Auditoría filtrada"
+msgstr "Leaked audit"
+
+#: includes/class-auto-test.php:38 includes/class-auto-test.php:39
+msgid "Auditorías"
+msgstr "Audits"
+
+#: includes/class-auto-test.php:45
+msgid "Auditorías completas, exportaciones y cambios"
+msgstr "Complete audits, exports and changes"
+
+#: includes/class-manual.php:31 includes/class-manual.php:43
+msgid "Auto Test"
+msgstr "Self Test"
+
+#: includes/class-admin.php:198
+msgid "Autocheck"
+msgstr "Self check"
+
+#: includes/class-auto-test.php:260
+msgid "Autocheck de Auditor"
+msgstr "Auditor Self-Check"
+
+#: includes/class-admin.php:641 includes/class-admin.php:676
+msgid "Bloque Auditor no reconocido."
+msgstr "Auditor block not recognized."
+
+#: includes/class-admin.php:94
+msgid "Buscar"
+msgstr "Search"
+
+#: includes/class-admin.php:494
+msgid ""
+"Cada tarea incluye prioridad, estado, evidencia y recomendación. Una "
+"prioridad alta no autoriza a modificar automáticamente contenidos."
+msgstr ""
+"Each task includes priority, status, evidence, and recommendation. A high "
+"priority does not authorize automatic modification of content."
+
+#: includes/class-admin.php:471 includes/class-auto-test.php:36
+#: includes/class-auto-test.php:37
+msgid "Calidad"
+msgstr "Quality"
+
+#: includes/class-runner.php:538
+msgid "Calidad débil"
+msgstr "Weak quality"
+
+#: includes/class-admin.php:280
+msgid "Calidad interna"
+msgstr "Internal quality"
+
+#: includes/class-runner.php:537
+msgid "Calidad media"
+msgstr "Average quality"
+
+#: includes/class-admin.php:392
+msgid "Calidad media / 100"
+msgstr "Medium quality / 100"
+
+#: includes/class-editorial-specialist.php:426
+msgid "Candidatas a revisar para posible fusión; no aplicar automáticamente."
+msgstr "Candidates to review for possible merger; do not apply automatically."
+
+#: includes/class-runner.php:570 includes/class-runner.php:579
+msgid "Canibalización"
+msgstr "Cannibalization"
+
+#: includes/class-runner.php:536
+msgid "Casos que no deben corregirse sin contrastar fabricante/proveedor."
+msgstr ""
+"Cases that should not be corrected without comparing the "
+"manufacturer/supplier."
+
+#: includes/class-admin.php:100
+msgid "Categoría"
+msgstr "Category"
+
+#: includes/class-rules.php:373
+msgid "Categoría con productos y sin descripción."
+msgstr "Category with products and no description."
+
+#: includes/class-admin.php:567
+msgid "Categoría origen"
+msgstr "Origin Category"
+
+#: includes/class-rules.php:385
+msgid "Categoría padre no encontrada."
+msgstr "Parent category not found."
+
+#: includes/class-admin.php:346 includes/class-auto-test.php:34
+msgid "Categorías"
+msgstr "Categories"
+
+#: includes/class-runner.php:561
+msgid "Categorías candidatas a división."
+msgstr "Candidate categories for division."
+
+#: includes/class-runner.php:560
+msgid "Categorías candidatas a revisión por poca profundidad."
+msgstr "Candidate categories for review due to lack of depth."
+
+#: includes/class-runner.php:556
+msgid "Categorías con profundidad comercial mínima."
+msgstr "Categories with minimum commercial depth."
+
+#: includes/class-runner.php:558
+msgid "Categorías sin clasificación semántica nativa."
+msgstr "Categories without native semantic classification."
+
+#: includes/class-runner.php:557
+msgid "Categorías sin contenido descriptivo."
+msgstr "Categories without descriptive content."
+
+#: includes/class-runner.php:559
+msgid "Categorías sin encaje arquitectónico nativo."
+msgstr "Categories without native architectural fit."
+
+#: includes/class-runner.php:555
+msgid "Categorías sin productos."
+msgstr "Categories without products."
+
+#: includes/class-runner.php:555
+msgid "Categorías vacías"
+msgstr "Empty categories"
+
+#: includes/class-manual.php:26 includes/class-runner.php:24
+msgid "Categorías y arquitectura"
+msgstr "Categories and architecture"
+
+#: includes/class-auto-test.php:135
+msgid "Cinco dimensiones suman 100 y las bandas responden como se espera."
+msgstr "Five dimensions add up to 100 and the bands respond as expected."
+
+#: includes/class-auto-test.php:32
+msgid "Cinco tipos de contenido"
+msgstr "Five types of content"
+
+#: includes/class-auto-test.php:146
+msgid ""
+"Clasificación P1 requiere verificación de fuente; no se crea ningún "
+"hallazgo."
+msgstr ""
+"P1 classification requires source verification; no finding is created."
+
+#: includes/class-editorial-specialist.php:364
+msgid "Clasificar la página existente antes de crear nuevas URLs."
+msgstr "Classify the existing page before creating new URLs."
+
+#: includes/class-runner.php:532
+msgid "Cobertura limpia"
+msgstr "Clean coverage"
+
+#: includes/class-admin.php:536
+msgid "Código de hallazgo"
+msgstr "Find code"
+
+#: includes/class-auto-test.php:285
+msgid "Comparativa:"
+msgstr "Comparison:"
+
+#: includes/class-admin.php:146
+msgid "completa"
+msgstr "complete"
+
+#: includes/class-admin.php:63
+msgid "Completado"
+msgstr "Completed"
+
+#: includes/class-rules.php:304
+msgid "Completar el valor o retirar el atributo vacío."
+msgstr "Fill in the value or remove the empty attribute."
+
+#: includes/class-rules.php:534
+msgid "Completar o retirar la pregunta."
+msgstr "Complete or withdraw the question."
+
+#: includes/class-auto-test.php:84
+msgid "componentes cargados."
+msgstr "loaded components."
+
+#: includes/class-rules.php:385
+msgid "Comprobar la jerarquía nativa de producto."
+msgstr "Check the native product hierarchy."
+
+#: includes/class-rules.php:465
+msgid "Comprobar la URL de esta publicación."
+msgstr "Check the URL of this post."
+
+#: includes/class-rules.php:432
+msgid ""
+"Comprobar si el vínculo existe en el modelo nativo o la categoría es "
+"deliberadamente independiente."
+msgstr ""
+"Check if the link exists in the native model or the category is deliberately"
+" independent."
+
+#: includes/class-rules.php:347
+msgid "Comprobar si existe otro identificador estable en el proveedor."
+msgstr "Check if another stable identifier exists on the provider."
+
+#: includes/class-rules.php:338
+msgid "Comprobar si la etiqueta describe realmente el producto."
+msgstr "Check if the label really describes the product."
+
+#: includes/class-auto-test.php:261
+msgid ""
+"Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y "
+"disponibilidad de exportación. Es de solo lectura: no inicia procesos ni "
+"modifica contenidos. Se guardan dos resultados por usuario durante 30 días."
+msgstr ""
+"Check services, routes, scopes, quality, options, history, FAQ and export "
+"availability. It is read-only: it does not start processes or modify "
+"content. Two results are saved per user for 30 days."
+
+#: includes/class-runner.php:556
+msgid "Con un solo producto"
+msgstr "With a single product"
+
+#: includes/class-admin.php:574
+msgid "Concentración en hermana"
+msgstr "Focus on sister"
+
+#: includes/class-admin.php:452
+msgid "Confianza y rigor"
+msgstr "Trust and rigor"
+
+#: includes/class-runner.php:549
+msgid "Conflictos de atributos"
+msgstr "Attribute conflicts"
+
+#: includes/class-editorial-specialist.php:377
+msgid ""
+"Conservar la intención amplia en el cluster/hub y revisar el post duplicado."
+msgstr ""
+"Keep the broad intent in the cluster/hub and review the duplicate post."
+
+#: includes/class-editorial-specialist.php:439
+msgid ""
+"Conservar la landing transversal y revisar el alcance del post informativo."
+msgstr ""
+"Maintain the transversal landing and review the scope of the informative "
+"post."
+
+#: includes/class-runner.php:567 includes/class-runner.php:576
+msgid "Contenido débil"
+msgstr "Weak content"
+
+#: includes/class-manual.php:28
+msgid ""
+"Contenido, títulos, estructura, jerarquía y roles SEO disponibles en "
+"metadatos locales."
+msgstr ""
+"Content, titles, structure, hierarchy and SEO roles available in local "
+"metadata."
+
+#: includes/class-admin.php:283 includes/class-admin.php:595
+msgid "Contexto de decisión"
+msgstr "Decision context"
+
+#: includes/class-admin.php:601
+msgid ""
+"Contexto leído exclusivamente de proveedores persistidos mediante el filtro "
+"de integración del nuevo Auditor."
+msgstr ""
+"Context read exclusively from providers persisted using the new Auditor "
+"integration filter."
+
+#: includes/class-rules.php:407
+msgid "Contrastar el resumen con la familia correcta."
+msgstr "Contrast the summary with the correct family."
+
+#: includes/class-rules.php:276
+msgid ""
+"Contrastar título y resumen con la fuente original; posible desplazamiento "
+"de contenido."
+msgstr ""
+"Contrast title and summary with the original source; possible content "
+"displacement."
+
+#: includes/class-auto-test.php:199
+msgid ""
+"Contrato de evidencia local disponible; no se consultan servicios externos."
+msgstr ""
+"Local evidence contract available; external services are not consulted."
+
+#: includes/class-auto-test.php:40
+msgid "Contratos del almacén JSONL y descarga"
+msgstr "JSONL warehouse contracts and download"
+
+#: includes/class-manual.php:53
+msgid "controla lotes/estados;"
+msgstr "controls batches/states;"
+
+#: includes/class-admin.php:465
+msgid "Correcta"
+msgstr "Correct"
+
+#: includes/class-auto-test.php:277
+msgid "correctas"
+msgstr "correct"
+
+#: includes/class-auto-test.php:292
+msgid "Correcto"
+msgstr "Correct"
+
+#: includes/class-rules.php:302
+msgid "Corregir el nombre del atributo mediante WooCommerce."
+msgstr "Correct the attribute name using WooCommerce."
+
+#: includes/class-manual.php:33
+msgid ""
+"crea una auditoría completa por lotes del ámbito elegido; el informe solo se"
+" considera representativo del conjunto cuando termina sin interrupciones."
+msgstr ""
+"creates a full batch audit of the chosen scope; The report is only "
+"considered representative of the whole when it ends without interruptions."
+
+#: includes/class-admin.php:389
+msgid "Críticos"
+msgstr "Critics"
+
+#: includes/class-runner.php:534
+msgid "Críticos + alta"
+msgstr "Critics + high"
+
+#: includes/class-manual.php:22
+msgid "cuando Core está instalado, o menú propio"
+msgstr "when Core is installed, or own menu"
+
+#: includes/class-admin.php:523
+msgid "Datos de contexto"
+msgstr "Context data"
+
+#: includes/class-admin.php:599
+msgid ""
+"datos no disponibles para este informe. Ausente no significa cero; no se ha "
+"inventado ningún valor."
+msgstr ""
+"data not available for this report. Absent does not mean zero; no value has "
+"been invented."
+
+#: includes/class-admin.php:465
+msgid "Débil"
+msgstr "Weak"
+
+#: includes/class-manual.php:52
+msgid "declara el plugin y la clase"
+msgstr "declare the plugin and the class"
+
+#: includes/class-manual.php:53
+msgid "definen la inspección y la priorización;"
+msgstr "define inspection and prioritization;"
+
+#: includes/class-rules.php:462
+msgid "Definir un título útil para la intención real."
+msgstr "Define a useful title for the real intention."
+
+#: includes/class-runner.php:548
+msgid "Deriva de identidad"
+msgstr "Identity drift"
+
+#: includes/class-runner.php:591
+msgid "Deriva semántica"
+msgstr "Semantic drift"
+
+#: includes/class-auto-test.php:273
+msgid "Descargar resultados (JSON)"
+msgstr "Download results (JSON)"
+
+#: includes/class-rules.php:269
+msgid "Descripción corta vacía."
+msgstr "Empty short description."
+
+#: includes/class-rules.php:272
+msgid "Descripción larga vacía."
+msgstr "Empty long description."
+
+#: includes/class-manual.php:26
+msgid ""
+"Descripción, jerarquía, estructura, cobertura y propuestas de revisión para "
+"dividir o concentrar categorías con evidencia."
+msgstr ""
+"Description, hierarchy, structure, coverage and revision proposals to divide"
+" or concentrate categories with evidence."
+
+#: includes/class-admin.php:582
+msgid "Destino sugerido:"
+msgstr "Suggested destination:"
+
+#: includes/class-admin.php:270
+msgid "Detalle del informe"
+msgstr "Report detail"
+
+#: includes/class-admin.php:368
+msgid "Diagnóstico específico"
+msgstr "Specific diagnosis"
+
+#: includes/class-admin.php:453
+msgid "Diferenciación / canibalización"
+msgstr "Differentiation/cannibalization"
+
+#: includes/class-editorial-specialist.php:351
+msgid ""
+"Diferenciar intención informativa y cobertura estructural antes de "
+"enriquecer."
+msgstr ""
+"Differentiate informative intention and structural coverage before "
+"enriching."
+
+#: includes/class-admin.php:457
+msgid "Dimensión"
+msgstr "Dimension"
+
+#: includes/class-admin.php:471
+msgid "Dimensiones"
+msgstr "Dimensions"
+
+#: includes/class-admin.php:574
+msgid "División por TIPO"
+msgstr "Division by TYPE"
+
+#: includes/class-manual.php:15
+msgid ""
+"Documentación integrada de la versión independiente: guía de uso y "
+"referencia técnica. Consultarla no ejecuta auditorías ni modifica el "
+"catálogo."
+msgstr ""
+"Integrated documentation of the standalone version: user guide and technical"
+" reference. Consulting it does not execute audits or modify the catalog."
+
+#: includes/class-runner.php:592
+msgid "Duplicadas en mismo owner"
+msgstr "Duplicated in the same owner"
+
+#: includes/class-admin.php:619
+msgid "Duración"
+msgstr "Duration"
+
+#: includes/class-admin.php:385
+msgid "Duración:"
+msgstr "Duration:"
+
+#: includes/class-auto-test.php:165
+msgid "Ejecución por lotes y controles disponibles; ningún cron se dispara."
+msgstr "Batch execution and controls available; no cron is fired."
+
+#: includes/class-auto-test.php:236
+msgid "Ejecuta el autocheck antes de descargar el JSON."
+msgstr "Run the autocheck before downloading the JSON."
+
+#: includes/class-manual.php:43
+msgid "Ejecutar Auto Test"
+msgstr "Run Self Test"
+
+#: includes/class-auto-test.php:264
+msgid "Ejecutar Autocheck"
+msgstr "Run Autocheck"
+
+#: includes/class-rules.php:398
+msgid "El campo de resumen nativo suministrado está vacío."
+msgstr "The supplied native summary field is empty."
+
+#: includes/class-decision-context.php:499
+msgid ""
+"El contexto sólo puede ordenar dentro de la misma P1-P5; no cambia la clase "
+"del hallazgo."
+msgstr ""
+"The context can only order within the same P1-P5; it does not change the "
+"class of the find."
+
+#: includes/class-auto-test.php:147
+msgid "El contrato de prioridades no coincide."
+msgstr "The priority contract does not match."
+
+#: includes/class-admin.php:426
+msgid ""
+"El índice de calidad es una evaluación interna para ordenar revisiones. No "
+"equivale a una puntuación de Google ni de Bing."
+msgstr ""
+"The quality index is an internal evaluation to order revisions. It is not "
+"equivalent to a Google or Bing score."
+
+#: includes/class-admin.php:496
+msgid "El listado es una muestra priorizada de"
+msgstr "The list is a prioritized sample of"
+
+#: includes/class-rules.php:579
+msgid ""
+"El owner de FAQ no pertenece a los tipos canónicos página/hub, categoría o "
+"producto."
+msgstr ""
+"The FAQ owner does not belong to the canonical types page/hub, category or "
+"product."
+
+#: includes/class-admin.php:408
+msgid ""
+"El panel completo de KPIs de este tipo se muestra encima del detalle del "
+"informe."
+msgstr ""
+"The complete panel of KPIs of this type is displayed above the report "
+"detail."
+
+#: includes/class-manual.php:67
+msgid "El repositorio contiene"
+msgstr "The repository contains"
+
+#: includes/class-rules.php:406
+msgid "El resumen no parece corresponder al nombre de la categoría."
+msgstr "The summary does not appear to correspond to the category name."
+
+#: includes/class-rules.php:320
+msgid ""
+"El título y los atributos muestran valores técnicos incompatibles; "
+"contrastar con el fabricante."
+msgstr ""
+"The title and attributes show incompatible technical values; Compare with "
+"the manufacturer."
+
+#: includes/class-manual.php:22
+msgid "en caso contrario. El administrador debe contar con permiso"
+msgstr "otherwise. The administrator must have permission"
+
+#: includes/class-admin.php:61
+msgid "En cola"
+msgstr "in queue"
+
+#: includes/class-admin.php:62
+msgid "En curso"
+msgstr "In progress"
+
+#: includes/class-manual.php:39
+msgid "En los informes completos puedes descargar"
+msgstr "In the full reports you can download"
+
+#: includes/class-admin.php:471 includes/class-admin.php:504
+msgid "Entidad"
+msgstr "Entity"
+
+#: includes/class-runner.php:530
+msgid "Entidades auditadas"
+msgstr "Audited entities"
+
+#: includes/class-runner.php:531
+msgid "Entidades auditadas sin hallazgos en las reglas activas."
+msgstr "Audited entities without findings in active rules."
+
+#: includes/class-runner.php:538
+msgid "Entidades clasificadas en la banda interna más baja."
+msgstr "Entities classified in the lowest internal band."
+
+#: includes/class-admin.php:470
+msgid "Entidades con menor puntuación"
+msgstr "Entities with the lowest score"
+
+#: includes/class-admin.php:448
+msgid "Entidades puntuadas:"
+msgstr "Rated entities:"
+
+#: includes/class-admin.php:387
+msgid "Entidades revisadas"
+msgstr "Reviewed entities"
+
+#: includes/class-admin.php:65 includes/class-auto-test.php:292
+msgid "Error"
+msgstr "Error"
 
 #: includes/class-admin.php:191
 msgid ""
@@ -81,199 +945,298 @@ msgid ""
 "errores, incoherencias y trabajo pendiente; no publica, borra, mueve ni "
 "redirige contenidos."
 msgstr ""
+"Read-only specialist in content quality and integrity. Detects errors, "
+"inconsistencies and pending work; does not publish, delete, move or redirect"
+" content."
 
-#: includes/class-admin.php:192
-msgid "Fuentes:"
-msgstr ""
-
-#: includes/class-admin.php:192
-msgid ""
-"WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local"
-" persistido de otros módulos cuando existe. No ejecuta APIs externas durante"
-" la auditoría."
-msgstr ""
-
-#: includes/class-admin.php:225
-msgid ""
-"Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
-"bloque. Para indicadores representativos del conjunto, utiliza"
-msgstr ""
-
-#: includes/class-admin.php:225
-msgid "Auditar todo"
-msgstr ""
-
-#: includes/class-admin.php:270
-msgid "Detalle del informe"
-msgstr ""
-
-#: includes/class-admin.php:272
-msgid ""
-"No hay todavía un informe finalizado para este bloque. Ejecuta Auditar y "
-"consulta su estado."
-msgstr ""
-
-#: includes/class-admin.php:361
-msgid "Estado general"
-msgstr ""
-
-#: includes/class-admin.php:368
-msgid "Diagnóstico específico"
-msgstr ""
-
-#: includes/class-admin.php:374
-msgid "No hay indicadores específicos disponibles para este bloque."
-msgstr ""
-
-#: includes/class-admin.php:384
-msgid "Resumen del último análisis"
-msgstr ""
-
-#: includes/class-admin.php:403
-msgid "KPIs específicos"
-msgstr ""
-
-#: includes/class-admin.php:408
-msgid ""
-"El panel completo de KPIs de este tipo se muestra encima del detalle del "
-"informe."
-msgstr ""
-
-#: includes/class-admin.php:413
-msgid "Reglas con más incidencias"
-msgstr ""
-
-#: includes/class-admin.php:414
-msgid "Regla"
-msgstr ""
-
-#: includes/class-admin.php:414 includes/class-admin.php:619
-msgid "Hallazgos"
-msgstr ""
-
-#: includes/class-admin.php:419
-msgid "Sin incidencias registradas."
-msgstr ""
-
-#: includes/class-admin.php:424
-msgid "Atención:"
-msgstr ""
-
-#: includes/class-admin.php:424
-msgid ""
-"se conservan los recuentos completos por regla y prioridad, pero las tareas "
-"mostradas son una muestra acotada para evitar informes demasiado pesados."
-msgstr ""
-
-#: includes/class-admin.php:426
-msgid ""
-"El índice de calidad es una evaluación interna para ordenar revisiones. No "
-"equivale a una puntuación de Google ni de Bing."
-msgstr ""
-
-#: includes/class-admin.php:430
-msgid "Plan de trabajo · prioridades P1–P5"
-msgstr ""
-
-#: includes/class-admin.php:447
-msgid "Puntuación interna de calidad"
-msgstr ""
-
-#: includes/class-admin.php:447
-msgid ""
-"Se conservan las cinco dimensiones del Auditor anterior; es una señal de "
-"priorización propia, no el algoritmo de un buscador."
-msgstr ""
-
-#: includes/class-admin.php:457
-msgid "Dimensión"
-msgstr ""
-
-#: includes/class-admin.php:470
-msgid "Entidades con menor puntuación"
-msgstr ""
-
-#: includes/class-admin.php:471 includes/class-admin.php:504
-msgid "Entidad"
-msgstr ""
-
-#: includes/class-admin.php:471
-msgid "Calidad"
-msgstr ""
-
-#: includes/class-admin.php:471
-msgid "Dimensiones"
-msgstr ""
-
-#: includes/class-admin.php:493
-msgid "Plan de revisión priorizado"
-msgstr ""
-
-#: includes/class-admin.php:494
-msgid ""
-"Cada tarea incluye prioridad, estado, evidencia y recomendación. Una "
-"prioridad alta no autoriza a modificar automáticamente contenidos."
-msgstr ""
-
-#: includes/class-admin.php:499
-msgid "Sin hallazgos."
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Prioridad"
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Problema"
-msgstr ""
-
-#: includes/class-admin.php:504 includes/class-admin.php:567
-msgid "Evidencia"
-msgstr ""
-
-#: includes/class-admin.php:504
-msgid "Recomendación"
-msgstr ""
-
-#: includes/class-admin.php:504 includes/class-auto-test.php:258
-msgid "Estado"
-msgstr ""
-
-#: includes/class-admin.php:532
-msgid "Hallazgos por regla"
-msgstr ""
+#: includes/class-admin.php:433
+msgid "Esperar enriquecimiento"
+msgstr "Expect enrichment"
 
 #: includes/class-admin.php:535
 msgid ""
 "Esta vista resume la totalidad de incidencias contabilizadas, no solo las "
 "que caben en la muestra de tareas."
 msgstr ""
+"This view summarizes all the incidents recorded, not just those that fit in "
+"the task sample."
 
-#: includes/class-admin.php:536
-msgid "Código de hallazgo"
+#: includes/class-admin.php:504 includes/class-auto-test.php:291
+msgid "Estado"
+msgstr "Status"
+
+#: includes/class-admin.php:361
+msgid "Estado general"
+msgstr "General condition"
+
+#: includes/class-admin.php:135
+msgid "Estado:"
+msgstr "Status:"
+
+#: includes/class-auto-test.php:184
+msgid ""
+"Estados e informes de los cinco ámbitos legibles; no se procesan datos."
+msgstr "States and reports of the five readable areas; no data is processed."
+
+#: includes/class-admin.php:504 includes/class-admin.php:567
+msgid "Evidencia"
+msgstr "Evidence"
+
+#: includes/class-decision-context.php:425
+msgid "Evidencia local agregada de productos de esta categoría."
+msgstr "Aggregated local evidence of products in this category."
+
+#: includes/class-decision-context.php:392
+msgid "Evidencia local asociada directamente al producto."
+msgstr "Local evidence directly associated with the product."
+
+#: includes/class-category-review.php:205
+msgid ""
+"Examinar los productos ambiguos y validar manualmente los destinos de cada "
+"cohorte antes de dividir."
 msgstr ""
+"Examine ambiguous products and manually validate destinations for each "
+"cohort before splitting."
+
+#: includes/class-manual.php:62
+msgid "exige"
+msgstr "demands"
+
+#: includes/class-rules.php:373
+msgid "Explicar qué productos comprende y cuáles no."
+msgstr "Explain which products you understand and which you don't."
+
+#: includes/class-auto-test.php:40
+msgid "Exportación"
+msgstr "Export"
+
+#: includes/class-auto-test.php:277
+msgid "fallidas"
+msgstr "failed"
+
+#: includes/class-auto-test.php:172
+msgid "Falta Export_Store::"
+msgstr "Export_Store is missing::"
+
+#: includes/class-auto-test.php:81
+msgid "Falta la clase"
+msgstr "class is missing"
+
+#: includes/class-auto-test.php:161
+msgid "Falta Runner::"
+msgstr "Runner missing::"
+
+#: includes/class-auto-test.php:35 includes/class-manual.php:29
+#: includes/class-runner.php:27
+msgid "FAQs"
+msgstr "FAQs"
+
+#: includes/class-auto-test.php:276
+msgid "Fecha de ejecución:"
+msgstr "Execution date:"
+
+#: includes/class-admin.php:619
+msgid "Fecha UTC"
+msgstr "UTC date"
+
+#: includes/class-decision-context.php:228
+msgid ""
+"Feedback local persistido de TaxoCommerce Assistant/Dependiente; no ejecuta "
+"búsquedas."
+msgstr ""
+"Persistent local feedback from TaxoCommerce Assistant/Dependent; does not "
+"run searches."
+
+#: includes/class-admin.php:146
+msgid "filtrada"
+msgstr "filtered"
+
+#: includes/class-auto-test.php:154
+msgid "Filtros acotados y modo completo distinguidos sin ejecutar auditorías."
+msgstr "Bounded filters and full mode distinguished without running audits."
+
+#: includes/class-auto-test.php:38
+msgid "Filtros y límites disponibles"
+msgstr "Filters and limits available"
+
+#: includes/class-admin.php:385
+msgid "Finalizado:"
+msgstr "Finished:"
+
+#: includes/class-auto-test.php:181
+msgid "Formato de estado o informe inválido para"
+msgstr "Invalid status or report format for"
+
+#: includes/class-auto-test.php:59
+msgid "Formato de resultado de prueba no reconocido."
+msgstr "Unrecognized test result format."
+
+#: includes/class-auto-test.php:98
+msgid ""
+"Formularios, descargas, Autocheck y callback de lotes registrados, sin "
+"invocarlos."
+msgstr ""
+"Forms, downloads, Autocheck and callback of registered batches, without "
+"invoking them."
+
+#: includes/class-auto-test.php:35
+msgid "Fuente FAQ opcional o alternativa"
+msgstr "Optional or alternative FAQ source"
+
+#: includes/class-admin.php:66
+msgid "Fuente no disponible"
+msgstr "Source not available"
+
+#: includes/class-admin.php:596
+msgid "Fuentes nativas disponibles para esta ejecución:"
+msgstr "Native fonts available for this run:"
+
+#: includes/class-admin.php:192
+msgid "Fuentes:"
+msgstr "Sources:"
+
+#: includes/class-admin.php:465
+msgid "Fuerte"
+msgstr "strong"
+
+#: includes/class-manual.php:53
+msgid "gestiona JSONL;"
+msgstr "manages JSONL;"
+
+#: includes/class-auto-test.php:291
+msgid "Grupo"
+msgstr "Group"
+
+#: includes/class-auto-test.php:205
+msgid "Guía de usuario y guía técnica integradas."
+msgstr "Integrated user guide and technical guide."
+
+#: includes/class-auto-test.php:44
+msgid "Guías de usuario y técnico"
+msgstr "User and technical guides"
+
+#: includes/class-admin.php:150
+msgid "hallazgos"
+msgstr "findings"
+
+#: includes/class-admin.php:282 includes/class-admin.php:388
+#: includes/class-admin.php:414 includes/class-admin.php:619
+#: includes/class-runner.php:533
+msgid "Hallazgos"
+msgstr "Findings"
+
+#: includes/class-admin.php:532
+msgid "Hallazgos por regla"
+msgstr "Findings by rule"
+
+#: includes/class-admin.php:496
+msgid "hallazgos. Consulta los contadores completos en Resumen."
+msgstr "findings. See the complete counters in Summary."
+
+#: includes/class-auto-test.php:136
+msgid "Hay un desajuste en los criterios de calidad."
+msgstr "There is a mismatch in quality criteria."
+
+#: includes/class-admin.php:284
+msgid "Historial"
+msgstr "History"
+
+#: includes/class-admin.php:614
+msgid "Historial de auditorías completadas"
+msgstr "History of completed audits"
+
+#: includes/class-auto-test.php:193
+msgid ""
+"Historial de cinco ámbitos disponible; puede estar vacío sin ser un error."
+msgstr "Five scope history available; can be empty without being an error."
+
+#: includes/class-auto-test.php:42
+msgid "Historial de los cinco ámbitos"
+msgstr "History of the five areas"
+
+#: includes/class-auto-test.php:190
+msgid "Historial no disponible:"
+msgstr "History not available:"
+
+#: includes/class-rules.php:481
+msgid "Hub sin padre identificado en post_meta de Core."
+msgstr "Hub with no parent identified in Core post_meta."
+
+#: includes/class-runner.php:572
+msgid "Identidades editoriales repetidas dentro del bloque."
+msgstr "Repeated editorial identities within the block."
 
 #: includes/class-admin.php:536
 msgid "Incidencias"
-msgstr ""
+msgstr "Incidents"
 
-#: includes/class-admin.php:541
-msgid "Ninguna incidencia."
-msgstr ""
+#: includes/class-runner.php:534
+msgid "Incidencias con mayor severidad."
+msgstr "Incidents with greater severity."
 
-#: includes/class-admin.php:549
-msgid "Reequilibrio de categorías"
-msgstr ""
-
-#: includes/class-admin.php:550
+#: includes/class-admin.php:357
 msgid ""
-"Se conserva la referencia histórica de 5–10 productos por categoría. El "
-"tamaño solo señala casos para revisar:"
+"Indicadores específicos de calidad, integridad y errores a corregir sobre la"
+" última"
 msgstr ""
+"Specific indicators of quality, integrity and errors to be corrected on the "
+"last"
 
-#: includes/class-admin.php:550
-msgid "no justifica por sí solo dividir, fusionar ni crear una URL"
+#: includes/class-runner.php:537
+msgid "Índice interno de calidad; no es una métrica de Google."
+msgstr "Internal quality index; It is not a Google metric."
+
+#: includes/class-admin.php:436
+msgid "Informativo"
+msgstr "Informative"
+
+#: includes/class-auto-test.php:41 includes/class-auto-test.php:42
+msgid "Informes"
+msgstr "Reports"
+
+#: includes/class-runner.php:560
+msgid "Infra-dimensionadas"
+msgstr "Undersized"
+
+#: includes/class-auto-test.php:43
+msgid "Integraciones"
+msgstr "Integrations"
+
+#: includes/class-admin.php:155 includes/class-manual.php:39
+msgid "JSON completo"
+msgstr "Full JSON"
+
+#: includes/class-manual.php:56
+msgid "JSON Lines"
+msgstr "JSON Lines"
+
+#: includes/class-admin.php:224 includes/class-admin.php:356
+msgid "KPIs de"
+msgstr "KPIs of"
+
+#: includes/class-admin.php:403
+msgid "KPIs específicos"
+msgstr "Specific KPIs"
+
+#: includes/class-editorial-specialist.php:338
+msgid ""
+"La categoría concentra la intención comercial; verificar que el post sea "
+"realmente informativo."
 msgstr ""
+"The category concentrates the commercial intention; verify that the post is "
+"really informative."
+
+#: includes/class-admin.php:607
+msgid "La comparación es parcial por límite de seguridad."
+msgstr "The comparison is partial due to the safety limit."
+
+#: includes/class-rules.php:418
+msgid "La descripción está poco alineada literalmente con el título."
+msgstr "The description is poorly aligned literally with the title."
+
+#: includes/class-rules.php:285
+msgid "La descripción presenta muy poca coincidencia literal con el título."
+msgstr "The description has very little literal coincidence with the title."
 
 #: includes/class-admin.php:557
 msgid ""
@@ -281,6 +1244,260 @@ msgid ""
 "movimiento de productos y redirecciones 301 sigue deshabilitada en esta "
 "migración: requiere una capa transaccional nativa validada."
 msgstr ""
+"Proposal generation is active. Approval/application with product movement "
+"and 301 redirects remains disabled in this migration - requires a validated "
+"native transactional layer."
+
+#: includes/class-editorial-specialist.php:391
+msgid ""
+"La landing solo se justifica para una necesidad transversal diferente de la "
+"jerarquía."
+msgstr ""
+"The landing is only justified for a transversal need different from the "
+"hierarchy."
+
+#: includes/class-editorial-specialist.php:311
+msgid ""
+"La página estructural debe conservar la intención amplia. Revisar si el post"
+" aporta una intención informativa distinta."
+msgstr ""
+"The structural page should retain the broad intent. Check if the post "
+"provides a different informative intention."
+
+#: includes/class-manual.php:43
+msgid "La pestaña"
+msgstr "The tab"
+
+#: includes/class-admin.php:565
+msgid "La tabla contiene una muestra de propuestas, no el total."
+msgstr "The table contains a sample of proposals, not the total."
+
+#: includes/class-decision-context.php:447
+msgid "La tabla de TaxoCommerce Suppliers no está disponible."
+msgstr "TaxoCommerce Suppliers table is not available."
+
+#: includes/class-auto-test.php:117
+msgid "La taxonomía product_cat está registrada."
+msgstr "The product_cat taxonomy is registered."
+
+#: includes/class-runner.php:578
+msgid "Landings con identidad editorial repetida."
+msgstr "Landings with repeated editorial identity."
+
+#: includes/class-runner.php:578
+msgid "Landings duplicadas"
+msgstr "Duplicate landings"
+
+#: includes/class-runner.php:580
+msgid "Landings que invaden funciones de otras piezas estructurales."
+msgstr "Landings that invade functions of other structural parts."
+
+#: includes/class-rules.php:497
+msgid "Las etiquetas asignadas no encuentran apoyo en el título o resumen."
+msgstr "The assigned labels do not find support in the title or summary."
+
+#: includes/class-manual.php:31
+msgid "Las pestañas"
+msgstr "The eyelashes"
+
+#: includes/class-manual.php:41
+msgid ""
+"Las prioridades P1–P5 y los estados de revisión indican urgencia, evidencia "
+"necesaria y acciones pendientes. El contexto puede mostrar información local"
+" de Insights, Suppliers, Dependiente u otras extensiones si ya estaba "
+"guardada:"
+msgstr ""
+"P1–P5 priorities and review statuses indicate urgency, evidence needed, and "
+"pending actions. The context can display local information from Insights, "
+"Suppliers, Dependent, or other extensions if it was already saved:"
+
+#: includes/class-auto-test.php:43
+msgid "Lectura de evidencia local y opcional"
+msgstr "Reading local and optional evidence"
+
+#: includes/class-auto-test.php:106
+msgid "Los ámbitos difieren del contrato de Auditor."
+msgstr "The scopes differ from the Auditor contract."
+
+#: includes/class-manual.php:53
+msgid "Los archivos"
+msgstr "The files"
+
+#: includes/class-auto-test.php:105
+msgid "Los cinco ámbitos de auditoría están disponibles."
+msgstr "All five audit scopes are available."
+
+#: includes/class-admin.php:609
+msgid ""
+"Los enlaces a fuentes y el contraste externo son tareas distintas de la "
+"auditoría de contenidos."
+msgstr ""
+"Links to sources and external verification are different tasks from content "
+"auditing."
+
+#: includes/class-manual.php:36
+msgid ""
+"Los indicadores agrupan entidades revisadas, hallazgos, severidad, "
+"puntuación y nivel de calidad. Las cinco dimensiones internas de evaluación "
+"son"
+msgstr ""
+"The indicators group reviewed entities, findings, severity, score and "
+"quality level. The five internal dimensions of evaluation are"
+
+#: includes/class-runner.php:602
+msgid ""
+"Los KPI describen calidad interna y errores del contenido auditado. No son "
+"métricas de posicionamiento de Google/Bing."
+msgstr ""
+"KPIs describe internal quality and errors of the audited content. They are "
+"not Google/Bing positioning metrics."
+
+#: includes/class-admin.php:225
+msgid ""
+"Los KPIs aparecerán aquí en cuanto finalice la primera auditoría de este "
+"bloque. Para indicadores representativos del conjunto, utiliza"
+msgstr ""
+"The KPIs will appear here as soon as the first audit of this block is "
+"completed. For indicators representative of the set, use"
+
+#: includes/class-auto-test.php:155
+msgid "Los límites de búsqueda han cambiado inesperadamente."
+msgstr "Search limits have changed unexpectedly."
+
+#: includes/class-manual.php:56
+msgid ""
+"Los resultados completos no se cargan íntegramente como una opción: se "
+"escriben como"
+msgstr "Full results are not loaded in full as an option: they are written as"
+
+#: includes/class-manual.php:53
+msgid "mantiene la interfaz."
+msgstr "maintains the interface."
+
+#: includes/class-admin.php:198 includes/class-auto-test.php:44
+#: includes/class-manual.php:31
+msgid "Manual"
+msgstr "manual"
+
+#: includes/class-manual.php:14
+msgid "Manual de TaxoCommerce Auditor · v"
+msgstr "TaxoCommerce Auditor Manual · v"
+
+#: includes/class-manual.php:16
+msgid "Manual de usuario"
+msgstr "User manual"
+
+#: includes/class-manual.php:16
+msgid "Manual técnico"
+msgstr "Technical manual"
+
+#: includes/class-admin.php:606
+msgid "Mapa editorial indexado:"
+msgstr "Indexed editorial map:"
+
+#: includes/class-admin.php:106 includes/class-admin.php:457
+msgid "Máximo"
+msgstr "Maximum"
+
+#: includes/class-admin.php:391
+msgid "Media"
+msgstr "Medium"
+
+#: includes/class-admin.php:449
+msgid "Media:"
+msgstr "Medium:"
+
+#: includes/class-admin.php:465
+msgid "Mejorable"
+msgstr "Could be improved"
+
+#: includes/class-admin.php:434
+msgid "Migrar a Solucionador"
+msgstr "Migrate to Resolver"
+
+#: includes/class-auto-test.php:39
+msgid "Motor por lotes y controles de ejecución"
+msgstr "Batch engine and execution controls"
+
+#: includes/class-rules.php:276
+msgid "Muy pocas palabras del título aparecen en el resumen."
+msgstr "Very few words from the title appear in the summary."
+
+#: includes/class-rules.php:266
+msgid "Ninguna categoría WooCommerce asignada."
+msgstr "No WooCommerce category assigned."
+
+#: includes/class-admin.php:541
+msgid "Ninguna incidencia."
+msgstr "No incident."
+
+#: includes/class-rules.php:432
+msgid "No consta un Hub secundario en term_meta de Core."
+msgstr "There is no secondary Hub in Core's term_meta."
+
+#: includes/class-manual.php:21
+msgid ""
+"No corrige, publica, elimina, mueve ni redirige productos, categorías, "
+"entradas, páginas ni preguntas frecuentes."
+msgstr ""
+"It does not correct, publish, delete, move or redirect products, categories,"
+" posts, pages or FAQs."
+
+#: includes/class-auto-test.php:296
+msgid ""
+"No demuestra por sí mismo que una auditoría completa o la exportación JSONL "
+"funcionen con un catálogo real."
+msgstr ""
+"It doesn't by itself prove that a full audit or JSONL export will work with "
+"a real catalog."
+
+#: includes/class-admin.php:449
+msgid "No disponible"
+msgstr "Not available"
+
+#: includes/class-auto-test.php:292 includes/class-manual.php:44
+msgid "No ejecutado"
+msgstr "Not executed"
+
+#: includes/class-auto-test.php:200
+msgid "No está disponible el contrato de contexto local."
+msgstr "Local context contract is not available."
+
+#: includes/class-auto-test.php:118
+msgid "No está registrada product_cat; comprueba WooCommerce."
+msgstr "product_cat is not registered; check WooCommerce."
+
+#: includes/class-auto-test.php:95
+msgid "No está registrado:"
+msgstr "Not registered:"
+
+#: includes/class-auto-test.php:127
+msgid "No están disponibles los lectores FAQ esperados."
+msgstr "The expected FAQ readers are not available."
+
+#: includes/class-decision-context.php:238
+msgid "No existe la tabla persistida de perfiles de Comparador."
+msgstr "Comparator profiles persisted table does not exist."
+
+#: includes/class-admin.php:616
+msgid "No existen ejecuciones completadas todavía."
+msgstr "There are no completed executions yet."
+
+#: includes/class-decision-context.php:442
+msgid "No hay contexto de proveedor nativo aplicable a esta entidad."
+msgstr "There is no native provider context applicable to this entity."
+
+#: includes/class-admin.php:374
+msgid "No hay indicadores específicos disponibles para este bloque."
+msgstr "There are no specific indicators available for this block."
+
+#: includes/class-admin.php:681
+msgid "No hay informe completo que exportar."
+msgstr "There is no full report to export."
+
+#: includes/class-decision-context.php:54
+msgid "No hay perfiles persistidos de Comparador disponibles."
+msgstr "There are no Comparator persisted profiles available."
 
 #: includes/class-admin.php:561
 msgid ""
@@ -288,146 +1505,1018 @@ msgid ""
 "categorías fuera del tamaño de referencia siguen reflejadas como hallazgos "
 "para revisión manual."
 msgstr ""
+"There are no proposals supported by sufficient semantic evidence. Categories"
+" outside the reference size are still reflected as findings for manual "
+"review."
 
-#: includes/class-admin.php:565
-msgid "La tabla contiene una muestra de propuestas, no el total."
+#: includes/class-rules.php:350
+msgid "No hay términos tc_semantic_tag asignados."
+msgstr "There are no tc_semantic_tag terms assigned."
+
+#: includes/class-admin.php:272
+msgid ""
+"No hay todavía un informe finalizado para este bloque. Ejecuta Auditar y "
+"consulta su estado."
 msgstr ""
+"There is no finalized report for this block yet. Run Audit and check its "
+"status."
 
-#: includes/class-admin.php:567
-msgid "Categoría origen"
+#: includes/class-auto-test.php:289
+msgid "No hay una ejecución anterior para comparar."
+msgstr "There is no previous run to compare."
+
+#: includes/class-manual.php:44
+msgid ""
+"No inicia auditorías, no consulta APIs externas, no genera archivos JSONL y "
+"no modifica contenidos. Un ámbito sin informe previo no equivale a error "
+"técnico. Las operaciones reales que podrían modificar opciones, lanzar "
+"procesos o producir archivos aparecen como"
 msgstr ""
+"It does not initiate audits, does not consult external APIs, does not "
+"generate JSONL files and does not modify content. An area without a prior "
+"report does not equal a technical error. Actual operations that could modify"
+" options, launch processes, or produce files appear as"
 
-#: includes/class-admin.php:567
-msgid "Tipo"
+#: includes/class-manual.php:56
+msgid "no intenta crearla ni escribir en ella"
+msgstr "does not try to create it or write to it"
+
+#: includes/class-admin.php:550
+msgid "no justifica por sí solo dividir, fusionar ni crear una URL"
+msgstr "does not by itself justify splitting, merging or creating a URL"
+
+#: includes/class-auto-test.php:210
+msgid ""
+"No se ejecutan auditorías, procesos WP-Cron, escrituras de JSONL, descargas "
+"completas ni cambios editoriales. Probarlos en staging."
 msgstr ""
+"No audits, WP-Cron processes, JSONL writes, full downloads, or editorial "
+"changes are executed. Test them in staging."
 
-#: includes/class-admin.php:567
+#: includes/class-rules.php:597
+msgid "No se encuentra el owner publicado o su tipo no corresponde."
+msgstr "The published owner cannot be found or its type does not correspond."
+
+#: includes/class-auto-test.php:206
+msgid "No se encuentra la documentación integrada."
+msgstr "Integrated documentation is not found."
+
+#: includes/class-auto-test.php:62
+msgid "No se ha podido completar la comprobación:"
+msgstr "The verification could not be completed:"
+
+#: includes/class-auto-test.php:242
+msgid "No se pudo generar el informe JSON."
+msgstr "The JSON report could not be generated."
+
+#: includes/class-admin.php:32
+msgid "No tienes permisos para consultar Auditor."
+msgstr "You do not have permissions to consult Auditor."
+
+#: includes/class-rules.php:426
+msgid "Nombre y slug describen términos distintos."
+msgstr "Name and slug describe different terms."
+
+#: includes/class-manual.php:58
+msgid ""
+"o un CPT FAQ admitido. El contexto de otros plugins es opcional y se obtiene"
+" de datos locales ya persistidos, nunca de peticiones remotas. No añadas "
+"nuevas tablas ni acoples Auditor a archivos del monolito."
+msgstr ""
+"or a supported CPT FAQ. The context of other plugins is optional and is "
+"obtained from local data already persisted, never from remote requests. Do "
+"not add new tables or attach Auditor to monolith files."
+
+#: includes/class-admin.php:606
+msgid "objetos"
+msgstr "objects"
+
+#: includes/class-auto-test.php:277
+msgid "omitidas"
+msgstr "omitted"
+
+#: includes/class-runner.php:588
+msgid "Owner huérfano"
+msgstr "Orphaned Owner"
+
+#: includes/class-runner.php:589
+msgid "Owner inválido"
+msgstr "Invalid Owner"
+
+#: includes/class-editorial-specialist.php:363
+msgid "Página editorial sin función SEO definida en Core."
+msgstr "Editorial page without SEO function defined in Core."
+
+#: includes/class-runner.php:581
+msgid "Páginas cuyo rol SEO no está resuelto."
+msgstr "Pages whose SEO role is not resolved."
+
+#: includes/class-runner.php:582
+msgid "Páginas estructurales sin relación padre esperada."
+msgstr "Structural pages with no expected parent relationship."
+
+#: includes/class-admin.php:396
+msgid "Páginas funcionales/corporativas excluidas del diagnóstico editorial:"
+msgstr "Functional/corporate pages excluded from the editorial diagnosis:"
+
+#: includes/class-runner.php:577
+msgid "Páginas sin clasificación semántica nativa."
+msgstr "Pages without native semantic classification."
+
+#: includes/class-admin.php:348 includes/class-manual.php:28
+#: includes/class-runner.php:26
+msgid "Páginas y landings"
+msgstr "Pages and landings"
+
+#: includes/class-runner.php:576
+msgid "Páginas/landings con cuerpo insuficiente."
+msgstr "Pages/landings with insufficient body."
+
+#: includes/class-manual.php:55
+msgid "para impedir solapamientos."
+msgstr "to prevent overlaps."
+
+#: includes/class-admin.php:64
+msgid "Pausado"
+msgstr "Paused"
+
+#: includes/class-admin.php:170 includes/class-manual.php:34
+msgid "Pausar"
+msgstr "Pause"
+
+#: includes/class-manual.php:24
+msgid "Pestaña"
+msgstr "Tab"
+
+#: includes/class-admin.php:493
+msgid "Plan de revisión priorizado"
+msgstr "Prioritized review plan"
+
+#: includes/class-admin.php:430
+msgid "Plan de trabajo · prioridades P1–P5"
+msgstr "Work plan · priorities P1–P5"
+
+#: includes/class-admin.php:281
+msgid "Plan priorizado"
+msgstr "Prioritized plan"
+
+#: includes/class-auto-test.php:30
+msgid "Plugin"
+msgstr "plugin"
+
+#: includes/class-rules.php:506
+msgid "Poca coincidencia entre palabras específicas del título y texto."
+msgstr "Poor coincidence between specific words in the title and text."
+
+#: includes/class-auto-test.php:36
+msgid "Ponderaciones y bandas de puntuación"
+msgstr "Weightings and scoring bands"
+
+#: includes/class-runner.php:532
+msgid "Porcentaje de entidades sin hallazgos en esta ejecución."
+msgstr "Percentage of entities without findings in this run."
+
+#: includes/class-admin.php:347 includes/class-manual.php:27
+#: includes/class-runner.php:25
+msgid "Posts"
+msgstr "Posts"
+
+#: includes/class-runner.php:567
+msgid "Posts con cuerpo insuficiente para su función."
+msgstr "Posts with insufficient body for their function."
+
+#: includes/class-runner.php:571
+msgid "Posts que compiten con piezas estructurales del sitio."
+msgstr "Posts that compete with structural parts of the site."
+
+#: includes/class-runner.php:568
+msgid "Posts sin clasificación semántica nativa."
+msgstr "Posts without native semantic classification."
+
+#: includes/class-runner.php:591
+msgid "Pregunta posiblemente alejada del owner confirmado."
+msgstr "Question possibly far from the confirmed owner."
+
+#: includes/class-runner.php:587
+msgid "Pregunta vacía"
+msgstr "empty question"
+
+#: includes/class-manual.php:29
+msgid ""
+"Pregunta, respuesta, titularidad, destino en producto/categoría y "
+"coherencia. El módulo FAQs es opcional."
+msgstr ""
+"Question, answer, ownership, destination in product/category and coherence. "
+"The FAQs module is optional."
+
+#: includes/class-runner.php:592
+msgid "Preguntas equivalentes repetidas para el mismo destino."
+msgstr "Equivalent questions repeated for the same destination."
+
+#: includes/class-admin.php:455
+msgid "Preparación técnica"
+msgstr "Technical preparation"
+
+#: includes/class-manual.php:46
+msgid ""
+"Primero ejecuta Auto Test. Después selecciona un ámbito y comienza por una "
+"muestra filtrada. Revisa los indicadores, los hallazgos y las prioridades; "
+"contrasta los avisos críticos antes de editar en WordPress. Si necesitas un "
+"diagnóstico global, ejecuta la auditoría completa, comprueba que finaliza y "
+"descarga su JSON."
+msgstr ""
+"First run Auto Test. Then select a scope and start with a filtered sample. "
+"Review indicators, findings and priorities; Check critical notices before "
+"editing in WordPress. If you need a global diagnosis, run the full audit, "
+"check that it finishes, and download its JSON."
+
+#: includes/class-admin.php:504
+msgid "Prioridad"
+msgstr "Priority"
+
+#: includes/class-runner.php:535
+msgid "Prioridad P1"
+msgstr "P1 priority"
+
+#: includes/class-auto-test.php:37
+msgid "Prioridad y revisión editorial"
+msgstr "Editorial priority and review"
+
+#: includes/class-admin.php:504
+msgid "Problema"
+msgstr "Problem"
+
+#: includes/class-admin.php:169 includes/class-manual.php:34
+msgid "Procesar siguiente lote"
+msgstr "Process next batch"
+
+#: includes/class-runner.php:545
+msgid "Producto sin descripción corta/resumen."
+msgstr "Product without short description/summary."
+
+#: includes/class-runner.php:544
+msgid "Producto sin descripción larga útil."
+msgstr "Product without useful long description."
+
+#: includes/class-decision-context.php:464
+msgid "Producto sin fila enlazada en TaxoCommerce Suppliers."
+msgstr "Product without linked row in TaxoCommerce Suppliers."
+
+#: includes/class-auto-test.php:111
+msgid "Producto WooCommerce y su API de lectura disponibles."
+msgstr "WooCommerce product and its reading API available."
+
+#: includes/class-admin.php:578
+msgid "productos"
+msgstr "products"
+
+#: includes/class-admin.php:345 includes/class-admin.php:567
+#: includes/class-auto-test.php:33 includes/class-manual.php:25
 msgid "Productos"
-msgstr ""
+msgstr "Products"
 
-#: includes/class-admin.php:567
-msgid "Acción"
-msgstr ""
+#: includes/class-runner.php:23
+msgid "Productos · contenido e identidad"
+msgstr "Products · content and identity"
 
-#: includes/class-admin.php:589
-msgid "Revisión; no hay cambios automáticos."
-msgstr ""
+#: includes/class-runner.php:546
+msgid "Productos publicados sin product_cat."
+msgstr "Products published without product_cat."
 
-#: includes/class-admin.php:595
-msgid "Contexto de decisión"
-msgstr ""
+#: includes/class-runner.php:547
+msgid "Productos sin clasificación semántica nativa."
+msgstr "Products without native semantic classification."
 
-#: includes/class-admin.php:595
+#: includes/class-manual.php:55
+msgid "proporciona los cinco ámbitos. Por ámbito se guardan opciones"
+msgstr "provides the five areas. Options are saved by area"
+
+#: includes/class-runner.php:562
+msgid "Propuestas basadas en evidencia semántica; no ejecutan cambios."
+msgstr "Proposals based on semantic evidence; They do not make changes."
+
+#: includes/class-admin.php:555
+msgid "Propuestas de concentración"
+msgstr "Concentration proposals"
+
+#: includes/class-runner.php:563
+msgid "Propuestas de consolidación para revisión humana."
+msgstr "Consolidation proposals for human review."
+
+#: includes/class-admin.php:553 includes/class-runner.php:562
+msgid "Propuestas de división"
+msgstr "Division proposals"
+
+#: includes/class-runner.php:563
+msgid "Propuestas de unión"
+msgstr "Union proposals"
+
+#: includes/class-auto-test.php:291
+msgid "Prueba"
+msgstr "Test"
+
+#: includes/class-manual.php:33
 msgid ""
-"Auditor evalúa consistencia interna y no consulta directamente APIs de "
-"buscadores, compras ni analítica."
+"puedes buscar por título o ID; en Productos también por categoría. El límite"
+" seleccionable es 10, 25, 50, 100 o 250 elementos."
 msgstr ""
+"you can search by title or ID; in Products also by category. The selectable "
+"limit is 10, 25, 50, 100 or 250 elements."
 
-#: includes/class-admin.php:599
-msgid "Analista, Ojeador, Dependiente y Comparador:"
-msgstr ""
+#: includes/class-admin.php:447
+msgid "Puntuación interna de calidad"
+msgstr "Internal quality score"
 
-#: includes/class-admin.php:599
+#: includes/class-manual.php:24
+msgid "Qué revisa"
+msgstr "What do you review?"
+
+#: taxocommerce-auditor.php:4
 msgid ""
-"datos no disponibles para este informe. Ausente no significa cero; no se ha "
-"inventado ningún valor."
+"Read-only WordPress and WooCommerce content quality audits with detailed "
+"KPIs and full JSON exports."
 msgstr ""
+"Read-only WordPress and WooCommerce content quality audits with detailed "
+"KPIs and full JSON exports."
 
-#: includes/class-admin.php:601
+#: includes/class-admin.php:174
+msgid "Reanudar"
+msgstr "Resume"
+
+#: includes/class-manual.php:34
+msgid "Reanudarse"
+msgstr "Resume"
+
+#: includes/class-admin.php:504
+msgid "Recomendación"
+msgstr "Recommendation"
+
+#: includes/class-rules.php:376
+msgid "Recuento nativo de productos: 0."
+msgstr "Native product count: 0."
+
+#: includes/class-manual.php:55
+msgid "recupera impulsos de cron perdidos sin reiniciar el progreso."
+msgstr "recovers lost cron pushes without restarting progress."
+
+#: includes/class-rules.php:269
+msgid "Redactar un resumen específico del producto."
+msgstr "Write a specific summary of the product."
+
+#: includes/class-rules.php:399
+msgid "Redactar un resumen específico para esta familia."
+msgstr "Write a specific summary for this family."
+
+#: includes/class-admin.php:287 includes/class-manual.php:38
+msgid "Reequilibrio"
+msgstr "Rebalancing"
+
+#: includes/class-admin.php:549
+msgid "Reequilibrio de categorías"
+msgstr "Category rebalancing"
+
+#: includes/class-manual.php:60
+msgid "registra"
+msgstr "register"
+
+#: includes/class-admin.php:414
+msgid "Regla"
+msgstr "Rule"
+
+#: includes/class-admin.php:413
+msgid "Reglas con más incidencias"
+msgstr "Rules with the most incidents"
+
+#: includes/class-auto-test.php:286
+msgid "Regresiones:"
+msgstr "Regressions:"
+
+#: includes/class-admin.php:451
+msgid "Relevancia y utilidad"
+msgstr "Relevance and usefulness"
+
+#: includes/class-admin.php:162
+msgid "Repetir auditoría completa"
+msgstr "Repeat full audit"
+
+#: includes/class-admin.php:164
+msgid "Repetir filtro"
+msgstr "Repeat filter"
+
+#: includes/class-rules.php:537
+msgid "Respuesta ausente o demasiado escueta."
+msgstr "Absent or too brief response."
+
+#: includes/class-runner.php:586
+msgid "Respuesta insuficiente"
+msgstr "Insufficient response"
+
+#: includes/class-auto-test.php:291
+msgid "Resultado"
+msgstr "Result"
+
+#: includes/class-admin.php:279
+msgid "Resumen"
+msgstr "Summary"
+
+#: includes/class-admin.php:384
+msgid "Resumen del último análisis"
+msgstr "Summary of the latest analysis"
+
+#: includes/class-manual.php:38
 msgid ""
-"Contexto leído exclusivamente de proveedores persistidos mediante el filtro "
-"de integración del nuevo Auditor."
+"Resumen, Calidad interna, Plan priorizado, Hallazgos, Contexto de decisión e"
+" Historial"
 msgstr ""
+"Summary, Internal Quality, Prioritized Plan, Findings, Decision Context and "
+"History"
 
-#: includes/class-admin.php:609
+#: includes/class-manual.php:43
 msgid ""
-"Los enlaces a fuentes y el contraste externo son tareas distintas de la "
-"auditoría de contenidos."
+"revisa disponibilidad de módulos, rutas, cinco ámbitos, calidad, "
+"prioridades, filtros, lector de estados, historial y exportación. Pulsa"
 msgstr ""
+"check availability of modules, routes, five areas, quality, priorities, "
+"filters, status reader, history and export. Press"
 
-#: includes/class-admin.php:614
-msgid "Historial de auditorías completadas"
-msgstr ""
+#: includes/class-manual.php:33
+msgid "revisa el subconjunto solicitado."
+msgstr "check the requested subset."
 
-#: includes/class-admin.php:616
-msgid "No existen ejecuciones completadas todavía."
-msgstr ""
-
-#: includes/class-admin.php:619
-msgid "Fecha UTC"
-msgstr ""
-
-#: includes/class-admin.php:619
-msgid "Duración"
-msgstr ""
+#: includes/class-admin.php:150
+msgid "revisados"
+msgstr "reviewed"
 
 #: includes/class-admin.php:619
 msgid "Revisados"
-msgstr ""
+msgstr "Reviewed"
 
-#: includes/class-admin.php:641 includes/class-admin.php:676
-msgid "Bloque Auditor no reconocido."
+#: includes/class-admin.php:435
+msgid "Revisar"
+msgstr "Review"
+
+#: includes/class-rules.php:388
+msgid "Revisar asignaciones aprobadas en Vocabulary."
+msgstr "Review approved assignments in Vocabulary."
+
+#: includes/class-admin.php:554
+msgid "Revisar concentración"
+msgstr "Check concentration"
+
+#: includes/class-category-review.php:196
+msgid ""
+"Revisar el tamaño y la coherencia semántica. No dividir únicamente por "
+"cantidad."
+msgstr "Review size and semantic coherence. Do not divide solely by quantity."
+
+#: includes/class-rules.php:248
+msgid "Revisar integridad del producto antes de editar sus datos."
+msgstr "Review product integrity before editing its data."
+
+#: includes/class-rules.php:286
+msgid ""
+"Revisar la fuente original; esta señal por sí sola no prueba que se haya "
+"copiado otro producto."
 msgstr ""
+"Review the original source; This sign alone does not prove that another "
+"product has been copied."
+
+#: includes/class-editorial-specialist.php:402
+msgid "Revisar la intención transversal de esta landing."
+msgstr "Review the transversal intention of this landing."
+
+#: includes/class-rules.php:263
+msgid "Revisar la URL canónica."
+msgstr "Review the canonical URL."
+
+#: includes/class-rules.php:498
+msgid "Revisar las etiquetas y la intención antes de modificar el contenido."
+msgstr "Review tags and intent before modifying content."
+
+#: includes/class-rules.php:350
+msgid ""
+"Revisar las propuestas del Clasificador sin asignar etiquetas "
+"automáticamente."
+msgstr "Review Classifier proposals without automatically assigning tags."
+
+#: includes/class-admin.php:552
+msgid "Revisar por división"
+msgstr "Review by division"
+
+#: includes/class-editorial-specialist.php:324
+msgid ""
+"Revisar qué URL debe cubrir la necesidad transversal y diferenciar el post "
+"informativo."
+msgstr ""
+"Review which URL should cover the transversal need and differentiate the "
+"informative post."
+
+#: includes/class-category-review.php:215
+msgid ""
+"Revisar si conviene conservarla o agruparla con una categoría hermana "
+"coherente."
+msgstr ""
+"Review whether it is advisable to keep it or group it with a coherent sister"
+" category."
+
+#: includes/class-rules.php:427
+msgid "Revisar si el slug sigue representando la categoría."
+msgstr "Check if the slug still represents the category."
+
+#: includes/class-rules.php:376
+msgid "Revisar si está reservada, debe poblarse o retirarse con redirección."
+msgstr ""
+"Check if it is reserved, should be populated or removed with redirection."
+
+#: includes/class-rules.php:381
+msgid ""
+"Revisar si la categoría aporta navegación o merece una familia más amplia."
+msgstr ""
+"Check if the category provides navigation or deserves a larger family."
+
+#: includes/class-editorial-specialist.php:452
+msgid "Revisar si la landing duplica innecesariamente la categoría comercial."
+msgstr ""
+"Check if the landing page unnecessarily duplicates the commercial category."
+
+#: includes/class-rules.php:506
+msgid "Revisar si la publicación satisface su intención original."
+msgstr "Review if the publication meets its original intention."
+
+#: includes/class-rules.php:468
+msgid ""
+"Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras"
+" SEO."
+msgstr ""
+"Review usefulness and response to intent; There is no minimum number of SEO "
+"words."
+
+#: includes/class-rules.php:471
+msgid "Revisar Vocabulary y añadir solo términos pertinentes."
+msgstr "Review Vocabulary and add only relevant terms."
+
+#: includes/class-admin.php:589
+msgid "Revisión; no hay cambios automáticos."
+msgstr "Review; there are no automatic changes."
+
+#: includes/class-runner.php:581
+msgid "Rol sin clasificar"
+msgstr "Unclassified role"
+
+#: includes/class-auto-test.php:31
+msgid "Rutas protegidas y proceso por lotes registrados"
+msgstr "Protected routes and registered batch processing"
+
+#: includes/class-admin.php:550
+msgid ""
+"Se conserva la referencia histórica de 5–10 productos por categoría. El "
+"tamaño solo señala casos para revisar:"
+msgstr ""
+"The historical reference of 5–10 products per category is preserved. The "
+"size only indicates cases to review:"
+
+#: includes/class-admin.php:447
+msgid ""
+"Se conservan las cinco dimensiones del Auditor anterior; es una señal de "
+"priorización propia, no el algoritmo de un buscador."
+msgstr ""
+"The five dimensions of the previous Auditor are preserved; It is a signal of"
+" own prioritization, not a search engine's algorithm."
+
+#: includes/class-admin.php:424
+msgid ""
+"se conservan los recuentos completos por regla y prioridad, pero las tareas "
+"mostradas son una muestra acotada para evitar informes demasiado pesados."
+msgstr ""
+"Full counts per rule and priority are retained, but the tasks displayed are "
+"a limited sample to avoid overly heavy reporting."
+
+#: includes/class-manual.php:67
+msgid "se mantiene y debe reflejar la versión del encabezado PHP."
+msgstr "is maintained and should reflect the version of the PHP header."
+
+#: includes/class-manual.php:31
+msgid ""
+"se muestran después de los cinco ámbitos. No son ámbitos de contenido ni "
+"generan informes de auditoría."
+msgstr ""
+"are shown after the five areas. They are not content areas nor do they "
+"generate audit reports."
+
+#: includes/class-manual.php:52
+msgid "se registra"
+msgstr "registers"
+
+#: includes/class-manual.php:58
+msgid "Se utilizan APIs nativas de WordPress ("
+msgstr "Native WordPress APIs are used ("
+
+#: includes/class-admin.php:385
+msgid "segundos"
+msgstr "seconds"
+
+#: includes/class-auto-test.php:31 includes/class-auto-test.php:45
+msgid "Seguridad"
+msgstr "Security"
+
+#: includes/class-manual.php:33
+msgid "Selecciona un ámbito. En"
+msgstr "Select a scope. In"
+
+#: includes/class-runner.php:569
+msgid "Señales de desalineación entre título y cuerpo."
+msgstr "Signs of misalignment between title and body."
+
+#: includes/class-auto-test.php:30
+msgid "Servicios Auditor cargados"
+msgstr "Auditor services loaded"
+
+#: includes/class-manual.php:34
+msgid ""
+"Si el proceso está en cola o ejecución, muestra estado, progreso y botones"
+msgstr ""
+"If the process is queued or running, shows status, progress and buttons"
+
+#: includes/class-admin.php:583
+msgid "Similitud de nombre:"
+msgstr "Name similarity:"
+
+#: includes/class-runner.php:546 includes/class-runner.php:590
+msgid "Sin categoría"
+msgstr "Uncategorized"
+
+#: includes/class-runner.php:544 includes/class-runner.php:557
+msgid "Sin descripción"
+msgstr "No description"
+
+#: includes/class-admin.php:68
+msgid "Sin ejecutar"
+msgstr "Not executed"
+
+#: includes/class-rules.php:471
+msgid "Sin etiquetas semánticas asignadas."
+msgstr "No semantic tags assigned."
+
+#: includes/class-admin.php:499
+msgid "Sin hallazgos."
+msgstr "No findings."
+
+#: includes/class-runner.php:559
+msgid "Sin Hub secundario"
+msgstr "No secondary hub"
+
+#: includes/class-runner.php:531
+msgid "Sin incidencias detectadas"
+msgstr "No incidents detected"
+
+#: includes/class-admin.php:419
+msgid "Sin incidencias registradas."
+msgstr "No incidents recorded."
+
+#: includes/class-runner.php:582
+msgid "Sin padre nativo"
+msgstr "No native father"
+
+#: includes/class-auto-test.php:215 includes/class-auto-test.php:255
+msgid "Sin permisos para Autocheck."
+msgstr "No permissions for Autocheck."
+
+#: includes/class-manual.php:10
+msgid "Sin permisos para consultar este manual."
+msgstr "Without permission to consult this manual."
+
+#: includes/class-auto-test.php:230
+msgid "Sin permisos para descargar el autocheck."
+msgstr "No permissions to download the autocheck."
+
+#: includes/class-admin.php:137
+msgid "sin recuento disponible"
+msgstr "no count available"
+
+#: includes/class-auto-test.php:286
+msgid "Sin regresiones de correcto a fallido."
+msgstr "No regressions from successful to failed."
+
+#: includes/class-runner.php:545
+msgid "Sin resumen"
+msgstr "No summary"
+
+#: includes/class-rules.php:388
+msgid "Sin términos semánticos asignados."
+msgstr "No semantic terms assigned."
+
+#: includes/class-runner.php:547 includes/class-runner.php:558
+#: includes/class-runner.php:568 includes/class-runner.php:577
+msgid "Sin vocabulario"
+msgstr "No vocabulary"
+
+#: includes/class-manual.php:53
+msgid "sirven únicamente a las nuevas pestañas."
+msgstr "They only serve new tabs."
+
+#: includes/class-rules.php:263 includes/class-rules.php:465
+msgid "Slug vacío."
+msgstr "Empty slug."
+
+#: includes/class-decision-context.php:67
+msgid ""
+"Snapshot local de TaxoCommerce Insights/Analyst; Auditor no descarga datos "
+"externos."
+msgstr ""
+"TaxoCommerce Insights/Analyst Local Snapshot; Auditor does not download "
+"external data."
+
+#: includes/class-runner.php:561
+msgid "Sobre-dimensionadas"
+msgstr "Oversized"
+
+#: includes/class-runner.php:571 includes/class-runner.php:580
+msgid "Solapamiento estructural"
+msgstr "Structural overlap"
+
+#: includes/class-runner.php:570
+msgid ""
+"Solapamientos de intención con categorías, landings u otras URL canónicas."
+msgstr "Intent overlaps with categories, landings or other canonical URLs."
+
+#: includes/class-runner.php:579
+msgid ""
+"Solapamientos entre páginas estructurales, landings, posts y categorías."
+msgstr "Overlaps between structural pages, landings, posts and categories."
+
+#: includes/class-manual.php:53
+msgid "solo lee evidencias locales;"
+msgstr "only read local evidence;"
+
+#: includes/class-decision-context.php:539
+msgid ""
+"Sólo ordena dentro de la prioridad P existente; no cambia la clase de "
+"Auditor."
+msgstr ""
+"Only sorts within the existing P priority; it does not change the Auditor "
+"class."
+
+#: includes/class-runner.php:646
+msgid ""
+"Solo propuestas de revisión. No se mueven ni eliminan categorías y no se "
+"crean redirecciones."
+msgstr ""
+"Only revision proposals. No categories are moved or deleted and no redirects"
+" are created."
+
+#: includes/class-manual.php:60
+msgid ""
+"solo selecciona pantallas; los identificadores se validan con las listas "
+"permitidas."
+msgstr "only select screens; Identifiers are validated against allow lists."
+
+#: includes/class-manual.php:21
+msgid ""
+"Su fuente principal es WordPress/WooCommerce; otros módulos aportan contexto"
+" local cuando está disponible."
+msgstr ""
+"Its main source is WordPress/WooCommerce; other modules provide local "
+"context when available."
+
+#: includes/class-manual.php:63
+msgid ""
+"Sus 16 verificaciones se limitan a contratos de clases, acciones "
+"registradas, disponibilidad WooCommerce, cinco ámbitos, bandas y "
+"prioridades, saneamiento de filtros, APIs del runner, almacenamiento y "
+"lectura de estados/informes/historial. No llama a"
+msgstr ""
+"Its 16 checks are limited to class contracts, registered actions, "
+"WooCommerce availability, five scopes, bands and priorities, filter "
+"sanitation, runner APIs, storing and reading statuses/reports/history. Does "
+"not call"
+
+#: includes/class-auto-test.php:166
+msgid "Tamaño de lote fuera del contrato esperado."
+msgstr "Lot size outside the expected contract."
+
+#: includes/class-runner.php:535
+msgid "Tareas que requieren revisión prioritaria."
+msgstr "Tasks that require priority review."
+
+#: includes/class-admin.php:496
+msgid "tareas sobre"
+msgstr "tasks about"
+
+#: includes/class-decision-context.php:222
+msgid "TaxoCommerce Assistant/Dependiente no está disponible."
+msgstr "TaxoCommerce Assistant/Salesperson is not available."
+
+#: includes/class-admin.php:48
+msgid "TaxoCommerce Auditor"
+msgstr "TaxoCommerce Auditor"
+
+#: taxocommerce-auditor.php:3
+msgid "TaxoCommerce Auditor - Content Quality for WooCommerce"
+msgstr "TaxoCommerce Auditor - Content Quality for WooCommerce"
+
+#: includes/class-admin.php:190
+msgid "TaxoCommerce Auditor de contenidos"
+msgstr "TaxoCommerce Content Auditor"
+
+#: includes/class-manual.php:22
+msgid "TaxoCommerce Core → Auditor"
+msgstr "TaxoCommerce Core → Auditor"
+
+#: includes/class-decision-context.php:49
+msgid "TaxoCommerce Insights no está disponible."
+msgstr "TaxoCommerce Insights is not available."
+
+#: includes/class-auto-test.php:34
+msgid "Taxonomía de productos disponible"
+msgstr "Available product taxonomy"
+
+#: includes/class-auto-test.php:291
+msgid "Tiempo"
+msgstr "Time"
+
+#: includes/class-admin.php:567
+msgid "Tipo"
+msgstr "Type"
+
+#: includes/class-admin.php:194
+msgid "Tipos de contenido"
+msgstr "Content Types"
+
+#: includes/class-admin.php:94
+msgid "Título o ID"
+msgstr "Title or ID"
+
+#: includes/class-rules.php:260 includes/class-rules.php:462
+msgid "Título vacío."
+msgstr "Empty title."
+
+#: includes/class-runner.php:548
+msgid "Título, resumen, descripción o tags con señales de incoherencia."
+msgstr "Title, summary, description or tags with signs of inconsistency."
+
+#: includes/class-runner.php:569
+msgid "Título/contenido incoherente"
+msgstr "Inconsistent title/content"
+
+#: includes/class-runner.php:572
+msgid "Títulos duplicados"
+msgstr "Duplicate titles"
+
+#: includes/class-manual.php:25
+msgid ""
+"Títulos, descripciones, extractos, SKU, categorías, atributos, vocabulario, "
+"duplicidad y coherencia técnica."
+msgstr ""
+"Titles, descriptions, excerpts, SKUs, categories, attributes, vocabulary, "
+"duplicity and technical consistency."
+
+#: includes/class-manual.php:27
+msgid ""
+"Títulos, slugs, contenido y posible solapamiento con otras entradas o "
+"landings."
+msgstr ""
+"Titles, slugs, content and possible overlap with other entries or landings."
+
+#: includes/class-admin.php:100
+msgid "Todas"
+msgstr "All"
+
+#: includes/class-auto-test.php:267
+msgid "Todavía no hay resultados. Pulsa Ejecutar Autocheck."
+msgstr "There are no results yet. Press Run Autocheck."
+
+#: includes/class-runner.php:533
+msgid "Total de incidencias detectadas."
+msgstr "Total incidents detected."
+
+#: includes/class-admin.php:148 includes/class-auto-test.php:276
+msgid "Último informe"
+msgstr "Latest report"
+
+#: includes/class-manual.php:65
+msgid ""
+"Un Auto Test satisfactorio significa que los componentes y contratos están "
+"disponibles; no sustituye una auditoría completa de prueba ni verifica que "
+"se puedan exportar y recuperar datos desde el filesystem real. Para "
+"anomalías: verifica permisos, estado WP-Cron, instalación de WooCommerce, "
+"registro de las rutas, espacio del almacenamiento JSONL y errores PHP. Si "
+"falla una fuente opcional de FAQs, consulta las dependencias antes de "
+"modificar código."
+msgstr ""
+"A successful Self Test means that components and contracts are available; It"
+" is not a substitute for a full test audit or verification that data can be "
+"exported and recovered from the actual filesystem. For anomalies: check "
+"permissions, WP-Cron status, WooCommerce installation, path registration, "
+"JSONL storage space and PHP errors. If an optional FAQ source fails, check "
+"the dependencies before modifying code."
+
+#: includes/class-manual.php:38
+msgid "una sugerencia no es una orden de modificación automática"
+msgstr "a suggestion is not an automatic modification order"
+
+#: includes/class-rules.php:381
+msgid "Una única referencia publicada."
+msgstr "A single published reference."
+
+#: includes/class-manual.php:38
+msgid "Una vez finalizada la auditoría, accede a"
+msgstr "Once the audit is complete, access"
+
+#: includes/class-manual.php:36
+msgid ""
+"utilidad (25), confianza (20), diferenciación (20), arquitectura (20) y "
+"técnica (15)"
+msgstr ""
+"utility (25), trust (20), differentiation (20), architecture (20) and "
+"technique (15)"
+
+#: includes/class-editorial-specialist.php:415
+msgid "Valorar consolidar contenido y mantener una sola URL propietaria."
+msgstr ""
+"Consider consolidating content and maintaining a single proprietary URL."
+
+#: includes/class-runner.php:536
+msgid "Verificación de fuente"
+msgstr "Source verification"
+
+#: includes/class-rules.php:481
+msgid ""
+"Verificar el vínculo nativo con el nivel superior antes de modificar la "
+"jerarquía."
+msgstr ""
+"Verify the native link to the top level before modifying the hierarchy."
+
+#: includes/class-category-review.php:224
+msgid ""
+"Verificar landings, estructura y reglas de redirección antes de aprobar "
+"cualquier concentración."
+msgstr ""
+"Verify landings, structure and redirection rules before approving any "
+"concentration."
+
+#: includes/class-rules.php:308
+msgid "Verificar si hay texto o datos desplazados procedentes del proveedor."
+msgstr "Check for displaced text or data from the provider."
+
+#: includes/class-rules.php:419
+msgid ""
+"Verificar su pertinencia; una explicación técnica válida puede no repetir el"
+" título."
+msgstr ""
+"Verify its relevance; a valid technical explanation may not repeat the "
+"title."
+
+#: includes/admin-branding.php:49
+msgid "Versión"
+msgstr "Version"
+
+#: includes/class-admin.php:293
+msgid "Vistas del informe"
+msgstr "Report Views"
+
+#: includes/class-admin.php:583
+msgid "Vocabulary:"
+msgstr "Vocabulary:"
+
+#: includes/class-rules.php:248
+msgid "WooCommerce no pudo cargar el producto."
+msgstr "WooCommerce could not load the product."
+
+#: includes/class-auto-test.php:112
+msgid "WooCommerce o el tipo product no están disponibles."
+msgstr "WooCommerce or the product type are not available."
+
+#: includes/class-auto-test.php:33
+msgid "WooCommerce y productos disponibles"
+msgstr "WooCommerce and available products"
+
+#: includes/class-admin.php:192
+msgid ""
+"WordPress/WooCommerce nativo, Vocabulary, TaxoCommerce FAQs y contexto local"
+" persistido de otros módulos cuando existe. No ejecuta APIs externas durante"
+" la auditoría."
+msgstr ""
+"Native WordPress/WooCommerce, Vocabulary, TaxoCommerce FAQs and persisted "
+"local context from other modules when it exists. Does not run external APIs "
+"during the audit."
+
+#: includes/class-manual.php:62
+msgid ""
+"y almacena solo los dos últimos resultados en el transitorio por usuario"
+msgstr "and stores only the last two results in the transient per user"
+
+#: includes/class-manual.php:62
+msgid "y nonce"
+msgstr "and nonce"
+
+#: includes/class-manual.php:60
+msgid "y un nonce asociado a cada ámbito. La navegación por"
+msgstr "and a nonce associated with each scope. Navigation by"
 
 #: includes/class-admin.php:655
 msgid ""
 "Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote"
 " antes de reiniciarla."
 msgstr ""
-
-#: includes/class-admin.php:665
-msgid "Acción no reconocida."
-msgstr ""
-
-#: includes/class-admin.php:681
-msgid "No hay informe completo que exportar."
-msgstr ""
-
-#: includes/class-auto-test.php:213 includes/class-auto-test.php:227
-msgid "Sin permisos para Auto Test."
-msgstr ""
-
-#: includes/class-auto-test.php:232
-msgid "Auto Test de Auditor"
-msgstr ""
-
-#: includes/class-auto-test.php:233
-msgid ""
-"Comprueba servicios, rutas, ámbitos, calidad, opciones, historial, FAQ y "
-"disponibilidad de exportación. Es de solo lectura: no inicia procesos ni "
-"modifica contenidos. Se guardan dos resultados por usuario durante 30 días."
-msgstr ""
-
-#: includes/class-auto-test.php:239
-msgid "Todavía no hay resultados. Pulsa Ejecutar Auto Test."
-msgstr ""
-
-#: includes/class-auto-test.php:256
-msgid "No hay una ejecución anterior para comparar."
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Grupo"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Prueba"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Resultado"
-msgstr ""
-
-#: includes/class-auto-test.php:258
-msgid "Tiempo"
-msgstr ""
-
-#: includes/class-auto-test.php:263
-msgid ""
-"No demuestra por sí mismo que una auditoría completa o la exportación JSONL "
-"funcionen con un catálogo real."
-msgstr ""
-
-#: includes/class-manual.php:10
-msgid "Sin permisos para consultar este manual."
-msgstr ""
+"There is already an audit of this block being processed. Wait for the batch "
+"to finish before restarting it."

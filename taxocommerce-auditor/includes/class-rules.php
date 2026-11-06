@@ -245,7 +245,7 @@ final class Rules {
         $product = function_exists( 'wc_get_product' ) ? wc_get_product( $id ) : false;
 
         if ( ! $product ) {
-            $findings[] = self::finding( 'product_unreadable', 'high', 'product', $id, $title, 'WooCommerce no pudo cargar el producto.', 'Revisar integridad del producto antes de editar sus datos.' );
+            $findings[] = self::finding( 'product_unreadable', 'high', 'product', $id, $title, __( 'WooCommerce no pudo cargar el producto.', 'taxocommerce-auditor' ), __( 'Revisar integridad del producto antes de editar sus datos.', 'taxocommerce-auditor' ) );
             return array( 'findings' => $findings, 'quality' => null, 'title_key' => self::identity_key( $title ) );
         }
 
@@ -257,23 +257,23 @@ final class Rules {
         $vocab = self::vocabulary_count( 'product', $id );
 
         if ( '' === $title ) {
-            $findings[] = self::finding( 'product_missing_title', 'critical', 'product', $id, $title, 'Título vacío.', 'Asignar un título identificativo.' );
+            $findings[] = self::finding( 'product_missing_title', 'critical', 'product', $id, $title, __( 'Título vacío.', 'taxocommerce-auditor' ), __( 'Asignar un título identificativo.', 'taxocommerce-auditor' ) );
         }
         if ( '' === $slug ) {
-            $findings[] = self::finding( 'product_missing_slug', 'high', 'product', $id, $title, 'Slug vacío.', 'Revisar la URL canónica.' );
+            $findings[] = self::finding( 'product_missing_slug', 'high', 'product', $id, $title, __( 'Slug vacío.', 'taxocommerce-auditor' ), __( 'Revisar la URL canónica.', 'taxocommerce-auditor' ) );
         }
         if ( ! $cats ) {
-            $findings[] = self::finding( 'product_without_category', 'high', 'product', $id, $title, 'Ninguna categoría WooCommerce asignada.', 'Asignar una categoría existente apropiada.' );
+            $findings[] = self::finding( 'product_without_category', 'high', 'product', $id, $title, __( 'Ninguna categoría WooCommerce asignada.', 'taxocommerce-auditor' ), __( 'Asignar una categoría existente apropiada.', 'taxocommerce-auditor' ) );
         }
         if ( '' === $excerpt ) {
-            $findings[] = self::finding( 'product_missing_excerpt', 'medium', 'product', $id, $title, 'Descripción corta vacía.', 'Redactar un resumen específico del producto.' );
+            $findings[] = self::finding( 'product_missing_excerpt', 'medium', 'product', $id, $title, __( 'Descripción corta vacía.', 'taxocommerce-auditor' ), __( 'Redactar un resumen específico del producto.', 'taxocommerce-auditor' ) );
         }
         if ( '' === $body ) {
-            $findings[] = self::finding( 'product_missing_description', 'medium', 'product', $id, $title, 'Descripción larga vacía.', 'Añadir datos técnicos y comerciales comprobables.' );
+            $findings[] = self::finding( 'product_missing_description', 'medium', 'product', $id, $title, __( 'Descripción larga vacía.', 'taxocommerce-auditor' ), __( 'Añadir datos técnicos y comerciales comprobables.', 'taxocommerce-auditor' ) );
         }
         $alignment = self::title_alignment( $title, $excerpt );
         if ( null !== $alignment && mb_strlen( $excerpt, 'UTF-8' ) >= 35 && $alignment < 0.2 ) {
-            $findings[] = self::finding( 'product_title_excerpt_drift', 'high', 'product', $id, $title, 'Muy pocas palabras del título aparecen en el resumen.', 'Contrastar título y resumen con la fuente original; posible desplazamiento de contenido.' );
+            $findings[] = self::finding( 'product_title_excerpt_drift', 'high', 'product', $id, $title, __( 'Muy pocas palabras del título aparecen en el resumen.', 'taxocommerce-auditor' ), __( 'Contrastar título y resumen con la fuente original; posible desplazamiento de contenido.', 'taxocommerce-auditor' ) );
         }
         // The legacy auditor distinguishes a weak textual match (review signal)
         // from demonstrable displacement to another product (not inferred here).
@@ -282,8 +282,8 @@ final class Rules {
             if ( null !== $long_alignment && $long_alignment < 0.08 ) {
                 $findings[] = self::finding(
                     'product_description_alignment_weak', 'low', 'product', $id, $title,
-                    'La descripción presenta muy poca coincidencia literal con el título.',
-                    'Revisar la fuente original; esta señal por sí sola no prueba que se haya copiado otro producto.'
+                    __( 'La descripción presenta muy poca coincidencia literal con el título.', 'taxocommerce-auditor' ),
+                    __( 'Revisar la fuente original; esta señal por sí sola no prueba que se haya copiado otro producto.', 'taxocommerce-auditor' )
                 );
             }
         }
@@ -299,13 +299,13 @@ final class Rules {
                 : $attribute->get_options();
             $values = is_wp_error( $values ) ? array() : array_values( array_filter( array_map( 'strval', (array) $values ), 'strlen' ) );
             if ( '' === trim( (string) $name ) && $values ) {
-                $findings[] = self::finding( 'attribute_without_name', 'medium', 'product', $id, $title, 'Atributo con valor pero sin nombre.', 'Corregir el nombre del atributo mediante WooCommerce.' );
+                $findings[] = self::finding( 'attribute_without_name', 'medium', 'product', $id, $title, __( 'Atributo con valor pero sin nombre.', 'taxocommerce-auditor' ), __( 'Corregir el nombre del atributo mediante WooCommerce.', 'taxocommerce-auditor' ) );
             } elseif ( '' !== trim( (string) $name ) && ! $values ) {
-                $findings[] = self::finding( 'attribute_without_value', 'medium', 'product', $id, $title, 'Atributo ' . $name . ' sin valor.', 'Completar el valor o retirar el atributo vacío.' );
+                $findings[] = self::finding( 'attribute_without_value', 'medium', 'product', $id, $title, 'Atributo ' . $name . ' sin valor.', __( 'Completar el valor o retirar el atributo vacío.', 'taxocommerce-auditor' ) );
             }
             foreach ( array_slice( $values, 0, 30 ) as $value ) {
                 if ( self::suspicious_attribute( $value ) ) {
-                    $findings[] = self::finding( 'attribute_value_malformed', 'medium', 'product', $id, $title, 'Formato sospechoso en atributo ' . $name . ': ' . mb_substr( $value, 0, 120, 'UTF-8' ), 'Verificar si hay texto o datos desplazados procedentes del proveedor.' );
+                    $findings[] = self::finding( 'attribute_value_malformed', 'medium', 'product', $id, $title, 'Formato sospechoso en atributo ' . $name . ': ' . mb_substr( $value, 0, 120, 'UTF-8' ), __( 'Verificar si hay texto o datos desplazados procedentes del proveedor.', 'taxocommerce-auditor' ) );
                     break;
                 }
             }
@@ -317,7 +317,7 @@ final class Rules {
             $findings[] = self::finding(
                 'product_attribute_title_conflict', 'high', 'product', $id, $title,
                 implode( '; ', $conflicts ),
-                'El título y los atributos muestran valores técnicos incompatibles; contrastar con el fabricante.'
+                __( 'El título y los atributos muestran valores técnicos incompatibles; contrastar con el fabricante.', 'taxocommerce-auditor' )
             );
         }
 
@@ -335,7 +335,7 @@ final class Rules {
                         $findings[] = self::finding(
                             'product_tag_identity_drift', 'low', 'product', $id, $title,
                             'La etiqueta "' . $tag . '" no aparece sustentada por título, contenido, categorías o atributos.',
-                            'Comprobar si la etiqueta describe realmente el producto.'
+                            __( 'Comprobar si la etiqueta describe realmente el producto.', 'taxocommerce-auditor' )
                         );
                         break;
                     }
@@ -344,10 +344,10 @@ final class Rules {
         }
 
         if ( '' === $sku ) {
-            $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', 'Comprobar si existe otro identificador estable en el proveedor.' );
+            $findings[] = self::finding( 'product_no_stable_sku', 'low', 'product', $id, $title, 'SKU vacío; puede ser legítimo para algunos productos.', __( 'Comprobar si existe otro identificador estable en el proveedor.', 'taxocommerce-auditor' ) );
         }
         if ( 0 === $vocab ) {
-            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, 'No hay términos tc_semantic_tag asignados.', 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.' );
+            $findings[] = self::finding( 'product_without_native_vocabulary', 'low', 'product', $id, $title, __( 'No hay términos tc_semantic_tag asignados.', 'taxocommerce-auditor' ), __( 'Revisar las propuestas del Clasificador sin asignar etiquetas automáticamente.', 'taxocommerce-auditor' ) );
         }
 
         return array(
@@ -370,22 +370,22 @@ final class Rules {
         $vocab = self::vocabulary_count( 'product_cat', $id );
 
         if ( $count > 0 && $body === '' ) {
-            $findings[] = self::finding( 'category_missing_description', 'medium', 'product_cat', $id, $title, 'Categoría con productos y sin descripción.', 'Explicar qué productos comprende y cuáles no.' );
+            $findings[] = self::finding( 'category_missing_description', 'medium', 'product_cat', $id, $title, __( 'Categoría con productos y sin descripción.', 'taxocommerce-auditor' ), __( 'Explicar qué productos comprende y cuáles no.', 'taxocommerce-auditor' ) );
         }
         if ( 0 === $count ) {
-            $findings[] = self::finding( 'category_empty', 'low', 'product_cat', $id, $title, 'Recuento nativo de productos: 0.', 'Revisar si está reservada, debe poblarse o retirarse con redirección.' );
+            $findings[] = self::finding( 'category_empty', 'low', 'product_cat', $id, $title, __( 'Recuento nativo de productos: 0.', 'taxocommerce-auditor' ), __( 'Revisar si está reservada, debe poblarse o retirarse con redirección.', 'taxocommerce-auditor' ) );
         }
         // Category counts and semantically supported split/merge proposals are
         // assessed in Category_Review, not duplicated as unrelated rules here.
         if ( 1 === $count ) {
-            $findings[] = self::finding( 'category_single_product', 'low', 'product_cat', $id, $title, 'Una única referencia publicada.', 'Revisar si la categoría aporta navegación o merece una familia más amplia.' );
+            $findings[] = self::finding( 'category_single_product', 'low', 'product_cat', $id, $title, __( 'Una única referencia publicada.', 'taxocommerce-auditor' ), __( 'Revisar si la categoría aporta navegación o merece una familia más amplia.', 'taxocommerce-auditor' ) );
         }
         $parent_term = $term->parent > 0 ? get_term( $term->parent, 'product_cat' ) : null;
         if ( $term->parent > 0 && ( ! $parent_term || is_wp_error( $parent_term ) ) ) {
-            $findings[] = self::finding( 'category_parent_unavailable', 'high', 'product_cat', $id, $title, 'Categoría padre no encontrada.', 'Comprobar la jerarquía nativa de producto.' );
+            $findings[] = self::finding( 'category_parent_unavailable', 'high', 'product_cat', $id, $title, __( 'Categoría padre no encontrada.', 'taxocommerce-auditor' ), __( 'Comprobar la jerarquía nativa de producto.', 'taxocommerce-auditor' ) );
         }
         if ( $count > 0 && taxonomy_exists( 'tc_semantic_tag' ) && 0 === $vocab ) {
-            $findings[] = self::finding( 'category_without_native_vocabulary', 'low', 'product_cat', $id, $title, 'Sin términos semánticos asignados.', 'Revisar asignaciones aprobadas en Vocabulary.' );
+            $findings[] = self::finding( 'category_without_native_vocabulary', 'low', 'product_cat', $id, $title, __( 'Sin términos semánticos asignados.', 'taxocommerce-auditor' ), __( 'Revisar asignaciones aprobadas en Vocabulary.', 'taxocommerce-auditor' ) );
         }
         // A WordPress term has no standard excerpt field. A registered
         // native-meta provider can supply one; absence is unknown, not empty.
@@ -395,16 +395,16 @@ final class Rules {
             if ( $count > 0 && '' === $excerpt ) {
                 $findings[] = self::finding(
                     'category_missing_excerpt', 'low', 'product_cat', $id, $title,
-                    'El campo de resumen nativo suministrado está vacío.',
-                    'Redactar un resumen específico para esta familia.'
+                    __( 'El campo de resumen nativo suministrado está vacío.', 'taxocommerce-auditor' ),
+                    __( 'Redactar un resumen específico para esta familia.', 'taxocommerce-auditor' )
                 );
             }
             $excerpt_alignment = self::title_alignment( $title, $excerpt );
             if ( mb_strlen( $excerpt, 'UTF-8' ) >= 35 && null !== $excerpt_alignment && $excerpt_alignment < 0.16 ) {
                 $findings[] = self::finding(
                     'category_excerpt_identity_drift', 'medium', 'product_cat', $id, $title,
-                    'El resumen no parece corresponder al nombre de la categoría.',
-                    'Contrastar el resumen con la familia correcta.'
+                    __( 'El resumen no parece corresponder al nombre de la categoría.', 'taxocommerce-auditor' ),
+                    __( 'Contrastar el resumen con la familia correcta.', 'taxocommerce-auditor' )
                 );
             }
         } else {
@@ -415,21 +415,21 @@ final class Rules {
         if ( mb_strlen( $body, 'UTF-8' ) >= 80 && null !== $description_alignment && $description_alignment < 0.08 ) {
             $findings[] = self::finding(
                 'category_description_alignment_weak', 'low', 'product_cat', $id, $title,
-                'La descripción está poco alineada literalmente con el título.',
-                'Verificar su pertinencia; una explicación técnica válida puede no repetir el título.'
+                __( 'La descripción está poco alineada literalmente con el título.', 'taxocommerce-auditor' ),
+                __( 'Verificar su pertinencia; una explicación técnica válida puede no repetir el título.', 'taxocommerce-auditor' )
             );
         }
         $slug_alignment = self::title_alignment( $title, str_replace( '-', ' ', $slug ) );
         if ( null !== $slug_alignment && $slug_alignment < 0.34 ) {
             $findings[] = self::finding(
                 'category_name_slug_drift', 'low', 'product_cat', $id, $title,
-                'Nombre y slug describen términos distintos.',
-                'Revisar si el slug sigue representando la categoría.'
+                __( 'Nombre y slug describen términos distintos.', 'taxocommerce-auditor' ),
+                __( 'Revisar si el slug sigue representando la categoría.', 'taxocommerce-auditor' )
             );
         }
 
         if ( $count > 0 && ! $parents && defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
-            $findings[] = self::finding( 'category_no_native_secondary_hub', 'low', 'product_cat', $id, $title, 'No consta un Hub secundario en term_meta de Core.', 'Comprobar si el vínculo existe en el modelo nativo o la categoría es deliberadamente independiente.' );
+            $findings[] = self::finding( 'category_no_native_secondary_hub', 'low', 'product_cat', $id, $title, __( 'No consta un Hub secundario en term_meta de Core.', 'taxocommerce-auditor' ), __( 'Comprobar si el vínculo existe en el modelo nativo o la categoría es deliberadamente independiente.', 'taxocommerce-auditor' ) );
         }
 
         return array(
@@ -459,16 +459,16 @@ final class Rules {
         $has_structure = true;
 
         if ( '' === $title ) {
-            $findings[] = self::finding( 'editorial_missing_title', 'critical', $type, $id, $title, 'Título vacío.', 'Definir un título útil para la intención real.' );
+            $findings[] = self::finding( 'editorial_missing_title', 'critical', $type, $id, $title, __( 'Título vacío.', 'taxocommerce-auditor' ), __( 'Definir un título útil para la intención real.', 'taxocommerce-auditor' ) );
         }
         if ( '' === $slug ) {
-            $findings[] = self::finding( 'editorial_missing_slug', 'high', $type, $id, $title, 'Slug vacío.', 'Comprobar la URL de esta publicación.' );
+            $findings[] = self::finding( 'editorial_missing_slug', 'high', $type, $id, $title, __( 'Slug vacío.', 'taxocommerce-auditor' ), __( 'Comprobar la URL de esta publicación.', 'taxocommerce-auditor' ) );
         }
         if ( mb_strlen( $body, 'UTF-8' ) < 120 ) {
-            $findings[] = self::finding( 'editorial_thin_content', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.' );
+            $findings[] = self::finding( 'editorial_thin_content', 'low', $type, $id, $title, 'Texto corto: ' . mb_strlen( $body, 'UTF-8' ) . ' caracteres.', __( 'Revisar utilidad y respuesta a la intención; no existe un mínimo de palabras SEO.', 'taxocommerce-auditor' ) );
         }
         if ( 0 === $vocab && mb_strlen( $body, 'UTF-8' ) >= 120 ) {
-            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, 'Sin etiquetas semánticas asignadas.', 'Revisar Vocabulary y añadir solo términos pertinentes.' );
+            $findings[] = self::finding( 'editorial_without_native_vocabulary', 'low', $type, $id, $title, __( 'Sin etiquetas semánticas asignadas.', 'taxocommerce-auditor' ), __( 'Revisar Vocabulary y añadir solo términos pertinentes.', 'taxocommerce-auditor' ) );
         }
         if ( 'page' === $type ) {
             // A missing role is evaluated once by Editorial_Specialist.
@@ -478,7 +478,7 @@ final class Rules {
             );
             if ( isset( $parent_meta[ $role ] ) && ! array_filter( array_map( 'absint', (array) get_post_meta( $id, $parent_meta[ $role ], false ) ) ) ) {
                 $has_structure = false;
-                $findings[] = self::finding( 'page_missing_native_parent', 'medium', $type, $id, $title, 'Hub sin padre identificado en post_meta de Core.', 'Verificar el vínculo nativo con el nivel superior antes de modificar la jerarquía.' );
+                $findings[] = self::finding( 'page_missing_native_parent', 'medium', $type, $id, $title, __( 'Hub sin padre identificado en post_meta de Core.', 'taxocommerce-auditor' ), __( 'Verificar el vínculo nativo con el nivel superior antes de modificar la jerarquía.', 'taxocommerce-auditor' ) );
             }
         }
         if ( $vocab > 0 ) {
@@ -494,8 +494,8 @@ final class Rules {
                 if ( $native_terms && ! $matched ) {
                     $findings[] = self::finding(
                         'editorial_vocab_title_drift', 'low', $type, $id, $title,
-                        'Las etiquetas asignadas no encuentran apoyo en el título o resumen.',
-                        'Revisar las etiquetas y la intención antes de modificar el contenido.'
+                        __( 'Las etiquetas asignadas no encuentran apoyo en el título o resumen.', 'taxocommerce-auditor' ),
+                        __( 'Revisar las etiquetas y la intención antes de modificar el contenido.', 'taxocommerce-auditor' )
                     );
                 }
             }
@@ -503,7 +503,7 @@ final class Rules {
 
         $alignment = self::title_alignment( $title, $body );
         if ( null !== $alignment && mb_strlen( $body, 'UTF-8' ) >= 140 && $alignment < 0.1 ) {
-            $findings[] = self::finding( 'editorial_title_content_drift', 'medium', $type, $id, $title, 'Poca coincidencia entre palabras específicas del título y texto.', 'Revisar si la publicación satisface su intención original.' );
+            $findings[] = self::finding( 'editorial_title_content_drift', 'medium', $type, $id, $title, __( 'Poca coincidencia entre palabras específicas del título y texto.', 'taxocommerce-auditor' ), __( 'Revisar si la publicación satisface su intención original.', 'taxocommerce-auditor' ) );
         }
 
         return array(
@@ -531,10 +531,10 @@ final class Rules {
         $category_id = 0;
 
         if ( '' === $title ) {
-            $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', 'Completar o retirar la pregunta.' );
+            $findings[] = self::finding( 'faq_empty_question', 'high', 'faq', $id, $title, 'FAQ sin pregunta.', __( 'Completar o retirar la pregunta.', 'taxocommerce-auditor' ) );
         }
         if ( mb_strlen( $answer, 'UTF-8' ) < 30 ) {
-            $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, 'Respuesta ausente o demasiado escueta.', 'Aportar una respuesta concreta y verificable.' );
+            $findings[] = self::finding( 'faq_thin_answer', 'medium', 'faq', $id, $title, __( 'Respuesta ausente o demasiado escueta.', 'taxocommerce-auditor' ), __( 'Aportar una respuesta concreta y verificable.', 'taxocommerce-auditor' ) );
         }
 
         $owner = null;
@@ -560,7 +560,7 @@ final class Rules {
                     $id,
                     $title,
                     'FAQ sin product_cat_id válido en el almacén canónico.',
-                    'Asignar una categoría real de WooCommerce para conservar contexto comercial y semántico.'
+                    __( 'Asignar una categoría real de WooCommerce para conservar contexto comercial y semántico.', 'taxocommerce-auditor' )
                 );
             }
         } else {
@@ -576,8 +576,8 @@ final class Rules {
             if ( ! $valid_type ) {
                 $findings[] = self::finding(
                     'faq_invalid_owner_type', 'critical', 'faq', $id, $title,
-                    'El owner de FAQ no pertenece a los tipos canónicos página/hub, categoría o producto.',
-                    'Asignar un owner canónico del tipo correcto.'
+                    __( 'El owner de FAQ no pertenece a los tipos canónicos página/hub, categoría o producto.', 'taxocommerce-auditor' ),
+                    __( 'Asignar un owner canónico del tipo correcto.', 'taxocommerce-auditor' )
                 );
             } else {
                 if ( 'product' === $type ) {
@@ -594,7 +594,7 @@ final class Rules {
                 if ( ! $valid ) {
                     $findings[] = self::finding(
                         'faq_orphan_owner', 'critical', 'faq', $id, $title,
-                        'No se encuentra el owner publicado o su tipo no corresponde.',
+                        __( 'No se encuentra el owner publicado o su tipo no corresponde.', 'taxocommerce-auditor' ),
                         'Revisar la relación canónica por ID, sin inferirla mediante similitud.'
                     );
                 } else {
