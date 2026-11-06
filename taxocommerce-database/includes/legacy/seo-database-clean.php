@@ -533,11 +533,11 @@ function seo_clean_db_render_bulk_accept_lock_section() {
 
     $user_label = $user
         ? $user->display_name . ' (ID ' . $user_id . ')'
-        : ($user_id > 0 ? 'Usuario ID ' . $user_id : 'No disponible');
+        : ($user_id > 0 ? sprintf( /* translators: %d: WordPress user ID. */ __( 'Usuario ID %d', 'taxocommerce-database' ), $user_id ) : __( 'No disponible', 'taxocommerce-database' ));
 
     $started_label = $started > 0
         ? wp_date('d/m/Y H:i:s', $started)
-        : 'No disponible';
+        : __( 'No disponible', 'taxocommerce-database' );
 
     $age_label = ($started > 0 && $started <= time())
         ? human_time_diff($started, time())
@@ -550,25 +550,25 @@ function seo_clean_db_render_bulk_accept_lock_section() {
 
     seo_clean_db_render_notice(
         'warning',
-        '<strong>Existe un bloqueo activo.</strong> Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo.'
+        '<strong>' . esc_html__( 'Existe un bloqueo activo.', 'taxocommerce-database' ) . '</strong> ' . esc_html__( 'Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo.', 'taxocommerce-database' )
     );
 
     echo '<table class="widefat striped seo-clean-table" style="max-width:850px;margin:15px 0;">';
     echo '<tbody>';
-    echo '<tr><th style="width:230px;">Opción de WordPress</th><td><code>' . esc_html($option_name) . '</code></td></tr>';
-    echo '<tr><th>Usuario que inició el proceso</th><td>' . esc_html($user_label) . '</td></tr>';
-    echo '<tr><th>Fecha de inicio</th><td>' . esc_html($started_label) . '</td></tr>';
-    echo '<tr><th>Antigüedad</th><td>' . esc_html($age_label) . '</td></tr>';
-    echo '<tr><th>Token</th><td><code>' . esc_html($token_label !== '' ? $token_label : 'No disponible') . '</code></td></tr>';
+    echo '<tr><th style="width:230px;">' . esc_html__( 'Opción de WordPress', 'taxocommerce-database' ) . '</th><td><code>' . esc_html($option_name) . '</code></td></tr>';
+    echo '<tr><th>' . esc_html__( 'Usuario que inició el proceso', 'taxocommerce-database' ) . '</th><td>' . esc_html($user_label) . '</td></tr>';
+    echo '<tr><th>' . esc_html__( 'Fecha de inicio', 'taxocommerce-database' ) . '</th><td>' . esc_html($started_label) . '</td></tr>';
+    echo '<tr><th>' . esc_html__( 'Antigüedad', 'taxocommerce-database' ) . '</th><td>' . esc_html($age_label) . '</td></tr>';
+    echo '<tr><th>' . esc_html__( 'Token', 'taxocommerce-database' ) . '</th><td><code>' . esc_html($token_label !== '' ? $token_label : __( 'No disponible', 'taxocommerce-database' )) . '</code></td></tr>';
     echo '</tbody>';
     echo '</table>';
 
     echo '<div class="seo-clean-actions">';
     seo_clean_db_render_action_form(
         'unlock_bulk_accept_lock',
-        'Desbloquear aceptación masiva',
+        __( 'Desbloquear aceptación masiva', 'taxocommerce-database' ),
         'button button-secondary',
-        'Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?',
+        __( 'Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?', 'taxocommerce-database' ),
         array('bulk_accept_lock_token' => $token)
     );
     echo '</div>';
