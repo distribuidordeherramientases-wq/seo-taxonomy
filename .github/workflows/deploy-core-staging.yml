@@ -1,0 +1,24 @@
+name: Scoped Core deployment to STAGING and Focazul
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-core/**'
+      - '.github/workflows/deploy-core-staging.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+# Never publishes to PRO or installs other plugins. The existing uploader
+# checks real remote SHA-256 values before writing each Core file.
+jobs:
+  core:
+    name: Reconcile TaxoCommerce Core on both test installations
+    uses: ./.github/workflows/deploy-staging.yml
+    with:
+      full_sync: false
+      target_plugin: taxocommerce-core
+    secrets: inherit
