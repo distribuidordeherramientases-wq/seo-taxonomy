@@ -59,6 +59,9 @@ jobs:
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
         run: |
           set -euo pipefail
+          php -l .github/tests/legacy-loaders-smoke.php
+          php .github/tests/legacy-loaders-smoke.php
+          for entry in bootstrap.php seo-marketing.php includes/header.php includes/dependiente/clonador/clonador-bootstrap.php; do php -l "$entry"; done
           php -l .github/tests/i18n-19-locale-smoke.php
           php .github/tests/i18n-19-locale-smoke.php
           python3 .github/scripts/sync_family_admin_branding.py --check
