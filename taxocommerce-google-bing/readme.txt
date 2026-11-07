@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.20
+Stable tag: 1.1.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,9 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.21 =
+* Google Analytics 4 is loaded with WordPress wp_enqueue_script and wp_add_inline_script when statistics consent is granted; avoids the redundant script in wp_head and retains existing provider settings.
 
 = 1.1.20 =
 * Add Google Search Console verification, Google Analytics 4 and Google Tag Manager head tags from pasted provider snippets without executable HTML in the admin POST.
