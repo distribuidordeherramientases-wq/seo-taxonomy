@@ -211,9 +211,28 @@ final class TaxoCommerce_Connections_Admin {
 		$amazon = TaxoCommerce_Connections_Amazon::settings();
 		$pinterest = TaxoCommerce_Connections_Pinterest::settings();
 		$merchant = TaxoCommerce_Connections_Pinterest::merchant_settings();
+        $tc_version_label = __( 'Version', 'taxocommerce-connections' );
+        $tc_updated_label = __( 'Last updated', 'taxocommerce-connections' );
+        $tc_translation_fallback = array(
+            'es' => array( 'Versión', 'Última actualización' ),
+            'en' => array( 'Version', 'Last updated' ),
+            'fr' => array( 'Version', 'Dernière mise à jour' ),
+            'de' => array( 'Version', 'Zuletzt aktualisiert' ),
+            'nl' => array( 'Versie', 'Laatst bijgewerkt' ),
+        );
+        $tc_language = strtolower( substr( determine_locale(), 0, 2 ) );
+        if ( isset( $tc_translation_fallback[ $tc_language ] ) ) {
+            if ( 'Version' === $tc_version_label ) {
+                $tc_version_label = $tc_translation_fallback[ $tc_language ][0];
+            }
+            if ( 'Last updated' === $tc_updated_label ) {
+                $tc_updated_label = $tc_translation_fallback[ $tc_language ][1];
+            }
+        }
+
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'TaxoCommerce Connections', 'taxocommerce-connections' ); ?> <small style="font-size:13px;font-weight:normal"><?php echo esc_html( translate( 'Version', 'default' ) . ' ' . TAXOCOMMERCE_CONNECTIONS_VERSION . ' · ' . translate( 'Last updated', 'default' ) . ': ' . TAXOCOMMERCE_CONNECTIONS_RELEASE_DATE ); ?></small></h1>
+			<h1><?php esc_html_e( 'TaxoCommerce Connections', 'taxocommerce-connections' ); ?> <small style="font-size:13px;font-weight:normal"><?php echo esc_html( $tc_version_label . ' ' . TAXOCOMMERCE_CONNECTIONS_VERSION . ' · ' . $tc_updated_label . ': ' . TAXOCOMMERCE_CONNECTIONS_RELEASE_DATE ); ?></small></h1>
             <nav class="nav-tab-wrapper">
                 <a class="nav-tab nav-tab-active" href="<?php echo esc_url( self::url() ); ?>"><?php esc_html_e( 'Connections', 'taxocommerce-connections' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( TaxoCommerce_Connections_Autocheck::url() ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-connections' ); ?></a>

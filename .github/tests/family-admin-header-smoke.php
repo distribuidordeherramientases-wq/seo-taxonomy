@@ -25,6 +25,7 @@ function sanitize_key( $value ) {
 function wp_unslash( $value ) { return $value; }
 function __( $text, $domain = '' ) { return $text; }
 function translate( $text, $domain = 'default' ) { return $text; }
+function determine_locale() { return $GLOBALS['tc_test_locale'] ?? 'es_ES'; }
 function esc_html( $value ) {
     return htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
 }
@@ -109,6 +110,24 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( false !== strpos( $styles['css'], '@media(max-width:600px)' ), 'Responsive header on ' . $slug );
     tc_test_assert( false !== strpos( $styles['css'], '.nav-tab-wrapper' ), 'Existing tabs retained on ' . $slug );
 }
+// The same standalone header must respect each WordPress administrator locale.
+$_GET['page'] = 'taxocommerce-auditor';
+foreach ( array(
+    'es_ES' => 'Última actualización',
+    'en_US' => 'Last updated',
+    'fr_FR' => 'Dernière mise à jour',
+    'de_DE' => 'Zuletzt aktualisiert',
+    'nl_NL' => 'Laatst bijgewerkt',
+) as $locale => $expected ) {
+    $GLOBALS['tc_test_locale'] = $locale;
+    ob_start();
+    foreach ( $tc_test_actions['admin_notices'] as $callback ) {
+        $callback();
+    }
+    $header = ob_get_clean();
+    tc_test_assert( false !== strpos( $header, $expected ), 'Translated release label for ' . $locale );
+}
+unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
 foreach ( $tc_test_actions['admin_notices'] as $callback ) {

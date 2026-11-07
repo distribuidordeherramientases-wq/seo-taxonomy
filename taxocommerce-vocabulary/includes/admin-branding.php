@@ -36,6 +36,27 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
     $title = preg_replace( '/\\s+-\\s+.*$/', '', (string) ( $plugin['name'] ?? '' ) );
     $version = (string) ( $plugin['version'] ?? '' );
     $released = (string) ( $plugin['released'] ?? '' );
+    // Prefer native plugin gettext catalogs, with predictable fallbacks for
+    // the five supported base languages until new catalogs are compiled.
+    $tc_version_label = __( 'Version', 'taxocommerce-vocabulary' );
+    $tc_updated_label = __( 'Last updated', 'taxocommerce-vocabulary' );
+    $tc_languages = array(
+        'es' => array( 'Versión', 'Última actualización' ),
+        'en' => array( 'Version', 'Last updated' ),
+        'fr' => array( 'Version', 'Dernière mise à jour' ),
+        'de' => array( 'Version', 'Zuletzt aktualisiert' ),
+        'nl' => array( 'Versie', 'Laatst bijgewerkt' ),
+    );
+    $tc_language = strtolower( substr( determine_locale(), 0, 2 ) );
+    if ( isset( $tc_languages[ $tc_language ] ) ) {
+        if ( 'Version' === $tc_version_label ) {
+            $tc_version_label = $tc_languages[ $tc_language ][0];
+        }
+        if ( 'Last updated' === $tc_updated_label ) {
+            $tc_updated_label = $tc_languages[ $tc_language ][1];
+        }
+    }
+
     if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $released ) ) {
         $released = '';
     }
@@ -51,8 +72,8 @@ add_action( 'admin_notices', static function () use ( $tc_brand_on_screen, $tc_b
             <p class="tc-family-hero__desc"><?php esc_html_e( 'Administra el vocabulario semántico y los atributos del catálogo.', 'taxocommerce-vocabulary' ); ?></p>
         </div>
         <div class="tc-family-hero__meta">
-            <span class="tc-family-hero__version"><?php echo esc_html( translate( 'Version', 'default' ) . ' ' . $version ); ?></span>
-            <span class="tc-family-hero__updated"><?php echo esc_html( translate( 'Last updated', 'default' ) . ': ' . $released ); ?></span>
+            <span class="tc-family-hero__version"><?php echo esc_html( $tc_version_label . ' ' . $version ); ?></span>
+            <span class="tc-family-hero__updated"><?php echo esc_html( $tc_updated_label . ': ' . $released ); ?></span>
         </div>
         <span class="tc-family-hero__art" aria-hidden="true"><i></i><i></i><i></i></span>
     </header>

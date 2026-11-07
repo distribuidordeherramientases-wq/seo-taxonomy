@@ -524,7 +524,19 @@ function tctasks_admin() {
         $tab = 'tasks';
     }
     $labels = array( 'tasks'=>'Tasks', 'calendar'=>'Calendar', 'dashboard'=>'Dashboard', 'categories'=>'Categories', 'autocheck'=>'Autocheck', 'manual-user'=>'User manual', 'manual-technical'=>'Technical manual' );
-    echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · ' . esc_html( translate( 'Last updated', 'default' ) ) . ': ' . esc_html( TAXOCOMMERCE_TASKS_RELEASE_DATE ) . '</small></h1>';
+    $tc_updated_label = __( 'Last updated', 'taxocommerce-tasks' );
+    $tc_language = strtolower( substr( determine_locale(), 0, 2 ) );
+    $tc_fallback = array(
+        'es' => 'Última actualización',
+        'en' => 'Last updated',
+        'fr' => 'Dernière mise à jour',
+        'de' => 'Zuletzt aktualisiert',
+        'nl' => 'Laatst bijgewerkt',
+    );
+    if ( 'Last updated' === $tc_updated_label && isset( $tc_fallback[ $tc_language ] ) ) {
+        $tc_updated_label = $tc_fallback[ $tc_language ];
+    }
+    echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · ' . esc_html( $tc_updated_label ) . ': ' . esc_html( TAXOCOMMERCE_TASKS_RELEASE_DATE ) . '</small></h1>';
     echo '<p>' . esc_html( tctasks_label( 'Private task management, calendar and indicators.' ) ) . '</p><nav class="nav-tab-wrapper">';
     foreach ( $labels as $key=>$label ) {
         $url = add_query_arg( array( 'page'=>'taxocommerce-tasks','tab'=>$key ), admin_url( 'admin.php' ) );
