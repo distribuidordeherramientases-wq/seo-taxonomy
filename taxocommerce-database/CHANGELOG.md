@@ -1,3 +1,9 @@
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## [Unreleased] — Internacionalización del desbloqueo masivo (#2271)
 
 - Localizadas con gettext las etiquetas, el aviso, el usuario, la fecha y la acción de desbloqueo de aceptación masiva, sin alterar los identificadores técnicos, los tokens ni la lógica de seguridad.

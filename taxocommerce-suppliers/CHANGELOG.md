@@ -1,3 +1,9 @@
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ### Plugin Check 2.1.0: corrección de i18n (Issues #2219 y #2223)
 
 - Corregidos los cuatro errores de comentarios para traductores en los textos con marcadores de formato.

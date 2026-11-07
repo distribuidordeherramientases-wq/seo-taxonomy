@@ -4,6 +4,12 @@
 - Regenerados los catálogos binarios MO correspondientes. Sin cambios en los chequeos ni en sus resultados.
 - Continúan pendientes las demás cadenas del POT, la auditoría de literales fuera de gettext y las pruebas reales de locale. No declarar internacionalización completa.
 
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## [0.2.18] — 2026-11-06 — Supervisión de procesos de WordPress (#2250)
 
 - Nueva pestaña Procesos: inventario acotado de Action Scheduler y WP-Cron (100 registros por estado), más los procesos conocidos de Dependiente, Import-Export (incluidas exportaciones CSV) y auditorías HTTP si están activos.

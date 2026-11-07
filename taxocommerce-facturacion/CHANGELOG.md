@@ -5,6 +5,12 @@
 - Sin modificar facturas, proformas, presupuestos, datos fiscales, PDF, permisos ni WooCommerce.
 - Pendiente la revisión de todos los textos de código fuera de gettext, calidad visual y selección de idioma en WordPress real.
 
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## Unreleased - Familia i18n #2062
 
 

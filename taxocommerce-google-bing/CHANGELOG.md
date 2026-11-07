@@ -4,6 +4,12 @@
 - Se conservan los identificadores, la edición del inventario de etiquetas y la autorización previa de estadísticas. No se duplican cargas cuando Google Analytics ya se gestiona mediante conexiones antiguas.
 - Prueba de regresión para consentimiento, etiquetas y encolado; verificación mediante Plugin Check oficial antes de fusionar.
 
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## [1.1.17] — 2026-11-06 — IndexNow independiente de Cloudflare (#2259)
 
 - Emisor IndexNow opcional por tienda dentro de Insights > Connections > Bing, desactivado por defecto para evitar duplicaciones con proveedores SEO o CDN.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased] — Locales regionales en los 19 plugins TaxoCommerce (#2295)
+
+- Los 19 plugins independientes priorizan las traducciones oficiales de WordPress en formatos .mo y .l10n.php.
+- Si el locale exacto no tiene catálogo local ni paquete oficial, se reutiliza el catálogo disponible del idioma principal para variantes ES/EN/FR/DE/NL (por ejemplo en_GB -> en_US).
+- Nueva prueba CLI sobre los 19 cargadores de gettext y la prioridad de los paquetes oficiales, integrada en la validación de despliegue; ninguna lógica de WooCommerce se altera.
+- Los scripts de inventario y generación de traducciones consideran los 19 plugins activos, excluyendo Connections independiente, integrado en el módulo de Insights/Google-Bing. Pendientes de #2062 los textos y catálogos aún incompletos.
+
 ## GitHub Actions: tres workflows permanentes - 05/11/2026 (Issue #2205)
 
 - Se conservan exclusivamente `.github/workflows/deploy-staging.yml` (STAGING y Focazul), `.github/workflows/despliege_de_main_a_pro.yml` (PRO solo por `workflow_dispatch`) y `.github/workflows/taxocommerce-plugin-check.yml` (Plugin Check oficial generico).

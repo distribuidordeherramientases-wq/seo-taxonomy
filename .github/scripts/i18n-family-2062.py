@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate native WordPress gettext catalogs for the 20 standalone plugins.
+"""Regenerate native WordPress gettext catalogs for the 19 current standalone plugins.
 
 Only display arguments of known admin menu functions are rewritten. Do not
 translate technical identifiers, stored options, URLs, SQL, CSS or data.
@@ -27,7 +27,7 @@ import requests
 ROOT = Path(__file__).resolve().parents[2]
 LANGUAGES = {"es_ES": "es", "en_US": "en", "fr_FR": "fr", "de_DE": "de", "nl_NL": "nl"}
 PLUGINS = (
-    "auditor", "campaigns", "connections", "core", "database", "dependiente",
+    "auditor", "campaigns", "core", "database", "dependiente",
     "distribution", "facturacion", "faqs", "google-bing", "images",
     "import-export", "logistica", "redirects", "scrappers", "social",
     "suppliers", "system-check", "templates", "vocabulary",

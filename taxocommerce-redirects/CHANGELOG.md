@@ -4,6 +4,12 @@
 - Regenerados los cinco catálogos MO sin modificar el motor de redirecciones, las reglas 301/302 ni la eliminación asistida.
 - Pendientes las 111 cadenas restantes del POT y los textos fuera de gettext, así como revisar los metadatos con la URL del cliente histórico antes de publicar en WordPress.org.
 
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## Unreleased - Familia i18n #2062
 
 
