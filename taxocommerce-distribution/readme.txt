@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,7 @@ Distribution retains the proven production behavior of the previous TaxoCommerce
 * Independent five-speed load controller (Suave/Baja/Normal/Alta/Máxima) with PHP CPU/memory/time back-pressure, progress, stop and recovery.
 * XML validation before publication.
 * Atomic sitemap publication and stable root-domain URLs.
-* Automatic sitemap regeneration after catalog/content changes when Distribution owns the endpoint.
+* Automatic sitemap regeneration after catalog/content changes and a daily review using WP-Cron, when Distribution owns the endpoint.
 * Safe coexistence mode with the legacy monolithic plugin during migration.
 * Two full, independently structured guides within the Manual tab: a step-by-step User Manual and a Developer Technical Manual with code map, lifecycle, hooks, options, security, migration, tests, and safe extension procedure.
 * On-demand, read-only Autocheck of components, registrations, configuration and local publication files, without regeneration, background jobs or network calls.
@@ -60,6 +60,9 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.8 =
+* Schedule a daily sitemap rebuild using the existing incremental 250-item worker. Avoid duplicate scheduled jobs and skip this schedule when a legacy sitemap provider owns the endpoint. WordPress-Cron requires site traffic or an external cron trigger.
 
 = 0.1.7 =
 * Spanish admin translations for Distribution, including commercial feeds and native WordPress gettext files.
