@@ -750,3 +750,171 @@ msgstr ""
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
 msgstr "In diesem Block sind keine Produkte verfügbar."
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicación de políticas de plantillas"
+msgstr "Anwendung der Vorlagenrichtlinien"
+
+#. TaxoCommerce Templates administration UI
+msgid "Estado:"
+msgstr "Status:"
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicando las políticas de Templates"
+msgstr "Templates-Richtlinien werden angewendet"
+
+#. TaxoCommerce Templates administration UI
+msgid "Políticas suspendidas"
+msgstr "Richtlinien ausgesetzt"
+
+#. TaxoCommerce Templates administration UI
+msgid "Guardar estado de las políticas"
+msgstr "Richtlinienstatus speichern"
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutamiento"
+msgstr "Routing"
+
+#. TaxoCommerce Templates administration UI
+msgid "Diseñador de plantillas"
+msgstr "Vorlagen-Designer"
+
+#. TaxoCommerce Templates administration UI
+msgid "Autocheck"
+msgstr "Selbstprüfung"
+
+#. TaxoCommerce Templates administration UI
+msgid "Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en seo_templates, sin modificar archivos PHP."
+msgstr "Wähle die Datei aus, die für jede WordPress-, WooCommerce- oder SEO-Rollenanfrage verwendet wird. Die Zuordnungen werden in seo_templates gespeichert, ohne PHP-Dateien zu ändern."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce habilitado."
+msgstr "TaxoCommerce-Router aktiviert."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce desactivado."
+msgstr "TaxoCommerce-Router deaktiviert."
+
+#. TaxoCommerce Templates administration UI
+msgid "Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada."
+msgstr "Spezielle Routen und das Theme können Vorrang haben; diese Tabelle zeigt Konfigurationen und keine überprüfte Ausführung."
+
+#. TaxoCommerce Templates administration UI
+msgid "Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado."
+msgstr "Du kannst Zuordnungen speichern, aber sie ersetzen die öffentliche Vorlage nicht, solange der Router deaktiviert ist."
+
+#. TaxoCommerce Templates administration UI
+msgid "Mis plantillas"
+msgstr "Meine Vorlagen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Por configurar"
+msgstr "Noch zu konfigurieren"
+
+#. TaxoCommerce Templates administration UI
+msgid "Todas"
+msgstr "Alle"
+
+#. TaxoCommerce Templates administration UI
+msgid "Vista de enrutamiento"
+msgstr "Routing-Ansicht"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rol, petición o archivo"
+msgstr "Rolle, Anfrage oder Datei"
+
+#. TaxoCommerce Templates administration UI
+msgid "Filtrar"
+msgstr "Filtern"
+
+#. TaxoCommerce Templates administration UI
+msgid "Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible."
+msgstr "Es werden nur Zuordnungen mit einer zugewiesenen und aktiven Datei angezeigt, auch wenn die Datei fehlt. Der vollständige Katalog bleibt verfügbar."
+
+#. TaxoCommerce Templates administration UI
+msgid "Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas»."
+msgstr "Wichtige Typen, für die noch keine aktive Vorlage existiert. Interne WooCommerce-Fragmente befinden sich unter „Alle“."
+
+#. TaxoCommerce Templates administration UI
+msgid "Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas."
+msgstr "Vollständiges Inventar einschließlich interner WooCommerce-Dateien und noch nicht konfigurierter Routen."
+
+#. TaxoCommerce Templates administration UI
+msgid "plantillas y rutas propias"
+msgstr "eigene Vorlagen und Routen"
+
+#. TaxoCommerce Templates administration UI
+msgid "tipos pendientes"
+msgstr "ausstehende Typen"
+
+#. TaxoCommerce Templates administration UI
+msgid "opciones y plantillas"
+msgstr "Optionen und Vorlagen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rutas heredadas existentes"
+msgstr "Vorhandene ältere Routen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Catálogo de peticiones"
+msgstr "Anfragekatalog"
+
+#. Templates UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr "Verwalte Vorlagen, Seitenrouting und Darstellungsregeln."
+
+#. Templates UI
+msgid "Versión"
+msgstr "Version"
+
+#. Templates UI
+msgid "Todas las peticiones"
+msgstr "Alle Anfragen"
+
+#. Templates UI
+msgid "Guardar"
+msgstr "Speichern"
+
+#. Templates UI
+msgid "Asociar archivo"
+msgstr "Datei zuordnen"
+
+#. Templates UI
+msgid "Desasignar"
+msgstr "Zuordnung aufheben"
+
+#. Templates UI
+msgid "Asignar pagina"
+msgstr "Seite zuordnen"
+
+#. Templates UI
+msgid "Crear rol"
+msgstr "Rolle erstellen"
+
+#. Templates UI
+msgid "Automático / sin rol SEO"
+msgstr "Automatisch / ohne SEO-Rolle"
+
+#. Templates UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr "Es sind noch keine aktiven Vorlagen zugewiesen."
+
+#. Templates UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr "Ersten Inhaltstyp zur Konfiguration auswählen"
+
+#. Templates UI
+msgid "Ir al Diseñador de plantillas"
+msgstr "Zum Vorlagen-Designer"
+
+#. Templates UI
+msgid "Ver archivo PHP"
+msgstr "PHP-Datei anzeigen"
+
+#. Templates UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr "Technische Prüfung vorhandener Zuordnungen öffnen"
+
+#. Templates UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr "Die jeder Rolle zugeordneten Seiten verwalten"
