@@ -113,7 +113,14 @@ def plan():
     # Updating a workflow, CI test or deployment script must NEVER initiate a
     # family-wide reconciliation without an explicit manual operator request.
     sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
-    if sync:
+    target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
+    if target:
+        # Only the explicitly authorized Tasks push may bypass the blocked
+        # all-plugin queue. Never permit dynamic or arbitrary plugin selection.
+        if target != "taxocommerce-tasks" or sync:
+            raise ValueError("Targeted push deployment only permits Tasks without full sync")
+        slugs = [target] if changes.get(target) else []
+    elif sync:
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
             if d.is_dir() and SLUG.fullmatch(d.name)
