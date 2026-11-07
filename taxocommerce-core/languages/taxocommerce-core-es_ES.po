@@ -3870,3 +3870,7 @@ msgstr "Acceso denegado a Autocheck."
 #: includes/class-taxocommerce-core-auto-test.php
 msgid "Sin permisos para ejecutar autocheck."
 msgstr "Sin permisos para ejecutar autocheck."
+
+#: includes/class-taxocommerce-core.php
+msgid "Private task agenda, calendar, categories and indicators."
+msgstr "Agenda privada de tareas, calendario, categorías e indicadores."
