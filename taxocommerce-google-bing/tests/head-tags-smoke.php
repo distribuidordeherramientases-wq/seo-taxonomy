@@ -7,9 +7,10 @@ define( 'ABSPATH', __DIR__ );
 function get_option( $key, $default = array() ) {
     return isset( $GLOBALS['test_head_options'][ $key ] ) ? $GLOBALS['test_head_options'][ $key ] : $default;
 }
+function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function is_admin() { return false; }
 function is_feed() { return false; }
-function wp_has_consent( $category ) { return 'statistics' === $category && ! empty( $GLOBALS['test_head_consent'] ); }
+function wp_has_consent( $category ) { return 'statistics' === $category ? ! empty( $GLOBALS['test_head_consent'] ) : ( 'marketing' === $category && ! empty( $GLOBALS['test_head_marketing'] ) ); }
 function apply_filters( $name, $value ) { return $value; }
 
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-insights-head-tags.php';
@@ -24,6 +25,29 @@ $generated_clarity = $clarity_builder->invoke( null, 'ww0i0jxbs8' );
 if ( false === strpos( $generated_clarity, 'https://www.clarity.ms/tag/' ) || false === strpos( $generated_clarity, '"ww0i0jxbs8"' ) ) {
     throw new RuntimeException( 'Canonical Clarity loader missing project identifier' );
 }
+$normalizer = new ReflectionMethod( 'TaxoCommerce_Insights_Head_Tags', 'normalized_provider_code' );
+$normalizer->setAccessible( true );
+foreach ( array(
+    array( 'google_verification', 'abCD_efGH-123456', 'verification', 'google-site-verification' ),
+    array( 'google_analytics', 'G-ABC123456', 'tracking', 'googletagmanager.com/gtag/js?id=G-ABC123456' ),
+    array( 'google_tag_manager', 'GTM-ABCD123', 'tracking', 'googletagmanager.com/gtm.js?id=' ),
+    array( 'clarity', 'ww0i0jxbs8', 'tracking', 'clarity.ms/tag' ),
+) as $case ) {
+    $html = $normalizer->invoke( null, $case[0], $case[1], $case[2] );
+    if ( false === strpos( $html, $case[3] ) ) {
+        throw new RuntimeException( 'Known provider not normalized: ' . $case[0] );
+    }
+}
+if ( '' !== $normalizer->invoke( null, 'google_verification', '<script>alert(1)</script>', 'verification' ) ) {
+    throw new RuntimeException( 'Unsafe Google verification token accepted' );
+}
+if ( '' !== $normalizer->invoke( null, 'google_analytics', 'G-ABC123456', 'verification' ) ) {
+    throw new RuntimeException( 'Tracking ID accepted as consent-free verification' );
+}
+if ( '' !== $normalizer->invoke( null, 'google_tag_manager', 'GTM-ABC";alert(1)', 'tracking' ) ) {
+    throw new RuntimeException( 'Unsafe GTM identifier accepted' );
+}
+
 $validator = new ReflectionMethod( 'TaxoCommerce_Insights_Head_Tags', 'validate_code' );
 $validator->setAccessible( true );
 foreach ( array( $verify, $bing ) as $example ) {
@@ -31,7 +55,7 @@ foreach ( array( $verify, $bing ) as $example ) {
         throw new RuntimeException( 'Valid verification meta tag rejected' );
     }
 }
-foreach ( array( $clarity, $google, $generated_clarity ) as $example ) {
+foreach ( array( $clarity, $google, $generated_clarity, $normalizer->invoke( null, 'google_analytics', 'G-ABC123456', 'tracking' ), $normalizer->invoke( null, 'google_tag_manager', 'GTM-ABCD123', 'tracking' ) ) as $example ) {
     if ( ! $validator->invoke( null, $example, 'tracking' ) ) {
         throw new RuntimeException( 'Valid tracking snippet rejected' );
     }
@@ -47,6 +71,7 @@ $GLOBALS['test_head_options'] = array(
         'one' => array( 'name' => 'Google', 'kind' => 'verification', 'code' => $verify, 'enabled' => true ),
         'two' => array( 'name' => 'Clarity', 'kind' => 'tracking', 'code' => $clarity, 'enabled' => true ),
         'three' => array( 'name' => 'Inactive', 'kind' => 'verification', 'code' => $bing, 'enabled' => false ),
+        'four' => array( 'name' => 'Google Tag Manager', 'kind' => 'tracking', 'code' => $normalizer->invoke( null, 'google_tag_manager', 'GTM-ABCD123', 'tracking' ), 'enabled' => true, 'provider' => 'google_tag_manager', 'provider_id' => 'GTM-ABCD123' ),
     ),
 );
 $GLOBALS['test_head_consent'] = false;
@@ -60,6 +85,16 @@ $GLOBALS['test_head_consent'] = true;
 ob_start();
 TaxoCommerce_Insights_Head_Tags::output();
 $with_consent = ob_get_clean();
+if ( false !== strpos( $with_consent, 'googletagmanager.com/gtm.js' ) ) {
+    throw new RuntimeException( 'GTM loaded without marketing consent' );
+}
+$GLOBALS['test_head_marketing'] = true;
+ob_start();
+TaxoCommerce_Insights_Head_Tags::output();
+$with_marketing = ob_get_clean();
+if ( false === strpos( $with_marketing, 'googletagmanager.com/gtm.js' ) ) {
+    throw new RuntimeException( 'GTM missing after marketing consent' );
+}
 if ( false === strpos( $with_consent, 'clarity' ) ) {
     throw new RuntimeException( 'Consented tracking script missing' );
 }

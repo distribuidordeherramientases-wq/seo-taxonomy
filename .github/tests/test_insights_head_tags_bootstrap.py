@@ -33,8 +33,8 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         self.assertIn("TaxoCommerce_Insights_Head_Tags::register();", self.main)
 
     def test_version_header_and_readme_match(self):
-        self.assertIn("* Version: 1.1.19", self.main)
-        self.assertIn("Stable tag: 1.1.19", README.read_text(encoding="utf-8"))
+        self.assertIn("* Version: 1.1.20", self.main)
+        self.assertIn("Stable tag: 1.1.20", README.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

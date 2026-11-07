@@ -18,6 +18,7 @@ final class TaxoCommerce_Insights_Head_Tags {
     public static function register() {
         add_action( 'admin_post_tgb_head_tag_save', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_tgb_head_tag_delete', array( __CLASS__, 'delete' ) );
+        add_action( 'admin_post_tgb_head_tag_toggle', array( __CLASS__, 'toggle' ) );
         add_action( 'wp_head', array( __CLASS__, 'output' ), 99 );
     }
 
@@ -85,6 +86,71 @@ final class TaxoCommerce_Insights_Head_Tags {
             . '</script>';
     }
 
+
+    /** Construct a known Google snippet from a vetted provider identifier. */
+    private static function google_code( $provider, $value ) {
+        if ( 'google_verification' === $provider ) {
+            return '<meta name="google-site-verification" content="' . esc_attr( $value ) . '">';
+        }
+        if ( 'google_analytics' === $provider ) {
+            return '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $value ) . '"></script>' . "\n"
+                . '<script>window.dataLayer=window.dataLayer||[];'
+                . 'function gtag(){dataLayer.push(arguments);}'
+                . 'gtag("js",new Date());gtag("config","' . $value . '");</script>';
+        }
+        if ( 'google_tag_manager' === $provider ) {
+            return '<script>(function(w,d,s,l,i){w[l]=w[l]||[];'
+                . 'w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});'
+                . 'var f=d.getElementsByTagName(s)[0],j=d.createElement(s),'
+                . 'dl=l!="dataLayer"?"&l="+l:"";j.async=true;'
+                . 'j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;'
+                . 'f.parentNode.insertBefore(j,f);'
+                . '})(window,document,"script","dataLayer","' . $value . '");</script>';
+        }
+        return '';
+    }
+
+    /** Validate and normalize provider identifiers before constructing executable code. */
+    private static function normalized_provider_code( $provider, $value, $kind ) {
+        if ( 'clarity' === $provider && 'tracking' === $kind && preg_match( '/\A[a-z0-9]{6,32}\z/', $value ) ) {
+            return self::clarity_code( $value );
+        }
+        if ( 'google_verification' === $provider && 'verification' === $kind && preg_match( '/\A[A-Za-z0-9_-]{8,256}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        if ( 'google_analytics' === $provider && 'tracking' === $kind && preg_match( '/\AG-[A-Z0-9]{5,32}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        if ( 'google_tag_manager' === $provider && 'tracking' === $kind && preg_match( '/\AGTM-[A-Z0-9]{5,32}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        return '';
+    }
+
+    /** Recognize existing entries saved before provider IDs were introduced. */
+    private static function provider_name( $entry ) {
+        $provider = isset( $entry['provider'] ) ? $entry['provider'] : '';
+        $code = isset( $entry['code'] ) ? (string) $entry['code'] : '';
+        if ( '' === $provider ) {
+            if ( false !== strpos( $code, 'clarity.ms/tag' ) ) {
+                $provider = 'clarity';
+            } elseif ( false !== strpos( $code, 'google-site-verification' ) ) {
+                $provider = 'google_verification';
+            } elseif ( false !== strpos( $code, 'googletagmanager.com/gtag/js' ) ) {
+                $provider = 'google_analytics';
+            } elseif ( false !== strpos( $code, 'googletagmanager.com/gtm.js' ) ) {
+                $provider = 'google_tag_manager';
+            }
+        }
+        $names = array(
+            'clarity'             => 'Microsoft Clarity',
+            'google_verification' => 'Google Search Console',
+            'google_analytics'    => 'Google Analytics 4',
+            'google_tag_manager'  => 'Google Tag Manager',
+        );
+        return isset( $names[ $provider ] ) ? $names[ $provider ] : __( 'Personalizado', 'taxocommerce-google-bing' );
+    }
+
     public static function save() {
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'No tienes permiso para insertar codigo HTML sin filtrar.', 'taxocommerce-google-bing' ) );
@@ -100,13 +166,22 @@ final class TaxoCommerce_Insights_Head_Tags {
         $clarity_id = isset( $_POST['entry_clarity_id'] ) && is_string( $_POST['entry_clarity_id'] )
             ? sanitize_text_field( wp_unslash( $_POST['entry_clarity_id'] ) )
             : '';
+        $provider = isset( $_POST['entry_provider'] ) ? sanitize_key( wp_unslash( $_POST['entry_provider'] ) ) : '';
+        $provider_id = isset( $_POST['entry_provider_id'] ) && is_string( $_POST['entry_provider_id'] )
+            ? sanitize_text_field( wp_unslash( $_POST['entry_provider_id'] ) )
+            : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-        if ( '' !== $clarity_id ) {
-            if ( 'tracking' !== $kind || ! preg_match( '/\\A[a-z0-9]{6,32}\\z/', $clarity_id ) ) {
+        if ( '' !== $clarity_id && '' === $provider ) {
+            // Compatibility with the Clarity form from 1.1.19.
+            $provider = 'clarity';
+            $provider_id = $clarity_id;
+        }
+        if ( '' !== $provider ) {
+            $code = self::normalized_provider_code( $provider, $provider_id, $kind );
+            if ( '' === $code ) {
                 self::redirect( 'invalid' );
             }
-            $code = self::clarity_code( $clarity_id );
         }
         if ( ! in_array( $kind, array( 'verification', 'tracking' ), true ) || ! self::validate_code( $code, $kind ) || '' === $name ) {
             self::redirect( 'invalid' );
@@ -121,11 +196,26 @@ final class TaxoCommerce_Insights_Head_Tags {
             }
             $id = sanitize_key( wp_generate_uuid4() );
         }
+        if ( '' !== $provider ) {
+            foreach ( $entries as $other_id => $other ) {
+                if ( $id !== $other_id && is_array( $other ) && ( $other['provider'] ?? '' ) === $provider && ( $other['provider_id'] ?? '' ) === $provider_id ) {
+                    self::redirect( 'duplicate' );
+                }
+            }
+            if ( 'google_analytics' === $provider && $enabled ) {
+                $google = get_option( 'seo_google_search_settings', array() );
+                if ( is_array( $google ) && ! empty( $google['tracking_enabled'] ) && strtoupper( (string) ( $google['measurement_id'] ?? '' ) ) === $provider_id ) {
+                    self::redirect( 'duplicate_ga4' );
+                }
+            }
+        }
         $entries[ $id ] = array(
-            'name'    => $name,
-            'kind'    => $kind,
-            'code'    => $code,
-            'enabled' => $enabled,
+            'name'        => $name,
+            'kind'        => $kind,
+            'code'        => $code,
+            'enabled'     => $enabled,
+            'provider'    => $provider,
+            'provider_id' => $provider_id,
         );
         update_option( self::OPTION, $entries, false );
         self::redirect( 'saved' );
@@ -146,6 +236,31 @@ final class TaxoCommerce_Insights_Head_Tags {
         self::redirect( 'deleted' );
     }
 
+    /** Enable/disable an existing tag without posting its HTML to admin-post.php. */
+    public static function toggle() {
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'No tienes permiso para cambiar etiquetas.', 'taxocommerce-google-bing' ) );
+        }
+        check_admin_referer( self::NONCE );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+        $id = isset( $_POST['entry_id'] ) ? sanitize_key( wp_unslash( $_POST['entry_id'] ) ) : '';
+        $entries = self::entries();
+        if ( ! isset( $entries[ $id ] ) || ! is_array( $entries[ $id ] ) ) {
+            self::redirect( 'invalid' );
+        }
+        $enabled = empty( $entries[ $id ]['enabled'] );
+        $entry = $entries[ $id ];
+        if ( $enabled && 'google_analytics' === ( $entry['provider'] ?? '' ) ) {
+            $google = get_option( 'seo_google_search_settings', array() );
+            if ( is_array( $google ) && ! empty( $google['tracking_enabled'] ) && strtoupper( (string) ( $google['measurement_id'] ?? '' ) ) === ( $entry['provider_id'] ?? '' ) ) {
+                self::redirect( 'duplicate_ga4' );
+            }
+        }
+        $entries[ $id ]['enabled'] = $enabled;
+        update_option( self::OPTION, $entries, false );
+        self::redirect( 'updated' );
+    }
+
     public static function output() {
         if ( is_admin() || is_feed() ) {
             return;
@@ -162,7 +277,9 @@ final class TaxoCommerce_Insights_Head_Tags {
             if ( 'tracking' === $kind ) {
                 // Default deny. Consent plugins can implement WP Consent API's
                 // wp_has_consent('statistics') or integrate with this filter.
-                $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( 'statistics' );
+                // GTM can load marketing pixels: require marketing consent, not just analytics.
+                $category = 'google_tag_manager' === ( $entry['provider'] ?? '' ) ? 'marketing' : 'statistics';
+                $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( $category );
                 $consented = (bool) apply_filters( 'taxocommerce_insights_head_tracking_allowed', $consented, $entry );
                 if ( ! $consented ) {
                     continue;
@@ -187,10 +304,14 @@ final class TaxoCommerce_Insights_Head_Tags {
             'deleted' => __( 'Etiqueta eliminada.', 'taxocommerce-google-bing' ),
             'invalid' => __( 'Codigo no valido. Usa etiquetas meta para verificacion, o codigo script para seguimiento. No se admiten etiquetas de pagina ni PHP.', 'taxocommerce-google-bing' ),
             'limit'   => __( 'Has alcanzado el limite de etiquetas.', 'taxocommerce-google-bing' ),
+            'updated' => __( 'Estado de la etiqueta actualizado.', 'taxocommerce-google-bing' ),
+            'duplicate' => __( 'Ya existe una etiqueta de este proveedor con el mismo identificador.', 'taxocommerce-google-bing' ),
+            'duplicate_ga4' => __( 'Ese ID de Google Analytics ya esta activo en la configuracion de conexiones de Insights. Evita duplicar el seguimiento.', 'taxocommerce-google-bing' ),
         );
 
         echo '<h2>' . esc_html__( 'Etiquetas de cabecera', 'taxocommerce-google-bing' ) . '</h2>';
         echo '<p>' . esc_html__( 'Pega el codigo HTML completo del proveedor. Se insertara automaticamente en el head de WordPress sin modificar la plantilla.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Admite Google Search Console (meta), Google Analytics 4, Google Tag Manager y Microsoft Clarity. Los identificadores se extraen del codigo pegado para evitar bloqueos al guardar.', 'taxocommerce-google-bing' ) . '</p>';
         if ( isset( $messages[ $notice ] ) ) {
             echo '<div class="notice notice-' . esc_attr( 'invalid' === $notice || 'limit' === $notice ? 'error' : 'success' ) . ' inline"><p>' . esc_html( $messages[ $notice ] ) . '</p></div>';
         }
@@ -199,24 +320,15 @@ final class TaxoCommerce_Insights_Head_Tags {
             return;
         }
 
-        if ( $entries ) {
-            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Nombre', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Tipo', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Estado', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Acciones', 'taxocommerce-google-bing' ) . '</th></tr></thead><tbody>';
-            foreach ( $entries as $id => $entry ) {
-                $edit_url = add_query_arg( 'edit_tag', sanitize_key( $id ), self::url() );
-                echo '<tr><td>' . esc_html( $entry['name'] ?? '' ) . '</td><td>' . esc_html( 'verification' === ( $entry['kind'] ?? '' ) ? __( 'Verificacion', 'taxocommerce-google-bing' ) : __( 'Seguimiento', 'taxocommerce-google-bing' ) ) . '</td><td>' . esc_html( ! empty( $entry['enabled'] ) ? __( 'Activa', 'taxocommerce-google-bing' ) : __( 'Inactiva', 'taxocommerce-google-bing' ) ) . '</td><td>';
-                echo '<a class="button button-small" href="' . esc_url( $edit_url ) . '">' . esc_html__( 'Editar', 'taxocommerce-google-bing' ) . '</a> ';
-                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
-                echo '<input type="hidden" name="action" value="tgb_head_tag_delete"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
-                wp_nonce_field( self::NONCE );
-                echo '<button class="button button-small" type="submit">' . esc_html__( 'Eliminar', 'taxocommerce-google-bing' ) . '</button></form></td></tr>';
-            }
-            echo '</tbody></table>';
-        }
-
         echo '<h3>' . esc_html( $current ? __( 'Editar etiqueta', 'taxocommerce-google-bing' ) : __( 'Nueva etiqueta', 'taxocommerce-google-bing' ) ) . '</h3>';
+        if ( $current ) {
+            echo '<p><a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Cancelar edicion y crear nueva', 'taxocommerce-google-bing' ) . '</a></p>';
+        }
         echo '<form id="tgb-head-tags-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_head_tag_save"><input type="hidden" name="entry_id" value="' . esc_attr( $current ? $edit : '' ) . '">';
         echo '<input type="hidden" name="entry_clarity_id" id="tgb-head-tags-clarity-id" value="">';
+        echo '<input type="hidden" name="entry_provider" id="tgb-head-tags-provider" value="">';
+        echo '<input type="hidden" name="entry_provider_id" id="tgb-head-tags-provider-id" value="">';
         wp_nonce_field( self::NONCE );
         echo '<p><label><strong>' . esc_html__( 'Nombre del proveedor', 'taxocommerce-google-bing' ) . '</strong><br><input class="regular-text" name="entry_name" required maxlength="200" value="' . esc_attr( $current['name'] ?? '' ) . '" placeholder="Microsoft Clarity"></label></p>';
         echo '<p><label><strong>' . esc_html__( 'Tipo de codigo', 'taxocommerce-google-bing' ) . '</strong><br><select name="entry_kind">';
@@ -226,9 +338,59 @@ final class TaxoCommerce_Insights_Head_Tags {
         echo '</select></label></p>';
         echo '<p><label><strong>' . esc_html__( 'Codigo proporcionado por el proveedor', 'taxocommerce-google-bing' ) . '</strong><br><textarea name="entry_code" class="large-text code" rows="10" required maxlength="12000" spellcheck="false">' . esc_textarea( $current['code'] ?? '' ) . '</textarea></label></p>';
         echo '<p><label><input type="checkbox" name="entry_enabled" value="1" ' . checked( ! empty( $current['enabled'] ) || ! $current, true, false ) . '> ' . esc_html__( 'Activar esta etiqueta', 'taxocommerce-google-bing' ) . '</label></p>';
-        echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento solo se publican si existe consentimiento estadistico confirmado mediante WP Consent API o el filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento requieren consentimiento: estadisticas para Analytics/Clarity y marketing para Tag Manager. Se usa WP Consent API o un filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( $current ? __( 'Guardar cambios', 'taxocommerce-google-bing' ) : __( 'Añadir etiqueta', 'taxocommerce-google-bing' ) );
         echo '</form>';
+        echo '<hr><h3>' . esc_html__( 'Inventario de etiquetas de cabecera', 'taxocommerce-google-bing' )
+            . ' (' . esc_html( (string) count( $entries ) ) . ')</h3>';
+        if ( ! $entries ) {
+            echo '<p class="description">' . esc_html__( 'Todavia no hay etiquetas guardadas. Añade una desde el formulario anterior.', 'taxocommerce-google-bing' ) . '</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr>';
+            foreach ( array(
+                __( 'Nombre', 'taxocommerce-google-bing' ),
+                __( 'Proveedor', 'taxocommerce-google-bing' ),
+                __( 'Tipo', 'taxocommerce-google-bing' ),
+                __( 'Identificador', 'taxocommerce-google-bing' ),
+                __( 'Estado', 'taxocommerce-google-bing' ),
+                __( 'Acciones', 'taxocommerce-google-bing' ),
+            ) as $heading ) {
+                echo '<th scope="col">' . esc_html( $heading ) . '</th>';
+            }
+            echo '</tr></thead><tbody>';
+            foreach ( $entries as $id => $entry ) {
+                if ( ! is_array( $entry ) ) {
+                    continue;
+                }
+                $active = ! empty( $entry['enabled'] );
+                $edit_url = add_query_arg( 'edit_tag', sanitize_key( $id ), self::url() );
+                $provider_id = isset( $entry['provider_id'] ) && '' !== $entry['provider_id']
+                    ? $entry['provider_id'] : '—';
+                echo '<tr><td><strong>' . esc_html( $entry['name'] ?? '' ) . '</strong></td>';
+                echo '<td>' . esc_html( self::provider_name( $entry ) ) . '</td>';
+                echo '<td>' . esc_html( 'verification' === ( $entry['kind'] ?? '' )
+                    ? __( 'Verificacion', 'taxocommerce-google-bing' )
+                    : __( 'Seguimiento', 'taxocommerce-google-bing' ) ) . '</td>';
+                echo '<td><code>' . esc_html( $provider_id ) . '</code></td>';
+                echo '<td>' . esc_html( $active
+                    ? __( 'Activa', 'taxocommerce-google-bing' )
+                    : __( 'Inactiva', 'taxocommerce-google-bing' ) ) . '</td><td>';
+                echo '<a class="button button-small" href="' . esc_url( $edit_url ) . '">'
+                    . esc_html__( 'Editar', 'taxocommerce-google-bing' ) . '</a> ';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+                echo '<input type="hidden" name="action" value="tgb_head_tag_toggle"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
+                wp_nonce_field( self::NONCE );
+                echo '<button class="button button-small" type="submit">'
+                    . esc_html( $active ? __( 'Desactivar', 'taxocommerce-google-bing' ) : __( 'Activar', 'taxocommerce-google-bing' ) )
+                    . '</button></form> ';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+                echo '<input type="hidden" name="action" value="tgb_head_tag_delete"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
+                wp_nonce_field( self::NONCE );
+                echo '<button class="button button-small" type="submit">'
+                    . esc_html__( 'Eliminar', 'taxocommerce-google-bing' ) . '</button></form></td></tr>';
+            }
+            echo '</tbody></table>';
+        }
 
         // A host WAF may reject POST requests containing raw <script> markup.
         // Extract only a known Clarity project ID in the browser, and generate
@@ -240,20 +402,72 @@ final class TaxoCommerce_Insights_Head_Tags {
             var form = document.getElementById('tgb-head-tags-form');
             var code = form && form.querySelector('textarea[name="entry_code"]');
             var kind = form && form.querySelector('select[name="entry_kind"]');
-            var idField = document.getElementById('tgb-head-tags-clarity-id');
-            if (!form || !code || !kind || !idField) {
+            var legacyClarity = document.getElementById('tgb-head-tags-clarity-id');
+            var providerInput = document.getElementById('tgb-head-tags-provider');
+            var providerIdInput = document.getElementById('tgb-head-tags-provider-id');
+            if (!form || !code || !kind || !legacyClarity || !providerInput || !providerIdInput) {
                 return;
             }
             form.addEventListener('submit', function () {
-                if (kind.value !== 'tracking') {
-                    return;
+                var text = code.value;
+                var provider = '';
+                var identifier = '';
+                var type = '';
+                var match;
+                code.disabled = false;
+                legacyClarity.value = '';
+                providerInput.value = '';
+                providerIdInput.value = '';
+
+                // Search Console's official meta verification tag (independent of attribute order).
+                var tags = text.match(/<meta\b[^>]*>/gi) || [];
+                for (var i = 0; i < tags.length; i++) {
+                    if (/\bname\s*=\s*["']google-site-verification["']/i.test(tags[i])) {
+                        match = tags[i].match(/\bcontent\s*=\s*["']([A-Za-z0-9_-]{8,256})["']/);
+                        if (match) {
+                            provider = 'google_verification';
+                            identifier = match[1];
+                            type = 'verification';
+                            break;
+                        }
+                    }
                 }
-                var match = code.value.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
-                if (!match) {
-                    match = code.value.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
+                if (!provider) {
+                    match = text.match(/\b(GTM-[A-Z0-9]{5,32})\b/i);
+                    if (match && (text.indexOf('<script') !== -1 || /^\s*GTM-[A-Z0-9]+\s*$/i.test(text))) {
+                        provider = 'google_tag_manager';
+                        identifier = match[1].toUpperCase();
+                        type = 'tracking';
+                    }
                 }
-                if (match) {
-                    idField.value = match[1].toLowerCase();
+                if (!provider) {
+                    match = text.match(/\b(G-[A-Z0-9]{5,32})\b/i);
+                    if (match && (text.indexOf('<script') !== -1 || /^\s*G-[A-Z0-9]+\s*$/i.test(text))) {
+                        provider = 'google_analytics';
+                        identifier = match[1].toUpperCase();
+                        type = 'tracking';
+                    }
+                }
+                if (!provider) {
+                    match = text.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
+                    if (!match) {
+                        match = text.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
+                    }
+                    if (match) {
+                        provider = 'clarity';
+                        identifier = match[1].toLowerCase();
+                        type = 'tracking';
+                    }
+                }
+                if (provider) {
+                    // The user still pastes the provider's full snippet. No HTML/JS
+                    // travels through the WAF: PHP rebuilds a fixed, vetted snippet.
+                    kind.value = type;
+                    providerInput.value = provider;
+                    providerIdInput.value = identifier;
+                    if (provider === 'clarity') {
+                        legacyClarity.value = identifier;
+                    }
                     code.disabled = true;
                 }
             });
