@@ -786,4 +786,4 @@ msgstr "You do not have permission to access this page."
 
 #: includes/seo-transporte.php:646
 msgid "Logistics — Shipping Weight & Costs"
-msgstr ""
+msgstr "Logistics — Shipping Weight & Costs"
