@@ -1,3 +1,9 @@
+## [Unreleased] — Internationalisation des images (#2315)
+
+- Traducción inicial de 65 cadenas críticas de Image Management en español, inglés, francés, alemán y neerlandés: errores, permisos, operaciones sobre Media, asignación automática y Auto Test.
+- Se conservan los parámetros numerados de `sprintf` y la lógica funcional.
+- Pendientes las restantes entradas del catálogo, los textos JavaScript y las pruebas de idioma real.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
