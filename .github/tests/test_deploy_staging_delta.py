@@ -127,6 +127,56 @@ class DeltaTests(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_targeted_push_deploys_only_tasks_and_never_other_plugins(self):
+        import json
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            output = Path(root) / "output"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-tasks",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="b" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={
+                            "taxocommerce-tasks": ["taxocommerce-tasks.php"],
+                            "taxocommerce-core": ["taxocommerce-core.php"],
+                            "taxocommerce-templates": ["taxocommerce-templates.php"],
+                        }):
+                            module.plan()
+            data = dict(line.split("=", 1) for line in output.read_text().strip().splitlines())
+            self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-tasks"])
+            self.assertEqual(data["count"], "1")
+            self.assertEqual(data["sync"], "false")
+            self.assertEqual(data["core"], "false")
+
+    def test_targeted_push_rejects_other_plugins_and_manual_full_sync(self):
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            env = {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(Path(root) / "out"),
+            }
+            with mock.patch.object(module, "git", return_value=b"a" * 40):
+                with mock.patch.object(module, "last_successful_base", return_value="b" * 40):
+                    with mock.patch.object(module, "changed_files", return_value={
+                        "taxocommerce-tasks": ["taxocommerce-tasks.php"]
+                    }):
+                        with mock.patch.dict(os.environ, dict(env,
+                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-core",
+                            TAXOCOMMERCE_FULL_SYNC="0")):
+                            with self.assertRaises(ValueError):
+                                module.plan()
+                        with mock.patch.dict(os.environ, dict(env,
+                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-tasks",
+                            TAXOCOMMERCE_FULL_SYNC="1")):
+                            with self.assertRaises(ValueError):
+                                module.plan()
+
     def test_workflow_updates_do_not_trigger_unrequested_full_sync(self):
         import json
         import os
