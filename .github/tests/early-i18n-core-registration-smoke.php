@@ -13,10 +13,10 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 $cases = array(
-	'vocabulary' => array( 'vocabulary', '0.3.11' ),
-	'auditor'    => array( 'auditor', '0.3.7' ),
-	'database'   => array( 'database', '0.4.10' ),
-	'scrappers'  => array( 'scrappers', '0.1.10' ),
+	'vocabulary' => array( 'vocabulary' ),
+	'auditor'    => array( 'auditor' ),
+	'database'   => array( 'database' ),
+	'scrappers'  => array( 'scrappers' ),
 );
 $slug = isset( $argv[1] ) ? $argv[1] : '';
 if ( ! isset( $cases[ $slug ] ) ) {
@@ -73,7 +73,9 @@ if ( 'scrappers' === $slug ) {
 }
 
 $root = dirname( __DIR__, 2 );
-require $root . '/taxocommerce-' . $slug . '/taxocommerce-' . $slug . '.php';
+$plugin_file = $root . '/taxocommerce-' . $slug . '/taxocommerce-' . $slug . '.php';
+preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', file_get_contents( $plugin_file ), $expected_version );
+require $plugin_file;
 $callback = array(
 	'vocabulary' => 'taxocommerce_vocabulary_register_with_core',
 	'auditor'    => array( 'TaxoCommerce\Auditor\Plugin', 'register_core_module' ),
@@ -102,7 +104,7 @@ if ( ! isset( $core->modules[ $id ] ) || 1 !== $core->calls ) {
 	throw new RuntimeException( 'Missing or duplicate module after init: ' . $slug );
 }
 $metadata = $core->modules[ $id ];
-if ( $cases[ $slug ][1] !== $metadata['version'] ||
+if ( ( $expected_version[1] ?? '' ) !== $metadata['version'] ||
 	0 !== strpos( $metadata['description'], 'localised: ' ) ||
 	'' === (string) $metadata['admin_url'] ) {
 	throw new RuntimeException( 'Module version, translation or admin URL changed: ' . $slug );
