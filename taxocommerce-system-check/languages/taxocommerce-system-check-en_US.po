@@ -276,7 +276,7 @@ msgstr ""
 #: includes/system-check/seo-core-validation-settings.php:478
 #: includes/system-check/seo-system-server-status.php:3200
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnosis"
 
 #: includes/system-check/seo-core-validation-settings.php:482
 msgid "Guardar configuración"
@@ -466,7 +466,7 @@ msgstr ""
 #: includes/system-check/seo-core-validation.php:7701
 #: includes/system-check/seo-core-validation.php:7784
 msgid "Origen"
-msgstr ""
+msgstr "Source"
 
 #: includes/system-check/seo-core-validation.php:7734
 msgid "Funcionalidad del negocio"
@@ -535,7 +535,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8009
 msgid "Registro"
-msgstr ""
+msgstr "Record"
 
 #: includes/system-check/seo-core-validation.php:8009
 msgid "Ubicación"
@@ -567,7 +567,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8376
 msgid "Grupo"
-msgstr ""
+msgstr "Group"
 
 #: includes/system-check/seo-core-validation.php:8376
 msgid "Test"
@@ -576,7 +576,7 @@ msgstr ""
 #: includes/system-check/seo-core-validation.php:8376
 #: includes/system-check/seo-system-diagnostics-reporting.php:1868
 msgid "Resultado"
-msgstr ""
+msgstr "Result"
 
 #: includes/system-check/seo-core-validation.php:8409
 msgid "Informe final"
@@ -664,7 +664,7 @@ msgstr ""
 #: includes/system-check/seo-core-validation.php:8771
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/system-check/seo-core-validation.php:8763
 msgid "Ver inventario completo de funciones"
@@ -818,7 +818,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1868
 msgid "Control"
-msgstr ""
+msgstr "Checks"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1911
 msgid "Qué modificar"
@@ -951,20 +951,20 @@ msgstr ""
 #: includes/system-check/seo-system-mysql-audit.php:730
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Tabla"
-msgstr ""
+msgstr "Table"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-mysql-audit.php:714
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Filas aprox."
-msgstr ""
+msgstr "Approx. rows"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-server-status.php:2834
 #: includes/system-check/seo-system-server-status.php:2930
 #: includes/system-check/seo-system-server-status.php:2969
 msgid "Tamaño"
-msgstr ""
+msgstr "Size"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-server-status.php:2756
@@ -987,7 +987,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:714
 msgid "Columna"
-msgstr ""
+msgstr "Column"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índices duplicados exactos"
@@ -1020,7 +1020,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Filas"
-msgstr ""
+msgstr "Rows"
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Extra"
@@ -1078,7 +1078,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1036
 msgid "Correcto"
-msgstr ""
+msgstr "Passed"
 
 #: includes/system-check/seo-system-server-status.php:1037
 msgid "Lento"
@@ -1090,11 +1090,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1039
 msgid "Error"
-msgstr ""
+msgstr "Error"
 
 #: includes/system-check/seo-system-server-status.php:1944
 msgid "Seguridad"
-msgstr ""
+msgstr "Security"
 
 #: includes/system-check/seo-system-server-status.php:1945
 msgid ""
@@ -1247,7 +1247,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Motor"
-msgstr ""
+msgstr "Engine"
 
 #: includes/system-check/seo-system-server-status.php:2778
 msgid "WordPress"
@@ -1493,11 +1493,11 @@ msgstr ""
 
 #: taxocommerce-system-check.php:378
 msgid "Plugin"
-msgstr ""
+msgstr "plugin"
 
 #: taxocommerce-system-check.php:378
 msgid "Versión"
-msgstr ""
+msgstr "Version"
 
 #: taxocommerce-system-check.php:378
 msgid "Comprobación básica"
