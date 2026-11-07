@@ -11,7 +11,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-distribution.php
 msgid "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Distribution – Feeds en sitemaps voor WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-distribution.php
@@ -31,15 +31,15 @@ msgstr ""
 
 #: includes/admin.php:27 includes/admin.php:28 includes/admin.php:38
 msgid "Distribution"
-msgstr ""
+msgstr "Distributie"
 
 #: includes/admin.php:37 includes/admin.php:87
 msgid "TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution"
 
 #: includes/admin.php:71
 msgid "Resultado desconocido."
-msgstr ""
+msgstr "Onbekend resultaat."
 
 #: includes/admin.php:88
 msgid ""
@@ -49,23 +49,23 @@ msgstr ""
 
 #: includes/admin.php:90
 msgid "Secciones de Distribution"
-msgstr ""
+msgstr "Onderdelen van Distribution"
 
 #: includes/admin.php:94
 msgid "Overview"
-msgstr ""
+msgstr "Overzicht"
 
 #: includes/admin.php:95 includes/admin.php:148
 msgid "Commercial Feeds"
-msgstr ""
+msgstr "Commerciële feeds"
 
 #: includes/admin.php:96 includes/admin.php:170
 msgid "Sitemaps"
-msgstr ""
+msgstr "Sitemaps"
 
 #: includes/admin.php:97
 msgid "Automation"
-msgstr ""
+msgstr "Automatisering"
 
 #: includes/admin.php:98
 msgid "Manual"
@@ -77,7 +77,7 @@ msgstr "Automatische controle"
 
 #: includes/admin.php:135
 msgid "Safe migration:"
-msgstr ""
+msgstr "Veilige migratie:"
 
 #: includes/admin.php:135
 msgid ""
@@ -89,43 +89,43 @@ msgstr ""
 
 #: includes/admin.php:149
 msgid "Status:"
-msgstr ""
+msgstr "Status:"
 
 #: includes/admin.php:150
 msgid "Processed:"
-msgstr ""
+msgstr "Verwerkt:"
 
 #: includes/admin.php:151
 msgid "Published:"
-msgstr ""
+msgstr "Gepubliceerd:"
 
 #: includes/admin.php:152
 msgid "Open feeds"
-msgstr ""
+msgstr "Feeds openen"
 
 #: includes/admin.php:156
 msgid "Active channels"
-msgstr ""
+msgstr "Actieve kanalen"
 
 #: includes/admin.php:171
 msgid "Index:"
-msgstr ""
+msgstr "Index:"
 
 #: includes/admin.php:172
 msgid "Published URLs:"
-msgstr ""
+msgstr "Gepubliceerde URL’s:"
 
 #: includes/admin.php:173
 msgid "Files:"
-msgstr ""
+msgstr "Bestanden:"
 
 #: includes/admin.php:174
 msgid "Open sitemaps"
-msgstr ""
+msgstr "Sitemaps openen"
 
 #: includes/admin.php:179
 msgid "Plugin responsibility"
-msgstr ""
+msgstr "Verantwoordelijkheid van de plugin"
 
 #: includes/admin.php:180
 msgid ""
@@ -135,15 +135,15 @@ msgstr ""
 
 #: includes/admin.php:181
 msgid "Feeds:"
-msgstr ""
+msgstr "Feeds:"
 
 #: includes/admin.php:182
 msgid "Sitemaps:"
-msgstr ""
+msgstr "Sitemaps:"
 
 #: includes/admin.php:243
 msgid "XML Sitemaps"
-msgstr ""
+msgstr "XML-sitemaps"
 
 #: includes/admin.php:244
 msgid ""
@@ -153,28 +153,28 @@ msgstr ""
 
 #: includes/admin.php:245
 msgid "Professional index:"
-msgstr ""
+msgstr "Professionele index:"
 
 #: includes/admin.php:252
 msgid "Main index is valid."
-msgstr ""
+msgstr "De hoofdindex is geldig."
 
 #. translators: %s: number of URLs published in the sitemap index.
 #: includes/admin.php:254
 msgid "%s URLs published."
-msgstr ""
+msgstr "%s URL’s gepubliceerd."
 
 #: includes/admin.php:257
 msgid "The main index does not exist or is invalid."
-msgstr ""
+msgstr "De hoofdindex bestaat niet of is ongeldig."
 
 #: includes/admin.php:263
 msgid "Regenerate and validate sitemaps"
-msgstr ""
+msgstr "Sitemaps opnieuw genereren en controleren"
 
 #: includes/admin.php:267
 msgid "What this generation does"
-msgstr ""
+msgstr "Wat deze generatie doet"
 
 #: includes/admin.php:268
 msgid ""
@@ -193,35 +193,35 @@ msgstr ""
 
 #: includes/admin.php:273
 msgid "File"
-msgstr ""
+msgstr "Bestand"
 
 #: includes/admin.php:273
 msgid "Audited"
-msgstr ""
+msgstr "Gecontroleerd"
 
 #: includes/admin.php:273
 msgid "Warnings"
-msgstr ""
+msgstr "Waarschuwingen"
 
 #: includes/admin.php:273
 msgid "Errors"
-msgstr ""
+msgstr "Fouten"
 
 #: includes/admin.php:273
 msgid "Coverage"
-msgstr ""
+msgstr "Dekking"
 
 #: includes/admin.php:273
 msgid "Size"
-msgstr ""
+msgstr "Grootte"
 
 #: includes/admin.php:273
 msgid "Modified"
-msgstr ""
+msgstr "Gewijzigd"
 
 #: includes/admin.php:315
 msgid "Automation and workload"
-msgstr ""
+msgstr "Automatisering en werkbelasting"
 
 #: includes/admin.php:316
 msgid ""
@@ -233,7 +233,7 @@ msgstr ""
 
 #: includes/admin.php:320
 msgid "Feed worker"
-msgstr ""
+msgstr "Feedverwerker"
 
 #: includes/admin.php:320
 msgid ""
@@ -243,31 +243,31 @@ msgstr ""
 
 #: includes/admin.php:320
 msgid "Owned by Distribution"
-msgstr ""
+msgstr "Beheerd door Distribution"
 
 #: includes/admin.php:321
 msgid "Daily regeneration"
-msgstr ""
+msgstr "Dagelijkse hergeneratie"
 
 #: includes/admin.php:321
 msgid "Disabled"
-msgstr ""
+msgstr "Uitgeschakeld"
 
 #: includes/admin.php:322
 msgid "Last batch"
-msgstr ""
+msgstr "Laatste batch"
 
 #: includes/admin.php:322
 msgid "products"
-msgstr ""
+msgstr "producten"
 
 #: includes/admin.php:323
 msgid "Automatic sitemaps"
-msgstr ""
+msgstr "Automatische sitemaps"
 
 #: includes/admin.php:323
 msgid "Temporarily managed by the legacy plugin"
-msgstr ""
+msgstr "Tijdelijk beheerd door de oude plugin"
 
 #: includes/admin.php:323
 msgid ""
@@ -283,7 +283,7 @@ msgstr ""
 
 #: includes/autocheck.php:235
 msgid "Autocheck de Distribution"
-msgstr ""
+msgstr "Zelfcontrole van Distribution"
 
 #: includes/autocheck.php:236
 msgid ""
@@ -294,7 +294,7 @@ msgstr ""
 
 #: includes/autocheck.php:240
 msgid "Ejecutar autocheck"
-msgstr ""
+msgstr "Zelfcontrole uitvoeren"
 
 #: includes/autocheck.php:245
 msgid "Aún no se ha ejecutado el autocheck en esta visita."
@@ -306,7 +306,7 @@ msgstr "Resultaat"
 
 #: includes/autocheck.php:258
 msgid "comprobaciones"
-msgstr ""
+msgstr "controles"
 
 #: includes/autocheck.php:259
 msgid "correctas"
@@ -314,11 +314,11 @@ msgstr "geslaagd"
 
 #: includes/autocheck.php:260
 msgid "avisos"
-msgstr ""
+msgstr "waarschuwingen"
 
 #: includes/autocheck.php:261
 msgid "errores"
-msgstr ""
+msgstr "fouten"
 
 #: includes/autocheck.php:272
 msgid "Control"
@@ -338,7 +338,7 @@ msgstr "Geslaagd"
 
 #: includes/autocheck.php:276
 msgid "Aviso"
-msgstr ""
+msgstr "Melding"
 
 #: includes/autocheck.php:276
 msgid "Error"
@@ -365,7 +365,7 @@ msgstr ""
 
 #: includes/feeds/admin.php:239
 msgid "Settings saved."
-msgstr ""
+msgstr "Instellingen opgeslagen."
 
 #: includes/feeds/admin.php:242
 msgid ""
@@ -379,7 +379,7 @@ msgstr ""
 
 #: includes/feeds/admin.php:254
 msgid "STAGING:"
-msgstr ""
+msgstr "STAGING:"
 
 #: includes/feeds/admin.php:254
 msgid ""
@@ -390,7 +390,7 @@ msgstr ""
 
 #: includes/feeds/admin.php:256
 msgid "PRODUCTION:"
-msgstr ""
+msgstr "PRODUCTIE:"
 
 #: includes/feeds/admin.php:256
 msgid ""
@@ -400,7 +400,7 @@ msgstr ""
 
 #: includes/feeds/admin.php:268
 msgid "Distribution worker:"
-msgstr ""
+msgstr "Distribution-verwerker:"
 
 #: includes/manual.php:12
 msgid "Documentación de TaxoCommerce Distribution"
