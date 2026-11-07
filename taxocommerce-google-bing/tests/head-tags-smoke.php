@@ -10,7 +10,7 @@ function get_option( $key, $default = array() ) {
 function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function is_admin() { return false; }
 function is_feed() { return false; }
-function wp_has_consent( $category ) { return 'statistics' === $category && ! empty( $GLOBALS['test_head_consent'] ); }
+function wp_has_consent( $category ) { return 'statistics' === $category ? ! empty( $GLOBALS['test_head_consent'] ) : ( 'marketing' === $category && ! empty( $GLOBALS['test_head_marketing'] ) ); }
 function apply_filters( $name, $value ) { return $value; }
 
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-insights-head-tags.php';
@@ -71,6 +71,7 @@ $GLOBALS['test_head_options'] = array(
         'one' => array( 'name' => 'Google', 'kind' => 'verification', 'code' => $verify, 'enabled' => true ),
         'two' => array( 'name' => 'Clarity', 'kind' => 'tracking', 'code' => $clarity, 'enabled' => true ),
         'three' => array( 'name' => 'Inactive', 'kind' => 'verification', 'code' => $bing, 'enabled' => false ),
+        'four' => array( 'name' => 'Google Tag Manager', 'kind' => 'tracking', 'code' => $normalizer->invoke( null, 'google_tag_manager', 'GTM-ABCD123', 'tracking' ), 'enabled' => true, 'provider' => 'google_tag_manager', 'provider_id' => 'GTM-ABCD123' ),
     ),
 );
 $GLOBALS['test_head_consent'] = false;
@@ -84,6 +85,16 @@ $GLOBALS['test_head_consent'] = true;
 ob_start();
 TaxoCommerce_Insights_Head_Tags::output();
 $with_consent = ob_get_clean();
+if ( false !== strpos( $with_consent, 'googletagmanager.com/gtm.js' ) ) {
+    throw new RuntimeException( 'GTM loaded without marketing consent' );
+}
+$GLOBALS['test_head_marketing'] = true;
+ob_start();
+TaxoCommerce_Insights_Head_Tags::output();
+$with_marketing = ob_get_clean();
+if ( false === strpos( $with_marketing, 'googletagmanager.com/gtm.js' ) ) {
+    throw new RuntimeException( 'GTM missing after marketing consent' );
+}
 if ( false === strpos( $with_consent, 'clarity' ) ) {
     throw new RuntimeException( 'Consented tracking script missing' );
 }
