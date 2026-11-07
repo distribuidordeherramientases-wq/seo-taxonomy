@@ -785,3 +785,75 @@ msgstr "Inhoud"
 
 msgid "— Do not import —"
 msgstr "— Niet importeren —"
+
+msgid "API y hooks"
+msgstr "API en hooks"
+
+msgid "Accept / link to WooCommerce"
+msgstr "Accepteren / koppelen aan WooCommerce"
+
+msgid "Acción"
+msgstr "Actie"
+
+msgid "Actuación segura"
+msgstr "Veilige werkwijze"
+
+msgid "Actualizar al cambiar los controles; no añadir escrituras ni peticiones externas."
+msgstr "Bijwerken wanneer de bedieningselementen wijzigen; geen schrijfacties of externe verzoeken toevoegen."
+
+msgid "All decisions"
+msgstr "Alle beslissingen"
+
+msgid "All suppliers"
+msgstr "Alle leveranciers"
+
+msgid "Alternative source"
+msgstr "Alternatieve bron"
+
+msgid "Archivo"
+msgstr "Bestand"
+
+msgid "Arquitectura"
+msgstr "Architectuur"
+
+msgid "Asignaciones guardadas en este WordPress; los formatos genéricos CSV se definen en PHP sin plantillas de proveedores precargadas."
+msgstr "Koppelingen worden in deze WordPress-installatie opgeslagen; generieke CSV-formaten worden in PHP gedefinieerd zonder vooraf geladen leverancierssjablonen."
+
+msgid "Autotest"
+msgstr "Zelftest"
+
+msgid "Autotest con error"
+msgstr "Zelftest met fout"
+
+msgid "Built in"
+msgstr "Ingebouwd"
+
+msgid "Bulk action"
+msgstr "Bulkactie"
+
+msgid "CSV"
+msgstr "CSV"
+
+msgid "CSV rechazado"
+msgstr "CSV afgewezen"
+
+msgid "Casos recomendados en STAGING"
+msgstr "Aanbevolen testgevallen in STAGING"
+
+msgid "Clase / cometido"
+msgstr "Klasse / functie"
+
+msgid "Componentes"
+msgstr "Onderdelen"
+
+msgid "Compras"
+msgstr "Inkoop"
+
+msgid "Compras sin proveedor"
+msgstr "Inkoop zonder leverancier"
+
+msgid "Comprobación"
+msgstr "Controle"
+
+msgid "Comprobación inicial"
+msgstr "Eerste controle"
