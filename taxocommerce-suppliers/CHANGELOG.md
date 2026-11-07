@@ -1,3 +1,9 @@
+## [Unreleased] — Ampliación del catálogo neerlandés (#2328)
+
+- Añadidas 24 cadenas gettext ausentes a `nl_NL` para etiquetas administrativas y documentación del plugin; regenerado el MO neerlandés.
+- La cobertura de claves continúa incompleta: quedan 247 entradas presentes en `es_ES` que faltan en `nl_NL`; no se afirma traducción íntegra ni validación visual.
+- Sin modificar PHP funcional, datos de proveedores ni opciones de instalación.
+
 ## [Unreleased] — Revisión i18n (seguimiento #2062)
 
 - Completada una entrada gettext previamente vacía en NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.
