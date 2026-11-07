@@ -26,6 +26,30 @@ function wp_nonce_field( $action, $field = '_wpnonce' ) { echo '<input type="hid
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function wp_die( $message ) { throw new RuntimeException( $message ); }
 
+// Portable content relationships are resolved by site-local slug/path, never source ID.
+if ( ! defined( 'OBJECT' ) ) { define( 'OBJECT', 'OBJECT' ); }
+class WP_Error {
+    private $code;
+    public function __construct( $code ) { $this->code = $code; }
+    public function get_error_code() { return $this->code; }
+}
+function is_wp_error( $value ) { return $value instanceof WP_Error; }
+function get_page_by_path( $path, $output = OBJECT, $type = 'page' ) {
+    if ( 'page' === $type && 'seguridad/bicicleta' === $path ) {
+        return (object) array( 'ID' => 77, 'post_type' => 'page', 'post_status' => 'publish' );
+    }
+    if ( 'post' === $type && 'guia-herramientas' === $path ) {
+        return (object) array( 'ID' => 78, 'post_type' => 'post', 'post_status' => 'publish' );
+    }
+    if ( 'page' === $type && 'pagina-eliminada' === $path ) {
+        return (object) array( 'ID' => 79, 'post_type' => 'page', 'post_status' => 'trash' );
+    }
+    return null;
+}
+function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) ); }
+function sanitize_title( $title ) { return trim( preg_replace( '/[^a-z0-9\-]+/', '-', strtolower( (string) $title ) ), '-' ); }
+function absint( $value ) { return abs( (int) $value ); }
+
 function tcv_test( $condition, $message ) {
     if ( ! $condition ) {
         fwrite( STDERR, "FAIL: " . $message . "\n" );
@@ -82,6 +106,18 @@ require dirname( __DIR__ ) . '/includes/class-tcv-auto-test.php';
 TCV_IO::boot();
 TCV_Portable::boot();
 TCV_Admin::boot();
+
+// Native posts and pages (including SEO landings) must be portable without Core.
+$portable_scopes = TCV_Portable::allowed_scopes();
+tcv_test( in_array( 'post_semantic', $portable_scopes, true ), 'post Vocabulary is exportable' );
+tcv_test( in_array( 'page_semantic', $portable_scopes, true ), 'page and landing Vocabulary is exportable' );
+$resolve = new ReflectionMethod( 'TCV_Portable', 'resolve_content' );
+$resolve->setAccessible( true );
+tcv_test( 77 === $resolve->invoke( null, array( 'post_type' => 'page', 'path' => 'seguridad/bicicleta', 'source_id' => 999 ) ), 'page uses site-local path, not external numeric ID' );
+tcv_test( 78 === $resolve->invoke( null, array( 'post_type' => 'post', 'path' => 'guia-herramientas', 'source_id' => 999 ) ), 'post resolves by site-local slug' );
+tcv_test( is_wp_error( $resolve->invoke( null, array( 'post_type' => 'page', 'path' => 'pagina-eliminada' ) ) ), 'trashed page cannot be modified' );
+tcv_test( is_wp_error( $resolve->invoke( null, array( 'post_type' => 'product', 'path' => 'guia-herramientas' ) ) ), 'no arbitrary content types' );
+tcv_test( is_wp_error( $resolve->invoke( null, array( 'post_type' => 'post', 'path' => 'seguridad/bicicleta' ) ) ), 'post cannot resolve hierarchical page path' );
 
 $cases = TCV_Auto_Test::cases();
 tcv_test( count( $cases ) === 16, 'exactly 16 checks' );
