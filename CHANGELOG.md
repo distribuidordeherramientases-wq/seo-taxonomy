@@ -1,3 +1,10 @@
+## 2026-11-07 — Recuperación del despliegue de manuales Tasks 0.1.3 (Issue #2313)
+
+- Corregido el caso en el que una validación PR satisfactoria del mismo SHA era tomada como baseline de despliegue, aunque las transferencias FTPS se hubieran omitido.
+- El push directo de Tasks se reconcilia ahora contra las huellas SHA-256 reales de los ficheros instalables de ese **único plugin** en STAGING y Focazul; solo se escriben los que difieren.
+- Las rutas y limitaciones de los despliegues normales, Core y producción se mantienen intactas. El cambio no habilita sincronizaciones generales ni publicaciones a PRO.
+- Añadidas pruebas para baseline igual a HEAD, selección restringida a Tasks y rechazo de sincronización global en el modo dirigido.
+
 ## 2026-11-07 — Despliegue acotado de TaxoCommerce Tasks (Issue #2290)
 
 - El menú de Tasks 0.1.1 ya estaba corregido y fusionado, pero la distribución a STAGING/Focazul quedó en cola del pipeline global.
