@@ -2,7 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.4
+ * Version: 0.1.5
+ * Release Date: 2026-11-07
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +14,8 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.4' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.5' );
+define( 'TAXOCOMMERCE_TASKS_RELEASE_DATE', '2026-11-07' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
 require_once __DIR__ . '/includes/class-tctasks-calendar.php';
@@ -522,7 +524,7 @@ function tctasks_admin() {
         $tab = 'tasks';
     }
     $labels = array( 'tasks'=>'Tasks', 'calendar'=>'Calendar', 'dashboard'=>'Dashboard', 'categories'=>'Categories', 'autocheck'=>'Autocheck', 'manual-user'=>'User manual', 'manual-technical'=>'Technical manual' );
-    echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · 2026-11-07</small></h1>';
+    echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · ' . esc_html( translate( 'Last updated', 'default' ) ) . ': ' . esc_html( TAXOCOMMERCE_TASKS_RELEASE_DATE ) . '</small></h1>';
     echo '<p>' . esc_html( tctasks_label( 'Private task management, calendar and indicators.' ) ) . '</p><nav class="nav-tab-wrapper">';
     foreach ( $labels as $key=>$label ) {
         $url = add_query_arg( array( 'page'=>'taxocommerce-tasks','tab'=>$key ), admin_url( 'admin.php' ) );

@@ -1,3 +1,8 @@
+## [0.1.5] — 2026-11-07 — Cabecera con versión y fecha (#2336)
+
+- Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
+- Fecha de publicación persistente, independiente del reloj o FTP.
+
 # TaxoCommerce Tasks — CHANGELOG
 
 ## 0.1.4 — 2026-11-07

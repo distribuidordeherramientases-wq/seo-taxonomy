@@ -1,3 +1,6 @@
+= 1.1.23 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 = 1.1.21 (2026-11-07) =
 * GA4 con sistema nativo de encolado WordPress y consentimiento, sin script externo duplicado. Issue #2299.
 

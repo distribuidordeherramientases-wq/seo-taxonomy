@@ -1,3 +1,8 @@
+## [0.4.18] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
 ## [Unreleased] — Revisión i18n (seguimiento #2062)
 
 - Completada una entrada gettext previamente vacía en ES/EN/FR/DE/NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.

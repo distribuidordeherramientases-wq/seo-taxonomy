@@ -1,3 +1,8 @@
+## [0.3.2] — 2026-11-07 — Metadatos de pantalla de respaldo (#2336)
+
+- La pantalla de respaldo de Connections muestra título, versión y fecha sin sustituir la pantalla principal de Insights.
+- El puente continúa redirigiendo a Insights cuando está instalado; no altera credenciales ni integraciones.
+
 ## [Unreleased] — Revisión i18n (seguimiento #2062)
 
 - Completada una entrada gettext previamente vacía en ES/EN/FR/DE/NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.

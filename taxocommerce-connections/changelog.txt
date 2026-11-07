@@ -1,3 +1,6 @@
+= 0.3.2 (2026-11-07) =
+* Cabecera de la pantalla de respaldo con título, versión y fecha. Mantiene redirección al módulo Insights. Issue #2336.
+
 HISTORIAL LEGADO — TAXOCOMMERCE CONNECTIONS
 
 TaxoCommerce SEO monolítico, versiones previas a la división modular.

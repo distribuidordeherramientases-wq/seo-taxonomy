@@ -1,3 +1,8 @@
+## [0.4.59] — 2026-11-07 — Cabecera con versión y fecha (#2336)
+
+- Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
+- Fecha de publicación persistente, independiente del reloj o FTP.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

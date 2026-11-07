@@ -95,6 +95,10 @@ final class TaxoCommerce_Core_Dashboard {
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
 					</div>
 				</div>
+				<div class="tcc-hero__metadata">
+                    <span><?php echo esc_html( translate( 'Version', 'default' ) . ' ' . TAXOCOMMERCE_CORE_VERSION ); ?></span>
+                    <span><?php echo esc_html( translate( 'Last updated', 'default' ) . ': ' . TAXOCOMMERCE_CORE_RELEASE_DATE ); ?></span>
+                </div>
 				<div class="tcc-hero__art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 			</header>
 

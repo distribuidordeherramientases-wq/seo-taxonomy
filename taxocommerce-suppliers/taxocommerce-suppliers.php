@@ -2,7 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce Suppliers
  * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
- * Version: 0.2.9
+ * Version: 0.2.10
+ * Release Date: 2026-11-07
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.9' );
+define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.10' );
 define( 'TAXOCOMMERCE_SUPPLIERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SUPPLIERS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );

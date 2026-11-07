@@ -1,3 +1,9 @@
+## [0.1.9] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en la cabecera del administrador mediante metadatos locales (Release Date).
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. No altera servicios, datos, menús ni permisos.
+- Se conserva el funcionamiento independiente y se comprueba con el test de cabeceras de la familia.
+
 ## [Unreleased] — Catálogos i18n FAQs (#2319)
 
 - Completadas 31 entradas gettext que estaban vacías en cada catálogo PO (es_ES, en_US, fr_FR, de_DE, nl_NL), principalmente mensajes de Autocheck y títulos de manuales.

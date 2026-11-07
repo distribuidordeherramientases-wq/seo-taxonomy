@@ -1,3 +1,6 @@
+= 0.4.22 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 = 0.4.21 - 2026-11-07 =
 * Vista previa y reconciliación manual, individual y segura de descripciones WooCommerce frente a seo_nodes usados por plantillas. Solo registros existentes; protege cambios simultáneos. Issue #2298.
 

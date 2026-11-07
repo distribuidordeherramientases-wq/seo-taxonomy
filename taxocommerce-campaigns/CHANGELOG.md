@@ -1,3 +1,8 @@
+## [0.1.5] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.

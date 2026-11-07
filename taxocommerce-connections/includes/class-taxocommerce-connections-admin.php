@@ -213,7 +213,7 @@ final class TaxoCommerce_Connections_Admin {
 		$merchant = TaxoCommerce_Connections_Pinterest::merchant_settings();
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'TaxoCommerce Connections', 'taxocommerce-connections' ); ?></h1>
+			<h1><?php esc_html_e( 'TaxoCommerce Connections', 'taxocommerce-connections' ); ?> <small style="font-size:13px;font-weight:normal"><?php echo esc_html( translate( 'Version', 'default' ) . ' ' . TAXOCOMMERCE_CONNECTIONS_VERSION . ' · ' . translate( 'Last updated', 'default' ) . ': ' . TAXOCOMMERCE_CONNECTIONS_RELEASE_DATE ); ?></small></h1>
             <nav class="nav-tab-wrapper">
                 <a class="nav-tab nav-tab-active" href="<?php echo esc_url( self::url() ); ?>"><?php esc_html_e( 'Connections', 'taxocommerce-connections' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( TaxoCommerce_Connections_Autocheck::url() ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-connections' ); ?></a>
