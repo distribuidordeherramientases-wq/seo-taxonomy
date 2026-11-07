@@ -1,3 +1,10 @@
+= 0.4.61 (2026-11-07) =
+* Mantiene el rótulo del menú padre TaxoCommerce Core frente a alteraciones de otros módulos; sin modificar enlaces ni permisos. Issue #2351.
+
+= 0.4.60 (2026-11-07) =
+* Core shows all 19 current family plugins, including absent/inactive Tasks, without installing anything automatically.
+* WordPress activation-state detection, card actions and translated description preserved; issue #2340.
+
 = 0.4.59 (2026-11-07) =
 * Cabecera del administrador: título, versión y fecha de publicación, sin duplicar titulares. Issue #2336.
 

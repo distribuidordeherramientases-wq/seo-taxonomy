@@ -53,6 +53,8 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-auto-test.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-head-tags.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-ecommerce.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/connections/cloudflare.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-cloudflare-ui.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/ecommerce/ga4-events.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-bootstrap.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-geo-bridge.php';
@@ -75,6 +77,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Auto_Test::register();
     TaxoCommerce_Insights_Head_Tags::register();
     TaxoCommerce_Insights_Ecommerce::register();
+    TaxoCommerce_Insights_Cloudflare_UI::register();
 
     add_action( 'taxocommerce_core_register_modules', 'taxocommerce_google_bing_register_with_core' );
     if ( function_exists( 'taxocommerce_core' ) && did_action( 'taxocommerce_core_loaded' ) ) {

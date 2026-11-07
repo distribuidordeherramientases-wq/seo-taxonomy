@@ -1,3 +1,17 @@
+## [0.4.61] — 2026-11-07 — Menú padre TaxoCommerce Core estable (#2351)
+
+- Se restablece el título del menú principal TaxoCommerce Core al final del registro de extensiones, sin alterar los submenús, rutas, iconos ni capacidades.
+- Prueba de regresión que simula un rótulo erróneo «Marketing campaigns» y comprueba la corrección del padre.
+- Esta versión participa en el despliegue reconciliado por SHA-256 a STAGING y Focazul; ninguna modificación en producción.
+
+## [0.4.60] — 2026-11-07 — Catálogo completo de extensiones, incluidas las ausentes (#2340)
+
+- Registrado Tasks en el catálogo nativo de Core: aparece aunque el propio plugin esté desactivado o no instalado, como sucede en Focazul.
+- Conservadas las tarjetas de los 19 plugins vigentes y los estados reales de WordPress: activa, instalada/inactiva y no instalada. El antiguo Connections sigue integrado en Insights y no se duplica.
+- El administrador puede gestionar instalación/activación mediante formularios existentes con permisos y nonce; no se instala ningún plugin automáticamente.
+- Texto del catálogo incorporado a gettext POT/PO/MO en ES/EN/FR/DE/NL. Pruebas de ausencia, inactividad, activación, recuentos y duplicados.
+- Sin cambios de bases de datos, del plugin Tasks ni de instalaciones de producción.
+
 ## [0.4.59] — 2026-11-07 — Cabecera con versión y fecha (#2336)
 
 - Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.

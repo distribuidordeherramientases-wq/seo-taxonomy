@@ -3861,3 +3861,7 @@ msgstr "Zugriff auf den Selbsttest verweigert."
 #: includes/class-taxocommerce-core-auto-test.php
 msgid "Sin permisos para ejecutar autocheck."
 msgstr "Keine Berechtigung, den Selbsttest auszuführen."
+
+#: includes/class-taxocommerce-core.php
+msgid "Private task agenda, calendar, categories and indicators."
+msgstr "Private Aufgabenagenda, Kalender, Kategorien und Kennzahlen."

@@ -37,14 +37,19 @@ def validate_mo_bytes(data: bytes) -> int:
         raise InvalidMO("unsupported MO revision")
     if count > (len(data) - 28) // 16:
         raise InvalidMO("declared entries exceed available index tables")
+    # The GNU MO hash table is OPTIONAL. msgfmt may write hash_count=0 and
+    # hash_table=0; that is valid and must not invalidate index tables.
     if not (
         28 <= original_table
         and original_table + count * 8 <= translation_table
-        and translation_table + count * 8 <= hash_table <= len(data)
+        and translation_table + count * 8 <= len(data)
     ):
         raise InvalidMO("missing/misordered original or translation index table")
-    if hash_count and hash_table + hash_count * 4 > len(data):
-        raise InvalidMO("hash table extends beyond file")
+    if hash_count:
+        if hash_table < translation_table + count * 8:
+            raise InvalidMO("hash table overlaps the translation index table")
+        if hash_table + hash_count * 4 > len(data):
+            raise InvalidMO("hash table extends beyond file")
     for index in range(count):
         for label, table in (("original", original_table), ("translation", translation_table)):
             length, position = struct.unpack_from(order + "2I", data, table + index * 8)

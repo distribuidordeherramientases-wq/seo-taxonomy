@@ -233,7 +233,19 @@ final class TaxoCommerce_Core {
 	 * @return void
 	 */
 	public function normalize_family_submenu_labels() {
-		global $submenu;
+		global $menu, $submenu;
+
+		// Extensions own their submenu pages, not the name of the Core parent.
+		// The parent could be incorrectly labelled after late plugin registration.
+		// Preserve WordPress' route, icon, capability and all child callbacks.
+		if ( is_array( $menu ) ) {
+			foreach ( $menu as &$top_level ) {
+				if ( is_array( $top_level ) && isset( $top_level[2] ) && 'taxocommerce-core' === $top_level[2] ) {
+					$top_level[0] = __( 'TaxoCommerce Core', 'taxocommerce-core' );
+				}
+			}
+			unset( $top_level );
+		}
 
 		if ( empty( $submenu['taxocommerce-core'] ) || ! is_array( $submenu['taxocommerce-core'] ) ) {
 			return;
@@ -566,6 +578,16 @@ final class TaxoCommerce_Core {
 				'wordpress_org' => true,
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-redirects' ),
 				'description'   => __( '301/302 redirects and assisted content deletion.', 'taxocommerce-core' ),
+			),
+			'tasks' => array(
+				'id'            => 'tasks',
+				'name'          => 'TaxoCommerce Tasks',
+				'plugin_file'   => 'taxocommerce-tasks/taxocommerce-tasks.php',
+				'org_slug'      => 'taxocommerce-tasks',
+				'search_term'   => 'TaxoCommerce Tasks',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
+				'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-core' ),
 			),
 			'auditor' => array(
 				'id'            => 'auditor',

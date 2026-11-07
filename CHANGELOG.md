@@ -1,3 +1,33 @@
+## 2026-11-08 — FTP compartido y guardas de coexistencia legacy (Issue #2347)
+
+- Serializadas las entregas STAGING y Focazul en su servidor FTPS compartido, conservando la comprobación independiente de ambos destinos aunque STAGING falle.
+- Eliminados los reintentos anidados del shell: cada entrega utiliza tres reintentos del cliente Python, con salida sin búfer y la fase de error FTPS identificada.
+- Se preserva la puerta de producción y la entrega exclusiva de archivos modificados de plugins autorizados.
+- Los bootstraps históricos Ojeador e Ingeniero evitan reinicializar clases y hooks cuando Scrappers ya ha cargado el motor.
+- Añadidas pruebas de serialización FTPS y de coexistencia; no se eliminan implementaciones legadas sin validar regresiones.
+
+## 2026-11-07 — Saneamiento de cargadores históricos (Issue #2347)
+
+- El bootstrap raíz delega en la única cadena activa de `includes/seo-includes-bootstrap.php`; se eliminan referencias obsoletas y duplicadas.
+- Marketing, la cabecera pública y Clonador históricos delegan en sus implementaciones canónicas, sin rutas inexistentes ni versiones alternativas.
+- Añadida prueba regresiva para las cuatro entradas de compatibilidad en CI y validación PHP.
+- Sin cambios en datos, módulos autónomos ni rutas de publicación a producción; la coexistencia de clases queda para una validación separada.
+
+## 2026-11-07 — Entrega directa de Core manteniendo los tres workflows (#2340)
+
+- El workflow existente de STAGING/Focazul identifica los cambios de Core y/o Tasks en el propio evento push, incluso cuando una validación anterior hace que la base Git parezca idéntica a HEAD.
+- Reconcilia solo los archivos instalables del plugin seleccionado mediante SHA-256 remoto, sin publicar en PRO ni instalar módulos ajenos.
+- Cuando únicamente cambia el propio workflow/script, reconcilia Core para no perder correcciones de su catálogo.
+- Se conservan exactamente los tres procesos de Actions existentes; no se incorpora un cuarto workflow.
+- Nuevas pruebas de eventos Core, Tasks, ambos, modificaciones ajenas y rechazos de ramas distintas de staging.
+
+## 2026-11-07 — Core: catálogo completo e índices MO opcionales (#2340)
+
+- Core 0.4.60 registra las 19 extensiones vigentes en su catálogo local, incluyendo Tasks ausente o inactivo, sin necesidad de cargar el plugin y sin instalación automática.
+- Corregido el validador de ficheros GNU gettext MO para aceptar una tabla hash opcional ausente (tamaño y desplazamiento cero), formato legítimo presente en algunos catálogos; los límites de los índices originales y traducidos siguen verificándose.
+- Añadidas pruebas para los tres estados de Tasks y para hash ausente, tabla fuera de límites y desplazamiento incorrecto. No se alteraron los catálogos de otros plugins.
+- Cambios destinados a STAGING y Asociación Focazul, sin publicar en producción.
+
 ## 2026-11-07 — Recuperación del despliegue de manuales Tasks 0.1.3 (Issue #2313)
 
 - Corregido el caso en el que una validación PR satisfactoria del mismo SHA era tomada como baseline de despliegue, aunque las transferencias FTPS se hubieran omitido.

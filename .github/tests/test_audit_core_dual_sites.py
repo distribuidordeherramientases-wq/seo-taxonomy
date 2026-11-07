@@ -66,6 +66,35 @@ class DualAuditTests(unittest.TestCase):
     def setUp(self):
         self.report = {"commit": "test", "checks": []}
 
+    def test_provider_head_does_not_claim_live_api_success(self):
+        html = ('<head><script src="https://www.googletagmanager.com/gtag/js?id=G-TEST123"></script>'
+                '<meta name="google-site-verification" content="token">'
+                '<meta content="pin" name="p:domain_verify"></head><body>ready</body>')
+        audit.public_provider_head(self.report, "staging", html)
+        states = {row["name"]: row["status"] for row in self.report["checks"]}
+        self.assertEqual(states["Google Analytics: tag único"], "PASS")
+        self.assertEqual(states["Google Search Console: meta de cabecera"], "PASS")
+        self.assertEqual(states["Pinterest Merchant: meta de cabecera"], "PASS")
+        self.assertEqual(states["Microsoft Bing: meta de cabecera"], "NOT_CHECKED")
+
+        self.report["checks"].clear()
+        audit.public_provider_head(self.report, "staging", html + html)
+        states = {row["name"]: row["status"] for row in self.report["checks"]}
+        self.assertEqual(states["Google Analytics: tag único"], "PASS")  # Only first head is inspected.
+
+        self.report["checks"].clear()
+        doubled = html.replace("</head>", '<script src="https://www.googletagmanager.com/gtag/js?id=G-TEST123"></script></head>')
+        audit.public_provider_head(self.report, "staging", doubled)
+        self.assertEqual(self.report["checks"][0]["status"], "FAIL")
+
+        self.report["checks"].clear()
+        audit.public_provider_head(self.report, "staging", "<head></head>")
+        self.assertTrue(all(row["status"] == "NOT_CHECKED" for row in self.report["checks"]))
+
+        self.report["checks"].clear()
+        audit.public_provider_head(self.report, "focazul", html)
+        self.assertEqual(self.report["checks"], [])
+
     def test_html_parser_excludes_non_navigation_links(self):
         p = audit.MenuHTML()
         p.feed('<a href="/outside">No</a><nav class="header"><a href="/yes">Yes</a>'

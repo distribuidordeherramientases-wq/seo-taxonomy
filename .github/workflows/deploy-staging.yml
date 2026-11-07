@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      target_plugin:
+        description: 'Optional scoped delivery: taxocommerce-core or taxocommerce-tasks'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       full_sync:
@@ -15,15 +20,8 @@ on:
         required: false
         type: boolean
         default: false
-  # Issue #2290: direct, non-production, single-plugin delivery for Tasks.
-  # Never run an unrestricted family-wide delta on this push event.
-  push:
-    branches:
-      - staging
-    paths:
-      - 'taxocommerce-tasks/**'
-      - '.github/workflows/deploy-staging.yml'
-      - '.github/scripts/deploy_staging_delta.py'
+  # Pushes are handled by the single gated workflow. The prior concurrent
+  # scoped Core/Tasks push was incorrectly recorded as a complete release.
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -61,6 +59,11 @@ jobs:
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
         run: |
           set -euo pipefail
+          php -l .github/tests/legacy-scrappers-coexistence-smoke.php
+          php .github/tests/legacy-scrappers-coexistence-smoke.php
+          php -l .github/tests/legacy-loaders-smoke.php
+          php .github/tests/legacy-loaders-smoke.php
+          for entry in bootstrap.php seo-marketing.php includes/header.php includes/dependiente/clonador/clonador-bootstrap.php; do php -l "$entry"; done
           php -l .github/tests/i18n-19-locale-smoke.php
           php .github/tests/i18n-19-locale-smoke.php
           python3 .github/scripts/sync_family_admin_branding.py --check
@@ -103,6 +106,7 @@ jobs:
           php taxocommerce-google-bing/tests/head-tags-smoke.php
           php taxocommerce-google-bing/tests/head-tags-inventory-smoke.php
           php taxocommerce-google-bing/tests/ecommerce-smoke.php
+          php taxocommerce-google-bing/tests/cloudflare-migration-smoke.php
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
@@ -187,6 +191,8 @@ jobs:
           php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
           php .github/tests/taxocommerce-core/sidebar-plugins-smoke.php
+          php -l .github/tests/taxocommerce-core/family-catalog-availability-smoke.php
+          php .github/tests/taxocommerce-core/family-catalog-availability-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-editor-ui-smoke.php
           php .github/tests/taxocommerce-core/architecture-report-smoke.php
           php taxocommerce-redirects/tests/core-extension-menu-smoke.php standalone
@@ -213,9 +219,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
+          # Never mistake the last successful *partial* job for a verified
+          # whole-family release; inspect installed entrypoints on both sites.
+          TAXOCOMMERCE_REMOTE_VERIFY: '1'
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
           # Called workflows inherit the caller's github event. Scope only a
           # direct workflow push, not the standard gated reusable workflow.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
@@ -242,27 +254,17 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-          # Only direct Tasks pushes reconcile tracked installable files.
-          # The uploader still skips identical hashes; gated family calls
-          # retain the incremental file-diff behavior.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::STAGING deployment still failing after 3 attempts"
-              exit 1
-            fi
-            sleep $((attempt * 20))
-          done
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
+        # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
+        # Unbuffered output records progress and the actual failing FTPS phase.
+        run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}
-    needs: plan
-    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    # Both sites use the same FTP service. Finish STAGING connections first.
+    # always() still runs Focazul when STAGING fails (separate failure reporting).
+    needs: [plan, deploy-staging]
+    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.count != '0' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -281,22 +283,10 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-          # Only direct Tasks pushes reconcile tracked installable files.
-          # The uploader still skips identical hashes; gated family calls
-          # retain the incremental file-diff behavior.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::Focazul deployment still failing after 3 attempts"
-              exit 1
-            fi
-            sleep $((attempt * 20))
-          done
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
+        # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
+        # Unbuffered output records progress and the actual failing FTPS phase.
+        run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"
 
   verify:
     name: Require successful delivery to every applicable site

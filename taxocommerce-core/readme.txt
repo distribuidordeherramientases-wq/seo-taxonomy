@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.59
+Stable tag: 0.4.61
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * Architecture reporting with unique counts, explicit manual refresh and local 15-minute caching.
 * Read-only editorial guidance for products, categories, posts and pages based on useful content and product identity.
 * Process and extension registries with bounded technical logs for independent modules.
+* The Core Extensions catalog lists all 19 current independent TaxoCommerce modules even when absent or inactive, including Tasks; each card reports its actual WordPress installation and activation status. Retired Connections is incorporated in Insights and is not offered separately.
 * Optional extension discovery for the other TaxoCommerce modules.
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
 * Read-only Autocheck with authenticated JSON download of the last user-specific report, including site URL, Core version, pass/fail/skipped results and detailed messages for independent comparison between installations.
@@ -56,6 +57,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.60 =
+* List TaxoCommerce Tasks in the built-in extension catalog, including when the Tasks plugin is not installed or active.
+* Preserve all 19 current extension cards and correct states (active, installed but inactive, not installed), with optional administrator-initiated install/activation and no automatic installation.
+* Add a regression test for all three states and gettext descriptions in ES, EN, FR, DE and NL.
 
 = 0.4.58 =
 * Normalize the existing Core diagnostics run button to Autocheck, matching every TaxoCommerce plugin. Preserve all existing check IDs, endpoint slugs, and protected JSON download behavior.

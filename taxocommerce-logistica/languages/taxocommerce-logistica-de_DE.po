@@ -12,12 +12,12 @@ msgstr ""
 #: taxocommerce-logistica.php taxocommerce-logistica.php:37
 #: taxocommerce-logistica.php:48 taxocommerce-logistica.php:49
 msgid "TaxoCommerce Logistics"
-msgstr ""
+msgstr "TaxoCommerce Logistik"
 
 #. Description of the plugin
 #: taxocommerce-logistica.php
 msgid "WooCommerce shipping weight, dimensions, and delivery-cost management."
-msgstr ""
+msgstr "Verwaltung von Versandgewicht, Abmessungen und Lieferkosten in WooCommerce."
 
 #. Author of the plugin
 #: taxocommerce-logistica.php
@@ -26,23 +26,23 @@ msgstr ""
 
 #: includes/class-auto-test.php:526
 msgid "Sin permisos para Auto Test."
-msgstr ""
+msgstr "Keine Berechtigung zum Ausführen des Auto-Tests."
 
 #: includes/class-auto-test.php:547
 msgid "Sin permisos para descargar Auto Test."
-msgstr ""
+msgstr "Keine Berechtigung zum Herunterladen des Auto-Tests."
 
 #: includes/class-auto-test.php:554
 msgid "No hay un informe de Auto Test disponible."
-msgstr ""
+msgstr "Es ist kein Auto-Test-Bericht verfügbar."
 
 #: includes/class-auto-test.php:556
 msgid "No se ha podido generar el JSON."
-msgstr ""
+msgstr "Die JSON-Datei konnte nicht erstellt werden."
 
 #: includes/class-auto-test.php:590
 msgid "Sin permisos para consultar Auto Test."
-msgstr ""
+msgstr "Keine Berechtigung zum Anzeigen des Auto-Tests."
 
 #: includes/class-auto-test.php:603
 msgid "Auto Test — Logistics"
@@ -57,33 +57,33 @@ msgstr ""
 
 #: includes/class-auto-test.php:612
 msgid "Referencia ANTES"
-msgstr ""
+msgstr "Referenz VORHER"
 
 #: includes/class-auto-test.php:618
 msgid "Todavía no hay referencia guardada."
-msgstr ""
+msgstr "Noch keine Referenz gespeichert."
 
 #: includes/class-auto-test.php:622
 msgid "Último chequeo"
-msgstr ""
+msgstr "Letzte Prüfung"
 
 #: includes/class-auto-test.php:628
 msgid "No se ha ejecutado ninguna comprobación."
-msgstr ""
+msgstr "Es wurden noch keine Prüfungen durchgeführt."
 
 #: includes/class-auto-test.php:632
 msgid "Resultados del último chequeo"
-msgstr ""
+msgstr "Ergebnisse der letzten Prüfung"
 
 #: includes/class-auto-test.php:639
 msgid "Comparación ANTES / DESPUÉS"
-msgstr ""
+msgstr "Vergleich VORHER / NACHHER"
 
 #: includes/class-auto-test.php:646
 msgid ""
 "La comparación exige una ejecución completa DESPUÉS, en el mismo sitio y con"
 " el mismo administrador."
-msgstr ""
+msgstr "Der Vergleich erfordert einen vollständigen NACHHER-Durchlauf auf derselben Website mit demselben Administrator."
 
 #: includes/class-auto-test.php:669
 msgid ""
@@ -114,11 +114,11 @@ msgstr ""
 
 #: includes/class-user-guide.php:70
 msgid "2. Arquitectura y registro"
-msgstr ""
+msgstr "2. Architektur und Registrierung"
 
 #: includes/class-user-guide.php:72
 msgid "Componentes y carga"
-msgstr ""
+msgstr "Komponenten und Laden"
 
 #: includes/class-user-guide.php:73
 msgid ""
@@ -131,7 +131,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:74
 msgid "Integraciones y hooks"
-msgstr ""
+msgstr "Integrationen und Hooks"
 
 #: includes/class-user-guide.php:76
 msgid ""
@@ -170,7 +170,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:86
 msgid "3. Persistencia y configuración"
-msgstr ""
+msgstr "3. Speicherung und Konfiguration"
 
 #: includes/class-user-guide.php:88
 msgid ""
@@ -197,7 +197,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:94
 msgid "4. Clasificación de destinos"
-msgstr ""
+msgstr "4. Klassifizierung der Ziele"
 
 #: includes/class-user-guide.php:96
 msgid ""
@@ -224,7 +224,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:102
 msgid "5. Métricas de paquetes y pedidos"
-msgstr ""
+msgstr "5. Kennzahlen zu Paketen und Bestellungen"
 
 #: includes/class-user-guide.php:104
 msgid ""
@@ -251,11 +251,11 @@ msgstr ""
 
 #: includes/class-user-guide.php:110
 msgid "6. Evaluación y precio de la tarifa"
-msgstr ""
+msgstr "6. Ermittlung und Berechnung des Tarifs"
 
 #: includes/class-user-guide.php:112
 msgid "Selección"
-msgstr ""
+msgstr "Auswahl"
 
 #: includes/class-user-guide.php:113
 msgid ""
@@ -268,7 +268,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:114
 msgid "Fórmula"
-msgstr ""
+msgstr "Formel"
 
 #: includes/class-user-guide.php:115
 msgid ""
@@ -287,7 +287,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:120
 msgid "7. Impuestos y checkout"
-msgstr ""
+msgstr "7. Steuern und Kasse"
 
 #: includes/class-user-guide.php:122
 msgid ""
@@ -307,7 +307,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:127
 msgid "8. Copias de seguridad JSON"
-msgstr ""
+msgstr "8. JSON-Sicherungen"
 
 #: includes/class-user-guide.php:129
 msgid ""
@@ -326,7 +326,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:134
 msgid "9. Permisos, validación y seguridad"
-msgstr ""
+msgstr "9. Berechtigungen, Validierung und Sicherheit"
 
 #: includes/class-user-guide.php:136
 msgid ""
@@ -346,7 +346,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:141
 msgid "10. Auto Test y pruebas de despliegue"
-msgstr ""
+msgstr "10. Auto-Test und Bereitstellungsprüfungen"
 
 #: includes/class-user-guide.php:143
 msgid ""
@@ -366,16 +366,16 @@ msgstr ""
 
 #: includes/class-user-guide.php:145
 msgid "Pruebas complementarias"
-msgstr ""
+msgstr "Zusätzliche Tests"
 
 #: includes/class-user-guide.php:147
 msgid "Ejecutar las pruebas PHP y el control de WordPress.org en GitHub."
-msgstr ""
+msgstr "PHP-Tests und WordPress.org-Prüfungen auf GitHub ausführen."
 
 #: includes/class-user-guide.php:148
 msgid ""
 "Comparar los dos informes Auto Test y confirmar que no aparecen regresiones."
-msgstr ""
+msgstr "Beide Auto-Test-Berichte vergleichen und auf Regressionen prüfen."
 
 #: includes/class-user-guide.php:149
 msgid ""
@@ -391,7 +391,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:155
 msgid "11. Diagnóstico y mantenimiento"
-msgstr ""
+msgstr "11. Diagnose und Wartung"
 
 #: includes/class-user-guide.php:157
 msgid ""
@@ -418,7 +418,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:167
 msgid "1. ¿Para qué sirve Logistics?"
-msgstr ""
+msgstr "1. Wozu dient Logistics?"
 
 #: includes/class-user-guide.php:169
 msgid ""
@@ -436,7 +436,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:174
 msgid "2. Primeros pasos"
-msgstr ""
+msgstr "2. Erste Schritte"
 
 #: includes/class-user-guide.php:177
 msgid ""
@@ -469,7 +469,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:186
 msgid "3. Configuración general"
-msgstr ""
+msgstr "3. Allgemeine Einstellungen"
 
 #: includes/class-user-guide.php:189
 msgid ""
@@ -514,7 +514,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:200
 msgid "4. Destinos de envío"
-msgstr ""
+msgstr "4. Versandziele"
 
 #: includes/class-user-guide.php:202
 msgid ""
@@ -531,7 +531,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:207
 msgid "5. Crear y ordenar reglas de transporte"
-msgstr ""
+msgstr "5. Versandregeln erstellen und sortieren"
 
 #: includes/class-user-guide.php:210
 msgid "En Shipping Rules, pulsa Añadir regla."
@@ -566,7 +566,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:217
 msgid "Cuidado con las prioridades"
-msgstr ""
+msgstr "Reihenfolge der Prioritäten beachten"
 
 #: includes/class-user-guide.php:218
 msgid ""
@@ -576,7 +576,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:222
 msgid "6. Cómo se calcula el coste"
-msgstr ""
+msgstr "6. So werden die Kosten berechnet"
 
 #: includes/class-user-guide.php:224
 msgid ""
@@ -587,7 +587,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:225
 msgid "Ejemplo de cálculo"
-msgstr ""
+msgstr "Berechnungsbeispiel"
 
 #: includes/class-user-guide.php:226
 msgid ""
@@ -605,7 +605,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:231
 msgid "7. Consultar el peso y coste de pedidos"
-msgstr ""
+msgstr "7. Gewicht und Versandkosten von Bestellungen anzeigen"
 
 #: includes/class-user-guide.php:233
 msgid ""
@@ -624,11 +624,11 @@ msgstr ""
 
 #: includes/class-user-guide.php:238
 msgid "8. Exportar y restaurar reglas JSON"
-msgstr ""
+msgstr "8. JSON-Regeln exportieren und wiederherstellen"
 
 #: includes/class-user-guide.php:240
 msgid "Exportar copia"
-msgstr ""
+msgstr "Sicherung exportieren"
 
 #: includes/class-user-guide.php:241
 msgid ""
@@ -639,7 +639,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:242
 msgid "Importar copia"
-msgstr ""
+msgstr "Sicherung importieren"
 
 #: includes/class-user-guide.php:243
 msgid ""
@@ -651,7 +651,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:247
 msgid "9. Auto Test antes y después de actualizar"
-msgstr ""
+msgstr "9. Auto-Test vor und nach der Aktualisierung"
 
 #: includes/class-user-guide.php:250
 msgid "Antes de actualizar, abre Auto Test y pulsa Guardar estado ANTES."
@@ -684,11 +684,11 @@ msgstr ""
 
 #: includes/class-user-guide.php:259
 msgid "10. Problemas frecuentes"
-msgstr ""
+msgstr "10. Häufige Probleme"
 
 #: includes/class-user-guide.php:261
 msgid "El cliente no ve una opción de transporte"
-msgstr ""
+msgstr "Der Kunde sieht keine Versandoption"
 
 #: includes/class-user-guide.php:262
 msgid ""
@@ -700,7 +700,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:263
 msgid "El precio de envío no es el esperado"
-msgstr ""
+msgstr "Der Versandpreis entspricht nicht den Erwartungen"
 
 #: includes/class-user-guide.php:264
 msgid ""
@@ -712,7 +712,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:265
 msgid "¿Por qué no se actualiza un pedido anterior?"
-msgstr ""
+msgstr "Warum wird eine ältere Bestellung nicht aktualisiert?"
 
 #: includes/class-user-guide.php:266
 msgid ""
@@ -723,7 +723,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:298
 msgid "No tienes permiso para ver el manual."
-msgstr ""
+msgstr "Du hast keine Berechtigung, das Handbuch anzusehen."
 
 #: includes/class-user-guide.php:310
 msgid "Manual"
@@ -737,19 +737,19 @@ msgstr ""
 
 #: includes/class-user-guide.php:313
 msgid "Tipo de manual"
-msgstr ""
+msgstr "Handbuchtyp"
 
 #: includes/class-user-guide.php:317
 msgid "User Manual"
-msgstr ""
+msgstr "Benutzerhandbuch"
 
 #: includes/class-user-guide.php:322
 msgid "Technical Manual"
-msgstr ""
+msgstr "Technisches Handbuch"
 
 #: includes/class-user-guide.php:326
 msgid "Índice del manual"
-msgstr ""
+msgstr "Inhaltsverzeichnis des Handbuchs"
 
 #: includes/class-user-guide.php:327
 msgid "Contenido"
@@ -757,11 +757,11 @@ msgstr "Inhalt"
 
 #: includes/class-user-guide.php:342
 msgid "Abrir Shipping Rules"
-msgstr ""
+msgstr "Versandregeln öffnen"
 
 #: includes/class-user-guide.php:343
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Auto-Test öffnen"
 
 #: includes/seo-transporte.php:98 includes/seo-transporte.php:99
 #: taxocommerce-logistica.php:38

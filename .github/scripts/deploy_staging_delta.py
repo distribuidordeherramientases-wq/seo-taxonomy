@@ -105,6 +105,102 @@ def last_successful_base(repo, head, token):
     raise ValueError("No verified successful STAGING baseline; refusing broad FTP synchronization")
 
 
+def scoped_push_plugins():
+    """Select only Core/Tasks files named in the trusted staging push event.
+
+    A workflow change alone reconciles Core to repair previously skipped Core
+    deliveries, without installing absent optional plugins such as Tasks.
+    """
+    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+    if not event_path:
+        raise ValueError("A direct scoped push requires GITHUB_EVENT_PATH")
+    with open(event_path, encoding="utf-8") as source:
+        event = json.load(source)
+    if event.get("ref") != "refs/heads/staging":
+        raise ValueError("Scoped deliveries are restricted to staging pushes")
+    commits = event.get("commits", [])
+    if not isinstance(commits, list) or not commits:
+        raise ValueError("Scoped push contains no audited changed file list")
+    paths = set()
+    for commit in commits:
+        for kind in ("added", "modified", "removed"):
+            files = commit.get(kind, [])
+            if not isinstance(files, list):
+                raise ValueError("Invalid changed-file list in push event")
+            paths.update(path for path in files if isinstance(path, str))
+    slugs = [
+        slug for slug in ("taxocommerce-core", "taxocommerce-tasks")
+        if any(path.startswith(slug + "/") for path in paths)
+    ]
+    if not slugs and paths.intersection({
+        ".github/workflows/deploy-staging.yml",
+        ".github/scripts/deploy_staging_delta.py",
+    }):
+        slugs = ["taxocommerce-core"]
+    return slugs
+
+
+
+def remote_plugin_entrypoint_drift():
+    """Find installed modules stale on either authorised WordPress installation.
+
+    GitHub workflow success only proves the job passed, not that a partial
+    direct-push job copied the other modules. Never inspect or write PRO.
+    """
+    host = os.environ["STAGING_FTP_SERVER"]
+    user = os.environ["STAGING_FTP_USERNAME"]
+    password = os.environ["STAGING_FTP_PASSWORD"]
+    if not host or not user or not password:
+        raise ValueError("STAGING/Focazul FTPS credentials required")
+    candidates = sorted(
+        d.name for d in Path(".").glob("taxocommerce-*")
+        if d.is_dir() and SLUG.fullmatch(d.name)
+        and d.name != "taxocommerce-connections"  # Retired bridge lives in Insights.
+        and (d / (d.name + ".php")).is_file()
+    )
+    local_hashes = {
+        slug: hashlib.sha256((Path(slug) / (slug + ".php")).read_bytes()).hexdigest()
+        for slug in candidates
+    }
+    for attempt in range(3):
+        ftp = ftplib.FTP_TLS(timeout=45)
+        stale = set()
+        try:
+            ftp.connect(host, 21)
+            ftp.login(user, password)
+            ftp.prot_p()
+            home = ftp.pwd()
+            for target in ("staging", "focazul"):
+                for slug in candidates:
+                    ftp.cwd(home)
+                    try:
+                        ftp.cwd(remote_plugin_dir(target, slug))
+                    except ftplib.error_perm as exc:
+                        if str(exc).startswith("550") and slug != "taxocommerce-core":
+                            continue  # Never create an absent optional plugin.
+                        raise
+                    actual = existing_file_hash(ftp, slug + ".php")
+                    if actual is None:
+                        if slug == "taxocommerce-core":
+                            raise RuntimeError(f"{target}: required Core entrypoint is missing")
+                        continue
+                    if actual != local_hashes[slug]:
+                        stale.add(slug)
+                        print(f"STALE {target}/{slug}: remote entrypoint differs")
+            ftp.quit()
+            return sorted(stale)
+        except (OSError, EOFError, ftplib.error_temp) as exc:
+            if attempt == 2:
+                raise
+            print(f"::warning::FTPS drift inspection retry {attempt + 2}/3: {exc}")
+            time.sleep(2 ** attempt)
+        finally:
+            try:
+                ftp.close()
+            except OSError:
+                pass
+
+
 def plan():
     head = git("rev-parse", "HEAD").decode().strip()
     base = last_successful_base(os.environ["GITHUB_REPOSITORY"], head, os.environ.get("GITHUB_TOKEN", ""))
@@ -114,15 +210,16 @@ def plan():
     # family-wide reconciliation without an explicit manual operator request.
     sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
+    # Remote entrypoint parity is independent from GitHub's success marker.
+    drift = []
+    if os.environ.get("TAXOCOMMERCE_REMOTE_VERIFY", "0") == "1" and not target and not sync:
+        drift = remote_plugin_entrypoint_drift()
     if target:
-        # Only the explicitly authorized Tasks push may bypass the blocked
-        # all-plugin queue. Never permit dynamic or arbitrary plugin selection.
-        if target != "taxocommerce-tasks" or sync:
-            raise ValueError("Targeted push deployment only permits Tasks without full sync")
-        # Reconcile Tasks against the real remote SHA-256 manifest, not a Git
-        # baseline that can incorrectly include a successful PR validation.
-        # The FTPS uploader writes ONLY files whose remote bytes differ.
-        slugs = [target]
+        # Scoped pushes are limited to the two reviewed plugins. The uploader
+        # compares SHA-256 and writes only changed files on authorized sites.
+        if target not in ("taxocommerce-tasks", "taxocommerce-core", "auto") or sync:
+            raise ValueError("Targeted push deployment permits only Core or Tasks")
+        slugs = scoped_push_plugins() if target == "auto" else [target]
     elif sync:
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
@@ -130,7 +227,12 @@ def plan():
             and (d / (d.name + ".php")).is_file()
         )
     else:
-        slugs = list(changes)
+        slugs = sorted(set(changes) | set(drift))
+        if drift:
+            # Reconcile all installable files for stale modules, but upload_plugin
+            # transfers only files whose remote SHA-256 does not match.
+            sync = True
+            print(f"Recovering {len(drift)} remote module(s) skipped by partial deployment")
     core = "taxocommerce-core" in slugs
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"base={base}\n")
@@ -142,7 +244,7 @@ def plan():
     for slug, files in changes.items():
         print(f"{slug}: {len(files)} changed distributable file(s)")
     if sync:
-        print(f"Manual full synchronization requested: reconcile {len(slugs)} installed-plugin candidates on both sites")
+        print(f"SHA-256 synchronization: reconcile {len(slugs)} installed-plugin candidates on both sites")
     if not slugs:
         print("No plugin runtime files changed; no FTPS connection needed")
 
@@ -290,17 +392,19 @@ def reconcile_core():
 
 
 def selected_deploy_files(base, head, slug, full=False):
-    """Select only Tasks for direct push, checking each remote file SHA-256.
+    """Select Core or Tasks for a verified scoped dual-site reconciliation.
 
-    The standard gated family workflow retains its incremental Git baseline.
-    A direct Tasks delivery reconciles the tracked installable files because
-    successful PR validation workflows may report the target commit without
-    delivering any files to either WordPress site.
+    The normal gated family workflow remains incremental. Scoped deployments
+    compare every tracked installable file against its remote SHA-256 because
+    successful validation-only runs do not imply file delivery.
     """
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
     if target:
-        if target != "taxocommerce-tasks" or slug != target or full:
-            raise ValueError("Targeted reconciliation is restricted to Tasks")
+        if target == "auto":
+            if slug not in ("taxocommerce-tasks", "taxocommerce-core") or full:
+                raise ValueError("Scoped reconciliation is restricted to Core or Tasks")
+        elif target not in ("taxocommerce-tasks", "taxocommerce-core") or slug != target or full:
+            raise ValueError("Targeted reconciliation is restricted to Core or Tasks")
         return plugin_source_files(slug)
     if full:
         return plugin_source_files(slug)
@@ -323,18 +427,29 @@ def deploy(base, target, slug, full=False):
     if not host or not user or not password:
         raise ValueError("Missing " + env_prefix + " FTPS credentials")
     for attempt in range(3):
-        ftp = ftplib.FTP_TLS(timeout=45)
+        ftp = ftplib.FTP_TLS(timeout=60)
+        phase = "connect"
         try:
             ftp.connect(host, 21)
+            phase = "authentication"
             ftp.login(user, password)
+            phase = "secure data channel"
             ftp.prot_p()
+            phase = "upload/checksum"
             upload_plugin(ftp, target, slug, files, required=(slug == "taxocommerce-core"))
+            phase = "close"
             ftp.quit()
             return
         except (OSError, EOFError, ftplib.error_temp) as exc:
+            # Only retry transient transport errors; never print credentials.
             if attempt == 2:
-                raise
-            print(f"::warning::{target}/{slug}: transient FTPS error, retry {attempt + 2}/3: {exc}")
+                raise RuntimeError(
+                    f"{target}/{slug}: FTPS {phase} failed after 3 attempts: {exc}"
+                ) from exc
+            print(
+                f"::warning::{target}/{slug}: FTPS {phase} retry {attempt + 2}/3: {exc}",
+                flush=True,
+            )
             time.sleep(2 ** attempt)
         finally:
             try:

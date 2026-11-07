@@ -54,6 +54,11 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
+= 1.1.23 =
+* Restore Cloudflare API connection and read-only security diagnostics in Insights using the existing encrypted WordPress option and optional wp-config constant. No re-entry of credentials necessary.
+* Add a Cloudflare Connections card for save, read-only test, and status; legacy monolith functions and option are preserved for compatibility.
+
+
 = 1.1.22 =
 * Add a dedicated WooCommerce Ecommerce tab for independent GA4 event tracking. Uses an enabled GA4 head tag and statistics consent; no duplicate gtag.js and no reliance on the legacy SEO tracking switch.
 * Restore a standalone WooCommerce event collector for the product, cart, checkout, shipping, payment and purchase funnel. Disabled until explicitly enabled by the administrator.

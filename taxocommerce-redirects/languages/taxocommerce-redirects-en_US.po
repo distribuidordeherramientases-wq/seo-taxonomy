@@ -164,7 +164,7 @@ msgstr "Contents"
 
 #: includes/class-user-guide.php:136
 msgid "1. ¿Para qué sirve Redirects?"
-msgstr ""
+msgstr "1. What is Redirects for?"
 
 #: includes/class-user-guide.php:137
 msgid ""
@@ -172,169 +172,169 @@ msgid ""
 "antigua a otra URL de la misma web. Sirve para conservar el acceso cuando "
 "cambias la ruta de una página, categoría o producto y para evitar enlaces "
 "antiguos rotos."
-msgstr ""
+msgstr "TaxoCommerce Redirects automatically sends visitors from an old URL to another URL on the same website. This preserves access when you change the address of a page, category or product and prevents broken old links."
 
 #: includes/class-user-guide.php:138
 msgid ""
 "También muestra incidencias en las reglas, permite guardar copias JSON y "
 "ofrece un borrado asistido con confirmación para entradas, páginas, "
 "productos y categorías."
-msgstr ""
+msgstr "It also shows problems in redirect rules, lets you save JSON backups and provides confirmed assisted deletion for posts, pages, products and categories."
 
 #: includes/class-user-guide.php:139
 msgid ""
 "Funciona de forma independiente. Si TaxoCommerce Core está activo, Redirects"
 " aparece como extensión y ofrece accesos adicionales de borrado asistido."
-msgstr ""
+msgstr "It works independently. When TaxoCommerce Core is active, Redirects also appears as an extension with additional assisted-deletion shortcuts."
 
 #: includes/class-user-guide.php:142
 msgid "2. Diferencias entre 301 y 302"
-msgstr ""
+msgstr "2. Differences between 301 and 302"
 
 #: includes/class-user-guide.php:143
 msgid "301: traslado permanente"
-msgstr ""
+msgstr "301: permanent redirect"
 
 #: includes/class-user-guide.php:144
 msgid ""
 "Utiliza 301 si la URL antigua ya no se va a usar y su sustituta es "
 "definitiva. Es la opción habitual al renombrar una categoría o eliminar una "
 "ficha que tiene una sustituta real."
-msgstr ""
+msgstr "Use 301 if the old URL will no longer be used and its replacement is permanent. This is usually appropriate when renaming a category or removing a product page with a genuine replacement."
 
 #: includes/class-user-guide.php:145
 msgid "302: traslado temporal"
-msgstr ""
+msgstr "302: temporary redirect"
 
 #: includes/class-user-guide.php:146
 msgid ""
 "Utiliza 302 si prevés volver a mostrar la URL antigua. La redirección 302 no"
 " implica un cambio permanente de dirección."
-msgstr ""
+msgstr "Use 302 if you plan to display the old URL again. A 302 redirect does not indicate a permanent address change."
 
 #: includes/class-user-guide.php:147
 msgid ""
 "Evita enviar todas las URL retiradas a la portada sin una relación útil. El "
 "destino debe responder y ser relevante para el visitante."
-msgstr ""
+msgstr "Do not send every removed URL to the homepage without a useful connection. The destination should work and be relevant to visitors."
 
 #: includes/class-user-guide.php:150
 msgid "3. Crear y editar una redirección"
-msgstr ""
+msgstr "3. Create and edit a redirect"
 
 #: includes/class-user-guide.php:152
 msgid "Entra en Redirects y abre la pestaña Redirects."
-msgstr ""
+msgstr "Open Redirects and select the Redirects tab."
 
 #: includes/class-user-guide.php:153
 msgid ""
 "Escribe la URL de origen, por ejemplo /categoria-antigua. No uses la portada"
 " ni rutas de administración."
-msgstr ""
+msgstr "Enter the source URL, for example /old-category. Do not use the homepage or administration paths."
 
 #: includes/class-user-guide.php:154
 msgid ""
 "Escribe la URL de destino dentro del mismo sitio, por ejemplo /categoria-"
 "nueva."
-msgstr ""
+msgstr "Enter a destination URL on the same site, for example /new-category."
 
 #: includes/class-user-guide.php:155
 msgid "Selecciona 301 o 302 y pulsa «Crear redirección»."
-msgstr ""
+msgstr "Select 301 or 302 and click 'Create redirect'."
 
 #: includes/class-user-guide.php:156
 msgid ""
 "Para modificarla, pulsa Editar sobre la fila y guarda los cambios; para "
 "eliminar la regla, usa Borrar y confirma."
-msgstr ""
+msgstr "To change a rule, click Edit in its row and save; to remove it, click Delete and confirm."
 
 #: includes/class-user-guide.php:158
 msgid "Qué impide el formulario"
-msgstr ""
+msgstr "What the form prevents"
 
 #: includes/class-user-guide.php:159
 msgid ""
 "El plugin rechaza destinos externos, enlaces que se redirigen a sí mismos, "
 "orígenes duplicados y ciclos de redirecciones. Las nuevas reglas solo "
 "utilizan 301 o 302."
-msgstr ""
+msgstr "The plugin rejects external destinations, self-redirects, duplicate source URLs and redirect loops. New rules can only use 301 or 302."
 
 #: includes/class-user-guide.php:160
 msgid "Abrir el gestor de redirecciones"
-msgstr ""
+msgstr "Open redirect manager"
 
 #: includes/class-user-guide.php:163
 msgid "4. Consultar las reglas y sus incidencias"
-msgstr ""
+msgstr "4. Review rules and issues"
 
 #: includes/class-user-guide.php:164
 msgid ""
 "La parte superior de Redirects muestra el total de reglas, las que se han "
 "usado, las que no, el número acumulado de hits, las reglas utilizadas "
 "durante las últimas 24 horas, las incidencias, las cadenas y los ciclos."
-msgstr ""
+msgstr "At the top of Redirects you can see total rules, used and unused rules, accumulated hits, rules used in the last 24 hours, issues, chains and loops."
 
 #: includes/class-user-guide.php:165
 msgid ""
 "En la tabla puedes buscar por ID, origen o destino; filtrar Todas, Revisar, "
 "Con uso y Sin uso; abrir una URL de prueba y visitar su destino en otra "
 "pestaña."
-msgstr ""
+msgstr "The table lets you search by ID, source or destination; filter All, Review, Used or Unused; open a test URL and view the destination in another tab."
 
 #: includes/class-user-guide.php:166
 msgid "Qué significa una incidencia"
-msgstr ""
+msgstr "What an issue means"
 
 #: includes/class-user-guide.php:167
 msgid ""
 "Una cadena hace pasar la navegación por varias redirecciones; un ciclo "
 "intenta volver a una URL anterior. El diagnóstico también identifica "
 "orígenes incompatibles, reglas duplicadas y destinos externos históricos."
-msgstr ""
+msgstr "A chain passes through multiple redirects; a loop attempts to return to an earlier URL. Diagnostics also identify incompatible source URLs, duplicate rules and legacy external destinations."
 
 #: includes/class-user-guide.php:168
 msgid ""
 "Importante: que una regla figure sin incidencias solo indica que su "
 "estructura es válida. No confirma por HTTP que la página de destino esté "
 "disponible."
-msgstr ""
+msgstr "Important: no reported issues only means the rule is structurally valid. It does not confirm via HTTP that the destination page is available."
 
 #: includes/class-user-guide.php:171
 msgid "5. Exportar e importar una copia JSON"
-msgstr ""
+msgstr "5. Export and import a JSON backup"
 
 #: includes/class-user-guide.php:172
 msgid "Guardar una copia de seguridad"
-msgstr ""
+msgstr "Save a backup"
 
 #: includes/class-user-guide.php:173
 msgid ""
 "En el gestor, pulsa «Exportar copia JSON». El archivo incluye los orígenes, "
 "destinos, códigos de estado, contadores de uso y fecha del último hit. "
 "«Exportar análisis JSON» añade el diagnóstico estructural."
-msgstr ""
+msgstr "In the manager, click 'Export JSON backup'. The file contains sources, destinations, status codes, hit counts and the last hit date. 'Export JSON analysis' also includes structural diagnostics."
 
 #: includes/class-user-guide.php:174
 msgid "Importar reglas nuevas"
-msgstr ""
+msgstr "Import new rules"
 
 #: includes/class-user-guide.php:175
 msgid ""
 "Selecciona el JSON y pulsa «Importar solo reglas nuevas». La importación no "
 "sustituye las reglas existentes; informa de registros creados, repetidos, "
 "inválidos y con ciclos."
-msgstr ""
+msgstr "Select a JSON file and click 'Import new rules only'. Existing rules are not replaced; the result shows created, duplicate, invalid and loop-causing entries."
 
 #: includes/class-user-guide.php:176
 msgid ""
 "Si marcas «Conservar hits y último uso», también recuperará esos datos "
 "históricos. El archivo tiene un límite de 25 MiB y 50.000 reglas. Prueba "
 "siempre primero en staging y haz una copia previa."
-msgstr ""
+msgstr "If you select 'Preserve hits and last use', historic usage data is restored too. The file limit is 25 MiB and 50,000 rules. Always test on staging first and make a backup."
 
 #: includes/class-user-guide.php:179
 msgid "6. Borrado asistido de contenido"
-msgstr ""
+msgstr "6. Assisted content deletion"
 
 #: includes/class-user-guide.php:180
 msgid ""
@@ -342,49 +342,49 @@ msgid ""
 "compatibles de WordPress y WooCommerce. En Core también se integra en sus "
 "editores y listas. Es una operación sobre contenido, distinta de borrar una "
 "regla del gestor."
-msgstr ""
+msgstr "The assisted deletion button is available in compatible WordPress and WooCommerce lists and editors. It is also integrated into Core editors and lists. Deleting content is different from deleting a redirect rule."
 
 #: includes/class-user-guide.php:182
 msgid "Abre la confirmación del elemento y revisa su título y URL actual."
-msgstr ""
+msgstr "Open the confirmation for the item and check its title and current URL."
 
 #: includes/class-user-guide.php:183
 msgid ""
 "Elige entre crear una 301 hacia una sustituta válida o eliminar sin "
 "redirección."
-msgstr ""
+msgstr "Choose between creating a 301 to a valid replacement or deleting without a redirect."
 
 #: includes/class-user-guide.php:184
 msgid "Confirma la operación. También puedes cancelar sin cambios."
-msgstr ""
+msgstr "Confirm the action. You can also cancel without changes."
 
 #: includes/class-user-guide.php:185
 msgid ""
 "Las entradas, páginas y productos van a la papelera. Para borrarlos "
 "definitivamente desde ella es necesaria una confirmación adicional."
-msgstr ""
+msgstr "Posts, pages and products go to the Trash. Permanently deleting them from there requires another confirmation."
 
 #: includes/class-user-guide.php:187
 msgid "Restauración desde la papelera"
-msgstr ""
+msgstr "Restore from Trash"
 
 #: includes/class-user-guide.php:188
 msgid ""
 "Al restaurar un elemento, el plugin elimina la redirección asistida "
 "únicamente si sigue siendo exactamente la misma y no se ha modificado "
 "después. No elimina una regla que otro administrador haya cambiado."
-msgstr ""
+msgstr "When an item is restored, the plugin removes its assisted redirect only if the rule is still identical and has not been edited. It never removes a rule changed by another administrator."
 
 #: includes/class-user-guide.php:191
 msgid "7. Precauciones al borrar categorías"
-msgstr ""
+msgstr "7. Precautions when deleting categories"
 
 #: includes/class-user-guide.php:192
 msgid ""
 "El borrado de categorías de producto es permanente. Solo se permite cuando "
 "no contienen productos ni subcategorías, no son la categoría predeterminada "
 "de WooCommerce y no existen relaciones Core protegidas."
-msgstr ""
+msgstr "Deleting product categories is permanent. It is only allowed if they contain no products or subcategories, are not the WooCommerce default category and have no protected Core relationships."
 
 #: includes/class-user-guide.php:193
 msgid ""
@@ -392,59 +392,59 @@ msgid ""
 "TaxoCommerce SEO, Redirects bloquea esa operación para evitar "
 "inconsistencias. Utiliza el procedimiento antiguo hasta retirar y verificar "
 "completamente ese control."
-msgstr ""
+msgstr "If the old TaxoCommerce SEO category-deletion control is still installed, Redirects blocks this operation to prevent inconsistencies. Keep using the old procedure until that control has been fully removed and verified."
 
 #: includes/class-user-guide.php:194
 msgid ""
 "La eliminación en masa y los borrados iniciados por clientes REST externos "
 "no utilizan este asistente."
-msgstr ""
+msgstr "Bulk deletion and deletions initiated by external REST clients do not use this assistant."
 
 #: includes/class-user-guide.php:197
 msgid "8. Auto Test: comparar antes y después de actualizar"
-msgstr ""
+msgstr "8. Auto Test: compare before and after updating"
 
 #: includes/class-user-guide.php:199
 msgid ""
 "Antes del despliegue, abre Auto Test y pulsa «Guardar estado ANTES». "
 "Descarga el informe JSON."
-msgstr ""
+msgstr "Before deployment, open Auto Test and click 'Save BEFORE state'. Download the JSON report."
 
 #: includes/class-user-guide.php:200
 msgid ""
 "Actualiza el plugin siguiendo el procedimiento autorizado de la instalación."
-msgstr ""
+msgstr "Update the plugin using the installation's authorized procedure."
 
 #: includes/class-user-guide.php:201
 msgid ""
 "En la misma instalación y con el mismo administrador, pulsa «Comprobar "
 "DESPUÉS»."
-msgstr ""
+msgstr "On the same installation, with the same administrator, click 'Check AFTER'."
 
 #: includes/class-user-guide.php:202
 msgid ""
 "Revisa los errores nuevos, resueltos, existentes y la pérdida de cobertura; "
 "descarga el segundo informe JSON."
-msgstr ""
+msgstr "Review new, resolved and existing errors and any loss of test coverage; download the second JSON report."
 
 #: includes/class-user-guide.php:204
 msgid ""
 "Las 26 comprobaciones cubren ocho grupos. No generan visitas, no importan "
 "reglas ni eliminan contenido; las pruebas HTTP y de borrado real siguen "
 "pendientes de una comprobación controlada."
-msgstr ""
+msgstr "The 26 checks cover eight groups. They do not generate visits, import rules or delete content; HTTP and real-deletion tests still need controlled verification."
 
 #: includes/class-user-guide.php:205
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Open Auto Test"
 
 #: includes/class-user-guide.php:208
 msgid "9. Preguntas y problemas frecuentes"
-msgstr ""
+msgstr "9. Questions and common issues"
 
 #: includes/class-user-guide.php:209
 msgid "La redirección no funciona"
-msgstr ""
+msgstr "The redirect does not work"
 
 #: includes/class-user-guide.php:210
 msgid ""
@@ -452,22 +452,22 @@ msgid ""
 "con la URL solicitada, verifica que el destino está en el mismo dominio y "
 "prueba el comportamiento HTTP. Los archivos estáticos y ciertas rutas "
 "excluidas no pasan por el motor."
-msgstr ""
+msgstr "Check the table and Auto Test status, verify the source matches the requested URL and the destination is on the same domain, then test the HTTP behavior. Static files and certain excluded paths bypass the redirect engine."
 
 #: includes/class-user-guide.php:211
 msgid "La regla existe, pero el destino da error"
-msgstr ""
+msgstr "The rule exists but the destination fails"
 
 #: includes/class-user-guide.php:212
 msgid ""
 "El diagnóstico comprueba la estructura, no el estado HTTP del destino. "
 "Comprueba la URL con el navegador y revisa si tiene otra redirección o está "
 "eliminada."
-msgstr ""
+msgstr "Diagnostics check structure, not the destination's HTTP status. Check the URL in a browser and see whether it has another redirect or has been deleted."
 
 #: includes/class-user-guide.php:213
 msgid "¿Qué ocurre si desactivo o desinstalo?"
-msgstr ""
+msgstr "What happens if I deactivate or uninstall?"
 
 #: includes/class-user-guide.php:214
 msgid ""
@@ -475,29 +475,29 @@ msgid ""
 "elimina definitivamente la tabla compartida seo_redirects y todas sus "
 "reglas, incluidas las históricas: exporta una copia y valida las "
 "consecuencias antes de desinstalar."
-msgstr ""
+msgstr "Deactivating the plugin preserves the rules. Uninstalling it from WordPress permanently deletes the shared seo_redirects table and all rules, including historical ones. Export a backup and assess the consequences before uninstalling."
 
 #: includes/class-user-guide.php:222
 msgid "1. Alcance y compatibilidad"
-msgstr ""
+msgstr "1. Scope and compatibility"
 
 #: includes/class-user-guide.php:223
 msgid ""
 "Plugin autónomo para WordPress 6.5+ y PHP 7.4+, con extensión opcional a "
 "WooCommerce y TaxoCommerce Core. No requiere APIs externas ni reescrituras "
 "en .htaccess, configuración Nginx o el tema."
-msgstr ""
+msgstr "Standalone plugin for WordPress 6.5+ and PHP 7.4+, with optional WooCommerce and TaxoCommerce Core integration. It does not require external APIs or changes to .htaccess, Nginx configuration or the theme."
 
 #: includes/class-user-guide.php:224
 msgid ""
 "Soporta reglas 301/302 de origen y destino locales, controles estructurales,"
 " importación/exportación JSON y borrado asistido de post, page, product y "
 "product_cat."
-msgstr ""
+msgstr "Supports local-source and local-destination 301/302 rules, structural checks, JSON import/export and assisted deletion of post, page, product and product_cat content."
 
 #: includes/class-user-guide.php:227
 msgid "2. Arquitectura y carga"
-msgstr ""
+msgstr "2. Architecture and loading"
 
 #: includes/class-user-guide.php:228
 msgid ""
@@ -505,112 +505,112 @@ msgid ""
 "registra Plugin::boot en plugins_loaded con prioridad 30. La extensión Core "
 "se anuncia mediante taxocommerce_core_register_modules y contempla cuando "
 "Core ya ha emitido ese hook."
-msgstr ""
+msgstr "The main file taxocommerce-redirects.php declares metadata and registers Plugin::boot on plugins_loaded at priority 30. The Core extension is announced through taxocommerce_core_register_modules, including when Core has already fired that hook."
 
 #: includes/class-user-guide.php:229
 msgid "Clases principales"
-msgstr ""
+msgstr "Main classes"
 
 #: includes/class-user-guide.php:231
 msgid ""
 "esquema compartido, consultas, normalización, guardado, hits y diagnóstico."
-msgstr ""
+msgstr "shared schema, queries, normalization, saving, hits and diagnostics."
 
 #: includes/class-user-guide.php:232
 msgid "detección de origen en frontend y emisión de respuesta 301/302."
-msgstr ""
+msgstr "source detection on the frontend and issuing a 301/302 response."
 
 #: includes/class-user-guide.php:233
 msgid "pantalla de reglas, filtros, CRUD, exportación e importación JSON."
-msgstr ""
+msgstr "rules screen, filters, CRUD, JSON export and import."
 
 #: includes/class-user-guide.php:234
 msgid "intercepción, confirmación, papelera, protecciones y restauración."
-msgstr ""
+msgstr "interception, confirmation, Trash, protection and restoration."
 
 #: includes/class-user-guide.php:235
 msgid "activación, instalación del esquema, eliminación y multisitio."
-msgstr ""
+msgstr "activation, schema installation, deletion and multisite."
 
 #: includes/class-user-guide.php:236
 msgid "diagnóstico no destructivo con informes comparables."
-msgstr ""
+msgstr "non-destructive diagnostics with comparable reports."
 
 #: includes/class-user-guide.php:237
 msgid "esta documentación estática y sus estilos."
-msgstr ""
+msgstr "this static documentation and its styles."
 
 #: includes/class-user-guide.php:241
 msgid "3. Persistencia y compatibilidad heredada"
-msgstr ""
+msgstr "3. Persistence and legacy compatibility"
 
 #: includes/class-user-guide.php:242
 msgid ""
 "Store::table() utiliza $wpdb->prefix . seo_redirects; no crea otra tabla "
 "paralela. El esquema incluye id, origin_url, target_url, status_code, hits, "
 "last_hit, created_at y updated_at, con origen único."
-msgstr ""
+msgstr "Store::table() uses $wpdb->prefix . seo_redirects; it does not create a parallel table. The schema includes id, origin_url, target_url, status_code, hits, last_hit, created_at and updated_at, with a unique source."
 
 #: includes/class-user-guide.php:243
 msgid ""
 "El motor nuevo reutiliza las reglas del plugin SEO anterior y únicamente "
 "desregistra su callback histórico de send_headers durante la petición cuando"
 " la tabla está preparada. No modifica el código del plugin antiguo."
-msgstr ""
+msgstr "The new engine reuses rules from the previous SEO plugin. It only unregisters that plugin's legacy send_headers callback for the request when the table is ready. The old plugin's code is not changed."
 
 #: includes/class-user-guide.php:244
 msgid ""
 "La marca tc_redirects_schema_ready indica que el esquema está operativo. Los"
 " diagnósticos de Auto Test se guardan en metadatos del administrador, no en "
 "seo_redirects."
-msgstr ""
+msgstr "The tc_redirects_schema_ready flag indicates that the schema is operational. Auto Test reports are stored in administrator metadata, not in seo_redirects."
 
 #: includes/class-user-guide.php:247
 msgid "4. Ejecución del motor HTTP"
-msgstr ""
+msgstr "4. HTTP engine execution"
 
 #: includes/class-user-guide.php:248
 msgid ""
 "Engine::maybe_redirect corre en template_redirect con prioridad 0. Omite "
 "administración, AJAX, cron, REST y WP-CLI; solo procesa GET y HEAD y exige "
 "la marca de esquema preparado."
-msgstr ""
+msgstr "Engine::maybe_redirect runs on template_redirect at priority 0. It skips administration, AJAX, cron, REST and WP-CLI; it handles GET and HEAD only and requires the ready-schema flag."
 
 #: includes/class-user-guide.php:249
 msgid ""
 "Extrae la ruta, omite archivos estáticos y la ruta especial logística-"
 "embalaje-preparacion-de-pedidos, normaliza el origen y consulta "
 "Store::find_origin."
-msgstr ""
+msgstr "It extracts the path, skips static files and the special logística-embalaje-preparacion-de-pedidos path, normalizes the source and queries Store::find_origin."
 
 #: includes/class-user-guide.php:250
 msgid "Seguridad de las cadenas"
-msgstr ""
+msgstr "Redirect-chain safety"
 
 #: includes/class-user-guide.php:251
 msgid ""
 "Recorre los destinos hasta un máximo de 20 saltos y aborta en ciclos o "
 "cadenas no terminadas. Valida el destino mediante WordPress y emite "
 "wp_safe_redirect con el código guardado, 301 o 302."
-msgstr ""
+msgstr "It follows destinations for up to 20 hops and aborts on loops or unfinished chains. It validates the destination using WordPress and issues wp_safe_redirect with the stored 301 or 302 status code."
 
 #: includes/class-user-guide.php:252
 msgid ""
 "Solo cuando la redirección se envía correctamente se registra el hit y se "
 "termina la petición. El motor no convierte silenciosamente un código 302 en "
 "301."
-msgstr ""
+msgstr "Only after the redirect has been sent successfully is the hit recorded and the request terminated. The engine never silently changes a 302 to a 301."
 
 #: includes/class-user-guide.php:255
 msgid "5. Validación de rutas y reglas"
-msgstr ""
+msgstr "5. Route and rule validation"
 
 #: includes/class-user-guide.php:256
 msgid ""
 "Store::normalize_origin y Store::normalize_target validan las rutas. Se "
 "rechazan orígenes no permitidos, protocolos distintos de HTTP(S), destinos "
 "de otro dominio y cadenas que terminan en el mismo origen."
-msgstr ""
+msgstr "Store::normalize_origin and Store::normalize_target validate paths. Disallowed source paths, non-HTTP(S) protocols, destinations on another domain and chains ending at the same source are rejected."
 
 #: includes/class-user-guide.php:257
 msgid ""
@@ -618,11 +618,11 @@ msgid ""
 "actuales. Las altas y ediciones conservan únicamente 301/302. Las reglas "
 "anteriores potencialmente inválidas se diagnostican sin borrarlas "
 "automáticamente."
-msgstr ""
+msgstr "Store::validate_rule detects collisions and loops in existing records. New and edited rules use only 301/302. Potentially invalid legacy rules are reported without automatic deletion."
 
 #: includes/class-user-guide.php:260
 msgid "6. Administración, métricas y diagnóstico"
-msgstr ""
+msgstr "6. Administration, metrics and diagnostics"
 
 #: includes/class-user-guide.php:261
 msgid ""
@@ -630,25 +630,25 @@ msgid ""
 "y admin_post_tc_redirects_export. La tabla de gestión muestra hasta 50 filas"
 " por página y aplica búsqueda/filtros a un conjunto limitado por "
 "Store::MAX_ROWS."
-msgstr ""
+msgstr "Admin::register adds the menu and admin_post_tc_redirects_manage and admin_post_tc_redirects_export actions. The management table displays up to 50 rows per page and applies search and filtering within the Store::MAX_ROWS limit."
 
 #: includes/class-user-guide.php:262
 msgid ""
 "Store::diagnostics calcula colisiones efectivas, autoredirecciones, cadenas "
 "y ciclos, además de hits acumulados, reglas con hits y actividad reciente. "
 "No realiza peticiones HTTP a los destinos."
-msgstr ""
+msgstr "Store::diagnostics calculates actual collisions, self-redirects, chains and loops, plus total hits, rules with hits and recent activity. It does not make HTTP requests to destinations."
 
 #: includes/class-user-guide.php:263
 msgid ""
 "La pestaña User Guide se renderiza sin llamar a Store::rows ni "
 "Store::diagnostics, de modo que consultar la documentación no inspecciona "
 "innecesariamente toda la tabla."
-msgstr ""
+msgstr "The User Guide tab renders without calling Store::rows or Store::diagnostics, so reading documentation does not unnecessarily scan the full table."
 
 #: includes/class-user-guide.php:266
 msgid "7. Borrado asistido: transacción funcional"
-msgstr ""
+msgstr "7. Assisted deletion: functional transaction"
 
 #: includes/class-user-guide.php:267
 msgid ""
@@ -656,7 +656,7 @@ msgid ""
 " en editor clásico, Gutenberg, listados nativos y las vistas Core. Antes de "
 "borrar revisa capacidades específicas del objeto, nonce, URL origen, reglas "
 "preexistentes, ciclos y restricciones de categoría."
-msgstr ""
+msgstr "Assisted_Delete provides a confirmation page and registers integrations for the classic editor, Gutenberg, native lists and Core views. Before deletion, it checks object-specific permissions, nonce, source URL, existing rules, loops and category restrictions."
 
 #: includes/class-user-guide.php:268
 msgid ""
@@ -664,7 +664,7 @@ msgid ""
 "eliminación, revierte la nueva regla. En posts, páginas y productos se "
 "utiliza la papelera; en product_cat la eliminación es permanente bajo "
 "controles adicionales."
-msgstr ""
+msgstr "If a 301 is requested, its rule is saved before deletion. If deletion fails, the new rule is rolled back. Posts, pages and products go to the Trash; product_cat deletion is permanent and subject to additional checks."
 
 #: includes/class-user-guide.php:269
 msgid ""
@@ -672,25 +672,25 @@ msgid ""
 "_tc_redirects_assisted_rule. Al restaurar un elemento, solo se quita la "
 "regla si el ID, origen y destino siguen coincidiendo, para respetar cambios "
 "manuales posteriores."
-msgstr ""
+msgstr "The assisted-redirect relationship is stored in postmeta under _tc_redirects_assisted_rule. When an item is restored, the rule is removed only if its ID, source and destination still match, preserving subsequent manual edits."
 
 #: includes/class-user-guide.php:270
 msgid ""
 "Cuando existe el antiguo pre_delete_term de SEO, la categoría no se elimina "
 "desde el nuevo flujo. Los borrados masivos y las llamadas REST de terceros "
 "no están cubiertos por el asistente."
-msgstr ""
+msgstr "If the old SEO pre_delete_term hook exists, categories are not deleted through the new flow. Bulk deletion and third-party REST calls are not covered by the assistant."
 
 #: includes/class-user-guide.php:273
 msgid "8. Contrato JSON de intercambio"
-msgstr ""
+msgstr "8. JSON interchange contract"
 
 #: includes/class-user-guide.php:274
 msgid ""
 "La exportación genera taxocommerce-redirects-v1, tipo backup o analysis, "
 "fecha UTC y array redirects con origin_url, target_url, status_code, hits y "
 "last_hit. El tipo analysis agrega el diagnóstico estructural."
-msgstr ""
+msgstr "Export creates taxocommerce-redirects-v1 with type backup or analysis, UTC date and a redirects array containing origin_url, target_url, status_code, hits and last_hit. The analysis type also includes structural diagnostics."
 
 #: includes/class-user-guide.php:275
 msgid ""
@@ -698,11 +698,11 @@ msgid ""
 " y limita a 25 MiB y 50.000 reglas. Importa solo orígenes nuevos, aplica "
 "validaciones y no sobrescribe los existentes. Los hits y last_hit solo se "
 "restauran si el administrador lo autoriza."
-msgstr ""
+msgstr "Import verifies that the file is a legitimate upload, validates JSON and limits it to 25 MiB and 50,000 rules. Only new sources are imported after validation; existing rules are not overwritten. hits and last_hit are restored only with administrator approval."
 
 #: includes/class-user-guide.php:278
 msgid "9. Seguridad y permisos"
-msgstr ""
+msgstr "9. Security and permissions"
 
 #: includes/class-user-guide.php:279
 msgid ""
@@ -710,7 +710,7 @@ msgid ""
 "Auto Test también verifica permisos y nonce antes de generar o exportar "
 "informes. El borrado asistido exige capacidades de objeto/taxonomía y su "
 "propia confirmación."
-msgstr ""
+msgstr "Management and export require manage_options and separate nonces. Auto Test checks permissions and nonce before generating or exporting reports. Assisted deletion requires object or taxonomy capabilities and its own confirmation."
 
 #: includes/class-user-guide.php:280
 msgid ""
@@ -718,18 +718,18 @@ msgid ""
 "administrativas se escapan. wp_safe_redirect restringe los destinos; no se "
 "deben añadir hosts externos sin revisar la política y sus implicaciones de "
 "seguridad."
-msgstr ""
+msgstr "Form input is normalized and sanitized, and administrative output is escaped. wp_safe_redirect restricts destinations; external hosts must not be added without reviewing policy and security implications."
 
 #: includes/class-user-guide.php:283
 msgid "10. Ciclo de vida del plugin"
-msgstr ""
+msgstr "10. Plugin lifecycle"
 
 #: includes/class-user-guide.php:284
 msgid ""
 "Lifecycle::activate reutiliza seo_redirects si existe o crea la tabla que "
 "falta; en instalaciones multisitio procesa cada blog. Desactivar o "
 "actualizar conserva las reglas y no modifica sus contenidos."
-msgstr ""
+msgstr "Lifecycle::activate reuses seo_redirects if present or creates the missing table; on multisite installations it processes each site. Deactivation or updates retain all rules and do not modify their content."
 
 #: includes/class-user-guide.php:285
 msgid ""
@@ -737,11 +737,11 @@ msgid ""
 "referencias del borrado asistido, opciones y avisos. Puede eliminar reglas "
 "compartidas con el antiguo plugin SEO. La copia JSON previa y la "
 "autorización explícita son imprescindibles."
-msgstr ""
+msgstr "Uninstalling is destructive: it removes the shared table and cleans up assisted-deletion references, options and notices. This can delete rules shared with the old SEO plugin. A prior JSON backup and explicit authorization are essential."
 
 #: includes/class-user-guide.php:288
 msgid "11. Auto Test y protocolo de despliegue"
-msgstr ""
+msgstr "11. Auto Test and deployment procedure"
 
 #: includes/class-user-guide.php:289
 msgid ""
@@ -749,18 +749,18 @@ msgid ""
 "las redirecciones. Guarda resultados ANTES y último resultado en usermeta "
 "separados por usuario y blog. La comparación solo admite dos ejecuciones "
 "completas del mismo sitio y fase DESPUÉS."
-msgstr ""
+msgstr "Auto_Test runs 26 checks in eight groups without changing redirects. It stores BEFORE and latest results in usermeta separately for each user and site. Comparison accepts only two complete runs on the same site, with the second in the AFTER phase."
 
 #: includes/class-user-guide.php:290
 msgid ""
 "El informe registra versión, instante, estado por caso y tiempo de "
 "ejecución. Detecta fallos nuevos, resueltos, persistentes, cobertura perdida"
 " y casos nuevos. El JSON no incluye las URL del catálogo."
-msgstr ""
+msgstr "The report records the version, timestamp, case-by-case status and execution time. It identifies new, resolved and persistent failures, lost coverage and new test cases. The JSON does not include catalog URLs."
 
 #: includes/class-user-guide.php:291
 msgid "Validación adicional obligatoria"
-msgstr ""
+msgstr "Additional validation required"
 
 #: includes/class-user-guide.php:292
 msgid ""
@@ -768,22 +768,22 @@ msgid ""
 "integración y ciclo de vida, prueba una 301 y una 302 reales, confirma los "
 "hits, la copia JSON y un borrado/restauración con contenido de prueba. El "
 "resultado del Auto Test no garantiza esas operaciones."
-msgstr ""
+msgstr "In staging, also run PHP 7.4/8.4 tests, integration and lifecycle tests; test real 301 and 302 redirects, hit counts, JSON backups and deletion/restoration of test content. Auto Test results alone do not guarantee these operations."
 
 #: includes/class-user-guide.php:293
 msgid "Abrir comprobaciones"
-msgstr ""
+msgstr "Open checks"
 
 #: includes/class-user-guide.php:296
 msgid "12. Limitaciones, soporte y mantenimiento"
-msgstr ""
+msgstr "12. Limitations, support and maintenance"
 
 #: includes/class-user-guide.php:297
 msgid ""
 "El diagnóstico de destinos es estructural y no sustituye a HTTP. Los filtros"
 " y el listado trabajan con un máximo de 50.000 reglas. Las rutas REST de "
 "terceros y el borrado en masa no pasan por el asistente."
-msgstr ""
+msgstr "Destination diagnostics are structural and cannot replace HTTP checks. Filters and the list support up to 50,000 rules. Third-party REST paths and bulk deletion do not use the assistant."
 
 #: includes/class-user-guide.php:298
 msgid ""
@@ -791,7 +791,7 @@ msgid ""
 "debe preservar el esquema, los IDs, los códigos 301/302 y los hits. No "
 "elimines código o tablas por considerarlos redundantes sin verificar "
 "dependencias."
-msgstr ""
+msgstr "The plugin shares a table with the old TaxoCommerce SEO plugin: migration must preserve the schema, IDs, 301/302 status codes and hit counts. Do not delete code or tables as redundant without checking dependencies."
 
 #: includes/class-user-guide.php:299
 msgid ""

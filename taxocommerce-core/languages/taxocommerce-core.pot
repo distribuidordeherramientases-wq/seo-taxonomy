@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Core - Catalog & Content Management for WooCommerce 0.4.44\n"
+"Project-Id-Version: TaxoCommerce Core - Catalog & Content Management for WooCommerce 0.4.60\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/taxocommerce-core\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3351,4 +3351,8 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-auto-test.php
 msgid "Sin permisos para ejecutar autocheck."
+msgstr ""
+
+#: includes/class-taxocommerce-core.php
+msgid "Private task agenda, calendar, categories and indicators."
 msgstr ""
