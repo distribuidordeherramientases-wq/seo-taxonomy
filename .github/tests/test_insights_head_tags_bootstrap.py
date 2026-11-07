@@ -23,7 +23,9 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         self.assertIn("TaxoCommerce_Insights_Head_Tags::register();", self.main)
 
     def test_head_tags_tab_is_routed_and_rendered(self):
-        self.assertIn("'head_tags', 'user_guide'", self.main)
+        self.assertIn("'head_tags', 'ecommerce', 'user_guide'", self.main)
+        self.assertIn("TaxoCommerce_Insights_Ecommerce::register();", self.main)
+        self.assertIn("TaxoCommerce_Insights_Ecommerce::render();", self.main)
         self.assertIn("'head_tags'        =>", self.main)
         self.assertIn("if ( 'head_tags' === $tab )", self.main)
         self.assertIn("TaxoCommerce_Insights_Head_Tags::render();", self.main)
@@ -33,8 +35,8 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         self.assertIn("TaxoCommerce_Insights_Head_Tags::register();", self.main)
 
     def test_version_header_and_readme_match(self):
-        self.assertIn("* Version: 1.1.21", self.main)
-        self.assertIn("Stable tag: 1.1.21", README.read_text(encoding="utf-8"))
+        self.assertIn("* Version: 1.1.22", self.main)
+        self.assertIn("Stable tag: 1.1.22", README.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
