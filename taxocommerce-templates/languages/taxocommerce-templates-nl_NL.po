@@ -610,80 +610,80 @@ msgstr "De schakelaar om beleid toe te passen of op te schorten staat bovenaan d
 
 #: taxocommerce-templates.php:461
 msgid "Archivos de plantilla"
-msgstr ""
+msgstr "Sjabloonbestanden"
 
 #: taxocommerce-templates.php:463
 msgid "Asignacion a paginas y rutas automaticas"
-msgstr ""
+msgstr "Toewijzing aan pagina’s en automatische routes"
 
 #: taxocommerce-templates.php:464
 msgid ""
 "Las rutas automaticas se resuelven por tipo de peticion. Las rutas "
 "asignables admiten paginas existentes; las variantes no son roles "
 "independientes."
-msgstr ""
+msgstr "Automatische routes worden bepaald door het verzoektype. Toewijsbare routes ondersteunen bestaande pagina’s; varianten zijn geen zelfstandige rollen."
 
 #: taxocommerce-templates.php:480
 msgid "Elegir archivo principal"
-msgstr ""
+msgstr "Hoofdbestand kiezen"
 
 #: taxocommerce-templates.php:490
 msgid "Variantes telefono / ordenador"
-msgstr ""
+msgstr "Varianten voor mobiel / desktop"
 
 #: taxocommerce-templates.php:506
 msgid "Paginas asignadas"
-msgstr ""
+msgstr "Toegewezen pagina’s"
 
 #: taxocommerce-templates.php:509
 msgid "Ninguna pagina asignada."
-msgstr ""
+msgstr "Geen pagina’s toegewezen."
 
 #: taxocommerce-templates.php:524
 msgid "Seleccionar pagina libre"
-msgstr ""
+msgstr "Beschikbare pagina selecteren"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "Amazon:"
-msgstr ""
+msgstr "Amazon:"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "falta el Partner Tag."
-msgstr ""
+msgstr "Partner Tag ontbreekt."
 
 #: templates/template-amazon-category-us.php:417
 #: templates/template-amazon-category.php:417
 msgid "Amazon"
-msgstr ""
+msgstr "Amazon"
 
 #: templates/template-amazon-category-us.php:418
 msgid "Related search"
-msgstr ""
+msgstr "Gerelateerde zoekopdracht"
 
 #: templates/template-amazon-category.php:418
 msgid "Búsqueda relacionada"
-msgstr ""
+msgstr "Gerelateerde zoekopdracht"
 
 #: templates/template-cart.php:231
 msgid "No se ha podido inicializar el carrito de WooCommerce."
-msgstr ""
+msgstr "De WooCommerce-winkelwagen kon niet worden geïnitialiseerd."
 
 #: templates/template-category-desktop.php:41
 #: templates/template-category-mobile.php:41
 msgid "Categoría no disponible"
-msgstr ""
+msgstr "Categorie niet beschikbaar"
 
 #: templates/template-category-us-desktop.php:41
 #: templates/template-category-us-mobile.php:41
 msgid "Category unavailable"
-msgstr ""
+msgstr "Categorie niet beschikbaar"
 
 #: templates/template-front-desktop.php:532
 #: templates/template-front-mobile.php:532
 msgid "No hay productos VEVOR publicados disponibles."
-msgstr ""
+msgstr "Geen gepubliceerde VEVOR-producten beschikbaar."
 
 #. translators: %d: número de artículos editoriales relacionados.
 #: templates/template-helpers.php:1828
@@ -709,32 +709,32 @@ msgstr[1] "%d externe reacties"
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "Producto no disponible"
-msgstr ""
+msgstr "Product niet beschikbaar"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "No se ha podido cargar la información del producto."
-msgstr ""
+msgstr "Productinformatie kon niet worden geladen."
 
 #: templates/template-product-desktop.php:1178
 #: templates/template-product-mobile.php:1178
 msgid "No hay productos relacionados disponibles."
-msgstr ""
+msgstr "Geen gerelateerde producten beschikbaar."
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product unavailable"
-msgstr ""
+msgstr "Product niet beschikbaar"
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product information could not be loaded."
-msgstr ""
+msgstr "Productinformatie kon niet worden geladen."
 
 #: templates/template-product-us-desktop.php:1226
 #: templates/template-product-us-mobile.php:1226
 msgid "No related products are available."
-msgstr ""
+msgstr "Geen gerelateerde producten beschikbaar."
 
 #. translators: %s: número localizado de productos encontrados.
 #: templates/template-search.php:43
@@ -745,7 +745,7 @@ msgstr[1] "%s producten gevonden"
 
 #: templates/template-search.php:122
 msgid "Oferta"
-msgstr ""
+msgstr "Aanbieding"
 
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
