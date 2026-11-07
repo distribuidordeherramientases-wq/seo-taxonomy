@@ -1,3 +1,9 @@
+## [0.4.61] — 2026-11-07 — Menú padre TaxoCommerce Core estable (#2351)
+
+- Se restablece el título del menú principal TaxoCommerce Core al final del registro de extensiones, sin alterar los submenús, rutas, iconos ni capacidades.
+- Prueba de regresión que simula un rótulo erróneo «Marketing campaigns» y comprueba la corrección del padre.
+- Esta versión participa en el despliegue reconciliado por SHA-256 a STAGING y Focazul; ninguna modificación en producción.
+
 ## [0.4.60] — 2026-11-07 — Catálogo completo de extensiones, incluidas las ausentes (#2340)
 
 - Registrado Tasks en el catálogo nativo de Core: aparece aunque el propio plugin esté desactivado o no instalado, como sucede en Focazul.

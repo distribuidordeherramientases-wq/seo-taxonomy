@@ -140,6 +140,67 @@ def scoped_push_plugins():
     return slugs
 
 
+
+def remote_plugin_entrypoint_drift():
+    """Find installed modules stale on either authorised WordPress installation.
+
+    GitHub workflow success only proves the job passed, not that a partial
+    direct-push job copied the other modules. Never inspect or write PRO.
+    """
+    host = os.environ["STAGING_FTP_SERVER"]
+    user = os.environ["STAGING_FTP_USERNAME"]
+    password = os.environ["STAGING_FTP_PASSWORD"]
+    if not host or not user or not password:
+        raise ValueError("STAGING/Focazul FTPS credentials required")
+    candidates = sorted(
+        d.name for d in Path(".").glob("taxocommerce-*")
+        if d.is_dir() and SLUG.fullmatch(d.name)
+        and d.name != "taxocommerce-connections"  # Retired bridge lives in Insights.
+        and (d / (d.name + ".php")).is_file()
+    )
+    local_hashes = {
+        slug: hashlib.sha256((Path(slug) / (slug + ".php")).read_bytes()).hexdigest()
+        for slug in candidates
+    }
+    for attempt in range(3):
+        ftp = ftplib.FTP_TLS(timeout=45)
+        stale = set()
+        try:
+            ftp.connect(host, 21)
+            ftp.login(user, password)
+            ftp.prot_p()
+            home = ftp.pwd()
+            for target in ("staging", "focazul"):
+                for slug in candidates:
+                    ftp.cwd(home)
+                    try:
+                        ftp.cwd(remote_plugin_dir(target, slug))
+                    except ftplib.error_perm as exc:
+                        if str(exc).startswith("550") and slug != "taxocommerce-core":
+                            continue  # Never create an absent optional plugin.
+                        raise
+                    actual = existing_file_hash(ftp, slug + ".php")
+                    if actual is None:
+                        if slug == "taxocommerce-core":
+                            raise RuntimeError(f"{target}: required Core entrypoint is missing")
+                        continue
+                    if actual != local_hashes[slug]:
+                        stale.add(slug)
+                        print(f"STALE {target}/{slug}: remote entrypoint differs")
+            ftp.quit()
+            return sorted(stale)
+        except (OSError, EOFError, ftplib.error_temp) as exc:
+            if attempt == 2:
+                raise
+            print(f"::warning::FTPS drift inspection retry {attempt + 2}/3: {exc}")
+            time.sleep(2 ** attempt)
+        finally:
+            try:
+                ftp.close()
+            except OSError:
+                pass
+
+
 def plan():
     head = git("rev-parse", "HEAD").decode().strip()
     base = last_successful_base(os.environ["GITHUB_REPOSITORY"], head, os.environ.get("GITHUB_TOKEN", ""))
@@ -149,6 +210,10 @@ def plan():
     # family-wide reconciliation without an explicit manual operator request.
     sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
+    # Remote entrypoint parity is independent from GitHub's success marker.
+    drift = []
+    if os.environ.get("TAXOCOMMERCE_REMOTE_VERIFY", "0") == "1" and not target and not sync:
+        drift = remote_plugin_entrypoint_drift()
     if target:
         # Scoped pushes are limited to the two reviewed plugins. The uploader
         # compares SHA-256 and writes only changed files on authorized sites.
@@ -162,7 +227,12 @@ def plan():
             and (d / (d.name + ".php")).is_file()
         )
     else:
-        slugs = list(changes)
+        slugs = sorted(set(changes) | set(drift))
+        if drift:
+            # Reconcile all installable files for stale modules, but upload_plugin
+            # transfers only files whose remote SHA-256 does not match.
+            sync = True
+            print(f"Recovering {len(drift)} remote module(s) skipped by partial deployment")
     core = "taxocommerce-core" in slugs
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
         output.write(f"base={base}\n")
@@ -174,7 +244,7 @@ def plan():
     for slug, files in changes.items():
         print(f"{slug}: {len(files)} changed distributable file(s)")
     if sync:
-        print(f"Manual full synchronization requested: reconcile {len(slugs)} installed-plugin candidates on both sites")
+        print(f"SHA-256 synchronization: reconcile {len(slugs)} installed-plugin candidates on both sites")
     if not slugs:
         print("No plugin runtime files changed; no FTPS connection needed")
 
