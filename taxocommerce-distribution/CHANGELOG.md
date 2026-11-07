@@ -1,3 +1,9 @@
+## [Unreleased] — Ampliación de idiomas de la interfaz (#2062, #2328)
+
+- Completadas 196/196/194 cadenas gettext anteriormente vacías en FR/DE/NL y 68 cadenas fuente castellanas en EN; incluye menús, canales comerciales, sitemaps, progreso, control del generador, permisos y títulos de manuales.
+- Regenerados los MO `en_US`, `fr_FR`, `de_DE` y `nl_NL`. En los PO actuales aún faltan 225 traducciones en EN y 97 en cada FR/DE/NL (sobre 327 claves); el castellano ya no tiene `msgstr` vacíos.
+- No se modifican productos, posts, páginas, proveedores ni lógica funcional. Pendientes las traducciones restantes, la revisión del código PHP/JS y la validación real de WordPress/Plugin Check.
+
 ## [Unreleased] — Traducciones gettext (taxocommerce-distribution)
 
 - Completadas las entradas de traducción vacías detectadas en los catálogos de EN/FR/DE/NL; idioma ES ya tenía traducción.
