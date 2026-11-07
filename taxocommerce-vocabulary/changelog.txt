@@ -1,3 +1,6 @@
+= 0.3.10 - 2026-11-07 =
+* Export/import de asociaciones Vocabulary de entradas y páginas/landings mediante JSON portable, MERGE/MIRROR, simulación y resolución por ruta local. Sin dependencia obligatoria entre módulos. Issue #2298.
+
 HISTORIAL LEGADO — TAXOCOMMERCE VOCABULARY
 
 Fuente: TaxoCommerce SEO monolítico. Sus versiones no son las del módulo independiente.

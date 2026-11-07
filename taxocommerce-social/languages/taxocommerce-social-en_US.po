@@ -34,7 +34,7 @@ msgstr "Social"
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr "Independent social publishing. Connections, formats and scheduling without campaigns, offers or special News rules."
+msgstr "Independent social publishing. Connections, formats and calendar without marketing campaigns, offers or special News rules."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
@@ -44,18 +44,18 @@ msgstr "Social networks"
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr "The calendar is this module's only schedule. Posts are scheduled here using the templates for each network."
+msgstr "The calendar is this module's only schedule. Posts are scheduled here using each network's templates."
 
 #: includes/admin.php:109
 msgid "Agenda social"
-msgstr "Social schedule"
+msgstr "Social calendar"
 
 #: includes/admin.php:109
 msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr "Schedule posts manually or by CSV and check the results in the monthly calendar. Marketing campaigns are not included and no time slots are reserved for News."
+msgstr "Schedule posts manually or via CSV and review the results in the monthly calendar. Marketing campaigns and special News timeslots are not included."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
@@ -69,7 +69,7 @@ msgstr "Publishing calendar"
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr "Monthly view dedicated to social posts. It does not include campaigns, offers or special News rules."
+msgstr "Monthly view for social posts only. Does not include campaigns, offers or special News rules."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
@@ -112,7 +112,7 @@ msgstr "Compact view"
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr "Chronological list for the month. Useful on mobile and for quickly reviewing times, networks and actual duplicates."
+msgstr "Chronological monthly listing. Useful on mobile and for quickly checking times, networks and actual duplicates."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
@@ -127,15 +127,15 @@ msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr "Local, read-only checks of registered connections, templates, tables, the calendar and scheduler. Does not connect accounts or publish posts. The two most recent results per administrator are kept for 30 days."
+msgstr "Read-only local checks of registered connections, templates, tables, calendar and scheduler. No accounts are connected and nothing is published. The last two results per administrator are saved for 30 days."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr "No results yet. Select Run Auto Test."
+msgstr "No results yet. Click Run Auto Test."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."
-msgstr "No previous run available for comparison."
+msgstr "There is no previous run to compare against."
 
 #: includes/class-auto-test.php:290
 msgid "Grupo"

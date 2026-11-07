@@ -19,7 +19,7 @@ msgstr "TaxoCommerce Social"
 msgid ""
 "Social network connections, publishing templates and calendar for the "
 "TaxoCommerce family."
-msgstr "Verbindingen met sociale netwerken, publicatiesjablonen en een kalender voor de TaxoCommerce-familie."
+msgstr "Socialemediaverbindingen, publicatiesjablonen en kalender voor de TaxoCommerce-familie."
 
 #. Author of the plugin
 #: taxocommerce-social.php
@@ -28,13 +28,13 @@ msgstr "David Perez"
 
 #: includes/admin.php:10
 msgid "Social"
-msgstr "Sociale netwerken"
+msgstr "Social"
 
 #: includes/admin.php:74
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr "Zelfstandig publiceren op sociale netwerken. Verbindingen, formaten en kalender zonder campagnes, aanbiedingen of speciale regels voor Nieuws."
+msgstr "Zelfstandig publiceren op sociale media. Verbindingen, opmaak en kalender zonder marketingcampagnes, aanbiedingen of speciale regels voor nieuws."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
@@ -44,7 +44,7 @@ msgstr "Sociale netwerken"
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr "De kalender is de enige agenda van deze module. Publicaties worden hier gepland met de sjablonen voor elk netwerk."
+msgstr "De kalender is de enige agenda van deze module. Berichten worden hier ingepland met de sjablonen van elk netwerk."
 
 #: includes/admin.php:109
 msgid "Agenda social"
@@ -55,7 +55,7 @@ msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr "Plan publicaties handmatig of via CSV en bekijk het resultaat in de maandkalender. Marketingcampagnes zijn niet inbegrepen en er worden geen tijdvakken voor Nieuws gereserveerd."
+msgstr "Plan berichten handmatig of via CSV en controleer de resultaten in de maandkalender. Marketingcampagnes en speciale nieuwstijdvakken worden niet opgenomen."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
@@ -69,7 +69,7 @@ msgstr "Publicatiekalender"
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr "Maandoverzicht uitsluitend voor publicaties op sociale netwerken. Geen campagnes, aanbiedingen of speciale regels voor Nieuws."
+msgstr "Maandoverzicht uitsluitend voor sociale berichten, zonder campagnes, aanbiedingen of speciale nieuwsregels."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
@@ -102,7 +102,7 @@ msgstr "Conflict"
 
 #: includes/calendar.php:339
 msgid "Sin publicaciones"
-msgstr "Geen publicaties"
+msgstr "Geen berichten"
 
 #: includes/calendar.php:349
 msgid "Vista compacta"
@@ -112,11 +112,11 @@ msgstr "Compacte weergave"
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr "Chronologische maandlijst. Handig op mobiel om tijden, netwerken en echte dubbele berichten snel te controleren."
+msgstr "Chronologische lijst van de maand, handig op mobiele apparaten om tijden, netwerken en echte duplicaten snel te controleren."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
-msgstr "Je hebt geen toestemming om de Auto Test uit te voeren."
+msgstr "Je hebt geen toestemming om Auto Test uit te voeren."
 
 #: includes/class-auto-test.php:264
 msgid "Auto Test de TaxoCommerce Social"
@@ -127,11 +127,11 @@ msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr "Lokale controles van geregistreerde verbindingen, sjablonen, tabellen, kalender en planner, uitsluitend-lezen. Er worden geen accounts verbonden of berichten geplaatst. De laatste twee resultaten per beheerder blijven 30 dagen bewaard."
+msgstr "Lokale alleen-lezencontrole van geregistreerde verbindingen, sjablonen, tabellen, kalender en planner. Er worden geen accounts gekoppeld of berichten geplaatst. De twee recentste resultaten per beheerder blijven 30 dagen bewaard."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr "Er zijn nog geen resultaten. Klik op Auto Test uitvoeren."
+msgstr "Nog geen resultaten. Klik op Auto Test uitvoeren."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."

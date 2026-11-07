@@ -28,7 +28,7 @@ msgstr "David Perez"
 
 #: includes/admin.php:10
 msgid "Social"
-msgstr "Redes sociales"
+msgstr "Social"
 
 #: includes/admin.php:74
 msgid ""

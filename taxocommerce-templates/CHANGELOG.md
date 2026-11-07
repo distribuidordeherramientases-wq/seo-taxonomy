@@ -4,6 +4,14 @@
 - Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
 - Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
 
+
+## [0.4.21] — 2026-11-07 — Reconciliación editorial de categorías (#2298)
+
+- Nueva pestaña de mantenimiento SEO dentro de Templates que compara, sin modificar datos, la descripción nativa de WooCommerce con la descripción histórica efectivamente utilizada desde `seo_nodes`.
+- Sincronización optativa y selectiva por categoría, protegida por permisos de administrador, nonce y huella de ambas versiones; solo se actualiza el registro histórico existente y se conserva el resto de la tabla.
+- Compatible con tiendas sin WooCommerce o sin `seo_nodes`: no realiza escrituras ni altera contenido. No introduce claves ni categorías específicas de una instalación.
+- No se sincronizan automáticamente todas las categorías ni se ejecutan migraciones durante la activación. Requiere revisión visual y pruebas en STAGING/Focazul antes de producción.
+
 ## [0.4.20] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
 
 - El piloto VEVOR de los cuatro mercados usa una cabecera SEO independiente de las funciones globales del antiguo SEO Taxonomy, sin modificar el diseño ni el contenido de WordPress.
