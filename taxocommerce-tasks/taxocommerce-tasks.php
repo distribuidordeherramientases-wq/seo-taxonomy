@@ -485,8 +485,8 @@ function tctasks_autocheck_report() {
     $rows[]=array('id'=>'capability','status'=>current_user_can('manage_options')?'pass':'fail','detail'=>'manage_options');
     $totals=array('pass'=>0,'fail'=>0);
     foreach($rows as $row) { $totals[$row['status']]++; }
-    $generated_at=gmdate('c');
-    return array('plugin'=>'taxocommerce-tasks','version'=>TAXOCOMMERCE_TASKS_VERSION,'generated_at'=>$generated_at,'executed_at'=>$generated_at,'rows'=>$rows,'totals'=>$totals);
+    $generated_at = gmdate( 'c' );
+    return array('plugin'=>'taxocommerce-tasks','version'=>TAXOCOMMERCE_TASKS_VERSION,'generated_at'=>$generated_at,'executed_at' => $generated_at,'rows' => $rows,'totals' => $totals);
 }
 function tctasks_autocheck_run() {
     if(!current_user_can('manage_options')) { wp_die(esc_html__('Forbidden','taxocommerce-tasks')); }
@@ -515,7 +515,7 @@ function tctasks_view_autocheck() {
     submit_button(tctasks_label('Run autocheck'),'primary','submit',false);
     echo '</form>';
     if(is_array($report)) {
-        echo '<p>' . esc_html(tctasks_label('Last executed')) . ': ' . esc_html($report['executed_at']??'') . '</p>';
+        echo '<p>' . esc_html(tctasks_label('Last executed')) . ' (Fecha de ejecución: ' . esc_html($report['executed_at']??'') . ')</p>';
         echo '<p>' . esc_html('PASS ' . ($report['totals']['pass']??0) . ' / FAIL ' . ($report['totals']['fail']??0)) . '</p>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tctasks_autocheck_download">';
         wp_nonce_field('tctasks_autocheck_download');
