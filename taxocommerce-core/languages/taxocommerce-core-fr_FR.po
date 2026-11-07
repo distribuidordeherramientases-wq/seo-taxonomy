@@ -2104,17 +2104,17 @@ msgstr "Ouvrir l’éditeur du site"
 
 #: includes/class-taxocommerce-core-menu-editor.php:122
 msgid "Estado de publicación:"
-msgstr ""
+msgstr "État de publication :"
 
 #. translators: %s: comma-separated theme menu location names.
 #: includes/class-taxocommerce-core-menu-editor.php:123
 msgid "Menú asignado a: %s"
-msgstr ""
+msgstr "Menu attribué à : %s"
 
 #. translators: %s: comma-separated theme menu location names.
 #: includes/class-taxocommerce-core-menu-editor.php:123
 msgid "Este menú no está asignado a ninguna ubicación clásica del tema."
-msgstr ""
+msgstr "Ce menu n’est attribué à aucun emplacement classique du thème."
 
 #: includes/class-taxocommerce-core-menu-editor.php:130
 msgid ""
@@ -2124,11 +2124,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:135
 msgid "Identificador del menú:"
-msgstr ""
+msgstr "Identifiant du menu :"
 
 #: includes/class-taxocommerce-core-menu-editor.php:138
 msgid "Nombre del menú"
-msgstr ""
+msgstr "Nom du menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:141
 msgid ""
@@ -2139,7 +2139,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:142
 msgid "Hay cambios pendientes de guardar."
-msgstr ""
+msgstr "Des modifications ne sont pas enregistrées."
 
 #: includes/class-taxocommerce-core-menu-editor.php:151
 msgid "No tienes permisos para gestionar este menú."
@@ -2147,31 +2147,31 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:214
 msgid "Cargar un menú de WordPress"
-msgstr ""
+msgstr "Charger un menu WordPress"
 
 #: includes/class-taxocommerce-core-menu-editor.php:218
 msgid "Menú existente"
-msgstr ""
+msgstr "Menu existant"
 
 #: includes/class-taxocommerce-core-menu-editor.php:220
 msgid "Selecciona un menú de WordPress"
-msgstr ""
+msgstr "Sélectionner un menu WordPress"
 
 #: includes/class-taxocommerce-core-menu-editor.php:220
 msgid "Menú TaxoCommerce del país"
-msgstr ""
+msgstr "Menu TaxoCommerce du pays"
 
 #: includes/class-taxocommerce-core-menu-editor.php:231
 msgid "Cargar para editar"
-msgstr ""
+msgstr "Charger pour modifier"
 
 #: includes/class-taxocommerce-core-menu-editor.php:234
 msgid "Nombre del nuevo menú"
-msgstr ""
+msgstr "Nom du nouveau menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:236
 msgid "Crear menú nuevo"
-msgstr ""
+msgstr "Créer un nouveau menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:237
 msgid ""
@@ -2181,16 +2181,16 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:248
 msgid "El menú seleccionado ya no existe."
-msgstr ""
+msgstr "Le menu sélectionné n’existe plus."
 
 #: includes/class-taxocommerce-core-menu-editor.php:252
 msgid "Selecciona o crea un menú WordPress antes de modificarlo."
-msgstr ""
+msgstr "Sélectionnez ou créez un menu WordPress avant de le modifier."
 
 #: includes/class-taxocommerce-core-menu-editor.php:260
 #: includes/class-taxocommerce-core-menu-editor.php:564
 msgid "Indica un nombre de menú válido."
-msgstr ""
+msgstr "Saisissez un nom de menu valide."
 
 #: includes/class-taxocommerce-core-menu-editor.php:273
 msgid "Publicación del menú"
@@ -2210,16 +2210,16 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:285
 msgid "Guardar menú clásico"
-msgstr ""
+msgstr "Enregistrer le menu classique"
 
 #: includes/class-taxocommerce-core-menu-editor.php:285
 msgid "Guardar menú"
-msgstr ""
+msgstr "Enregistrer le menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:295
 #: includes/class-taxocommerce-core-menu-editor.php:300
 msgid "Eliminar menú"
-msgstr ""
+msgstr "Supprimer le menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:297
 msgid ""
@@ -2269,7 +2269,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:328
 msgid "Elementos del menú WordPress"
-msgstr ""
+msgstr "Éléments du menu WordPress"
 
 #: includes/class-taxocommerce-core-menu-editor.php:328
 msgid "Estructura SEO automática + elementos de WordPress"
@@ -2307,19 +2307,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:360
 msgid "Elemento superior"
-msgstr ""
+msgstr "Élément parent"
 
 #: includes/class-taxocommerce-core-menu-editor.php:361
 msgid "Nivel principal"
-msgstr ""
+msgstr "Niveau principal"
 
 #: includes/class-taxocommerce-core-menu-editor.php:367
 msgid "Posición"
-msgstr ""
+msgstr "Position"
 
 #: includes/class-taxocommerce-core-menu-editor.php:369
 msgid "Pulsa Guardar menú para aplicar estos cambios."
-msgstr ""
+msgstr "Cliquez sur Enregistrer le menu pour appliquer ces modifications."
 
 #: includes/class-taxocommerce-core-menu-editor.php:375
 msgid "Eliminar del menú"
@@ -2368,11 +2368,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:484
 msgid "Solo puedes editar elementos manuales del menú cargado."
-msgstr ""
+msgstr "Vous pouvez uniquement modifier les éléments manuels du menu chargé."
 
 #: includes/class-taxocommerce-core-menu-editor.php:491
 msgid "Revisa el título y la posición del elemento."
-msgstr ""
+msgstr "Vérifiez le titre et la position de l’élément."
 
 #: includes/class-taxocommerce-core-menu-editor.php:497
 msgid "El superior debe pertenecer al mismo menú y no puede crear un ciclo."
@@ -2380,11 +2380,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:519
 msgid "Introduce una URL válida."
-msgstr ""
+msgstr "Saisissez une URL valide."
 
 #: includes/class-taxocommerce-core-menu-editor.php:554
 msgid "Usa la pestaña Menús WordPress para guardar un menú nativo."
-msgstr ""
+msgstr "Utilisez l’onglet Menus WordPress pour enregistrer un menu natif."
 
 #: includes/class-taxocommerce-core-menu-editor.php:559
 msgid ""
@@ -2393,15 +2393,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:567
 msgid "Este nombre está reservado para los menús SEO de TaxoCommerce."
-msgstr ""
+msgstr "Ce nom est réservé aux menus SEO de TaxoCommerce."
 
 #: includes/class-taxocommerce-core-menu-editor.php:571
 msgid "Ya existe otro menú con ese nombre."
-msgstr ""
+msgstr "Un autre menu porte déjà ce nom."
 
 #: includes/class-taxocommerce-core-menu-editor.php:574
 msgid "Los elementos enviados no son válidos."
-msgstr ""
+msgstr "Les éléments envoyés ne sont pas valides."
 
 #: includes/class-taxocommerce-core-menu-editor.php:585
 msgid ""
@@ -2410,39 +2410,39 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:591
 msgid "Hay elementos ajenos al menú o no editables."
-msgstr ""
+msgstr "Certains éléments n’appartiennent pas au menu ou ne sont pas modifiables."
 
 #: includes/class-taxocommerce-core-menu-editor.php:595
 msgid "Faltan datos de un elemento. Recarga y vuelve a intentarlo."
-msgstr ""
+msgstr "Des données d’un élément manquent. Rechargez et réessayez."
 
 #: includes/class-taxocommerce-core-menu-editor.php:605
 msgid "Falta la URL de un enlace personalizado."
-msgstr ""
+msgstr "L’URL d’un lien personnalisé manque."
 
 #: includes/class-taxocommerce-core-menu-editor.php:609
 msgid "La URL del enlace personalizado no es válida."
-msgstr ""
+msgstr "L’URL du lien personnalisé n’est pas valide."
 
 #: includes/class-taxocommerce-core-menu-editor.php:613
 msgid "Revisa el título, el orden y la jerarquía del menú."
-msgstr ""
+msgstr "Vérifiez le titre, l’ordre et la hiérarchie du menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:623
 msgid "No se puede guardar: hay un submenú circular o inválido."
-msgstr ""
+msgstr "Enregistrement impossible : un sous-menu est circulaire ou invalide."
 
 #: includes/class-taxocommerce-core-menu-editor.php:658
 msgid "Debes confirmar la eliminación desde Menús WordPress."
-msgstr ""
+msgstr "Vous devez confirmer la suppression dans Menus WordPress."
 
 #: includes/class-taxocommerce-core-menu-editor.php:663
 msgid "No se pueden eliminar los menús SEO gestionados por país."
-msgstr ""
+msgstr "Les menus SEO gérés par pays ne peuvent pas être supprimés."
 
 #: includes/class-taxocommerce-core-menu-editor.php:666
 msgid "WordPress no ha podido eliminar este menú."
-msgstr ""
+msgstr "WordPress n’a pas pu supprimer ce menu."
 
 #. translators: %d: number of WordPress objects newly added to the menu.
 #: includes/class-taxocommerce-core-menu-editor.php:679
@@ -2459,7 +2459,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:693
 msgid "Menú nuevo creado. Puedes editarlo sin modificar los existentes."
-msgstr ""
+msgstr "Nouveau menu créé. Vous pouvez le modifier sans changer les menus existants."
 
 #: includes/class-taxocommerce-core-menu-editor.php:700
 msgid ""
@@ -2469,11 +2469,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:704
 msgid "Menú eliminado correctamente de WordPress."
-msgstr ""
+msgstr "Menu supprimé de WordPress."
 
 #: includes/class-taxocommerce-core-menu-editor.php:712
 msgid "Elemento del menú actualizado."
-msgstr ""
+msgstr "Élément du menu mis à jour."
 
 #: includes/class-taxocommerce-core-menu.php:198
 msgid ""
@@ -2549,7 +2549,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu.php:299
 msgid "No tienes permisos para asignar menús al tema."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation d’attribuer des menus au thème."
 
 #: includes/class-taxocommerce-core-menu.php:306
 msgid "La ubicación de menú seleccionada no es válida."
@@ -3317,11 +3317,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-user-guide.php:103
 msgid "Menús WordPress (sin WooCommerce)"
-msgstr ""
+msgstr "Menus WordPress (sans WooCommerce)"
 
 #: includes/class-taxocommerce-core-user-guide.php:105
 msgid "En Gestor de menús, abre la pestaña Menús WordPress."
-msgstr ""
+msgstr "Dans Gestionnaire de menus, ouvrez l’onglet Menus WordPress."
 
 #: includes/class-taxocommerce-core-user-guide.php:106
 msgid ""
