@@ -1,3 +1,10 @@
+## [Unreleased] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
+
+- El piloto VEVOR de los cuatro mercados usa una cabecera SEO independiente de las funciones globales del antiguo SEO Taxonomy, sin modificar el diseño ni el contenido de WordPress.
+- Publica una única canonical propia (incluida la paginación), mantiene hreflang y scripts de wp_head, elimina descripciones y verificaciones Pinterest duplicadas y evita el segundo viewport.
+- La descripción de reserva procede de contenido existente en el idioma de la página o de la ficha, solo cuando ningún proveedor SEO genera una descripción válida.
+- Prueba offline de regresión FR/DE/NL/US y su ejecución obligatoria en el workflow de validación STAGING. PRO no se modifica.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
