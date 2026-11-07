@@ -118,7 +118,7 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:986
 msgid "Evidencia"
-msgstr ""
+msgstr "Preuve"
 
 #: includes/analysis/analista-competitivo.php:1000
 msgid "Dónde estamos por encima"
@@ -130,7 +130,7 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:1017
 msgid "Plan priorizado"
-msgstr ""
+msgstr "Plan priorisé"
 
 #: includes/analysis/analista-competitivo.php:1018
 #: includes/analysis/analista-informe.php:454
@@ -140,7 +140,7 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Prioridad"
-msgstr ""
+msgstr "Priorité"
 
 #: includes/analysis/analista-competitivo.php:1018
 #: includes/google/seo-google-info.php:4285
@@ -149,7 +149,7 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:1018
 msgid "Acción"
-msgstr ""
+msgstr "Action"
 
 #: includes/analysis/analista-competitivo.php:1018
 msgid "Impacto"
@@ -513,7 +513,7 @@ msgstr ""
 #: includes/google/seo-google-demand-catalog.php:1606
 #: includes/google/seo-google-trends.php:2676
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/analysis/analista-informe.php:471
 msgid ""
@@ -819,7 +819,7 @@ msgstr ""
 #: includes/analysis/analista-lazy.php:226
 #: includes/google/seo-google-demand-catalog.php:1669
 msgid "Productos"
-msgstr ""
+msgstr "Produits"
 
 #: includes/analysis/analista-lazy.php:267
 msgid "No hay datos de proveedores disponibles."
@@ -873,17 +873,17 @@ msgstr ""
 
 #: includes/analysis/analista-lazy.php:318
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
 #: includes/analysis/analista-lazy.php:318
 #: includes/google/seo-google-info.php:2500
 #: includes/google/seo-google-info.php:4126
 msgid "Estado"
-msgstr ""
+msgstr "État"
 
 #: includes/analysis/analista-lazy.php:318
 msgid "Regla"
-msgstr ""
+msgstr "Règle"
 
 #: includes/class-taxocommerce-connections-admin.php:38
 #: includes/class-taxocommerce-connections-google-bing.php:260
@@ -1235,7 +1235,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:119
 msgid "No tienes permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'exécuter l'Auto Test."
 
 #: includes/class-taxocommerce-google-bing-auto-test.php:149
 msgid "Sin permisos para descargar el diagnóstico."
@@ -1466,7 +1466,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Producto"
-msgstr ""
+msgstr "Produit"
 
 #: includes/class-taxocommerce-google-bing-merchant.php:343
 msgid "Mediana ofertas observadas"
@@ -1858,11 +1858,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:313
 msgid "Pausar"
-msgstr ""
+msgstr "Pause"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:314
 msgid "Reanudar"
-msgstr ""
+msgstr "CV"
 
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:315
 msgid "Detener"
@@ -2881,7 +2881,7 @@ msgstr ""
 
 #: includes/google/seo-google-demand-catalog.php:1571
 msgid "Todas"
-msgstr ""
+msgstr "Toutes"
 
 #: includes/google/seo-google-demand-catalog.php:1586
 msgid "Diagnostico de datos almacenados:"
@@ -3119,7 +3119,7 @@ msgstr ""
 
 #: includes/google/seo-google-growth-guidance.php:58
 msgid "Confianza"
-msgstr ""
+msgstr "Fiabilité"
 
 #: includes/google/seo-google-growth-guidance.php:59
 msgid "Sin señal importada"
@@ -3404,7 +3404,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2500
 msgid "Inicio"
-msgstr ""
+msgstr "Début"
 
 #: includes/google/seo-google-info.php:2500
 #: includes/google/seo-google-info.php:3346
@@ -3417,11 +3417,11 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:2500
 msgid "Filas"
-msgstr ""
+msgstr "Lignes"
 
 #: includes/google/seo-google-info.php:2500
 msgid "Detalle"
-msgstr ""
+msgstr "Détail"
 
 #: includes/google/seo-google-info.php:2645
 msgid ""
@@ -3674,7 +3674,7 @@ msgstr ""
 
 #: includes/google/seo-google-info.php:4550
 msgid "Fecha"
-msgstr ""
+msgstr "Date"
 
 #: includes/google/seo-google-opportunity-engine.php:1517
 msgid "Destino actual:"
@@ -3761,16 +3761,16 @@ msgstr ""
 
 #: includes/google/seo-google-opportunity-engine.php:1698
 msgid "Landing"
-msgstr ""
+msgstr "Page de destination"
 
 #: includes/google/seo-google-opportunity-engine.php:1698
 #: includes/google/seo-google-opportunity-engine.php:1710
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnostic"
 
 #: includes/google/seo-google-opportunity-engine.php:1706
 msgid "Posts"
-msgstr ""
+msgstr "Messages"
 
 #: includes/google/seo-google-opportunity-engine.php:1708
 msgid "No hay métricas disponibles para posts publicados."
@@ -3894,7 +3894,7 @@ msgstr ""
 
 #: includes/google/seo-google-trends.php:2679
 msgid "CSV"
-msgstr ""
+msgstr "CSV"
 
 #: includes/google/seo-google-trends.php:2683
 msgid "Señales externas almacenadas"
