@@ -1,3 +1,9 @@
+## [1.1.21] — 2026-11-07 — Google Analytics mediante scripts de WordPress (#2299)
+
+- GA4 configurado en Insights usa el sistema nativo `wp_enqueue_script()` y `wp_add_inline_script()` en lugar de emitir una etiqueta script externa directamente.
+- Se conservan los identificadores, la edición del inventario de etiquetas y la autorización previa de estadísticas. No se duplican cargas cuando Google Analytics ya se gestiona mediante conexiones antiguas.
+- Prueba de regresión para consentimiento, etiquetas y encolado; verificación mediante Plugin Check oficial antes de fusionar.
+
 ## [1.1.17] — 2026-11-06 — IndexNow independiente de Cloudflare (#2259)
 
 - Emisor IndexNow opcional por tienda dentro de Insights > Connections > Bing, desactivado por defecto para evitar duplicaciones con proveedores SEO o CDN.
