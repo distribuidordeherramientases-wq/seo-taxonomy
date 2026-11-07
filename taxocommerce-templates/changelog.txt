@@ -1,3 +1,6 @@
+= 0.4.21 - 2026-11-07 =
+* Vista previa y reconciliación manual, individual y segura de descripciones WooCommerce frente a seo_nodes usados por plantillas. Solo registros existentes; protege cambios simultáneos. Issue #2298.
+
 = 0.4.20 (2026-11-07) =
 * Cabecera SEO del piloto VEVOR FR/DE/NL/US aislada de funciones antiguas: meta description y canonical únicas, paginación, hreflang conservado y verificaciones duplicadas eliminadas. Issue #2259.
 
