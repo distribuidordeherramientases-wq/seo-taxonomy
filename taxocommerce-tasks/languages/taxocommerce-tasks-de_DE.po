@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-tasks 0.1.3\n"
+"Project-Id-Version: taxocommerce-tasks 0.1.4\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -506,3 +506,31 @@ msgstr "Deaktivierung und Deinstallation bewahren Daten. Eine Sicherung vor manu
 #: includes/class-tctasks-manuals.php
 msgid "The same code is deployed to authorized STAGING and Focazul sites. File delivery and functional verification are separate checks."
 msgstr "STAGING und Focazul erhalten denselben Code; Dateitransfer und Funktionsprüfung sind getrennte Schritte."
+
+#: includes/class-tctasks-calendar.php
+msgid "Showing the first 1500 scheduled tasks."
+msgstr "Die ersten 1500 geplanten Aufgaben werden angezeigt."
+
+#: includes/class-tctasks-calendar.php
+msgid "Tasks without start or due dates do not appear on the calendar."
+msgstr "Aufgaben ohne Start- oder Fälligkeitsdatum werden nicht im Kalender angezeigt."
+
+#: taxocommerce-tasks.php
+msgid "Due date cannot be earlier than start date."
+msgstr "Das Fälligkeitsdatum darf nicht vor dem Startdatum liegen."
+
+#: includes/class-tctasks-manuals.php
+msgid "The calendar displays duration bars from each task's start date to its due date. Overlapping tasks use separate lanes; bars continue across weeks and months. A task with only one date is shown for one day."
+msgstr "Der Kalender zeigt Zeitbalken vom Start- bis zum Fälligkeitsdatum einer Aufgabe. Überlappende Aufgaben stehen in getrennten Zeilen; Balken laufen über Wochen und Monate weiter. Bei nur einem Datum wird ein Tag angezeigt."
+
+#: includes/class-tctasks-manuals.php
+msgid "The legend uses colour by priority (Low, Normal, High, Urgent); blocked tasks are striped and completed tasks are faded. Select any bar to edit the task."
+msgstr "Die Legende verwendet Farben für die Priorität (Niedrig, Normal, Hoch, Dringend). Blockierte Aufgaben sind schraffiert, abgeschlossene verblasst. Wählen Sie einen Balken, um die Aufgabe zu bearbeiten."
+
+#: includes/class-tctasks-manuals.php
+msgid "The task list returns up to 500 rows ordered by status, priority and due date. The monthly timeline reads tasks intersecting the complete visible week grid, up to 1500 scheduled tasks."
+msgstr "Die Aufgabenliste zeigt bis zu 500 Einträge, sortiert nach Status, Priorität und Fälligkeit. Die Monatsansicht liest bis zu 1500 Aufgaben, deren Zeiträume die sichtbaren Wochen überschneiden."
+
+#: includes/class-tctasks-manuals.php
+msgid "The calendar splits intervals into week-sized segments and places overlapping tasks on separate lanes. Tasks without either date are omitted; the table schema is unchanged."
+msgstr "Der Kalender teilt Zeiträume in Wochenabschnitte auf und zeigt überlappende Aufgaben in getrennten Zeilen. Aufgaben ohne Datum werden ausgelassen; das Tabellenschema bleibt unverändert."
