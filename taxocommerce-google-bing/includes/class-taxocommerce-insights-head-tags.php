@@ -303,8 +303,11 @@ final class TaxoCommerce_Insights_Head_Tags {
                 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $measurement_id ),
                 array(),
                 null,
-                array( 'strategy' => 'async', 'in_footer' => false )
+                false // Supports WordPress 5.8 where the final argument is a boolean.
             );
+            if ( function_exists( 'wp_script_add_data' ) ) {
+                wp_script_add_data( $handle, 'strategy', 'async' );
+            }
             wp_add_inline_script(
                 $handle,
                 'window.dataLayer=window.dataLayer||[];'
