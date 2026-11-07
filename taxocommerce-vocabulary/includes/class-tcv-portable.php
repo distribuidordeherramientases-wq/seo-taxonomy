@@ -25,7 +25,7 @@ final class TCV_Portable {
     }
 
     public static function allowed_scopes() {
-        return array( 'masters', 'product_semantic', 'category_semantic', 'product_attributes', 'product_tags' );
+        return array( 'masters', 'product_semantic', 'category_semantic', 'product_attributes', 'product_tags', 'post_semantic', 'page_semantic' );
     }
 
     public static function render_panel() {
@@ -43,6 +43,8 @@ final class TCV_Portable {
             'category_semantic'  => __( 'Categoría → Vocabulary', 'taxocommerce-vocabulary' ),
             'product_attributes' => __( 'Producto → atributos canónicos', 'taxocommerce-vocabulary' ),
             'product_tags'       => __( 'Producto → etiquetas WooCommerce', 'taxocommerce-vocabulary' ),
+            'post_semantic'       => __( 'Posts' ) . ' → Vocabulary',
+            'page_semantic'       => __( 'Pages' ) . ' → Vocabulary',
         );
         foreach ( $labels as $scope => $label ) {
             echo '<label style="display:block;margin:6px 0"><input type="checkbox" name="scope[]" value="' . esc_attr( $scope ) . '" checked> ' . esc_html( $label ) . '</label>';
@@ -125,6 +127,9 @@ final class TCV_Portable {
         }
         if ( in_array( 'category_semantic', $scopes, true ) ) {
             $sections['categories'] = self::export_categories();
+        }
+        if ( in_array( 'post_semantic', $scopes, true ) || in_array( 'page_semantic', $scopes, true ) ) {
+            $sections['content'] = self::export_content( $scopes );
         }
 
         $integrity = self::integrity_summary();
@@ -365,6 +370,68 @@ final class TCV_Portable {
         return $out;
     }
 
+
+    /**
+     * Export semantic assignments for native WordPress posts and pages.
+     * Landings are regular pages with a structural role and use object_type=page.
+     * Numeric source IDs are audit-only; resolution uses the portable path.
+     *
+     * @param array $scopes Selected export sections.
+     * @return array
+     */
+    private static function export_content( $scopes ) {
+        global $wpdb;
+        $tables = TCV_Schema::tables();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit export of the canonical semantic relations with live state.
+        $objects = (array) $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DISTINCT object_type,object_id FROM %i
+                 WHERE object_type IN ('post','page') ORDER BY object_type,object_id",
+                $tables['objects']
+            ),
+            ARRAY_A
+        );
+        $result = array();
+        foreach ( $objects as $row ) {
+            $type = sanitize_key( (string) ( $row['object_type'] ?? '' ) );
+            if ( ! in_array( $type . '_semantic', $scopes, true ) ) {
+                continue;
+            }
+            $id = absint( $row['object_id'] ?? 0 );
+            $post = $id ? get_post( $id ) : null;
+            if ( ! $post || $post->post_type !== $type || 'trash' === $post->post_status ) {
+                continue;
+            }
+            $path = 'page' === $type ? get_page_uri( $id ) : $post->post_name;
+            if ( ! is_string( $path ) || '' === $path ) {
+                continue;
+            }
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- The export must read the current canonical associations.
+            $semantic = (array) $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT v.semantic_group,v.slug,v.label,ov.source,ov.confidence,ov.status
+                     FROM %i ov INNER JOIN %i v ON v.id=ov.vocabulary_id
+                     WHERE ov.object_type=%s AND ov.object_id=%d
+                     ORDER BY v.semantic_group,v.slug",
+                    $tables['objects'],
+                    $tables['vocabulary'],
+                    $type,
+                    $id
+                ),
+                ARRAY_A
+            );
+            $result[] = array(
+                'identity' => array(
+                    'source_id' => $id,
+                    'post_type' => $type,
+                    'path'      => $path,
+                ),
+                'semantic' => $semantic,
+            );
+        }
+        return $result;
+    }
+
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     private static function counts( $sections ) {
         return array(
@@ -375,6 +442,7 @@ final class TCV_Portable {
             'attribute_aliases' => count( (array) ( $sections['masters']['attribute_aliases'] ?? array() ) ),
             'products'    => count( (array) ( $sections['products'] ?? array() ) ),
             'categories'  => count( (array) ( $sections['categories'] ?? array() ) ),
+            'content'     => count( (array) ( $sections['content'] ?? array() ) ),
         );
     }
 
@@ -544,11 +612,35 @@ final class TCV_Portable {
             }
         }
 
+        foreach ( (array) ( $document['sections']['content'] ?? array() ) as $row ) {
+            $id = self::resolve_content( (array) ( $row['identity'] ?? array() ) );
+            if ( is_wp_error( $id ) ) {
+                $conflicts[] = 'Contenido: ' . $id->get_error_message();
+                continue;
+            }
+            foreach ( (array) ( $row['semantic'] ?? array() ) as $semantic ) {
+                $group = sanitize_key( (string) ( $semantic['semantic_group'] ?? '' ) );
+                $slug = sanitize_title( (string) ( $semantic['slug'] ?? '' ) );
+                $in_package = false;
+                foreach ( (array) ( $document['sections']['masters']['vocabulary'] ?? array() ) as $master ) {
+                    if ( $group === sanitize_key( (string) ( $master['semantic_group'] ?? '' ) ) && $slug === sanitize_title( (string) ( $master['slug'] ?? '' ) ) ) {
+                        $in_package = true;
+                        break;
+                    }
+                }
+                if ( ! in_array( $group, TCV_Classifier::GROUPS, true ) || '' === $slug || ( ! $in_package && ! self::vocabulary_id( $group, $slug ) ) ) {
+                    $conflicts[] = 'Contenido: término de Vocabulary inexistente (' . $group . ':' . $slug . ').';
+                }
+            }
+            $resolved++;
+        }
+
         $summary = array(
             'mode'             => $mode,
             'resolved_objects' => $resolved,
             'products'         => count( (array) ( $document['sections']['products'] ?? array() ) ),
             'categories'       => count( (array) ( $document['sections']['categories'] ?? array() ) ),
+            'content'          => count( (array) ( $document['sections']['content'] ?? array() ) ),
             'conflicts'        => count( $conflicts ),
         );
         $state = array(
@@ -636,6 +728,32 @@ final class TCV_Portable {
             }
         }
         return absint( $term->term_id );
+    }
+
+
+    /**
+     * Resolve a WordPress post or hierarchical page by portable path, never by
+     * the numeric source ID. Reject ambiguous or deleted destinations.
+     *
+     * @param array $identity Portable source identity.
+     * @return int|WP_Error
+     */
+    private static function resolve_content( $identity ) {
+        $type = sanitize_key( (string) ( $identity['post_type'] ?? '' ) );
+        if ( ! in_array( $type, array( 'post', 'page' ), true ) ) {
+            return new WP_Error( 'tcv_content_type', 'Solo se admiten entradas y páginas de WordPress.' );
+        }
+        $raw_path = trim( (string) ( $identity['path'] ?? '' ), '/' );
+        $parts = array_values( array_filter( array_map( 'sanitize_title', explode( '/', $raw_path ) ) ) );
+        $path = implode( '/', $parts );
+        if ( '' === $path || ( 'post' === $type && count( $parts ) !== 1 ) ) {
+            return new WP_Error( 'tcv_content_path', 'Ruta de entrada o página vacía o inválida.' );
+        }
+        $post = get_page_by_path( $path, OBJECT, $type );
+        if ( ! $post || $post->post_type !== $type || 'trash' === $post->post_status ) {
+            return new WP_Error( 'tcv_content_not_found', 'No se encontró ' . $type . '/' . $path );
+        }
+        return absint( $post->ID );
     }
 
     // Portable export, identity resolution and MERGE/MIRROR transactions require the live shared tables; no cross-module cache invalidation exists.
@@ -895,6 +1013,45 @@ final class TCV_Portable {
                              VALUES ('product_cat',%d,%d,%s,%f,%d)
                              ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP", $t['objects'],
                             $term_id, $vid, sanitize_key( $semantic['source'] ?? 'portable' ),
+                            max( 0, min( 1, (float) ( $semantic['confidence'] ?? 1 ) ) ),
+                            empty( $semantic['status'] ) ? 0 : 1
+                        )
+                    );
+                }
+                $objects_count++;
+            }
+
+
+            // Apply WordPress posts and pages only when the section is supplied.
+            foreach ( (array) ( $document['sections']['content'] ?? array() ) as $row ) {
+                $identity = (array) ( $row['identity'] ?? array() );
+                $content_id = self::resolve_content( $identity );
+                if ( is_wp_error( $content_id ) ) {
+                    throw new RuntimeException( $content_id->get_error_message() );
+                }
+                if ( ! array_key_exists( 'semantic', $row ) ) {
+                    continue;
+                }
+                $type = sanitize_key( (string) ( $identity['post_type'] ?? '' ) );
+                if ( 'mirror' === $mode ) {
+                    $wpdb->delete( $t['objects'], array( 'object_type' => $type, 'object_id' => $content_id ) );
+                }
+                foreach ( (array) $row['semantic'] as $semantic ) {
+                    $vocabulary_id = self::vocabulary_id( $semantic['semantic_group'] ?? '', $semantic['slug'] ?? '' );
+                    if ( ! $vocabulary_id ) {
+                        throw new RuntimeException( 'No se encontró la etiqueta semántica de la importación.' );
+                    }
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional upsert in the canonical Vocabulary association table.
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "INSERT INTO %i (object_type,object_id,vocabulary_id,source,confidence,status)
+                             VALUES (%s,%d,%d,%s,%f,%d)
+                             ON DUPLICATE KEY UPDATE source=VALUES(source),confidence=VALUES(confidence),status=VALUES(status),updated_at=CURRENT_TIMESTAMP",
+                            $t['objects'],
+                            $type,
+                            $content_id,
+                            $vocabulary_id,
+                            sanitize_key( $semantic['source'] ?? 'portable' ),
                             max( 0, min( 1, (float) ( $semantic['confidence'] ?? 1 ) ) ),
                             empty( $semantic['status'] ) ? 0 : 1
                         )
