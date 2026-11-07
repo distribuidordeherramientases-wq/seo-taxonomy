@@ -1,3 +1,9 @@
+## 2026-11-07 — Corrección del selector de Core en despliegue acotado (#2340)
+
+- La selección de Core/Tasks en pushes de `staging` compara los archivos modificados mediante Git entre `github.event.before` y el HEAD, incluso cuando los eventos GitHub contienen listas parciales de commits tras un squash merge.
+- Conservadas las garantías FTPS SHA-256, entrega separada a STAGING/Focazul y ausencia de instalación automática de otros plugins o publicación en producción.
+- Pruebas para Core, Tasks, ambos, otros módulos, workflow/scripts y SHA anterior inválido; se mantienen los tres workflows acordados.
+
 ## 2026-11-07 — Entrega directa de Core manteniendo los tres workflows (#2340)
 
 - El workflow existente de STAGING/Focazul identifica los cambios de Core y/o Tasks en el propio evento push, incluso cuando una validación anterior hace que la base Git parezca idéntica a HEAD.
