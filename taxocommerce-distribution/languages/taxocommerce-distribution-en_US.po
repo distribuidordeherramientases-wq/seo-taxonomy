@@ -11,31 +11,31 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-distribution.php
 msgid "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-distribution.php
 msgid ""
 "Publishes commercial feeds and professional XML sitemaps through independent"
 " bounded processes."
-msgstr ""
+msgstr "Publishes commercial feeds and professional XML sitemaps through independent bounded processes."
 
 #. Author of the plugin
 #: taxocommerce-distribution.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:17
 msgid "You do not have permission to manage TaxoCommerce Distribution."
-msgstr ""
+msgstr "You do not have permission to manage TaxoCommerce Distribution."
 
 #: includes/admin.php:27 includes/admin.php:28 includes/admin.php:38
 msgid "Distribution"
-msgstr ""
+msgstr "Distribution"
 
 #: includes/admin.php:37 includes/admin.php:87
 msgid "TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution"
 
 #: includes/admin.php:71
 msgid "Resultado desconocido."
@@ -45,7 +45,7 @@ msgstr "Unknown result."
 msgid ""
 "Technical catalog publishing: commercial feeds and XML sitemaps through safe"
 " bounded processes."
-msgstr ""
+msgstr "Technical catalog publishing: commercial feeds and XML sitemaps through safe bounded processes."
 
 #: includes/admin.php:90
 msgid "Secciones de Distribution"
@@ -53,19 +53,19 @@ msgstr "Distribution sections"
 
 #: includes/admin.php:94
 msgid "Overview"
-msgstr ""
+msgstr "Overview"
 
 #: includes/admin.php:95 includes/admin.php:148
 msgid "Commercial Feeds"
-msgstr ""
+msgstr "Commercial Feeds"
 
 #: includes/admin.php:96 includes/admin.php:170
 msgid "Sitemaps"
-msgstr ""
+msgstr "Sitemaps"
 
 #: includes/admin.php:97
 msgid "Automation"
-msgstr ""
+msgstr "Automation"
 
 #: includes/admin.php:98
 msgid "Manual"
@@ -77,7 +77,7 @@ msgstr "Autocheck"
 
 #: includes/admin.php:135
 msgid "Safe migration:"
-msgstr ""
+msgstr "Safe migration:"
 
 #: includes/admin.php:135
 msgid ""
@@ -85,96 +85,96 @@ msgid ""
 "while preserving the same public files. While both plugins coexist, the "
 "legacy scheduled automation keeps priority to avoid duplicate execution; "
 "manual regeneration can be tested from this plugin."
-msgstr ""
+msgstr "the legacy plugin was detected. Distribution uses its own state and worker while preserving the same public files. While both plugins coexist, the legacy scheduled automation keeps priority to avoid duplicate execution; manual regeneration can be tested from this plugin."
 
 #: includes/admin.php:149
 msgid "Status:"
-msgstr ""
+msgstr "Status:"
 
 #: includes/admin.php:150
 msgid "Processed:"
-msgstr ""
+msgstr "Processed:"
 
 #: includes/admin.php:151
 msgid "Published:"
-msgstr ""
+msgstr "Published:"
 
 #: includes/admin.php:152
 msgid "Open feeds"
-msgstr ""
+msgstr "Open feeds"
 
 #: includes/admin.php:156
 msgid "Active channels"
-msgstr ""
+msgstr "Active channels"
 
 #: includes/admin.php:171
 msgid "Index:"
-msgstr ""
+msgstr "Index:"
 
 #: includes/admin.php:172
 msgid "Published URLs:"
-msgstr ""
+msgstr "Published URLs:"
 
 #: includes/admin.php:173
 msgid "Files:"
-msgstr ""
+msgstr "Files:"
 
 #: includes/admin.php:174
 msgid "Open sitemaps"
-msgstr ""
+msgstr "Open sitemaps"
 
 #: includes/admin.php:179
 msgid "Plugin responsibility"
-msgstr ""
+msgstr "Plugin responsibility"
 
 #: includes/admin.php:180
 msgid ""
 "Distribution publishes the catalog to external systems. It does not edit "
 "templates, campaigns, social media, or editorial content."
-msgstr ""
+msgstr "Distribution publishes the catalog to external systems. It does not edit templates, campaigns, social media, or editorial content."
 
 #: includes/admin.php:181
 msgid "Feeds:"
-msgstr ""
+msgstr "Feeds:"
 
 #: includes/admin.php:182
 msgid "Sitemaps:"
-msgstr ""
+msgstr "Sitemaps:"
 
 #: includes/admin.php:243
 msgid "XML Sitemaps"
-msgstr ""
+msgstr "XML Sitemaps"
 
 #: includes/admin.php:244
 msgid ""
 "The same proven engine is preserved: atomic publishing, pre-publication XML "
 "validation, product batching, and stable root-domain URLs."
-msgstr ""
+msgstr "The same proven engine is preserved: atomic publishing, pre-publication XML validation, product batching, and stable root-domain URLs."
 
 #: includes/admin.php:245
 msgid "Professional index:"
-msgstr ""
+msgstr "Professional index:"
 
 #: includes/admin.php:252
 msgid "Main index is valid."
-msgstr ""
+msgstr "Main index is valid."
 
 #. translators: %s: number of URLs published in the sitemap index.
 #: includes/admin.php:254
 msgid "%s URLs published."
-msgstr ""
+msgstr "%s URLs published."
 
 #: includes/admin.php:257
 msgid "The main index does not exist or is invalid."
-msgstr ""
+msgstr "The main index does not exist or is invalid."
 
 #: includes/admin.php:263
 msgid "Regenerate and validate sitemaps"
-msgstr ""
+msgstr "Regenerate and validate sitemaps"
 
 #: includes/admin.php:267
 msgid "What this generation does"
-msgstr ""
+msgstr "What this generation does"
 
 #: includes/admin.php:268
 msgid ""
@@ -182,46 +182,46 @@ msgid ""
 "published, non-password-protected content is included; cart, checkout, and "
 "account pages are excluded. Each XML file is validated before replacing the "
 "previous public file."
-msgstr ""
+msgstr "Separates products, categories, posts, pages, clusters, and hubs. Only published, non-password-protected content is included; cart, checkout, and account pages are excluded. Each XML file is validated before replacing the previous public file."
 
 #: includes/admin.php:269
 msgid ""
 "Products are split into bounded groups to avoid oversized XML files. "
 "Generation uses a lock and atomic publishing so partial files are never "
 "exposed."
-msgstr ""
+msgstr "Products are split into bounded groups to avoid oversized XML files. Generation uses a lock and atomic publishing so partial files are never exposed."
 
 #: includes/admin.php:273
 msgid "File"
-msgstr ""
+msgstr "File"
 
 #: includes/admin.php:273
 msgid "Audited"
-msgstr ""
+msgstr "Audited"
 
 #: includes/admin.php:273
 msgid "Warnings"
-msgstr ""
+msgstr "Warnings"
 
 #: includes/admin.php:273
 msgid "Errors"
-msgstr ""
+msgstr "Errors"
 
 #: includes/admin.php:273
 msgid "Coverage"
-msgstr ""
+msgstr "Coverage"
 
 #: includes/admin.php:273
 msgid "Size"
-msgstr ""
+msgstr "Size"
 
 #: includes/admin.php:273
 msgid "Modified"
-msgstr ""
+msgstr "Modified"
 
 #: includes/admin.php:315
 msgid "Automation and workload"
-msgstr ""
+msgstr "Automation and workload"
 
 #: includes/admin.php:316
 msgid ""
@@ -229,57 +229,57 @@ msgid ""
 "runs through the dedicated Distribution worker. Each window uses a cursor, "
 "lock, and execution deadline; there is no dependency on the legacy central "
 "manager."
-msgstr ""
+msgstr "Feeds keep the adaptive regulator from the previous system, but work now runs through the dedicated Distribution worker. Each window uses a cursor, lock, and execution deadline; there is no dependency on the legacy central manager."
 
 #: includes/admin.php:320
 msgid "Feed worker"
-msgstr ""
+msgstr "Feed worker"
 
 #: includes/admin.php:320
 msgid ""
 "Legacy automation has priority during coexistence; manual execution is "
 "available here."
-msgstr ""
+msgstr "Legacy automation has priority during coexistence; manual execution is available here."
 
 #: includes/admin.php:320
 msgid "Owned by Distribution"
-msgstr ""
+msgstr "Owned by Distribution"
 
 #: includes/admin.php:321
 msgid "Daily regeneration"
-msgstr ""
+msgstr "Daily regeneration"
 
 #: includes/admin.php:321
 msgid "Disabled"
-msgstr ""
+msgstr "Disabled"
 
 #: includes/admin.php:322
 msgid "Last batch"
-msgstr ""
+msgstr "Last batch"
 
 #: includes/admin.php:322
 msgid "products"
-msgstr ""
+msgstr "products"
 
 #: includes/admin.php:323
 msgid "Automatic sitemaps"
-msgstr ""
+msgstr "Automatic sitemaps"
 
 #: includes/admin.php:323
 msgid "Temporarily managed by the legacy plugin"
-msgstr ""
+msgstr "Temporarily managed by the legacy plugin"
 
 #: includes/admin.php:323
 msgid ""
 "Distribution regenerates after product, page, post, and category changes"
-msgstr ""
+msgstr "Distribution regenerates after product, page, post, and category changes"
 
 #: includes/admin.php:327
 msgid ""
 "During migration, two parallel cron jobs are prevented from writing to the "
 "same public files. Once the legacy module is removed, Distribution "
 "automatically takes over scheduling."
-msgstr ""
+msgstr "During migration, two parallel cron jobs are prevented from writing to the same public files. Once the legacy module is removed, Distribution automatically takes over scheduling."
 
 #: includes/autocheck.php:235
 msgid "Autocheck de Distribution"
@@ -353,54 +353,54 @@ msgstr "Results are not saved. A file’s physical presence does not prove its X
 
 #: includes/feeds/admin.php:31
 msgid "You do not have permission to configure commercial feeds."
-msgstr ""
+msgstr "You do not have permission to configure commercial feeds."
 
 #: includes/feeds/admin.php:102
 msgid "You do not have permission to regenerate commercial feeds."
-msgstr ""
+msgstr "You do not have permission to regenerate commercial feeds."
 
 #: includes/feeds/admin.php:146
 msgid "You do not have permission to stop commercial feeds."
-msgstr ""
+msgstr "You do not have permission to stop commercial feeds."
 
 #: includes/feeds/admin.php:239
 msgid "Settings saved."
-msgstr ""
+msgstr "Settings saved."
 
 #: includes/feeds/admin.php:242
 msgid ""
 "Generation started and handed to the Distribution worker. Batch size adapts "
 "automatically to actual response time and observed load."
-msgstr ""
+msgstr "Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load."
 
 #: includes/feeds/admin.php:245
 msgid "Generation stopped by the user. No partial file was published."
-msgstr ""
+msgstr "Generation stopped by the user. No partial file was published."
 
 #: includes/feeds/admin.php:254
 msgid "STAGING:"
-msgstr ""
+msgstr "STAGING:"
 
 #: includes/feeds/admin.php:254
 msgid ""
 "this generation uses products and URLs from this environment and is for "
 "testing only. No commercial refresh is scheduled and these URLs must not be "
 "registered with Google, Microsoft, or Pinterest."
-msgstr ""
+msgstr "this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest."
 
 #: includes/feeds/admin.php:256
 msgid "PRODUCTION:"
-msgstr ""
+msgstr "PRODUCTION:"
 
 #: includes/feeds/admin.php:256
 msgid ""
 "this environment generates the live commercial feeds. Platforms download "
 "from these URLs; WordPress does not push the feed directly."
-msgstr ""
+msgstr "this environment generates the live commercial feeds. Platforms download from these URLs; WordPress does not push the feed directly."
 
 #: includes/feeds/admin.php:268
 msgid "Distribution worker:"
-msgstr ""
+msgstr "Distribution worker:"
 
 #: includes/manual.php:12
 msgid "Documentación de TaxoCommerce Distribution"
@@ -815,7 +815,7 @@ msgstr "10.3. Hook map"
 
 #: includes/manual.php:125
 msgid "Hook"
-msgstr ""
+msgstr "Hook"
 
 #: includes/manual.php:128
 msgid ""
@@ -1130,31 +1130,31 @@ msgstr "The worker detected an error."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publishing summary"
-msgstr ""
+msgstr "Publishing summary"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds:"
-msgstr ""
+msgstr "Commercial feeds:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published products:"
-msgstr ""
+msgstr "Published products:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Active channels:"
-msgstr ""
+msgstr "Active channels:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "XML index:"
-msgstr ""
+msgstr "XML index:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Valid"
-msgstr ""
+msgstr "Valid"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review"
-msgstr ""
+msgstr "Review"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Control de carga del generador XML"
@@ -1190,19 +1190,19 @@ msgstr "Stop generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Invalid"
-msgstr ""
+msgstr "Invalid"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Manual from Processes"
-msgstr ""
+msgstr "Manual from Processes"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Supplier synchronization completed"
-msgstr ""
+msgstr "Supplier synchronization completed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration"
-msgstr ""
+msgstr "Daily safety regeneration"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Programada"
@@ -1222,15 +1222,15 @@ msgstr "but the actual hostname-based detection is"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review WP_ENVIRONMENT_TYPE in the environment configuration."
-msgstr ""
+msgstr "Review WP_ENVIRONMENT_TYPE in the environment configuration."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
-msgstr ""
+msgstr "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
-msgstr ""
+msgstr "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno informado por WordPress:"
@@ -1242,7 +1242,7 @@ msgstr "Effective environment:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host:"
-msgstr ""
+msgstr "Host:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host de feeds:"
@@ -1250,7 +1250,7 @@ msgstr "Feed host:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detection source:"
-msgstr ""
+msgstr "Detection source:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
@@ -1258,35 +1258,35 @@ msgstr "A legacy uploads URL from another environment was corrected automaticall
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Settings"
-msgstr ""
+msgstr "Settings"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Country"
-msgstr ""
+msgstr "Country"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Language"
-msgstr ""
+msgstr "Language"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Batch"
-msgstr ""
+msgstr "Batch"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Adaptive"
-msgstr ""
+msgstr "Adaptive"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "view Automation"
-msgstr ""
+msgstr "view Automation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regenerate after a supplier synchronization that changed products"
-msgstr ""
+msgstr "Regenerate after a supplier synchronization that changed products"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
-msgstr ""
+msgstr "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration en PRODUCTION"
@@ -1294,67 +1294,67 @@ msgstr "Daily safety regeneration in PRODUCTION"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily time"
-msgstr ""
+msgstr "Daily time"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
-msgstr ""
+msgstr "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Save settings"
-msgstr ""
+msgstr "Save settings"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation"
-msgstr ""
+msgstr "Generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source:"
-msgstr ""
+msgstr "Source:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates:"
-msgstr ""
+msgstr "Candidates:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "published:"
-msgstr ""
+msgstr "published:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "excluded:"
-msgstr ""
+msgstr "excluded:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regulator:"
-msgstr ""
+msgstr "Regulator:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "next batch"
-msgstr ""
+msgstr "next batch"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pressure"
-msgstr ""
+msgstr "pressure"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pause"
-msgstr ""
+msgstr "pause"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last batch:"
-msgstr ""
+msgstr "Last batch:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "products in"
-msgstr ""
+msgstr "products in"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Waiting for the first Distribution worker window."
-msgstr ""
+msgstr "Waiting for the first Distribution worker window."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "% completed."
-msgstr ""
+msgstr "% completed."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inicio:"
@@ -1362,43 +1362,43 @@ msgstr "Start:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End:"
-msgstr ""
+msgstr "End:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Next daily regeneration:"
-msgstr ""
+msgstr "Next daily regeneration:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pending scheduling"
-msgstr ""
+msgstr "pending scheduling"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Automatic regeneration is not active in this environment."
-msgstr ""
+msgstr "Automatic regeneration is not active in this environment."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last activity:"
-msgstr ""
+msgstr "Last activity:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "s without changes"
-msgstr ""
+msgstr "s without changes"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start generation"
-msgstr ""
+msgstr "Start generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop the current generation? Partial files will not be published."
-msgstr ""
+msgstr "Stop the current generation? Partial files will not be published."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop generation"
-msgstr ""
+msgstr "Stop generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
-msgstr ""
+msgstr "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo."
@@ -1406,39 +1406,39 @@ msgstr "Google, Microsoft and Pinterest subsequently download the files from the
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Exclusion reasons"
-msgstr ""
+msgstr "Exclusion reasons"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Technical errors"
-msgstr ""
+msgstr "Technical errors"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inventory URLs"
-msgstr ""
+msgstr "Inventory URLs"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
-msgstr ""
+msgstr "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "The plugin records feed generation, not each remote download: these files are served directly by the web server."
-msgstr ""
+msgstr "The plugin records feed generation, not each remote download: these files are served directly by the web server."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ready"
-msgstr ""
+msgstr "Ready"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Pending generation"
-msgstr ""
+msgstr "Pending generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation history"
-msgstr ""
+msgstr "Generation history"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno."
@@ -1450,63 +1450,63 @@ msgstr "No completed runs have been recorded yet."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End"
-msgstr ""
+msgstr "End"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates"
-msgstr ""
+msgstr "Candidates"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published"
-msgstr ""
+msgstr "Published"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Excluded"
-msgstr ""
+msgstr "Excluded"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Files"
-msgstr ""
+msgstr "Files"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Initial platform setup"
-msgstr ""
+msgstr "Initial platform setup"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a product data source from a file and register the URL:"
-msgstr ""
+msgstr "Create a product data source from a file and register the URL:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a feed with automatic download from URL and register:"
-msgstr ""
+msgstr "Create a feed with automatic download from URL and register:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Add a hosted data source by URL and register:"
-msgstr ""
+msgstr "Add a hosted data source by URL and register:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Other receivers:"
-msgstr ""
+msgstr "Other receivers:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Use"
-msgstr ""
+msgstr "Use"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "or"
-msgstr ""
+msgstr "or"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
-msgstr ""
+msgstr "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
-msgstr ""
+msgstr "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador."
@@ -1562,19 +1562,19 @@ msgstr "Version"
 
 #: includes/feeds/admin.php
 msgid "Not started"
-msgstr ""
+msgstr "Not started"
 
 #: includes/feeds/admin.php
 msgid "Running"
-msgstr ""
+msgstr "Running"
 
 #: includes/feeds/admin.php
 msgid "Completed"
-msgstr ""
+msgstr "Completed"
 
 #: includes/feeds/admin.php
 msgid "Failed"
-msgstr ""
+msgstr "Failed"
 
 #: includes/feeds/admin.php
 msgid "Stopped"
