@@ -438,14 +438,14 @@ msgstr "VEVOR US/DE/NL/FR: spezielle Route mit Vorrang."
 
 #: includes/class-tct-routing-admin.php:427
 msgid "Excepciones y diagnósticos del enrutamiento"
-msgstr ""
+msgstr "Ausnahmen und Routing-Diagnosen"
 
 #: includes/class-tct-routing-admin.php:428
 msgid ""
 "Las rutas VEVOR internacionales pueden ser atendidas por el piloto "
 "especializado y el antiguo monolito antes de la tabla general. También "
 "tienen rutas propias Dependiente y los componentes WooCommerce por bloques."
-msgstr ""
+msgstr "Internationale VEVOR-Routen können vor der allgemeinen Routingtabelle vom speziellen Pilotmodul und dem alten Monolithen verarbeitet werden. Auch Dependiente und die WooCommerce-Blockkomponenten haben eigene Routen."
 
 #: includes/class-tct-template-editor.php:437
 msgid "Origen"
@@ -477,21 +477,21 @@ msgstr "offen"
 
 #: includes/class-tct-template-editor.php:506
 msgid "No hay archivos que coincidan con el filtro."
-msgstr ""
+msgstr "Keine Dateien entsprechen dem Filter."
 
 #: includes/class-tct-template-editor.php:513
 msgid "Subir plantilla PHP"
-msgstr ""
+msgstr "PHP-Vorlage hochladen"
 
 #: includes/class-tct-template-editor.php:517
 msgid ""
 "La subida esta deshabilitada por permisos o por la configuracion de "
 "seguridad de WordPress."
-msgstr ""
+msgstr "Der Upload ist aufgrund von Berechtigungen oder WordPress-Sicherheitseinstellungen deaktiviert."
 
 #: includes/class-tct-template-editor.php:530
 msgid "Reemplazar archivo propio existente y crear backup"
-msgstr ""
+msgstr "Vorhandene eigene Datei ersetzen und Sicherung erstellen"
 
 #: includes/class-tct-template-editor.php:575
 msgid "Editor y biblioteca de plantillas"
@@ -502,11 +502,11 @@ msgid ""
 "El gestor antiguo de archivos queda centralizado aqui: puedes consultar "
 "todas las plantillas, subir archivos, duplicarlos, descargar una copia, "
 "crear variantes y editar el PHP propio."
-msgstr ""
+msgstr "Der alte Dateimanager ist jetzt hier zentralisiert: Du kannst alle Vorlagen ansehen, Dateien hochladen, duplizieren, Kopien herunterladen, Varianten erstellen und eigenen PHP-Code bearbeiten."
 
 #: includes/class-tct-template-editor.php:578
 msgid "Los archivos integrados en el plugin son de"
-msgstr ""
+msgstr "Die im Plugin enthaltenen Dateien sind"
 
 #: includes/class-tct-template-editor.php:578
 msgid "solo lectura"
@@ -516,14 +516,14 @@ msgstr "schreibgeschützt"
 msgid ""
 ". Cualquier cambio se guarda como copia persistente fuera de la carpeta del "
 "plugin."
-msgstr ""
+msgstr ". Änderungen werden als dauerhafte Kopie außerhalb des Plugin-Ordners gespeichert."
 
 #: includes/class-tct-template-editor.php:581
 msgid ""
 "La edicion PHP esta deshabilitada por la configuracion de seguridad o por "
 "los permisos del usuario. Puedes consultar y descargar archivos, pero no "
 "guardarlos."
-msgstr ""
+msgstr "Das Bearbeiten von PHP ist durch die Sicherheitseinstellungen oder Benutzerrechte deaktiviert. Du kannst Dateien anzeigen und herunterladen, aber nicht speichern."
 
 #: includes/class-tct-template-editor.php:588
 msgid "Editor de codigo PHP"
@@ -535,78 +535,78 @@ msgstr "In Datei speichern"
 
 #: includes/class-tct-template-editor.php:615
 msgid "Contenido de la plantilla"
-msgstr ""
+msgstr "Vorlageninhalt"
 
 #: taxocommerce-templates.php:157 taxocommerce-templates.php:158
 msgid "Templates"
-msgstr ""
+msgstr "Vorlagen"
 
 #: taxocommerce-templates.php:203
 msgid "Tipo de página"
-msgstr ""
+msgstr "Seitentyp"
 
 #: taxocommerce-templates.php:203
 msgid "Sin rol"
-msgstr ""
+msgstr "Ohne Rolle"
 
 #: taxocommerce-templates.php:205
 msgid "Se aplica a todas las páginas del mismo rol."
-msgstr ""
+msgstr "Gilt für alle Seiten mit derselben Rolle."
 
 #: taxocommerce-templates.php:289
 msgid "Aplicación de políticas"
-msgstr ""
+msgstr "Richtlinien anwenden"
 
 #: taxocommerce-templates.php:295
 msgid ""
 "Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la "
 "web"
-msgstr ""
+msgstr "TaxoCommerce Templates erlauben, seine Vorlagen und Regeln auf der Website anzuwenden"
 
 #: taxocommerce-templates.php:296
 msgid ""
 "Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no"
 " sustituye páginas, productos, categorías, comentarios, fragmentos "
 "WooCommerce ni correos. WordPress y los demás plugins recuperan el control."
-msgstr ""
+msgstr "Nicht aktiviert: Dieses Plugin bleibt aktiv und du kannst seine Vorlagen bearbeiten. Es ersetzt jedoch weder Seiten, Produkte, Kategorien, Kommentare, WooCommerce-Fragmente noch E-Mails. WordPress und andere Plugins behalten die Kontrolle."
 
 #: taxocommerce-templates.php:297
 msgid "Protección al actualizar:"
-msgstr ""
+msgstr "Schutz bei Aktualisierungen:"
 
 #: taxocommerce-templates.php:297
 msgid ""
 "tras instalar esta versión las políticas permanecen suspendidas, incluso si "
 "una versión anterior tenía el enrutador activo. Solo se habilitan cuando "
 "marcas esta casilla y guardas expresamente."
-msgstr ""
+msgstr "Nach Installation dieser Version bleiben die Richtlinien ausgesetzt, auch wenn der Router in einer früheren Version aktiv war. Sie werden erst aktiviert, wenn du dieses Kästchen markierst und ausdrücklich speicherst."
 
 #: taxocommerce-templates.php:298
 msgid ""
 "Marcada: las rutas configuradas pueden aplicarse según sus prioridades, "
 "mercados y reglas. No activa automáticamente plantillas que sigan como "
 "borrador."
-msgstr ""
+msgstr "Aktiviert: Konfigurierte Routen können gemäß Prioritäten, Märkten und Regeln angewendet werden. Vorlagen, die noch Entwürfe sind, werden nicht automatisch aktiviert."
 
 #: taxocommerce-templates.php:438
 msgid "Faltan tablas; reactiva el módulo."
-msgstr ""
+msgstr "Tabellen fehlen; Modul erneut aktivieren."
 
 #: taxocommerce-templates.php:454
 msgid "Gestor de Plantillas"
-msgstr ""
+msgstr "Vorlagenverwaltung"
 
 #: taxocommerce-templates.php:456
 msgid ""
 "Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP "
 "del plugin antiguo."
-msgstr ""
+msgstr "Aus dem ursprünglichen Manager migrierte Routen. PHP-Dateien des alten Plugins werden weder eingebunden noch ausgeführt."
 
 #: taxocommerce-templates.php:460
 msgid ""
 "El interruptor para aplicar o suspender las políticas está disponible al "
 "principio de la página, sin necesidad de desactivar el plugin."
-msgstr ""
+msgstr "Der Schalter zum Anwenden oder Aussetzen der Richtlinien steht oben auf der Seite zur Verfügung, ohne dass das Plugin deaktiviert werden muss."
 
 #: taxocommerce-templates.php:461
 msgid "Archivos de plantilla"
