@@ -19,6 +19,7 @@ final class TaxoCommerce_Insights_Head_Tags {
         add_action( 'admin_post_tgb_head_tag_save', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_tgb_head_tag_delete', array( __CLASS__, 'delete' ) );
         add_action( 'admin_post_tgb_head_tag_toggle', array( __CLASS__, 'toggle' ) );
+        add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_analytics' ), 99 );
         add_action( 'wp_head', array( __CLASS__, 'output' ), 99 );
     }
 
@@ -93,10 +94,14 @@ final class TaxoCommerce_Insights_Head_Tags {
             return '<meta name="google-site-verification" content="' . esc_attr( $value ) . '">';
         }
         if ( 'google_analytics' === $provider ) {
-            return '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $value ) . '"></script>' . "\n"
-                . '<script>window.dataLayer=window.dataLayer||[];'
+            // Provider preview and stored code use WordPress's script-tag API.
+            // Live output is handled separately by wp_enqueue_script().
+            $source = 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $value );
+            $initializer = 'window.dataLayer=window.dataLayer||[];'
                 . 'function gtag(){dataLayer.push(arguments);}'
-                . 'gtag("js",new Date());gtag("config","' . $value . '");</script>';
+                . 'gtag("js",new Date());gtag("config",' . wp_json_encode( $value ) . ');';
+            return wp_get_script_tag( array( 'async' => true, 'src' => $source ) ) . "\n"
+                . wp_get_inline_script_tag( $initializer );
         }
         if ( 'google_tag_manager' === $provider ) {
             return '<script>(function(w,d,s,l,i){w[l]=w[l]||[];'
@@ -261,6 +266,55 @@ final class TaxoCommerce_Insights_Head_Tags {
         self::redirect( 'updated' );
     }
 
+    /**
+     * Enqueue administrator-configured GA4 without injecting external script tags.
+     * Preserve the existing per-entry consent and duplicate-provider safeguards.
+     *
+     * @return void
+     */
+    public static function enqueue_analytics() {
+        if ( is_admin() || is_feed() ) {
+            return;
+        }
+        foreach ( self::entries() as $entry ) {
+            if ( ! is_array( $entry ) || empty( $entry['enabled'] )
+                || 'google_analytics' !== ( $entry['provider'] ?? '' )
+                || 'tracking' !== ( $entry['kind'] ?? '' ) ) {
+                continue;
+            }
+            $measurement_id = (string) ( $entry['provider_id'] ?? '' );
+            if ( ! preg_match( '/\\AG-[A-Z0-9]{5,32}\\z/', $measurement_id )
+                || ! self::validate_code( (string) ( $entry['code'] ?? '' ), 'tracking' ) ) {
+                continue;
+            }
+            $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( 'statistics' );
+            $consented = (bool) apply_filters( 'taxocommerce_insights_head_tracking_allowed', $consented, $entry );
+            if ( ! $consented ) {
+                continue;
+            }
+            $google = get_option( 'seo_google_search_settings', array() );
+            if ( is_array( $google ) && ! empty( $google['tracking_enabled'] )
+                && strtoupper( (string) ( $google['measurement_id'] ?? '' ) ) === $measurement_id ) {
+                continue;
+            }
+            $handle = 'tci-gtag-' . sanitize_key( strtolower( $measurement_id ) );
+            wp_enqueue_script(
+                $handle,
+                'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $measurement_id ),
+                array(),
+                null,
+                array( 'strategy' => 'async', 'in_footer' => false )
+            );
+            wp_add_inline_script(
+                $handle,
+                'window.dataLayer=window.dataLayer||[];'
+                . 'function gtag(){dataLayer.push(arguments);}'
+                . 'gtag("js",new Date());gtag("config",' . wp_json_encode( $measurement_id ) . ');',
+                'after'
+            );
+        }
+    }
+
     public static function output() {
         if ( is_admin() || is_feed() ) {
             return;
@@ -284,6 +338,13 @@ final class TaxoCommerce_Insights_Head_Tags {
                 if ( ! $consented ) {
                     continue;
                 }
+            }
+            // GA4 with a validated provider ID was queued by WordPress above.
+            // Do not print its saved HTML script again in wp_head().
+            if ( 'tracking' === $kind
+                && 'google_analytics' === ( $entry['provider'] ?? '' )
+                && preg_match( '/\\AG-[A-Z0-9]{5,32}\\z/', (string) ( $entry['provider_id'] ?? '' ) ) ) {
+                continue;
             }
             echo "\n<!-- TaxoCommerce Insights: user-configured head tag -->\n";
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Admin with unfiltered_html authored this validated HTML. Escaping destroys provider scripts.
