@@ -2,8 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce Scrappers
  * Description: External market and product research using the legacy Ojeador and Ingeniero engines with shared SerpApi and ScraperAPI connections.
- * Version: 0.1.11
- * Release Date: 2026-11-07
+ * Version: 0.1.12
+ * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 
 
-define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.11' );
+define( 'TAXOCOMMERCE_SCRAPPERS_VERSION', '0.1.12' );
 define( 'TAXOCOMMERCE_SCRAPPERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SCRAPPERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SCRAPPERS_URL', plugin_dir_url( __FILE__ ) );
@@ -190,9 +190,44 @@ final class TaxoCommerce_Scrappers {
 
         SEO_Ingeniero_Admin::render();
     }
+    /**
+     * Stop this plugin's pending background jobs, without deleting store data.
+     *
+     * WordPress does not automatically cancel scheduled events on plugin
+     * deactivation. Keep historical option keys and tables for reactivation.
+     *
+     * @return void
+     */
+    public static function deactivate() {
+        // During a temporary coexistence, both implementations use these
+        // historic hook names. Never cancel another active plugin's jobs.
+        // This optional compatibility check is not required for clean installs.
+        if ( function_exists( 'is_plugin_active' ) && is_plugin_active( 'seo-taxonomy/seo-taxonomy.php' ) ) {
+            return;
+        }
+
+        $hooks = array(
+            'seo_ojeador_market_tick',
+            'seo_ingeniero_worker_tick',
+            'seo_ingeniero_editorial_refresh',
+            'seo_ingeniero_editorial_refresh_step',
+            'seo_ingeniero_external_radar_tick',
+        );
+        foreach ( $hooks as $hook ) {
+            wp_clear_scheduled_hook( $hook );
+        }
+
+        // The Ingeniero worker uses this exact Action Scheduler group.
+        // Do not cancel unrelated WooCommerce or TaxoCommerce jobs.
+        if ( function_exists( 'as_unschedule_all_actions' ) ) {
+            as_unschedule_all_actions( 'seo_ingeniero_worker_tick', array(), 'seo-ingeniero' );
+        }
+    }
+
 }
 
 register_activation_hook( __FILE__, array( 'TaxoCommerce_Scrappers', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'TaxoCommerce_Scrappers', 'deactivate' ) );
 add_action( 'plugins_loaded', array( 'TaxoCommerce_Scrappers', 'boot' ), 100 );
 
 /* Native local gettext catalog fallback (#2062). */
