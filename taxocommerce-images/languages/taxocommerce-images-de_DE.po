@@ -1165,4 +1165,4 @@ msgstr ""
 
 #: includes/legacy-optimizer-ajax.php:61
 msgid "No tienes permisos para optimizar las imágenes."
-msgstr ""
+msgstr "Du hast keine Berechtigung, Bilder zu optimieren."
