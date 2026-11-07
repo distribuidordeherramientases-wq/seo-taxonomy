@@ -465,31 +465,31 @@ msgid ""
 "Confirma el entorno (STAGING o PRO) y que WooCommerce esté activo. Comprueba"
 " si el módulo SEO monolítico sigue siendo propietario de las tareas "
 "automáticas."
-msgstr ""
+msgstr "Confirmez l’environnement (STAGING ou PRO) et l’activation de WooCommerce. Vérifiez si le module SEO monolithique contrôle encore les tâches automatiques."
 
 #: includes/manual.php:51
 msgid ""
 "Revisa Overview y Automation antes de modificar canales. Un aviso de archivo"
 " no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Consultez Overview et Automation avant de modifier les canaux. Un avertissement signalant un fichier non généré ne signifie pas que le moteur a échoué."
 
 #: includes/manual.php:52
 msgid ""
 "Abre Commercial Feeds, selecciona canales, país e idioma y guarda; esta "
 "operación puede retirar el fichero de un canal desactivado."
-msgstr ""
+msgstr "Ouvrez Commercial Feeds, sélectionnez les canaux, le pays et la langue, puis enregistrez. Cette opération peut supprimer le fichier d’un canal désactivé."
 
 #: includes/manual.php:53
 msgid ""
 "Inicia la generación manual solo cuando no haya otra activa; sigue el estado"
 " de lotes y comprueba los enlaces publicados."
-msgstr ""
+msgstr "Ne démarrez une génération manuelle que si aucune autre n’est active ; suivez les lots et vérifiez les liens publiés."
 
 #: includes/manual.php:54
 msgid ""
 "Comprueba Sitemaps y, si procede, regenera el índice; valida el XML "
 "publicado antes de facilitar su URL a buscadores."
-msgstr ""
+msgstr "Consultez Sitemaps et, si nécessaire, régénérez l’index ; validez le XML publié avant de communiquer son URL aux moteurs de recherche."
 
 #: includes/manual.php:57
 msgid "2. Overview: estado general"
@@ -501,7 +501,7 @@ msgid ""
 "productos publicados, canales activos, estado del índice de sitemaps, URL "
 "publicadas y ficheros existentes. Estos indicadores no lanzan ninguna "
 "generación."
-msgstr ""
+msgstr "Consultez l’état de génération des flux commerciaux, les candidats traités, les produits publiés, les canaux actifs, l’index des sitemaps, les URL publiées et les fichiers disponibles. Ces indicateurs ne démarrent aucune génération."
 
 #: includes/manual.php:60
 msgid "3. Commercial Feeds: configuración y generación"
@@ -514,7 +514,7 @@ msgid ""
 "idioma de dos letras, regeneración tras sincronización de proveedores y la "
 "hora de actualización diaria. Guarda los ajustes antes de iniciar el "
 "proceso."
-msgstr ""
+msgstr "Sélectionnez les canaux Google Merchant (XML), Microsoft/Bing Shopping (TXT), Pinterest (CSV), le catalogue universel CSV et le catalogue JSON. Configurez le pays, le code de langue à deux lettres, la régénération après synchronisation des fournisseurs et l’heure de mise à jour quotidienne. Enregistrez les réglages avant de démarrer."
 
 #: includes/manual.php:62
 msgid ""
@@ -523,7 +523,7 @@ msgid ""
 "del servidor y última actividad. Stop generation cancela el trabajo actual "
 "sin sustituir el último fichero público válido por uno parcial. Revisa los "
 "motivos de exclusión y los errores antes de repetir."
-msgstr ""
+msgstr "Le bouton Start generation lance un traitement par lots avec régulation adaptative : candidats, éléments traités, publiés, exclus, charge serveur et dernière activité. Stop generation annule le traitement sans remplacer le dernier fichier public valide par un fichier partiel. Examinez les exclusions et erreurs avant de recommencer."
 
 #: includes/manual.php:63
 msgid ""
@@ -531,7 +531,7 @@ msgid ""
 "descargan desde tu web; el plugin no envía archivos a esas plataformas. Las "
 "actualizaciones automáticas comerciales se programan solamente cuando el "
 "entorno efectivo es producción y Distribution posee la automatización."
-msgstr ""
+msgstr "Les fichiers possèdent des URL stables. Google, Microsoft et Pinterest les téléchargent depuis votre site ; le plugin ne leur transmet aucun fichier. Les actualisations commerciales automatiques ne sont planifiées que si l’environnement effectif est la production et que Distribution contrôle l’automatisation."
 
 #: includes/manual.php:65
 msgid "4. Sitemaps: comprobación y regeneración"
@@ -543,7 +543,7 @@ msgid ""
 "categorías de producto, entradas, páginas, clústeres y hubs. El informe "
 "indica validación XML, URLs, cobertura de auditoría, tamaño y fecha de "
 "modificación cuando existen datos."
-msgstr ""
+msgstr "Consultez l’index public /sitemap.xml et ses fichiers enfants : produits, catégories de produits, articles, pages, clusters et hubs. Le rapport affiche la validité XML, les URL, la couverture de l’audit, la taille et la date de modification lorsque ces données existent."
 
 #: includes/manual.php:67
 msgid ""
@@ -551,7 +551,7 @@ msgid ""
 "agrupa productos en bloques, valida el XML y publica de manera atómica para "
 "evitar exponer archivos incompletos. Ejecuta esta operación solo cuando "
 "proceda; Autocheck no la activa."
-msgstr ""
+msgstr "Regenerate and validate sitemaps lance une véritable génération. Le moteur regroupe les produits en lots, valide le XML et publie de manière atomique pour éviter tout fichier incomplet. Ne lancez cette opération qu’en cas de besoin ; Autocheck ne l’exécute pas."
 
 #: includes/manual.php:69
 msgid "5. Automation: supervisar el trabajo"
@@ -563,7 +563,7 @@ msgid ""
 "o al módulo antiguo, la regeneración diaria, el último lote y la propiedad "
 "de los sitemaps. El worker funciona por ventanas con cursor y bloqueo; no es"
 " necesario dejar abierta la pantalla para publicar."
-msgstr ""
+msgstr "Vérifiez si l’automatisation commerciale appartient au plugin autonome ou à l’ancien module, ainsi que la régénération quotidienne, le dernier lot et la responsabilité des sitemaps. Le processus fonctionne par fenêtres, avec curseur et verrou : il n’est pas nécessaire de laisser l’écran ouvert."
 
 #: includes/manual.php:72
 msgid "6. Migración y entornos"
@@ -575,7 +575,7 @@ msgid ""
 "prioridad temporal para evitar workers duplicados; Distribution mantiene la "
 "generación manual para pruebas. STAGING usa sus propios productos y URLs: no"
 " registres sus feeds en las plataformas comerciales."
-msgstr ""
+msgstr "Si le plugin SEO monolithique est actif, son automatisation conserve temporairement la priorité pour éviter les processus en double ; Distribution permet la génération manuelle à des fins de test. STAGING utilise ses propres produits et URL : n’enregistrez pas ses flux sur les plateformes commerciales."
 
 #: includes/manual.php:75
 msgid "7. Autocheck: verificación sin riesgos"
@@ -589,7 +589,7 @@ msgid ""
 "procesos, no consulta servicios externos ni modifica ficheros o base de "
 "datos. La ausencia de una publicación se muestra como aviso, no como error "
 "de código."
-msgstr ""
+msgstr "Ouvrez Autocheck et cliquez sur Exécuter l’autocontrôle. Ce contrôle lit l’état du chargement, des composants, hooks, options, responsables de l’automatisation et fichiers publiés. Il ne génère ni flux ni sitemaps, ne programme aucun processus, ne contacte aucun service externe et ne modifie ni fichiers ni base de données. Une publication absente est signalée comme avertissement, pas comme erreur de code."
 
 #: includes/manual.php:80
 msgid "Manual técnico para futuros desarrolladores"
@@ -600,7 +600,7 @@ msgid ""
 "Destinatarios: desarrolladores que deban mantener, auditar o ampliar el "
 "plugin independiente sin duplicar el monolito. Describe las API existentes y"
 " los puntos de extensión comprobados en el código."
-msgstr ""
+msgstr "Public : développeurs chargés de maintenir, auditer ou étendre le plugin autonome sans dupliquer le monolithe. Le manuel décrit les API existantes et les points d’extension vérifiés dans le code."
 
 #: includes/manual.php:82
 msgid "Mapa de código y responsabilidades"
@@ -611,7 +611,7 @@ msgid ""
 "Los siguientes archivos constituyen el contrato de mantenimiento. Los "
 "nombres tcdist_* son propios del plugin independiente y no deben sustituirse"
 " por llamadas al monolito."
-msgstr ""
+msgstr "Les fichiers suivants constituent le contrat de maintenance. Les noms tcdist_* appartiennent au plugin autonome et ne doivent pas être remplacés par des appels au monolithe."
 
 #: includes/manual.php:85
 msgid "Archivo"
@@ -629,25 +629,25 @@ msgstr "Points d’entrée"
 msgid ""
 "Bootstrap, versión, coexistencia, migración inicial de opciones, registro en"
 " Core, activación y desactivación."
-msgstr ""
+msgstr "Initialisation, version, coexistence, migration initiale des options, enregistrement dans Core, activation et désactivation."
 
 #: includes/manual.php:88
 msgid ""
 "Identidad y navegación propia; pantallas Overview, Sitemaps y Automation; "
 "acción de regeneración de XML."
-msgstr ""
+msgstr "Identité et navigation propres ; écrans Overview, Sitemaps et Automation ; action de régénération XML."
 
 #: includes/manual.php:89
 msgid ""
 "Ajustes, selección de productos, estado, lotes adaptativos, histórico, "
 "locks, programación y publicación."
-msgstr ""
+msgstr "Paramètres, sélection des produits, état, lots adaptatifs, historique, verrous, planification et publication."
 
 #: includes/manual.php:90
 msgid ""
 "Definición de formatos, columnas, transformación y serialización de cada "
 "canal comercial."
-msgstr ""
+msgstr "Définition des formats, colonnes, transformations et sérialisation de chaque canal commercial."
 
 #: includes/manual.php:91
 msgid ""
