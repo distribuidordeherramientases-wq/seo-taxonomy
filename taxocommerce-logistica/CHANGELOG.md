@@ -1,3 +1,9 @@
+## [Unreleased] — Traducciones administrativas y manuales Logistics (#2062)
+
+- Incorporadas 270 traducciones de interfaz, diagnósticos, documentación y ayudas de envíos en es_ES, en_US, fr_FR, de_DE y nl_NL (49 EN, 56 FR, 55 DE, 55 NL y 55 ES), sin sobrescribir traducciones existentes.
+- Los catálogos PO conservan 142 entradas por idioma y se han regenerado los cinco MO correspondientes. Se mantienen intactos los datos, el motor de transporte, el checkout, las opciones y los identificadores gettext.
+- Trabajo parcial: faltan párrafos extensos del manual y una auditoría de textos fuera de gettext, Plugin Check y pruebas en WordPress para cada idioma. Producción no autorizada.
+
 ## [0.2.7] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
