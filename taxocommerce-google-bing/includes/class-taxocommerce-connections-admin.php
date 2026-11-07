@@ -385,11 +385,13 @@ final class TaxoCommerce_Connections_Admin {
 			</div>
 			</div>
 
+			<?php TaxoCommerce_Insights_Cloudflare_UI::render(); ?>
+
 			<div class="card" style="max-width:1300px;padding:20px;margin-top:18px;">
 				<h2 style="margin-top:0;">Responsibility split</h2>
 				<p><strong>Insights:</strong> owns external connections and the data download screens for Google Search Console, Google Analytics, Bing, and Google Trends.</p>
 				<p><strong>Distribution:</strong> owns commercial feeds and sitemaps. Pinterest Catalogs is published there; Insights stores the Pinterest connection and domain-verification data.</p>
-				<p><strong>Cloudflare:</strong> not migrated. It is disabled and currently has no required modular consumer.</p>
+				<p><strong>Cloudflare:</strong> owned by Insights Connections; System Check can reuse its read-only diagnostic functions.</p>
 			</div>
 		</div>
 		<?php
