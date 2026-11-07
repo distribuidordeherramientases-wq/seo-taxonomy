@@ -1,4 +1,12 @@
+= 0.1.5 (2026-11-07) =
+* Cabecera del administrador: título, versión y fecha de publicación, sin duplicar titulares. Issue #2336.
+
 TaxoCommerce Tasks historical changelog.
+
+0.1.4 (2026-11-07)
+- Monthly task duration bars with overlapping task lanes and week/month continuations.
+- Priority and status legend, accessible task links, responsive layout and five-language catalog updates.
+- No schema change.
 
 0.1.3 (2026-11-07)
 - User and technical manuals internationalized via native gettext in ES/EN/FR/DE/NL.

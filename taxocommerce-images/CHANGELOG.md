@@ -1,3 +1,13 @@
+## [0.2.19] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
+## [Unreleased] — Revisión i18n (seguimiento #2062)
+
+- Completada una entrada gettext previamente vacía en ES/EN/FR/DE/NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.
+- Pendiente recompilar catálogos MO y validar cobertura frente al POT, en especial discrepancias entre idiomas; no supone traducción integral del plugin.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

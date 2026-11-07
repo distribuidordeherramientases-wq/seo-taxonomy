@@ -43,6 +43,8 @@ tc_ie_background_check( false === strpos( $browser, "request('taxocommerce_ie_ex
 tc_ie_background_check( false !== strpos( $browser, "request('taxocommerce_ie_export_status')" ), 'Browser must observe state' );
 tc_ie_background_check( false !== strpos( $browser, "request('taxocommerce_ie_export_resume')" ), 'Browser must be able to retry failed job' );
 tc_ie_background_check( false !== strpos( $browser, 'window.setTimeout(pollStatus, 5000)' ), 'Progress polling needs a bounded interval' );
-tc_ie_background_check( false !== strpos( $plugin, 'Version: 0.4.17' ), 'Plugin version updated' );
-tc_ie_background_check( false !== strpos( $readme, 'Stable tag: 0.4.17' ), 'Readme version updated' );
+preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', $plugin, $matches );
+$version = $matches[1] ?? '';
+tc_ie_background_check( '' !== $version, 'Valid plugin version' );
+tc_ie_background_check( false !== strpos( $readme, 'Stable tag: ' . $version ), 'Readme version updated' );
 echo "Background export contract: OK (server worker, lock, cancellation, progress, recovery, adaptive regulator, version)" . PHP_EOL;

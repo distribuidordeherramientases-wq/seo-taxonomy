@@ -1511,4 +1511,4 @@ msgstr ""
 
 #: taxocommerce-system-check.php:401
 msgid "El módulo de auditoría HTTP no se ha cargado."
-msgstr ""
+msgstr "Das HTTP-Prüfmodul wurde nicht geladen."

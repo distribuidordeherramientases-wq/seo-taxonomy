@@ -225,3 +225,7 @@ body.tcc-family-admin .tcc-guide-article h3{font-size:17px;line-height:1.35;marg
 .tcc-guide-code{max-width:100%;padding:18px;background:#17243b;color:#f5f8ff;border-radius:8px;overflow-x:auto;line-height:1.65}
 .tcc-guide-code code{color:inherit;white-space:pre}
 @media(max-width:600px){.tcc-guide-manual-tabs{gap:7px}.tcc-guide-manual-tab{flex:1;text-align:center;padding:11px 8px}.tcc-guide-table th,.tcc-guide-table td{padding:9px 10px}}
+
+/* Release metadata belongs to Core's existing single dashboard hero. */
+.tcc-hero__metadata{position:relative;z-index:2;display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+.tcc-hero__metadata span{display:inline-block;padding:5px 11px;border:1px solid #bdd4f5;border-radius:20px;background:#f1f6ff;color:#145fc5;font-size:12px;font-weight:700}

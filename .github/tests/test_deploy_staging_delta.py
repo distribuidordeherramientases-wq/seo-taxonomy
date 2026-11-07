@@ -153,6 +153,51 @@ class DeltaTests(unittest.TestCase):
             self.assertEqual(data["sync"], "false")
             self.assertEqual(data["core"], "false")
 
+    def test_targeted_push_cannot_skip_tasks_when_git_baseline_equals_head(self):
+        import json
+        import os
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-tasks",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={}):
+                            module.plan()
+            result = dict(row.split("=", 1) for row in output.read_text().splitlines())
+            self.assertEqual(json.loads(result["slugs"]), ["taxocommerce-tasks"])
+            self.assertEqual(result["count"], "1")
+            self.assertEqual(result["sync"], "false")
+            self.assertEqual(result["core"], "false")
+
+    def test_targeted_delivery_checks_all_tracked_tasks_files_and_only_tasks(self):
+        import os
+
+        files = [
+            "taxocommerce-tasks.php",
+            "includes/class-tctasks-manuals.php",
+            "languages/taxocommerce-tasks-es_ES.po",
+            "languages/taxocommerce-tasks-es_ES.mo",
+        ]
+        with mock.patch.dict(os.environ, {"TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-tasks"}):
+            with mock.patch.object(module, "plugin_source_files", return_value=files) as manifest:
+                with mock.patch.object(module, "changed_files", side_effect=AssertionError("git baseline must not be used")):
+                    self.assertEqual(
+                        module.selected_deploy_files("a" * 40, "a" * 40, "taxocommerce-tasks"),
+                        files,
+                    )
+            manifest.assert_called_once_with("taxocommerce-tasks")
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-core")
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-tasks", full=True)
+
     def test_targeted_push_rejects_other_plugins_and_manual_full_sync(self):
         import os
         with tempfile.TemporaryDirectory() as root:

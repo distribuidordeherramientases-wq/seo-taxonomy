@@ -63,6 +63,9 @@ jobs:
           set -euo pipefail
           php -l .github/tests/i18n-19-locale-smoke.php
           php .github/tests/i18n-19-locale-smoke.php
+          python3 .github/scripts/sync_family_admin_branding.py --check
+          php -l .github/tests/family-admin-header-smoke.php
+          php .github/tests/family-admin-header-smoke.php
           php -l .github/tests/taxocommerce-autocheck-family.php
           php .github/tests/taxocommerce-autocheck-family.php
           find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
@@ -71,9 +74,14 @@ jobs:
           php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
+          php -l .github/tests/early-i18n-core-registration-smoke.php
+          for slug in vocabulary auditor database scrappers; do php .github/tests/early-i18n-core-registration-smoke.php "$slug"; done
           php -l taxocommerce-tasks/includes/class-tctasks-manuals.php
           php -l taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
+          php -l taxocommerce-tasks/includes/class-tctasks-calendar.php
+          php -l taxocommerce-tasks/tests/calendar-duration-smoke.php
+          php taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
@@ -94,6 +102,7 @@ jobs:
           php taxocommerce-google-bing/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/head-tags-smoke.php
           php taxocommerce-google-bing/tests/head-tags-inventory-smoke.php
+          php taxocommerce-google-bing/tests/ecommerce-smoke.php
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
@@ -233,6 +242,10 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
+          # Only direct Tasks pushes reconcile tracked installable files.
+          # The uploader still skips identical hashes; gated family calls
+          # retain the incremental file-diff behavior.
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
@@ -268,6 +281,10 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
+          # Only direct Tasks pushes reconcile tracked installable files.
+          # The uploader still skips identical hashes; gated family calls
+          # retain the incremental file-diff behavior.
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do

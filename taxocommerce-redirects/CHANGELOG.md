@@ -1,3 +1,14 @@
+## [0.1.10] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en la cabecera del administrador mediante metadatos locales (Release Date).
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. No altera servicios, datos, menús ni permisos.
+- Se conserva el funcionamiento independiente y se comprueba con el test de cabeceras de la familia.
+
+## [Unreleased] — Revisión i18n (seguimiento #2062)
+
+- Completada una entrada gettext previamente vacía en ES/EN/FR/DE/NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.
+- Pendiente recompilar catálogos MO y validar cobertura frente al POT, en especial discrepancias entre idiomas; no supone traducción integral del plugin.
+
 ## [Unreleased] — Primera fase i18n Redirects (#2286)
 
 - Traducidas 33 cadenas iniciales de menús, Auto Test y navegación de manual en es_ES, en_US, fr_FR, de_DE y nl_NL.

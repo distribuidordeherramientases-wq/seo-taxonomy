@@ -11,61 +11,61 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-distribution.php
 msgid "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-distribution.php
 msgid ""
 "Publishes commercial feeds and professional XML sitemaps through independent"
 " bounded processes."
-msgstr ""
+msgstr "Publishes commercial feeds and professional XML sitemaps through independent bounded processes."
 
 #. Author of the plugin
 #: taxocommerce-distribution.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:17
 msgid "You do not have permission to manage TaxoCommerce Distribution."
-msgstr ""
+msgstr "You do not have permission to manage TaxoCommerce Distribution."
 
 #: includes/admin.php:27 includes/admin.php:28 includes/admin.php:38
 msgid "Distribution"
-msgstr ""
+msgstr "Distribution"
 
 #: includes/admin.php:37 includes/admin.php:87
 msgid "TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution"
 
 #: includes/admin.php:71
 msgid "Resultado desconocido."
-msgstr ""
+msgstr "Unknown result."
 
 #: includes/admin.php:88
 msgid ""
 "Technical catalog publishing: commercial feeds and XML sitemaps through safe"
 " bounded processes."
-msgstr ""
+msgstr "Technical catalog publishing: commercial feeds and XML sitemaps through safe bounded processes."
 
 #: includes/admin.php:90
 msgid "Secciones de Distribution"
-msgstr ""
+msgstr "Distribution sections"
 
 #: includes/admin.php:94
 msgid "Overview"
-msgstr ""
+msgstr "Overview"
 
 #: includes/admin.php:95 includes/admin.php:148
 msgid "Commercial Feeds"
-msgstr ""
+msgstr "Commercial Feeds"
 
 #: includes/admin.php:96 includes/admin.php:170
 msgid "Sitemaps"
-msgstr ""
+msgstr "Sitemaps"
 
 #: includes/admin.php:97
 msgid "Automation"
-msgstr ""
+msgstr "Automation"
 
 #: includes/admin.php:98
 msgid "Manual"
@@ -77,7 +77,7 @@ msgstr "Autocheck"
 
 #: includes/admin.php:135
 msgid "Safe migration:"
-msgstr ""
+msgstr "Safe migration:"
 
 #: includes/admin.php:135
 msgid ""
@@ -85,96 +85,96 @@ msgid ""
 "while preserving the same public files. While both plugins coexist, the "
 "legacy scheduled automation keeps priority to avoid duplicate execution; "
 "manual regeneration can be tested from this plugin."
-msgstr ""
+msgstr "the legacy plugin was detected. Distribution uses its own state and worker while preserving the same public files. While both plugins coexist, the legacy scheduled automation keeps priority to avoid duplicate execution; manual regeneration can be tested from this plugin."
 
 #: includes/admin.php:149
 msgid "Status:"
-msgstr ""
+msgstr "Status:"
 
 #: includes/admin.php:150
 msgid "Processed:"
-msgstr ""
+msgstr "Processed:"
 
 #: includes/admin.php:151
 msgid "Published:"
-msgstr ""
+msgstr "Published:"
 
 #: includes/admin.php:152
 msgid "Open feeds"
-msgstr ""
+msgstr "Open feeds"
 
 #: includes/admin.php:156
 msgid "Active channels"
-msgstr ""
+msgstr "Active channels"
 
 #: includes/admin.php:171
 msgid "Index:"
-msgstr ""
+msgstr "Index:"
 
 #: includes/admin.php:172
 msgid "Published URLs:"
-msgstr ""
+msgstr "Published URLs:"
 
 #: includes/admin.php:173
 msgid "Files:"
-msgstr ""
+msgstr "Files:"
 
 #: includes/admin.php:174
 msgid "Open sitemaps"
-msgstr ""
+msgstr "Open sitemaps"
 
 #: includes/admin.php:179
 msgid "Plugin responsibility"
-msgstr ""
+msgstr "Plugin responsibility"
 
 #: includes/admin.php:180
 msgid ""
 "Distribution publishes the catalog to external systems. It does not edit "
 "templates, campaigns, social media, or editorial content."
-msgstr ""
+msgstr "Distribution publishes the catalog to external systems. It does not edit templates, campaigns, social media, or editorial content."
 
 #: includes/admin.php:181
 msgid "Feeds:"
-msgstr ""
+msgstr "Feeds:"
 
 #: includes/admin.php:182
 msgid "Sitemaps:"
-msgstr ""
+msgstr "Sitemaps:"
 
 #: includes/admin.php:243
 msgid "XML Sitemaps"
-msgstr ""
+msgstr "XML Sitemaps"
 
 #: includes/admin.php:244
 msgid ""
 "The same proven engine is preserved: atomic publishing, pre-publication XML "
 "validation, product batching, and stable root-domain URLs."
-msgstr ""
+msgstr "The same proven engine is preserved: atomic publishing, pre-publication XML validation, product batching, and stable root-domain URLs."
 
 #: includes/admin.php:245
 msgid "Professional index:"
-msgstr ""
+msgstr "Professional index:"
 
 #: includes/admin.php:252
 msgid "Main index is valid."
-msgstr ""
+msgstr "Main index is valid."
 
 #. translators: %s: number of URLs published in the sitemap index.
 #: includes/admin.php:254
 msgid "%s URLs published."
-msgstr ""
+msgstr "%s URLs published."
 
 #: includes/admin.php:257
 msgid "The main index does not exist or is invalid."
-msgstr ""
+msgstr "The main index does not exist or is invalid."
 
 #: includes/admin.php:263
 msgid "Regenerate and validate sitemaps"
-msgstr ""
+msgstr "Regenerate and validate sitemaps"
 
 #: includes/admin.php:267
 msgid "What this generation does"
-msgstr ""
+msgstr "What this generation does"
 
 #: includes/admin.php:268
 msgid ""
@@ -182,46 +182,46 @@ msgid ""
 "published, non-password-protected content is included; cart, checkout, and "
 "account pages are excluded. Each XML file is validated before replacing the "
 "previous public file."
-msgstr ""
+msgstr "Separates products, categories, posts, pages, clusters, and hubs. Only published, non-password-protected content is included; cart, checkout, and account pages are excluded. Each XML file is validated before replacing the previous public file."
 
 #: includes/admin.php:269
 msgid ""
 "Products are split into bounded groups to avoid oversized XML files. "
 "Generation uses a lock and atomic publishing so partial files are never "
 "exposed."
-msgstr ""
+msgstr "Products are split into bounded groups to avoid oversized XML files. Generation uses a lock and atomic publishing so partial files are never exposed."
 
 #: includes/admin.php:273
 msgid "File"
-msgstr ""
+msgstr "File"
 
 #: includes/admin.php:273
 msgid "Audited"
-msgstr ""
+msgstr "Audited"
 
 #: includes/admin.php:273
 msgid "Warnings"
-msgstr ""
+msgstr "Warnings"
 
 #: includes/admin.php:273
 msgid "Errors"
-msgstr ""
+msgstr "Errors"
 
 #: includes/admin.php:273
 msgid "Coverage"
-msgstr ""
+msgstr "Coverage"
 
 #: includes/admin.php:273
 msgid "Size"
-msgstr ""
+msgstr "Size"
 
 #: includes/admin.php:273
 msgid "Modified"
-msgstr ""
+msgstr "Modified"
 
 #: includes/admin.php:315
 msgid "Automation and workload"
-msgstr ""
+msgstr "Automation and workload"
 
 #: includes/admin.php:316
 msgid ""
@@ -229,76 +229,76 @@ msgid ""
 "runs through the dedicated Distribution worker. Each window uses a cursor, "
 "lock, and execution deadline; there is no dependency on the legacy central "
 "manager."
-msgstr ""
+msgstr "Feeds keep the adaptive regulator from the previous system, but work now runs through the dedicated Distribution worker. Each window uses a cursor, lock, and execution deadline; there is no dependency on the legacy central manager."
 
 #: includes/admin.php:320
 msgid "Feed worker"
-msgstr ""
+msgstr "Feed worker"
 
 #: includes/admin.php:320
 msgid ""
 "Legacy automation has priority during coexistence; manual execution is "
 "available here."
-msgstr ""
+msgstr "Legacy automation has priority during coexistence; manual execution is available here."
 
 #: includes/admin.php:320
 msgid "Owned by Distribution"
-msgstr ""
+msgstr "Owned by Distribution"
 
 #: includes/admin.php:321
 msgid "Daily regeneration"
-msgstr ""
+msgstr "Daily regeneration"
 
 #: includes/admin.php:321
 msgid "Disabled"
-msgstr ""
+msgstr "Disabled"
 
 #: includes/admin.php:322
 msgid "Last batch"
-msgstr ""
+msgstr "Last batch"
 
 #: includes/admin.php:322
 msgid "products"
-msgstr ""
+msgstr "products"
 
 #: includes/admin.php:323
 msgid "Automatic sitemaps"
-msgstr ""
+msgstr "Automatic sitemaps"
 
 #: includes/admin.php:323
 msgid "Temporarily managed by the legacy plugin"
-msgstr ""
+msgstr "Temporarily managed by the legacy plugin"
 
 #: includes/admin.php:323
 msgid ""
 "Distribution regenerates after product, page, post, and category changes"
-msgstr ""
+msgstr "Distribution regenerates after product, page, post, and category changes"
 
 #: includes/admin.php:327
 msgid ""
 "During migration, two parallel cron jobs are prevented from writing to the "
 "same public files. Once the legacy module is removed, Distribution "
 "automatically takes over scheduling."
-msgstr ""
+msgstr "During migration, two parallel cron jobs are prevented from writing to the same public files. Once the legacy module is removed, Distribution automatically takes over scheduling."
 
 #: includes/autocheck.php:235
 msgid "Autocheck de Distribution"
-msgstr ""
+msgstr "Distribution self-check"
 
 #: includes/autocheck.php:236
 msgid ""
 "Diagnóstico manual y no destructivo: comprueba componentes, hooks, "
 "configuración y metadatos de archivos. No genera feeds ni sitemaps, no "
 "consulta servicios externos, no inicia trabajos y no escribe datos."
-msgstr ""
+msgstr "Manual, non-destructive diagnostics: checks components, hooks, settings and file metadata. It does not generate feeds or sitemaps, query external services, start jobs or write data."
 
 #: includes/autocheck.php:240
 msgid "Ejecutar autocheck"
-msgstr ""
+msgstr "Run self-check"
 
 #: includes/autocheck.php:245
 msgid "Aún no se ha ejecutado el autocheck en esta visita."
-msgstr ""
+msgstr "The self-check has not been run during this visit."
 
 #: includes/autocheck.php:256
 msgid "Resultado"
@@ -306,7 +306,7 @@ msgstr "Result"
 
 #: includes/autocheck.php:258
 msgid "comprobaciones"
-msgstr ""
+msgstr "checks"
 
 #: includes/autocheck.php:259
 msgid "correctas"
@@ -314,11 +314,11 @@ msgstr "passed"
 
 #: includes/autocheck.php:260
 msgid "avisos"
-msgstr ""
+msgstr "warnings"
 
 #: includes/autocheck.php:261
 msgid "errores"
-msgstr ""
+msgstr "errors"
 
 #: includes/autocheck.php:272
 msgid "Control"
@@ -338,7 +338,7 @@ msgstr "Passed"
 
 #: includes/autocheck.php:276
 msgid "Aviso"
-msgstr ""
+msgstr "Notice"
 
 #: includes/autocheck.php:276
 msgid "Error"
@@ -349,103 +349,103 @@ msgid ""
 "Los resultados no se guardan. La presencia física de un fichero no demuestra"
 " su validez XML ni confirma que las plataformas externas lo hayan "
 "descargado."
-msgstr ""
+msgstr "Results are not saved. A file’s physical presence does not prove its XML is valid or confirm that external platforms have downloaded it."
 
 #: includes/feeds/admin.php:31
 msgid "You do not have permission to configure commercial feeds."
-msgstr ""
+msgstr "You do not have permission to configure commercial feeds."
 
 #: includes/feeds/admin.php:102
 msgid "You do not have permission to regenerate commercial feeds."
-msgstr ""
+msgstr "You do not have permission to regenerate commercial feeds."
 
 #: includes/feeds/admin.php:146
 msgid "You do not have permission to stop commercial feeds."
-msgstr ""
+msgstr "You do not have permission to stop commercial feeds."
 
 #: includes/feeds/admin.php:239
 msgid "Settings saved."
-msgstr ""
+msgstr "Settings saved."
 
 #: includes/feeds/admin.php:242
 msgid ""
 "Generation started and handed to the Distribution worker. Batch size adapts "
 "automatically to actual response time and observed load."
-msgstr ""
+msgstr "Generation started and handed to the Distribution worker. Batch size adapts automatically to actual response time and observed load."
 
 #: includes/feeds/admin.php:245
 msgid "Generation stopped by the user. No partial file was published."
-msgstr ""
+msgstr "Generation stopped by the user. No partial file was published."
 
 #: includes/feeds/admin.php:254
 msgid "STAGING:"
-msgstr ""
+msgstr "STAGING:"
 
 #: includes/feeds/admin.php:254
 msgid ""
 "this generation uses products and URLs from this environment and is for "
 "testing only. No commercial refresh is scheduled and these URLs must not be "
 "registered with Google, Microsoft, or Pinterest."
-msgstr ""
+msgstr "this generation uses products and URLs from this environment and is for testing only. No commercial refresh is scheduled and these URLs must not be registered with Google, Microsoft, or Pinterest."
 
 #: includes/feeds/admin.php:256
 msgid "PRODUCTION:"
-msgstr ""
+msgstr "PRODUCTION:"
 
 #: includes/feeds/admin.php:256
 msgid ""
 "this environment generates the live commercial feeds. Platforms download "
 "from these URLs; WordPress does not push the feed directly."
-msgstr ""
+msgstr "this environment generates the live commercial feeds. Platforms download from these URLs; WordPress does not push the feed directly."
 
 #: includes/feeds/admin.php:268
 msgid "Distribution worker:"
-msgstr ""
+msgstr "Distribution worker:"
 
 #: includes/manual.php:12
 msgid "Documentación de TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution documentation"
 
 #: includes/manual.php:32
 msgid "Manual de TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution user guide"
 
 #: includes/manual.php:33
 msgid ""
 "Guía de uso y referencia técnica del plugin independiente de publicación de "
 "feeds comerciales y sitemaps XML."
-msgstr ""
+msgstr "User guide and technical reference for the standalone plugin publishing commercial feeds and XML sitemaps."
 
 #: includes/manual.php:34
 msgid "Índice de documentación"
-msgstr ""
+msgstr "Documentation index"
 
 #: includes/manual.php:35
 msgid "Contenido"
-msgstr ""
+msgstr "Contents"
 
 #: includes/manual.php:36 includes/manual.php:43
 msgid "Manual de usuario"
-msgstr ""
+msgstr "User guide"
 
 #: includes/manual.php:37
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technical guide"
 
 #: includes/manual.php:38
 msgid "Diagnóstico y mantenimiento"
-msgstr ""
+msgstr "Diagnostics and maintenance"
 
 #: includes/manual.php:44
 msgid ""
 "Destinatarios: responsables de catálogo, operaciones y administración de "
 "WooCommerce. Explica qué revisar antes, durante y después de publicar un "
 "feed o sitemap."
-msgstr ""
+msgstr "Audience: catalogue managers, operations staff and WooCommerce administrators. Explains what to check before, during and after publishing a feed or sitemap."
 
 #: includes/manual.php:45
 msgid "1. Acceso y pestañas"
-msgstr ""
+msgstr "1. Access and tabs"
 
 #: includes/manual.php:46
 msgid ""
@@ -454,46 +454,46 @@ msgid ""
 " Feeds, Sitemaps, Automation, Manual y Autocheck. Requiere los permisos de "
 "gestión de WooCommerce configurados para Distribution, o permisos de "
 "administrador."
-msgstr ""
+msgstr "Open TaxoCommerce Core > Distribution; if Core is not installed, use Distribution in the main menu. The plugin has Overview, Commercial Feeds, Sitemaps, Automation, Manual and Autocheck tabs. Administration requires the WooCommerce management permissions configured for Distribution or administrator permissions."
 
 #: includes/manual.php:48
 msgid "1.1. Secuencia inicial segura"
-msgstr ""
+msgstr "1.1. Safe initial procedure"
 
 #: includes/manual.php:50
 msgid ""
 "Confirma el entorno (STAGING o PRO) y que WooCommerce esté activo. Comprueba"
 " si el módulo SEO monolítico sigue siendo propietario de las tareas "
 "automáticas."
-msgstr ""
+msgstr "Confirm the environment (STAGING or PRO) and that WooCommerce is active. Check whether the monolithic SEO module still owns scheduled tasks."
 
 #: includes/manual.php:51
 msgid ""
 "Revisa Overview y Automation antes de modificar canales. Un aviso de archivo"
 " no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Review Overview and Automation before changing channels. A warning that a file has not been generated does not mean the engine has failed."
 
 #: includes/manual.php:52
 msgid ""
 "Abre Commercial Feeds, selecciona canales, país e idioma y guarda; esta "
 "operación puede retirar el fichero de un canal desactivado."
-msgstr ""
+msgstr "Open Commercial Feeds, select channels, country and language, then save. This may remove the file for a disabled channel."
 
 #: includes/manual.php:53
 msgid ""
 "Inicia la generación manual solo cuando no haya otra activa; sigue el estado"
 " de lotes y comprueba los enlaces publicados."
-msgstr ""
+msgstr "Start manual generation only when another generation is not active; monitor batch status and check the published links."
 
 #: includes/manual.php:54
 msgid ""
 "Comprueba Sitemaps y, si procede, regenera el índice; valida el XML "
 "publicado antes de facilitar su URL a buscadores."
-msgstr ""
+msgstr "Check Sitemaps and regenerate the index if appropriate; validate the published XML before submitting its URL to search engines."
 
 #: includes/manual.php:57
 msgid "2. Overview: estado general"
-msgstr ""
+msgstr "2. Overview: general status"
 
 #: includes/manual.php:58
 msgid ""
@@ -501,11 +501,11 @@ msgid ""
 "productos publicados, canales activos, estado del índice de sitemaps, URL "
 "publicadas y ficheros existentes. Estos indicadores no lanzan ninguna "
 "generación."
-msgstr ""
+msgstr "Review commercial-generation status, processed candidates, published products, active channels, sitemap index status, published URLs and existing files. These indicators do not start any generation."
 
 #: includes/manual.php:60
 msgid "3. Commercial Feeds: configuración y generación"
-msgstr ""
+msgstr "3. Commercial Feeds: configuration and generation"
 
 #: includes/manual.php:61
 msgid ""
@@ -514,7 +514,7 @@ msgid ""
 "idioma de dos letras, regeneración tras sincronización de proveedores y la "
 "hora de actualización diaria. Guarda los ajustes antes de iniciar el "
 "proceso."
-msgstr ""
+msgstr "Select Google Merchant (XML), Microsoft/Bing Shopping (TXT), Pinterest (CSV), universal CSV catalogue and JSON catalogue channels. Set the country, two-letter language code, regeneration after supplier synchronisation and daily update time. Save the settings before starting."
 
 #: includes/manual.php:62
 msgid ""
@@ -523,7 +523,7 @@ msgid ""
 "del servidor y última actividad. Stop generation cancela el trabajo actual "
 "sin sustituir el último fichero público válido por uno parcial. Revisa los "
 "motivos de exclusión y los errores antes de repetir."
-msgstr ""
+msgstr "The Start generation button launches an adaptively regulated batch job, displaying candidates, processed, published and excluded items, server pressure and last activity. Stop generation cancels the current job without replacing the last valid public file with a partial one. Review exclusions and errors before restarting."
 
 #: includes/manual.php:63
 msgid ""
@@ -531,11 +531,11 @@ msgid ""
 "descargan desde tu web; el plugin no envía archivos a esas plataformas. Las "
 "actualizaciones automáticas comerciales se programan solamente cuando el "
 "entorno efectivo es producción y Distribution posee la automatización."
-msgstr ""
+msgstr "Files have stable URLs. Google, Microsoft and Pinterest download them from your website; the plugin does not send files to those platforms. Automatic commercial updates are scheduled only when the effective environment is production and Distribution owns the automation."
 
 #: includes/manual.php:65
 msgid "4. Sitemaps: comprobación y regeneración"
-msgstr ""
+msgstr "4. Sitemaps: verification and regeneration"
 
 #: includes/manual.php:66
 msgid ""
@@ -543,7 +543,7 @@ msgid ""
 "categorías de producto, entradas, páginas, clústeres y hubs. El informe "
 "indica validación XML, URLs, cobertura de auditoría, tamaño y fecha de "
 "modificación cuando existen datos."
-msgstr ""
+msgstr "View the public /sitemap.xml index and its child files for products, product categories, posts, pages, clusters and hubs. The report shows XML validation, URLs, audit coverage, size and modification date where available."
 
 #: includes/manual.php:67
 msgid ""
@@ -551,11 +551,11 @@ msgid ""
 "agrupa productos en bloques, valida el XML y publica de manera atómica para "
 "evitar exponer archivos incompletos. Ejecuta esta operación solo cuando "
 "proceda; Autocheck no la activa."
-msgstr ""
+msgstr "Regenerate and validate sitemaps performs a real generation. The engine groups products into batches, validates XML and publishes atomically to avoid exposing incomplete files. Run this only when necessary; Autocheck does not trigger it."
 
 #: includes/manual.php:69
 msgid "5. Automation: supervisar el trabajo"
-msgstr ""
+msgstr "5. Automation: monitor processing"
 
 #: includes/manual.php:70
 msgid ""
@@ -563,11 +563,11 @@ msgid ""
 "o al módulo antiguo, la regeneración diaria, el último lote y la propiedad "
 "de los sitemaps. El worker funciona por ventanas con cursor y bloqueo; no es"
 " necesario dejar abierta la pantalla para publicar."
-msgstr ""
+msgstr "Check whether commercial automation is owned by the standalone plugin or the old module, as well as daily regeneration, last batch and sitemap ownership. The worker operates in windows using a cursor and lock; you do not need to leave the screen open for publishing."
 
 #: includes/manual.php:72
 msgid "6. Migración y entornos"
-msgstr ""
+msgstr "6. Migration and environments"
 
 #: includes/manual.php:73
 msgid ""
@@ -575,11 +575,11 @@ msgid ""
 "prioridad temporal para evitar workers duplicados; Distribution mantiene la "
 "generación manual para pruebas. STAGING usa sus propios productos y URLs: no"
 " registres sus feeds en las plataformas comerciales."
-msgstr ""
+msgstr "If the monolithic SEO plugin is active, its automation has temporary priority to avoid duplicate workers; Distribution still allows manual generation for testing. STAGING uses its own products and URLs: do not register its feeds with commercial platforms."
 
 #: includes/manual.php:75
 msgid "7. Autocheck: verificación sin riesgos"
-msgstr ""
+msgstr "7. Self-check: safe verification"
 
 #: includes/manual.php:76
 msgid ""
@@ -589,96 +589,96 @@ msgid ""
 "procesos, no consulta servicios externos ni modifica ficheros o base de "
 "datos. La ausencia de una publicación se muestra como aviso, no como error "
 "de código."
-msgstr ""
+msgstr "Open Autocheck and click Run self-check. It reads load status, components, hooks, options, automation ownership and presence of published files. It does not generate feeds or sitemaps, schedule processes, query external services or change files or the database. A missing publication is reported as a warning, not a code error."
 
 #: includes/manual.php:80
 msgid "Manual técnico para futuros desarrolladores"
-msgstr ""
+msgstr "Technical guide for future developers"
 
 #: includes/manual.php:81
 msgid ""
 "Destinatarios: desarrolladores que deban mantener, auditar o ampliar el "
 "plugin independiente sin duplicar el monolito. Describe las API existentes y"
 " los puntos de extensión comprobados en el código."
-msgstr ""
+msgstr "Audience: developers maintaining, auditing or extending the standalone plugin without duplicating the monolith. Describes existing APIs and extension points verified in the code."
 
 #: includes/manual.php:82
 msgid "Mapa de código y responsabilidades"
-msgstr ""
+msgstr "Code and responsibility map"
 
 #: includes/manual.php:83
 msgid ""
 "Los siguientes archivos constituyen el contrato de mantenimiento. Los "
 "nombres tcdist_* son propios del plugin independiente y no deben sustituirse"
 " por llamadas al monolito."
-msgstr ""
+msgstr "The following files define the maintenance contract. Names beginning tcdist_* belong to the standalone plugin and must not be replaced by calls to the monolith."
 
 #: includes/manual.php:85
 msgid "Archivo"
-msgstr ""
+msgstr "File"
 
 #: includes/manual.php:85 includes/manual.php:125
 msgid "Responsabilidad"
-msgstr ""
+msgstr "Responsibility"
 
 #: includes/manual.php:85
 msgid "Puntos de entrada"
-msgstr ""
+msgstr "Entry points"
 
 #: includes/manual.php:87
 msgid ""
 "Bootstrap, versión, coexistencia, migración inicial de opciones, registro en"
 " Core, activación y desactivación."
-msgstr ""
+msgstr "Bootstrap, version, coexistence, initial option migration, registration with Core, activation and deactivation."
 
 #: includes/manual.php:88
 msgid ""
 "Identidad y navegación propia; pantallas Overview, Sitemaps y Automation; "
 "acción de regeneración de XML."
-msgstr ""
+msgstr "Own identity and navigation; Overview, Sitemaps and Automation screens; XML regeneration action."
 
 #: includes/manual.php:89
 msgid ""
 "Ajustes, selección de productos, estado, lotes adaptativos, histórico, "
 "locks, programación y publicación."
-msgstr ""
+msgstr "Settings, product selection, state, adaptive batches, history, locks, scheduling and publishing."
 
 #: includes/manual.php:90
 msgid ""
 "Definición de formatos, columnas, transformación y serialización de cada "
 "canal comercial."
-msgstr ""
+msgstr "Definitions of formats, columns, transformations and serialisation for each commercial channel."
 
 #: includes/manual.php:91
 msgid ""
 "Formularios, controles iniciar/detener, AJAX de seguimiento y enlaces de "
 "archivos."
-msgstr ""
+msgstr "Forms, start/stop controls, AJAX progress monitoring and file links."
 
 #: includes/manual.php:92
 msgid "Ventanas de proceso mediante WP-Cron, reanudación y supervisión."
-msgstr ""
+msgstr "Processing windows through WP-Cron, resumption and monitoring."
 
 #: includes/manual.php:93
 msgid ""
 "Reescrituras y rutas XML, fuentes de URLs, grupos, manifiesto, publicación y"
 " validación."
-msgstr ""
+msgstr "XML rewrites and routes, URL sources, groups, manifest, publication and validation."
 
 #: includes/manual.php:94
 msgid ""
 "Documentación de usuario y desarrollador, renderizada sin escribir datos."
-msgstr ""
+msgstr "User and developer documentation displayed without writing data."
 
 #: includes/manual.php:95
 msgid ""
 "Diagnósticos de solo lectura; no inicializa almacenamiento, workers ni "
 "generadores."
-msgstr ""
+msgstr "Read-only diagnostics; does not initialise storage, workers or generators."
 
 #: includes/manual.php:99
 msgid "8. Arquitectura y enrutado"
-msgstr ""
+msgstr "8. Architecture and routing"
 
 #: includes/manual.php:100
 msgid ""
@@ -688,11 +688,11 @@ msgid ""
 "estado, formatos, generación y acciones. includes/worker.php ejecuta las "
 "ventanas programadas. includes/sitemaps/engine.php sirve, valida y publica "
 "XML. Manual y Autocheck son pantallas propias y no alteran los motores."
-msgstr ""
+msgstr "Entry point: taxocommerce-distribution.php. includes/admin.php registers administration with the taxocommerce-distribution slug and tcdist_tab selector. includes/feeds/core.php, channels.php and admin.php define state, formats, generation and actions. includes/worker.php runs scheduled processing windows. includes/sitemaps/engine.php serves, validates and publishes XML. Manual and Autocheck have their own screens and do not change the engines."
 
 #: includes/manual.php:102
 msgid "9. Canales y almacenamiento"
-msgstr ""
+msgstr "9. Channels and storage"
 
 #: includes/manual.php:103
 msgid ""
@@ -701,7 +701,7 @@ msgid ""
 "catalogo-universal.csv y catalogo-universal.json. Los sitemaps se almacenan "
 "bajo wp-content/uploads/seo-sitemaps/ y se sirven desde URLs estables del "
 "dominio principal, incluido /sitemap.xml."
-msgstr ""
+msgstr "Feeds are published under wp-content/uploads/seo-system-feeds/ as google-merchant.xml, microsoft-merchant.txt, pinterest-catalog.csv, catalogo-universal.csv and catalogo-universal.json. Sitemaps are stored under wp-content/uploads/seo-sitemaps/ and served at stable URLs on the main domain, including /sitemap.xml."
 
 #: includes/manual.php:104
 msgid ""
@@ -709,11 +709,11 @@ msgid ""
 " sitemap valida estructura XML antes de publicar. No coloques los ficheros "
 "generados dentro del ZIP del plugin ni cambies sus rutas públicas sin plan "
 "de migración."
-msgstr ""
+msgstr "Commercial publishing uses temporary files and atomic replacement. The sitemap validates XML structure before publishing. Do not include generated files in the plugin ZIP or change their public paths without a migration plan."
 
 #: includes/manual.php:106
 msgid "10. Opciones, hooks y ejecución"
-msgstr ""
+msgstr "10. Options, hooks and execution"
 
 #: includes/manual.php:107
 msgid ""
@@ -723,7 +723,7 @@ msgid ""
 "La migración inicial copia ajustes e historial desde "
 "seo_ie_commercial_feeds_* solo cuando aún no existen opciones propias; no "
 "borra los originales."
-msgstr ""
+msgstr "Options: tcdist_commercial_feeds_settings_v1, tcdist_commercial_feeds_state_v1, tcdist_commercial_feeds_history_v1, tcdist_worker_state, tcdist_worker_components and tcdist_activation_version. Initial migration copies settings and history from seo_ie_commercial_feeds_* only when standalone options do not yet exist; the originals are not deleted."
 
 #: includes/manual.php:108
 msgid ""
@@ -733,7 +733,7 @@ msgid ""
 "Los sitemaps utilizan tcdist_sitemap_regenerate_sitemaps_event. Se escuchan "
 "cambios de productos y categorías para planificar la siguiente regeneración "
 "cuando Distribution es el responsable."
-msgstr ""
+msgstr "Worker: taxocommerce_distribution_feed_worker. Feed hooks: tcdist_feed_daily_refresh, tcdist_feed_build_batch and tcdist_feed_queued_refresh, registered according to automation ownership. Sitemaps use tcdist_sitemap_regenerate_sitemaps_event. Product and category changes are monitored to schedule the next regeneration when Distribution owns it."
 
 #: includes/manual.php:109
 msgid ""
@@ -741,15 +741,15 @@ msgid ""
 "post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop y admin-"
 "post_tcdist_sitemap_regenerate realizan acciones operativas con comprobación"
 " de permisos y nonce. No deben ejecutarse desde Autocheck."
-msgstr ""
+msgstr "The admin-post_tcdist_feed_save_settings, admin-post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop and admin-post_tcdist_sitemap_regenerate controllers perform operational actions with capability and nonce checks. They must not be invoked by Autocheck."
 
 #: includes/manual.php:111
 msgid "Contrato de datos y eventos"
-msgstr ""
+msgstr "Data and event contract"
 
 #: includes/manual.php:112
 msgid "10.1. Persistencia WordPress"
-msgstr ""
+msgstr "10.1. WordPress persistence"
 
 #: includes/manual.php:113
 msgid ""
@@ -760,7 +760,7 @@ msgid ""
 "actualización diaria y sincronización. tcdist_commercial_feeds_state_v1 "
 "guarda el ciclo de generación, cursor, recuentos y estado. "
 "tcdist_commercial_feeds_history_v1 conserva el historial."
-msgstr ""
+msgstr "Distribution does not need a new table for feeds: it stores settings, cursor and results in wp_options. Always use the feed ID constants rather than duplicating strings. tcdist_commercial_feeds_settings_v1 stores channels, country, language, daily update and synchronisation. tcdist_commercial_feeds_state_v1 stores generation cycle, cursor, counters and state. tcdist_commercial_feeds_history_v1 stores the history."
 
 #: includes/manual.php:114
 msgid ""
@@ -770,81 +770,81 @@ msgid ""
 "seo_ie_commercial_feeds_settings_v1 y seo_ie_commercial_feeds_history_v1 son"
 " solo fuente de migración: se copian si aún no hay opciones nuevas y no se "
 "borran las originales."
-msgstr ""
+msgstr "The supervisor writes tcdist_worker_state and tcdist_worker_components. The sitemap engine stores rewrite, generation and manifest metadata through its own functions. The old options seo_ie_commercial_feeds_settings_v1 and seo_ie_commercial_feeds_history_v1 are migration sources only: they are copied when new options are absent, and the originals are preserved."
 
 #: includes/manual.php:115
 msgid "10.2. Ciclo de un feed"
-msgstr ""
+msgstr "10.2. Feed lifecycle"
 
 #: includes/manual.php:117
 msgid ""
 "La administración valida capacidades/nonce y llama a "
 "tcdist_feed_start_build() para crear un estado de ejecución."
-msgstr ""
+msgstr "Administration checks capability and nonce, then calls tcdist_feed_start_build() to create an execution state."
 
 #: includes/manual.php:118
 msgid ""
 "tcdist_process_nudge() programa el hook de worker si es necesario; el "
 "proceso lee estado y espera hasta not_before cuando existe una pausa "
 "adaptativa."
-msgstr ""
+msgstr "tcdist_process_nudge() schedules the worker hook if necessary; the process reads its state and waits until not_before when an adaptive pause is active."
 
 #: includes/manual.php:119
 msgid ""
 "tcdist_feed_run_manager_slice() procesa lotes acotados, actualiza cursor y "
 "contadores. El worker usa una ventana de hasta 45 segundos y reagenda si "
 "sigue running."
-msgstr ""
+msgstr "tcdist_feed_run_manager_slice() processes bounded batches and updates the cursor and counters. The worker runs in windows of up to 45 seconds and reschedules itself if it is still running."
 
 #: includes/manual.php:120
 msgid ""
 "channels.php serializa cada registro canónico al formato requerido y el "
 "motor finaliza y publica solo al terminar. Al detener se evita publicar "
 "archivos parciales."
-msgstr ""
+msgstr "channels.php serialises each canonical record into the required format; the engine finalises and publishes only after completion. Stopping prevents partial files from being published."
 
 #: includes/manual.php:121
 msgid ""
 "Al completar, revisa el estado, histórico, recuentos y fichero; un resultado"
 " sin productos exige analizar exclusiones antes de considerarlo fallo."
-msgstr ""
+msgstr "On completion, review state, history, counts and file; when the result contains no products, analyse exclusions before treating it as a failure."
 
 #: includes/manual.php:123
 msgid "10.3. Mapa de hooks"
-msgstr ""
+msgstr "10.3. Hook map"
 
 #: includes/manual.php:125
 msgid "Hook"
-msgstr ""
+msgstr "Hook"
 
 #: includes/manual.php:128
 msgid ""
 "Refresco diario, compatibilidad del lote y regeneración diferida; solo se "
 "registran con propiedad de automatización."
-msgstr ""
+msgstr "Daily refresh, batch compatibility and deferred regeneration; hooks are registered only when Distribution owns the automation."
 
 #: includes/manual.php:129
 msgid ""
 "Avisan de cambios para una regeneración diferida, sin ejecutar una "
 "publicación por cada producto."
-msgstr ""
+msgstr "Signal changes for deferred regeneration without triggering a publication for each product."
 
 #: includes/manual.php:130
 msgid "Controles protegidos de ajustes, ejecución y seguimiento AJAX."
-msgstr ""
+msgstr "Protected controls for settings, execution and AJAX progress monitoring."
 
 #: includes/manual.php:131
 msgid ""
 "Servicio y anuncio de sitemaps cuando el motor independiente es propietario."
-msgstr ""
+msgstr "Serve and announce sitemaps when the standalone engine owns them."
 
 #: includes/manual.php:132
 msgid "Regeneración silenciosa programada de sitemaps."
-msgstr ""
+msgstr "Scheduled background regeneration of sitemaps."
 
 #: includes/manual.php:135
 msgid "11. Propiedad de procesos y protección de datos"
-msgstr ""
+msgstr "11. Process ownership and data protection"
 
 #: includes/manual.php:136
 msgid ""
@@ -853,7 +853,7 @@ msgid ""
 "duplicados para los mismos ficheros. Para estudiar el estado consulta las "
 "opciones persistidas y WP-Cron sin forzar disparos. El proceso trabaja con "
 "lotes, cursores, exclusiones y bloqueos para limitar consumo."
-msgstr ""
+msgstr "TCDIST_LEGACY_FEED_ACTIVE and TCDIST_LEGACY_SITEMAP_ACTIVE detect coexistence. While both systems coexist, duplicate automated workers are not registered for the same files. To inspect state, read persisted options and WP-Cron without forcing execution. The process uses batches, cursors, exclusions and locks to limit resource consumption."
 
 #: includes/manual.php:137
 msgid ""
@@ -861,11 +861,11 @@ msgid ""
 "sistema de archivos. No llama a tcdist_feed_storage(), porque esta función "
 "puede crear un directorio o index.html al inicializar el almacenamiento. "
 "Tampoco llama al generador de XML ni al worker."
-msgstr ""
+msgstr "Autocheck uses read-only WordPress functions and filesystem checks. It does not call tcdist_feed_storage(), because that function may create a directory or index.html when initialising storage. It does not call the XML generator or worker either."
 
 #: includes/manual.php:139
 msgid "11.1. Seguridad y contratos de rutas"
-msgstr ""
+msgstr "11.1. Security and route contracts"
 
 #: includes/manual.php:140
 msgid ""
@@ -874,7 +874,7 @@ msgid ""
 " ajustes, inician trabajos o regeneran sitemaps utilizan admin-post, la "
 "capacidad requerida y check_admin_referer. El pulso AJAX usa nonce y "
 "comprueba permisos."
-msgstr ""
+msgstr "The standalone screen uses page=taxocommerce-distribution and tcdist_tab; it does not reuse the monolith's admin slug. Controllers that change settings, start jobs or regenerate sitemaps use admin-post, the required capability and check_admin_referer. AJAX polling uses a nonce and checks permissions."
 
 #: includes/manual.php:141
 msgid ""
@@ -884,11 +884,11 @@ msgid ""
 " el enrutado público normaliza los nombres permitidos y sirve URLs del "
 "dominio actual. Reescrituras y sitemap de WordPress Core solo se sustituyen "
 "si el motor independiente es propietario."
-msgstr ""
+msgstr "Feeds are written to uploads/seo-system-feeds. tcdist_feed_storage() may create the directory and index.html: NEVER call it during a read-only check. Sitemaps are stored in uploads/seo-sitemaps; public routing normalises permitted names and serves URLs from the current domain. WordPress Core rewrite rules and its sitemap are replaced only when the standalone engine owns the service."
 
 #: includes/manual.php:142
 msgid "11.2. Coexistencia y riesgo de doble escritura"
-msgstr ""
+msgstr "11.2. Coexistence and double-write risk"
 
 #: includes/manual.php:143
 msgid ""
@@ -899,18 +899,18 @@ msgid ""
 "rutas propias de sitemap. Una generación manual de Distribution debe "
 "rechazarse mientras haya una generación legada running, porque ambas pueden "
 "apuntar al mismo fichero público."
-msgstr ""
+msgstr "taxocommerce_distribution_boot() runs on plugins_loaded at priority 50, checks legacy functions and defines TCDIST_LEGACY_FEED_ACTIVE / TCDIST_LEGACY_SITEMAP_ACTIVE. If the monolith owns the automatic service, duplicate feed runtime and custom sitemap routes are not registered. Manual Distribution generation must be rejected while a legacy generation is running, as both could target the same public file."
 
 #: includes/manual.php:144
 msgid ""
 "No elimines comprobaciones de coexistencia, locks, cursores ni publicación "
 "atómica al refactorizar. Evita modificar los ficheros de salida con acceso "
 "directo o repetir hooks al registrar una extensión."
-msgstr ""
+msgstr "Do not remove coexistence checks, locks, cursors or atomic publishing when refactoring. Avoid directly changing output files or registering duplicate hooks in an extension."
 
 #: includes/manual.php:146
 msgid "12. Validación y despliegue"
-msgstr ""
+msgstr "12. Validation and deployment"
 
 #: includes/manual.php:147
 msgid ""
@@ -918,65 +918,65 @@ msgid ""
 "ZIP de WordPress. Ejecuta PHP lint, smoke de regresión, autocheck aislado y "
 "Plugin Check. Actualiza CHANGELOG.md y readme.txt sin alterar el histórico "
 "changelog.txt. Prueba en STAGING; producción requiere autorización expresa."
-msgstr ""
+msgstr "Keep development tests under tests/ on GitHub but outside the WordPress ZIP. Run PHP lint, regression smoke tests, an isolated Autocheck and Plugin Check. Update CHANGELOG.md and readme.txt without changing the historical changelog.txt. Test on STAGING; production requires explicit authorisation."
 
 #: includes/manual.php:149
 msgid "Procedimiento para futuros desarrolladores"
-msgstr ""
+msgstr "Procedure for future developers"
 
 #: includes/manual.php:150
 msgid "12.1. Cómo desarrollar una mejora sin romper lo existente"
-msgstr ""
+msgstr "12.1. How to develop an improvement without breaking existing functionality"
 
 #: includes/manual.php:152
 msgid ""
 "Localiza la funcionalidad y la función responsable en el mapa de código. "
 "Comprueba los hooks, opciones, rutas y dependencias antes de editar."
-msgstr ""
+msgstr "Locate the feature and its responsible function in the code map. Check hooks, options, routes and dependencies before making changes."
 
 #: includes/manual.php:153
 msgid ""
 "Documenta el cambio en un issue y trabaja en una rama de GitHub. Evita "
 "cambios en archivos del monolito; Distribution debe seguir siendo autónomo."
-msgstr ""
+msgstr "Document the change in an issue and work in a GitHub branch. Avoid changes to monolith files; Distribution must remain standalone."
 
 #: includes/manual.php:154
 msgid ""
 "Preserva el registro canónico de productos, las cinco salidas comerciales "
 "existentes, los filtros, los formatos, el cursor, los locks y la publicación"
 " atómica."
-msgstr ""
+msgstr "Preserve the canonical product record, the five existing commercial outputs, filters, formats, cursor, locks and atomic publishing."
 
 #: includes/manual.php:155
 msgid ""
 "Usa los permisos y nonces de WordPress, valida entradas y escapa salidas; "
 "mantén el aislamiento entre PRO y STAGING y el control de propiedad cuando "
 "coexista el monolito."
-msgstr ""
+msgstr "Use WordPress capabilities and nonces, validate input and escape output; maintain separation between PRO and STAGING and ensure correct ownership while the monolith coexists."
 
 #: includes/manual.php:156
 msgid ""
 "Añade pruebas de regresión que cubran el caso nuevo y los casos anteriores. "
 "Las pruebas de desarrollo permanecen en tests/ y deben excluirse del paquete"
 " de WordPress."
-msgstr ""
+msgstr "Add regression tests covering the new case and existing behaviour. Development tests remain under tests/ and must be excluded from the WordPress package."
 
 #: includes/manual.php:157
 msgid ""
 "Actualiza el Manual de usuario y este Manual técnico, CHANGELOG.md y "
 "readme.txt en la misma PR; conserva changelog.txt como histórico."
-msgstr ""
+msgstr "Update the user guide, this technical guide, CHANGELOG.md and readme.txt in the same PR; preserve changelog.txt as historical documentation."
 
 #: includes/manual.php:158
 msgid ""
 "Valida PHP 7.4/8.4, smoke, Plugin Check, coexistencia y ausencia de efectos "
 "secundarios. Integra y comprueba STAGING; producción requiere autorización "
 "expresa."
-msgstr ""
+msgstr "Validate PHP 7.4/8.4, smoke tests, Plugin Check, coexistence and the absence of side effects. Integrate and verify STAGING; production requires explicit authorisation."
 
 #: includes/manual.php:160
 msgid "12.2. Comandos de prueba y límites"
-msgstr ""
+msgstr "12.2. Test commands and limitations"
 
 #: includes/manual.php:163
 msgid ""
@@ -985,18 +985,18 @@ msgid ""
 "exportados, el comportamiento real del cron, el XML desde HTTP o la "
 "aceptación por Google/Microsoft/Pinterest: esos contratos requieren pruebas "
 "funcionales específicas en STAGING."
-msgstr ""
+msgstr "CI .github/workflows/taxocommerce-distribution.yml runs these tests and validates the package. Autocheck does not verify exported price accuracy, real cron behaviour, XML served over HTTP or acceptance by Google/Microsoft/Pinterest: those contracts require dedicated functional testing on STAGING."
 
 #: includes/manual.php:164
 msgid "Fuera de alcance:"
-msgstr ""
+msgstr "Out of scope:"
 
 #: includes/manual.php:164
 msgid ""
 "No hay envío directo a Merchant Center, repositorio externo de feeds, "
 "migración destructiva de opciones legadas ni restauración automática de "
 "versiones anteriores."
-msgstr ""
+msgstr "There is no direct submission to Merchant Center, no external feed repository, no destructive migration of legacy options and no automatic restoration of earlier versions."
 
 #: includes/manual.php:165 includes/manual.php:177
 msgid "Volver al índice"
@@ -1004,45 +1004,45 @@ msgstr "Back to contents"
 
 #: includes/manual.php:168
 msgid "Diagnóstico y problemas habituales"
-msgstr ""
+msgstr "Diagnostics and common problems"
 
 #: includes/manual.php:169
 msgid "13. Interpretación de incidencias"
-msgstr ""
+msgstr "13. Interpreting issues"
 
 #: includes/manual.php:171
 msgid ""
 "Un feed no aparece: revisa el estado, canales activados, exclusiones, worker"
 " y permisos del directorio uploads. No vuelvas a iniciar procesos "
 "simultáneos."
-msgstr ""
+msgstr "A feed is missing: check status, enabled channels, exclusions, worker and uploads-directory permissions. Do not start concurrent processes again."
 
 #: includes/manual.php:172
 msgid ""
 "El sitemap falta o no es válido: comprueba el informe de Sitemaps, rutas de "
 "publicación, reescrituras y propiedad del monolito. Regenera solo después de"
 " verificar el motivo."
-msgstr ""
+msgstr "A sitemap is missing or invalid: check the Sitemaps report, publication paths, rewrite rules and monolith ownership. Regenerate only after establishing the cause."
 
 #: includes/manual.php:173
 msgid ""
 "STAGING muestra un host incorrecto: revisa el entorno efectivo y "
 "WP_ENVIRONMENT_TYPE; los feeds de STAGING no deben anunciar URLs de PRO."
-msgstr ""
+msgstr "STAGING shows the wrong host: check the effective environment and WP_ENVIRONMENT_TYPE; STAGING feeds must not advertise PRO URLs."
 
 #: includes/manual.php:174
 msgid ""
 "Autocheck muestra avisos: un archivo aún no generado o un cron sin programar"
 " no equivale necesariamente a un fallo técnico. Contrasta con Automation y "
 "la configuración de producción."
-msgstr ""
+msgstr "Autocheck reports warnings: a file that has not yet been generated or an unscheduled cron job does not necessarily indicate a technical failure. Compare with Automation and production settings."
 
 #: includes/manual.php:175
 msgid ""
 "Con monolito activo: evita duplicar tareas que publican los mismos nombres "
 "de archivo. Distribución manual y automática tienen propietarios distintos "
 "durante la migración."
-msgstr ""
+msgstr "With the monolith active, avoid duplicate tasks that publish the same filenames. Manual and automatic generation have different owners during migration."
 
 #: includes/admin.php includes/sitemaps/batch-worker.php
 msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
@@ -1106,11 +1106,11 @@ msgstr "Generation is in progress. The visible index still belongs to the previo
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Selecciona una velocidad entre 1 y 5."
-msgstr ""
+msgstr "Select a speed between 1 and 5."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "La generación se ha detenido."
-msgstr ""
+msgstr "Generation has stopped."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos."
@@ -1118,411 +1118,411 @@ msgstr "Permission denied."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generando sitemaps por bloques de 250…"
-msgstr ""
+msgstr "Generating sitemaps in batches of 250…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Finalizado. Actualizando el informe…"
-msgstr ""
+msgstr "Finished. Updating the report…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "El trabajador ha detectado un error."
-msgstr ""
+msgstr "The worker detected an error."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publishing summary"
-msgstr ""
+msgstr "Publishing summary"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds:"
-msgstr ""
+msgstr "Commercial feeds:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published products:"
-msgstr ""
+msgstr "Published products:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Active channels:"
-msgstr ""
+msgstr "Active channels:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "XML index:"
-msgstr ""
+msgstr "XML index:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Valid"
-msgstr ""
+msgstr "Valid"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review"
-msgstr ""
+msgstr "Review"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Control de carga del generador XML"
-msgstr ""
+msgstr "XML generator load control"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Guardar velocidad"
-msgstr ""
+msgstr "Save speed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
-msgstr ""
+msgstr "Maximum 250 items per execution. The speed controls pauses; if PHP uses too much memory or time, the manager automatically reduces the frequency. The displayed CPU usage belongs to the PHP process, not the whole server."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Estado de generación:"
-msgstr ""
+msgstr "Generation status:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "%1$d elementos revisados; %2$d URL preparadas."
-msgstr ""
+msgstr "%1$d items checked; %2$d URLs prepared."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Último bloque: %1$s s · CPU PHP: %2$s%% · Memoria PHP: %3$s%%"
-msgstr ""
+msgstr "Last batch: %1$s s · PHP CPU: %2$s%% · PHP memory: %3$s%%"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generar sitemaps en bloques de 250"
-msgstr ""
+msgstr "Generate sitemaps in batches of 250"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detener generación"
-msgstr ""
+msgstr "Stop generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Invalid"
-msgstr ""
+msgstr "Invalid"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Manual from Processes"
-msgstr ""
+msgstr "Manual from Processes"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Supplier synchronization completed"
-msgstr ""
+msgstr "Supplier synchronization completed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration"
-msgstr ""
+msgstr "Daily safety regeneration"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Programada"
-msgstr ""
+msgstr "Scheduled"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno discrepante:"
-msgstr ""
+msgstr "Environment mismatch:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress informa"
-msgstr ""
+msgstr "WordPress reports"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pero la detección efectiva por hostname es"
-msgstr ""
+msgstr "but the actual hostname-based detection is"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review WP_ENVIRONMENT_TYPE in the environment configuration."
-msgstr ""
+msgstr "Review WP_ENVIRONMENT_TYPE in the environment configuration."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
-msgstr ""
+msgstr "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
-msgstr ""
+msgstr "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno informado por WordPress:"
-msgstr ""
+msgstr "Environment reported by WordPress:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno efectivo:"
-msgstr ""
+msgstr "Effective environment:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host:"
-msgstr ""
+msgstr "Host:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host de feeds:"
-msgstr ""
+msgstr "Feed host:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detection source:"
-msgstr ""
+msgstr "Detection source:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
-msgstr ""
+msgstr "A legacy uploads URL from another environment was corrected automatically to avoid mixing PRO and STAGING."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Settings"
-msgstr ""
+msgstr "Settings"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Country"
-msgstr ""
+msgstr "Country"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Language"
-msgstr ""
+msgstr "Language"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Batch"
-msgstr ""
+msgstr "Batch"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Adaptive"
-msgstr ""
+msgstr "Adaptive"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "view Automation"
-msgstr ""
+msgstr "view Automation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regenerate after a supplier synchronization that changed products"
-msgstr ""
+msgstr "Regenerate after a supplier synchronization that changed products"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
-msgstr ""
+msgstr "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration en PRODUCTION"
-msgstr ""
+msgstr "Daily safety regeneration in PRODUCTION"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily time"
-msgstr ""
+msgstr "Daily time"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
-msgstr ""
+msgstr "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Save settings"
-msgstr ""
+msgstr "Save settings"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation"
-msgstr ""
+msgstr "Generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source:"
-msgstr ""
+msgstr "Source:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates:"
-msgstr ""
+msgstr "Candidates:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "published:"
-msgstr ""
+msgstr "published:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "excluded:"
-msgstr ""
+msgstr "excluded:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regulator:"
-msgstr ""
+msgstr "Regulator:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "next batch"
-msgstr ""
+msgstr "next batch"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pressure"
-msgstr ""
+msgstr "pressure"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pause"
-msgstr ""
+msgstr "pause"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last batch:"
-msgstr ""
+msgstr "Last batch:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "products in"
-msgstr ""
+msgstr "products in"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Waiting for the first Distribution worker window."
-msgstr ""
+msgstr "Waiting for the first Distribution worker window."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "% completed."
-msgstr ""
+msgstr "% completed."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inicio:"
-msgstr ""
+msgstr "Start:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End:"
-msgstr ""
+msgstr "End:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Next daily regeneration:"
-msgstr ""
+msgstr "Next daily regeneration:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pending scheduling"
-msgstr ""
+msgstr "pending scheduling"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Automatic regeneration is not active in this environment."
-msgstr ""
+msgstr "Automatic regeneration is not active in this environment."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last activity:"
-msgstr ""
+msgstr "Last activity:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "s without changes"
-msgstr ""
+msgstr "s without changes"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start generation"
-msgstr ""
+msgstr "Start generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop the current generation? Partial files will not be published."
-msgstr ""
+msgstr "Stop the current generation? Partial files will not be published."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop generation"
-msgstr ""
+msgstr "Stop generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
-msgstr ""
+msgstr "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo."
-msgstr ""
+msgstr "Google, Microsoft and Pinterest subsequently download the files from their URLs; there is no direct submission."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Exclusion reasons"
-msgstr ""
+msgstr "Exclusion reasons"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Technical errors"
-msgstr ""
+msgstr "Technical errors"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inventory URLs"
-msgstr ""
+msgstr "Inventory URLs"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
-msgstr ""
+msgstr "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "The plugin records feed generation, not each remote download: these files are served directly by the web server."
-msgstr ""
+msgstr "The plugin records feed generation, not each remote download: these files are served directly by the web server."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ready"
-msgstr ""
+msgstr "Ready"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Pending generation"
-msgstr ""
+msgstr "Pending generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation history"
-msgstr ""
+msgstr "Generation history"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno."
-msgstr ""
+msgstr "The most recent 20 completed or failed runs are retained in this environment."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Aun no hay ejecuciones finalizadas registradas."
-msgstr ""
+msgstr "No completed runs have been recorded yet."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End"
-msgstr ""
+msgstr "End"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates"
-msgstr ""
+msgstr "Candidates"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published"
-msgstr ""
+msgstr "Published"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Excluded"
-msgstr ""
+msgstr "Excluded"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Files"
-msgstr ""
+msgstr "Files"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Initial platform setup"
-msgstr ""
+msgstr "Initial platform setup"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a product data source from a file and register the URL:"
-msgstr ""
+msgstr "Create a product data source from a file and register the URL:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a feed with automatic download from URL and register:"
-msgstr ""
+msgstr "Create a feed with automatic download from URL and register:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Add a hosted data source by URL and register:"
-msgstr ""
+msgstr "Add a hosted data source by URL and register:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Other receivers:"
-msgstr ""
+msgstr "Other receivers:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Use"
-msgstr ""
+msgstr "Use"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "or"
-msgstr ""
+msgstr "or"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
-msgstr ""
+msgstr "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
-msgstr ""
+msgstr "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador."
-msgstr ""
+msgstr "Open TaxoCommerce Core > Distribution; if Core is not installed, use Distribution in the main menu. The plugin has Commercial Feeds, Sitemaps, Automation, Manual and Autocheck tabs; the general overview appears below the header. The WooCommerce management permissions configured for Distribution or administrator permissions are required."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Revisa el resumen bajo la cabecera y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Review the summary under the header and Automation before changing channels. A warning about a file that has not yet been generated does not mean the engine has failed."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "2. Resumen general bajo la cabecera"
-msgstr ""
+msgstr "2. General overview below the header"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron."
-msgstr ""
+msgstr "Since version 0.1.3, regeneration processes URLs in batches of 250 at five independent workload speeds: Gentle, Low, Normal, High and Maximum. Select the speed and click Save before generating. The status shows processed items, prepared URLs, and PHP process CPU and memory usage. You can stop without deleting the last public sitemap. The system keeps the old index until the new one is published and resumes interrupted tasks through WP-Cron."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ejecutar Autocheck"
@@ -1538,7 +1538,7 @@ msgstr "Execution date:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado."
-msgstr ""
+msgstr "The most recent report is available to download for one hour. A file's presence does not prove valid XML or confirm that external platforms downloaded it."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos para descargar el Autocheck."
@@ -1554,7 +1554,7 @@ msgstr "Could not generate the JSON report."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publica feeds comerciales y sitemaps XML de tu catálogo."
-msgstr ""
+msgstr "Publishes commercial feeds and XML sitemaps for your catalogue."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Versión"
@@ -1562,20 +1562,20 @@ msgstr "Version"
 
 #: includes/feeds/admin.php
 msgid "Not started"
-msgstr ""
+msgstr "Not started"
 
 #: includes/feeds/admin.php
 msgid "Running"
-msgstr ""
+msgstr "Running"
 
 #: includes/feeds/admin.php
 msgid "Completed"
-msgstr ""
+msgstr "Completed"
 
 #: includes/feeds/admin.php
 msgid "Failed"
-msgstr ""
+msgstr "Failed"
 
 #: includes/feeds/admin.php
 msgid "Stopped"
-msgstr ""
+msgstr "Stopped"

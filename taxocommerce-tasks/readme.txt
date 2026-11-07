@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ TaxoCommerce Tasks provides a standalone task management area in the WordPress a
 * Track pending, in-progress, blocked and completed tasks.
 * Assign tasks to registered WordPress users; control access with manage_options.
 * Filter and sort tasks by status, priority, category, assignee and due date.
-* Navigate a monthly calendar displaying due dates.
+* Navigate a monthly duration calendar with priority-colored bars from task start through due date, collision-free overlap lanes, and cross-month continuations.
 * Monitor dashboard indicators for overdue tasks, states, priorities and assignees.
 * Run a private, read-only Autocheck and download its JSON report.
 * Rename existing task categories safely without changing their IDs or task assignments.
@@ -56,6 +56,12 @@ No. It is standalone.
 When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
 
 == Changelog ==
+
+= 0.1.4 =
+* Replaced point events with inclusive duration bars, separate lanes for overlapping tasks, and clear priority/status legends.
+* Show continued tasks across weekly and monthly boundaries and single-date events as one day.
+* Included accessible hover details, edit links, mobile horizontal scrolling and updated manuals/translations.
+* No database schema or public endpoints changed.
 
 = 0.1.3 =
 * Included both manuals and all new category-editor controls in native gettext catalog files for ES, EN, FR, DE and NL.

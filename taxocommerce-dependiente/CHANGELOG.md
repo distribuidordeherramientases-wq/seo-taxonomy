@@ -1,3 +1,8 @@
+## [0.3.31] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

@@ -1,4 +1,19 @@
+## [0.1.5] — 2026-11-07 — Cabecera con versión y fecha (#2336)
+
+- Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
+- Fecha de publicación persistente, independiente del reloj o FTP.
+
 # TaxoCommerce Tasks — CHANGELOG
+
+## 0.1.4 — 2026-11-07
+
+- Calendario mensual con barras continuas desde fecha de inicio hasta vencimiento y segmentación por semanas, incluidos cruces entre meses.
+- Distribución sin solapamientos visuales mediante carriles; continuidad entre semanas cuando es posible, barras de un día cuando solo hay una fecha.
+- Leyenda por prioridad (baja/normal/alta/urgente), bloqueo rayado y completadas atenuadas; información accesible y apertura de la tarea al pulsar la barra.
+- Consulta privada por fechas superpuestas al periodo visible, sin crear publicaciones ni cambiar tablas.
+- CSS independiente y adaptable a pantallas pequeñas; documentación y traducciones nativas ES/EN/FR/DE/NL.
+- Prueba de regresión para cruces de semana/mes, posiciones, fechas ausentes, seguridad y enlaces; Issue #2329.
+
 
 ## 0.1.3 — 2026-11-07
 
