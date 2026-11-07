@@ -19,7 +19,7 @@ msgstr "TaxoCommerce Social"
 msgid ""
 "Social network connections, publishing templates and calendar for the "
 "TaxoCommerce family."
-msgstr "Verbindungen zu sozialen Netzwerken, Veröffentlichungsvorlagen und Kalender für die TaxoCommerce-Pluginfamilie."
+msgstr "Verbindungen zu sozialen Netzwerken, Veröffentlichungsvorlagen und Kalender für die TaxoCommerce-Familie."
 
 #. Author of the plugin
 #: taxocommerce-social.php
@@ -28,13 +28,13 @@ msgstr "David Perez"
 
 #: includes/admin.php:10
 msgid "Social"
-msgstr "Soziale Netzwerke"
+msgstr "Social"
 
 #: includes/admin.php:74
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr "Eigenständige Veröffentlichung in sozialen Netzwerken. Verbindungen, Formate und Kalender ohne Kampagnen, Angebote oder Sonderregeln für Nachrichten."
+msgstr "Unabhängige Veröffentlichung in sozialen Netzwerken: Verbindungen, Formate und Kalender ohne Marketingkampagnen, Angebote oder Sonderregeln für Nachrichten."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
@@ -44,18 +44,18 @@ msgstr "Soziale Netzwerke"
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr "Der Kalender ist die einzige Terminplanung dieses Moduls. Veröffentlichungen werden hier geplant und verwenden die Vorlagen des jeweiligen Netzwerks."
+msgstr "Der Kalender ist der einzige Terminplan dieses Moduls. Beiträge werden hier mit den Vorlagen des jeweiligen Netzwerks geplant."
 
 #: includes/admin.php:109
 msgid "Agenda social"
-msgstr "Social-Media-Planung"
+msgstr "Social-Media-Planer"
 
 #: includes/admin.php:109
 msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr "Planen Sie Veröffentlichungen manuell oder per CSV und prüfen Sie die Ergebnisse im Monatskalender. Marketingkampagnen sind nicht enthalten; für Nachrichten werden keine Zeitfenster reserviert."
+msgstr "Beiträge manuell oder per CSV planen und Ergebnisse im Monatskalender prüfen. Marketingkampagnen und feste Nachrichten-Zeitfenster sind nicht enthalten."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
@@ -69,11 +69,11 @@ msgstr "Veröffentlichungskalender"
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr "Monatsansicht ausschließlich für Veröffentlichungen in sozialen Netzwerken. Keine Kampagnen, Angebote oder Sonderregeln für Nachrichten."
+msgstr "Monatsansicht nur für Social-Media-Beiträge. Keine Kampagnen, Angebote oder Sonderregeln für Nachrichten."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
-msgstr "Visueller Kalender"
+msgstr "Kalenderansicht"
 
 #: includes/calendar.php:256 includes/core.php:2966 includes/core.php:3156
 #: includes/programador.php:602
@@ -98,21 +98,21 @@ msgstr "Landingpage"
 
 #: includes/calendar.php:268
 msgid "Colisión"
-msgstr "Konflikt"
+msgstr "Kollision"
 
 #: includes/calendar.php:339
 msgid "Sin publicaciones"
-msgstr "Keine Veröffentlichungen"
+msgstr "Keine Beiträge"
 
 #: includes/calendar.php:349
 msgid "Vista compacta"
-msgstr "Kompaktansicht"
+msgstr "Kompakte Ansicht"
 
 #: includes/calendar.php:349
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr "Chronologische Monatsliste. Nützlich auf Mobilgeräten und für die schnelle Prüfung von Uhrzeiten, Netzwerken und tatsächlichen Duplikaten."
+msgstr "Chronologische Monatsübersicht, besonders mobil zum schnellen Prüfen von Uhrzeiten, Netzwerken und echten Duplikaten geeignet."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
@@ -127,15 +127,15 @@ msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr "Lokale, schreibgeschützte Prüfung von registrierten Verbindungen, Vorlagen, Tabellen, Kalender und Scheduler. Es werden weder Konten verbunden noch Beiträge veröffentlicht. Die letzten zwei Ergebnisse je Administrator werden 30 Tage gespeichert."
+msgstr "Lokale, schreibgeschützte Prüfung registrierter Verbindungen, Vorlagen, Tabellen, Kalender und Zeitplanung. Es werden keine Konten verbunden und keine Beiträge veröffentlicht. Die letzten zwei Ergebnisse pro Administrator bleiben 30 Tage gespeichert."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr "Noch keine Ergebnisse vorhanden. Klicken Sie auf Auto-Test ausführen."
+msgstr "Noch keine Ergebnisse. Klicken Sie auf Auto-Test ausführen."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."
-msgstr "Kein vorheriger Durchlauf zum Vergleich vorhanden."
+msgstr "Es gibt keinen vorherigen Durchlauf zum Vergleich."
 
 #: includes/class-auto-test.php:290
 msgid "Grupo"

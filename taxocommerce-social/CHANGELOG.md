@@ -1,3 +1,9 @@
+## [Unreleased] — Social translations (#2316)
+
+- Traducidas las primeras 30 cadenas de interfaz, calendario, redes y Auto Test a ES/EN/FR/DE/NL.
+- PO/MO sincronizados, sin cambiar el programador ni los datos sociales.
+- Traducciones restantes y validación funcional pendientes.
+
 ## [Unreleased] — Internacionalización de Social Network (#2302)
 
 - Traducidas las 143 cadenas originales y 17 cadenas adicionales de interfaz (160 en total) del catálogo vigente a español, inglés, francés, alemán y neerlandés; PO y MO sincronizados.

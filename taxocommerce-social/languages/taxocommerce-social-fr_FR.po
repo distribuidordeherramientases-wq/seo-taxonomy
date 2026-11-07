@@ -34,7 +34,7 @@ msgstr "Réseaux sociaux"
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr "Publication sociale autonome. Connexions, formats et calendrier sans campagnes, offres ni règles particulières pour les actualités."
+msgstr "Publication sociale indépendante. Connexions, formats et calendrier, sans campagnes marketing, offres ni règles particulières pour les actualités."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
@@ -44,7 +44,7 @@ msgstr "Réseaux sociaux"
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr "Le calendrier constitue le seul agenda de ce module. Les publications y sont programmées à l'aide des modèles de chaque réseau."
+msgstr "Le calendrier constitue le seul agenda de ce module. Les publications y sont programmées à partir des modèles de chaque réseau."
 
 #: includes/admin.php:109
 msgid "Agenda social"
@@ -55,7 +55,7 @@ msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr "Programmez des publications manuellement ou par CSV et consultez les résultats dans le calendrier mensuel. Les campagnes marketing ne sont pas incluses et aucun créneau n'est réservé aux actualités."
+msgstr "Programmez les publications manuellement ou par CSV et consultez les résultats dans le calendrier mensuel. Les campagnes marketing et les créneaux réservés aux actualités ne sont pas inclus."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
@@ -69,7 +69,7 @@ msgstr "Calendrier des publications"
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr "Vue mensuelle consacrée aux publications sur les réseaux sociaux. Elle n'inclut ni campagnes, ni offres, ni règles particulières pour les actualités."
+msgstr "Vue mensuelle réservée aux publications sociales, sans campagnes, offres ni règles particulières pour les actualités."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
@@ -112,7 +112,7 @@ msgstr "Vue compacte"
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr "Liste chronologique du mois, utile sur mobile et pour vérifier rapidement les horaires, les réseaux et les doublons réels."
+msgstr "Liste chronologique mensuelle, pratique sur mobile pour vérifier rapidement les horaires, réseaux et vrais doublons."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
@@ -127,11 +127,11 @@ msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr "Vérifications locales en lecture seule des connexions enregistrées, modèles, tables, calendrier et planificateur. Aucun compte n'est connecté et aucune publication n'est effectuée. Les deux derniers résultats par administrateur sont conservés 30 jours."
+msgstr "Contrôles locaux en lecture seule des connexions, modèles, tables, calendrier et planificateur. Aucun compte n'est connecté et aucune publication n'est effectuée. Les deux derniers résultats par administrateur sont conservés 30 jours."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr "Aucun résultat pour le moment. Cliquez sur Exécuter l'Auto Test."
+msgstr "Aucun résultat. Cliquez sur Exécuter l'Auto Test."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."
