@@ -293,46 +293,46 @@ msgstr "Ziehe ein Element oder klicke auf Hinzufügen."
 msgid ""
 "Arrastra para ordenar. Las flechas permiten ordenar también con teclado o "
 "móvil."
-msgstr ""
+msgstr "Zum Sortieren ziehen. Mit den Pfeilen lässt sich die Reihenfolge auch per Tastatur oder Mobilgerät ändern."
 
 #: includes/class-tct-front-composer.php:239
 msgid ""
 "Borrador: los cambios de composición no se aplican al frontend hasta "
 "completar y validar el renderizador modular."
-msgstr ""
+msgstr "Entwurf: Änderungen an der Zusammenstellung werden erst nach Fertigstellung und Prüfung des modularen Renderers im Frontend angewendet."
 
 #: includes/class-tct-front-composer.php:240
 msgid "Guardar borrador FRONT"
-msgstr ""
+msgstr "FRONT-Entwurf speichern"
 
 #: includes/class-tct-request-admin.php:120
 msgid "Tipos de peticion y plantillas"
-msgstr ""
+msgstr "Anfragetypen und Vorlagen"
 
 #: includes/class-tct-request-admin.php:122
 msgid "Elige el tipo de contenido o la plantilla interna que debe ejecutarse."
-msgstr ""
+msgstr "Wähle den Inhaltstyp oder die interne Vorlage aus, die ausgeführt werden soll."
 
 #: includes/class-tct-request-admin.php:123
 msgid "Sin asignacion:"
-msgstr ""
+msgstr "Keine Zuordnung:"
 
 #: includes/class-tct-request-admin.php:123
 msgid "WordPress y el tema mantienen intacta su jerarquia habitual."
-msgstr ""
+msgstr "WordPress und das Theme behalten ihre übliche Hierarchie unverändert bei."
 
 #: includes/class-tct-request-admin.php:124
 msgid ""
 "Las rutas por roles (clúster, hubs y landings) se gestionan en la sección"
-msgstr ""
+msgstr "Routen nach Rollen (Cluster, Hubs und Landingpages) werden im Abschnitt"
 
 #: includes/class-tct-request-admin.php:124
 msgid "Asociar rol y archivo"
-msgstr ""
+msgstr "Rolle und Datei zuordnen"
 
 #: includes/class-tct-request-admin.php:124
 msgid "de este gestor."
-msgstr ""
+msgstr "dieses Managers verwaltet."
 
 #: includes/class-tct-request-admin.php:125
 msgid ""
@@ -340,7 +340,7 @@ msgid ""
 "paginas por si mismas. Se ofrecen las plantillas de interfaz "
 "correspondientes (boton, ficha, minicarrito y avisos) cuando WooCommerce las"
 " registra como archivos PHP."
-msgstr ""
+msgstr "WooCommerce-Aktionen wie das Hinzufügen zum Warenkorb sind keine eigenständigen Seiten. Entsprechende Oberflächenvorlagen (Schaltfläche, Produktansicht, Mini-Warenkorb und Hinweise) werden angeboten, wenn WooCommerce sie als PHP-Dateien registriert."
 
 #: includes/class-tct-request-admin.php:128
 #: includes/class-tct-routing-admin.php:304
@@ -357,26 +357,26 @@ msgstr "Systemreferenz"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Archivo asignado / respaldo"
-msgstr ""
+msgstr "Zugewiesene Datei / Fallback"
 
 #: includes/class-tct-request-admin.php:140
 msgid "No se han encontrado tipos."
-msgstr ""
+msgstr "Keine Typen gefunden."
 
 #: includes/class-tct-request-admin.php:152
 msgid "— Predeterminada: WordPress / tema —"
-msgstr ""
+msgstr "— Standard: WordPress / Theme —"
 
 #: includes/class-tct-request-admin.php:166
 msgid ""
 "Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index."
-msgstr ""
+msgstr "Nicht zugeordnet: Die Theme-Vorlage wird verwendet, falls vorhanden; andernfalls als letzte Möglichkeit index."
 
 #: includes/class-tct-request-admin.php:184
 msgid ""
 "Las plantillas WooCommerce por bloques (HTML) se editan con el Editor del "
 "sitio; este gestor asigna archivos PHP clasicos."
-msgstr ""
+msgstr "WooCommerce-Blockvorlagen (HTML) werden im Website-Editor bearbeitet; dieser Manager ordnet klassische PHP-Dateien zu."
 
 #: includes/class-tct-routing-admin.php:258
 msgid "Enrutamiento de plantillas"
@@ -386,7 +386,7 @@ msgstr "Vorlagenrouting"
 msgid ""
 "Las tablas de plantillas no están disponibles; no se pueden guardar "
 "asociaciones. El interruptor superior sigue funcionando."
-msgstr ""
+msgstr "Vorlagentabellen sind nicht verfügbar; Zuordnungen können nicht gespeichert werden. Der obere Schalter funktioniert weiterhin."
 
 #: includes/class-tct-routing-admin.php:308
 msgid "Buscar"
@@ -394,7 +394,7 @@ msgstr "Suchen"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Petición WordPress / WooCommerce"
-msgstr ""
+msgstr "WordPress-/WooCommerce-Anfrage"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Rol SEO"
@@ -402,7 +402,7 @@ msgstr "SEO-Rolle"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Archivo / plantilla"
-msgstr ""
+msgstr "Datei / Vorlage"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Estado y origen"
@@ -414,27 +414,27 @@ msgstr "Designer"
 
 #: includes/class-tct-routing-admin.php:340
 msgid "No hay rutas que coincidan con el filtro."
-msgstr ""
+msgstr "Keine Routen entsprechen dem Filter."
 
 #: includes/class-tct-routing-admin.php:368
 msgid "WordPress / Tema (sin asignación)"
-msgstr ""
+msgstr "WordPress / Theme (ohne Zuordnung)"
 
 #: includes/class-tct-routing-admin.php:383
 msgid "Archivo no encontrado"
-msgstr ""
+msgstr "Datei nicht gefunden"
 
 #: includes/class-tct-routing-admin.php:385
 msgid "Configurado; motor desactivado"
-msgstr ""
+msgstr "Konfiguriert; Engine deaktiviert"
 
 #: includes/class-tct-routing-admin.php:387
 msgid "Asignación activa"
-msgstr ""
+msgstr "Aktive Zuordnung"
 
 #: includes/class-tct-routing-admin.php:390
 msgid "VEVOR US/DE/NL/FR: ruta especializada con prioridad."
-msgstr ""
+msgstr "VEVOR US/DE/NL/FR: spezielle Route mit Vorrang."
 
 #: includes/class-tct-routing-admin.php:427
 msgid "Excepciones y diagnósticos del enrutamiento"
