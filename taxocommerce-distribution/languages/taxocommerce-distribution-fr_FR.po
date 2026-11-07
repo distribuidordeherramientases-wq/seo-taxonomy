@@ -653,7 +653,7 @@ msgstr "Définition des formats, colonnes, transformations et sérialisation de 
 msgid ""
 "Formularios, controles iniciar/detener, AJAX de seguimiento y enlaces de "
 "archivos."
-msgstr ""
+msgstr "Formulaires, commandes de démarrage/arrêt, suivi AJAX et liens vers les fichiers."
 
 #: includes/manual.php:92
 msgid "Ventanas de proceso mediante WP-Cron, reanudación y supervisión."
@@ -663,18 +663,18 @@ msgstr "Fenêtres de traitement via WP-Cron, reprise et supervision."
 msgid ""
 "Reescrituras y rutas XML, fuentes de URLs, grupos, manifiesto, publicación y"
 " validación."
-msgstr ""
+msgstr "Réécritures et routes XML, sources d’URL, groupes, manifeste, publication et validation."
 
 #: includes/manual.php:94
 msgid ""
 "Documentación de usuario y desarrollador, renderizada sin escribir datos."
-msgstr ""
+msgstr "Documentation utilisateur et développeur, affichée sans écriture de données."
 
 #: includes/manual.php:95
 msgid ""
 "Diagnósticos de solo lectura; no inicializa almacenamiento, workers ni "
 "generadores."
-msgstr ""
+msgstr "Diagnostics en lecture seule ; n’initialise ni le stockage, ni les processus, ni les générateurs."
 
 #: includes/manual.php:99
 msgid "8. Arquitectura y enrutado"
@@ -688,7 +688,7 @@ msgid ""
 "estado, formatos, generación y acciones. includes/worker.php ejecuta las "
 "ventanas programadas. includes/sitemaps/engine.php sirve, valida y publica "
 "XML. Manual y Autocheck son pantallas propias y no alteran los motores."
-msgstr ""
+msgstr "Point d’entrée : taxocommerce-distribution.php. includes/admin.php enregistre l’administration avec le slug taxocommerce-distribution et le sélecteur tcdist_tab. includes/feeds/core.php, channels.php et admin.php définissent l’état, les formats, la génération et les actions. includes/worker.php exécute les fenêtres planifiées. includes/sitemaps/engine.php sert, valide et publie le XML. Manual et Autocheck disposent de leurs propres écrans et ne modifient pas les moteurs."
 
 #: includes/manual.php:102
 msgid "9. Canales y almacenamiento"
@@ -701,7 +701,7 @@ msgid ""
 "catalogo-universal.csv y catalogo-universal.json. Los sitemaps se almacenan "
 "bajo wp-content/uploads/seo-sitemaps/ y se sirven desde URLs estables del "
 "dominio principal, incluido /sitemap.xml."
-msgstr ""
+msgstr "Les flux sont publiés dans wp-content/uploads/seo-system-feeds/ sous les noms google-merchant.xml, microsoft-merchant.txt, pinterest-catalog.csv, catalogo-universal.csv et catalogo-universal.json. Les sitemaps sont stockés dans wp-content/uploads/seo-sitemaps/ et servis depuis des URL stables du domaine principal, notamment /sitemap.xml."
 
 #: includes/manual.php:104
 msgid ""
@@ -709,7 +709,7 @@ msgid ""
 " sitemap valida estructura XML antes de publicar. No coloques los ficheros "
 "generados dentro del ZIP del plugin ni cambies sus rutas públicas sin plan "
 "de migración."
-msgstr ""
+msgstr "La publication commerciale utilise des fichiers temporaires et leur remplacement atomique. Le sitemap vérifie la structure XML avant publication. N’incluez pas les fichiers générés dans le ZIP du plugin et ne modifiez pas leurs routes publiques sans plan de migration."
 
 #: includes/manual.php:106
 msgid "10. Opciones, hooks y ejecución"
@@ -723,7 +723,7 @@ msgid ""
 "La migración inicial copia ajustes e historial desde "
 "seo_ie_commercial_feeds_* solo cuando aún no existen opciones propias; no "
 "borra los originales."
-msgstr ""
+msgstr "Options : tcdist_commercial_feeds_settings_v1, tcdist_commercial_feeds_state_v1, tcdist_commercial_feeds_history_v1, tcdist_worker_state, tcdist_worker_components et tcdist_activation_version. La migration initiale copie les paramètres et l’historique depuis seo_ie_commercial_feeds_* uniquement lorsque les options propres n’existent pas encore ; les originales ne sont pas supprimées."
 
 #: includes/manual.php:108
 msgid ""
@@ -733,7 +733,7 @@ msgid ""
 "Los sitemaps utilizan tcdist_sitemap_regenerate_sitemaps_event. Se escuchan "
 "cambios de productos y categorías para planificar la siguiente regeneración "
 "cuando Distribution es el responsable."
-msgstr ""
+msgstr "Processus : taxocommerce_distribution_feed_worker. Hooks des flux : tcdist_feed_daily_refresh, tcdist_feed_build_batch et tcdist_feed_queued_refresh, enregistrés selon la responsabilité de l’automatisation. Les sitemaps utilisent tcdist_sitemap_regenerate_sitemaps_event. Les changements de produits et catégories sont écoutés pour planifier la régénération suivante si Distribution en est responsable."
 
 #: includes/manual.php:109
 msgid ""
@@ -741,7 +741,7 @@ msgid ""
 "post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop y admin-"
 "post_tcdist_sitemap_regenerate realizan acciones operativas con comprobación"
 " de permisos y nonce. No deben ejecutarse desde Autocheck."
-msgstr ""
+msgstr "Les contrôleurs admin-post_tcdist_feed_save_settings, admin-post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop et admin-post_tcdist_sitemap_regenerate exécutent les opérations après vérification des droits et du nonce. Ils ne doivent pas être appelés depuis Autocheck."
 
 #: includes/manual.php:111
 msgid "Contrato de datos y eventos"
@@ -760,7 +760,7 @@ msgid ""
 "actualización diaria y sincronización. tcdist_commercial_feeds_state_v1 "
 "guarda el ciclo de generación, cursor, recuentos y estado. "
 "tcdist_commercial_feeds_history_v1 conserva el historial."
-msgstr ""
+msgstr "Distribution n’a pas besoin d’une nouvelle table pour ses flux : paramètres, curseur et résultats sont stockés dans wp_options. Utilisez toujours les identifiants constants des flux plutôt que des chaînes dupliquées. tcdist_commercial_feeds_settings_v1 conserve canaux, pays, langue, actualisation quotidienne et synchronisation. tcdist_commercial_feeds_state_v1 conserve cycle de génération, curseur, compteurs et état. tcdist_commercial_feeds_history_v1 conserve l’historique."
 
 #: includes/manual.php:114
 msgid ""
@@ -770,7 +770,7 @@ msgid ""
 "seo_ie_commercial_feeds_settings_v1 y seo_ie_commercial_feeds_history_v1 son"
 " solo fuente de migración: se copian si aún no hay opciones nuevas y no se "
 "borran las originales."
-msgstr ""
+msgstr "Le superviseur écrit dans tcdist_worker_state et tcdist_worker_components. Le moteur sitemap conserve les métadonnées de réécriture, de génération et de manifeste avec ses fonctions propres. Les anciennes options seo_ie_commercial_feeds_settings_v1 et seo_ie_commercial_feeds_history_v1 servent uniquement à la migration : elles sont copiées si les nouvelles options n’existent pas et ne sont jamais supprimées."
 
 #: includes/manual.php:115
 msgid "10.2. Ciclo de un feed"
@@ -780,34 +780,34 @@ msgstr "10.2. Cycle de vie d’un flux"
 msgid ""
 "La administración valida capacidades/nonce y llama a "
 "tcdist_feed_start_build() para crear un estado de ejecución."
-msgstr ""
+msgstr "L’administration vérifie les capacités et le nonce, puis appelle tcdist_feed_start_build() pour créer un état d’exécution."
 
 #: includes/manual.php:118
 msgid ""
 "tcdist_process_nudge() programa el hook de worker si es necesario; el "
 "proceso lee estado y espera hasta not_before cuando existe una pausa "
 "adaptativa."
-msgstr ""
+msgstr "tcdist_process_nudge() planifie le hook du processus si nécessaire ; celui-ci lit l’état et attend jusqu’à not_before en cas de pause adaptative."
 
 #: includes/manual.php:119
 msgid ""
 "tcdist_feed_run_manager_slice() procesa lotes acotados, actualiza cursor y "
 "contadores. El worker usa una ventana de hasta 45 segundos y reagenda si "
 "sigue running."
-msgstr ""
+msgstr "tcdist_feed_run_manager_slice() traite des lots limités, actualise le curseur et les compteurs. Le processus utilise une fenêtre de 45 secondes au maximum et se reprogramme s’il reste running."
 
 #: includes/manual.php:120
 msgid ""
 "channels.php serializa cada registro canónico al formato requerido y el "
 "motor finaliza y publica solo al terminar. Al detener se evita publicar "
 "archivos parciales."
-msgstr ""
+msgstr "channels.php sérialise chaque enregistrement canonique au format requis. Le moteur ne finalise et ne publie qu’à la fin. Un arrêt empêche la publication de fichiers partiels."
 
 #: includes/manual.php:121
 msgid ""
 "Al completar, revisa el estado, histórico, recuentos y fichero; un resultado"
 " sin productos exige analizar exclusiones antes de considerarlo fallo."
-msgstr ""
+msgstr "À la fin, vérifiez l’état, l’historique, les compteurs et le fichier ; l’absence de produits impose d’analyser les exclusions avant de conclure à un échec."
 
 #: includes/manual.php:123
 msgid "10.3. Mapa de hooks"
@@ -821,13 +821,13 @@ msgstr "Hook"
 msgid ""
 "Refresco diario, compatibilidad del lote y regeneración diferida; solo se "
 "registran con propiedad de automatización."
-msgstr ""
+msgstr "Actualisation quotidienne, compatibilité des lots et régénération différée ; ces hooks ne sont enregistrés que lorsque le plugin détient l’automatisation."
 
 #: includes/manual.php:129
 msgid ""
 "Avisan de cambios para una regeneración diferida, sin ejecutar una "
 "publicación por cada producto."
-msgstr ""
+msgstr "Signalent les modifications pour une régénération différée sans effectuer une publication à chaque produit."
 
 #: includes/manual.php:130
 msgid "Controles protegidos de ajustes, ejecución y seguimiento AJAX."
@@ -836,7 +836,7 @@ msgstr "Contrôles sécurisés des paramètres, de l’exécution et du suivi AJ
 #: includes/manual.php:131
 msgid ""
 "Servicio y anuncio de sitemaps cuando el motor independiente es propietario."
-msgstr ""
+msgstr "Service et annonce des sitemaps lorsque le moteur autonome en est responsable."
 
 #: includes/manual.php:132
 msgid "Regeneración silenciosa programada de sitemaps."
