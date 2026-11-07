@@ -4,7 +4,7 @@ Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.9
+Stable tag: 0.3.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,9 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 4. Simulate JSON imports, review unresolved objects and then approve intentional changes.
 
 == Changelog ==
+
+= 0.3.10 =
+* Extend the existing simulated MERGE/MIRROR portable JSON flow to WordPress posts and pages, including SEO landings represented as pages. Resolve by portable slug/path rather than source IDs; keep current product/category import contracts.
 
 = 0.3.9 =
 * Restore independent semantic extraction from product content, tags, brand and SKU, including technical units and controlled aliases. Preserve reviewable proposals and JSON; no automatic product changes.
