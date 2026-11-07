@@ -50,9 +50,11 @@ foreach ( $labels as $locale => $expected ) {
 }
 $main = file_get_contents( $root . '/taxocommerce-campaigns.php' );
 $readme = file_get_contents( $root . '/readme.txt' );
-if ( false === strpos( $main, 'Version: 0.1.4' ) ||
-     false === strpos( $main, "define('TAXOCOMMERCE_CAMPAIGNS_VERSION','0.1.4')" ) ||
-     false === strpos( $readme, 'Stable tag: 0.1.4' ) ) {
+preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', $main, $matches );
+$version = $matches[1] ?? '';
+if ( '' === $version ||
+     false === strpos( $main, "define('TAXOCOMMERCE_CAMPAIGNS_VERSION','" . $version . "')" ) ||
+     false === strpos( $readme, 'Stable tag: ' . $version ) ) {
     fwrite( STDERR, "FAIL: Campaigns release versions differ\n" );
     exit( 1 );
 }

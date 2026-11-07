@@ -1,3 +1,9 @@
+## [0.3.8] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en la cabecera del administrador mediante metadatos locales (Release Date).
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. No altera servicios, datos, menús ni permisos.
+- Se conserva el funcionamiento independiente y se comprueba con el test de cabeceras de la familia.
+
 ## [0.3.7] — 2026-11-07 — Registro Core sin traducciones prematuras (#2330)
 
 - Registro de metadatos de este plugin en TaxoCommerce Core pospuesto a `init` prioridad 11 cuando Core solicita los datos durante `plugins_loaded`.

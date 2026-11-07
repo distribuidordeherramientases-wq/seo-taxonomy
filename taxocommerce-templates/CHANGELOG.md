@@ -1,3 +1,8 @@
+## [0.4.22] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
 ## [Unreleased] — Traducciones gettext (taxocommerce-templates)
 
 - Completadas las entradas de traducción vacías detectadas en los catálogos de EN/FR/DE/NL; idioma ES ya tenía traducción.

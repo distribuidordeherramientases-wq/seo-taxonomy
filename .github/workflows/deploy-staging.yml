@@ -63,6 +63,9 @@ jobs:
           set -euo pipefail
           php -l .github/tests/i18n-19-locale-smoke.php
           php .github/tests/i18n-19-locale-smoke.php
+          python3 .github/scripts/sync_family_admin_branding.py --check
+          php -l .github/tests/family-admin-header-smoke.php
+          php .github/tests/family-admin-header-smoke.php
           php -l .github/tests/taxocommerce-autocheck-family.php
           php .github/tests/taxocommerce-autocheck-family.php
           find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do

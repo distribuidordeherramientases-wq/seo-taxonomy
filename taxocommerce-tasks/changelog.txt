@@ -1,3 +1,6 @@
+= 0.1.5 (2026-11-07) =
+* Cabecera del administrador: título, versión y fecha de publicación, sin duplicar titulares. Issue #2336.
+
 TaxoCommerce Tasks historical changelog.
 
 0.1.4 (2026-11-07)

@@ -67,7 +67,9 @@ require dirname( __DIR__ ) . '/taxocommerce-social.php';
 function social_assert( $condition, $message ) {
     if ( ! $condition ) { fwrite( STDERR, 'FAIL: ' . $message . "\n" ); exit( 1 ); }
 }
-social_assert( TAXOCOMMERCE_SOCIAL_VERSION === '0.1.5', 'Social version 0.1.3' );
+$plugin_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-social.php' );
+preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', $plugin_source, $header_version );
+social_assert( TAXOCOMMERCE_SOCIAL_VERSION === ( $header_version[1] ?? '' ), 'Social version matches plugin header' );
 social_assert( has_action( 'admin_post_tcsocial_run_auto_test' ), 'Auto Test action registered' );
 social_assert( count( TCSocial_Auto_Test::cases() ) === 16, 'Exactly sixteen checks' );
 

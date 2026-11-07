@@ -4,7 +4,9 @@
  */
 
 define( 'ABSPATH', __DIR__ . '/' );
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.4' );
+$main = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-tasks.php' );
+preg_match( '/^ \* Version: (\d+\.\d+\.\d+)$/m', $main, $match );
+define( 'TAXOCOMMERCE_TASKS_VERSION', $match[1] ?? '' );
 
 function tctasks_date( $value ) {
     if ( ! is_string( $value ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {

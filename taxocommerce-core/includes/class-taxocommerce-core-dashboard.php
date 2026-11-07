@@ -84,6 +84,24 @@ final class TaxoCommerce_Core_Dashboard {
 		);
 
 
+        $tc_version_label = __( 'Version', 'taxocommerce-core' );
+        $tc_updated_label = __( 'Last updated', 'taxocommerce-core' );
+        $tc_translations = array(
+            'es' => array( 'Versión', 'Última actualización' ),
+            'en' => array( 'Version', 'Last updated' ),
+            'fr' => array( 'Version', 'Dernière mise à jour' ),
+            'de' => array( 'Version', 'Zuletzt aktualisiert' ),
+            'nl' => array( 'Versie', 'Laatst bijgewerkt' ),
+        );
+        $tc_locale = strtolower( substr( determine_locale(), 0, 2 ) );
+        if ( isset( $tc_translations[ $tc_locale ] ) ) {
+            if ( 'Version' === $tc_version_label ) {
+                $tc_version_label = $tc_translations[ $tc_locale ][0];
+            }
+            if ( 'Last updated' === $tc_updated_label ) {
+                $tc_updated_label = $tc_translations[ $tc_locale ][1];
+            }
+        }
 		?>
 		<div class="wrap tcc-dashboard" id="taxocommerce-core-dashboard">
 			<header class="tcc-hero" aria-labelledby="tcc-dashboard-title">
@@ -95,6 +113,10 @@ final class TaxoCommerce_Core_Dashboard {
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
 					</div>
 				</div>
+				<div class="tcc-hero__metadata">
+                    <span><?php echo esc_html( $tc_version_label . ' ' . TAXOCOMMERCE_CORE_VERSION ); ?></span>
+                    <span><?php echo esc_html( $tc_updated_label . ': ' . TAXOCOMMERCE_CORE_RELEASE_DATE ); ?></span>
+                </div>
 				<div class="tcc-hero__art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 			</header>
 

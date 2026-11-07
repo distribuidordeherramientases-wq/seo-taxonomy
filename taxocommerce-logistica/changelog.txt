@@ -1,3 +1,6 @@
+= 0.2.7 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 HISTORIAL LEGADO — TAXOCOMMERCE LOGISTICS
 
 Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.

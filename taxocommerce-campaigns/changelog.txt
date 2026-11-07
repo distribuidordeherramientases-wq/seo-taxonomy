@@ -1,3 +1,6 @@
+= 0.1.5 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 PLUGIN INDEPENDIENTE — ACTUALIZACIÓN 0.1.4 (2026-11-05)
 * Traducciones operativas de campañas de marketing en ES/EN/FR/DE/NL y catálogos MO reales (#2239). Se preserva a continuación el historial del monolito.
 

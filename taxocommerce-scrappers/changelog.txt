@@ -1,3 +1,6 @@
+= 0.1.11 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 = 0.1.10 (2026-11-07) =
 * Evita el aviso de traducciones prematuras al registrar metadatos en Core. Se difiere hasta init sin cambiar módulos ni idiomas. Issue #2330.
 
