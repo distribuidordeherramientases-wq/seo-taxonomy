@@ -18,6 +18,8 @@ function submit(code, type = 'tracking') {
     const field = {value: code, disabled: false};
     const kind = {value: type};
     const hidden = {value: ''};
+    const provider = {value: ''};
+    const providerId = {value: ''};
     let callback;
     const form = {
         querySelector(selector) {
@@ -34,13 +36,15 @@ function submit(code, type = 'tracking') {
         getElementById(id) {
             if (id === 'tgb-head-tags-form') return form;
             if (id === 'tgb-head-tags-clarity-id') return hidden;
+            if (id === 'tgb-head-tags-provider') return provider;
+            if (id === 'tgb-head-tags-provider-id') return providerId;
             return null;
         }
     };
     vm.runInNewContext(javascript, {document}, {timeout: 1000});
     assert.equal(typeof callback, 'function');
     callback();
-    return {field, hidden};
+    return {field, hidden, provider, providerId, kind};
 }
 
 const official = `<script type="text/javascript">
@@ -65,4 +69,31 @@ assert.equal(result.field.disabled, false, 'Non-Clarity markup must retain exist
 result = submit('<script src="https://example.com/tracker.js"></script>');
 assert.equal(result.hidden.value, '');
 assert.equal(result.field.disabled, false, 'Unknown provider must not be silently rewritten');
-process.stdout.write('Clarity client-side submission smoke test passed\n');
+
+// Google Search Console: copy/paste meta verification; no HTML in the POST.
+result = submit('<meta name="google-site-verification" content="abCD_efGH-123456" />', 'verification');
+assert.equal(result.provider.value, 'google_verification');
+assert.equal(result.providerId.value, 'abCD_efGH-123456');
+assert.equal(result.field.disabled, true);
+assert.equal(result.kind.value, 'verification');
+
+// Google Analytics: the standard gtag snippet is normalized to its measurement ID.
+result = submit('<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC123456"></script><script>gtag("config","G-ABC123456");</script>', 'verification');
+assert.equal(result.provider.value, 'google_analytics');
+assert.equal(result.providerId.value, 'G-ABC123456');
+assert.equal(result.kind.value, 'tracking');
+assert.equal(result.field.disabled, true);
+
+// Google Tag Manager: the pasted head script becomes a container ID.
+result = submit('<script>(function(w,d,s,l,i){var j=d.createElement(s);j.src="https://www.googletagmanager.com/gtm.js?id="+i;})(window,document,"script","dataLayer","GTM-ABCD123");</script>', 'verification');
+assert.equal(result.provider.value, 'google_tag_manager');
+assert.equal(result.providerId.value, 'GTM-ABCD123');
+assert.equal(result.kind.value, 'tracking');
+assert.equal(result.field.disabled, true);
+
+// Existing Clarity paste also uses the normalized provider fields.
+result = submit(official);
+assert.equal(result.provider.value, 'clarity');
+assert.equal(result.providerId.value, 'ww0i0jxbs8');
+
+process.stdout.write('Provider head tags form smoke tests passed\n');
