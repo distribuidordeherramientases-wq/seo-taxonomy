@@ -1,3 +1,9 @@
+## [Unreleased] — Traducciones de interfaz y documentación (#2062)
+
+- Internacionalizadas las 57 primeras cadenas todavía vacías del manual del usuario en ES/EN/FR/DE/NL (285 traducciones), con instrucciones sobre 301/302, reglas, copias JSON, borrado asistido, advertencias y diagnósticos.
+- Regenerados los cinco archivos MO con 145 entradas por idioma; sin modificar reglas, tablas, datos, rutas, motor de redirecciones ni PHP/JS.
+- Continúa pendiente la traducción del manual técnico y la comprobación real de interfaz/idiomas en WordPress; no desplegar a producción.
+
 ## [0.1.10] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en la cabecera del administrador mediante metadatos locales (Release Date).

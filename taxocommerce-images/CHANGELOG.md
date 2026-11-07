@@ -1,3 +1,9 @@
+## [Unreleased] — Traducciones de interfaz y documentación (#2062)
+
+- Internacionalización de 136/137 cadenas por idioma en los cinco catálogos ES/EN/FR/DE/NL (682 traducciones nuevas). Pestañas de medios, gestión de imágenes, estados, informes, miniaturas, metadatos, auditoría, optimización y procesos por lotes.
+- Regenerados y sincronizados cinco archivos GNU MO con 258 entradas por catálogo. Se mantienen las claves gettext y los marcadores de formato sin modificar PHP/JS, imágenes, ajustes, datos ni trabajos en segundo plano.
+- Continúa pendiente el resto de las cadenas de interfaz, algunas descripciones extensas y cualquier literal fuera de gettext. Requiere Plugin Check estricto y pruebas visuales de idioma en STAGING/Focazul; no desplegar a producción.
+
 ## [0.2.19] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.

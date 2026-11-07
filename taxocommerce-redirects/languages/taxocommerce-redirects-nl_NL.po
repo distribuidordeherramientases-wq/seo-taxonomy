@@ -164,7 +164,7 @@ msgstr "Inhoud"
 
 #: includes/class-user-guide.php:136
 msgid "1. ¿Para qué sirve Redirects?"
-msgstr ""
+msgstr "1. Waarvoor dient Redirects?"
 
 #: includes/class-user-guide.php:137
 msgid ""
@@ -172,169 +172,169 @@ msgid ""
 "antigua a otra URL de la misma web. Sirve para conservar el acceso cuando "
 "cambias la ruta de una página, categoría o producto y para evitar enlaces "
 "antiguos rotos."
-msgstr ""
+msgstr "TaxoCommerce Redirects stuurt bezoekers automatisch van een oude URL naar een andere URL op dezelfde website. Zo blijft de toegang behouden wanneer het adres van een pagina, categorie of product verandert en worden kapotte oude links voorkomen."
 
 #: includes/class-user-guide.php:138
 msgid ""
 "También muestra incidencias en las reglas, permite guardar copias JSON y "
 "ofrece un borrado asistido con confirmación para entradas, páginas, "
 "productos y categorías."
-msgstr ""
+msgstr "Het toont ook problemen met omleidingsregels, biedt JSON-back-ups en ondersteunt begeleid verwijderen van berichten, pagina's, producten en categorieën met bevestiging."
 
 #: includes/class-user-guide.php:139
 msgid ""
 "Funciona de forma independiente. Si TaxoCommerce Core está activo, Redirects"
 " aparece como extensión y ofrece accesos adicionales de borrado asistido."
-msgstr ""
+msgstr "De plugin werkt zelfstandig. Als TaxoCommerce Core actief is, wordt Redirects ook als uitbreiding getoond met extra snelkoppelingen voor begeleid verwijderen."
 
 #: includes/class-user-guide.php:142
 msgid "2. Diferencias entre 301 y 302"
-msgstr ""
+msgstr "2. Verschillen tussen 301 en 302"
 
 #: includes/class-user-guide.php:143
 msgid "301: traslado permanente"
-msgstr ""
+msgstr "301: permanente omleiding"
 
 #: includes/class-user-guide.php:144
 msgid ""
 "Utiliza 301 si la URL antigua ya no se va a usar y su sustituta es "
 "definitiva. Es la opción habitual al renombrar una categoría o eliminar una "
 "ficha que tiene una sustituta real."
-msgstr ""
+msgstr "Gebruik 301 wanneer de oude URL niet meer wordt gebruikt en de vervanging definitief is. Dit is doorgaans geschikt bij het hernoemen van een categorie of verwijderen van een productpagina met een echte vervanger."
 
 #: includes/class-user-guide.php:145
 msgid "302: traslado temporal"
-msgstr ""
+msgstr "302: tijdelijke omleiding"
 
 #: includes/class-user-guide.php:146
 msgid ""
 "Utiliza 302 si prevés volver a mostrar la URL antigua. La redirección 302 no"
 " implica un cambio permanente de dirección."
-msgstr ""
+msgstr "Gebruik 302 als je van plan bent de oude URL later weer te gebruiken. Een 302-omleiding betekent geen permanente adreswijziging."
 
 #: includes/class-user-guide.php:147
 msgid ""
 "Evita enviar todas las URL retiradas a la portada sin una relación útil. El "
 "destino debe responder y ser relevante para el visitante."
-msgstr ""
+msgstr "Stuur niet alle verwijderde URL's zonder relevante relatie door naar de startpagina. De bestemming moet werken en nuttig zijn voor bezoekers."
 
 #: includes/class-user-guide.php:150
 msgid "3. Crear y editar una redirección"
-msgstr ""
+msgstr "3. Omleiding maken en bewerken"
 
 #: includes/class-user-guide.php:152
 msgid "Entra en Redirects y abre la pestaña Redirects."
-msgstr ""
+msgstr "Open Redirects en selecteer het tabblad Redirects."
 
 #: includes/class-user-guide.php:153
 msgid ""
 "Escribe la URL de origen, por ejemplo /categoria-antigua. No uses la portada"
 " ni rutas de administración."
-msgstr ""
+msgstr "Voer de bron-URL in, bijvoorbeeld /oude-categorie. Gebruik niet de startpagina of beheerpaden."
 
 #: includes/class-user-guide.php:154
 msgid ""
 "Escribe la URL de destino dentro del mismo sitio, por ejemplo /categoria-"
 "nueva."
-msgstr ""
+msgstr "Voer een doel-URL op dezelfde site in, bijvoorbeeld /nieuwe-categorie."
 
 #: includes/class-user-guide.php:155
 msgid "Selecciona 301 o 302 y pulsa «Crear redirección»."
-msgstr ""
+msgstr "Selecteer 301 of 302 en klik op 'Omleiding maken'."
 
 #: includes/class-user-guide.php:156
 msgid ""
 "Para modificarla, pulsa Editar sobre la fila y guarda los cambios; para "
 "eliminar la regla, usa Borrar y confirma."
-msgstr ""
+msgstr "Klik op Bewerken in de rij en sla op om een regel te wijzigen; klik op Verwijderen en bevestig om de regel te wissen."
 
 #: includes/class-user-guide.php:158
 msgid "Qué impide el formulario"
-msgstr ""
+msgstr "Wat het formulier voorkomt"
 
 #: includes/class-user-guide.php:159
 msgid ""
 "El plugin rechaza destinos externos, enlaces que se redirigen a sí mismos, "
 "orígenes duplicados y ciclos de redirecciones. Las nuevas reglas solo "
 "utilizan 301 o 302."
-msgstr ""
+msgstr "De plugin weigert externe bestemmingen, omleidingen naar zichzelf, dubbele bron-URL's en omleidingslussen. Nieuwe regels mogen alleen 301 of 302 gebruiken."
 
 #: includes/class-user-guide.php:160
 msgid "Abrir el gestor de redirecciones"
-msgstr ""
+msgstr "Omleidingsbeheer openen"
 
 #: includes/class-user-guide.php:163
 msgid "4. Consultar las reglas y sus incidencias"
-msgstr ""
+msgstr "4. Regels en problemen bekijken"
 
 #: includes/class-user-guide.php:164
 msgid ""
 "La parte superior de Redirects muestra el total de reglas, las que se han "
 "usado, las que no, el número acumulado de hits, las reglas utilizadas "
 "durante las últimas 24 horas, las incidencias, las cadenas y los ciclos."
-msgstr ""
+msgstr "Bovenaan Redirects zie je het totale aantal regels, gebruikte en ongebruikte regels, alle treffers, gebruik in de laatste 24 uur, problemen, ketens en lussen."
 
 #: includes/class-user-guide.php:165
 msgid ""
 "En la tabla puedes buscar por ID, origen o destino; filtrar Todas, Revisar, "
 "Con uso y Sin uso; abrir una URL de prueba y visitar su destino en otra "
 "pestaña."
-msgstr ""
+msgstr "In de tabel kun je zoeken op ID, bron of bestemming; filteren op Alle, Controleren, Gebruikt en Ongebruikt; een test-URL en de bestemming in een ander tabblad openen."
 
 #: includes/class-user-guide.php:166
 msgid "Qué significa una incidencia"
-msgstr ""
+msgstr "Wat een probleem betekent"
 
 #: includes/class-user-guide.php:167
 msgid ""
 "Una cadena hace pasar la navegación por varias redirecciones; un ciclo "
 "intenta volver a una URL anterior. El diagnóstico también identifica "
 "orígenes incompatibles, reglas duplicadas y destinos externos históricos."
-msgstr ""
+msgstr "Een keten gaat langs meerdere omleidingen; een lus keert terug naar een eerdere URL. De diagnose herkent ook ongeldige bronnen, dubbele regels en oudere externe bestemmingen."
 
 #: includes/class-user-guide.php:168
 msgid ""
 "Importante: que una regla figure sin incidencias solo indica que su "
 "estructura es válida. No confirma por HTTP que la página de destino esté "
 "disponible."
-msgstr ""
+msgstr "Belangrijk: geen gemelde problemen betekent alleen dat de regel structureel geldig is. De beschikbaarheid van de bestemmingspagina wordt niet via HTTP bevestigd."
 
 #: includes/class-user-guide.php:171
 msgid "5. Exportar e importar una copia JSON"
-msgstr ""
+msgstr "5. JSON-back-up exporteren en importeren"
 
 #: includes/class-user-guide.php:172
 msgid "Guardar una copia de seguridad"
-msgstr ""
+msgstr "Back-up opslaan"
 
 #: includes/class-user-guide.php:173
 msgid ""
 "En el gestor, pulsa «Exportar copia JSON». El archivo incluye los orígenes, "
 "destinos, códigos de estado, contadores de uso y fecha del último hit. "
 "«Exportar análisis JSON» añade el diagnóstico estructural."
-msgstr ""
+msgstr "Klik in het beheer op 'JSON-back-up exporteren'. Het bestand bevat bronnen, bestemmingen, statuscodes, aantal treffers en datum van laatste gebruik. 'JSON-analyse exporteren' bevat ook de structurele diagnose."
 
 #: includes/class-user-guide.php:174
 msgid "Importar reglas nuevas"
-msgstr ""
+msgstr "Nieuwe regels importeren"
 
 #: includes/class-user-guide.php:175
 msgid ""
 "Selecciona el JSON y pulsa «Importar solo reglas nuevas». La importación no "
 "sustituye las reglas existentes; informa de registros creados, repetidos, "
 "inválidos y con ciclos."
-msgstr ""
+msgstr "Selecteer een JSON-bestand en klik op 'Alleen nieuwe regels importeren'. Bestaande regels worden niet vervangen; het resultaat toont aangemaakte, dubbele, ongeldige en lusvormende regels."
 
 #: includes/class-user-guide.php:176
 msgid ""
 "Si marcas «Conservar hits y último uso», también recuperará esos datos "
 "históricos. El archivo tiene un límite de 25 MiB y 50.000 reglas. Prueba "
 "siempre primero en staging y haz una copia previa."
-msgstr ""
+msgstr "Als je 'Treffers en laatste gebruik behouden' aanvinkt, worden historische gebruiksgegevens hersteld. Limieten: 25 MiB en 50.000 regels. Test altijd eerst op staging en maak een back-up."
 
 #: includes/class-user-guide.php:179
 msgid "6. Borrado asistido de contenido"
-msgstr ""
+msgstr "6. Begeleid verwijderen van inhoud"
 
 #: includes/class-user-guide.php:180
 msgid ""
@@ -342,49 +342,49 @@ msgid ""
 "compatibles de WordPress y WooCommerce. En Core también se integra en sus "
 "editores y listas. Es una operación sobre contenido, distinta de borrar una "
 "regla del gestor."
-msgstr ""
+msgstr "De knop voor begeleid verwijderen is beschikbaar in geschikte WordPress- en WooCommerce-lijsten en -editors en in Core. Inhoud verwijderen is niet hetzelfde als een omleidingsregel verwijderen."
 
 #: includes/class-user-guide.php:182
 msgid "Abre la confirmación del elemento y revisa su título y URL actual."
-msgstr ""
+msgstr "Open de bevestiging voor het item en controleer de titel en huidige URL."
 
 #: includes/class-user-guide.php:183
 msgid ""
 "Elige entre crear una 301 hacia una sustituta válida o eliminar sin "
 "redirección."
-msgstr ""
+msgstr "Kies tussen een 301-omleiding naar een geldige vervanger en verwijderen zonder omleiding."
 
 #: includes/class-user-guide.php:184
 msgid "Confirma la operación. También puedes cancelar sin cambios."
-msgstr ""
+msgstr "Bevestig de actie. Je kunt ook annuleren zonder wijzigingen."
 
 #: includes/class-user-guide.php:185
 msgid ""
 "Las entradas, páginas y productos van a la papelera. Para borrarlos "
 "definitivamente desde ella es necesaria una confirmación adicional."
-msgstr ""
+msgstr "Berichten, pagina's en producten gaan naar de prullenbak. Definitief verwijderen daaruit vereist een extra bevestiging."
 
 #: includes/class-user-guide.php:187
 msgid "Restauración desde la papelera"
-msgstr ""
+msgstr "Herstellen uit de prullenbak"
 
 #: includes/class-user-guide.php:188
 msgid ""
 "Al restaurar un elemento, el plugin elimina la redirección asistida "
 "únicamente si sigue siendo exactamente la misma y no se ha modificado "
 "después. No elimina una regla que otro administrador haya cambiado."
-msgstr ""
+msgstr "Bij het herstellen van een item verwijdert de plugin de bijbehorende begeleide omleiding alleen als de regel ongewijzigd is. Een door een andere beheerder aangepaste regel wordt niet verwijderd."
 
 #: includes/class-user-guide.php:191
 msgid "7. Precauciones al borrar categorías"
-msgstr ""
+msgstr "7. Voorzorgsmaatregelen bij het verwijderen van categorieën"
 
 #: includes/class-user-guide.php:192
 msgid ""
 "El borrado de categorías de producto es permanente. Solo se permite cuando "
 "no contienen productos ni subcategorías, no son la categoría predeterminada "
 "de WooCommerce y no existen relaciones Core protegidas."
-msgstr ""
+msgstr "Het verwijderen van productcategorieën is definitief. Het kan alleen als ze geen producten of subcategorieën bevatten, niet de standaardcategorie van WooCommerce zijn en geen beschermde Core-koppelingen hebben."
 
 #: includes/class-user-guide.php:193
 msgid ""
@@ -392,59 +392,59 @@ msgid ""
 "TaxoCommerce SEO, Redirects bloquea esa operación para evitar "
 "inconsistencias. Utiliza el procedimiento antiguo hasta retirar y verificar "
 "completamente ese control."
-msgstr ""
+msgstr "Als de oude controle voor het verwijderen van categorieën van TaxoCommerce SEO nog actief is, blokkeert Redirects deze actie om inconsistenties te voorkomen. Gebruik de oude werkwijze totdat die controle volledig is verwijderd en gecontroleerd."
 
 #: includes/class-user-guide.php:194
 msgid ""
 "La eliminación en masa y los borrados iniciados por clientes REST externos "
 "no utilizan este asistente."
-msgstr ""
+msgstr "Bulkverwijderingen en verwijderingen vanuit externe REST-clients gebruiken deze assistent niet."
 
 #: includes/class-user-guide.php:197
 msgid "8. Auto Test: comparar antes y después de actualizar"
-msgstr ""
+msgstr "8. Autotest: voor en na bijwerken vergelijken"
 
 #: includes/class-user-guide.php:199
 msgid ""
 "Antes del despliegue, abre Auto Test y pulsa «Guardar estado ANTES». "
 "Descarga el informe JSON."
-msgstr ""
+msgstr "Open vóór de implementatie Autotest en klik op 'VOOR-toestand opslaan'. Download het JSON-rapport."
 
 #: includes/class-user-guide.php:200
 msgid ""
 "Actualiza el plugin siguiendo el procedimiento autorizado de la instalación."
-msgstr ""
+msgstr "Werk de plugin bij volgens de goedgekeurde procedure van de installatie."
 
 #: includes/class-user-guide.php:201
 msgid ""
 "En la misma instalación y con el mismo administrador, pulsa «Comprobar "
 "DESPUÉS»."
-msgstr ""
+msgstr "Klik op dezelfde installatie met dezelfde beheerder op 'NA controleren'."
 
 #: includes/class-user-guide.php:202
 msgid ""
 "Revisa los errores nuevos, resueltos, existentes y la pérdida de cobertura; "
 "descarga el segundo informe JSON."
-msgstr ""
+msgstr "Bekijk nieuwe, opgeloste en bestaande fouten en eventuele afname van de testdekking; download het tweede JSON-rapport."
 
 #: includes/class-user-guide.php:204
 msgid ""
 "Las 26 comprobaciones cubren ocho grupos. No generan visitas, no importan "
 "reglas ni eliminan contenido; las pruebas HTTP y de borrado real siguen "
 "pendientes de una comprobación controlada."
-msgstr ""
+msgstr "De 26 controles bestrijken acht groepen. Ze genereren geen bezoeken, importeren geen regels en verwijderen geen inhoud; HTTP- en echte verwijdertests vereisen nog een gecontroleerde controle."
 
 #: includes/class-user-guide.php:205
 msgid "Abrir Auto Test"
-msgstr ""
+msgstr "Autotest openen"
 
 #: includes/class-user-guide.php:208
 msgid "9. Preguntas y problemas frecuentes"
-msgstr ""
+msgstr "9. Vragen en veelvoorkomende problemen"
 
 #: includes/class-user-guide.php:209
 msgid "La redirección no funciona"
-msgstr ""
+msgstr "De omleiding werkt niet"
 
 #: includes/class-user-guide.php:210
 msgid ""
@@ -452,22 +452,22 @@ msgid ""
 "con la URL solicitada, verifica que el destino está en el mismo dominio y "
 "prueba el comportamiento HTTP. Los archivos estáticos y ciertas rutas "
 "excluidas no pasan por el motor."
-msgstr ""
+msgstr "Controleer de tabel en de status van de autotest, of de bron overeenkomt met de opgevraagde URL en de bestemming op hetzelfde domein ligt, en test het HTTP-gedrag. Statische bestanden en bepaalde uitgesloten paden lopen niet via het omleidingsmechanisme."
 
 #: includes/class-user-guide.php:211
 msgid "La regla existe, pero el destino da error"
-msgstr ""
+msgstr "De regel bestaat, maar de bestemming geeft een fout"
 
 #: includes/class-user-guide.php:212
 msgid ""
 "El diagnóstico comprueba la estructura, no el estado HTTP del destino. "
 "Comprueba la URL con el navegador y revisa si tiene otra redirección o está "
 "eliminada."
-msgstr ""
+msgstr "De diagnose controleert de structuur, niet de HTTP-status van de bestemming. Open de URL in een browser en controleer of er een andere omleiding is of de pagina is verwijderd."
 
 #: includes/class-user-guide.php:213
 msgid "¿Qué ocurre si desactivo o desinstalo?"
-msgstr ""
+msgstr "Wat gebeurt er als ik de plugin deactiveer of verwijder?"
 
 #: includes/class-user-guide.php:214
 msgid ""
@@ -475,7 +475,7 @@ msgid ""
 "elimina definitivamente la tabla compartida seo_redirects y todas sus "
 "reglas, incluidas las históricas: exporta una copia y valida las "
 "consecuencias antes de desinstalar."
-msgstr ""
+msgstr "Bij deactiveren blijven de regels behouden. Bij verwijderen via WordPress worden de gedeelde tabel seo_redirects en alle regels, inclusief oudere regels, definitief verwijderd. Exporteer eerst een back-up en beoordeel de gevolgen."
 
 #: includes/class-user-guide.php:222
 msgid "1. Alcance y compatibilidad"
