@@ -16,3 +16,71 @@ if ( preg_match( '/register_post_type|register_taxonomy|add_shortcode|register_r
     exit( 1 );
 }
 echo "PASS: standalone agenda boot/static safety contract.\n";
+
+
+/**
+ * Execute the navigation callbacks without a WordPress installation.
+ * Verify both real registration branches: Core absent and Core present.
+ */
+define( 'ABSPATH', dirname( __DIR__ ) . '/' );
+function register_activation_hook( $file, $callback ) {}
+function add_action( $hook, $callback, $priority = 10 ) {}
+function add_filter( $hook, $callback, $priority = 10 ) {}
+function determine_locale() { return 'es_ES'; }
+function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function add_menu_page( ...$args ) { $GLOBALS['tctasks_menus'][] = $args; }
+function add_submenu_page( ...$args ) { $GLOBALS['tctasks_submenus'][] = $args; }
+
+require_once dirname( __DIR__ ) . '/taxocommerce-tasks.php';
+
+$GLOBALS['tctasks_menus']    = array();
+$GLOBALS['tctasks_submenus'] = array();
+tctasks_admin_menu();
+if (
+    1 !== count( $GLOBALS['tctasks_menus'] ) ||
+    ! empty( $GLOBALS['tctasks_submenus'] ) ||
+    'taxocommerce-tasks' !== $GLOBALS['tctasks_menus'][0][3] ||
+    'tctasks_admin' !== $GLOBALS['tctasks_menus'][0][4]
+) {
+    fwrite( STDERR, "FAIL: standalone menu registration was changed\n" );
+    exit( 1 );
+}
+
+// Real Core provides this constant before registering the admin menu.
+define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.0' );
+$GLOBALS['tctasks_menus']    = array();
+$GLOBALS['tctasks_submenus'] = array();
+tctasks_admin_menu();
+if (
+    ! empty( $GLOBALS['tctasks_menus'] ) ||
+    1 !== count( $GLOBALS['tctasks_submenus'] ) ||
+    'taxocommerce-core' !== $GLOBALS['tctasks_submenus'][0][0] ||
+    'taxocommerce-tasks' !== $GLOBALS['tctasks_submenus'][0][4] ||
+    'tctasks_admin' !== $GLOBALS['tctasks_submenus'][0][5]
+) {
+    fwrite( STDERR, "FAIL: Tasks must be nested under Core without changing its route\n" );
+    exit( 1 );
+}
+
+$mock_core = new class() {
+    public $calls = array();
+    public function register_module( $id, $data ) { $this->calls[ $id ] = $data; }
+};
+tctasks_register_core_module( $mock_core );
+if (
+    ! isset( $mock_core->calls['tasks'] ) ||
+    TAXOCOMMERCE_TASKS_VERSION !== $mock_core->calls['tasks']['version'] ||
+    false === strpos( $mock_core->calls['tasks']['admin_url'], 'page=taxocommerce-tasks' )
+) {
+    fwrite( STDERR, "FAIL: Core module registration was not preserved\n" );
+    exit( 1 );
+}
+$extensions = tctasks_register_family_extension( array( 'existing' => array( 'id' => 'existing' ) ) );
+if (
+    ! isset( $extensions['existing'], $extensions['tasks'] ) ||
+    'taxocommerce-tasks/taxocommerce-tasks.php' !== $extensions['tasks']['plugin_file']
+) {
+    fwrite( STDERR, "FAIL: family extension catalog registration failed\n" );
+    exit( 1 );
+}
+echo "PASS: standalone and Core menu routes; optional family module and extension catalog.\n";
