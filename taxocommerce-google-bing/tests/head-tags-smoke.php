@@ -7,6 +7,7 @@ define( 'ABSPATH', __DIR__ );
 function get_option( $key, $default = array() ) {
     return isset( $GLOBALS['test_head_options'][ $key ] ) ? $GLOBALS['test_head_options'][ $key ] : $default;
 }
+function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function is_admin() { return false; }
 function is_feed() { return false; }
 function wp_has_consent( $category ) { return 'statistics' === $category && ! empty( $GLOBALS['test_head_consent'] ); }
