@@ -18,6 +18,7 @@ final class TaxoCommerce_Insights_Head_Tags {
     public static function register() {
         add_action( 'admin_post_tgb_head_tag_save', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_tgb_head_tag_delete', array( __CLASS__, 'delete' ) );
+        add_action( 'admin_post_tgb_head_tag_toggle', array( __CLASS__, 'toggle' ) );
         add_action( 'wp_head', array( __CLASS__, 'output' ), 99 );
     }
 
@@ -83,6 +84,71 @@ final class TaxoCommerce_Insights_Head_Tags {
             . 'y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);' . "\n"
             . '})(window,document,"clarity","script","' . $project_id . '");' . "\n"
             . '</script>';
+    }
+
+
+    /** Construct a known Google snippet from a vetted provider identifier. */
+    private static function google_code( $provider, $value ) {
+        if ( 'google_verification' === $provider ) {
+            return '<meta name="google-site-verification" content="' . esc_attr( $value ) . '">';
+        }
+        if ( 'google_analytics' === $provider ) {
+            return '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $value ) . '"></script>' . "\n"
+                . '<script>window.dataLayer=window.dataLayer||[];'
+                . 'function gtag(){dataLayer.push(arguments);}'
+                . 'gtag("js",new Date());gtag("config","' . $value . '");</script>';
+        }
+        if ( 'google_tag_manager' === $provider ) {
+            return '<script>(function(w,d,s,l,i){w[l]=w[l]||[];'
+                . 'w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});'
+                . 'var f=d.getElementsByTagName(s)[0],j=d.createElement(s),'
+                . 'dl=l!="dataLayer"?"&l="+l:"";j.async=true;'
+                . 'j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;'
+                . 'f.parentNode.insertBefore(j,f);'
+                . '})(window,document,"script","dataLayer","' . $value . '");</script>';
+        }
+        return '';
+    }
+
+    /** Validate and normalize provider identifiers before constructing executable code. */
+    private static function normalized_provider_code( $provider, $value, $kind ) {
+        if ( 'clarity' === $provider && 'tracking' === $kind && preg_match( '/\A[a-z0-9]{6,32}\z/', $value ) ) {
+            return self::clarity_code( $value );
+        }
+        if ( 'google_verification' === $provider && 'verification' === $kind && preg_match( '/\A[A-Za-z0-9_-]{8,256}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        if ( 'google_analytics' === $provider && 'tracking' === $kind && preg_match( '/\AG-[A-Z0-9]{5,32}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        if ( 'google_tag_manager' === $provider && 'tracking' === $kind && preg_match( '/\AGTM-[A-Z0-9]{5,32}\z/', $value ) ) {
+            return self::google_code( $provider, $value );
+        }
+        return '';
+    }
+
+    /** Recognize existing entries saved before provider IDs were introduced. */
+    private static function provider_name( $entry ) {
+        $provider = isset( $entry['provider'] ) ? $entry['provider'] : '';
+        $code = isset( $entry['code'] ) ? (string) $entry['code'] : '';
+        if ( '' === $provider ) {
+            if ( false !== strpos( $code, 'clarity.ms/tag' ) ) {
+                $provider = 'clarity';
+            } elseif ( false !== strpos( $code, 'google-site-verification' ) ) {
+                $provider = 'google_verification';
+            } elseif ( false !== strpos( $code, 'googletagmanager.com/gtag/js' ) ) {
+                $provider = 'google_analytics';
+            } elseif ( false !== strpos( $code, 'googletagmanager.com/gtm.js' ) ) {
+                $provider = 'google_tag_manager';
+            }
+        }
+        $names = array(
+            'clarity'             => 'Microsoft Clarity',
+            'google_verification' => 'Google Search Console',
+            'google_analytics'    => 'Google Analytics 4',
+            'google_tag_manager'  => 'Google Tag Manager',
+        );
+        return isset( $names[ $provider ] ) ? $names[ $provider ] : __( 'Personalizado', 'taxocommerce-google-bing' );
     }
 
     public static function save() {
