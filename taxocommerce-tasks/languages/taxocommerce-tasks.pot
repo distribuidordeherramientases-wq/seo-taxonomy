@@ -1,0 +1,292 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: taxocommerce-tasks 0.1.1\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: taxocommerce-tasks.php
+msgid "TaxoCommerce Tasks"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Private, standalone WordPress task agenda with calendar and dashboard."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "David Perez"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Private task agenda, calendar, categories and indicators."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Monday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Tuesday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Wednesday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Thursday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Friday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Saturday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Sunday"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Tasks"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Calendar"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Dashboard"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Categories"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Autocheck"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "New task"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Edit task"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Title"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Description"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Category"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Priority"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Status"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Assignee"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Start date"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Due date"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Completed at"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Save task"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Delete"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Edit"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "All"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Filter"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "No tasks found."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Back"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Previous"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Next"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Save category"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Category name"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "No category"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Unassigned"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Low"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Normal"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "High"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Urgent"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Pending"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "In progress"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Blocked"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Completed"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Total"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Overdue"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "By status"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "By priority"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "By assignee"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Download JSON"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Run autocheck"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Last executed"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Name"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Actions"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Task saved."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Task deleted."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Category saved."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Category deleted."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Cannot delete a category that has tasks."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Task agenda"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Private task management, calendar and indicators."
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "All statuses"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "All priorities"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "All categories"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "All assignees"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Cancel"
+msgstr ""
+
+#: taxocommerce-tasks.php
+msgid "Only registered WordPress users can be assigned."
+msgstr ""
+

@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-tasks
+ * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -16,78 +17,103 @@ define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.1' );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
-    $locale = determine_locale();
-    $lang   = substr( $locale, 0, 2 );
+    // Every literal is extractable by the WordPress gettext tools.
     $labels = array(
-        'es' => array(
-            'Monday'=>'Lunes','Tuesday'=>'Martes','Wednesday'=>'Miércoles','Thursday'=>'Jueves','Friday'=>'Viernes','Saturday'=>'Sábado','Sunday'=>'Domingo',
-            'Tasks' => 'Tareas', 'Calendar' => 'Calendario', 'Dashboard' => 'Indicadores', 'Categories' => 'Categorías',
-            'Autocheck' => 'Autocheck', 'New task' => 'Nueva tarea', 'Edit task' => 'Editar tarea', 'Title' => 'Título',
-            'Description' => 'Descripción', 'Category' => 'Categoría', 'Priority' => 'Prioridad', 'Status' => 'Estado',
-            'Assignee' => 'Responsable', 'Start date' => 'Fecha de inicio', 'Due date' => 'Fecha límite',
-            'Completed at' => 'Finalizada', 'Save task' => 'Guardar tarea', 'Delete' => 'Eliminar', 'Edit' => 'Editar',
-            'All' => 'Todas', 'Filter' => 'Filtrar', 'No tasks found.' => 'No hay tareas.',
-            'Back' => 'Volver', 'Previous' => 'Anterior', 'Next' => 'Siguiente', 'Save category' => 'Guardar categoría',
-            'Category name' => 'Nombre de categoría', 'No category' => 'Sin categoría', 'Unassigned' => 'Sin asignar',
-            'Low' => 'Baja', 'Normal' => 'Normal', 'High' => 'Alta', 'Urgent' => 'Urgente',
-            'Pending' => 'Pendiente', 'In progress' => 'En curso', 'Blocked' => 'Bloqueada', 'Completed' => 'Completada',
-            'Total' => 'Total', 'Overdue' => 'Vencidas', 'By status' => 'Por estado', 'By priority' => 'Por prioridad',
-            'By assignee' => 'Por responsable', 'Download JSON' => 'Descargar JSON',
-            'Run autocheck' => 'Ejecutar Autocheck', 'Last executed' => 'Última ejecución',
-            'Name' => 'Nombre', 'Actions' => 'Acciones', 'Task saved.' => 'Tarea guardada.',
-            'Task deleted.' => 'Tarea eliminada.', 'Category saved.' => 'Categoría guardada.',
-            'Category deleted.' => 'Categoría eliminada.', 'Cannot delete a category that has tasks.' => 'No se puede eliminar una categoría que tiene tareas.',
-            'Task agenda' => 'Agenda de tareas', 'Private task management, calendar and indicators.' => 'Gestión privada de tareas, calendario e indicadores.',
-            'All statuses' => 'Todos los estados', 'All priorities' => 'Todas las prioridades',
-            'All categories' => 'Todas las categorías', 'All assignees' => 'Todos los responsables',
-            'Cancel' => 'Cancelar', 'Only registered WordPress users can be assigned.' => 'Solo se pueden asignar usuarios registrados de WordPress.',
-        ),
-        'fr' => array(
-            'Monday'=>'Lundi','Tuesday'=>'Mardi','Wednesday'=>'Mercredi','Thursday'=>'Jeudi','Friday'=>'Vendredi','Saturday'=>'Samedi','Sunday'=>'Dimanche',
-            'Tasks'=>'Tâches','Calendar'=>'Calendrier','Dashboard'=>'Indicateurs','Categories'=>'Catégories','Autocheck'=>'Autocontrôle',
-            'New task'=>'Nouvelle tâche','Edit task'=>'Modifier la tâche','Title'=>'Titre','Description'=>'Description',
-            'Category'=>'Catégorie','Priority'=>'Priorité','Status'=>'Statut','Assignee'=>'Responsable',
-            'Start date'=>'Date de début','Due date'=>'Échéance','Completed at'=>'Terminée le','Save task'=>'Enregistrer',
-            'Delete'=>'Supprimer','Edit'=>'Modifier','All'=>'Tous','Filter'=>'Filtrer','No tasks found.'=>'Aucune tâche.',
-            'Back'=>'Retour','Previous'=>'Précédent','Next'=>'Suivant','Save category'=>'Enregistrer la catégorie',
-            'Category name'=>'Nom de catégorie','No category'=>'Sans catégorie','Unassigned'=>'Non attribué',
-            'Low'=>'Faible','Normal'=>'Normale','High'=>'Élevée','Urgent'=>'Urgente','Pending'=>'En attente',
-            'In progress'=>'En cours','Blocked'=>'Bloquée','Completed'=>'Terminée','Total'=>'Total','Overdue'=>'En retard',
-            'By status'=>'Par statut','By priority'=>'Par priorité','By assignee'=>'Par responsable',
-            'Download JSON'=>'Télécharger JSON','Run autocheck'=>'Exécuter l’autocontrôle','Last executed'=>'Dernière exécution',
-            'Name'=>'Nom','Actions'=>'Actions','Task saved.'=>'Tâche enregistrée.','Task deleted.'=>'Tâche supprimée.',
-            'Category saved.'=>'Catégorie enregistrée.','Category deleted.'=>'Catégorie supprimée.',
-            'Cannot delete a category that has tasks.'=>'Impossible de supprimer une catégorie utilisée.',
-            'Task agenda'=>'Agenda des tâches','Private task management, calendar and indicators.'=>'Gestion privée des tâches, calendrier et indicateurs.',
-            'All statuses'=>'Tous les statuts','All priorities'=>'Toutes les priorités',
-            'All categories'=>'Toutes les catégories','All assignees'=>'Tous les responsables',
-            'Cancel'=>'Annuler','Only registered WordPress users can be assigned.'=>'Seuls les utilisateurs WordPress peuvent être désignés.',
-        ),
-        'de' => array(
-            'Monday'=>'Montag','Tuesday'=>'Dienstag','Wednesday'=>'Mittwoch','Thursday'=>'Donnerstag','Friday'=>'Freitag','Saturday'=>'Samstag','Sunday'=>'Sonntag',
-            'Tasks'=>'Aufgaben','Calendar'=>'Kalender','Dashboard'=>'Kennzahlen','Categories'=>'Kategorien','Autocheck'=>'Selbsttest',
-            'New task'=>'Neue Aufgabe','Edit task'=>'Aufgabe bearbeiten','Title'=>'Titel','Description'=>'Beschreibung',
-            'Category'=>'Kategorie','Priority'=>'Priorität','Status'=>'Status','Assignee'=>'Zuständig',
-            'Start date'=>'Startdatum','Due date'=>'Fälligkeit','Completed at'=>'Abgeschlossen am','Save task'=>'Aufgabe speichern',
-            'Delete'=>'Löschen','Edit'=>'Bearbeiten','All'=>'Alle','Filter'=>'Filtern','No tasks found.'=>'Keine Aufgaben.',
-            'Back'=>'Zurück','Previous'=>'Zurück','Next'=>'Weiter','Save category'=>'Kategorie speichern',
-            'Category name'=>'Kategoriename','No category'=>'Ohne Kategorie','Unassigned'=>'Nicht zugewiesen',
-            'Low'=>'Niedrig','Normal'=>'Normal','High'=>'Hoch','Urgent'=>'Dringend','Pending'=>'Offen',
-            'In progress'=>'In Bearbeitung','Blocked'=>'Blockiert','Completed'=>'Abgeschlossen','Total'=>'Gesamt',
-            'Overdue'=>'Überfällig','By status'=>'Nach Status','By priority'=>'Nach Priorität',
-            'By assignee'=>'Nach Zuständigkeit','Download JSON'=>'JSON herunterladen',
-            'Run autocheck'=>'Selbsttest ausführen','Last executed'=>'Zuletzt ausgeführt',
-            'Name'=>'Name','Actions'=>'Aktionen','Task saved.'=>'Aufgabe gespeichert.','Task deleted.'=>'Aufgabe gelöscht.',
-            'Category saved.'=>'Kategorie gespeichert.','Category deleted.'=>'Kategorie gelöscht.',
-            'Cannot delete a category that has tasks.'=>'Kategorie mit Aufgaben kann nicht gelöscht werden.',
-            'Task agenda'=>'Aufgabenplaner','Private task management, calendar and indicators.'=>'Private Aufgabenverwaltung, Kalender und Kennzahlen.',
-            'All statuses'=>'Alle Status','All priorities'=>'Alle Prioritäten','All categories'=>'Alle Kategorien',
-            'All assignees'=>'Alle Zuständigen','Cancel'=>'Abbrechen',
-            'Only registered WordPress users can be assigned.'=>'Nur registrierte WordPress-Benutzer können zugewiesen werden.',
-        ),
+        "Monday" => __( "Monday", 'taxocommerce-tasks' ),
+        "Tuesday" => __( "Tuesday", 'taxocommerce-tasks' ),
+        "Wednesday" => __( "Wednesday", 'taxocommerce-tasks' ),
+        "Thursday" => __( "Thursday", 'taxocommerce-tasks' ),
+        "Friday" => __( "Friday", 'taxocommerce-tasks' ),
+        "Saturday" => __( "Saturday", 'taxocommerce-tasks' ),
+        "Sunday" => __( "Sunday", 'taxocommerce-tasks' ),
+        "Tasks" => __( "Tasks", 'taxocommerce-tasks' ),
+        "Calendar" => __( "Calendar", 'taxocommerce-tasks' ),
+        "Dashboard" => __( "Dashboard", 'taxocommerce-tasks' ),
+        "Categories" => __( "Categories", 'taxocommerce-tasks' ),
+        "Autocheck" => __( "Autocheck", 'taxocommerce-tasks' ),
+        "New task" => __( "New task", 'taxocommerce-tasks' ),
+        "Edit task" => __( "Edit task", 'taxocommerce-tasks' ),
+        "Title" => __( "Title", 'taxocommerce-tasks' ),
+        "Description" => __( "Description", 'taxocommerce-tasks' ),
+        "Category" => __( "Category", 'taxocommerce-tasks' ),
+        "Priority" => __( "Priority", 'taxocommerce-tasks' ),
+        "Status" => __( "Status", 'taxocommerce-tasks' ),
+        "Assignee" => __( "Assignee", 'taxocommerce-tasks' ),
+        "Start date" => __( "Start date", 'taxocommerce-tasks' ),
+        "Due date" => __( "Due date", 'taxocommerce-tasks' ),
+        "Completed at" => __( "Completed at", 'taxocommerce-tasks' ),
+        "Save task" => __( "Save task", 'taxocommerce-tasks' ),
+        "Delete" => __( "Delete", 'taxocommerce-tasks' ),
+        "Edit" => __( "Edit", 'taxocommerce-tasks' ),
+        "All" => __( "All", 'taxocommerce-tasks' ),
+        "Filter" => __( "Filter", 'taxocommerce-tasks' ),
+        "No tasks found." => __( "No tasks found.", 'taxocommerce-tasks' ),
+        "Back" => __( "Back", 'taxocommerce-tasks' ),
+        "Previous" => __( "Previous", 'taxocommerce-tasks' ),
+        "Next" => __( "Next", 'taxocommerce-tasks' ),
+        "Save category" => __( "Save category", 'taxocommerce-tasks' ),
+        "Category name" => __( "Category name", 'taxocommerce-tasks' ),
+        "No category" => __( "No category", 'taxocommerce-tasks' ),
+        "Unassigned" => __( "Unassigned", 'taxocommerce-tasks' ),
+        "Low" => __( "Low", 'taxocommerce-tasks' ),
+        "Normal" => __( "Normal", 'taxocommerce-tasks' ),
+        "High" => __( "High", 'taxocommerce-tasks' ),
+        "Urgent" => __( "Urgent", 'taxocommerce-tasks' ),
+        "Pending" => __( "Pending", 'taxocommerce-tasks' ),
+        "In progress" => __( "In progress", 'taxocommerce-tasks' ),
+        "Blocked" => __( "Blocked", 'taxocommerce-tasks' ),
+        "Completed" => __( "Completed", 'taxocommerce-tasks' ),
+        "Total" => __( "Total", 'taxocommerce-tasks' ),
+        "Overdue" => __( "Overdue", 'taxocommerce-tasks' ),
+        "By status" => __( "By status", 'taxocommerce-tasks' ),
+        "By priority" => __( "By priority", 'taxocommerce-tasks' ),
+        "By assignee" => __( "By assignee", 'taxocommerce-tasks' ),
+        "Download JSON" => __( "Download JSON", 'taxocommerce-tasks' ),
+        "Run autocheck" => __( "Run autocheck", 'taxocommerce-tasks' ),
+        "Last executed" => __( "Last executed", 'taxocommerce-tasks' ),
+        "Name" => __( "Name", 'taxocommerce-tasks' ),
+        "Actions" => __( "Actions", 'taxocommerce-tasks' ),
+        "Task saved." => __( "Task saved.", 'taxocommerce-tasks' ),
+        "Task deleted." => __( "Task deleted.", 'taxocommerce-tasks' ),
+        "Category saved." => __( "Category saved.", 'taxocommerce-tasks' ),
+        "Category deleted." => __( "Category deleted.", 'taxocommerce-tasks' ),
+        "Cannot delete a category that has tasks." => __( "Cannot delete a category that has tasks.", 'taxocommerce-tasks' ),
+        "Task agenda" => __( "Task agenda", 'taxocommerce-tasks' ),
+        "Private task management, calendar and indicators." => __( "Private task management, calendar and indicators.", 'taxocommerce-tasks' ),
+        "All statuses" => __( "All statuses", 'taxocommerce-tasks' ),
+        "All priorities" => __( "All priorities", 'taxocommerce-tasks' ),
+        "All categories" => __( "All categories", 'taxocommerce-tasks' ),
+        "All assignees" => __( "All assignees", 'taxocommerce-tasks' ),
+        "Cancel" => __( "Cancel", 'taxocommerce-tasks' ),
+        "Only registered WordPress users can be assigned." => __( "Only registered WordPress users can be assigned.", 'taxocommerce-tasks' ),
     );
-    return isset( $labels[ $lang ][ $source ] ) ? $labels[ $lang ][ $source ] : $source;
+    return isset( $labels[ $source ] ) ? $labels[ $source ] : $source;
 }
+
+// Prefer WordPress language packs, with a bundled base-language fallback for regional locales.
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-tasks';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    $official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( ! is_readable( $catalog ) ) {
+        $base_language = strtolower( substr( $locale, 0, 2 ) );
+        $fallback = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+        if ( isset( $fallback[ $base_language ] ) ) {
+            $catalog = __DIR__ . '/languages/' . $domain . '-' . $fallback[ $base_language ] . '.mo';
+        }
+    }
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );
+
 function tctasks_e( $source ) {
     echo esc_html( tctasks_label( $source ) );
 }
@@ -178,7 +204,7 @@ function tctasks_register_core_module( $core ) {
             'name'        => 'TaxoCommerce Tasks',
             'version'     => TAXOCOMMERCE_TASKS_VERSION,
             'status'      => 'active',
-            'description' => 'Private task agenda, calendar, categories and indicators.',
+            'description' => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-tasks' ),
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-tasks' ),
         )
     );
@@ -201,7 +227,7 @@ function tctasks_register_family_extension( $extensions ) {
         'search_term'   => 'TaxoCommerce Tasks',
         'wordpress_org' => false,
         'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
-        'description'   => 'Private task agenda, calendar, categories and indicators.',
+        'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-tasks' ),
     );
     return $extensions;
 }

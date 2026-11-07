@@ -27,6 +27,7 @@ function register_activation_hook( $file, $callback ) {}
 function add_action( $hook, $callback, $priority = 10 ) {}
 function add_filter( $hook, $callback, $priority = 10 ) {}
 function determine_locale() { return 'es_ES'; }
+function __( $text, $domain ) { return $text; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function add_menu_page( ...$args ) { $GLOBALS['tctasks_menus'][] = $args; }
 function add_submenu_page( ...$args ) { $GLOBALS['tctasks_submenus'][] = $args; }
@@ -82,5 +83,23 @@ if (
 ) {
     fwrite( STDERR, "FAIL: family extension catalog registration failed\n" );
     exit( 1 );
+}
+$catalog_prefix = dirname( __DIR__ ) . '/languages/taxocommerce-tasks-';
+foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
+    $po = file_get_contents( $catalog_prefix . $locale . '.po' );
+    if ( ! is_string( $po ) || 72 !== preg_match_all( '/^msgid /m', $po ) || 1 !== preg_match_all( '/^msgstr ""$/m', $po ) ) {
+        fwrite( STDERR, "FAIL: incomplete Tasks PO $locale\\n" );
+        exit( 1 );
+    }
+    $raw = file_get_contents( $catalog_prefix . $locale . '.mo', false, null, 0, 28 );
+    if ( ! is_string( $raw ) || 28 !== strlen( $raw ) ) {
+        fwrite( STDERR, "FAIL: missing Tasks MO $locale\\n" );
+        exit( 1 );
+    }
+    $header = unpack( 'Vmagic/Vrevision/Vcount', $raw );
+    if ( 0x950412de !== $header['magic'] || 72 !== $header['count'] ) {
+        fwrite( STDERR, "FAIL: invalid Tasks MO $locale\\n" );
+        exit( 1 );
+    }
 }
 echo "PASS: standalone and Core menu routes; optional family module and extension catalog.\n";
