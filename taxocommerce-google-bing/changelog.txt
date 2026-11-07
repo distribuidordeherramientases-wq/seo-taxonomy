@@ -1,3 +1,6 @@
+= 1.1.24 (2026-11-08) =
+* Analysis utiliza exclusivamente los recursos del módulo Insights y deja de requerir `SEO_SYSTEM_URL`; se conservan el motor de informes, AJAX y datos históricos. Issue #2345.
+
 = 1.1.23 (2026-11-07) =
 * Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
 
