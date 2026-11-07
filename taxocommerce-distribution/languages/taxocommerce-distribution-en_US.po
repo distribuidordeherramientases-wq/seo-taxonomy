@@ -1166,7 +1166,7 @@ msgstr "Save speed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
-msgstr ""
+msgstr "Maximum 250 items per execution. The speed controls pauses; if PHP uses too much memory or time, the manager automatically reduces the frequency. The displayed CPU usage belongs to the PHP process, not the whole server."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Estado de generación:"
@@ -1254,7 +1254,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
-msgstr ""
+msgstr "A legacy uploads URL from another environment was corrected automatically to avoid mixing PRO and STAGING."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Settings"
@@ -1290,7 +1290,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration en PRODUCTION"
-msgstr ""
+msgstr "Daily safety regeneration in PRODUCTION"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily time"
@@ -1402,7 +1402,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo."
-msgstr ""
+msgstr "Google, Microsoft and Pinterest subsequently download the files from their URLs; there is no direct submission."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Exclusion reasons"
@@ -1510,19 +1510,19 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador."
-msgstr ""
+msgstr "Open TaxoCommerce Core > Distribution; if Core is not installed, use Distribution in the main menu. The plugin has Commercial Feeds, Sitemaps, Automation, Manual and Autocheck tabs; the general overview appears below the header. The WooCommerce management permissions configured for Distribution or administrator permissions are required."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Revisa el resumen bajo la cabecera y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Review the summary under the header and Automation before changing channels. A warning about a file that has not yet been generated does not mean the engine has failed."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "2. Resumen general bajo la cabecera"
-msgstr ""
+msgstr "2. General overview below the header"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron."
-msgstr ""
+msgstr "Since version 0.1.3, regeneration processes URLs in batches of 250 at five independent workload speeds: Gentle, Low, Normal, High and Maximum. Select the speed and click Save before generating. The status shows processed items, prepared URLs, and PHP process CPU and memory usage. You can stop without deleting the last public sitemap. The system keeps the old index until the new one is published and resumes interrupted tasks through WP-Cron."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ejecutar Autocheck"
@@ -1538,7 +1538,7 @@ msgstr "Execution date:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado."
-msgstr ""
+msgstr "The most recent report is available to download for one hour. A file's presence does not prove valid XML or confirm that external platforms downloaded it."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos para descargar el Autocheck."
