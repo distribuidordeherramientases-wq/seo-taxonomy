@@ -857,3 +857,207 @@ msgstr "Controle"
 
 msgid "Comprobación inicial"
 msgstr "Eerste controle"
+
+msgid "%1$d comprobaciones: %2$d correctas, %3$d avisos y %4$d errores."
+msgstr "%1$d controles: %2$d geslaagd, %3$d waarschuwingen en %4$d fouten."
+
+msgid "%1$d supplier rows processed. %2$d errors."
+msgstr "%1$d leveranciersregels verwerkt. %2$d fouten."
+
+msgid "Busca el producto relacionado y lo enlaza o crea uno nuevo."
+msgstr "Zoekt het bijbehorende product en koppelt het of maakt een nieuw product aan."
+
+msgid "CSV processed: %1$d rows; %2$d new, %3$d updated, %4$d unchanged, %5$d errors."
+msgstr "CSV verwerkt: %1$d regels; %2$d nieuw, %3$d bijgewerkt, %4$d ongewijzigd, %5$d fouten."
+
+msgid "Comprobar componentes y configuraciones bajo demanda."
+msgstr "Onderdelen en instellingen op verzoek controleren."
+
+msgid "Consultar estas dos guías."
+msgstr "Raadpleeg deze twee handleidingen."
+
+msgid "Controlador"
+msgstr "Controller"
+
+msgid "Corregir el fichero y volver a analizarlo; no modificar tablas directamente."
+msgstr "Corrigeer het bestand en analyseer het opnieuw; wijzig tabellen niet rechtstreeks."
+
+msgid "Corregir origen y evitar mezclar países o variantes."
+msgstr "Corrigeer de bron en voorkom vermenging van landen of varianten."
+
+msgid "Datos y claves"
+msgstr "Gegevens en sleutels"
+
+msgid "Detalle"
+msgstr "Details"
+
+msgid "Duplicate · legacy"
+msgstr "Dupliceren · verouderd"
+
+msgid "Edit"
+msgstr "Bewerken"
+
+msgid "Editar URL y modo de imagen por referencia."
+msgstr "URL en afbeeldingsmodus per referentie bewerken."
+
+msgid "Editar costes de proveedor, IVA, moneda, márgenes y precios Woo."
+msgstr "Leverancierskosten, btw, valuta, marges en WooCommerce-prijzen bewerken."
+
+msgid "Efecto"
+msgstr "Effect"
+
+msgid "Errores VEVOR"
+msgstr "VEVOR-fouten"
+
+msgid "Estado"
+msgstr "Status"
+
+msgid "External image URLs — one per line"
+msgstr "Externe afbeeldings-URL’s — één per regel"
+
+msgid "External references"
+msgstr "Externe referenties"
+
+msgid "Función"
+msgstr "Functie"
+
+msgid "Gestión y descarga de plantillas."
+msgstr "Sjablonen beheren en downloaden."
+
+msgid "Grupo"
+msgstr "Groep"
+
+msgid "Guarda porcentajes de margen."
+msgstr "Slaat margepercentages op."
+
+msgid "Hook admin-post.php"
+msgstr "Hook admin-post.php"
+
+msgid "Identidad internacional"
+msgstr "Internationale identiteit"
+
+msgid "Identificador"
+msgstr "Identificatiecode"
+
+msgid "Image mode"
+msgstr "Afbeeldingsmodus"
+
+msgid "Importar un CSV"
+msgstr "Een CSV importeren"
+
+msgid "Imágenes"
+msgstr "Afbeeldingen"
+
+msgid "Imágenes que no aparecen"
+msgstr "Afbeeldingen die niet worden weergegeven"
+
+msgid "Incidencias"
+msgstr "Problemen"
+
+msgid "Inherit existing behavior"
+msgstr "Bestaand gedrag overnemen"
+
+msgid "Introducción"
+msgstr "Inleiding"
+
+msgid "Inventario y aceptación"
+msgstr "Voorraad en acceptatie"
+
+msgid "Local Media"
+msgstr "Lokale mediabibliotheek"
+
+msgid "Manual técnico / desarrolladores"
+msgstr "Technische handleiding / ontwikkelaars"
+
+msgid "Mark for review"
+msgstr "Markeren voor controle"
+
+msgid "Motor CSV"
+msgstr "CSV-verwerkingsmodule"
+
+msgid "No supplier rows match the current filters."
+msgstr "Geen leveranciersregels voldoen aan de huidige filters."
+
+msgid "No supplier source linked."
+msgstr "Geen leveranciersbron gekoppeld."
+
+msgid "Open supplier inventory"
+msgstr "Leveranciersvoorraad openen"
+
+msgid "Pestaña"
+msgstr "Tabblad"
+
+msgid "Pestañas y controles"
+msgstr "Tabbladen en bedieningselementen"
+
+msgid "Plantillas"
+msgstr "Sjablonen"
+
+msgid "Precaución"
+msgstr "Voorzichtig"
+
+msgid "Precios"
+msgstr "Prijzen"
+
+msgid "Producto no aceptado"
+msgstr "Product niet geaccepteerd"
+
+msgid "Pruebas y evolución"
+msgstr "Tests en doorontwikkeling"
+
+msgid "Published · legacy"
+msgstr "Gepubliceerd · verouderd"
+
+msgid "Qué permite"
+msgstr "Wat is mogelijk"
+
+msgid "Qué se modifica y qué no"
+msgstr "Wat wordt wel en niet gewijzigd"
+
+msgid "Resultado"
+msgstr "Resultaat"
+
+msgid "Return to pending"
+msgstr "Terugzetten naar in afwachting"
+
+msgid "Seguridad"
+msgstr "Beveiliging"
+
+msgid "Seguridad / WP.org"
+msgstr "Beveiliging / WP.org"
+
+msgid "Sesión CSV caducada"
+msgstr "CSV-sessie verlopen"
+
+msgid "Situación"
+msgstr "Situatie"
+
+msgid "Solo lectura."
+msgstr "Alleen-lezen."
+
+msgid "Source inherited from parent product #"
+msgstr "Bron overgenomen van bovenliggend product #"
+
+msgid "Supplier row"
+msgstr "Leveranciersregel"
+
+msgid "Update · legacy"
+msgstr "Bijwerken · verouderd"
+
+msgid "Ver pedidos activos y sus posibles proveedores."
+msgstr "Actieve bestellingen en mogelijke leveranciers bekijken."
+
+msgid "Woo SKU:"
+msgstr "Woo-SKU:"
+
+msgid "WooCommerce"
+msgstr "WooCommerce"
+
+msgid "WooCommerce y fuentes"
+msgstr "WooCommerce en bronnen"
+
+msgid "Índice de la documentación"
+msgstr "Inhoudsopgave van de documentatie"
+
+msgid "Sistema"
+msgstr "Systeem"
