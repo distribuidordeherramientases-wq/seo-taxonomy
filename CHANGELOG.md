@@ -1,3 +1,11 @@
+## 2026-11-07 — Despliegue acotado de TaxoCommerce Tasks (Issue #2290)
+
+- El menú de Tasks 0.1.1 ya estaba corregido y fusionado, pero la distribución a STAGING/Focazul quedó en cola del pipeline global.
+- Habilitada la ejecución de despliegue al hacer push en el workflow existente `deploy-staging.yml`, únicamente para el plugin `taxocommerce-tasks` y los dos destinos de prueba.
+- Diferenciado el evento push directo de las llamadas reutilizables del pipeline general, manteniendo la selección de todos los plugins para las rutas existentes.
+- Añadidos tests del filtro específico y del rechazo de sincronizaciones completas/otros plugins; no se habilita ninguna escritura en producción.
+- La entrega real y los checksums remotos se verifican por cada destino en GitHub Actions; no equivale a activar el plugin.
+
 # Changelog
 
 ## [Unreleased] — Locales regionales en los 19 plugins TaxoCommerce (#2295)
