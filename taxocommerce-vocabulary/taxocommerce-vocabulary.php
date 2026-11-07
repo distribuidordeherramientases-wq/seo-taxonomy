@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Vocabulary
  * Description: Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.
- * Version: 0.3.10
+ * Version: 0.3.11
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.10' );
+define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.11' );
 define( 'TAXOCOMMERCE_VOCABULARY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_VOCABULARY_URL', plugin_dir_url( __FILE__ ) );
 
@@ -46,6 +46,15 @@ add_action(
 
 function taxocommerce_vocabulary_register_with_core( $core ) {
     if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
+        return;
+    }
+
+    // Core announces modules during plugins_loaded, before WordPress init.
+    // Defer translated metadata until init, after the local language catalog.
+    if ( ! did_action( 'init' ) ) {
+        add_action( 'init', static function () use ( $core ) {
+            taxocommerce_vocabulary_register_with_core( $core );
+        }, 11 );
         return;
     }
 
