@@ -70,11 +70,26 @@ function taxocommerce_core_load_textdomain() {
         return;
     }
     $locale = sanitize_file_name( determine_locale() );
-    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+    $official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
         // WordPress can load the globally installed language pack on demand.
         return;
     }
     $catalog = TAXOCOMMERCE_CORE_PATH . 'languages/' . $domain . '-' . $locale . '.mo';
+    if ( ! is_readable( $catalog ) ) {
+        // Use a bundled base-language catalog for WordPress locale variants.
+        $language = strtolower( substr( $locale, 0, 2 ) );
+        $fallback_locales = array(
+            'es' => 'es_ES',
+            'en' => 'en_US',
+            'fr' => 'fr_FR',
+            'de' => 'de_DE',
+            'nl' => 'nl_NL',
+        );
+        if ( isset( $fallback_locales[ $language ] ) ) {
+            $catalog = TAXOCOMMERCE_CORE_PATH . 'languages/' . $domain . '-' . $fallback_locales[ $language ] . '.mo';
+        }
+    }
     if ( is_readable( $catalog ) ) {
         load_textdomain( $domain, $catalog );
     }

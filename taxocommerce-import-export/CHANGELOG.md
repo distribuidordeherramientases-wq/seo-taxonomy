@@ -1,3 +1,9 @@
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## [0.4.17] — 2026-11-06 (Issue #2248)
 
 - Corregida la cancelación de exportaciones CSV creadas antes de 0.4.16 sin token de autollamada: limpieza inmediata si no hay escritor activo, con bloqueo exclusivo y aislamiento por usuario.

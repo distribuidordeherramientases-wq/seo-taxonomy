@@ -16,7 +16,7 @@ import polib
 ROOT = Path(__file__).resolve().parents[2]
 LOCALES = ("es_ES", "en_US", "fr_FR", "de_DE", "nl_NL")
 PLUGINS = (
-    "auditor", "campaigns", "connections", "core", "database", "dependiente",
+    "auditor", "campaigns", "core", "database", "dependiente",
     "distribution", "facturacion", "faqs", "google-bing", "images",
     "import-export", "logistica", "redirects", "scrappers", "social",
     "suppliers", "system-check", "templates", "vocabulary",
