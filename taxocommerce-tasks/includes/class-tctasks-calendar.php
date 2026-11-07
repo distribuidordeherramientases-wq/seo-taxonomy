@@ -172,12 +172,15 @@ final class TCTasks_Calendar {
             $wpdb->prepare(
                 'SELECT id, title, priority, status, start_date, due_date
                  FROM %i
-                 WHERE (start_date IS NOT NULL AND start_date <= %s AND (due_date IS NULL OR due_date >= %s))
+                 WHERE (start_date IS NOT NULL AND due_date IS NOT NULL AND start_date <= %s AND due_date >= %s)
+                    OR (start_date IS NOT NULL AND due_date IS NULL AND start_date BETWEEN %s AND %s)
                     OR (start_date IS NULL AND due_date BETWEEN %s AND %s)
                  ORDER BY COALESCE(start_date, due_date) ASC, id ASC LIMIT 1500',
                 $tables['tasks'],
                 $grid_last->format( 'Y-m-d' ),
                 $grid_first->format( 'Y-m-d' ),
+                $grid_first->format( 'Y-m-d' ),
+                $grid_last->format( 'Y-m-d' ),
                 $grid_first->format( 'Y-m-d' ),
                 $grid_last->format( 'Y-m-d' )
             )
