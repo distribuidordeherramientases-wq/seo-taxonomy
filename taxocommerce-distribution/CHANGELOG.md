@@ -1,3 +1,9 @@
+## [Unreleased] — Catálogos gettext completos ES/EN/FR/DE/NL (#2062)
+
+- Completadas las 327 cadenas de cada uno de los cinco catálogos (PO), incluidos menús, botones, feeds, sitemaps, configuración, avisos, seguimiento de procesos y manuales. Las 97 cadenas restantes de FR/DE/NL se han traducido; en EN se han traducido los 79 textos de origen castellano y conservado los 146 ya escritos en inglés.
+- Regenerados los MO de EN/FR/DE/NL. Los 327 `msgid` de cada catálogo coinciden con el POT actual; no quedan `msgstr` vacíos ni discrepancias de marcadores printf detectadas.
+- No se han modificado productos, entradas, páginas, datos comerciales ni lógica PHP/JS. Pendiente verificar la carga efectiva de locales y la interfaz en WordPress, además de Plugin Check y pruebas de integración antes de fusionar o desplegar.
+
 ## [Unreleased] — Ampliación de idiomas de la interfaz (#2062, #2328)
 
 - Completadas 196/196/194 cadenas gettext anteriormente vacías en FR/DE/NL y 68 cadenas fuente castellanas en EN; incluye menús, canales comerciales, sitemaps, progreso, control del generador, permisos y títulos de manuales.
