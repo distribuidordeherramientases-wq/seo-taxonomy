@@ -12,6 +12,12 @@
 
 defined('ABSPATH') || exit;
 
+// Standalone Scrappers may have loaded this legacy engine already.
+// Do not register duplicate workers, administration hooks or callbacks.
+if ( class_exists( 'SEO_Ojeador_Admin', false ) ) {
+    return;
+}
+
 if (!defined('SEO_OJEADOR_VERSION')) {
     define('SEO_OJEADOR_VERSION', '0.10.0');
 }

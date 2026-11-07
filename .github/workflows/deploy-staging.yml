@@ -59,6 +59,8 @@ jobs:
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
         run: |
           set -euo pipefail
+          php -l .github/tests/legacy-scrappers-coexistence-smoke.php
+          php .github/tests/legacy-scrappers-coexistence-smoke.php
           php -l .github/tests/legacy-loaders-smoke.php
           php .github/tests/legacy-loaders-smoke.php
           for entry in bootstrap.php seo-marketing.php includes/header.php includes/dependiente/clonador/clonador-bootstrap.php; do php -l "$entry"; done
@@ -253,23 +255,16 @@ jobs:
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
           TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::STAGING deployment still failing after 3 attempts"
-              exit 1
-            fi
-            sleep $((attempt * 20))
-          done
+        # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
+        # Unbuffered output records progress and the actual failing FTPS phase.
+        run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}
-    needs: plan
-    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    # Both sites use the same FTP service. Finish STAGING connections first.
+    # always() still runs Focazul when STAGING fails (separate failure reporting).
+    needs: [plan, deploy-staging]
+    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.count != '0' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -289,18 +284,9 @@ jobs:
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
           TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::Focazul deployment still failing after 3 attempts"
-              exit 1
-            fi
-            sleep $((attempt * 20))
-          done
+        # deploy() has a bounded 3-attempt reconnect loop; never retry it 3x in bash.
+        # Unbuffered output records progress and the actual failing FTPS phase.
+        run: python3 -u .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"
 
   verify:
     name: Require successful delivery to every applicable site

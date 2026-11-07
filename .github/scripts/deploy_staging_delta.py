@@ -427,18 +427,29 @@ def deploy(base, target, slug, full=False):
     if not host or not user or not password:
         raise ValueError("Missing " + env_prefix + " FTPS credentials")
     for attempt in range(3):
-        ftp = ftplib.FTP_TLS(timeout=45)
+        ftp = ftplib.FTP_TLS(timeout=60)
+        phase = "connect"
         try:
             ftp.connect(host, 21)
+            phase = "authentication"
             ftp.login(user, password)
+            phase = "secure data channel"
             ftp.prot_p()
+            phase = "upload/checksum"
             upload_plugin(ftp, target, slug, files, required=(slug == "taxocommerce-core"))
+            phase = "close"
             ftp.quit()
             return
         except (OSError, EOFError, ftplib.error_temp) as exc:
+            # Only retry transient transport errors; never print credentials.
             if attempt == 2:
-                raise
-            print(f"::warning::{target}/{slug}: transient FTPS error, retry {attempt + 2}/3: {exc}")
+                raise RuntimeError(
+                    f"{target}/{slug}: FTPS {phase} failed after 3 attempts: {exc}"
+                ) from exc
+            print(
+                f"::warning::{target}/{slug}: FTPS {phase} retry {attempt + 2}/3: {exc}",
+                flush=True,
+            )
             time.sleep(2 ** attempt)
         finally:
             try:

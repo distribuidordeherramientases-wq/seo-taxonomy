@@ -6,6 +6,12 @@
  */
 defined('ABSPATH') || exit;
 
+// Standalone Scrappers may have loaded this legacy engine already.
+// Do not register duplicate workers, administration hooks or callbacks.
+if ( class_exists( 'SEO_Ingeniero', false ) ) {
+    return;
+}
+
 if (!defined('SEO_INGENIERO_VERSION')) {
     define('SEO_INGENIERO_VERSION', '0.5.0');
 }
