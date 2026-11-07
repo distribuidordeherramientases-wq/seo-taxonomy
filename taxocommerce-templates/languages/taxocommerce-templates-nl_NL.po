@@ -749,4 +749,4 @@ msgstr ""
 
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
-msgstr ""
+msgstr "Er zijn geen producten beschikbaar in dit blok."
