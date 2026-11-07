@@ -653,7 +653,7 @@ msgstr "Definitie van formaten, kolommen, transformatie en serialisatie voor elk
 msgid ""
 "Formularios, controles iniciar/detener, AJAX de seguimiento y enlaces de "
 "archivos."
-msgstr ""
+msgstr "Formulieren, start-/stopbediening, AJAX-voortgangsbewaking en bestandskoppelingen."
 
 #: includes/manual.php:92
 msgid "Ventanas de proceso mediante WP-Cron, reanudación y supervisión."
@@ -663,18 +663,18 @@ msgstr "Verwerkingsvensters via WP-Cron, hervatten en bewaken."
 msgid ""
 "Reescrituras y rutas XML, fuentes de URLs, grupos, manifiesto, publicación y"
 " validación."
-msgstr ""
+msgstr "XML-herschrijvingen en routes, URL-bronnen, groepen, manifest, publicatie en validatie."
 
 #: includes/manual.php:94
 msgid ""
 "Documentación de usuario y desarrollador, renderizada sin escribir datos."
-msgstr ""
+msgstr "Gebruikers- en ontwikkelaarsdocumentatie, weergegeven zonder gegevens te wijzigen."
 
 #: includes/manual.php:95
 msgid ""
 "Diagnósticos de solo lectura; no inicializa almacenamiento, workers ni "
 "generadores."
-msgstr ""
+msgstr "Alleen-lezen-diagnostiek; initialiseert geen opslag, verwerkers of generatoren."
 
 #: includes/manual.php:99
 msgid "8. Arquitectura y enrutado"
@@ -688,7 +688,7 @@ msgid ""
 "estado, formatos, generación y acciones. includes/worker.php ejecuta las "
 "ventanas programadas. includes/sitemaps/engine.php sirve, valida y publica "
 "XML. Manual y Autocheck son pantallas propias y no alteran los motores."
-msgstr ""
+msgstr "Startpunt: taxocommerce-distribution.php. includes/admin.php registreert beheer met de slug taxocommerce-distribution en de selector tcdist_tab. includes/feeds/core.php, channels.php en admin.php definiëren status, formaten, generatie en acties. includes/worker.php voert geplande verwerkingsvensters uit. includes/sitemaps/engine.php serveert, valideert en publiceert XML. Manual en Autocheck zijn eigen schermen en wijzigen de engines niet."
 
 #: includes/manual.php:102
 msgid "9. Canales y almacenamiento"
@@ -701,7 +701,7 @@ msgid ""
 "catalogo-universal.csv y catalogo-universal.json. Los sitemaps se almacenan "
 "bajo wp-content/uploads/seo-sitemaps/ y se sirven desde URLs estables del "
 "dominio principal, incluido /sitemap.xml."
-msgstr ""
+msgstr "Feeds worden gepubliceerd in wp-content/uploads/seo-system-feeds/ met de namen google-merchant.xml, microsoft-merchant.txt, pinterest-catalog.csv, catalogo-universal.csv en catalogo-universal.json. Sitemaps worden opgeslagen in wp-content/uploads/seo-sitemaps/ en via stabiele URL’s op het hoofddomein aangeboden, waaronder /sitemap.xml."
 
 #: includes/manual.php:104
 msgid ""
@@ -709,7 +709,7 @@ msgid ""
 " sitemap valida estructura XML antes de publicar. No coloques los ficheros "
 "generados dentro del ZIP del plugin ni cambies sus rutas públicas sin plan "
 "de migración."
-msgstr ""
+msgstr "Commerciële publicatie gebruikt tijdelijke bestanden en atomair vervangen. De sitemap valideert de XML-structuur vóór publicatie. Plaats gegenereerde bestanden niet in het plugin-ZIP en wijzig hun openbare routes niet zonder migratieplan."
 
 #: includes/manual.php:106
 msgid "10. Opciones, hooks y ejecución"
@@ -723,7 +723,7 @@ msgid ""
 "La migración inicial copia ajustes e historial desde "
 "seo_ie_commercial_feeds_* solo cuando aún no existen opciones propias; no "
 "borra los originales."
-msgstr ""
+msgstr "Opties: tcdist_commercial_feeds_settings_v1, tcdist_commercial_feeds_state_v1, tcdist_commercial_feeds_history_v1, tcdist_worker_state, tcdist_worker_components en tcdist_activation_version. De eerste migratie kopieert instellingen en geschiedenis uit seo_ie_commercial_feeds_* alleen als er nog geen eigen opties zijn; de originelen worden niet verwijderd."
 
 #: includes/manual.php:108
 msgid ""
@@ -733,7 +733,7 @@ msgid ""
 "Los sitemaps utilizan tcdist_sitemap_regenerate_sitemaps_event. Se escuchan "
 "cambios de productos y categorías para planificar la siguiente regeneración "
 "cuando Distribution es el responsable."
-msgstr ""
+msgstr "Verwerker: taxocommerce_distribution_feed_worker. Feed-hooks: tcdist_feed_daily_refresh, tcdist_feed_build_batch en tcdist_feed_queued_refresh, geregistreerd volgens het eigenaarschap van de automatisering. Sitemaps gebruiken tcdist_sitemap_regenerate_sitemaps_event. Wijzigingen aan producten en categorieën worden gevolgd om de volgende regeneratie te plannen wanneer Distribution verantwoordelijk is."
 
 #: includes/manual.php:109
 msgid ""
@@ -741,7 +741,7 @@ msgid ""
 "post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop y admin-"
 "post_tcdist_sitemap_regenerate realizan acciones operativas con comprobación"
 " de permisos y nonce. No deben ejecutarse desde Autocheck."
-msgstr ""
+msgstr "De controllers admin-post_tcdist_feed_save_settings, admin-post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop en admin-post_tcdist_sitemap_regenerate voeren acties uit met controle van rechten en nonce. Ze mogen niet vanuit Autocheck worden aangeroepen."
 
 #: includes/manual.php:111
 msgid "Contrato de datos y eventos"
@@ -760,7 +760,7 @@ msgid ""
 "actualización diaria y sincronización. tcdist_commercial_feeds_state_v1 "
 "guarda el ciclo de generación, cursor, recuentos y estado. "
 "tcdist_commercial_feeds_history_v1 conserva el historial."
-msgstr ""
+msgstr "Distribution heeft geen nieuwe tabel nodig voor de feeds: instellingen, cursor en resultaten worden opgeslagen in wp_options. Gebruik altijd constante feed-ID’s, geen dubbele strings. tcdist_commercial_feeds_settings_v1 bewaart kanalen, land, taal, dagelijkse update en synchronisatie. tcdist_commercial_feeds_state_v1 bewaart generatiecyclus, cursor, tellingen en status. tcdist_commercial_feeds_history_v1 bewaart de geschiedenis."
 
 #: includes/manual.php:114
 msgid ""
@@ -770,7 +770,7 @@ msgid ""
 "seo_ie_commercial_feeds_settings_v1 y seo_ie_commercial_feeds_history_v1 son"
 " solo fuente de migración: se copian si aún no hay opciones nuevas y no se "
 "borran las originales."
-msgstr ""
+msgstr "De supervisor schrijft naar tcdist_worker_state en tcdist_worker_components. De sitemap-engine bewaart metadata voor herschrijven, genereren en manifest via eigen functies. De oude opties seo_ie_commercial_feeds_settings_v1 en seo_ie_commercial_feeds_history_v1 zijn uitsluitend migratiebronnen: ze worden alleen gekopieerd als er nog geen nieuwe opties zijn en de originelen blijven staan."
 
 #: includes/manual.php:115
 msgid "10.2. Ciclo de un feed"
@@ -780,34 +780,34 @@ msgstr "10.2. Levenscyclus van een feed"
 msgid ""
 "La administración valida capacidades/nonce y llama a "
 "tcdist_feed_start_build() para crear un estado de ejecución."
-msgstr ""
+msgstr "Het beheer controleert bevoegdheden en nonce en roept tcdist_feed_start_build() aan om een uitvoeringsstatus te maken."
 
 #: includes/manual.php:118
 msgid ""
 "tcdist_process_nudge() programa el hook de worker si es necesario; el "
 "proceso lee estado y espera hasta not_before cuando existe una pausa "
 "adaptativa."
-msgstr ""
+msgstr "tcdist_process_nudge() plant indien nodig de verwerker-hook; het proces leest de status en wacht tot not_before wanneer er een adaptieve pauze is."
 
 #: includes/manual.php:119
 msgid ""
 "tcdist_feed_run_manager_slice() procesa lotes acotados, actualiza cursor y "
 "contadores. El worker usa una ventana de hasta 45 segundos y reagenda si "
 "sigue running."
-msgstr ""
+msgstr "tcdist_feed_run_manager_slice() verwerkt begrensde batches en werkt de cursor en tellers bij. De verwerker gebruikt vensters van maximaal 45 seconden en plant zichzelf opnieuw als de status running blijft."
 
 #: includes/manual.php:120
 msgid ""
 "channels.php serializa cada registro canónico al formato requerido y el "
 "motor finaliza y publica solo al terminar. Al detener se evita publicar "
 "archivos parciales."
-msgstr ""
+msgstr "channels.php zet elk canoniek record om naar het vereiste formaat; de engine rondt pas na afloop af en publiceert dan. Stoppen voorkomt dat onvolledige bestanden worden gepubliceerd."
 
 #: includes/manual.php:121
 msgid ""
 "Al completar, revisa el estado, histórico, recuentos y fichero; un resultado"
 " sin productos exige analizar exclusiones antes de considerarlo fallo."
-msgstr ""
+msgstr "Controleer na afloop status, geschiedenis, tellingen en bestand. Bij een resultaat zonder producten moeten eerst de uitsluitingen worden onderzocht voordat je van een fout uitgaat."
 
 #: includes/manual.php:123
 msgid "10.3. Mapa de hooks"
@@ -821,13 +821,13 @@ msgstr "Hook"
 msgid ""
 "Refresco diario, compatibilidad del lote y regeneración diferida; solo se "
 "registran con propiedad de automatización."
-msgstr ""
+msgstr "Dagelijkse vernieuwing, batchcompatibiliteit en uitgestelde regeneratie; alleen geregistreerd wanneer de automatisering bij Distribution hoort."
 
 #: includes/manual.php:129
 msgid ""
 "Avisan de cambios para una regeneración diferida, sin ejecutar una "
 "publicación por cada producto."
-msgstr ""
+msgstr "Melden wijzigingen voor uitgestelde regeneratie zonder bij elk product afzonderlijk te publiceren."
 
 #: includes/manual.php:130
 msgid "Controles protegidos de ajustes, ejecución y seguimiento AJAX."
@@ -836,7 +836,7 @@ msgstr "Beveiligde bediening voor instellingen, uitvoering en AJAX-voortgangsbew
 #: includes/manual.php:131
 msgid ""
 "Servicio y anuncio de sitemaps cuando el motor independiente es propietario."
-msgstr ""
+msgstr "Sitemap aanbieden en aanmelden wanneer de zelfstandige engine verantwoordelijk is."
 
 #: includes/manual.php:132
 msgid "Regeneración silenciosa programada de sitemaps."
