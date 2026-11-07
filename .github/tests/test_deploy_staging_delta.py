@@ -127,6 +127,71 @@ class DeltaTests(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_remote_stale_versions_cannot_be_hidden_by_successful_git_baseline(self):
+        import json
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            output = Path(root) / "outputs"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_REMOTE_VERIFY": "1",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={}):
+                            with mock.patch.object(module, "remote_plugin_entrypoint_drift",
+                                                   return_value=["taxocommerce-auditor", "taxocommerce-vocabulary"]):
+                                module.plan()
+            data = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-auditor", "taxocommerce-vocabulary"])
+            self.assertEqual(data["count"], "2")
+            self.assertEqual(data["sync"], "true")
+            self.assertEqual(data["core"], "false")
+
+    def test_remote_scan_never_probes_pro_or_creates_missing_plugins(self):
+        import hashlib
+        import os
+        with tempfile.TemporaryDirectory() as root:
+            original = os.getcwd()
+            os.chdir(root)
+            try:
+                for slug in ("taxocommerce-core", "taxocommerce-vocabulary", "taxocommerce-connections"):
+                    Path(slug).mkdir()
+                    (Path(slug) / (slug + ".php")).write_bytes(slug.encode())
+                ftp = mock.Mock()
+                ftp.pwd.return_value = "/ftp-home"
+                observed = []
+                def enter_directory(path):
+                    observed.append(path)
+                    if "asociacionfocazul" in path and "taxocommerce-vocabulary" in path:
+                        raise module.ftplib.error_perm("550 plugin absent")
+                ftp.cwd.side_effect = enter_directory
+                def remote_hash(ftp_arg, name):
+                    if name == "taxocommerce-vocabulary.php":
+                        return "stale"
+                    slug = name[:-4]
+                    return hashlib.sha256((Path(slug) / name).read_bytes()).hexdigest()
+
+                with mock.patch.dict(os.environ, {
+                    "STAGING_FTP_SERVER": "example.test",
+                    "STAGING_FTP_USERNAME": "test",
+                    "STAGING_FTP_PASSWORD": "fake",
+                }):
+                    with mock.patch.object(module.ftplib, "FTP_TLS", return_value=ftp):
+                        with mock.patch.object(module, "existing_file_hash", side_effect=remote_hash):
+                            result = module.remote_plugin_entrypoint_drift()
+                self.assertEqual(result, ["taxocommerce-vocabulary"])
+                self.assertFalse(any("production" in path for path in observed))
+                self.assertFalse(any("taxocommerce-connections" in path for path in observed))
+                ftp.storbinary.assert_not_called()
+                ftp.mkd.assert_not_called()
+            finally:
+                os.chdir(original)
+
     def test_targeted_push_deploys_only_tasks_and_never_other_plugins(self):
         import json
         import os
@@ -239,11 +304,10 @@ class DeltaTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-suppliers")
 
-    def test_scoped_core_reuses_existing_workflow(self):
+    def test_gated_pipeline_owns_all_automatic_staging_pushes(self):
         workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/deploy-staging.yml").read_text()
-        self.assertIn("'taxocommerce-core/**'", workflow)
-        self.assertIn("'taxocommerce-tasks/**'", workflow)
-        self.assertIn("&& 'auto'", workflow)
+        self.assertNotIn("  push:", workflow)
+        self.assertIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", workflow)
         self.assertIn("target_plugin:", workflow)
         self.assertFalse((Path(__file__).resolve().parents[2] / ".github/workflows/deploy-core-staging.yml").exists())
 
