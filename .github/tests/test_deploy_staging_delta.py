@@ -198,6 +198,55 @@ class DeltaTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-tasks", full=True)
 
+    def test_scoped_core_delivery_isolated_even_when_git_baseline_equals_head(self):
+        import json
+        import os
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-core",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={}):
+                            module.plan()
+            data = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-core"])
+            self.assertEqual(data["core"], "true")
+            self.assertEqual(data["count"], "1")
+            self.assertEqual(data["sync"], "false")
+
+        files = [
+            "taxocommerce-core.php",
+            "includes/class-taxocommerce-core.php",
+            "languages/taxocommerce-core-es_ES.mo",
+        ]
+        with mock.patch.dict(os.environ, {"TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-core"}):
+            with mock.patch.object(module, "plugin_source_files", return_value=files) as source:
+                with mock.patch.object(module, "changed_files", side_effect=AssertionError("Git baseline not allowed")):
+                    self.assertEqual(
+                        module.selected_deploy_files("a" * 40, "a" * 40, "taxocommerce-core"),
+                        files,
+                    )
+            source.assert_called_once_with("taxocommerce-core")
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-core", full=True)
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-suppliers")
+
+    def test_scoped_core_workflow_remains_test_only(self):
+        workflow = (ROOT / ".github/workflows/deploy-core-staging.yml").read_text()
+        self.assertIn("target_plugin: taxocommerce-core", workflow)
+        self.assertIn("'taxocommerce-core/**'", workflow)
+        self.assertNotIn("production", workflow.lower())
+        self.assertNotIn("deploy_pro", workflow)
+        self.assertNotIn("taxocommerce-templates", workflow)
+
     def test_targeted_push_rejects_other_plugins_and_manual_full_sync(self):
         import os
         with tempfile.TemporaryDirectory() as root:
@@ -212,7 +261,7 @@ class DeltaTests(unittest.TestCase):
                         "taxocommerce-tasks": ["taxocommerce-tasks.php"]
                     }):
                         with mock.patch.dict(os.environ, dict(env,
-                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-core",
+                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-templates",
                             TAXOCOMMERCE_FULL_SYNC="0")):
                             with self.assertRaises(ValueError):
                                 module.plan()
