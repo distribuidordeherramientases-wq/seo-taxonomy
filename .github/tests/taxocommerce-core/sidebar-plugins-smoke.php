@@ -16,9 +16,11 @@ class TaxoCommerce_Core_User_Guide {
 function __( $message, $domain = '' ) { return $message; }
 function apply_filters( $hook, $default ) { return $default; }
 
+$GLOBALS['menu'] = array();
 $GLOBALS['submenu'] = array();
 $GLOBALS['tc_registered_pages'] = array();
 function add_menu_page( $title, $menu_title, $capability, $slug, $callback, $icon, $position ) {
+    $GLOBALS['menu'][] = array( $menu_title, $capability, $slug, $title, $icon );
     $GLOBALS['submenu'][ $slug ] = array();
     $GLOBALS['tc_registered_pages'][ $slug ] = $callback;
 }
@@ -43,6 +45,11 @@ function menu_slugs() {
 
 $core = TaxoCommerce_Core::instance();
 $core->register_menu();
+// Simulate a plugin or WordPress repaint incorrectly renaming the parent.
+$GLOBALS['menu'][0][0] = 'Marketing campaigns';
+$core->normalize_family_submenu_labels();
+check( 'TaxoCommerce Core' === $GLOBALS['menu'][0][0], 'Core parent title must not become Marketing campaigns' );
+check( 'taxocommerce-core' === $GLOBALS['menu'][0][2], 'Core parent slug must remain unchanged' );
 $initial = menu_slugs();
 $internal = array(
     TaxoCommerce_Core_Content_Manager::PAGE_SLUG,

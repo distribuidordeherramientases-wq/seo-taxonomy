@@ -1,10 +1,9 @@
 <?php
 /**
- * Loader de compatibilidad de Marketing.
+ * Compatibility entry point for legacy root-level Marketing includes.
  *
- * La implementación canónica vive en includes/marketing/. Se conserva esta
- * ruta para integraciones antiguas que todavía requieran includes/seo-marketing.php.
+ * @package TaxoCommerceSEO
  */
-defined('ABSPATH') || exit;
+defined( 'ABSPATH' ) || exit;
 
-require_once __DIR__ . '/marketing/bootstrap.php';
+require_once __DIR__ . '/includes/seo-marketing.php';

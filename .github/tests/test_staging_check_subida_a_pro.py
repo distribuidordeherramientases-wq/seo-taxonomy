@@ -27,17 +27,14 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", self.pipeline)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
-        # Only Core/Tasks may use the direct push scoped path.
-        # Other family plugins continue using the three-phase gated pipeline.
-        self.assertIn("  push:", self.staging)
-        push_block = self.staging.split("  push:", 1)[1].split("  pull_request:", 1)[0]
-        self.assertIn("- staging", push_block)
-        self.assertIn("'taxocommerce-tasks/**'", push_block)
-        self.assertIn("'taxocommerce-core/**'", push_block)
-        self.assertNotIn("'taxocommerce-templates/**'", push_block)
-        self.assertIn("&& 'auto'", self.staging)
-        self.assertIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
+        # A single push-driven pipeline must own *all* staging deliveries.
+        # Partial Core/Tasks jobs cannot mark the entire revision deployed.
+        self.assertNotIn("  push:", self.staging)
+        self.assertIn("workflow_call:", self.staging)
+        self.assertIn("TAXOCOMMERCE_REMOTE_VERIFY: '1'", self.staging)
+        self.assertIn("STAGING_FTP_PASSWORD:", self.staging)
         self.assertIn("TAXOCOMMERCE_TARGET_PLUGIN:", self.staging)
+        self.assertNotIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
 
     def test_order_and_strict_family_check(self):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)

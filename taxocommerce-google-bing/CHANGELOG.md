@@ -1,3 +1,10 @@
+## 1.1.23 - 2026-11-07 - Independencia Cloudflare (#2339)
+
+- Migrar la API de Cloudflare (solo lectura) y controles de zona/token a Insights Connections.
+- Mantener la opción cifrada y el formato de token original para no perder acceso tras desactivar SEO antiguo.
+- Exponer pruebas explícitas de token y zona, sin escritura en DNS/WAF/SSL.
+- Pendiente: prueba autenticada en STAGING con monolito desactivado, y migración GitHub Runner.
+
 ## [1.1.23] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
