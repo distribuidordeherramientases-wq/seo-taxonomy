@@ -105,6 +105,41 @@ def last_successful_base(repo, head, token):
     raise ValueError("No verified successful STAGING baseline; refusing broad FTP synchronization")
 
 
+def scoped_push_plugins():
+    """Select only Core/Tasks files named in the trusted staging push event.
+
+    A workflow change alone reconciles Core to repair previously skipped Core
+    deliveries, without installing absent optional plugins such as Tasks.
+    """
+    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+    if not event_path:
+        raise ValueError("A direct scoped push requires GITHUB_EVENT_PATH")
+    with open(event_path, encoding="utf-8") as source:
+        event = json.load(source)
+    if event.get("ref") != "refs/heads/staging":
+        raise ValueError("Scoped deliveries are restricted to staging pushes")
+    commits = event.get("commits", [])
+    if not isinstance(commits, list) or not commits:
+        raise ValueError("Scoped push contains no audited changed file list")
+    paths = set()
+    for commit in commits:
+        for kind in ("added", "modified", "removed"):
+            files = commit.get(kind, [])
+            if not isinstance(files, list):
+                raise ValueError("Invalid changed-file list in push event")
+            paths.update(path for path in files if isinstance(path, str))
+    slugs = [
+        slug for slug in ("taxocommerce-core", "taxocommerce-tasks")
+        if any(path.startswith(slug + "/") for path in paths)
+    ]
+    if not slugs and paths.intersection({
+        ".github/workflows/deploy-staging.yml",
+        ".github/scripts/deploy_staging_delta.py",
+    }):
+        slugs = ["taxocommerce-core"]
+    return slugs
+
+
 def plan():
     head = git("rev-parse", "HEAD").decode().strip()
     base = last_successful_base(os.environ["GITHUB_REPOSITORY"], head, os.environ.get("GITHUB_TOKEN", ""))
@@ -115,14 +150,11 @@ def plan():
     sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
     if target:
-        # Only explicitly reviewed Core or Tasks deliveries may run scoped.
-        # Never permit arbitrary plugins or a broad full_sync in this path.
-        if target not in ("taxocommerce-tasks", "taxocommerce-core") or sync:
+        # Scoped pushes are limited to the two reviewed plugins. The uploader
+        # compares SHA-256 and writes only changed files on authorized sites.
+        if target not in ("taxocommerce-tasks", "taxocommerce-core", "auto") or sync:
             raise ValueError("Targeted push deployment permits only Core or Tasks")
-        # Reconcile the chosen plugin against the actual remote SHA-256 values,
-        # not a Git baseline that may include validation-only jobs.
-        # The FTPS uploader writes ONLY files whose remote bytes differ.
-        slugs = [target]
+        slugs = scoped_push_plugins() if target == "auto" else [target]
     elif sync:
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
@@ -298,7 +330,10 @@ def selected_deploy_files(base, head, slug, full=False):
     """
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
     if target:
-        if target not in ("taxocommerce-tasks", "taxocommerce-core") or slug != target or full:
+        if target == "auto":
+            if slug not in ("taxocommerce-tasks", "taxocommerce-core") or full:
+                raise ValueError("Scoped reconciliation is restricted to Core or Tasks")
+        elif target not in ("taxocommerce-tasks", "taxocommerce-core") or slug != target or full:
             raise ValueError("Targeted reconciliation is restricted to Core or Tasks")
         return plugin_source_files(slug)
     if full:
