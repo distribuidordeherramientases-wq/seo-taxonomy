@@ -1,3 +1,6 @@
+= 0.3.31 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 = 0.3.30 (2026-11-06) =
 * M11: índices de consulta, cursor confirmado por expresión, cuarentena auditada de interrupciones repetidas y prueba de memoria lingüística de 33.409 expresiones. Se preservan L1-L10, M12 y las cinco velocidades.
 

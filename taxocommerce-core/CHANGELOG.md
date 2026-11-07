@@ -1,3 +1,8 @@
+## [0.4.59] — 2026-11-07 — Cabecera con versión y fecha (#2336)
+
+- Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
+- Fecha de publicación persistente, independiente del reloj o FTP.
+
 ## [Unreleased] — Traducción de menús y diagnósticos Core (#2062)
 
 - Traducidas 131 cadenas de interfaz en cada catálogo EN/FR/DE/NL (524 entradas): navegación de cabeceras, atributos WooCommerce, editor y seguridad del gestor de menús, anomalías y relaciones SEO.

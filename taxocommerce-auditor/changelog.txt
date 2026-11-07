@@ -1,3 +1,9 @@
+= 0.3.8 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
+= 0.3.7 (2026-11-07) =
+* Evita la carga prematura de traducciones de metadatos al registrar el módulo de Core; registro diferido hasta init, preservando funcionalidad e idiomas. Issue #2330.
+
 HISTORIAL LEGADO — TAXOCOMMERCE AUDITOR
 
 TaxoCommerce SEO monolítico, versiones previas a la división modular.

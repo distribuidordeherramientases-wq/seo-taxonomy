@@ -1,3 +1,6 @@
+= 0.1.9 (2026-11-07) =
+* Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
+
 = 0.1.8 (2026-11-07) =
 * Sitemap XML: regeneracion diaria mediante WP-Cron y worker incremental de 250 elementos, sin procesos duplicados y respetando la coexistencia legacy. Issue #2259.
 

@@ -1,3 +1,15 @@
+## [1.1.23] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
+## 1.1.22 — 2026-11-07 — Migración de comercio electrónico GA4 (#2334)
+
+- Pestaña propia «Comercio electrónico» en Insights, separada de Cabeceras y Connections.
+- Activación independiente, selector de GA4 únicamente de etiquetas activas, control de consentimiento y bloqueo con medición antigua activa.
+- Motor propio de eventos de WooCommerce, sin depender del interruptor SEO heredado; desactivado por defecto hasta la validación funcional.
+- Tests de regresión y despliegue homogéneo STAGING + Focazul; no cambia credenciales o etiquetas en PRO.
+
 ## [Unreleased] — Traducciones de interfaz Insights (#2062)
 
 - Traducidas 97 cadenas de menús, tablas, comparaciones SEO, métricas de tráfico, permisos y recomendaciones en cada uno de los idiomas EN/FR/DE/NL (388 entradas gettext completadas).

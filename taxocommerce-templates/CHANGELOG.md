@@ -1,3 +1,8 @@
+## [0.4.22] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
+
+- Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
+- La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
+
 ## [Unreleased] — Catálogos de idioma completos para el enrutador (#2328)
 
 - Incorporadas 42 claves gettext que faltaban en los catálogos FR/DE/NL para políticas, enrutamiento, diseñador y asignaciones (126 traducciones nuevas).
