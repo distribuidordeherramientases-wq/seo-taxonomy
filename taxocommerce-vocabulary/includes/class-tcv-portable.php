@@ -34,15 +34,15 @@ final class TCV_Portable {
         echo '<p>' . esc_html__( 'Copia portable para backup, análisis externo o traslado entre instalaciones. Los IDs numéricos viajan solo como auditoría; el destino se resuelve mediante claves portables.', 'taxocommerce-vocabulary' ) . '</p>';
         echo '<div class="tcv-grid">';
 
-        echo '<div><h3>Exportar catálogo</h3><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<div><h3>' . esc_html__( 'Exportar catálogo', 'taxocommerce-vocabulary' ) . '</h3><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tcv_export_portable_json">';
         wp_nonce_field( 'tcv_export_portable_json' );
         $labels = array(
-            'masters'            => 'Maestros: Vocabulary, TIPO → ROL y atributos',
-            'product_semantic'   => 'Producto → Vocabulary',
-            'category_semantic'  => 'Categoría → Vocabulary',
-            'product_attributes' => 'Producto → atributos canónicos',
-            'product_tags'       => 'Producto → etiquetas WooCommerce',
+            'masters'            => __( 'Maestros: Vocabulary, TIPO → ROL y atributos', 'taxocommerce-vocabulary' ),
+            'product_semantic'   => __( 'Producto → Vocabulary', 'taxocommerce-vocabulary' ),
+            'category_semantic'  => __( 'Categoría → Vocabulary', 'taxocommerce-vocabulary' ),
+            'product_attributes' => __( 'Producto → atributos canónicos', 'taxocommerce-vocabulary' ),
+            'product_tags'       => __( 'Producto → etiquetas WooCommerce', 'taxocommerce-vocabulary' ),
         );
         foreach ( $labels as $scope => $label ) {
             echo '<label style="display:block;margin:6px 0"><input type="checkbox" name="scope[]" value="' . esc_attr( $scope ) . '" checked> ' . esc_html( $label ) . '</label>';
@@ -64,7 +64,7 @@ final class TCV_Portable {
         echo '<p>' . '<button class="button" name="portable_intent" value="apply">' . esc_html__( '2. Aplicar archivo simulado', 'taxocommerce-vocabulary' ) . '</button>' . '</p>';
         echo '</form>';
         if ( is_array( $preview ) && ! empty( $preview['summary'] ) ) {
-            echo '<p class="description"><strong>Última simulación:</strong> ' . esc_html( wp_json_encode( $preview['summary'], JSON_UNESCAPED_UNICODE ) ) . '</p>';
+            echo '<p class="description"><strong>' . esc_html__( 'Última simulación:', 'taxocommerce-vocabulary' ) . '</strong> ' . esc_html( wp_json_encode( $preview['summary'], JSON_UNESCAPED_UNICODE ) ) . '</p>';
         }
         echo '<p class="description">' . esc_html__( 'MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
         echo '</div></div>';
