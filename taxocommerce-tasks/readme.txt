@@ -25,7 +25,7 @@ TaxoCommerce Tasks provides a standalone task management area in the WordPress a
 
 Tasks and task categories live exclusively in two custom database tables using the site's WordPress prefix. No WordPress posts, pages, WooCommerce products or public endpoints are created. No external services or data transfers are used. This plugin does not require WooCommerce, TaxoCommerce Core or any other TaxoCommerce plugin.
 
-Administrative labels have built-in Spanish, English, French and German fallbacks. WordPress language packs take precedence. Task titles, descriptions and category names are entered by administrators and are not automatically translated.
+Administrative labels are provided in Spanish, English, French and German, selected using the active WordPress locale. Task titles, descriptions and category names are entered by administrators and are not automatically translated.
 
 == Installation ==
 
