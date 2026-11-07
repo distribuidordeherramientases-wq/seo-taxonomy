@@ -1,3 +1,10 @@
+## [0.1.6] — 2026-11-07 — Cabecera visual uniforme para Tasks (#2336)
+
+- Tasks utiliza la misma cabecera visual autónoma que el resto de plugins TaxoCommerce (título, versión y fecha de actualización).
+- Se elimina el encabezado sencillo duplicado; se mantienen intactas las siete pestañas, navegación, tareas, categorías, calendario, manuales y autocheck.
+- La cabecera se genera desde la plantilla común con gettext de WordPress para ES/EN/FR/DE/NL y funciona con o sin Core.
+- Prueba de regresión de cabecera común y versión sincronizada con readme.
+
 ## [0.1.5] — 2026-11-07 — Cabecera con versión y fecha (#2336)
 
 - Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
