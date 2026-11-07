@@ -1578,4 +1578,4 @@ msgstr ""
 
 #: includes/feeds/admin.php
 msgid "Stopped"
-msgstr ""
+msgstr "Arrêté"
