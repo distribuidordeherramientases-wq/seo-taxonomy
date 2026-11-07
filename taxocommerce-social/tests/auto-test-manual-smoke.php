@@ -125,18 +125,18 @@ $catalog_root = dirname( __DIR__ ) . '/languages/taxocommerce-social';
 $pot_content = file_get_contents( $catalog_root . '.pot' );
 social_assert( false !== $pot_content, 'gettext template exists' );
 $pot_entries = preg_match_all( '/^msgid /m', $pot_content );
-social_assert( 144 === $pot_entries, '143 translated catalog messages plus header' );
+social_assert( 161 === $pot_entries, '160 translated catalog messages plus header' );
 foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
     $po_path = $catalog_root . '-' . $locale . '.po';
     $mo_path = $catalog_root . '-' . $locale . '.mo';
     $po_content = file_get_contents( $po_path );
     social_assert( false !== $po_content, 'gettext PO exists: ' . $locale );
-    social_assert( 144 === preg_match_all( '/^msgid /m', $po_content ), 'same gettext messages: ' . $locale );
+    social_assert( 161 === preg_match_all( '/^msgid /m', $po_content ), 'same gettext messages: ' . $locale );
     social_assert( 1 === preg_match_all( '/^msgstr ""$/m', $po_content ), 'no untranslated msgstr: ' . $locale );
     $header = file_get_contents( $mo_path, false, null, 0, 28 );
     social_assert( false !== $header && 28 === strlen( $header ), 'gettext MO exists: ' . $locale );
     $meta = unpack( 'Vmagic/Vrevision/Vcount', $header );
-    social_assert( 0x950412de === $meta['magic'] && 144 === $meta['count'], 'valid GNU MO header: ' . $locale );
+    social_assert( 0x950412de === $meta['magic'] && 161 === $meta['count'], 'valid GNU MO header: ' . $locale );
 }
 echo "TaxoCommerce Social i18n catalogs (ES/EN/FR/DE/NL) verified.\\n";
 echo "TaxoCommerce Social Auto Test + Manual smoke passed.\n";
