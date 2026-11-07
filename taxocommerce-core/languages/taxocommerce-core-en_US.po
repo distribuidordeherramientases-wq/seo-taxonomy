@@ -4148,3 +4148,7 @@ msgstr "Access denied to Autocheck."
 #: includes/class-taxocommerce-core-auto-test.php
 msgid "Sin permisos para ejecutar autocheck."
 msgstr "No permission to run autocheck."
+
+#: includes/class-taxocommerce-core.php
+msgid "Private task agenda, calendar, categories and indicators."
+msgstr "Private task agenda, calendar, categories and indicators."

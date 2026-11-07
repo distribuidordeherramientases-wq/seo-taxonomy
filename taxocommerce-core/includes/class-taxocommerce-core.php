@@ -567,6 +567,16 @@ final class TaxoCommerce_Core {
 				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-redirects' ),
 				'description'   => __( '301/302 redirects and assisted content deletion.', 'taxocommerce-core' ),
 			),
+			'tasks' => array(
+				'id'            => 'tasks',
+				'name'          => 'TaxoCommerce Tasks',
+				'plugin_file'   => 'taxocommerce-tasks/taxocommerce-tasks.php',
+				'org_slug'      => 'taxocommerce-tasks',
+				'search_term'   => 'TaxoCommerce Tasks',
+				'wordpress_org' => false,
+				'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
+				'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-core' ),
+			),
 			'auditor' => array(
 				'id'            => 'auditor',
 				'name'          => 'TaxoCommerce Auditor',
