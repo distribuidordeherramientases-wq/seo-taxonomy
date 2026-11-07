@@ -1,3 +1,9 @@
+## [Unreleased] — Catálogos gettext completos ES/EN/FR/DE/NL (#2062)
+
+- Completadas las 57 traducciones de interfaz, mensajes y manuales pendientes en cada idioma (285 entradas en total), manteniendo íntegros los identificadores técnicos y las advertencias sobre operaciones destructivas.
+- Regenerados los cinco archivos MO desde los correspondientes PO. Confirmadas 115 claves en POT y en cada PO, cero traducciones vacías, cero cadenas marcadas como fuzzy, sin diferencias PO/MO y sin discrepancias de marcadores de formato detectadas.
+- No se modifican datos de preguntas frecuentes, productos, páginas, entradas, categorías, base de datos ni lógica del plugin. Pendientes ejecución de Plugin Check, comprobación real del idioma de WordPress y pruebas visuales en instalaciones autorizadas.
+
 ## [Unreleased] — Catálogos i18n FAQs (#2319)
 
 - Completadas 31 entradas gettext que estaban vacías en cada catálogo PO (es_ES, en_US, fr_FR, de_DE, nl_NL), principalmente mensajes de Autocheck y títulos de manuales.
