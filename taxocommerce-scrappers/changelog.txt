@@ -1,3 +1,6 @@
+= 0.1.10 (2026-11-07) =
+* Evita el aviso de traducciones prematuras al registrar metadatos en Core. Se difiere hasta init sin cambiar módulos ni idiomas. Issue #2330.
+
 HISTORIAL LEGADO — TAXOCOMMERCE SCRAPPERS / OJEADOR E INGENIERO
 
 Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.

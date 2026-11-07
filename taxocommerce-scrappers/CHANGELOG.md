@@ -1,3 +1,9 @@
+## [0.1.10] — 2026-11-07 — Registro Core sin traducciones prematuras (#2330)
+
+- Traducciones de nombre y descripción de módulo ejecutadas después de `init` al integrarse opcionalmente en TaxoCommerce Core.
+- Se mantiene compatibilidad del plugin independiente, menús, hooks, Ojeador e Ingeniero.
+- Pendiente de comprobar ausencia de avisos reales en STAGING tras la transferencia.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

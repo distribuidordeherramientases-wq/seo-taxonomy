@@ -9,6 +9,8 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 define( 'ABSPATH', __DIR__ );
 function __( $message, $domain = '' ) { return $message; }
+// This menu test runs after WordPress init; the separate i18n regression tests pre-init.
+function did_action( $hook ) { return 'init' === $hook ? 1 : 0; }
 function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
 function plugin_dir_url( $path ) { return 'https://example.test/wp-content/plugins/taxocommerce-database/'; }
 function add_action( $event, $callback, $priority = 10 ) { return true; }

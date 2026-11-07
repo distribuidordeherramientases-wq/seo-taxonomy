@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.9
+ * Version: 0.4.10
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.9' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.10' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );
@@ -121,6 +121,15 @@ final class TaxoCommerce_Database {
 
     public static function register_core( $core ) {
         if ( is_object( $core ) && method_exists( $core, 'register_module' ) ) {
+            // WordPress 6.7+ warns when gettext is called in plugins_loaded.
+            // Postpone only the Core presentation metadata until init.
+            if ( ! did_action( 'init' ) ) {
+                add_action( 'init', static function () use ( $core ) {
+                    self::register_core( $core );
+                }, 11 );
+                return;
+            }
+
             $core->register_module( 'database', array(
                 'name' => 'TaxoCommerce Database',
                 'version' => TAXOCOMMERCE_DATABASE_VERSION,

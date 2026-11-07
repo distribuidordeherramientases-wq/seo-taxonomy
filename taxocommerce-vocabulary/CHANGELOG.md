@@ -1,3 +1,10 @@
+## [0.3.11] — 2026-11-07 — Registro Core sin traducciones prematuras (#2330)
+
+- Registro de metadatos de este plugin en TaxoCommerce Core pospuesto a `init` prioridad 11 cuando Core solicita los datos durante `plugins_loaded`.
+- Conserva el registro de módulos, traducciones por locale, menús, acciones, contenido y funcionamiento independiente sin modificar Core.
+- Evita el aviso de WordPress 6.7+ `_load_textdomain_just_in_time` causado por la descripción traducida del módulo.
+- La desaparición del aviso requiere confirmación en STAGING tras desplegar.
+
 ## [0.3.10] — 2026-11-07 — Vocabulary de entradas y landings (#2298)
 
 - El JSON portable de Vocabulary incorpora dos capas opcionales: entradas y páginas nativas de WordPress; las landings se resuelven como páginas sin dependencia de TaxoCommerce SEO ni Core.
