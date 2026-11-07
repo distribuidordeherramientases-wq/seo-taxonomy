@@ -18,12 +18,12 @@ msgstr "TaxoCommerce Distribution – Flux et sitemaps pour WooCommerce"
 msgid ""
 "Publishes commercial feeds and professional XML sitemaps through independent"
 " bounded processes."
-msgstr ""
+msgstr "Publie des flux commerciaux et des sitemaps XML professionnels au moyen de processus autonomes à durée et charge limitées."
 
 #. Author of the plugin
 #: taxocommerce-distribution.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:17
 msgid "You do not have permission to manage TaxoCommerce Distribution."
@@ -45,7 +45,7 @@ msgstr "Résultat inconnu."
 msgid ""
 "Technical catalog publishing: commercial feeds and XML sitemaps through safe"
 " bounded processes."
-msgstr ""
+msgstr "Publication technique du catalogue : flux commerciaux et sitemaps XML au moyen de processus sûrs et limités."
 
 #: includes/admin.php:90
 msgid "Secciones de Distribution"
@@ -85,7 +85,7 @@ msgid ""
 "while preserving the same public files. While both plugins coexist, the "
 "legacy scheduled automation keeps priority to avoid duplicate execution; "
 "manual regeneration can be tested from this plugin."
-msgstr ""
+msgstr "l’ancien plugin a été détecté. Distribution utilise son propre état et son propre processus tout en conservant les mêmes fichiers publics. Tant que les deux plugins coexistent, l’automatisation planifiée de l’ancien conserve la priorité pour éviter les exécutions en double ; la régénération manuelle peut être testée depuis ce plugin."
 
 #: includes/admin.php:149
 msgid "Status:"
@@ -131,7 +131,7 @@ msgstr "Responsabilité du plugin"
 msgid ""
 "Distribution publishes the catalog to external systems. It does not edit "
 "templates, campaigns, social media, or editorial content."
-msgstr ""
+msgstr "Distribution publie le catalogue vers des systèmes externes. Il ne modifie ni les modèles, ni les campagnes, ni les réseaux sociaux, ni le contenu éditorial."
 
 #: includes/admin.php:181
 msgid "Feeds:"
@@ -149,7 +149,7 @@ msgstr "Sitemaps XML"
 msgid ""
 "The same proven engine is preserved: atomic publishing, pre-publication XML "
 "validation, product batching, and stable root-domain URLs."
-msgstr ""
+msgstr "Le moteur éprouvé est conservé : publication atomique, validation XML avant publication, traitement des produits par lots et URL stables sur le domaine principal."
 
 #: includes/admin.php:245
 msgid "Professional index:"
@@ -182,14 +182,14 @@ msgid ""
 "published, non-password-protected content is included; cart, checkout, and "
 "account pages are excluded. Each XML file is validated before replacing the "
 "previous public file."
-msgstr ""
+msgstr "Sépare les produits, catégories, articles, pages, clusters et hubs. Seul le contenu publié et non protégé par mot de passe est inclus ; les pages de panier, de commande et de compte sont exclues. Chaque fichier XML est validé avant de remplacer la version publique précédente."
 
 #: includes/admin.php:269
 msgid ""
 "Products are split into bounded groups to avoid oversized XML files. "
 "Generation uses a lock and atomic publishing so partial files are never "
 "exposed."
-msgstr ""
+msgstr "Les produits sont répartis en groupes limités pour éviter les fichiers XML surdimensionnés. La génération utilise un verrou et une publication atomique pour ne jamais exposer de fichiers partiels."
 
 #: includes/admin.php:273
 msgid "File"
@@ -229,7 +229,7 @@ msgid ""
 "runs through the dedicated Distribution worker. Each window uses a cursor, "
 "lock, and execution deadline; there is no dependency on the legacy central "
 "manager."
-msgstr ""
+msgstr "Les flux conservent le régulateur adaptatif de l’ancien système, mais le travail est désormais exécuté par le processus dédié de Distribution. Chaque fenêtre utilise un curseur, un verrou et une échéance ; le gestionnaire central historique n’est pas requis."
 
 #: includes/admin.php:320
 msgid "Feed worker"
@@ -239,7 +239,7 @@ msgstr "Processus de flux"
 msgid ""
 "Legacy automation has priority during coexistence; manual execution is "
 "available here."
-msgstr ""
+msgstr "L’automatisation historique reste prioritaire pendant la coexistence ; l’exécution manuelle est disponible ici."
 
 #: includes/admin.php:320
 msgid "Owned by Distribution"
@@ -272,14 +272,14 @@ msgstr "Temporairement géré par l’ancien plugin"
 #: includes/admin.php:323
 msgid ""
 "Distribution regenerates after product, page, post, and category changes"
-msgstr ""
+msgstr "Distribution régénère les fichiers après modification des produits, pages, articles et catégories"
 
 #: includes/admin.php:327
 msgid ""
 "During migration, two parallel cron jobs are prevented from writing to the "
 "same public files. Once the legacy module is removed, Distribution "
 "automatically takes over scheduling."
-msgstr ""
+msgstr "Pendant la migration, deux tâches cron parallèles ne peuvent pas écrire dans les mêmes fichiers publics. Une fois l’ancien module supprimé, Distribution reprend automatiquement la planification."
 
 #: includes/autocheck.php:235
 msgid "Autocheck de Distribution"
@@ -290,7 +290,7 @@ msgid ""
 "Diagnóstico manual y no destructivo: comprueba componentes, hooks, "
 "configuración y metadatos de archivos. No genera feeds ni sitemaps, no "
 "consulta servicios externos, no inicia trabajos y no escribe datos."
-msgstr ""
+msgstr "Diagnostic manuel non destructif : vérifie composants, hooks, configuration et métadonnées des fichiers. Ne génère ni flux ni sitemaps, n’interroge aucun service externe, ne démarre aucun travail et n’écrit aucune donnée."
 
 #: includes/autocheck.php:240
 msgid "Ejecutar autocheck"
@@ -349,7 +349,7 @@ msgid ""
 "Los resultados no se guardan. La presencia física de un fichero no demuestra"
 " su validez XML ni confirma que las plataformas externas lo hayan "
 "descargado."
-msgstr ""
+msgstr "Les résultats ne sont pas enregistrés. La présence physique d’un fichier ne prouve ni la validité de son XML ni son téléchargement par les plateformes externes."
 
 #: includes/feeds/admin.php:31
 msgid "You do not have permission to configure commercial feeds."
@@ -371,7 +371,7 @@ msgstr "Paramètres enregistrés."
 msgid ""
 "Generation started and handed to the Distribution worker. Batch size adapts "
 "automatically to actual response time and observed load."
-msgstr ""
+msgstr "Génération démarrée et confiée au processus Distribution. La taille des lots s’adapte automatiquement au temps de réponse réel et à la charge observée."
 
 #: includes/feeds/admin.php:245
 msgid "Generation stopped by the user. No partial file was published."
@@ -386,7 +386,7 @@ msgid ""
 "this generation uses products and URLs from this environment and is for "
 "testing only. No commercial refresh is scheduled and these URLs must not be "
 "registered with Google, Microsoft, or Pinterest."
-msgstr ""
+msgstr "cette génération utilise les produits et URL de cet environnement uniquement à des fins de test. Aucune actualisation commerciale n’est planifiée et ces URL ne doivent pas être enregistrées auprès de Google, Microsoft ou Pinterest."
 
 #: includes/feeds/admin.php:256
 msgid "PRODUCTION:"
@@ -396,7 +396,7 @@ msgstr "PRODUCTION :"
 msgid ""
 "this environment generates the live commercial feeds. Platforms download "
 "from these URLs; WordPress does not push the feed directly."
-msgstr ""
+msgstr "cet environnement génère les flux commerciaux publics. Les plateformes téléchargent les fichiers depuis ces URL ; WordPress ne les transmet pas directement."
 
 #: includes/feeds/admin.php:268
 msgid "Distribution worker:"
@@ -414,7 +414,7 @@ msgstr "Guide de TaxoCommerce Distribution"
 msgid ""
 "Guía de uso y referencia técnica del plugin independiente de publicación de "
 "feeds comerciales y sitemaps XML."
-msgstr ""
+msgstr "Guide d’utilisation et référence technique du plugin autonome de publication de flux commerciaux et de sitemaps XML."
 
 #: includes/manual.php:34
 msgid "Índice de documentación"
@@ -441,7 +441,7 @@ msgid ""
 "Destinatarios: responsables de catálogo, operaciones y administración de "
 "WooCommerce. Explica qué revisar antes, durante y después de publicar un "
 "feed o sitemap."
-msgstr ""
+msgstr "Public : responsables du catalogue, des opérations et de l’administration WooCommerce. Explique les vérifications à effectuer avant, pendant et après la publication d’un flux ou sitemap."
 
 #: includes/manual.php:45
 msgid "1. Acceso y pestañas"
@@ -454,7 +454,7 @@ msgid ""
 " Feeds, Sitemaps, Automation, Manual y Autocheck. Requiere los permisos de "
 "gestión de WooCommerce configurados para Distribution, o permisos de "
 "administrador."
-msgstr ""
+msgstr "Ouvrez TaxoCommerce Core > Distribution ; si Core n’est pas installé, utilisez Distribution dans le menu principal. Le plugin dispose des onglets Overview, Commercial Feeds, Sitemaps, Automation, Manual et Autocheck. Il nécessite les droits de gestion WooCommerce configurés pour Distribution ou les droits d’administration."
 
 #: includes/manual.php:48
 msgid "1.1. Secuencia inicial segura"
