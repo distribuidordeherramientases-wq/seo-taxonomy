@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.20
+ * Version: 0.4.21
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -14,7 +14,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
-define('TCT_VERSION','0.4.20');
+define('TCT_VERSION','0.4.21');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
@@ -30,6 +30,7 @@ require_once TCT_DIR . 'includes/class-tct-designs.php';
 require_once TCT_DIR . 'includes/class-tct-association-audit.php';
 require_once TCT_DIR . 'includes/class-tct-autocheck.php';
 require_once TCT_DIR . 'includes/class-tct-seo-title.php';
+require_once TCT_DIR . 'includes/class-tct-category-content-sync.php';
 require_once TCT_DIR . 'includes/class-tct-manual.php';
 require_once TCT_DIR . 'includes/class-tct-legacy-email-compat.php';
 require_once TCT_DIR . 'includes/class-tct-pilot-router.php';
@@ -120,6 +121,7 @@ final class TaxoCommerce_Templates {
         add_action('admin_enqueue_scripts',array(__CLASS__,'enqueue_policy_control'));
         add_action('admin_menu',array(__CLASS__,'menu'),65);
         add_action('admin_post_tct_save_role',array(__CLASS__,'save_role'));
+        add_action('admin_post_' . TCT_Category_Content_Sync::ACTION,array('TCT_Category_Content_Sync','handle'));
         add_action('admin_post_tct_save_template',array(__CLASS__,'save_template'));
         add_action('admin_post_tct_settings',array(__CLASS__,'settings'));
         add_action('admin_post_tct_save_page_role',array(__CLASS__,'save_page_role'));
@@ -427,14 +429,15 @@ final class TaxoCommerce_Templates {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter parameter; writes use separate nonce-protected handlers.
         $tab = isset($_GET['tab']) && is_string($_GET['tab']) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
             ? sanitize_key(wp_unslash($_GET['tab'])) : 'routing'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation/filter, sanitized and without state-changing effects.
-        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','autocheck','manual'), true)) {
+        if (!in_array($tab, array('routing','designer','manager','requests','roles','editor','audit','composer','category-sync','autocheck','manual'), true)) {
             $tab = 'routing';
         }
-        $main_tab = in_array($tab, array('autocheck','manual'), true) ? $tab : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
+        $main_tab = in_array($tab, array('autocheck','manual','category-sync'), true) ? $tab : ( in_array($tab, array('routing','requests','roles','audit'), true) ? 'routing' : 'designer' );
         echo '<div class="wrap">' . '<h1>' . esc_html__( 'TaxoCommerce Templates', 'taxocommerce-templates' ) . '</h1>' . '<nav class="nav-tab-wrapper">';
         foreach (array(
             'routing'  => __( 'Enrutamiento', 'taxocommerce-templates' ),
             'designer' => __( 'Diseñador de plantillas', 'taxocommerce-templates' ),
+            'category-sync' => __( 'SEO content', 'taxocommerce-templates' ),
             'autocheck' => __( 'Autocheck', 'taxocommerce-templates' ),
             'manual' => __( 'Manual', 'taxocommerce-templates' ),
         ) as $key => $label) {
@@ -453,6 +456,8 @@ final class TaxoCommerce_Templates {
             TCT_Autocheck::render();
         } elseif ('manual' === $main_tab) {
             TCT_Manual::render();
+        } elseif ('category-sync' === $main_tab) {
+            TCT_Category_Content_Sync::render();
         } elseif ('routing' === $main_tab) {
             if ('audit' === $tab) {
                 TCT_Association_Audit::render();
