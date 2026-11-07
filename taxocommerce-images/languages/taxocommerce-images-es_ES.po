@@ -112,11 +112,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-assignment.php:45
 msgid "Categorías"
-msgstr ""
+msgstr "Categorías"
 
 #: includes/class-taxocommerce-images-assignment.php:46
 msgid "Productos"
-msgstr ""
+msgstr "Productos"
 
 #: includes/class-taxocommerce-images-assignment.php:541
 msgid "Imagen de este mismo producto"
@@ -169,7 +169,7 @@ msgstr ""
 #: includes/class-taxocommerce-images-assignment.php:851
 #: includes/class-taxocommerce-images-maintenance.php:333
 msgid "Sin permisos."
-msgstr ""
+msgstr "Sin permisos."
 
 #: includes/class-taxocommerce-images-assignment.php:861
 msgid "Proceso de asignación no válido."
@@ -273,7 +273,7 @@ msgstr ""
 #: includes/class-taxocommerce-images-auto-test.php:326
 #: includes/class-taxocommerce-images.php:258
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto Test"
 
 #: includes/class-taxocommerce-images-auto-test.php:327
 msgid ""
@@ -283,7 +283,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-auto-test.php:343
 msgid "Ejecutar Auto Test"
-msgstr ""
+msgstr "Ejecutar Auto Test"
 
 #: includes/class-taxocommerce-images-auto-test.php:344
 msgid "Sin cambios en archivos, catálogo, metadatos o colas de imágenes."
@@ -346,7 +346,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-background.php:416
 msgid "Reanudar"
-msgstr ""
+msgstr "Reanudar"
 
 #: includes/class-taxocommerce-images-background.php:417
 msgid "Detener"
@@ -370,7 +370,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-load.php:75
 msgid "Alta"
-msgstr ""
+msgstr "Alta"
 
 #: includes/class-taxocommerce-images-load.php:76
 msgid "Máxima"
@@ -542,11 +542,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-maintenance.php:493
 msgid "Todas"
-msgstr ""
+msgstr "Todas"
 
 #: includes/class-taxocommerce-images-manual.php:28
 msgid "No tienes permisos para consultar este manual."
-msgstr ""
+msgstr "No tienes permisos para consultar este manual."
 
 #: includes/class-taxocommerce-images-manual.php:33
 msgid "Manual de TaxoCommerce Images"
@@ -560,7 +560,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images-manual.php:35
 msgid "Contenido"
-msgstr ""
+msgstr "Contenido"
 
 #: includes/class-taxocommerce-images-thumbnails.php:66
 msgid "No tienes permisos para modificar las miniaturas."
@@ -619,7 +619,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:259
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-taxocommerce-images.php:269
 msgid "Familia TaxoCommerce"
@@ -703,7 +703,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:378
 msgid "Pausar"
-msgstr ""
+msgstr "Pausar"
 
 #: includes/class-taxocommerce-images.php:379
 msgid ""
@@ -722,7 +722,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:400
 msgid "Procesar siguiente lote"
-msgstr ""
+msgstr "Procesar siguiente lote"
 
 #: includes/class-taxocommerce-images.php:407
 msgid "Elemento sin imagen"
@@ -925,7 +925,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:630
 msgid "Estado:"
-msgstr ""
+msgstr "Estado:"
 
 #: includes/class-taxocommerce-images.php:630
 msgid "Completada"
@@ -933,7 +933,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:630
 msgid "En curso"
-msgstr ""
+msgstr "En curso"
 
 #: includes/class-taxocommerce-images.php:635
 msgid ""
@@ -978,11 +978,11 @@ msgstr ""
 #: includes/class-taxocommerce-images.php:668
 #: includes/class-taxocommerce-images.php:738
 msgid "Acciones"
-msgstr ""
+msgstr "Acciones"
 
 #: includes/class-taxocommerce-images.php:674
 msgid "Revisar"
-msgstr ""
+msgstr "Revisar"
 
 #: includes/class-taxocommerce-images.php:730
 msgid "Biblioteca gestionada"
@@ -994,7 +994,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:735
 msgid "Buscar"
-msgstr ""
+msgstr "Buscar"
 
 #: includes/class-taxocommerce-images.php:738
 msgid "Dimensiones / peso"
@@ -1022,7 +1022,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:758
 msgid "Media"
-msgstr ""
+msgstr "Media"
 
 #: includes/class-taxocommerce-images.php:787
 msgid "Editar imagen"
@@ -1042,11 +1042,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:799
 msgid "Descripción"
-msgstr ""
+msgstr "Descripción"
 
 #: includes/class-taxocommerce-images.php:800
 msgid "Nombre físico"
-msgstr ""
+msgstr "Nombre físico"
 
 #: includes/class-taxocommerce-images.php:800
 msgid ""
@@ -1083,7 +1083,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:835
 msgid "Tamaño"
-msgstr ""
+msgstr "Tamaño"
 
 #: includes/class-taxocommerce-images.php:836
 msgid "Ancho"
@@ -1103,11 +1103,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-images.php:847
 msgid "Sí"
-msgstr ""
+msgstr "Sí"
 
 #: includes/class-taxocommerce-images.php:847
 msgid "No"
-msgstr ""
+msgstr "No"
 
 #: includes/class-taxocommerce-images.php:853
 msgid "Guardar tamaños desactivados"
