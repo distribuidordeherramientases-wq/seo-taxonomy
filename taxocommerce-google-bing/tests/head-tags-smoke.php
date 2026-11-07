@@ -5,6 +5,7 @@
  */
 define( 'ABSPATH', __DIR__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.21' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.21' );
 function get_option( $key, $default = array() ) {
     return isset( $GLOBALS['test_head_options'][ $key ] ) ? $GLOBALS['test_head_options'][ $key ] : $default;
 }
