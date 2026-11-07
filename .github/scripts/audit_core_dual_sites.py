@@ -226,6 +226,40 @@ def ftps_parity(report, paths):
         ftp.close()
 
 
+def public_provider_head(report, site, html):
+    """Inspect rendered head HTML without cookies/secrets; never imply API success."""
+    if site != "staging":
+        return
+    head = html.split("</head>", 1)[0] if "</head>" in html.lower() else html
+    gtag = len(re.findall(
+        r"""<script\b[^>]*\bsrc\s*=\s*["'][^"']*googletagmanager\.com/gtag/js\?id=""",
+        head,
+        re.I,
+    ))
+    if gtag > 1:
+        check(report, site, "Google Analytics: tag único", "FAIL",
+              f"{gtag} gtag.js externos detectados antes de aceptar cookies (duplicado)")
+    elif gtag == 1:
+        check(report, site, "Google Analytics: tag único", "PASS",
+              "Un solo gtag.js en HTML público; NO prueba recepción de tráfico")
+    else:
+        check(report, site, "Google Analytics: tag único", "NOT_CHECKED",
+              "Sin gtag.js en HTML anónimo; puede requerir consentimiento, no concluye fallo")
+    names = re.findall(r"""<meta\b[^>]*\bname\s*=\s*["']([^"']+)["']""", head, re.I)
+    normalized = [name.lower() for name in names]
+    for label, field in (
+        ("Google Search Console", "google-site-verification"),
+        ("Microsoft Bing", "msvalidate.01"),
+        ("Pinterest Merchant", "p:domain_verify"),
+    ):
+        count = normalized.count(field)
+        status = "FAIL" if count > 1 else ("PASS" if count == 1 else "NOT_CHECKED")
+        detail = "Etiqueta de verificación única en HTML" if count == 1 else (
+            "Etiquetas duplicadas" if count > 1 else "Sin meta en este HTML; DNS u otro método no verificados"
+        )
+        check(report, site, label + ": meta de cabecera", status, detail)
+
+
 def public_navigation(report, site, base):
     try:
         final, html, code = read_html(urllib.request.build_opener(), base)
@@ -248,6 +282,7 @@ def public_navigation(report, site, base):
         check(report, site, "Web pública", "FAIL", "Avisos/errores PHP visibles en la página")
     else:
         check(report, site, "Web pública", "PASS", "HTTP 200 sin errores PHP visibles en el HTML recibido")
+    public_provider_head(report, site, html)
     parser = MenuHTML()
     parser.feed(html)
     if not parser.nav_count:
