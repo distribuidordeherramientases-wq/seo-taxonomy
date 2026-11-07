@@ -1,3 +1,10 @@
+## [0.3.10] — 2026-11-07 — Vocabulary de entradas y landings (#2298)
+
+- El JSON portable de Vocabulary incorpora dos capas opcionales: entradas y páginas nativas de WordPress; las landings se resuelven como páginas sin dependencia de TaxoCommerce SEO ni Core.
+- Se conserva el contrato anterior de productos, categorías, atributos y etiquetas, con simulación obligatoria y modos MERGE/MIRROR. La identidad se resuelve mediante slug o ruta jerárquica de destino, nunca mediante un ID de otra tienda.
+- La simulación informa de conflictos por páginas ausentes, papelera y términos canónicos desconocidos, evitando modificaciones silenciosas; la importación usa la tabla canónica de relaciones.
+- Pruebas offline de identidad y seguridad, lint de PHP y validación de regresión. No migra ni inventa datos específicos de ningún comercio.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
