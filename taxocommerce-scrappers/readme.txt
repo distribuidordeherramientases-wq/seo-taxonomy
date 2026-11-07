@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.11
+Stable tag: 0.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,11 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.12 =
+* Cancel Scrappers-owned WordPress cron and Ingeniero Action Scheduler jobs on deactivation, while retaining all store data.
+* Do not cancel shared historical jobs during transitional coexistence; no dependency on the historical plugin for clean installations.
+
 
 = 0.1.9 =
 * Nombre uniforme «Autocheck» y exportación JSON autenticada del último diagnóstico, sin ejecutar operaciones de escritura o procesos comerciales.
@@ -114,3 +119,7 @@ The administrator supplies and controls all API credentials. Provider usage can 
 * Scrappers 0.1.0 copied the legacy Ojeador and Ingeniero engines into independent Configuration, Ojeador and Ingeniero screens, including compatible provider settings and UI routes.
 * The first standalone release added a module bootstrap, Core registration, smoke tests and a staging ZIP/deployment workflow, with coexistence protections while the monolith was still installed.
 * External scraping, ranking and publication require the administrator's configured providers and review; extraction alone is not proof of autonomous third-party access or automated publishing.
+
+== Scheduled tasks and data ownership ==
+
+Deactivation cancels this plugin's scheduled WordPress and Action Scheduler work when not shared with another active installation. Tables, options and store data are preserved.
