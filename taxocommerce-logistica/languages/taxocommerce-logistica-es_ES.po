@@ -26,7 +26,7 @@ msgstr ""
 
 #: includes/class-auto-test.php:526
 msgid "Sin permisos para Auto Test."
-msgstr ""
+msgstr "Sin permisos para Auto Test."
 
 #: includes/class-auto-test.php:547
 msgid "Sin permisos para descargar Auto Test."
@@ -727,7 +727,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:310
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-user-guide.php:311
 msgid ""
@@ -753,7 +753,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:327
 msgid "Contenido"
-msgstr ""
+msgstr "Contenido"
 
 #: includes/class-user-guide.php:342
 msgid "Abrir Shipping Rules"

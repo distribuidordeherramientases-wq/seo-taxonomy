@@ -1,3 +1,9 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
