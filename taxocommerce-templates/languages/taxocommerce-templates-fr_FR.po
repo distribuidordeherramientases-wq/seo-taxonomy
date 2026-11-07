@@ -610,80 +610,80 @@ msgstr "L’interrupteur permettant d’appliquer ou de suspendre les politiques
 
 #: taxocommerce-templates.php:461
 msgid "Archivos de plantilla"
-msgstr ""
+msgstr "Fichiers de modèles"
 
 #: taxocommerce-templates.php:463
 msgid "Asignacion a paginas y rutas automaticas"
-msgstr ""
+msgstr "Attribution aux pages et routes automatiques"
 
 #: taxocommerce-templates.php:464
 msgid ""
 "Las rutas automaticas se resuelven por tipo de peticion. Las rutas "
 "asignables admiten paginas existentes; las variantes no son roles "
 "independientes."
-msgstr ""
+msgstr "Les routes automatiques sont déterminées par type de requête. Les routes attribuables acceptent des pages existantes ; les variantes ne sont pas des rôles indépendants."
 
 #: taxocommerce-templates.php:480
 msgid "Elegir archivo principal"
-msgstr ""
+msgstr "Choisir le fichier principal"
 
 #: taxocommerce-templates.php:490
 msgid "Variantes telefono / ordenador"
-msgstr ""
+msgstr "Variantes mobile / ordinateur"
 
 #: taxocommerce-templates.php:506
 msgid "Paginas asignadas"
-msgstr ""
+msgstr "Pages attribuées"
 
 #: taxocommerce-templates.php:509
 msgid "Ninguna pagina asignada."
-msgstr ""
+msgstr "Aucune page attribuée."
 
 #: taxocommerce-templates.php:524
 msgid "Seleccionar pagina libre"
-msgstr ""
+msgstr "Sélectionner une page disponible"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "Amazon:"
-msgstr ""
+msgstr "Amazon :"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "falta el Partner Tag."
-msgstr ""
+msgstr "Partner Tag manquant."
 
 #: templates/template-amazon-category-us.php:417
 #: templates/template-amazon-category.php:417
 msgid "Amazon"
-msgstr ""
+msgstr "Amazon"
 
 #: templates/template-amazon-category-us.php:418
 msgid "Related search"
-msgstr ""
+msgstr "Recherche associée"
 
 #: templates/template-amazon-category.php:418
 msgid "Búsqueda relacionada"
-msgstr ""
+msgstr "Recherche associée"
 
 #: templates/template-cart.php:231
 msgid "No se ha podido inicializar el carrito de WooCommerce."
-msgstr ""
+msgstr "Impossible d’initialiser le panier WooCommerce."
 
 #: templates/template-category-desktop.php:41
 #: templates/template-category-mobile.php:41
 msgid "Categoría no disponible"
-msgstr ""
+msgstr "Catégorie indisponible"
 
 #: templates/template-category-us-desktop.php:41
 #: templates/template-category-us-mobile.php:41
 msgid "Category unavailable"
-msgstr ""
+msgstr "Catégorie indisponible"
 
 #: templates/template-front-desktop.php:532
 #: templates/template-front-mobile.php:532
 msgid "No hay productos VEVOR publicados disponibles."
-msgstr ""
+msgstr "Aucun produit VEVOR publié n’est disponible."
 
 #. translators: %d: número de artículos editoriales relacionados.
 #: templates/template-helpers.php:1828
@@ -709,32 +709,32 @@ msgstr[1] "%d commentaires externes"
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "Producto no disponible"
-msgstr ""
+msgstr "Produit indisponible"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "No se ha podido cargar la información del producto."
-msgstr ""
+msgstr "Impossible de charger les informations du produit."
 
 #: templates/template-product-desktop.php:1178
 #: templates/template-product-mobile.php:1178
 msgid "No hay productos relacionados disponibles."
-msgstr ""
+msgstr "Aucun produit associé n’est disponible."
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product unavailable"
-msgstr ""
+msgstr "Produit indisponible"
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product information could not be loaded."
-msgstr ""
+msgstr "Impossible de charger les informations du produit."
 
 #: templates/template-product-us-desktop.php:1226
 #: templates/template-product-us-mobile.php:1226
 msgid "No related products are available."
-msgstr ""
+msgstr "Aucun produit associé n’est disponible."
 
 #. translators: %s: número localizado de productos encontrados.
 #: templates/template-search.php:43
@@ -745,7 +745,7 @@ msgstr[1] "%s produits trouvés"
 
 #: templates/template-search.php:122
 msgid "Oferta"
-msgstr ""
+msgstr "Offre"
 
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
