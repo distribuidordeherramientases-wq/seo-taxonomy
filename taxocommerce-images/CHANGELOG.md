@@ -1,3 +1,8 @@
+## [Unreleased] — Corrección final de estados i18n Images (#2062)
+
+- Revisados los 5 catálogos contra POT y marcadores de formato. Traducido el estado «En curso» en DE y NL, que seguía sin msgstr, y regenerados ambos MO.
+- Los cinco PO de Images están sin entradas gettext simples vacías y con claves idénticas al POT. Pendiente revisión de literales no extraídos y validación visual en WordPress.
+
 ## [Unreleased] — Finalización de los catálogos de Images (#2062)
 
 - Añadidas otras 36 traducciones por locale (180 entradas adicionales) a los cinco idiomas y regenerados los MO. Las 257 cadenas no vacías de cada catálogo PO tienen traducción; se conservan 258 entradas por archivo incluyendo la cabecera gettext.

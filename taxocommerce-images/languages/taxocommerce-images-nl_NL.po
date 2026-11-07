@@ -933,7 +933,7 @@ msgstr "Voltooid"
 
 #: includes/class-taxocommerce-images.php:630
 msgid "En curso"
-msgstr ""
+msgstr "Bezig"
 
 #: includes/class-taxocommerce-images.php:635
 msgid ""
