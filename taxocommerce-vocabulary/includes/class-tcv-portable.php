@@ -43,8 +43,8 @@ final class TCV_Portable {
             'category_semantic'  => __( 'Categoría → Vocabulary', 'taxocommerce-vocabulary' ),
             'product_attributes' => __( 'Producto → atributos canónicos', 'taxocommerce-vocabulary' ),
             'product_tags'       => __( 'Producto → etiquetas WooCommerce', 'taxocommerce-vocabulary' ),
-            'post_semantic'       => __( 'Posts' ) . ' → Vocabulary',
-            'page_semantic'       => __( 'Pages' ) . ' → Vocabulary',
+            'post_semantic'       => __( 'Entradas → Vocabulary', 'taxocommerce-vocabulary' ),
+            'page_semantic'       => __( 'Páginas y landings → Vocabulary', 'taxocommerce-vocabulary' ),
         );
         foreach ( $labels as $scope => $label ) {
             echo '<label style="display:block;margin:6px 0"><input type="checkbox" name="scope[]" value="' . esc_attr( $scope ) . '" checked> ' . esc_html( $label ) . '</label>';
