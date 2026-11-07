@@ -1,4 +1,4 @@
-## [Unreleased] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
+## [0.4.20] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
 
 - El piloto VEVOR de los cuatro mercados usa una cabecera SEO independiente de las funciones globales del antiguo SEO Taxonomy, sin modificar el diseño ni el contenido de WordPress.
 - Publica una única canonical propia (incluida la paginación), mantiene hreflang y scripts de wp_head, elimina descripciones y verificaciones Pinterest duplicadas y evita el segundo viewport.
