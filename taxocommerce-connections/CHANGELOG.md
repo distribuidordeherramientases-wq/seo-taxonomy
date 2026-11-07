@@ -1,3 +1,8 @@
+## [Unreleased] — Revisión i18n (seguimiento #2062)
+
+- Completada una entrada gettext previamente vacía en ES/EN/FR/DE/NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.
+- Pendiente recompilar catálogos MO y validar cobertura frente al POT, en especial discrepancias entre idiomas; no supone traducción integral del plugin.
+
 ## Unreleased - Familia i18n #2062
 
 
