@@ -1,3 +1,10 @@
+## 1.1.24 - 2026-11-08 - Analysis independiente (#2345)
+
+- Eliminar condiciones basadas en `SEO_SYSTEM_URL` y `SEO_SYSTEM_VERSION` de la pestaña Analysis.
+- Cargar JavaScript desde Insights y estilos desde su propio `analista-informe.php`, incluso con TaxoCommerce SEO desactivado.
+- Usar el motor `seo_analista_*` ya incluido en `includes/analysis`, sin cambiar once informes, AJAX, datos ni configuraciones.
+- Añadir prueba de regresión específica para asegurar la independencia de ficheros. Validación remota en STAGING con SEO apagado todavía necesaria.
+
 ## 1.1.23 - 2026-11-07 - Independencia Cloudflare (#2339)
 
 - Migrar la API de Cloudflare (solo lectura) y controles de zona/token a Insights Connections.
