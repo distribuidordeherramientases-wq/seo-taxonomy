@@ -1,3 +1,9 @@
+## [Unreleased] — Primera fase i18n Redirects (#2286)
+
+- Traducidas 33 cadenas iniciales de menús, Auto Test y navegación de manual en es_ES, en_US, fr_FR, de_DE y nl_NL.
+- Regenerados los cinco catálogos MO sin modificar el motor de redirecciones, las reglas 301/302 ni la eliminación asistida.
+- Pendientes las 111 cadenas restantes del POT y los textos fuera de gettext, así como revisar los metadatos con la URL del cliente histórico antes de publicar en WordPress.org.
+
 ## Unreleased - Familia i18n #2062
 
 
