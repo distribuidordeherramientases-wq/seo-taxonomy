@@ -3,6 +3,14 @@
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
 - La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
 
+## [Unreleased] — Catálogos de idioma completos para el enrutador (#2328)
+
+- Incorporadas 42 claves gettext que faltaban en los catálogos FR/DE/NL para políticas, enrutamiento, diseñador y asignaciones (126 traducciones nuevas).
+- Traducidas 4 cadenas plurales (singular/plural) en cada uno de los cinco idiomas (20 mensajes plurales completos).
+- Añadidas otras 47/46/46 traducciones iniciales de etiquetas en FR/DE/NL, respectivamente, y completadas las 99 cadenas restantes en cada idioma (297 traducciones adicionales), incluyendo avisos, configuraciones y textos de los manuales.
+- Regenerados los cinco catálogos MO (es_ES, en_US, fr_FR, de_DE, nl_NL) a partir de los PO actualizados. Los cinco PO actuales tienen 201 claves de gettext, cuatro mensajes plurales y ninguna traducción vacía; el catálogo coincide con su POT. No se han comprobado todavía todos los textos PHP/JS fuera de gettext ni la interfaz real de WordPress. Las cinco variantes tienen 201 mensajes más la cabecera gettext, con claves idénticas.
+- Sin cambios de lógica PHP, datos, permisos, rutas o configuración. Pendiente validación externa con Plugin Check y comprobación visual por locale.
+
 ## [Unreleased] — Traducciones gettext (taxocommerce-templates)
 
 - Completadas las entradas de traducción vacías detectadas en los catálogos de EN/FR/DE/NL; idioma ES ya tenía traducción.

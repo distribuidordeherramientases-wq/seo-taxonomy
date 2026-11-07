@@ -3,6 +3,12 @@
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.
 - La fecha no depende de la hora de consulta ni del momento de copia por FTP. Sin cambios en servicios, datos, menús ni permisos.
 
+## [Unreleased] — Ampliación del catálogo neerlandés (#2328)
+
+- Añadidas 92 cadenas gettext ausentes a `nl_NL` para etiquetas administrativas y documentación del plugin; regenerado el MO neerlandés.
+- La cobertura de claves continúa incompleta: quedan 179 entradas presentes en `es_ES` que faltan en `nl_NL`; no se afirma traducción íntegra ni validación visual.
+- Sin modificar PHP funcional, datos de proveedores ni opciones de instalación.
+
 ## [Unreleased] — Revisión i18n (seguimiento #2062)
 
 - Completada una entrada gettext previamente vacía en NL; conserva el mismo identificador fuente y no modifica la lógica de la tienda.

@@ -63,7 +63,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:282
 msgid "🧩 FAQs sin elemento relacionado"
-msgstr ""
+msgstr "🧩 FAQs without a related object"
 
 #: includes/class-taxocommerce-core-anomalies.php:283
 msgid ""
@@ -73,7 +73,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Chequeo"
-msgstr ""
+msgstr "Check"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Resultado"
@@ -81,20 +81,20 @@ msgstr "Result"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Lectura"
-msgstr ""
+msgstr "Read-only"
 
 #: includes/class-taxocommerce-core-anomalies.php:395
 msgid "No se encontraron incidencias estructurales en FAQs."
-msgstr ""
+msgstr "No structural issues were found in FAQs."
 
 #: includes/class-taxocommerce-core-anomalies.php:421
 msgid "Resumen de categorías perdidas con FAQs"
-msgstr ""
+msgstr "Summary of missing categories with FAQs"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Object ID perdido"
-msgstr ""
+msgstr "Missing object ID"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
@@ -107,26 +107,26 @@ msgstr "FAQs"
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Activas"
-msgstr ""
+msgstr "Active"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Inactivas"
-msgstr ""
+msgstr "Inactive"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Primera creación"
-msgstr ""
+msgstr "First created"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Última actualización"
-msgstr ""
+msgstr "Last updated"
 
 #: includes/class-taxocommerce-core-anomalies.php:441
 msgid "Borrar FAQs de categorías desaparecidas"
-msgstr ""
+msgstr "Delete FAQs for missing categories"
 
 #: includes/class-taxocommerce-core-anomalies.php:441
 #: includes/class-taxocommerce-core-anomalies.php:487
@@ -136,15 +136,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:467
 msgid "Resumen de productos perdidos con FAQs"
-msgstr ""
+msgstr "Summary of missing products with FAQs"
 
 #: includes/class-taxocommerce-core-anomalies.php:487
 msgid "Borrar FAQs de productos desaparecidos"
-msgstr ""
+msgstr "Delete FAQs for missing products"
 
 #: includes/class-taxocommerce-core-anomalies.php:492
 msgid "Nota:"
-msgstr ""
+msgstr "Note:"
 
 #: includes/class-taxocommerce-core-anomalies.php:492
 msgid ""
@@ -163,7 +163,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:795
 msgid "🚨 Reporte de Auditoría y Control de Estructura"
-msgstr ""
+msgstr "🚨 Structure audit and control report"
 
 #: includes/class-taxocommerce-core-anomalies.php:796
 msgid ""
@@ -173,11 +173,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:801
 msgid "JSON correctivo no disponible: faltan las tablas de Vocabulary."
-msgstr ""
+msgstr "Corrective JSON unavailable: Vocabulary tables are missing."
 
 #: includes/class-taxocommerce-core-anomalies.php:806
 msgid "Clusters sin hubs primarios"
-msgstr ""
+msgstr "Clusters without primary hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:816
 #: includes/class-taxocommerce-core-anomalies.php:828
@@ -185,7 +185,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-anomalies.php:983
 #: includes/class-taxocommerce-core-anomalies.php:998
 msgid "No se encontraron incidencias en esta sección."
-msgstr ""
+msgstr "No issues were found in this section."
 
 #: includes/class-taxocommerce-core-anomalies.php:818
 #: includes/class-taxocommerce-core-hierarchy-classic.php:703
@@ -194,11 +194,11 @@ msgstr "Primary hubs without cluster"
 
 #: includes/class-taxocommerce-core-anomalies.php:830
 msgid "Hubs secundarios sin hub primary"
-msgstr ""
+msgstr "Secondary hubs without a primary hub"
 
 #: includes/class-taxocommerce-core-anomalies.php:849
 msgid "Hubs secundarios sin categorías"
-msgstr ""
+msgstr "Secondary hubs without categories"
 
 #: includes/class-taxocommerce-core-anomalies.php:900
 msgid ""
@@ -214,23 +214,23 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:969
 msgid "Todos los hubs secundarios tienen al menos una categoría vinculada."
-msgstr ""
+msgstr "All secondary hubs have at least one linked category."
 
 #: includes/class-taxocommerce-core-anomalies.php:975
 msgid "Hubs primarios en múltiples clusters"
-msgstr ""
+msgstr "Primary hubs in multiple clusters"
 
 #: includes/class-taxocommerce-core-anomalies.php:986
 msgid "Landings sin hub secondary"
-msgstr ""
+msgstr "Landing pages without a secondary hub"
 
 #: includes/class-taxocommerce-core-anomalies.php:1005
 msgid "🧭 Landing pages sin categoría de producto asociada"
-msgstr ""
+msgstr "🧭 Landing pages without a linked product category"
 
 #: includes/class-taxocommerce-core-anomalies.php:1051
 msgid "Sin relación comercial landing_to_category."
-msgstr ""
+msgstr "No landing_to_category commercial relationship."
 
 #: includes/class-taxocommerce-core-anomalies.php:1073
 msgid ""
@@ -240,11 +240,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1084
 msgid "🔗 Posts editoriales sin categoría de producto relacionada"
-msgstr ""
+msgstr "🔗 Editorial posts without a related product category"
 
 #: includes/class-taxocommerce-core-anomalies.php:1188
 msgid "Sin relación comercial post_to_category."
-msgstr ""
+msgstr "No post_to_category commercial relationship."
 
 #: includes/class-taxocommerce-core-anomalies.php:1208
 msgid ""
@@ -254,7 +254,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1224
 msgid "📰 Entradas editoriales sin Vocabulary semántico activo"
-msgstr ""
+msgstr "📰 Editorial posts without active semantic Vocabulary"
 
 #: includes/class-taxocommerce-core-anomalies.php:1343
 msgid ""
@@ -275,7 +275,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1388
 msgid "⚠️ Categorías sin asignación estructural"
-msgstr ""
+msgstr "⚠️ Categories without structural assignment"
 
 #: includes/class-taxocommerce-core-anomalies.php:1400
 msgid ""
@@ -285,11 +285,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1405
 msgid "📦 Categorías de producto con 0 productos"
-msgstr ""
+msgstr "📦 Product categories with 0 products"
 
 #: includes/class-taxocommerce-core-anomalies.php:1410
 msgid "🔄 Recalcular contadores"
-msgstr ""
+msgstr "🔄 Recalculate counters"
 
 #: includes/class-taxocommerce-core-anomalies.php:1422
 msgid ""
@@ -299,15 +299,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1576
 msgid "Contadores de categorías desactualizados"
-msgstr ""
+msgstr "Outdated category counters"
 
 #: includes/class-taxocommerce-core-anomalies.php:1578
 msgid "No se consideran categorías vacías y no se ofrece su borrado."
-msgstr ""
+msgstr "They are not treated as empty categories and cannot be deleted here."
 
 #: includes/class-taxocommerce-core-anomalies.php:1602
 msgid "No se encontraron categorías realmente vacías."
-msgstr ""
+msgstr "No genuinely empty categories were found."
 
 #: includes/class-taxocommerce-core-anomalies.php:1607
 msgid ""
@@ -319,15 +319,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1608
 msgid "No se elimina ningún producto."
-msgstr ""
+msgstr "No products are deleted."
 
 #: includes/class-taxocommerce-core-anomalies.php:1647
 msgid "Seleccionar todas las eliminables"
-msgstr ""
+msgstr "Select all deletable items"
 
 #: includes/class-taxocommerce-core-anomalies.php:1648
 msgid "Eliminar categorías seleccionadas"
-msgstr ""
+msgstr "Delete selected categories"
 
 #: includes/class-taxocommerce-core-anomalies.php:1652
 msgid ""
@@ -337,7 +337,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1667
 msgid "Hubs secundarios en múltiples hubs primarios"
-msgstr ""
+msgstr "Secondary hubs in multiple primary hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:1751
 msgid ""
@@ -346,7 +346,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1755
 msgid "💥 Categorías DUPLICADAS en múltiples Hubs Secundarios"
-msgstr ""
+msgstr "💥 DUPLICATE categories in multiple secondary hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:1793
 msgid ""
@@ -371,7 +371,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:362
 msgid "Actualizar informe"
-msgstr ""
+msgstr "Refresh report"
 
 #: includes/class-taxocommerce-core-architecture-report.php:395
 msgid "Distribución de la jerarquía SEO"
@@ -387,7 +387,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:405
 msgid "No existen clusters publicados con los que construir el informe."
-msgstr ""
+msgstr "No published clusters are available to build the report."
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid "Productos publicados por cluster"
@@ -417,7 +417,7 @@ msgstr "Clusters ordered by product count, with unique counts at each level."
 
 #: includes/class-taxocommerce-core-architecture-report.php:422
 msgid "Resumen por cluster"
-msgstr ""
+msgstr "Summary by cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:423
 #: includes/class-taxocommerce-core-hierarchy-classic.php:23
@@ -471,7 +471,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:454
 msgid "Reparto por hub primario"
-msgstr ""
+msgstr "Breakdown by primary hub"
 
 #: includes/class-taxocommerce-core-architecture-report.php:460
 #: includes/class-taxocommerce-core-hierarchy-classic.php:653
@@ -486,7 +486,7 @@ msgstr "Subhubs"
 
 #: includes/class-taxocommerce-core-architecture-report.php:466
 msgid "Este cluster no tiene hubs primarios vinculados."
-msgstr ""
+msgstr "This cluster has no linked primary hubs."
 
 #: includes/class-taxocommerce-core-auto-test.php:26
 msgid "Sin permisos para ejecutar Auto Test."
@@ -574,7 +574,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:113
 msgid "Navegación de la cabecera (tema de bloques)"
-msgstr ""
+msgstr "Header navigation (block theme)"
 
 #: includes/class-taxocommerce-core-block-navigation.php:114
 msgid ""
@@ -585,15 +585,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:117
 msgid "Navegaciones encontradas en las cabeceras"
-msgstr ""
+msgstr "Navigation menus found in headers"
 
 #: includes/class-taxocommerce-core-block-navigation.php:118
 msgid "Selecciona una navegación"
-msgstr ""
+msgstr "Select a navigation"
 
 #: includes/class-taxocommerce-core-block-navigation.php:123
 msgid "Cargar navegación de cabecera"
-msgstr ""
+msgstr "Load header navigation"
 
 #: includes/class-taxocommerce-core-block-navigation.php:126
 msgid ""
@@ -621,11 +621,11 @@ msgstr "Link text"
 
 #: includes/class-taxocommerce-core-block-navigation.php:149
 msgid "Este bloque requiere el Editor del sitio para cambios avanzados."
-msgstr ""
+msgstr "Advanced changes to this block require the Site Editor."
 
 #: includes/class-taxocommerce-core-block-navigation.php:153
 msgid "Guardar navegación de cabecera"
-msgstr ""
+msgstr "Save header navigation"
 
 #: includes/class-taxocommerce-core-block-navigation.php:155
 msgid ""
@@ -635,43 +635,43 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:158
 msgid "Editar cabecera en el Editor del sitio"
-msgstr ""
+msgstr "Edit header in the Site Editor"
 
 #: includes/class-taxocommerce-core-block-navigation.php:159
 msgid "Menús clásicos (independientes de la navegación de bloques)"
-msgstr ""
+msgstr "Classic menus (independent of block navigation)"
 
 #: includes/class-taxocommerce-core-block-navigation.php:168
 msgid "Faltan elementos de la navegación. Recarga la página."
-msgstr ""
+msgstr "Navigation items are missing. Reload the page."
 
 #: includes/class-taxocommerce-core-block-navigation.php:175
 msgid "El texto de un enlace no es válido."
-msgstr ""
+msgstr "A link's text is invalid."
 
 #: includes/class-taxocommerce-core-block-navigation.php:180
 msgid "La URL del enlace no es válida."
-msgstr ""
+msgstr "The link URL is invalid."
 
 #: includes/class-taxocommerce-core-block-navigation.php:196
 msgid "No tienes permisos para editar la navegación."
-msgstr ""
+msgstr "You do not have permission to edit navigation."
 
 #: includes/class-taxocommerce-core-block-navigation.php:202
 msgid "La navegación seleccionada no es editable."
-msgstr ""
+msgstr "The selected navigation cannot be edited."
 
 #: includes/class-taxocommerce-core-block-navigation.php:206
 msgid "La navegación ha cambiado. Recarga la página antes de guardar."
-msgstr ""
+msgstr "Navigation has changed. Reload the page before saving."
 
 #: includes/class-taxocommerce-core-block-navigation.php:213
 msgid "El número de enlaces no coincide. Recarga la página."
-msgstr ""
+msgstr "The link count does not match. Reload the page."
 
 #: includes/class-taxocommerce-core-block-navigation.php:221
 msgid "Navegación de bloques guardada en WordPress."
-msgstr ""
+msgstr "Block navigation saved in WordPress."
 
 #: includes/class-taxocommerce-core-content-inventory.php:116
 msgid "No tienes permisos para consultar el inventario."
@@ -1311,15 +1311,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "CONTROL EDITORIAL"
-msgstr ""
+msgstr "EDITORIAL CONTROL"
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "Publicación"
-msgstr ""
+msgstr "Publishing"
 
 #: includes/class-taxocommerce-core-editor-ui.php:204
 msgid "Estado del contenido"
-msgstr ""
+msgstr "Content status"
 
 #: includes/class-taxocommerce-core-editor-ui.php:208
 msgid ""
@@ -1342,35 +1342,35 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "IDENTIDAD"
-msgstr ""
+msgstr "IDENTITY"
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "Información principal"
-msgstr ""
+msgstr "Main information"
 
 #: includes/class-taxocommerce-core-editor-ui.php:262
 msgid "DESCRIPCIÓN BREVE"
-msgstr ""
+msgstr "SHORT DESCRIPTION"
 
 #: includes/class-taxocommerce-core-editor-ui.php:262
 msgid "Resumen comercial"
-msgstr ""
+msgstr "Commercial summary"
 
 #: includes/class-taxocommerce-core-editor-ui.php:271
 msgid "Datos comerciales"
-msgstr ""
+msgstr "Commercial details"
 
 #: includes/class-taxocommerce-core-editor-ui.php:286
 msgid "Disponibilidad"
-msgstr ""
+msgstr "Availability"
 
 #: includes/class-taxocommerce-core-editor-ui.php:306
 msgid "Extracto"
-msgstr ""
+msgstr "Excerpt"
 
 #: includes/class-taxocommerce-core-editor-ui.php:331
 msgid "Organización"
-msgstr ""
+msgstr "Organisation"
 
 #: includes/class-taxocommerce-core-editor-ui.php:332
 msgid "La categoría superior define la posición en la jerarquía WooCommerce."
@@ -1382,7 +1382,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "Atributos del producto"
-msgstr ""
+msgstr "Product attributes"
 
 #: includes/class-taxocommerce-core-editor-ui.php:363
 msgid ""
@@ -1391,7 +1391,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:365
 msgid "WooCommerce no ofrece la API de atributos en esta instalación."
-msgstr ""
+msgstr "The WooCommerce attributes API is not available on this installation."
 
 #: includes/class-taxocommerce-core-editor-ui.php:370
 msgid ""
@@ -1401,11 +1401,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:383
 msgid "+ Atributo global"
-msgstr ""
+msgstr "+ Global attribute"
 
 #: includes/class-taxocommerce-core-editor-ui.php:384
 msgid "+ Atributo personalizado"
-msgstr ""
+msgstr "+ Custom attribute"
 
 #: includes/class-taxocommerce-core-editor-ui.php:385
 msgid ""
@@ -1415,7 +1415,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:398
 msgid "USADO EN VARIACIONES"
-msgstr ""
+msgstr "USED IN VARIATIONS"
 
 #: includes/class-taxocommerce-core-editor-ui.php:404
 msgid "Se conserva intacto para no afectar a las variaciones del producto."
@@ -1423,7 +1423,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:431
 msgid "Nuevo atributo global"
-msgstr ""
+msgstr "New global attribute"
 
 #: includes/class-taxocommerce-core-editor-ui.php:433
 msgid "Atributo"
@@ -1431,16 +1431,16 @@ msgstr "Attribute"
 
 #: includes/class-taxocommerce-core-editor-ui.php:434
 msgid "Seleccionar atributo…"
-msgstr ""
+msgstr "Select attribute…"
 
 #: includes/class-taxocommerce-core-editor-ui.php:442
 #: includes/class-taxocommerce-core-editor-ui.php:448
 msgid "Visible en la ficha del producto"
-msgstr ""
+msgstr "Visible on the product page"
 
 #: includes/class-taxocommerce-core-editor-ui.php:445
 msgid "Nuevo atributo personalizado"
-msgstr ""
+msgstr "New custom attribute"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:27
 msgid ""
@@ -2203,15 +2203,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:72
 msgid "Tipos de gestor de menús"
-msgstr ""
+msgstr "Menu manager types"
 
 #: includes/class-taxocommerce-core-menu-editor.php:74
 msgid "Menús SEO / WooCommerce"
-msgstr ""
+msgstr "SEO / WooCommerce menus"
 
 #: includes/class-taxocommerce-core-menu-editor.php:75
 msgid "Menús WordPress"
-msgstr ""
+msgstr "WordPress menus"
 
 #: includes/class-taxocommerce-core-menu-editor.php:99
 msgid ""
@@ -2221,7 +2221,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:106
 msgid "La cabecera puede usar una navegación de bloques distinta."
-msgstr ""
+msgstr "The header may use a different block navigation."
 
 #: includes/class-taxocommerce-core-menu-editor.php:107
 msgid ""
@@ -2232,21 +2232,21 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:109
 msgid "Abrir Editor del sitio"
-msgstr ""
+msgstr "Open Site Editor"
 
 #: includes/class-taxocommerce-core-menu-editor.php:122
 msgid "Estado de publicación:"
-msgstr ""
+msgstr "Publication status:"
 
 #. translators: %s: comma-separated theme menu location names.
 #: includes/class-taxocommerce-core-menu-editor.php:123
 msgid "Menú asignado a: %s"
-msgstr ""
+msgstr "Menu assigned to: %s"
 
 #. translators: %s: comma-separated theme menu location names.
 #: includes/class-taxocommerce-core-menu-editor.php:123
 msgid "Este menú no está asignado a ninguna ubicación clásica del tema."
-msgstr ""
+msgstr "This menu is not assigned to any classic theme location."
 
 #: includes/class-taxocommerce-core-menu-editor.php:130
 msgid ""
@@ -2256,11 +2256,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:135
 msgid "Identificador del menú:"
-msgstr ""
+msgstr "Menu ID:"
 
 #: includes/class-taxocommerce-core-menu-editor.php:138
 msgid "Nombre del menú"
-msgstr ""
+msgstr "Menu name"
 
 #: includes/class-taxocommerce-core-menu-editor.php:141
 msgid ""
@@ -2271,7 +2271,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:142
 msgid "Hay cambios pendientes de guardar."
-msgstr ""
+msgstr "There are unsaved changes."
 
 #: includes/class-taxocommerce-core-menu-editor.php:151
 msgid "No tienes permisos para gestionar este menú."
@@ -2279,31 +2279,31 @@ msgstr "You do not have permission to manage this menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:214
 msgid "Cargar un menú de WordPress"
-msgstr ""
+msgstr "Load a WordPress menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:218
 msgid "Menú existente"
-msgstr ""
+msgstr "Existing menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:220
 msgid "Selecciona un menú de WordPress"
-msgstr ""
+msgstr "Select a WordPress menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:220
 msgid "Menú TaxoCommerce del país"
-msgstr ""
+msgstr "Country-specific TaxoCommerce menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:231
 msgid "Cargar para editar"
-msgstr ""
+msgstr "Load for editing"
 
 #: includes/class-taxocommerce-core-menu-editor.php:234
 msgid "Nombre del nuevo menú"
-msgstr ""
+msgstr "New menu name"
 
 #: includes/class-taxocommerce-core-menu-editor.php:236
 msgid "Crear menú nuevo"
-msgstr ""
+msgstr "Create new menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:237
 msgid ""
@@ -2313,16 +2313,16 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:248
 msgid "El menú seleccionado ya no existe."
-msgstr ""
+msgstr "The selected menu no longer exists."
 
 #: includes/class-taxocommerce-core-menu-editor.php:252
 msgid "Selecciona o crea un menú WordPress antes de modificarlo."
-msgstr ""
+msgstr "Select or create a WordPress menu before editing it."
 
 #: includes/class-taxocommerce-core-menu-editor.php:260
 #: includes/class-taxocommerce-core-menu-editor.php:564
 msgid "Indica un nombre de menú válido."
-msgstr ""
+msgstr "Enter a valid menu name."
 
 #: includes/class-taxocommerce-core-menu-editor.php:273
 msgid "Publicación del menú"
@@ -2342,16 +2342,16 @@ msgstr "Edit manually in WordPress"
 
 #: includes/class-taxocommerce-core-menu-editor.php:285
 msgid "Guardar menú clásico"
-msgstr ""
+msgstr "Save classic menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:285
 msgid "Guardar menú"
-msgstr ""
+msgstr "Save menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:295
 #: includes/class-taxocommerce-core-menu-editor.php:300
 msgid "Eliminar menú"
-msgstr ""
+msgstr "Delete menu"
 
 #: includes/class-taxocommerce-core-menu-editor.php:297
 msgid ""
@@ -2401,7 +2401,7 @@ msgstr "Menu structure"
 
 #: includes/class-taxocommerce-core-menu-editor.php:328
 msgid "Elementos del menú WordPress"
-msgstr ""
+msgstr "WordPress menu items"
 
 #: includes/class-taxocommerce-core-menu-editor.php:328
 msgid "Estructura SEO automática + elementos de WordPress"
@@ -2442,19 +2442,19 @@ msgstr "Modify this item in the SEO hierarchy and synchronize the proposal."
 
 #: includes/class-taxocommerce-core-menu-editor.php:360
 msgid "Elemento superior"
-msgstr ""
+msgstr "Parent item"
 
 #: includes/class-taxocommerce-core-menu-editor.php:361
 msgid "Nivel principal"
-msgstr ""
+msgstr "Top level"
 
 #: includes/class-taxocommerce-core-menu-editor.php:367
 msgid "Posición"
-msgstr ""
+msgstr "Position"
 
 #: includes/class-taxocommerce-core-menu-editor.php:369
 msgid "Pulsa Guardar menú para aplicar estos cambios."
-msgstr ""
+msgstr "Click Save menu to apply these changes."
 
 #: includes/class-taxocommerce-core-menu-editor.php:375
 msgid "Eliminar del menú"
@@ -2503,11 +2503,11 @@ msgstr "Custom links"
 
 #: includes/class-taxocommerce-core-menu-editor.php:484
 msgid "Solo puedes editar elementos manuales del menú cargado."
-msgstr ""
+msgstr "You can only edit manual items in the loaded menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:491
 msgid "Revisa el título y la posición del elemento."
-msgstr ""
+msgstr "Check the item's title and position."
 
 #: includes/class-taxocommerce-core-menu-editor.php:497
 msgid "El superior debe pertenecer al mismo menú y no puede crear un ciclo."
@@ -2515,11 +2515,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:519
 msgid "Introduce una URL válida."
-msgstr ""
+msgstr "Enter a valid URL."
 
 #: includes/class-taxocommerce-core-menu-editor.php:554
 msgid "Usa la pestaña Menús WordPress para guardar un menú nativo."
-msgstr ""
+msgstr "Use the WordPress Menus tab to save a native menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:559
 msgid ""
@@ -2528,15 +2528,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:567
 msgid "Este nombre está reservado para los menús SEO de TaxoCommerce."
-msgstr ""
+msgstr "This name is reserved for TaxoCommerce SEO menus."
 
 #: includes/class-taxocommerce-core-menu-editor.php:571
 msgid "Ya existe otro menú con ese nombre."
-msgstr ""
+msgstr "Another menu already has that name."
 
 #: includes/class-taxocommerce-core-menu-editor.php:574
 msgid "Los elementos enviados no son válidos."
-msgstr ""
+msgstr "The submitted items are invalid."
 
 #: includes/class-taxocommerce-core-menu-editor.php:585
 msgid ""
@@ -2545,39 +2545,39 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:591
 msgid "Hay elementos ajenos al menú o no editables."
-msgstr ""
+msgstr "Some items do not belong to this menu or cannot be edited."
 
 #: includes/class-taxocommerce-core-menu-editor.php:595
 msgid "Faltan datos de un elemento. Recarga y vuelve a intentarlo."
-msgstr ""
+msgstr "An item is missing data. Reload and try again."
 
 #: includes/class-taxocommerce-core-menu-editor.php:605
 msgid "Falta la URL de un enlace personalizado."
-msgstr ""
+msgstr "A custom link is missing its URL."
 
 #: includes/class-taxocommerce-core-menu-editor.php:609
 msgid "La URL del enlace personalizado no es válida."
-msgstr ""
+msgstr "The custom link URL is invalid."
 
 #: includes/class-taxocommerce-core-menu-editor.php:613
 msgid "Revisa el título, el orden y la jerarquía del menú."
-msgstr ""
+msgstr "Review the menu title, order and hierarchy."
 
 #: includes/class-taxocommerce-core-menu-editor.php:623
 msgid "No se puede guardar: hay un submenú circular o inválido."
-msgstr ""
+msgstr "Cannot save: the submenu contains a cycle or is invalid."
 
 #: includes/class-taxocommerce-core-menu-editor.php:658
 msgid "Debes confirmar la eliminación desde Menús WordPress."
-msgstr ""
+msgstr "You must confirm deletion under WordPress Menus."
 
 #: includes/class-taxocommerce-core-menu-editor.php:663
 msgid "No se pueden eliminar los menús SEO gestionados por país."
-msgstr ""
+msgstr "Country-managed SEO menus cannot be deleted."
 
 #: includes/class-taxocommerce-core-menu-editor.php:666
 msgid "WordPress no ha podido eliminar este menú."
-msgstr ""
+msgstr "WordPress could not delete this menu."
 
 #. translators: %d: number of WordPress objects newly added to the menu.
 #: includes/class-taxocommerce-core-menu-editor.php:679
@@ -2594,7 +2594,7 @@ msgstr "Manual item removed from menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:693
 msgid "Menú nuevo creado. Puedes editarlo sin modificar los existentes."
-msgstr ""
+msgstr "New menu created. You can edit it without changing existing menus."
 
 #: includes/class-taxocommerce-core-menu-editor.php:700
 msgid ""
@@ -2604,11 +2604,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:704
 msgid "Menú eliminado correctamente de WordPress."
-msgstr ""
+msgstr "Menu successfully deleted from WordPress."
 
 #: includes/class-taxocommerce-core-menu-editor.php:712
 msgid "Elemento del menú actualizado."
-msgstr ""
+msgstr "Menu item updated."
 
 #: includes/class-taxocommerce-core-menu.php:198
 msgid ""
@@ -2693,7 +2693,7 @@ msgstr "Menu synchronized. Manual items have been preserved."
 
 #: includes/class-taxocommerce-core-menu.php:299
 msgid "No tienes permisos para asignar menús al tema."
-msgstr ""
+msgstr "You do not have permission to assign menus to the theme."
 
 #: includes/class-taxocommerce-core-menu.php:306
 msgid "La ubicación de menú seleccionada no es válida."
@@ -3594,11 +3594,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-user-guide.php:103
 msgid "Menús WordPress (sin WooCommerce)"
-msgstr ""
+msgstr "WordPress menus (without WooCommerce)"
 
 #: includes/class-taxocommerce-core-user-guide.php:105
 msgid "En Gestor de menús, abre la pestaña Menús WordPress."
-msgstr ""
+msgstr "In Menu Manager, open the WordPress Menus tab."
 
 #: includes/class-taxocommerce-core-user-guide.php:106
 msgid ""

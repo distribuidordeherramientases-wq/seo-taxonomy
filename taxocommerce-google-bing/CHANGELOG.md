@@ -10,6 +10,12 @@
 - Motor propio de eventos de WooCommerce, sin depender del interruptor SEO heredado; desactivado por defecto hasta la validación funcional.
 - Tests de regresión y despliegue homogéneo STAGING + Focazul; no cambia credenciales o etiquetas en PRO.
 
+## [Unreleased] — Traducciones de interfaz Insights (#2062)
+
+- Traducidas 97 cadenas de menús, tablas, comparaciones SEO, métricas de tráfico, permisos y recomendaciones en cada uno de los idiomas EN/FR/DE/NL (388 entradas gettext completadas).
+- Regenerados los cuatro catálogos MO (en_US, fr_FR, de_DE, nl_NL) manteniendo exactamente los `msgid` originales y sin alterar datos comerciales ni resultados analíticos.
+- Pendiente completar el resto del catálogo: 686 mensajes vacíos en EN/FR y 685 en DE/NL, comprobar la carga de idioma real, PHP/JS fuera de gettext y Plugin Check. El castellano está cubierto por el texto fuente donde corresponda, pero tiene entradas `msgstr` vacías.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

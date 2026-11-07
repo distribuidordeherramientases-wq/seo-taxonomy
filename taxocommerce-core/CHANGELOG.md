@@ -3,6 +3,12 @@
 - Cabecera de administración con título, versión actual y fecha de esta versión, sin modificar datos ni funcionalidades.
 - Fecha de publicación persistente, independiente del reloj o FTP.
 
+## [Unreleased] — Traducción de menús y diagnósticos Core (#2062)
+
+- Traducidas 131 cadenas de interfaz en cada catálogo EN/FR/DE/NL (524 entradas): navegación de cabeceras, atributos WooCommerce, editor y seguridad del gestor de menús, anomalías y relaciones SEO.
+- Regenerados los catálogos MO en los cuatro idiomas, conservando 791 claves por locale y todos los identificadores de código. Continúan pendientes 125 cadenas en EN, 532 en FR y 533 en DE/NL; el catálogo ES aún contiene 687 `msgstr` vacíos, aunque varios textos fuente ya están en castellano.
+- No se modifican las entradas, páginas, productos, datos de tiendas ni la lógica PHP. Pendiente la extracción/cotejo de nuevas cadenas PHP/JS, Plugin Check y validación visual por idioma en STAGING/Focazul.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

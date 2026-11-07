@@ -12,87 +12,87 @@ msgstr ""
 #: taxocommerce-templates.php taxocommerce-templates.php:157
 #: taxocommerce-templates.php:158 taxocommerce-templates.php:402
 msgid "TaxoCommerce Templates"
-msgstr ""
+msgstr "TaxoCommerce Templates"
 
 #. Description of the plugin
 #: taxocommerce-templates.php
 msgid ""
 "Standalone WordPress/WooCommerce request-template routing, SEO role "
 "assignments and migration audit."
-msgstr ""
+msgstr "Zelfstandige routering van WordPress-/WooCommerce-verzoeksjablonen, toewijzing van SEO-rollen en migratiecontrole."
 
 #. Author of the plugin
 #: taxocommerce-templates.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tct-association-audit.php:425
 msgid "Auditoria de asociaciones antiguas y modernas"
-msgstr ""
+msgstr "Controle van oude en moderne koppelingen"
 
 #: includes/class-tct-association-audit.php:427
 msgid "Tablas de asociaciones no disponibles."
-msgstr ""
+msgstr "Koppelingstabellen zijn niet beschikbaar."
 
 #: includes/class-tct-association-audit.php:435
 msgid ""
 "No se cambian los roles ni los objetos ya asignados. Esta auditoria "
 "comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
-msgstr ""
+msgstr "Bestaande toegewezen rollen en objecten worden niet gewijzigd. Deze controle gaat na of de bibliotheek van de nieuwe module over de bijbehorende bestanden beschikt."
 
 #: includes/class-tct-association-audit.php:444
 msgid "Comprobacion de cambio de plugin"
-msgstr ""
+msgstr "Controle van de pluginvervanging"
 
 #: includes/class-tct-association-audit.php:448
 msgid "Ver incidencias de sustitucion"
-msgstr ""
+msgstr "Problemen bij vervanging bekijken"
 
 #: includes/class-tct-association-audit.php:454
 msgid "Se han localizado todos los archivos activos registrados,"
-msgstr ""
+msgstr "Alle geregistreerde actieve bestanden zijn gevonden,"
 
 #: includes/class-tct-association-audit.php:455
 msgid ""
 "pero no se ha verificado la equivalencia funcional ni los recursos. Mantener"
 " el motor nuevo desactivado."
-msgstr ""
+msgstr "maar de functionele gelijkwaardigheid en de bijbehorende bestanden zijn niet gecontroleerd. Houd de nieuwe engine uitgeschakeld."
 
 #: includes/class-tct-association-audit.php:457
 msgid ""
 "Una asociacion guardada NO confirma que su PHP funcione sin el plugin "
 "antiguo."
-msgstr ""
+msgstr "Een opgeslagen koppeling bevestigt NIET dat het PHP-bestand zonder de oude plugin werkt."
 
 #: includes/class-tct-association-audit.php:458
 msgid ""
 "Las funciones, assets y dependencias deben migrarse y probarse antes de "
 "activar el motor de plantillas."
-msgstr ""
+msgstr "Functies, bestanden en afhankelijkheden moeten worden gemigreerd en getest voordat de sjabloonengine wordt ingeschakeld."
 
 #: includes/class-tct-association-audit.php:470
 msgid "Asociaciones y archivos"
-msgstr ""
+msgstr "Koppelingen en bestanden"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Rol / tipo"
-msgstr ""
+msgstr "Rol / type"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Archivo asignado"
-msgstr ""
+msgstr "Toegewezen bestand"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Objetos"
-msgstr ""
+msgstr "Objecten"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Antiguo"
-msgstr ""
+msgstr "Oud"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Nuevo"
-msgstr ""
+msgstr "Nieuw"
 
 #: includes/class-tct-association-audit.php:471
 #: includes/class-tct-designs.php:341
@@ -101,28 +101,28 @@ msgstr "Status"
 
 #: includes/class-tct-association-audit.php:480
 msgid "Ejemplos de objetos"
-msgstr ""
+msgstr "Voorbeelden van objecten"
 
 #: includes/class-tct-association-audit.php:507
 msgid "Correos WooCommerce del gestor antiguo"
-msgstr ""
+msgstr "WooCommerce-e-mails van de oude beheerder"
 
 #: includes/class-tct-association-audit.php:509
 msgid "No existen asignaciones antiguas de correo en esta base de datos."
-msgstr ""
+msgstr "Er zijn geen oude e-mailkoppelingen in deze database."
 
 #: includes/class-tct-association-audit.php:511
 msgid "Correo"
-msgstr ""
+msgstr "E-mail"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Clave de plantilla"
-msgstr ""
+msgstr "Sjabloonsleutel"
 
 #: includes/class-tct-association-audit.php:511
 #: includes/class-tct-template-editor.php:437
 msgid "Archivo"
-msgstr ""
+msgstr "Bestand"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Activo"
@@ -130,13 +130,13 @@ msgstr "Actief"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Disponible en nuevo"
-msgstr ""
+msgstr "Beschikbaar in het nieuwe systeem"
 
 #: includes/class-tct-association-audit.php:519
 msgid ""
 "Diagnostico local: no supone que STAGING tenga los mismos datos que "
 "produccion si la clonacion esta desactualizada."
-msgstr ""
+msgstr "Lokale diagnose: STAGING bevat niet noodzakelijk dezelfde gegevens als productie als de kloon verouderd is."
 
 #: includes/class-tct-designs.php:272
 msgid ""
@@ -144,89 +144,89 @@ msgid ""
 "que se aplica y configura por separado los módulos de cada país. La "
 "presentación modular es un borrador mientras no exista un renderizador "
 "público."
-msgstr ""
+msgstr "Elk sjabloon heeft eigen instellingen. Selecteer de toepasselijke landen en configureer de modules voor elk land afzonderlijk. De modulaire weergave blijft een concept zolang er geen publieke renderer is."
 
 #: includes/class-tct-designs.php:279
 #: includes/class-tct-front-composer.php:204
 msgid "Nombre de la plantilla"
-msgstr ""
+msgstr "Sjabloonnaam"
 
 #: includes/class-tct-designs.php:281
 msgid "Archivo PHP asociado"
-msgstr ""
+msgstr "Gekoppeld PHP-bestand"
 
 #: includes/class-tct-designs.php:282
 msgid "Sin archivo (borrador visual)"
-msgstr ""
+msgstr "Zonder bestand (visueel concept)"
 
 #: includes/class-tct-designs.php:287
 msgid "Países de esta plantilla"
-msgstr ""
+msgstr "Landen van dit sjabloon"
 
 #: includes/class-tct-designs.php:293
 msgid "Editar módulos del país"
-msgstr ""
+msgstr "Modules voor het land bewerken"
 
 #: includes/class-tct-designs.php:298
 msgid ""
 "Guarda antes de cambiar de país para conservar los cambios de esta "
 "composición."
-msgstr ""
+msgstr "Sla op voordat je van land wisselt om wijzigingen in deze samenstelling te behouden."
 
 #: includes/class-tct-designs.php:300
 #: includes/class-tct-front-composer.php:224
 msgid "Ordenador"
-msgstr ""
+msgstr "Desktop"
 
 #: includes/class-tct-designs.php:301
 #: includes/class-tct-front-composer.php:225
 msgid "Móvil"
-msgstr ""
+msgstr "Mobiel"
 
 #: includes/class-tct-designs.php:302
 #: includes/class-tct-front-composer.php:229
 msgid "Módulos disponibles"
-msgstr ""
+msgstr "Beschikbare modules"
 
 #: includes/class-tct-designs.php:303
 #: includes/class-tct-front-composer.php:234
 msgid "Composición de la plantilla"
-msgstr ""
+msgstr "Sjabloonsamenstelling"
 
 #: includes/class-tct-designs.php:311
 msgid ""
 "Solo se puede activar con archivo PHP existente y sin países solapados con "
 "otra plantilla activa del mismo rol. Requiere además el enrutador general "
 "habilitado. Los módulos visuales no modifican todavía el PHP."
-msgstr ""
+msgstr "Activering is alleen mogelijk als het PHP-bestand bestaat en landen niet overlappen met een ander actief sjabloon voor dezelfde rol. De algemene router moet ook ingeschakeld zijn. Visuele modules wijzigen de PHP-code nog niet."
 
 #: includes/class-tct-designs.php:341
 msgid "Petición / rol"
-msgstr ""
+msgstr "Verzoek / rol"
 
 #: includes/class-tct-designs.php:341
 msgid "Plantilla"
-msgstr ""
+msgstr "Sjabloon"
 
 #: includes/class-tct-designs.php:341
 msgid "Archivo PHP"
-msgstr ""
+msgstr "PHP-bestand"
 
 #: includes/class-tct-designs.php:341
 msgid "Países"
-msgstr ""
+msgstr "Landen"
 
 #: includes/class-tct-designs.php:341
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: includes/class-tct-front-composer.php:113
 msgid "No tienes permisos para guardar plantillas."
-msgstr ""
+msgstr "Je hebt geen toestemming om sjablonen op te slaan."
 
 #: includes/class-tct-front-composer.php:170
 msgid "Añadir"
-msgstr ""
+msgstr "Toevoegen"
 
 #: includes/class-tct-front-composer.php:171
 msgid "Quitar"
@@ -234,105 +234,105 @@ msgstr "Verwijderen"
 
 #: includes/class-tct-front-composer.php:172
 msgid "Configurar"
-msgstr ""
+msgstr "Configureren"
 
 #: includes/class-tct-front-composer.php:173
 msgid "Visible"
-msgstr ""
+msgstr "Zichtbaar"
 
 #: includes/class-tct-front-composer.php:174
 msgid "Título opcional del módulo"
-msgstr ""
+msgstr "Optionele moduletitel"
 
 #: includes/class-tct-front-composer.php:175
 msgid "Subir"
-msgstr ""
+msgstr "Omhoog"
 
 #: includes/class-tct-front-composer.php:176
 msgid "Bajar"
-msgstr ""
+msgstr "Omlaag"
 
 #: includes/class-tct-front-composer.php:177
 msgid "Hay cambios sin guardar. ¿Cambiar de mercado y descartarlos?"
-msgstr ""
+msgstr "Er zijn niet-opgeslagen wijzigingen. Van markt wisselen en deze wijzigingen verwerpen?"
 
 #: includes/class-tct-front-composer.php:184
 #: includes/class-tct-routing-admin.php:130
 #: includes/class-tct-routing-admin.php:209
 #: includes/class-tct-unified-manager.php:28 taxocommerce-templates.php:261
 msgid "Acceso denegado."
-msgstr ""
+msgstr "Toegang geweigerd."
 
 #: includes/class-tct-front-composer.php:196
 msgid "Compositor de plantillas — FRONT"
-msgstr ""
+msgstr "Sjablooncompositor — FRONT"
 
 #: includes/class-tct-front-composer.php:197
 msgid ""
 "Prueba funcional del editor. Guarda un borrador por mercado y dispositivo; "
 "no sustituye la portada, su PHP ni las asignaciones existentes."
-msgstr ""
+msgstr "Functionele test van de editor. Sla per markt en apparaat een concept op; dit vervangt niet de startpagina, de PHP-code of bestaande koppelingen."
 
 #: includes/class-tct-front-composer.php:207
 msgid "Rol asignado"
-msgstr ""
+msgstr "Toegewezen rol"
 
 #: includes/class-tct-front-composer.php:210
 msgid "Mercado"
-msgstr ""
+msgstr "Markt"
 
 #: includes/class-tct-front-composer.php:223
 msgid "Dispositivo"
-msgstr ""
+msgstr "Apparaat"
 
 #: includes/class-tct-front-composer.php:230
 msgid "Arrastra o pulsa Añadir."
-msgstr ""
+msgstr "Sleep een item of klik op Toevoegen."
 
 #: includes/class-tct-front-composer.php:235
 msgid ""
 "Arrastra para ordenar. Las flechas permiten ordenar también con teclado o "
 "móvil."
-msgstr ""
+msgstr "Sleep om de volgorde te wijzigen. Met de pijlen kun je ook via het toetsenbord of een mobiel apparaat sorteren."
 
 #: includes/class-tct-front-composer.php:239
 msgid ""
 "Borrador: los cambios de composición no se aplican al frontend hasta "
 "completar y validar el renderizador modular."
-msgstr ""
+msgstr "Concept: wijzigingen in de samenstelling worden pas op de website toegepast nadat de modulaire renderer is voltooid en gevalideerd."
 
 #: includes/class-tct-front-composer.php:240
 msgid "Guardar borrador FRONT"
-msgstr ""
+msgstr "FRONT-concept opslaan"
 
 #: includes/class-tct-request-admin.php:120
 msgid "Tipos de peticion y plantillas"
-msgstr ""
+msgstr "Verzoektypen en sjablonen"
 
 #: includes/class-tct-request-admin.php:122
 msgid "Elige el tipo de contenido o la plantilla interna que debe ejecutarse."
-msgstr ""
+msgstr "Kies het inhoudstype of interne sjabloon dat moet worden uitgevoerd."
 
 #: includes/class-tct-request-admin.php:123
 msgid "Sin asignacion:"
-msgstr ""
+msgstr "Niet toegewezen:"
 
 #: includes/class-tct-request-admin.php:123
 msgid "WordPress y el tema mantienen intacta su jerarquia habitual."
-msgstr ""
+msgstr "WordPress en het thema behouden hun gebruikelijke hiërarchie."
 
 #: includes/class-tct-request-admin.php:124
 msgid ""
 "Las rutas por roles (clúster, hubs y landings) se gestionan en la sección"
-msgstr ""
+msgstr "Routes op basis van rollen (clusters, hubs en landingspagina’s) worden beheerd in het onderdeel"
 
 #: includes/class-tct-request-admin.php:124
 msgid "Asociar rol y archivo"
-msgstr ""
+msgstr "Rol en bestand koppelen"
 
 #: includes/class-tct-request-admin.php:124
 msgid "de este gestor."
-msgstr ""
+msgstr "van deze beheerder."
 
 #: includes/class-tct-request-admin.php:125
 msgid ""
@@ -340,53 +340,53 @@ msgid ""
 "paginas por si mismas. Se ofrecen las plantillas de interfaz "
 "correspondientes (boton, ficha, minicarrito y avisos) cuando WooCommerce las"
 " registra como archivos PHP."
-msgstr ""
+msgstr "WooCommerce-acties, zoals een product aan de winkelwagen toevoegen, zijn geen zelfstandige pagina’s. Bijbehorende interfacesjablonen (knop, productinformatie, miniwinkelwagen en meldingen) worden aangeboden wanneer WooCommerce ze als PHP-bestanden registreert."
 
 #: includes/class-tct-request-admin.php:128
 #: includes/class-tct-routing-admin.php:304
 msgid "Familia"
-msgstr ""
+msgstr "Familie"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Peticion"
-msgstr ""
+msgstr "Verzoek"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Referencia del sistema"
-msgstr ""
+msgstr "Systeemreferentie"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Archivo asignado / respaldo"
-msgstr ""
+msgstr "Toegewezen bestand / terugvaloptie"
 
 #: includes/class-tct-request-admin.php:140
 msgid "No se han encontrado tipos."
-msgstr ""
+msgstr "Geen typen gevonden."
 
 #: includes/class-tct-request-admin.php:152
 msgid "— Predeterminada: WordPress / tema —"
-msgstr ""
+msgstr "— Standaard: WordPress / thema —"
 
 #: includes/class-tct-request-admin.php:166
 msgid ""
 "Sin asignar: usa la plantilla del tema, si existe; en ultimo termino, index."
-msgstr ""
+msgstr "Niet toegewezen: gebruikt het themasjabloon als dat bestaat; anders als laatste mogelijkheid index."
 
 #: includes/class-tct-request-admin.php:184
 msgid ""
 "Las plantillas WooCommerce por bloques (HTML) se editan con el Editor del "
 "sitio; este gestor asigna archivos PHP clasicos."
-msgstr ""
+msgstr "WooCommerce-bloksjablonen (HTML) worden bewerkt in de site-editor; deze beheerder koppelt klassieke PHP-bestanden."
 
 #: includes/class-tct-routing-admin.php:258
 msgid "Enrutamiento de plantillas"
-msgstr ""
+msgstr "Sjabloonroutering"
 
 #: includes/class-tct-routing-admin.php:268
 msgid ""
 "Las tablas de plantillas no están disponibles; no se pueden guardar "
 "asociaciones. El interruptor superior sigue funcionando."
-msgstr ""
+msgstr "Sjabloontabellen zijn niet beschikbaar; koppelingen kunnen niet worden opgeslagen. De bovenste schakelaar blijft werken."
 
 #: includes/class-tct-routing-admin.php:308
 msgid "Buscar"
@@ -394,7 +394,7 @@ msgstr "Zoeken"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Petición WordPress / WooCommerce"
-msgstr ""
+msgstr "WordPress-/WooCommerce-verzoek"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Rol SEO"
@@ -402,50 +402,50 @@ msgstr "SEO-rol"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Archivo / plantilla"
-msgstr ""
+msgstr "Bestand / sjabloon"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Estado y origen"
-msgstr ""
+msgstr "Status en bron"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Diseñador"
-msgstr ""
+msgstr "Ontwerper"
 
 #: includes/class-tct-routing-admin.php:340
 msgid "No hay rutas que coincidan con el filtro."
-msgstr ""
+msgstr "Geen routes voldoen aan het filter."
 
 #: includes/class-tct-routing-admin.php:368
 msgid "WordPress / Tema (sin asignación)"
-msgstr ""
+msgstr "WordPress / thema (niet toegewezen)"
 
 #: includes/class-tct-routing-admin.php:383
 msgid "Archivo no encontrado"
-msgstr ""
+msgstr "Bestand niet gevonden"
 
 #: includes/class-tct-routing-admin.php:385
 msgid "Configurado; motor desactivado"
-msgstr ""
+msgstr "Geconfigureerd; engine uitgeschakeld"
 
 #: includes/class-tct-routing-admin.php:387
 msgid "Asignación activa"
-msgstr ""
+msgstr "Actieve koppeling"
 
 #: includes/class-tct-routing-admin.php:390
 msgid "VEVOR US/DE/NL/FR: ruta especializada con prioridad."
-msgstr ""
+msgstr "VEVOR US/DE/NL/FR: gespecialiseerde route heeft voorrang."
 
 #: includes/class-tct-routing-admin.php:427
 msgid "Excepciones y diagnósticos del enrutamiento"
-msgstr ""
+msgstr "Uitzonderingen en diagnostiek van de routering"
 
 #: includes/class-tct-routing-admin.php:428
 msgid ""
 "Las rutas VEVOR internacionales pueden ser atendidas por el piloto "
 "especializado y el antiguo monolito antes de la tabla general. También "
 "tienen rutas propias Dependiente y los componentes WooCommerce por bloques."
-msgstr ""
+msgstr "Internationale VEVOR-routes kunnen vóór de algemene routeringstabel worden verwerkt door de gespecialiseerde pilot en de oude monoliet. Ook Dependiente en WooCommerce-blokonderdelen hebben eigen routes."
 
 #: includes/class-tct-template-editor.php:437
 msgid "Origen"
@@ -457,7 +457,7 @@ msgstr "Type"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Asignado a"
-msgstr ""
+msgstr "Toegewezen aan"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Tamaño"
@@ -465,7 +465,7 @@ msgstr "Grootte"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Modificado"
-msgstr ""
+msgstr "Gewijzigd"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Acciones"
@@ -473,280 +473,448 @@ msgstr "Acties"
 
 #: includes/class-tct-template-editor.php:461
 msgid "abierto"
-msgstr ""
+msgstr "open"
 
 #: includes/class-tct-template-editor.php:506
 msgid "No hay archivos que coincidan con el filtro."
-msgstr ""
+msgstr "Geen bestanden voldoen aan het filter."
 
 #: includes/class-tct-template-editor.php:513
 msgid "Subir plantilla PHP"
-msgstr ""
+msgstr "PHP-sjabloon uploaden"
 
 #: includes/class-tct-template-editor.php:517
 msgid ""
 "La subida esta deshabilitada por permisos o por la configuracion de "
 "seguridad de WordPress."
-msgstr ""
+msgstr "Uploaden is uitgeschakeld vanwege machtigingen of WordPress-beveiligingsinstellingen."
 
 #: includes/class-tct-template-editor.php:530
 msgid "Reemplazar archivo propio existente y crear backup"
-msgstr ""
+msgstr "Bestaand eigen bestand vervangen en een back-up maken"
 
 #: includes/class-tct-template-editor.php:575
 msgid "Editor y biblioteca de plantillas"
-msgstr ""
+msgstr "Sjablooneditor en -bibliotheek"
 
 #: includes/class-tct-template-editor.php:577
 msgid ""
 "El gestor antiguo de archivos queda centralizado aqui: puedes consultar "
 "todas las plantillas, subir archivos, duplicarlos, descargar una copia, "
 "crear variantes y editar el PHP propio."
-msgstr ""
+msgstr "De oude bestandsbeheerder is hier gecentraliseerd: je kunt alle sjablonen bekijken, bestanden uploaden, dupliceren, kopieën downloaden, varianten maken en je eigen PHP-code bewerken."
 
 #: includes/class-tct-template-editor.php:578
 msgid "Los archivos integrados en el plugin son de"
-msgstr ""
+msgstr "De bestanden die bij de plugin worden geleverd, zijn"
 
 #: includes/class-tct-template-editor.php:578
 msgid "solo lectura"
-msgstr ""
+msgstr "alleen-lezen"
 
 #: includes/class-tct-template-editor.php:578
 msgid ""
 ". Cualquier cambio se guarda como copia persistente fuera de la carpeta del "
 "plugin."
-msgstr ""
+msgstr ". Wijzigingen worden opgeslagen als blijvende kopie buiten de pluginmap."
 
 #: includes/class-tct-template-editor.php:581
 msgid ""
 "La edicion PHP esta deshabilitada por la configuracion de seguridad o por "
 "los permisos del usuario. Puedes consultar y descargar archivos, pero no "
 "guardarlos."
-msgstr ""
+msgstr "Het bewerken van PHP is uitgeschakeld vanwege de beveiligingsinstellingen of gebruikersrechten. Je kunt bestanden bekijken en downloaden, maar niet opslaan."
 
 #: includes/class-tct-template-editor.php:588
 msgid "Editor de codigo PHP"
-msgstr ""
+msgstr "PHP-code-editor"
 
 #: includes/class-tct-template-editor.php:608
 msgid "Guardar en archivo"
-msgstr ""
+msgstr "Opslaan in bestand"
 
 #: includes/class-tct-template-editor.php:615
 msgid "Contenido de la plantilla"
-msgstr ""
+msgstr "Sjablooninhoud"
 
 #: taxocommerce-templates.php:157 taxocommerce-templates.php:158
 msgid "Templates"
-msgstr ""
+msgstr "Sjablonen"
 
 #: taxocommerce-templates.php:203
 msgid "Tipo de página"
-msgstr ""
+msgstr "Paginatype"
 
 #: taxocommerce-templates.php:203
 msgid "Sin rol"
-msgstr ""
+msgstr "Zonder rol"
 
 #: taxocommerce-templates.php:205
 msgid "Se aplica a todas las páginas del mismo rol."
-msgstr ""
+msgstr "Van toepassing op alle pagina’s met dezelfde rol."
 
 #: taxocommerce-templates.php:289
 msgid "Aplicación de políticas"
-msgstr ""
+msgstr "Beleid toepassen"
 
 #: taxocommerce-templates.php:295
 msgid ""
 "Permitir que TaxoCommerce Templates aplique sus plantillas y reglas en la "
 "web"
-msgstr ""
+msgstr "Toestaan dat TaxoCommerce Templates zijn sjablonen en regels op de website toepast"
 
 #: taxocommerce-templates.php:296
 msgid ""
 "Desmarcada: este plugin sigue activo y puedes editar sus plantillas, pero no"
 " sustituye páginas, productos, categorías, comentarios, fragmentos "
 "WooCommerce ni correos. WordPress y los demás plugins recuperan el control."
-msgstr ""
+msgstr "Niet aangevinkt: deze plugin blijft actief en je kunt de sjablonen bewerken, maar hij vervangt geen pagina’s, producten, categorieën, reacties, WooCommerce-fragmenten of e-mails. WordPress en andere plugins krijgen weer de controle."
 
 #: taxocommerce-templates.php:297
 msgid "Protección al actualizar:"
-msgstr ""
+msgstr "Bescherming bij bijwerken:"
 
 #: taxocommerce-templates.php:297
 msgid ""
 "tras instalar esta versión las políticas permanecen suspendidas, incluso si "
 "una versión anterior tenía el enrutador activo. Solo se habilitan cuando "
 "marcas esta casilla y guardas expresamente."
-msgstr ""
+msgstr "Na installatie van deze versie blijft het beleid opgeschort, ook als de router in een vorige versie actief was. Het wordt pas ingeschakeld wanneer je dit vakje aanvinkt en uitdrukkelijk opslaat."
 
 #: taxocommerce-templates.php:298
 msgid ""
 "Marcada: las rutas configuradas pueden aplicarse según sus prioridades, "
 "mercados y reglas. No activa automáticamente plantillas que sigan como "
 "borrador."
-msgstr ""
+msgstr "Aangevinkt: geconfigureerde routes kunnen volgens hun prioriteiten, markten en regels worden toegepast. Sjablonen die nog concepten zijn, worden niet automatisch geactiveerd."
 
 #: taxocommerce-templates.php:438
 msgid "Faltan tablas; reactiva el módulo."
-msgstr ""
+msgstr "Tabellen ontbreken; activeer de module opnieuw."
 
 #: taxocommerce-templates.php:454
 msgid "Gestor de Plantillas"
-msgstr ""
+msgstr "Sjabloonbeheerder"
 
 #: taxocommerce-templates.php:456
 msgid ""
 "Rutas migradas del gestor original. No se incluyen ni ejecutan archivos PHP "
 "del plugin antiguo."
-msgstr ""
+msgstr "Routes overgenomen van de oorspronkelijke beheerder. PHP-bestanden van de oude plugin worden niet opgenomen of uitgevoerd."
 
 #: taxocommerce-templates.php:460
 msgid ""
 "El interruptor para aplicar o suspender las políticas está disponible al "
 "principio de la página, sin necesidad de desactivar el plugin."
-msgstr ""
+msgstr "De schakelaar om beleid toe te passen of op te schorten staat bovenaan de pagina, zonder de plugin te hoeven uitschakelen."
 
 #: taxocommerce-templates.php:461
 msgid "Archivos de plantilla"
-msgstr ""
+msgstr "Sjabloonbestanden"
 
 #: taxocommerce-templates.php:463
 msgid "Asignacion a paginas y rutas automaticas"
-msgstr ""
+msgstr "Toewijzing aan pagina’s en automatische routes"
 
 #: taxocommerce-templates.php:464
 msgid ""
 "Las rutas automaticas se resuelven por tipo de peticion. Las rutas "
 "asignables admiten paginas existentes; las variantes no son roles "
 "independientes."
-msgstr ""
+msgstr "Automatische routes worden bepaald door het verzoektype. Toewijsbare routes ondersteunen bestaande pagina’s; varianten zijn geen zelfstandige rollen."
 
 #: taxocommerce-templates.php:480
 msgid "Elegir archivo principal"
-msgstr ""
+msgstr "Hoofdbestand kiezen"
 
 #: taxocommerce-templates.php:490
 msgid "Variantes telefono / ordenador"
-msgstr ""
+msgstr "Varianten voor mobiel / desktop"
 
 #: taxocommerce-templates.php:506
 msgid "Paginas asignadas"
-msgstr ""
+msgstr "Toegewezen pagina’s"
 
 #: taxocommerce-templates.php:509
 msgid "Ninguna pagina asignada."
-msgstr ""
+msgstr "Geen pagina’s toegewezen."
 
 #: taxocommerce-templates.php:524
 msgid "Seleccionar pagina libre"
-msgstr ""
+msgstr "Beschikbare pagina selecteren"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "Amazon:"
-msgstr ""
+msgstr "Amazon:"
 
 #: templates/template-amazon-category-us.php:398
 #: templates/template-amazon-category.php:398
 msgid "falta el Partner Tag."
-msgstr ""
+msgstr "Partner Tag ontbreekt."
 
 #: templates/template-amazon-category-us.php:417
 #: templates/template-amazon-category.php:417
 msgid "Amazon"
-msgstr ""
+msgstr "Amazon"
 
 #: templates/template-amazon-category-us.php:418
 msgid "Related search"
-msgstr ""
+msgstr "Gerelateerde zoekopdracht"
 
 #: templates/template-amazon-category.php:418
 msgid "Búsqueda relacionada"
-msgstr ""
+msgstr "Gerelateerde zoekopdracht"
 
 #: templates/template-cart.php:231
 msgid "No se ha podido inicializar el carrito de WooCommerce."
-msgstr ""
+msgstr "De WooCommerce-winkelwagen kon niet worden geïnitialiseerd."
 
 #: templates/template-category-desktop.php:41
 #: templates/template-category-mobile.php:41
 msgid "Categoría no disponible"
-msgstr ""
+msgstr "Categorie niet beschikbaar"
 
 #: templates/template-category-us-desktop.php:41
 #: templates/template-category-us-mobile.php:41
 msgid "Category unavailable"
-msgstr ""
+msgstr "Categorie niet beschikbaar"
 
 #: templates/template-front-desktop.php:532
 #: templates/template-front-mobile.php:532
 msgid "No hay productos VEVOR publicados disponibles."
-msgstr ""
+msgstr "Geen gepubliceerde VEVOR-producten beschikbaar."
 
 #. translators: %d: número de artículos editoriales relacionados.
 #: templates/template-helpers.php:1828
 msgid "%d artículo"
 msgid_plural "%d artículos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d artikel"
+msgstr[1] "%d artikelen"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2035
 msgid "Ver %d comentario externo"
 msgid_plural "Ver %d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d externe reactie bekijken"
+msgstr[1] "%d externe reacties bekijken"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2045
 msgid "%d comentario externo"
 msgid_plural "%d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d externe reactie"
+msgstr[1] "%d externe reacties"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "Producto no disponible"
-msgstr ""
+msgstr "Product niet beschikbaar"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
 msgid "No se ha podido cargar la información del producto."
-msgstr ""
+msgstr "Productinformatie kon niet worden geladen."
 
 #: templates/template-product-desktop.php:1178
 #: templates/template-product-mobile.php:1178
 msgid "No hay productos relacionados disponibles."
-msgstr ""
+msgstr "Geen gerelateerde producten beschikbaar."
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product unavailable"
-msgstr ""
+msgstr "Product niet beschikbaar"
 
 #: templates/template-product-us-desktop.php:26
 #: templates/template-product-us-mobile.php:26
 msgid "Product information could not be loaded."
-msgstr ""
+msgstr "Productinformatie kon niet worden geladen."
 
 #: templates/template-product-us-desktop.php:1226
 #: templates/template-product-us-mobile.php:1226
 msgid "No related products are available."
-msgstr ""
+msgstr "Geen gerelateerde producten beschikbaar."
 
 #. translators: %s: número localizado de productos encontrados.
 #: templates/template-search.php:43
 msgid "%s producto encontrado"
 msgid_plural "%s productos encontrados"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s product gevonden"
+msgstr[1] "%s producten gevonden"
 
 #: templates/template-search.php:122
 msgid "Oferta"
-msgstr ""
+msgstr "Aanbieding"
 
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
 msgstr "Er zijn geen producten beschikbaar in dit blok."
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicación de políticas de plantillas"
+msgstr "Sjabloonbeleid toepassen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Estado:"
+msgstr "Status:"
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicando las políticas de Templates"
+msgstr "Templates-beleid wordt toegepast"
+
+#. TaxoCommerce Templates administration UI
+msgid "Políticas suspendidas"
+msgstr "Beleid gepauzeerd"
+
+#. TaxoCommerce Templates administration UI
+msgid "Guardar estado de las políticas"
+msgstr "Beleidsstatus opslaan"
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutamiento"
+msgstr "Routering"
+
+#. TaxoCommerce Templates administration UI
+msgid "Diseñador de plantillas"
+msgstr "Sjabloonontwerper"
+
+#. TaxoCommerce Templates administration UI
+msgid "Autocheck"
+msgstr "Zelfcontrole"
+
+#. TaxoCommerce Templates administration UI
+msgid "Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en seo_templates, sin modificar archivos PHP."
+msgstr "Selecteer welk bestand voor elk WordPress-, WooCommerce- of SEO-rolverzoek wordt gebruikt. Koppelingen worden opgeslagen in seo_templates, zonder PHP-bestanden te wijzigen."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce habilitado."
+msgstr "TaxoCommerce-router ingeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce desactivado."
+msgstr "TaxoCommerce-router uitgeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada."
+msgstr "Gespecialiseerde routes en het thema kunnen voorrang hebben; deze tabel toont configuraties en geen geverifieerde uitvoering."
+
+#. TaxoCommerce Templates administration UI
+msgid "Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado."
+msgstr "Je kunt koppelingen opslaan, maar ze vervangen de publieke sjabloon niet zolang de router is uitgeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Mis plantillas"
+msgstr "Mijn sjablonen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Por configurar"
+msgstr "Nog te configureren"
+
+#. TaxoCommerce Templates administration UI
+msgid "Todas"
+msgstr "Alle"
+
+#. TaxoCommerce Templates administration UI
+msgid "Vista de enrutamiento"
+msgstr "Routeringsoverzicht"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rol, petición o archivo"
+msgstr "Rol, verzoek of bestand"
+
+#. TaxoCommerce Templates administration UI
+msgid "Filtrar"
+msgstr "Filteren"
+
+#. TaxoCommerce Templates administration UI
+msgid "Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible."
+msgstr "Alleen koppelingen met een toegewezen en actief bestand worden getoond, ook als het bestand ontbreekt. De volledige catalogus blijft beschikbaar."
+
+#. TaxoCommerce Templates administration UI
+msgid "Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas»."
+msgstr "Belangrijkste typen waarvoor nog geen actief sjabloon bestaat. Interne WooCommerce-fragmenten staan onder ‘Alle’."
+
+#. TaxoCommerce Templates administration UI
+msgid "Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas."
+msgstr "Volledig overzicht, inclusief interne WooCommerce-bestanden en nog niet geconfigureerde routes."
+
+#. TaxoCommerce Templates administration UI
+msgid "plantillas y rutas propias"
+msgstr "eigen sjablonen en routes"
+
+#. TaxoCommerce Templates administration UI
+msgid "tipos pendientes"
+msgstr "openstaande typen"
+
+#. TaxoCommerce Templates administration UI
+msgid "opciones y plantillas"
+msgstr "opties en sjablonen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rutas heredadas existentes"
+msgstr "Bestaande verouderde routes"
+
+#. TaxoCommerce Templates administration UI
+msgid "Catálogo de peticiones"
+msgstr "Verzoekcatalogus"
+
+#. Templates UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr "Beheer sjablonen, paginaroutering en weergaveregels."
+
+#. Templates UI
+msgid "Versión"
+msgstr "Versie"
+
+#. Templates UI
+msgid "Todas las peticiones"
+msgstr "Alle verzoeken"
+
+#. Templates UI
+msgid "Guardar"
+msgstr "Opslaan"
+
+#. Templates UI
+msgid "Asociar archivo"
+msgstr "Bestand koppelen"
+
+#. Templates UI
+msgid "Desasignar"
+msgstr "Koppeling verwijderen"
+
+#. Templates UI
+msgid "Asignar pagina"
+msgstr "Pagina koppelen"
+
+#. Templates UI
+msgid "Crear rol"
+msgstr "Rol maken"
+
+#. Templates UI
+msgid "Automático / sin rol SEO"
+msgstr "Automatisch / zonder SEO-rol"
+
+#. Templates UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr "Er zijn nog geen actieve sjablonen toegewezen."
+
+#. Templates UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr "Eerste inhoudstype kiezen om te configureren"
+
+#. Templates UI
+msgid "Ir al Diseñador de plantillas"
+msgstr "Naar de sjabloonontwerper"
+
+#. Templates UI
+msgid "Ver archivo PHP"
+msgstr "PHP-bestand bekijken"
+
+#. Templates UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr "Technische controle van bestaande koppelingen openen"
+
+#. Templates UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr "De aan elke rol toegewezen pagina’s beheren"

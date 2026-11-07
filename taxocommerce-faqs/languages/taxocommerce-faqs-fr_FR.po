@@ -19,7 +19,7 @@ msgstr "TaxoCommerce FAQs"
 msgid ""
 "Manage WordPress and WooCommerce FAQs with CSV exchange, KPIs and semantic "
 "labels. Uninstalling deletes stored FAQ data."
-msgstr ""
+msgstr "Gérez les FAQ WordPress et WooCommerce avec échange CSV, indicateurs KPI et étiquettes sémantiques. La désinstallation supprime les données FAQ enregistrées."
 
 #. Author of the plugin
 #: taxocommerce-faqs.php
@@ -55,7 +55,7 @@ msgid ""
 "Chequeo seguro y no destructivo para comparar la disponibilidad del plugin "
 "antes y después de actualizarlo. No crea, edita, elimina ni importa "
 "preguntas. Solo guarda sus informes por usuario y sitio."
-msgstr ""
+msgstr "Contrôle sûr et non destructif pour comparer la disponibilité du plugin avant et après une mise à jour. Il ne crée, ne modifie, ne supprime et n’importe aucune question. Il enregistre uniquement les rapports par utilisateur et par site."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:466
 msgid "Referencia ANTES"
@@ -85,20 +85,20 @@ msgstr "Comparaison des déploiements"
 msgid ""
 "Sin regresiones en los casos comparables. Las pruebas manuales siguen "
 "pendientes."
-msgstr ""
+msgstr "Aucune régression détectée dans les cas comparables. Les tests manuels restent à effectuer."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:503
 msgid ""
 "Para comparar, utiliza Comprobar DESPUÉS con todos los grupos en el mismo "
 "sitio."
-msgstr ""
+msgstr "Pour comparer, utilisez Vérifier APRÈS avec tous les groupes sur le même site."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:526
 msgid ""
 "El chequeo no reemplaza las pruebas reales en staging ni WordPress Plugin "
 "Check para el repositorio. Nunca desinstales FAQs en producción como parte "
 "de una prueba."
-msgstr ""
+msgstr "Ce contrôle ne remplace ni les tests réels sur un site de préproduction ni WordPress Plugin Check pour le dépôt. Ne désinstallez jamais FAQs en production dans le cadre d’un test."
 
 #: includes/class-taxocommerce-faqs-lifecycle.php:120
 msgid ""
@@ -106,7 +106,7 @@ msgid ""
 "definitivamente la tabla seo_faq y todas sus preguntas, incluidas las "
 "compartidas con TaxoCommerce SEO. Exporta el CSV antes de eliminarlo. Las "
 "categorías y el vocabulario se conservan."
-msgstr ""
+msgstr "La désactivation conserve les FAQ. La désinstallation de TaxoCommerce FAQs supprime définitivement la table seo_faq et toutes ses questions, y compris celles partagées avec TaxoCommerce SEO. Exportez le CSV avant toute suppression. Les catégories et le vocabulaire sont conservés."
 
 #: includes/class-taxocommerce-faqs-manual.php:19
 msgid "1. Acceso y precauciones"
@@ -117,20 +117,20 @@ msgid ""
 "Abre TaxoCommerce FAQs desde el menú propio o desde Contenidos de "
 "TaxoCommerce Core, cuando esté activo. Las pestañas son FAQs, Auto Test y "
 "Manual. La administración requiere manage_options."
-msgstr ""
+msgstr "Ouvrez TaxoCommerce FAQs depuis son propre menu ou depuis TaxoCommerce Core > Contenus, si Core est actif. Les onglets sont FAQs, Auto Test et Manuel. L’administration nécessite manage_options."
 
 #: includes/class-taxocommerce-faqs-manual.php:22
 msgid ""
 "El manual es de solo lectura. No crea ni altera preguntas, categorías, "
 "etiquetas, registros o configuraciones."
-msgstr ""
+msgstr "Ce manuel est en lecture seule. Il ne crée ni ne modifie les questions, catégories, étiquettes, enregistrements ou réglages."
 
 #: includes/class-taxocommerce-faqs-manual.php:23
 msgid ""
 "Antes de operaciones masivas exporta el CSV y guarda una copia de seguridad "
 "de la base de datos. La tabla de preguntas también puede utilizarse desde "
 "otros módulos TaxoCommerce."
-msgstr ""
+msgstr "Avant les opérations groupées, exportez le CSV et sauvegardez la base de données. La table des questions peut également être utilisée par d’autres modules TaxoCommerce."
 
 #: includes/class-taxocommerce-faqs-manual.php:28
 msgid "2. Inventario e indicadores"
@@ -141,20 +141,20 @@ msgid ""
 "La pestaña FAQs muestra total de preguntas, activas, desactivadas, destinos "
 "distintos, categorías cubiertas, preguntas sin categoría y aperturas "
 "registradas."
-msgstr ""
+msgstr "L’onglet FAQs affiche le nombre total de questions, les questions actives et inactives, les cibles distinctes, les catégories couvertes, les questions sans catégorie et les ouvertures enregistrées."
 
 #: includes/class-taxocommerce-faqs-manual.php:31
 msgid ""
 "Utiliza Buscar para filtrar por el texto de la pregunta y el desplegable de "
 "categoría para revisar un grupo concreto. La lista muestra hasta 25 FAQs por"
 " página."
-msgstr ""
+msgstr "Utilisez Rechercher pour filtrer sur le texte des questions et la liste déroulante des catégories pour consulter un groupe précis. La liste affiche jusqu’à 25 FAQ par page."
 
 #: includes/class-taxocommerce-faqs-manual.php:32
 msgid ""
 "Los indicadores reflejan los datos existentes en la tabla canónica: no hacen"
 " auditorías de contenido ni sustituyen una comprobación editorial."
-msgstr ""
+msgstr "Les indicateurs reflètent les données existantes de la table canonique : ils n’auditent pas le contenu et ne remplacent pas une vérification éditoriale."
 
 #: includes/class-taxocommerce-faqs-manual.php:37
 msgid "3. Crear una pregunta frecuente"
@@ -165,21 +165,21 @@ msgid ""
 "En Nueva FAQ selecciona una categoría de producto WooCommerce existente. Es "
 "obligatoria para las nuevas preguntas, incluso cuando el destino sea una "
 "página o un producto."
-msgstr ""
+msgstr "Dans Nouvelle FAQ, sélectionnez une catégorie de produits WooCommerce existante. Elle est obligatoire pour toute nouvelle question, même si la cible est une page ou un produit."
 
 #: includes/class-taxocommerce-faqs-manual.php:40
 msgid ""
 "Escoge Destino: Categoría, Hub / Página o Producto. Indica el ID del destino"
 " cuando sea necesario; para Categoría puede utilizarse la categoría "
 "seleccionada."
-msgstr ""
+msgstr "Choisissez Cible : Catégorie, Hub / Page ou Produit. Saisissez l’ID de la cible si nécessaire ; pour Catégorie, vous pouvez utiliser la catégorie sélectionnée."
 
 #: includes/class-taxocommerce-faqs-manual.php:41
 msgid ""
 "Introduce Pregunta y Respuesta, configura el orden y marca FAQ activa si "
 "deseas habilitarla. Guarda con Crear FAQ. La pregunta se limita a 255 "
 "caracteres; el destino debe existir."
-msgstr ""
+msgstr "Saisissez Question et Réponse, définissez l’ordre et cochez FAQ active pour l’activer. Enregistrez avec Créer une FAQ. La question est limitée à 255 caractères ; la cible doit exister."
 
 #: includes/class-taxocommerce-faqs-manual.php:46
 msgid "4. Editar, activar y desactivar"
@@ -189,21 +189,21 @@ msgstr "4. Modifier, activer et désactiver"
 msgid ""
 "Desde Inventario pulsa Editar para recuperar una FAQ existente. Cambia sus "
 "campos y pulsa Guardar FAQ. La aplicación conserva su identificador."
-msgstr ""
+msgstr "Dans Inventaire, cliquez sur Modifier pour charger une FAQ existante. Modifiez ses champs, puis cliquez sur Enregistrer la FAQ. L’application conserve son identifiant."
 
 #: includes/class-taxocommerce-faqs-manual.php:49
 msgid ""
 "Desmarca FAQ activa para mantener la pregunta guardada sin publicarla. La "
 "disponibilidad final en el sitio público depende de los módulos que consumen"
 " estas preguntas."
-msgstr ""
+msgstr "Décochez FAQ active pour conserver la question sans la publier. Sa disponibilité finale sur le site public dépend des modules qui utilisent ces questions."
 
 #: includes/class-taxocommerce-faqs-manual.php:50
 msgid ""
 "Las preguntas heredadas sin categoría siguen disponibles para revisión. Al "
 "guardar una nueva versión selecciona una categoría válida; la activación del"
 " plugin no publica automáticamente las preguntas anteriores."
-msgstr ""
+msgstr "Les questions héritées sans catégorie restent disponibles pour révision. Sélectionnez une catégorie valide en enregistrant une nouvelle version ; l’activation du plugin ne publie pas automatiquement les questions existantes."
 
 #: includes/class-taxocommerce-faqs-manual.php:55
 msgid "5. Destinos y categoría obligatoria"
@@ -213,21 +213,21 @@ msgstr "5. Destinations et catégorie obligatoire"
 msgid ""
 "Los tipos de destino son 1 (Hub / Página), 2 (Categoría de producto) y 3 "
 "(Producto). El ID debe apuntar a un objeto real de WordPress o WooCommerce."
-msgstr ""
+msgstr "Les types de cibles sont 1 (Hub / Page), 2 (Catégorie de produits) et 3 (Produit). L’ID doit désigner un objet WordPress ou WooCommerce réel."
 
 #: includes/class-taxocommerce-faqs-manual.php:58
 msgid ""
 "product_cat_id establece la categoría de producto de la FAQ. No confundas "
 "esta asociación editorial con el ID del objeto de destino cuando corresponda"
 " a una página o un producto."
-msgstr ""
+msgstr "product_cat_id définit la catégorie de produits de la FAQ. Ne confondez pas cette association éditoriale avec l’ID de l’objet cible lorsque celui-ci est une page ou un produit."
 
 #: includes/class-taxocommerce-faqs-manual.php:59
 msgid ""
 "El indicador Sin categoría permite localizar registros históricos que "
 "todavía requieren clasificación. No modifiques el esquema directamente para "
 "forzar asociaciones."
-msgstr ""
+msgstr "L’indicateur Sans catégorie permet de repérer les anciens enregistrements encore à classer. Ne modifiez pas directement le schéma de la base de données pour forcer les associations."
 
 #: includes/class-taxocommerce-faqs-manual.php:64
 msgid "6. Etiquetas semánticas de Vocabulary"
@@ -238,21 +238,21 @@ msgid ""
 "Si están disponibles seo_vocabulary y seo_object_vocabulary, la edición "
 "permite seleccionar etiquetas ya existentes en los grupos rol, tipo, "
 "aplicación, plataforma y subtipo."
-msgstr ""
+msgstr "Si seo_vocabulary et seo_object_vocabulary sont disponibles, l’éditeur permet de sélectionner des étiquettes existantes dans les groupes rôle, type, application, plateforme et sous-type."
 
 #: includes/class-taxocommerce-faqs-manual.php:67
 msgid ""
 "Las etiquetas no se crean desde FAQs. Si Vocabulary no está disponible, se "
 "mantiene la edición de preguntas y las relaciones anteriores no se eliminan "
 "por ausencia del módulo."
-msgstr ""
+msgstr "Les étiquettes ne sont pas créées depuis FAQs. Si Vocabulary est indisponible, l’édition des questions reste possible et les anciennes relations ne sont pas supprimées du fait de l’absence du module."
 
 #: includes/class-taxocommerce-faqs-manual.php:68
 msgid ""
 "Revisa las etiquetas antes de guardar una edición. No confundas los términos"
 " semánticos con categorías WooCommerce: se almacenan en relaciones "
 "distintas."
-msgstr ""
+msgstr "Vérifiez les étiquettes avant d’enregistrer une modification. Ne confondez pas les termes sémantiques et les catégories WooCommerce : leurs relations sont stockées séparément."
 
 #: includes/class-taxocommerce-faqs-manual.php:73
 msgid "7. Exportar FAQs a CSV"
@@ -262,20 +262,20 @@ msgstr "7. Exporter les FAQ au format CSV"
 msgid ""
 "En Importar / Exportar CSV pulsa Exportar FAQs CSV. Guarda el fichero UTF-8 "
 "resultante antes de aplicar correcciones masivas o actualizar componentes."
-msgstr ""
+msgstr "Dans Importer / Exporter CSV, cliquez sur Exporter les FAQ en CSV. Conservez le fichier UTF-8 obtenu avant les modifications groupées ou la mise à jour des composants."
 
 #: includes/class-taxocommerce-faqs-manual.php:76
 msgid ""
 "El formato transporta identificadores, destino, categoría, pregunta, "
 "respuesta, orden, estado y etiquetas semánticas disponibles. Las etiquetas "
 "se representan mediante slugs separados por barras verticales."
-msgstr ""
+msgstr "Le format transporte les identifiants, la cible, la catégorie, la question, la réponse, l’ordre, le statut et les étiquettes sémantiques disponibles. Les étiquettes sont représentées par des slugs séparés par des barres verticales."
 
 #: includes/class-taxocommerce-faqs-manual.php:77
 msgid ""
 "Comprueba el fichero descargado y conserva una copia inalterada. La "
 "exportación no equivale a un respaldo de todas las tablas WordPress."
-msgstr ""
+msgstr "Vérifiez le fichier téléchargé et conservez une copie intacte. L’exportation n’équivaut pas à une sauvegarde de toutes les tables WordPress."
 
 #: includes/class-taxocommerce-faqs-manual.php:82
 msgid "8. Importar FAQs desde CSV"
@@ -285,14 +285,14 @@ msgstr "8. Importer les FAQ depuis un CSV"
 msgid ""
 "Utiliza un CSV UTF-8 compatible con las cabeceras exportadas por este "
 "plugin. El límite por importación es 500 filas y 2 MB."
-msgstr ""
+msgstr "Utilisez un CSV UTF-8 dont les en-têtes correspondent à ceux exportés par ce plugin. Chaque importation est limitée à 500 lignes et 2 Mo."
 
 #: includes/class-taxocommerce-faqs-manual.php:85
 msgid ""
 "Si una fila contiene el ID de una pregunta existente se actualiza ese "
 "registro; si el ID es desconocido o cero, se crea una pregunta con ID local "
 "nuevo. Verifica el destino y la categoría válida antes de importar."
-msgstr ""
+msgstr "Si une ligne contient l’ID d’une question existante, cet enregistrement est mis à jour ; si l’ID est inconnu ou nul, une nouvelle question est créée avec un nouvel ID local. Vérifiez la cible et la catégorie avant l’importation."
 
 #: includes/class-taxocommerce-faqs-manual.php:86
 msgid ""
@@ -300,7 +300,7 @@ msgid ""
 "está correctamente entrecomillado. Revisa los mensajes de error, las "
 "preguntas afectadas y la copia de seguridad antes de repetir una "
 "importación."
-msgstr ""
+msgstr "Les réponses peuvent contenir des virgules, des guillemets et des sauts de ligne si les champs du CSV sont correctement entourés de guillemets. Consultez les messages d’erreur, les questions concernées et la sauvegarde avant de réessayer."
 
 #: includes/class-taxocommerce-faqs-manual.php:91
 msgid "9. Borrado y conservación de datos"
@@ -310,21 +310,21 @@ msgstr "9. Suppression et conservation des données"
 msgid ""
 "El botón Eliminar de una fila solicita confirmación y borra esa FAQ. Esta "
 "operación es permanente: exporta los datos antes de borrar."
-msgstr ""
+msgstr "Le bouton Supprimer d’une ligne demande confirmation puis supprime cette FAQ. Cette opération est définitive : exportez les données avant de supprimer."
 
 #: includes/class-taxocommerce-faqs-manual.php:94
 msgid ""
 "Desactivar el plugin NO borra sus preguntas. En cambio, eliminar "
 "TaxoCommerce FAQs desde WordPress ejecuta uninstall.php y elimina la tabla "
 "compartida seo_faq, sus preguntas y relaciones semánticas FAQ."
-msgstr ""
+msgstr "La désactivation du plugin ne supprime PAS ses questions. En revanche, la suppression de TaxoCommerce FAQs depuis WordPress exécute uninstall.php et supprime la table partagée seo_faq, ses questions et ses relations sémantiques FAQ."
 
 #: includes/class-taxocommerce-faqs-manual.php:95
 msgid ""
 "Nunca utilices desinstalar como prueba en producción: las preguntas también "
 "pueden ser utilizadas por TaxoCommerce SEO. Para ensayar desinstalación usa "
 "un WordPress desechable y un respaldo verificable."
-msgstr ""
+msgstr "N’utilisez jamais la désinstallation comme test en production : les questions peuvent aussi servir à TaxoCommerce SEO. Testez la désinstallation sur un site WordPress jetable avec une sauvegarde vérifiable."
 
 #: includes/class-taxocommerce-faqs-manual.php:100
 msgid "10. Auto Test antes y después de actualizar"
@@ -335,21 +335,21 @@ msgid ""
 "Abre la pestaña Auto Test y pulsa Guardar estado ANTES antes del despliegue."
 " Después de instalar la nueva versión pulsa Comprobar DESPUÉS en el mismo "
 "sitio."
-msgstr ""
+msgstr "Ouvrez l’onglet Auto Test et cliquez sur Enregistrer l’état AVANT avant le déploiement. Après l’installation de la nouvelle version, cliquez sur Vérifier APRÈS sur le même site."
 
 #: includes/class-taxocommerce-faqs-manual.php:103
 msgid ""
 "El chequeo muestra pruebas correctas, errores, omitidas y no ejecutadas, "
 "agrupadas por módulo. Se pueden ejecutar grupos independientes y descargar "
 "resultados JSON."
-msgstr ""
+msgstr "Le contrôle présente les tests réussis, échoués, ignorés et non exécutés, regroupés par module. Vous pouvez exécuter des groupes séparément et télécharger les résultats JSON."
 
 #: includes/class-taxocommerce-faqs-manual.php:104
 msgid ""
 "Auto Test no importa, modifica ni elimina preguntas. Las pruebas de "
 "creación, edición, CSV, frontend y desinstalación quedan señaladas como "
 "manuales y deben realizarse en un entorno de prueba."
-msgstr ""
+msgstr "Auto Test n’importe, ne modifie et ne supprime aucune question. Les tests de création, d’édition, de CSV, de frontend et de désinstallation sont indiqués comme manuels et doivent être effectués dans un environnement de test."
 
 #: includes/class-taxocommerce-faqs-manual.php:109
 msgid "11. Resolución de incidencias"
@@ -360,21 +360,21 @@ msgid ""
 "Si falta la tabla de FAQs, no fuerces importaciones: revisa instalación, "
 "permisos SQL y estado de la tabla antes de iniciar una migración. Auto Test "
 "puede verificar el esquema sin modificarlo."
-msgstr ""
+msgstr "Si la table FAQ manque, ne forcez pas les importations : vérifiez l’installation, les permissions SQL et l’état de la table avant une migration. Auto Test peut inspecter le schéma sans le modifier."
 
 #: includes/class-taxocommerce-faqs-manual.php:112
 msgid ""
 "Si no aparece una pregunta revisa su estado activo, destino, categoría y el "
 "módulo que presenta FAQs en el frontend. Un registro guardado no garantiza "
 "por sí solo su visualización pública."
-msgstr ""
+msgstr "Si une question n’apparaît pas, vérifiez son état actif, sa cible, sa catégorie et le module qui affiche les FAQ sur le frontend. Un enregistrement sauvegardé ne garantit pas son affichage public."
 
 #: includes/class-taxocommerce-faqs-manual.php:113
 msgid ""
 "Si fallan las etiquetas comprueba las tablas opcionales Vocabulary. Para "
 "errores de CSV revisa cabecera, comillas, UTF-8, máximo de filas y tamaño "
 "del fichero."
-msgstr ""
+msgstr "Si les étiquettes échouent, vérifiez les tables facultatives Vocabulary. Pour les erreurs CSV, vérifiez les en-têtes, les guillemets, l’encodage UTF-8, le nombre de lignes et la taille du fichier."
 
 #: includes/class-taxocommerce-faqs-manual.php:118
 msgid "12. Arquitectura y responsabilidades"
@@ -386,20 +386,20 @@ msgid ""
 "TaxoCommerce_FAQs_Lifecycle (instalación y desinstalación), y "
 "TaxoCommerce_FAQs_Auto_Test (diagnóstico). TaxoCommerce_FAQs_Manual "
 "documenta el módulo sin ejecutar procesos."
-msgstr ""
+msgstr "Le point d’entrée taxocommerce-faqs.php charge TaxoCommerce_FAQs (éditeur et CSV), TaxoCommerce_FAQs_Lifecycle (installation et désinstallation) et TaxoCommerce_FAQs_Auto_Test (diagnostic). TaxoCommerce_FAQs_Manual documente le module sans lancer de processus."
 
 #: includes/class-taxocommerce-faqs-manual.php:121
 msgid ""
 "TaxoCommerce FAQs utiliza la tabla histórica compartida [prefijo]seo_faq "
 "como fuente de verdad. No se crea un CPT ni se duplica la tabla del "
 "monolito."
-msgstr ""
+msgstr "TaxoCommerce FAQs utilise la table historique partagée [préfixe]seo_faq comme source de vérité. Il ne crée pas de CPT et ne duplique pas la table du monolithe."
 
 #: includes/class-taxocommerce-faqs-manual.php:122
 msgid ""
 "La integración con TaxoCommerce Core es opcional: registra el módulo faqs "
 "para Contenidos y ofrece menú administrativo cuando Core no existe."
-msgstr ""
+msgstr "L’intégration avec TaxoCommerce Core est facultative : le module faqs est enregistré sous Contenus et un menu d’administration autonome est proposé si Core est absent."
 
 #: includes/class-taxocommerce-faqs-manual.php:127
 msgid "13. Esquema y migración"
@@ -410,21 +410,21 @@ msgid ""
 "La tabla seo_faq incluye id, object_type, object_id, product_cat_id, "
 "question, answer, sort_order, active, load_count, open_count, created_at y "
 "updated_at."
-msgstr ""
+msgstr "La table seo_faq contient id, object_type, object_id, product_cat_id, question, answer, sort_order, active, load_count, open_count, created_at et updated_at."
 
 #: includes/class-taxocommerce-faqs-manual.php:130
 msgid ""
 "El activador crea o actualiza de forma incremental la tabla, preservando las"
 " filas existentes y añadiendo product_cat_id cuando falta. Solo completa "
 "automáticamente categorías heredadas inequívocas."
-msgstr ""
+msgstr "L’activation crée ou met à jour progressivement la table, conserve les lignes existantes et ajoute product_cat_id si nécessaire. Seules les anciennes catégories sans ambiguïté sont complétées automatiquement."
 
 #: includes/class-taxocommerce-faqs-manual.php:131
 msgid ""
 "En multisitio, la inicialización usa el prefijo de cada sitio y restaura el "
 "contexto original. Auto Test solo consulta el esquema: jamás invoca "
 "instaladores ni migraciones."
-msgstr ""
+msgstr "En multisite, l’initialisation utilise le préfixe de chaque site et restaure le contexte d’origine. Auto Test ne fait que lire le schéma : il ne lance jamais d’installation ni de migration."
 
 #: includes/class-taxocommerce-faqs-manual.php:136
 msgid "14. Rutas, permisos y seguridad"
@@ -435,21 +435,21 @@ msgid ""
 "Las acciones de administración son admin_post_taxocommerce_faqs_save, "
 "_delete, _export e _import. Todas requieren capacidad manage_options y "
 "validación de nonce en su controlador."
-msgstr ""
+msgstr "Les actions d’administration sont admin_post_taxocommerce_faqs_save, _delete, _export et _import. Elles exigent toutes la capacité manage_options et la validation d’un nonce dans leur contrôleur."
 
 #: includes/class-taxocommerce-faqs-manual.php:139
 msgid ""
 "La pestaña Auto Test ofrece acciones propias para ejecutar comprobaciones y "
 "descargar JSON, protegidas también mediante capacidad y nonce. Manual es "
 "únicamente una pantalla de lectura, sin formularios de escritura."
-msgstr ""
+msgstr "L’onglet Auto Test possède ses propres actions pour lancer les contrôles et télécharger le JSON, également protégées par une vérification de capacité et un nonce. Le Manuel est un écran en lecture seule, sans formulaire d’écriture."
 
 #: includes/class-taxocommerce-faqs-manual.php:140
 msgid ""
 "Las entradas de preguntas se sanean y las respuestas admiten HTML permitido "
 "por WordPress. Mantén escaping en salida y nunca expongas SQL, trazas, "
 "contenido editorial o rutas internas en resultados de diagnóstico."
-msgstr ""
+msgstr "Les données des questions sont assainies et les réponses peuvent contenir le HTML autorisé par WordPress. Maintenez l’échappement à l’affichage et n’exposez jamais le SQL, les traces, le contenu éditorial ou les chemins internes dans les diagnostics."
 
 #: includes/class-taxocommerce-faqs-manual.php:145
 msgid "15. Contrato CSV y Vocabulary"
@@ -460,14 +460,14 @@ msgid ""
 "CSV incluye id, object_type, object_id, product_cat_id, question, answer, "
 "sort_order y active, además de grupos semánticos rol, tipo, aplicacion, "
 "plataforma y subtipo cuando procede."
-msgstr ""
+msgstr "Le CSV contient id, object_type, object_id, product_cat_id, question, answer, sort_order et active, ainsi que les groupes sémantiques rôle, type, application, plateforme et sous-type lorsqu’ils s’appliquent."
 
 #: includes/class-taxocommerce-faqs-manual.php:148
 msgid ""
 "La importación CSV valida límites de 500 filas y 2 MB y la relación con "
 "categorías reales. El parser propio permite celdas entrecomilladas con "
 "saltos de línea sin truncar respuestas."
-msgstr ""
+msgstr "L’importation CSV vérifie les limites de 500 lignes et 2 Mo ainsi que les liens avec des catégories réelles. Le parseur dédié accepte les cellules entre guillemets contenant des sauts de ligne sans tronquer les réponses."
 
 #: includes/class-taxocommerce-faqs-manual.php:149
 msgid ""
@@ -475,7 +475,7 @@ msgid ""
 "object_type=faq, usando términos ya existentes de seo_vocabulary. Ambos "
 "elementos son opcionales y no deben ser eliminados por una migración de "
 "FAQs."
-msgstr ""
+msgstr "Les relations d’étiquettes sont stockées dans seo_object_vocabulary avec object_type=faq, en utilisant les termes existants de seo_vocabulary. Ces deux composants sont facultatifs et ne doivent pas être supprimés pendant une migration des FAQ."
 
 #: includes/class-taxocommerce-faqs-manual.php:154
 msgid "16. Ciclo de vida y riesgos de desinstalación"
@@ -487,21 +487,21 @@ msgid ""
 "desactivación no borra datos. Solo uninstall.php puede iniciar la limpieza "
 "permanente, condicionada a WP_UNINSTALL_PLUGIN y los marcadores de "
 "inicialización."
-msgstr ""
+msgstr "L’activation est enregistrée avec register_activation_hook ; la désactivation ne supprime aucune donnée. Seul uninstall.php peut déclencher le nettoyage définitif, sous réserve de WP_UNINSTALL_PLUGIN et des marqueurs d’initialisation."
 
 #: includes/class-taxocommerce-faqs-manual.php:157
 msgid ""
 "La desinstalación elimina seo_faq y las relaciones object_type=faq, pero "
 "preserva Vocabulary, categorías y otras relaciones. Una eliminación puede "
 "afectar a TaxoCommerce SEO porque comparte los datos FAQ."
-msgstr ""
+msgstr "La désinstallation supprime seo_faq et les relations object_type=faq, mais conserve Vocabulary, les catégories et les autres relations. Cette suppression peut affecter TaxoCommerce SEO, qui partage les données FAQ."
 
 #: includes/class-taxocommerce-faqs-manual.php:158
 msgid ""
 "Nunca lances pruebas destructivas en producción. Verifica instalación, "
 "actualización y limpieza de multisitio mediante tests aislados y un sitio "
 "desechable."
-msgstr ""
+msgstr "Ne lancez jamais de tests destructifs en production. Vérifiez l’installation, les mises à jour et le nettoyage multisite au moyen de tests isolés et d’un site jetable."
 
 #: includes/class-taxocommerce-faqs-manual.php:163
 msgid "17. Pruebas y despliegue"
@@ -512,21 +512,21 @@ msgid ""
 "En GitHub se mantienen las pruebas CLI de menú, esquema, ciclo de vida, "
 "desinstalación y Auto Test. Estas pruebas no deben instalarse dentro del ZIP"
 " para WordPress."
-msgstr ""
+msgstr "GitHub conserve les tests CLI du menu, du schéma, du cycle de vie, de la désinstallation et d’Auto Test. Ils ne doivent pas être inclus dans le ZIP WordPress."
 
 #: includes/class-taxocommerce-faqs-manual.php:166
 msgid ""
 "Antes de desplegar ejecuta PHP lint compatible con PHP 7.4, las regresiones,"
 " Plugin Check del paquete y un Auto Test ANTES/DESPUÉS. Comprueba también el"
 " menú con Core y sin Core."
-msgstr ""
+msgstr "Avant le déploiement, exécutez un lint PHP compatible avec PHP 7.4, les tests de régression, Plugin Check sur le paquet et Auto Test AVANT/APRÈS. Vérifiez aussi le menu avec et sans Core."
 
 #: includes/class-taxocommerce-faqs-manual.php:167
 msgid ""
 "Valida manualmente crear, editar, desactivar, CSV y presentación pública con"
 " datos de prueba. No declares la actualización aceptada solo porque las "
 "comprobaciones estructurales pasen."
-msgstr ""
+msgstr "Validez manuellement la création, la modification, la désactivation, le CSV et l’affichage public avec des données de test. Ne considérez pas la mise à jour comme acceptée au seul motif que les contrôles structurels réussissent."
 
 #: includes/class-taxocommerce-faqs-manual.php:178
 msgid "Sin permisos para consultar el manual."
