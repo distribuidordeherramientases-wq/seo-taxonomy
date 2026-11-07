@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,11 +23,11 @@ TaxoCommerce Tasks provides a standalone task management area in the WordPress a
 * Monitor dashboard indicators for overdue tasks, states, priorities and assignees.
 * Run a private, read-only Autocheck and download its JSON report.
 * Rename existing task categories safely without changing their IDs or task assignments.
-* Read a built-in User Manual and Technical Manual (Spanish, English, French and German) from separate admin tabs.
+* Read a built-in User Manual and Technical Manual (Spanish, English, French, German and Dutch) from separate admin tabs.
 
 Tasks and task categories live exclusively in two custom database tables using the site's WordPress prefix. No WordPress posts, pages, WooCommerce products or public endpoints are created. No external services or data transfers are used. This plugin does not require WooCommerce, TaxoCommerce Core or any other TaxoCommerce plugin.
 
-Administrative labels are provided in Spanish, English, French and German, selected using the active WordPress locale. Task titles, descriptions and category names are entered by administrators and are not automatically translated.
+Administrative labels and both manuals use native WordPress gettext with bundled POT/PO/MO files in Spanish, English, French, German and Dutch; WordPress language packs take precedence. Task titles, descriptions and category names are entered by administrators and are not automatically translated.
 
 == Installation ==
 
@@ -56,6 +56,11 @@ No. It is standalone.
 When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
 
 == Changelog ==
+
+= 0.1.3 =
+* Included both manuals and all new category-editor controls in native gettext catalog files for ES, EN, FR, DE and NL.
+* Updated PO, MO and POT with the complete 126-message set and added automated checks for catalog integrity.
+* No changes to task/category tables, permissions, public content or Core dependency.
 
 = 0.1.2 =
 * Added in-plugin User Manual and Technical Manual in ES, EN, FR and DE.

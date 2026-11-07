@@ -1,5 +1,14 @@
 # TaxoCommerce Tasks — CHANGELOG
 
+## 0.1.3 — 2026-11-07
+
+- Los manuales de usuario y técnico se muestran en sus pestañas de administración existentes, con contenido completo en ES/EN/FR/DE/NL mediante gettext literal de WordPress.
+- Ampliados y compilados los catálogos de 72 a 126 entradas por idioma (POT/PO/MO); añadidas las etiquetas de los manuales y de la edición de categorías que faltaban en los catálogos anteriores.
+- Compatibilidad con los paquetes oficiales de idioma y selección de locale de WordPress; los textos de cliente no se traducen ni publican.
+- Pruebas de 126 mensajes por idioma, 2 manuales y cinco locales, preservando gestión de categorías, menús e independencia.
+- Incidencia #2313. Sin modificación de tablas ni despliegue a producción.
+
+
 ## Fusión de traducciones gettext (Issue #2311)
 
 - Incorporado gettext de WordPress para las 67 etiquetas existentes y cinco catálogos PO/MO.

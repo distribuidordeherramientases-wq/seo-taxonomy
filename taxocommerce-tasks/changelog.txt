@@ -1,5 +1,10 @@
 TaxoCommerce Tasks historical changelog.
 
+0.1.3 (2026-11-07)
+- User and technical manuals internationalized via native gettext in ES/EN/FR/DE/NL.
+- PO/MO/POT synchronized to 126 messages, including category editing controls.
+- No database schema, permission or task behavior changes.
+
 0.1.2 (2026-11-07)
 - In-admin user and technical manuals in Spanish, English, French and German.
 - Rename task categories without changing existing task links.

@@ -189,7 +189,7 @@ if ( false === strpos( $new_html, 'name="id" value="0"' ) ) {
     exit( 1 );
 }
 
-foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE' ) as $locale ) {
+foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
     $GLOBALS['tctasks_test_locale'] = $locale;
     foreach ( array( 'user' => 6, 'technical' => 7 ) as $kind => $count ) {
         $sections = TCTasks_Manuals::sections( $kind );
@@ -212,15 +212,21 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE' ) as $locale ) {
         }
     }
 }
-echo "PASS: category create/rename/duplicate rules and manuals in four locales.\n";
+echo "PASS: category create/rename/duplicate rules and manuals in five locales.\n";
 
 // Check the five gettext packages as part of the standalone smoke test.
 $catalog_prefix = dirname( __DIR__ ) . '/languages/taxocommerce-tasks-';
 foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
     $po = file_get_contents( $catalog_prefix . $locale . '.po' );
-    if ( ! is_string( $po ) || 72 !== preg_match_all( '/^msgid /m', $po ) || 1 !== preg_match_all( '/^msgstr ""$/m', $po ) ) {
+    if ( ! is_string( $po ) || 126 !== preg_match_all( '/^msgid /m', $po ) || 1 !== preg_match_all( '/^msgstr ""$/m', $po ) ) {
         fwrite( STDERR, "FAIL: incomplete Tasks PO $locale\\n" );
         exit( 1 );
+    }
+    foreach ( array( 'User manual', 'Technical manual', 'New category', 'Edit category', 'Access and privacy', 'Requirements and independence' ) as $required_label ) {
+        if ( false === strpos( $po, 'msgid "' . $required_label . '"' ) ) {
+            fwrite( STDERR, "FAIL: untranslated manual/category source string in $locale: $required_label\\n" );
+            exit( 1 );
+        }
     }
     $raw = file_get_contents( $catalog_prefix . $locale . '.mo', false, null, 0, 28 );
     if ( ! is_string( $raw ) || 28 !== strlen( $raw ) ) {
@@ -228,9 +234,19 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
         exit( 1 );
     }
     $header = unpack( 'Vmagic/Vrevision/Vcount', $raw );
-    if ( 0x950412de !== $header['magic'] || 72 !== $header['count'] ) {
+    if ( 0x950412de !== $header['magic'] || 126 !== $header['count'] ) {
         fwrite( STDERR, "FAIL: invalid Tasks MO $locale\\n" );
         exit( 1 );
     }
 }
-echo "PASS: five gettext catalogs.\n";
+$pot = file_get_contents( dirname( __DIR__ ) . '/languages/taxocommerce-tasks.pot' );
+if ( ! is_string( $pot ) || 126 !== preg_match_all( '/^msgid /m', $pot ) ) {
+    fwrite( STDERR, "FAIL: incomplete POT source catalog\\n" );
+    exit( 1 );
+}
+$manual_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-tctasks-manuals.php' );
+if ( ! is_string( $manual_source ) || false === strpos( $manual_source, "__( 'Access and privacy', 'taxocommerce-tasks' )" ) ) {
+    fwrite( STDERR, "FAIL: manuals must use literal WordPress gettext strings\\n" );
+    exit( 1 );
+}
+echo "PASS: complete POT, PO and MO catalogs in ES/EN/FR/DE/NL.\n";

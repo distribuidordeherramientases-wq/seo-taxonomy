@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.2
+ * Version: 0.1.3
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,7 +13,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.2' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.3' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
 
@@ -112,6 +112,16 @@ function tctasks_label( $source ) {
     );
     // Literal gettext calls support WordPress language packs and bundled MO files.
     $native = array(
+        "User manual" => __( "User manual", 'taxocommerce-tasks' ),
+        "Technical manual" => __( "Technical manual", 'taxocommerce-tasks' ),
+        "New category" => __( "New category", 'taxocommerce-tasks' ),
+        "Edit category" => __( "Edit category", 'taxocommerce-tasks' ),
+        "Update category" => __( "Update category", 'taxocommerce-tasks' ),
+        "Category updated." => __( "Category updated.", 'taxocommerce-tasks' ),
+        "Category not found." => __( "Category not found.", 'taxocommerce-tasks' ),
+        "Unable to save category. Name must be unique." => __( "Unable to save category. Name must be unique.", 'taxocommerce-tasks' ),
+        "Renaming a category preserves the tasks assigned to it." => __( "Renaming a category preserves the tasks assigned to it.", 'taxocommerce-tasks' ),
+        "Cancel edit" => __( "Cancel edit", 'taxocommerce-tasks' ),
         "Monday" => __( "Monday", 'taxocommerce-tasks' ),
         "Tuesday" => __( "Tuesday", 'taxocommerce-tasks' ),
         "Wednesday" => __( "Wednesday", 'taxocommerce-tasks' ),
