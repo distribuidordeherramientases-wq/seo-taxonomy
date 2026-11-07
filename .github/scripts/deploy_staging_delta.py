@@ -149,16 +149,29 @@ def existing_file_hash(ftp, name):
 
 
 def upload_plugin(ftp, target, slug, files, required):
+    # Issue #2290 authorizes the FIRST installation of Tasks on these two sites only.
+    # All other absent plugins remain strictly excluded from automatic installation.
+    new_tasks_install = False
     try:
         ftp.cwd(remote_plugin_dir(target, slug))
     except ftplib.error_perm as exc:
-        if not required and str(exc).startswith("550"):
+        if not str(exc).startswith("550"):
+            raise
+        if slug == "taxocommerce-tasks" and target in ("staging", "focazul"):
+            plugin_parent = remote_plugin_dir(target, slug).rsplit(slug + "/", 1)[0]
+            ftp.cwd(plugin_parent)
+            ftp.mkd(slug)
+            ftp.cwd(slug)
+            new_tasks_install = True
+            print(f"INSTALL {target}/{slug}: explicitly authorized by Issue #2290")
+        elif not required:
             print(f"SKIP {slug}: plugin directory absent on this WordPress")
             return
-        raise RuntimeError(f"{slug}: installed plugin directory is inaccessible") from exc
+        else:
+            raise RuntimeError(f"{slug}: installed plugin directory is inaccessible") from exc
     root = ftp.pwd()
-    # Check entrypoint before writes: never install a plugin automatically.
-    if existing_file_hash(ftp, slug + ".php") is None:
+    # Preexisting plugins must have the entrypoint; never repair unknown installs.
+    if not new_tasks_install and existing_file_hash(ftp, slug + ".php") is None:
         if not required:
             print(f"SKIP {slug}: plugin entrypoint absent on this WordPress")
             return
