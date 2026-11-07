@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: taxocommerce-tasks
+ * Domain Path: /languages
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -109,8 +110,105 @@ function tctasks_label( $source ) {
             'Only registered WordPress users can be assigned.'=>'Nur registrierte WordPress-Benutzer können zugewiesen werden.',
         ),
     );
+    // Literal gettext calls support WordPress language packs and bundled MO files.
+    $native = array(
+        "Monday" => __( "Monday", 'taxocommerce-tasks' ),
+        "Tuesday" => __( "Tuesday", 'taxocommerce-tasks' ),
+        "Wednesday" => __( "Wednesday", 'taxocommerce-tasks' ),
+        "Thursday" => __( "Thursday", 'taxocommerce-tasks' ),
+        "Friday" => __( "Friday", 'taxocommerce-tasks' ),
+        "Saturday" => __( "Saturday", 'taxocommerce-tasks' ),
+        "Sunday" => __( "Sunday", 'taxocommerce-tasks' ),
+        "Tasks" => __( "Tasks", 'taxocommerce-tasks' ),
+        "Calendar" => __( "Calendar", 'taxocommerce-tasks' ),
+        "Dashboard" => __( "Dashboard", 'taxocommerce-tasks' ),
+        "Categories" => __( "Categories", 'taxocommerce-tasks' ),
+        "Autocheck" => __( "Autocheck", 'taxocommerce-tasks' ),
+        "New task" => __( "New task", 'taxocommerce-tasks' ),
+        "Edit task" => __( "Edit task", 'taxocommerce-tasks' ),
+        "Title" => __( "Title", 'taxocommerce-tasks' ),
+        "Description" => __( "Description", 'taxocommerce-tasks' ),
+        "Category" => __( "Category", 'taxocommerce-tasks' ),
+        "Priority" => __( "Priority", 'taxocommerce-tasks' ),
+        "Status" => __( "Status", 'taxocommerce-tasks' ),
+        "Assignee" => __( "Assignee", 'taxocommerce-tasks' ),
+        "Start date" => __( "Start date", 'taxocommerce-tasks' ),
+        "Due date" => __( "Due date", 'taxocommerce-tasks' ),
+        "Completed at" => __( "Completed at", 'taxocommerce-tasks' ),
+        "Save task" => __( "Save task", 'taxocommerce-tasks' ),
+        "Delete" => __( "Delete", 'taxocommerce-tasks' ),
+        "Edit" => __( "Edit", 'taxocommerce-tasks' ),
+        "All" => __( "All", 'taxocommerce-tasks' ),
+        "Filter" => __( "Filter", 'taxocommerce-tasks' ),
+        "No tasks found." => __( "No tasks found.", 'taxocommerce-tasks' ),
+        "Back" => __( "Back", 'taxocommerce-tasks' ),
+        "Previous" => __( "Previous", 'taxocommerce-tasks' ),
+        "Next" => __( "Next", 'taxocommerce-tasks' ),
+        "Save category" => __( "Save category", 'taxocommerce-tasks' ),
+        "Category name" => __( "Category name", 'taxocommerce-tasks' ),
+        "No category" => __( "No category", 'taxocommerce-tasks' ),
+        "Unassigned" => __( "Unassigned", 'taxocommerce-tasks' ),
+        "Low" => __( "Low", 'taxocommerce-tasks' ),
+        "Normal" => __( "Normal", 'taxocommerce-tasks' ),
+        "High" => __( "High", 'taxocommerce-tasks' ),
+        "Urgent" => __( "Urgent", 'taxocommerce-tasks' ),
+        "Pending" => __( "Pending", 'taxocommerce-tasks' ),
+        "In progress" => __( "In progress", 'taxocommerce-tasks' ),
+        "Blocked" => __( "Blocked", 'taxocommerce-tasks' ),
+        "Completed" => __( "Completed", 'taxocommerce-tasks' ),
+        "Total" => __( "Total", 'taxocommerce-tasks' ),
+        "Overdue" => __( "Overdue", 'taxocommerce-tasks' ),
+        "By status" => __( "By status", 'taxocommerce-tasks' ),
+        "By priority" => __( "By priority", 'taxocommerce-tasks' ),
+        "By assignee" => __( "By assignee", 'taxocommerce-tasks' ),
+        "Download JSON" => __( "Download JSON", 'taxocommerce-tasks' ),
+        "Run autocheck" => __( "Run autocheck", 'taxocommerce-tasks' ),
+        "Last executed" => __( "Last executed", 'taxocommerce-tasks' ),
+        "Name" => __( "Name", 'taxocommerce-tasks' ),
+        "Actions" => __( "Actions", 'taxocommerce-tasks' ),
+        "Task saved." => __( "Task saved.", 'taxocommerce-tasks' ),
+        "Task deleted." => __( "Task deleted.", 'taxocommerce-tasks' ),
+        "Category saved." => __( "Category saved.", 'taxocommerce-tasks' ),
+        "Category deleted." => __( "Category deleted.", 'taxocommerce-tasks' ),
+        "Cannot delete a category that has tasks." => __( "Cannot delete a category that has tasks.", 'taxocommerce-tasks' ),
+        "Task agenda" => __( "Task agenda", 'taxocommerce-tasks' ),
+        "Private task management, calendar and indicators." => __( "Private task management, calendar and indicators.", 'taxocommerce-tasks' ),
+        "All statuses" => __( "All statuses", 'taxocommerce-tasks' ),
+        "All priorities" => __( "All priorities", 'taxocommerce-tasks' ),
+        "All categories" => __( "All categories", 'taxocommerce-tasks' ),
+        "All assignees" => __( "All assignees", 'taxocommerce-tasks' ),
+        "Cancel" => __( "Cancel", 'taxocommerce-tasks' ),
+        "Only registered WordPress users can be assigned." => __( "Only registered WordPress users can be assigned.", 'taxocommerce-tasks' ),
+    );
+    if ( isset( $native[ $source ] ) && $native[ $source ] !== $source ) {
+        return $native[ $source ];
+    }
     return isset( $labels[ $lang ][ $source ] ) ? $labels[ $lang ][ $source ] : $source;
 }
+// Prefer WordPress language packs, with a bundled base-language fallback for regional locales.
+add_action( 'init', static function () {
+    $domain = 'taxocommerce-tasks';
+    if ( is_textdomain_loaded( $domain ) ) {
+        return;
+    }
+    $locale = sanitize_file_name( determine_locale() );
+    $official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
+        return;
+    }
+    $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( ! is_readable( $catalog ) ) {
+        $base_language = strtolower( substr( $locale, 0, 2 ) );
+        $fallback = array( 'es' => 'es_ES', 'en' => 'en_US', 'fr' => 'fr_FR', 'de' => 'de_DE', 'nl' => 'nl_NL' );
+        if ( isset( $fallback[ $base_language ] ) ) {
+            $catalog = __DIR__ . '/languages/' . $domain . '-' . $fallback[ $base_language ] . '.mo';
+        }
+    }
+    if ( is_readable( $catalog ) ) {
+        load_textdomain( $domain, $catalog );
+    }
+}, 1 );
+
 function tctasks_e( $source ) {
     echo esc_html( tctasks_label( $source ) );
 }
