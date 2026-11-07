@@ -1,3 +1,9 @@
+## [Unreleased] — Catálogos de idioma completos para el enrutador (#2328)
+
+- Incorporadas 42 claves gettext que faltaban en los catálogos FR/DE/NL para políticas, enrutamiento, diseñador y asignaciones (126 traducciones nuevas).
+- Traducidas 4 cadenas plurales (singular/plural) en cada uno de esos tres idiomas (12 mensajes plurales completos).
+- Sin cambios de lógica PHP, datos, permisos, rutas o configuración. Pendientes compilación/verificación MO y comprobación visual por locale.
+
 ## [Unreleased] — Traducciones gettext (taxocommerce-templates)
 
 - Completadas las entradas de traducción vacías detectadas en los catálogos de EN/FR/DE/NL; idioma ES ya tenía traducción.
