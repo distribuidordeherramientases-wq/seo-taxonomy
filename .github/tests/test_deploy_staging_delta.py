@@ -247,32 +247,30 @@ class DeltaTests(unittest.TestCase):
         self.assertIn("target_plugin:", workflow)
         self.assertFalse((Path(__file__).resolve().parents[2] / ".github/workflows/deploy-core-staging.yml").exists())
 
-    def test_scoped_push_uses_actual_event_changes_only(self):
-        import json
+    def test_scoped_push_uses_git_before_after_changed_files(self):
         import os
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as directory:
-            event_path = Path(directory) / "event.json"
-            examples = [
-                (["taxocommerce-core/includes/class-taxocommerce-core.php"], ["taxocommerce-core"]),
-                (["taxocommerce-tasks/taxocommerce-tasks.php"], ["taxocommerce-tasks"]),
-                (["taxocommerce-core/taxocommerce-core.php", "taxocommerce-tasks/readme.txt"], ["taxocommerce-core", "taxocommerce-tasks"]),
-                ([".github/workflows/deploy-staging.yml"], ["taxocommerce-core"]),
-                (["taxocommerce-templates/taxocommerce-templates.php"], []),
-            ]
-            for paths, expected in examples:
-                event_path.write_text(json.dumps({
-                    "ref": "refs/heads/staging",
-                    "commits": [{"added": paths, "modified": [], "removed": []}],
-                }))
-                with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(event_path)}):
-                    self.assertEqual(module.scoped_push_plugins(), expected)
-            event_path.write_text(json.dumps({
-                "ref": "refs/heads/main",
-                "commits": [{"added": ["taxocommerce-core/taxocommerce-core.php"]}],
-            }))
-            with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(event_path)}):
+        examples = [
+            (["taxocommerce-core/includes/class-taxocommerce-core.php"], ["taxocommerce-core"]),
+            (["taxocommerce-tasks/taxocommerce-tasks.php"], ["taxocommerce-tasks"]),
+            (["taxocommerce-core/taxocommerce-core.php", "taxocommerce-tasks/readme.txt"], ["taxocommerce-core", "taxocommerce-tasks"]),
+            ([".github/workflows/deploy-staging.yml"], ["taxocommerce-core"]),
+            (["taxocommerce-templates/taxocommerce-templates.php"], []),
+        ]
+        for paths, expected in examples:
+            def git_values(*args):
+                if args[0] == "rev-parse":
+                    return b"a" * 40
+                if args[0] == "diff":
+                    return ("\n".join(paths) + "\n").encode()
+                raise AssertionError("unexpected git operation")
+            with mock.patch.dict(os.environ, {"TAXOCOMMERCE_PUSH_BEFORE": "b" * 40}):
+                with mock.patch.object(module, "git", side_effect=git_values):
+                    with mock.patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)):
+                        self.assertEqual(module.scoped_push_plugins(), expected)
+
+        with mock.patch.dict(os.environ, {"TAXOCOMMERCE_PUSH_BEFORE": "not-a-sha"}):
+            with mock.patch.object(module, "git", return_value=b"a" * 40):
                 with self.assertRaises(ValueError):
                     module.scoped_push_plugins()
 
@@ -281,25 +279,28 @@ class DeltaTests(unittest.TestCase):
         import os
         import tempfile
 
+        def git_values(*args):
+            if args[0] == "rev-parse":
+                return b"a" * 40
+            if args[0] == "diff":
+                return b".github/scripts/deploy_staging_delta.py\n"
+            raise AssertionError("unexpected git operation")
+
         with tempfile.TemporaryDirectory() as directory:
-            event = Path(directory) / "event.json"
             output = Path(directory) / "output"
-            event.write_text(json.dumps({
-                "ref": "refs/heads/staging",
-                "commits": [{"modified": [".github/scripts/deploy_staging_delta.py"]}],
-            }))
             with mock.patch.dict(os.environ, {
-                "GITHUB_EVENT_PATH": str(event),
+                "TAXOCOMMERCE_PUSH_BEFORE": "b" * 40,
                 "GITHUB_REPOSITORY": "shop/test",
                 "GITHUB_TOKEN": "fake",
                 "GITHUB_OUTPUT": str(output),
                 "TAXOCOMMERCE_FULL_SYNC": "0",
                 "TAXOCOMMERCE_TARGET_PLUGIN": "auto",
             }):
-                with mock.patch.object(module, "git", return_value=b"a" * 40):
-                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
-                        with mock.patch.object(module, "changed_files", return_value={}):
-                            module.plan()
+                with mock.patch.object(module, "git", side_effect=git_values):
+                    with mock.patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)):
+                        with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                            with mock.patch.object(module, "changed_files", return_value={}):
+                                module.plan()
             recorded = dict(line.split("=", 1) for line in output.read_text().splitlines())
             self.assertEqual(json.loads(recorded["slugs"]), ["taxocommerce-core"])
             self.assertEqual(recorded["core"], "true")
