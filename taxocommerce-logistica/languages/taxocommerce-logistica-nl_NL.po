@@ -727,7 +727,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:310
 msgid "Manual"
-msgstr ""
+msgstr "Handleiding"
 
 #: includes/class-user-guide.php:311
 msgid ""
@@ -753,7 +753,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:327
 msgid "Contenido"
-msgstr ""
+msgstr "Inhoud"
 
 #: includes/class-user-guide.php:342
 msgid "Abrir Shipping Rules"

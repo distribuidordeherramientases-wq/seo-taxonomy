@@ -49,7 +49,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:175
 msgid "Comprobación"
-msgstr ""
+msgstr "Controle"
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:175
 #: includes/ingeniero/class-seo-ingeniero-admin.php:587
@@ -59,12 +59,12 @@ msgstr ""
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:175
 #: includes/ingeniero/class-seo-ingeniero-admin.php:823
 msgid "Detalle"
-msgstr ""
+msgstr "Details"
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:183
 msgid ""
@@ -98,16 +98,16 @@ msgstr ""
 #: includes/class-taxocommerce-scrappers-manual.php:24
 #: includes/class-taxocommerce-scrappers-manual.php:26
 msgid "Manual de usuario"
-msgstr ""
+msgstr "Gebruikershandleiding"
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 #: includes/class-taxocommerce-scrappers-manual.php:59
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technische handleiding"
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnose"
 
 #: includes/class-taxocommerce-scrappers-manual.php:27
 msgid "1. Acceso y navegación"
@@ -248,7 +248,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Posts"
-msgstr ""
+msgstr "Berichten"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Landings"
@@ -417,7 +417,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:87
 msgid "Volver al índice"
-msgstr ""
+msgstr "Terug naar de inhoudsopgave"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:25
 #: includes/ingeniero/class-seo-ingeniero-admin.php:26
@@ -598,11 +598,11 @@ msgstr ""
 #: includes/ingeniero/class-seo-ingeniero-admin.php:592
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Acción"
-msgstr ""
+msgstr "Actie"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:592
 msgid "Todas"
-msgstr ""
+msgstr "Alle"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Categoría / tema"
@@ -610,7 +610,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Cobertura"
-msgstr ""
+msgstr "Dekking"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Base"
@@ -622,12 +622,12 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Actualizado"
-msgstr ""
+msgstr "Bijgewerkt"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Acciones"
-msgstr ""
+msgstr "Acties"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:651
 msgid "Todavía no hay dossiers que coincidan con los filtros."
@@ -670,7 +670,7 @@ msgstr ""
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
 msgid "Confianza"
-msgstr ""
+msgstr "Betrouwbaarheid"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 msgid "Evidencias"
@@ -688,7 +688,7 @@ msgstr ""
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 msgid "Recuperada"
@@ -737,7 +737,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:823
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "Investigadas"
@@ -757,16 +757,16 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:885
 msgid "Categorías"
-msgstr ""
+msgstr "Categorieën"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:96
 msgid "Categoría"
-msgstr ""
+msgstr "Categorie"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Productos"
-msgstr ""
+msgstr "Producten"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Fuentes"
@@ -868,7 +868,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:91
 msgid "Modo"
-msgstr ""
+msgstr "Modus"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:92
 msgid "Añadir solo conocimiento que no exista"
@@ -1035,7 +1035,7 @@ msgstr ""
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Producto"
-msgstr ""
+msgstr "Product"
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Mediana ofertas observadas"
@@ -1113,4 +1113,4 @@ msgstr ""
 
 #: taxocommerce-scrappers.php:143
 msgid "Manual"
-msgstr ""
+msgstr "Handleiding"
