@@ -1,3 +1,6 @@
+= 0.4.10 (2026-11-07) =
+* Evita la carga prematura de traducciones de metadatos al registrar el módulo de Core; registro diferido hasta init, preservando funcionalidad e idiomas. Issue #2330.
+
 HISTORIAL LEGADO — TAXOCOMMERCE DATABASE
 
 TaxoCommerce SEO monolítico, versiones previas a la división modular.
