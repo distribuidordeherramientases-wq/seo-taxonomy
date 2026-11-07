@@ -2,8 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.23
- * Release Date: 2026-11-07
+ * Version: 1.1.24
+ * Release Date: 2026-11-08
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.23' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.24' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -207,35 +207,17 @@ function taxocommerce_google_bing_screen() {
  * This is an explicitly transitional bridge, not an independent rewrite.
  * No provider APIs or heavy analyses run until a report is clicked.
  */
-/**
- * Load original CSS in the admin header; scripts are printed in the footer.
- * The original admin_enqueue_scripts guard only targets seo-reports/analista.
- */
-function taxocommerce_google_bing_analysis_assets() {
-    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Admin asset selection is read-only.
-    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    $tab = isset( $_GET['tgb_tab'] ) ? sanitize_key( wp_unslash( $_GET['tgb_tab'] ) ) : '';
-    // phpcs:enable WordPress.Security.NonceVerification.Recommended
-    if ( 'taxocommerce-google-bing' !== $page || 'analysis' !== $tab ) return;
-    if ( ! function_exists( 'seo_analista_lazy_reports' ) || ! defined( 'SEO_SYSTEM_URL' ) ) return;
-    $version = defined( 'SEO_SYSTEM_VERSION' ) ? SEO_SYSTEM_VERSION : TAXOCOMMERCE_GOOGLE_BING_VERSION;
-    wp_enqueue_style(
-        'tgb-legacy-analysis-css',
-        SEO_SYSTEM_URL . 'includes/analista/assets/analista-informe.css',
-        array(),
-        $version
-    );
-}
-add_action( 'admin_enqueue_scripts', 'taxocommerce_google_bing_analysis_assets' );
-
 function taxocommerce_google_bing_analysis_screen() {
-    $legacy_available = function_exists( 'seo_analista_lazy_reports' )
+    // seo_analista_* is a historical API bundled in Insights/analysis.
+    // No function or constant from the SEO monolith is required here.
+    $analysis_available = function_exists( 'seo_analista_lazy_reports' )
         && function_exists( 'seo_analista_lazy_render_partial' )
-        && function_exists( 'taxocommerce_google_bing_analysis_reports' );
+        && function_exists( 'taxocommerce_google_bing_analysis_reports' )
+        && function_exists( 'taxocommerce_insights_analysis_ajax' );
 
-    if ( ! $legacy_available ) {
+    if ( ! $analysis_available ) {
         echo '<div class="notice notice-warning inline"><p>'
-            . esc_html__( 'Analysis requiere el motor de informes del antiguo TaxoCommerce SEO, que no está cargado. Las conexiones de Insights siguen funcionando; todavía no hay un motor independiente que reproduzca estos once informes.', 'taxocommerce-google-bing' )
+            . esc_html__( 'El motor de informes incluido en Insights no está disponible. Comprueba los archivos de Insights y el registro de errores.', 'taxocommerce-google-bing' )
             . '</p></div>';
         return;
     }
@@ -247,10 +229,8 @@ function taxocommerce_google_bing_analysis_screen() {
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     $days = in_array( $days, array( 28, 60, 90 ), true ) ? $days : 28;
 
-    // Use the original CSS and AJAX client (the same renderer, same reports).
-    // Re-enqueue regardless of the legacy page-specific admin enqueue guard.
-    if ( defined( 'SEO_SYSTEM_URL' ) ) {
-        $version = TAXOCOMMERCE_GOOGLE_BING_VERSION;
+    // Use the Insights-owned AJAX client even when SEO is deactivated.
+    $version = TAXOCOMMERCE_GOOGLE_BING_VERSION;
         wp_enqueue_script(
             'tgb-legacy-analysis-js',
             TAXOCOMMERCE_GOOGLE_BING_URL . 'includes/analysis/assets/analista-lazy.js',
@@ -267,7 +247,6 @@ function taxocommerce_google_bing_analysis_screen() {
             ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';',
             'before'
         );
-    }
 
     echo '<div class="seo-analista-wrap">';
     echo '<div class="seo-analista-toolbar">';
