@@ -106,28 +106,18 @@ def last_successful_base(repo, head, token):
 
 
 def scoped_push_plugins():
-    """Select only Core/Tasks files named in the trusted staging push event.
+    """Use Git's actual push-before SHA to select only Core and/or Tasks.
 
-    A workflow change alone reconciles Core to repair previously skipped Core
-    deliveries, without installing absent optional plugins such as Tasks.
+    GitHub push event 'commits[].modified' may be incomplete for squash merge
+    deliveries. The full history checkout and trusted push-before SHA provide
+    an auditable change list without a remote GitHub API dependency.
     """
-    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
-    if not event_path:
-        raise ValueError("A direct scoped push requires GITHUB_EVENT_PATH")
-    with open(event_path, encoding="utf-8") as source:
-        event = json.load(source)
-    if event.get("ref") != "refs/heads/staging":
-        raise ValueError("Scoped deliveries are restricted to staging pushes")
-    commits = event.get("commits", [])
-    if not isinstance(commits, list) or not commits:
-        raise ValueError("Scoped push contains no audited changed file list")
-    paths = set()
-    for commit in commits:
-        for kind in ("added", "modified", "removed"):
-            files = commit.get(kind, [])
-            if not isinstance(files, list):
-                raise ValueError("Invalid changed-file list in push event")
-            paths.update(path for path in files if isinstance(path, str))
+    previous = os.environ.get("TAXOCOMMERCE_PUSH_BEFORE", "")
+    head = git("rev-parse", "HEAD").decode().strip()
+    if not SHA.fullmatch(previous) or not SHA.fullmatch(head):
+        raise ValueError("Scoped push requires a valid previous and HEAD SHA")
+    subprocess.run(["git", "merge-base", "--is-ancestor", previous, head], check=True)
+    paths = set(git("diff", "--name-only", "--no-renames", previous, head, "--").decode("utf-8").splitlines())
     slugs = [
         slug for slug in ("taxocommerce-core", "taxocommerce-tasks")
         if any(path.startswith(slug + "/") for path in paths)
@@ -137,6 +127,7 @@ def scoped_push_plugins():
         ".github/scripts/deploy_staging_delta.py",
     }):
         slugs = ["taxocommerce-core"]
+    print(f"Scoped push {previous[:12]}..{head[:12]}: {len(paths)} files; plugins={slugs}")
     return slugs
 
 
