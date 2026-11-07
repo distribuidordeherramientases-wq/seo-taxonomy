@@ -853,7 +853,7 @@ msgid ""
 "duplicados para los mismos ficheros. Para estudiar el estado consulta las "
 "opciones persistidas y WP-Cron sin forzar disparos. El proceso trabaja con "
 "lotes, cursores, exclusiones y bloqueos para limitar consumo."
-msgstr ""
+msgstr "Die Konstanten TCDIST_LEGACY_FEED_ACTIVE und TCDIST_LEGACY_SITEMAP_ACTIVE erkennen Parallelbetrieb. Währenddessen werden keine doppelten automatischen Worker für dieselben Dateien registriert. Untersuche den Status über gespeicherte Optionen und WP-Cron, ohne die Ausführung zu erzwingen. Der Prozess begrenzt den Verbrauch durch Batches, Cursor, Ausschlüsse und Sperren."
 
 #: includes/manual.php:137
 msgid ""
@@ -861,7 +861,7 @@ msgid ""
 "sistema de archivos. No llama a tcdist_feed_storage(), porque esta función "
 "puede crear un directorio o index.html al inicializar el almacenamiento. "
 "Tampoco llama al generador de XML ni al worker."
-msgstr ""
+msgstr "Autocheck nutzt lesende WordPress-Funktionen und Dateisystemprüfungen. tcdist_feed_storage() wird nicht aufgerufen, da diese Funktion beim Initialisieren des Speichers ein Verzeichnis oder index.html erstellen kann. Auch der XML-Generator und der Worker werden nicht aufgerufen."
 
 #: includes/manual.php:139
 msgid "11.1. Seguridad y contratos de rutas"
@@ -874,7 +874,7 @@ msgid ""
 " ajustes, inician trabajos o regeneran sitemaps utilizan admin-post, la "
 "capacidad requerida y check_admin_referer. El pulso AJAX usa nonce y "
 "comprueba permisos."
-msgstr ""
+msgstr "Die eigene Verwaltungsansicht verwendet page=taxocommerce-distribution und tcdist_tab statt des Verwaltungsslugs des Monolithen. Controller für Änderungen an Einstellungen, Aufgabenstarts oder Sitemap-Neuerstellung verwenden admin-post, die benötigte Berechtigung und check_admin_referer. Der AJAX-Statusabruf verwendet einen Nonce und prüft die Rechte."
 
 #: includes/manual.php:141
 msgid ""
@@ -884,7 +884,7 @@ msgid ""
 " el enrutado público normaliza los nombres permitidos y sirve URLs del "
 "dominio actual. Reescrituras y sitemap de WordPress Core solo se sustituyen "
 "si el motor independiente es propietario."
-msgstr ""
+msgstr "Feeds werden nach uploads/seo-system-feeds geschrieben. tcdist_feed_storage() kann das Verzeichnis und index.html erzeugen: Rufe diese Funktion NIEMALS aus einer schreibgeschützten Prüfung auf. Sitemaps liegen in uploads/seo-sitemaps; das öffentliche Routing normalisiert erlaubte Namen und liefert URLs der aktuellen Domain. Rewrites und die WordPress-Core-Sitemap werden nur ersetzt, wenn die eigenständige Engine zuständig ist."
 
 #: includes/manual.php:142
 msgid "11.2. Coexistencia y riesgo de doble escritura"
@@ -899,14 +899,14 @@ msgid ""
 "rutas propias de sitemap. Una generación manual de Distribution debe "
 "rechazarse mientras haya una generación legada running, porque ambas pueden "
 "apuntar al mismo fichero público."
-msgstr ""
+msgstr "taxocommerce_distribution_boot() läuft bei plugins_loaded mit Priorität 50, prüft ältere Funktionen und definiert TCDIST_LEGACY_FEED_ACTIVE / TCDIST_LEGACY_SITEMAP_ACTIVE. Ist der Monolith für den automatischen Dienst zuständig, werden weder ein zweiter automatischer Feed-Runtime noch eigene Sitemap-Routen registriert. Eine manuelle Distribution-Generierung muss abgelehnt werden, solange eine ältere Generierung running ist, da beide dieselbe öffentliche Datei verwenden könnten."
 
 #: includes/manual.php:144
 msgid ""
 "No elimines comprobaciones de coexistencia, locks, cursores ni publicación "
 "atómica al refactorizar. Evita modificar los ficheros de salida con acceso "
 "directo o repetir hooks al registrar una extensión."
-msgstr ""
+msgstr "Entferne beim Refactoring weder Koexistenzprüfungen, Sperren, Cursor noch die atomare Veröffentlichung. Vermeide direkte Änderungen an Ausgabedateien oder doppelte Hook-Registrierungen bei Erweiterungen."
 
 #: includes/manual.php:146
 msgid "12. Validación y despliegue"
@@ -918,7 +918,7 @@ msgid ""
 "ZIP de WordPress. Ejecuta PHP lint, smoke de regresión, autocheck aislado y "
 "Plugin Check. Actualiza CHANGELOG.md y readme.txt sin alterar el histórico "
 "changelog.txt. Prueba en STAGING; producción requiere autorización expresa."
-msgstr ""
+msgstr "Bewahre Entwicklungstests auf GitHub in tests/ auf, aber nicht im WordPress-ZIP. Führe PHP-Lint, Regression-Smoke-Tests, isolierten Autocheck und Plugin Check aus. Aktualisiere CHANGELOG.md und readme.txt, ohne das historische changelog.txt zu verändern. Teste in STAGING; Produktion erfordert ausdrückliche Freigabe."
 
 #: includes/manual.php:149
 msgid "Procedimiento para futuros desarrolladores"
@@ -932,47 +932,47 @@ msgstr "12.1. Verbesserungen entwickeln, ohne bestehende Funktionen zu beeinträ
 msgid ""
 "Localiza la funcionalidad y la función responsable en el mapa de código. "
 "Comprueba los hooks, opciones, rutas y dependencias antes de editar."
-msgstr ""
+msgstr "Finde Funktionalität und verantwortliche Funktion in der Codeübersicht. Prüfe Hooks, Optionen, Routen und Abhängigkeiten vor einer Änderung."
 
 #: includes/manual.php:153
 msgid ""
 "Documenta el cambio en un issue y trabaja en una rama de GitHub. Evita "
 "cambios en archivos del monolito; Distribution debe seguir siendo autónomo."
-msgstr ""
+msgstr "Dokumentiere Änderungen in einem Issue und arbeite in einem GitHub-Branch. Ändere keine Monolith-Dateien; Distribution muss eigenständig bleiben."
 
 #: includes/manual.php:154
 msgid ""
 "Preserva el registro canónico de productos, las cinco salidas comerciales "
 "existentes, los filtros, los formatos, el cursor, los locks y la publicación"
 " atómica."
-msgstr ""
+msgstr "Bewahre den kanonischen Produktdatensatz, alle fünf kommerziellen Ausgaben, Filter, Formate, Cursor, Sperren und atomare Veröffentlichung."
 
 #: includes/manual.php:155
 msgid ""
 "Usa los permisos y nonces de WordPress, valida entradas y escapa salidas; "
 "mantén el aislamiento entre PRO y STAGING y el control de propiedad cuando "
 "coexista el monolito."
-msgstr ""
+msgstr "Nutze WordPress-Berechtigungen und Nonces, validiere Eingaben und maskiere Ausgaben; halte PRO und STAGING getrennt und achte beim Parallelbetrieb auf die Prozessverantwortung."
 
 #: includes/manual.php:156
 msgid ""
 "Añade pruebas de regresión que cubran el caso nuevo y los casos anteriores. "
 "Las pruebas de desarrollo permanecen en tests/ y deben excluirse del paquete"
 " de WordPress."
-msgstr ""
+msgstr "Ergänze Regressionstests für den neuen und die bisherigen Fälle. Entwicklungstests bleiben in tests/ und müssen aus dem WordPress-Paket ausgeschlossen werden."
 
 #: includes/manual.php:157
 msgid ""
 "Actualiza el Manual de usuario y este Manual técnico, CHANGELOG.md y "
 "readme.txt en la misma PR; conserva changelog.txt como histórico."
-msgstr ""
+msgstr "Aktualisiere Benutzerhandbuch, dieses technische Handbuch, CHANGELOG.md und readme.txt im selben PR; behalte changelog.txt als Historie."
 
 #: includes/manual.php:158
 msgid ""
 "Valida PHP 7.4/8.4, smoke, Plugin Check, coexistencia y ausencia de efectos "
 "secundarios. Integra y comprueba STAGING; producción requiere autorización "
 "expresa."
-msgstr ""
+msgstr "Prüfe PHP 7.4/8.4, Smoke-Tests, Plugin Check, Parallelbetrieb und das Fehlen von Nebenwirkungen. Integriere und verifiziere STAGING; Produktion erfordert ausdrückliche Freigabe."
 
 #: includes/manual.php:160
 msgid "12.2. Comandos de prueba y límites"
@@ -985,7 +985,7 @@ msgid ""
 "exportados, el comportamiento real del cron, el XML desde HTTP o la "
 "aceptación por Google/Microsoft/Pinterest: esos contratos requieren pruebas "
 "funcionales específicas en STAGING."
-msgstr ""
+msgstr "Die CI .github/workflows/taxocommerce-distribution.yml führt diese Prüfungen aus und validiert das Paket. Autocheck prüft weder die Richtigkeit exportierter Preise noch das tatsächliche Cron-Verhalten, über HTTP abgerufenes XML oder die Annahme durch Google/Microsoft/Pinterest. Dafür sind gesonderte Funktionstests in STAGING nötig."
 
 #: includes/manual.php:164
 msgid "Fuera de alcance:"
@@ -996,7 +996,7 @@ msgid ""
 "No hay envío directo a Merchant Center, repositorio externo de feeds, "
 "migración destructiva de opciones legadas ni restauración automática de "
 "versiones anteriores."
-msgstr ""
+msgstr "Es gibt weder direkte Übermittlung an Merchant Center noch ein externes Feed-Repository, eine destruktive Migration alter Optionen oder eine automatische Wiederherstellung früherer Versionen."
 
 #: includes/manual.php:165 includes/manual.php:177
 msgid "Volver al índice"
@@ -1015,27 +1015,27 @@ msgid ""
 "Un feed no aparece: revisa el estado, canales activados, exclusiones, worker"
 " y permisos del directorio uploads. No vuelvas a iniciar procesos "
 "simultáneos."
-msgstr ""
+msgstr "Feed fehlt: Prüfe Status, aktivierte Kanäle, Ausschlüsse, Worker und Berechtigungen des uploads-Verzeichnisses. Starte nicht mehrere Prozesse gleichzeitig."
 
 #: includes/manual.php:172
 msgid ""
 "El sitemap falta o no es válido: comprueba el informe de Sitemaps, rutas de "
 "publicación, reescrituras y propiedad del monolito. Regenera solo después de"
 " verificar el motivo."
-msgstr ""
+msgstr "Sitemap fehlt oder ist ungültig: Prüfe den Sitemaps-Bericht, Veröffentlichungsrouten, Rewrites und Zuständigkeit des Monolithen. Erstelle erst nach Prüfung der Ursache neu."
 
 #: includes/manual.php:173
 msgid ""
 "STAGING muestra un host incorrecto: revisa el entorno efectivo y "
 "WP_ENVIRONMENT_TYPE; los feeds de STAGING no deben anunciar URLs de PRO."
-msgstr ""
+msgstr "STAGING zeigt einen falschen Host: Prüfe die tatsächliche Umgebung und WP_ENVIRONMENT_TYPE. STAGING-Feeds dürfen keine PRO-URLs ankündigen."
 
 #: includes/manual.php:174
 msgid ""
 "Autocheck muestra avisos: un archivo aún no generado o un cron sin programar"
 " no equivale necesariamente a un fallo técnico. Contrasta con Automation y "
 "la configuración de producción."
-msgstr ""
+msgstr "Autocheck zeigt Warnungen: Eine noch nicht erstellte Datei oder ein ungeplanter Cron ist nicht unbedingt ein technischer Fehler. Vergleiche mit Automation und den Produktionseinstellungen."
 
 #: includes/manual.php:175
 msgid ""
