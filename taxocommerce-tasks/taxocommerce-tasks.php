@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,12 +13,105 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.1' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.2' );
+
+require_once __DIR__ . '/includes/class-tctasks-manuals.php';
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
-    // Every literal is extractable by the WordPress gettext tools.
+    $locale = determine_locale();
+    $lang   = substr( $locale, 0, 2 );
     $labels = array(
+        'es' => array(
+            'User manual' => 'Manual de usuario', 'Technical manual' => 'Manual técnico',
+            'New category' => 'Nueva categoría', 'Edit category' => 'Editar categoría',
+            'Update category' => 'Guardar cambios', 'Category updated.' => 'Categoría actualizada.',
+            'Category not found.' => 'Categoría no encontrada.',
+            'Unable to save category. Name must be unique.' => 'No se ha podido guardar. El nombre debe ser único.',
+            'Renaming a category preserves the tasks assigned to it.' => 'Cambiar el nombre conserva las tareas asignadas.',
+            'Cancel edit' => 'Cancelar edición',
+            'Monday'=>'Lunes','Tuesday'=>'Martes','Wednesday'=>'Miércoles','Thursday'=>'Jueves','Friday'=>'Viernes','Saturday'=>'Sábado','Sunday'=>'Domingo',
+            'Tasks' => 'Tareas', 'Calendar' => 'Calendario', 'Dashboard' => 'Indicadores', 'Categories' => 'Categorías',
+            'Autocheck' => 'Autocheck', 'New task' => 'Nueva tarea', 'Edit task' => 'Editar tarea', 'Title' => 'Título',
+            'Description' => 'Descripción', 'Category' => 'Categoría', 'Priority' => 'Prioridad', 'Status' => 'Estado',
+            'Assignee' => 'Responsable', 'Start date' => 'Fecha de inicio', 'Due date' => 'Fecha límite',
+            'Completed at' => 'Finalizada', 'Save task' => 'Guardar tarea', 'Delete' => 'Eliminar', 'Edit' => 'Editar',
+            'All' => 'Todas', 'Filter' => 'Filtrar', 'No tasks found.' => 'No hay tareas.',
+            'Back' => 'Volver', 'Previous' => 'Anterior', 'Next' => 'Siguiente', 'Save category' => 'Guardar categoría',
+            'Category name' => 'Nombre de categoría', 'No category' => 'Sin categoría', 'Unassigned' => 'Sin asignar',
+            'Low' => 'Baja', 'Normal' => 'Normal', 'High' => 'Alta', 'Urgent' => 'Urgente',
+            'Pending' => 'Pendiente', 'In progress' => 'En curso', 'Blocked' => 'Bloqueada', 'Completed' => 'Completada',
+            'Total' => 'Total', 'Overdue' => 'Vencidas', 'By status' => 'Por estado', 'By priority' => 'Por prioridad',
+            'By assignee' => 'Por responsable', 'Download JSON' => 'Descargar JSON',
+            'Run autocheck' => 'Ejecutar Autocheck', 'Last executed' => 'Última ejecución',
+            'Name' => 'Nombre', 'Actions' => 'Acciones', 'Task saved.' => 'Tarea guardada.',
+            'Task deleted.' => 'Tarea eliminada.', 'Category saved.' => 'Categoría guardada.',
+            'Category deleted.' => 'Categoría eliminada.', 'Cannot delete a category that has tasks.' => 'No se puede eliminar una categoría que tiene tareas.',
+            'Task agenda' => 'Agenda de tareas', 'Private task management, calendar and indicators.' => 'Gestión privada de tareas, calendario e indicadores.',
+            'All statuses' => 'Todos los estados', 'All priorities' => 'Todas las prioridades',
+            'All categories' => 'Todas las categorías', 'All assignees' => 'Todos los responsables',
+            'Cancel' => 'Cancelar', 'Only registered WordPress users can be assigned.' => 'Solo se pueden asignar usuarios registrados de WordPress.',
+        ),
+        'fr' => array(
+            'User manual' => 'Manuel utilisateur', 'Technical manual' => 'Manuel technique',
+            'New category' => 'Nouvelle catégorie', 'Edit category' => 'Modifier la catégorie',
+            'Update category' => 'Enregistrer les modifications', 'Category updated.' => 'Catégorie mise à jour.',
+            'Category not found.' => 'Catégorie introuvable.',
+            'Unable to save category. Name must be unique.' => 'Enregistrement impossible. Le nom doit être unique.',
+            'Renaming a category preserves the tasks assigned to it.' => 'Renommer une catégorie conserve ses tâches.',
+            'Cancel edit' => 'Annuler la modification',
+            'Monday'=>'Lundi','Tuesday'=>'Mardi','Wednesday'=>'Mercredi','Thursday'=>'Jeudi','Friday'=>'Vendredi','Saturday'=>'Samedi','Sunday'=>'Dimanche',
+            'Tasks'=>'Tâches','Calendar'=>'Calendrier','Dashboard'=>'Indicateurs','Categories'=>'Catégories','Autocheck'=>'Autocontrôle',
+            'New task'=>'Nouvelle tâche','Edit task'=>'Modifier la tâche','Title'=>'Titre','Description'=>'Description',
+            'Category'=>'Catégorie','Priority'=>'Priorité','Status'=>'Statut','Assignee'=>'Responsable',
+            'Start date'=>'Date de début','Due date'=>'Échéance','Completed at'=>'Terminée le','Save task'=>'Enregistrer',
+            'Delete'=>'Supprimer','Edit'=>'Modifier','All'=>'Tous','Filter'=>'Filtrer','No tasks found.'=>'Aucune tâche.',
+            'Back'=>'Retour','Previous'=>'Précédent','Next'=>'Suivant','Save category'=>'Enregistrer la catégorie',
+            'Category name'=>'Nom de catégorie','No category'=>'Sans catégorie','Unassigned'=>'Non attribué',
+            'Low'=>'Faible','Normal'=>'Normale','High'=>'Élevée','Urgent'=>'Urgente','Pending'=>'En attente',
+            'In progress'=>'En cours','Blocked'=>'Bloquée','Completed'=>'Terminée','Total'=>'Total','Overdue'=>'En retard',
+            'By status'=>'Par statut','By priority'=>'Par priorité','By assignee'=>'Par responsable',
+            'Download JSON'=>'Télécharger JSON','Run autocheck'=>'Exécuter l’autocontrôle','Last executed'=>'Dernière exécution',
+            'Name'=>'Nom','Actions'=>'Actions','Task saved.'=>'Tâche enregistrée.','Task deleted.'=>'Tâche supprimée.',
+            'Category saved.'=>'Catégorie enregistrée.','Category deleted.'=>'Catégorie supprimée.',
+            'Cannot delete a category that has tasks.'=>'Impossible de supprimer une catégorie utilisée.',
+            'Task agenda'=>'Agenda des tâches','Private task management, calendar and indicators.'=>'Gestion privée des tâches, calendrier et indicateurs.',
+            'All statuses'=>'Tous les statuts','All priorities'=>'Toutes les priorités',
+            'All categories'=>'Toutes les catégories','All assignees'=>'Tous les responsables',
+            'Cancel'=>'Annuler','Only registered WordPress users can be assigned.'=>'Seuls les utilisateurs WordPress peuvent être désignés.',
+        ),
+        'de' => array(
+            'User manual' => 'Benutzerhandbuch', 'Technical manual' => 'Technisches Handbuch',
+            'New category' => 'Neue Kategorie', 'Edit category' => 'Kategorie bearbeiten',
+            'Update category' => 'Änderungen speichern', 'Category updated.' => 'Kategorie aktualisiert.',
+            'Category not found.' => 'Kategorie nicht gefunden.',
+            'Unable to save category. Name must be unique.' => 'Speichern fehlgeschlagen. Der Name muss eindeutig sein.',
+            'Renaming a category preserves the tasks assigned to it.' => 'Das Umbenennen erhält die Aufgaben-Zuordnungen.',
+            'Cancel edit' => 'Bearbeitung abbrechen',
+            'Monday'=>'Montag','Tuesday'=>'Dienstag','Wednesday'=>'Mittwoch','Thursday'=>'Donnerstag','Friday'=>'Freitag','Saturday'=>'Samstag','Sunday'=>'Sonntag',
+            'Tasks'=>'Aufgaben','Calendar'=>'Kalender','Dashboard'=>'Kennzahlen','Categories'=>'Kategorien','Autocheck'=>'Selbsttest',
+            'New task'=>'Neue Aufgabe','Edit task'=>'Aufgabe bearbeiten','Title'=>'Titel','Description'=>'Beschreibung',
+            'Category'=>'Kategorie','Priority'=>'Priorität','Status'=>'Status','Assignee'=>'Zuständig',
+            'Start date'=>'Startdatum','Due date'=>'Fälligkeit','Completed at'=>'Abgeschlossen am','Save task'=>'Aufgabe speichern',
+            'Delete'=>'Löschen','Edit'=>'Bearbeiten','All'=>'Alle','Filter'=>'Filtern','No tasks found.'=>'Keine Aufgaben.',
+            'Back'=>'Zurück','Previous'=>'Zurück','Next'=>'Weiter','Save category'=>'Kategorie speichern',
+            'Category name'=>'Kategoriename','No category'=>'Ohne Kategorie','Unassigned'=>'Nicht zugewiesen',
+            'Low'=>'Niedrig','Normal'=>'Normal','High'=>'Hoch','Urgent'=>'Dringend','Pending'=>'Offen',
+            'In progress'=>'In Bearbeitung','Blocked'=>'Blockiert','Completed'=>'Abgeschlossen','Total'=>'Gesamt',
+            'Overdue'=>'Überfällig','By status'=>'Nach Status','By priority'=>'Nach Priorität',
+            'By assignee'=>'Nach Zuständigkeit','Download JSON'=>'JSON herunterladen',
+            'Run autocheck'=>'Selbsttest ausführen','Last executed'=>'Zuletzt ausgeführt',
+            'Name'=>'Name','Actions'=>'Aktionen','Task saved.'=>'Aufgabe gespeichert.','Task deleted.'=>'Aufgabe gelöscht.',
+            'Category saved.'=>'Kategorie gespeichert.','Category deleted.'=>'Kategorie gelöscht.',
+            'Cannot delete a category that has tasks.'=>'Kategorie mit Aufgaben kann nicht gelöscht werden.',
+            'Task agenda'=>'Aufgabenplaner','Private task management, calendar and indicators.'=>'Private Aufgabenverwaltung, Kalender und Kennzahlen.',
+            'All statuses'=>'Alle Status','All priorities'=>'Alle Prioritäten','All categories'=>'Alle Kategorien',
+            'All assignees'=>'Alle Zuständigen','Cancel'=>'Abbrechen',
+            'Only registered WordPress users can be assigned.'=>'Nur registrierte WordPress-Benutzer können zugewiesen werden.',
+        ),
+    );
+    // Literal gettext calls support WordPress language packs and bundled MO files.
+    $native = array(
         "Monday" => __( "Monday", 'taxocommerce-tasks' ),
         "Tuesday" => __( "Tuesday", 'taxocommerce-tasks' ),
         "Wednesday" => __( "Wednesday", 'taxocommerce-tasks' ),
@@ -87,9 +180,11 @@ function tctasks_label( $source ) {
         "Cancel" => __( "Cancel", 'taxocommerce-tasks' ),
         "Only registered WordPress users can be assigned." => __( "Only registered WordPress users can be assigned.", 'taxocommerce-tasks' ),
     );
-    return isset( $labels[ $source ] ) ? $labels[ $source ] : $source;
+    if ( isset( $native[ $source ] ) && $native[ $source ] !== $source ) {
+        return $native[ $source ];
+    }
+    return isset( $labels[ $lang ][ $source ] ) ? $labels[ $lang ][ $source ] : $source;
 }
-
 // Prefer WordPress language packs, with a bundled base-language fallback for regional locales.
 add_action( 'init', static function () {
     $domain = 'taxocommerce-tasks';
@@ -204,7 +299,7 @@ function tctasks_register_core_module( $core ) {
             'name'        => 'TaxoCommerce Tasks',
             'version'     => TAXOCOMMERCE_TASKS_VERSION,
             'status'      => 'active',
-            'description' => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-tasks' ),
+            'description' => 'Private task agenda, calendar, categories and indicators.',
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-tasks' ),
         )
     );
@@ -227,7 +322,7 @@ function tctasks_register_family_extension( $extensions ) {
         'search_term'   => 'TaxoCommerce Tasks',
         'wordpress_org' => false,
         'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
-        'description'   => __( 'Private task agenda, calendar, categories and indicators.', 'taxocommerce-tasks' ),
+        'description'   => 'Private task agenda, calendar, categories and indicators.',
     );
     return $extensions;
 }
@@ -321,20 +416,55 @@ function tctasks_delete_task() {
     tctasks_redirect( 'tasks', 'deleted' );
 }
 add_action( 'admin_post_tctasks_delete_task', 'tctasks_delete_task' );
+/**
+ * Insert or rename a private category without changing its ID or its tasks.
+ *
+ * @param int    $id   Existing category ID, or zero to create.
+ * @param string $name Already sanitized category name.
+ * @return string A whitelist of notice keys.
+ */
+function tctasks_upsert_category( $id, $name ) {
+    global $wpdb;
+
+    $tables = tctasks_tables();
+
+    if ( $id ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Validate a plugin-owned category before updating.
+        $exists = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', $tables['categories'], $id ) );
+        if ( ! $exists ) {
+            return 'category-missing';
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- No WordPress API for private task categories.
+        $result = $wpdb->update(
+            $tables['categories'],
+            array( 'name' => $name ),
+            array( 'id' => $id ),
+            array( '%s' ),
+            array( '%d' )
+        );
+        return false === $result ? 'category-error' : 'category-updated';
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private category table, unique name enforced by database.
+    $result = $wpdb->insert( $tables['categories'], array( 'name' => $name ), array( '%s' ) );
+    return false === $result ? 'category-error' : 'category-saved';
+}
+
+/** Secure POST handler for creating and renaming task categories. */
 function tctasks_save_category() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Forbidden', 'taxocommerce-tasks' ) );
     }
     check_admin_referer( 'tctasks_save_category' );
+    $id   = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
     $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
-    if ( '' === $name ) {
-        wp_die( esc_html__( 'Category name is required.', 'taxocommerce-tasks' ) );
+    $length = function_exists( 'mb_strlen' ) ? mb_strlen( $name, 'UTF-8' ) : strlen( $name );
+    if ( '' === $name || $length > 190 ) {
+        wp_die( esc_html__( 'Invalid category name.', 'taxocommerce-tasks' ) );
     }
-    global $wpdb;
-    $tables = tctasks_tables();
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private categories table.
-    $wpdb->insert( $tables['categories'], array( 'name'=>$name ) );
-    tctasks_redirect( 'categories', 'category-saved' );
+
+    tctasks_redirect( 'categories', tctasks_upsert_category( $id, $name ) );
 }
 add_action( 'admin_post_tctasks_save_category', 'tctasks_save_category' );
 function tctasks_delete_category() {
@@ -370,13 +500,13 @@ function tctasks_admin() {
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }
-    $allowed = array( 'tasks','calendar','dashboard','categories','autocheck' );
+    $allowed = array( 'tasks','calendar','dashboard','categories','autocheck','manual-user','manual-technical' );
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'tasks';
     if ( ! in_array( $tab, $allowed, true ) ) {
         $tab = 'tasks';
     }
-    $labels = array( 'tasks'=>'Tasks', 'calendar'=>'Calendar', 'dashboard'=>'Dashboard', 'categories'=>'Categories', 'autocheck'=>'Autocheck' );
+    $labels = array( 'tasks'=>'Tasks', 'calendar'=>'Calendar', 'dashboard'=>'Dashboard', 'categories'=>'Categories', 'autocheck'=>'Autocheck', 'manual-user'=>'User manual', 'manual-technical'=>'Technical manual' );
     echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · 2026-11-07</small></h1>';
     echo '<p>' . esc_html( tctasks_label( 'Private task management, calendar and indicators.' ) ) . '</p><nav class="nav-tab-wrapper">';
     foreach ( $labels as $key=>$label ) {
@@ -386,9 +516,10 @@ function tctasks_admin() {
     echo '</nav>';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
-    $notices = array( 'saved'=>'Task saved.','deleted'=>'Task deleted.','category-saved'=>'Category saved.','category-deleted'=>'Category deleted.','category-used'=>'Cannot delete a category that has tasks.' );
+    $notices = array( 'saved'=>'Task saved.','deleted'=>'Task deleted.','category-saved'=>'Category saved.','category-deleted'=>'Category deleted.','category-used'=>'Cannot delete a category that has tasks.', 'category-updated'=>'Category updated.', 'category-missing'=>'Category not found.', 'category-error'=>'Unable to save category. Name must be unique.' );
     if ( isset( $notices[ $notice ] ) ) {
-        echo '<div class="notice notice-info is-dismissible"><p>' . esc_html( tctasks_label( $notices[ $notice ] ) ) . '</p></div>';
+        $notice_class = in_array( $notice, array( 'category-missing', 'category-error' ), true ) ? 'notice-error' : 'notice-info';
+        echo '<div class="notice ' . esc_attr( $notice_class ) . ' is-dismissible"><p>' . esc_html( tctasks_label( $notices[ $notice ] ) ) . '</p></div>';
     }
     if ( 'tasks' === $tab ) {
         tctasks_view_tasks();
@@ -398,6 +529,8 @@ function tctasks_admin() {
         tctasks_view_calendar();
     } elseif ( 'dashboard' === $tab ) {
         tctasks_view_dashboard();
+    } elseif ( 'manual-user' === $tab || 'manual-technical' === $tab ) {
+        TCTasks_Manuals::render( 'manual-technical' === $tab ? 'technical' : 'user' );
     } else {
         tctasks_view_autocheck();
     }
@@ -496,17 +629,46 @@ function tctasks_view_tasks() {
     }
     echo '</tbody></table>';
 }
+/** Render the private category editor and the list of existing categories. */
 function tctasks_view_categories() {
     $categories = tctasks_categories();
-    echo '<h2>' . esc_html( tctasks_label('Categories') ) . '</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tctasks_save_category">';
-    wp_nonce_field('tctasks_save_category');
-    echo '<label for="tctasks-category-name">' . esc_html(tctasks_label('Category name')) . '</label> <input id="tctasks-category-name" name="name" type="text" required maxlength="190"> ';
-    submit_button(tctasks_label('Save category'),'secondary','submit',false);
-    echo '</form><table class="widefat striped"><thead><tr><th>' . esc_html(tctasks_label('Name')) . '</th><th>' . esc_html(tctasks_label('Actions')) . '</th></tr></thead><tbody>';
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This GET parameter only selects a prefilled read-only admin form.
+    $edit_id = isset( $_GET['edit_category'] ) ? absint( wp_unslash( $_GET['edit_category'] ) ) : 0;
+    $editing = null;
+    foreach ( $categories as $category ) {
+        if ( (int) $category->id === $edit_id ) {
+            $editing = $category;
+            break;
+        }
+    }
+
+    echo '<h2>' . esc_html( tctasks_label( $editing ? 'Edit category' : 'New category' ) ) . '</h2>';
+    echo '<p>' . esc_html( tctasks_label( 'Renaming a category preserves the tasks assigned to it.' ) ) . '</p>';
+    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+    echo '<input type="hidden" name="action" value="tctasks_save_category">';
+    echo '<input type="hidden" name="id" value="' . esc_attr( $editing ? (string) $editing->id : '0' ) . '">';
+    wp_nonce_field( 'tctasks_save_category' );
+    echo '<label for="tctasks-category-name">' . esc_html( tctasks_label( 'Category name' ) ) . '</label> ';
+    echo '<input id="tctasks-category-name" name="name" type="text" class="regular-text" required maxlength="190" value="' . esc_attr( $editing ? $editing->name : '' ) . '"> ';
+    submit_button( tctasks_label( $editing ? 'Update category' : 'Save category' ), 'secondary', 'submit', false );
+    if ( $editing ) {
+        $cancel = add_query_arg( array( 'page' => 'taxocommerce-tasks', 'tab' => 'categories' ), admin_url( 'admin.php' ) );
+        echo ' <a class="button" href="' . esc_url( $cancel ) . '">' . esc_html( tctasks_label( 'Cancel edit' ) ) . '</a>';
+    }
+    echo '</form>';
+
+    echo '<h2>' . esc_html( tctasks_label( 'Categories' ) ) . '</h2>';
+    echo '<table class="widefat striped"><thead><tr><th scope="col">' . esc_html( tctasks_label( 'Name' ) ) . '</th><th scope="col">' . esc_html( tctasks_label( 'Actions' ) ) . '</th></tr></thead><tbody>';
     foreach ( $categories as $cat ) {
-        echo '<tr><td>' . esc_html($cat->name) . '</td><td><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tctasks_delete_category"><input type="hidden" name="id" value="' . esc_attr($cat->id) . '">';
-        wp_nonce_field('tctasks_delete_category_' . $cat->id);
-        echo '<button type="submit" class="button-link-delete">' . esc_html(tctasks_label('Delete')) . '</button></form></td></tr>';
+        $url = add_query_arg( array( 'page' => 'taxocommerce-tasks', 'tab' => 'categories', 'edit_category' => (int) $cat->id ), admin_url( 'admin.php' ) );
+        echo '<tr><td>' . esc_html( $cat->name ) . '</td><td>';
+        echo '<a href="' . esc_url( $url ) . '">' . esc_html( tctasks_label( 'Edit' ) ) . '</a> ';
+        echo '<form method="post" style="display:inline" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<input type="hidden" name="action" value="tctasks_delete_category"><input type="hidden" name="id" value="' . esc_attr( (string) $cat->id ) . '">';
+        wp_nonce_field( 'tctasks_delete_category_' . $cat->id );
+        echo '<button type="submit" class="button-link-delete">' . esc_html( tctasks_label( 'Delete' ) ) . '</button></form>';
+        echo '</td></tr>';
     }
     echo '</tbody></table>';
 }

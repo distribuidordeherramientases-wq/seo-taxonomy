@@ -71,6 +71,9 @@ jobs:
           php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
+          php -l taxocommerce-tasks/includes/class-tctasks-manuals.php
+          php -l taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
+          php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php

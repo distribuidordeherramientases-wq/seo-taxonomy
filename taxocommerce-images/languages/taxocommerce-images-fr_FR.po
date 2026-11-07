@@ -11,177 +11,177 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-images.php
 msgid "TaxoCommerce Images - Image Management for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Images - Gestion des images WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-images.php
 msgid ""
 "Gestiona, audita y optimiza imágenes de WordPress/WooCommerce manteniendo "
 "Media como fuente de verdad."
-msgstr ""
+msgstr "Gérez, auditez et optimisez les images WordPress/WooCommerce en conservant la médiathèque comme source de référence."
 
 #. Author of the plugin
 #: taxocommerce-images.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-images-actions.php:72
 msgid "La imagen indicada no se puede editar."
-msgstr ""
+msgstr "L'image sélectionnée ne peut pas être modifiée."
 
 #: includes/class-taxocommerce-images-actions.php:81
 msgid "El título de la imagen no puede quedar vacío."
-msgstr ""
+msgstr "Le titre de l'image ne peut pas être vide."
 
 #: includes/class-taxocommerce-images-actions.php:99
 msgid "Metadatos de imagen actualizados."
-msgstr ""
+msgstr "Métadonnées de l'image mises à jour."
 
 #: includes/class-taxocommerce-images-actions.php:113
 msgid "La imagen indicada no se puede regenerar."
-msgstr ""
+msgstr "L'image sélectionnée ne peut pas être régénérée."
 
 #: includes/class-taxocommerce-images-actions.php:120
 #: includes/class-taxocommerce-images-actions.php:154
 msgid "El archivo físico de la imagen no existe."
-msgstr ""
+msgstr "Le fichier image n'existe pas."
 
 #: includes/class-taxocommerce-images-actions.php:125
 msgid "WordPress no pudo regenerar las miniaturas."
-msgstr ""
+msgstr "WordPress n'a pas pu régénérer les miniatures."
 
 #: includes/class-taxocommerce-images-actions.php:129
 msgid "Miniaturas regeneradas correctamente."
-msgstr ""
+msgstr "Miniatures régénérées."
 
 #: includes/class-taxocommerce-images-actions.php:143
 msgid "La imagen indicada no se puede optimizar."
-msgstr ""
+msgstr "L'image sélectionnée ne peut pas être optimisée."
 
 #: includes/class-taxocommerce-images-actions.php:149
 msgid "WordPress no permite modificar archivos en este entorno."
-msgstr ""
+msgstr "WordPress ne permet pas de modifier les fichiers dans cet environnement."
 
 #: includes/class-taxocommerce-images-actions.php:165
 msgid "No se pudieron leer las dimensiones de la imagen."
-msgstr ""
+msgstr "Impossible de lire les dimensions de l'image."
 
 #: includes/class-taxocommerce-images-actions.php:171
 msgid "La imagen ya está dentro de los límites configurados."
-msgstr ""
+msgstr "L'image respecte déjà les limites configurées."
 
 #: includes/class-taxocommerce-images-actions.php:179
 msgid "No se pudo crear la copia de seguridad del original."
-msgstr ""
+msgstr "Impossible de sauvegarder le fichier d'origine."
 
 #: includes/class-taxocommerce-images-actions.php:201
 msgid "Imagen reducida. Se ha conservado una copia de seguridad reversible."
-msgstr ""
+msgstr "Image redimensionnée. Une sauvegarde réversible a été conservée."
 
 #: includes/class-taxocommerce-images-actions.php:218
 msgid "No existe una copia de seguridad válida para esta imagen."
-msgstr ""
+msgstr "Aucune sauvegarde valide pour cette image."
 
 #: includes/class-taxocommerce-images-actions.php:222
 msgid "No se pudo restaurar el archivo original."
-msgstr ""
+msgstr "Impossible de restaurer le fichier d'origine."
 
 #: includes/class-taxocommerce-images-actions.php:234
 msgid "Imagen original restaurada."
-msgstr ""
+msgstr "Image d'origine restaurée."
 
 #: includes/class-taxocommerce-images-actions.php:244
 msgid "No tienes permisos para cambiar estos ajustes."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation de modifier ces réglages."
 
 #: includes/class-taxocommerce-images-actions.php:259
 msgid "Ajustes guardados."
-msgstr ""
+msgstr "Réglages enregistrés."
 
 #: includes/class-taxocommerce-images-actions.php:302
 msgid "No tienes permisos para gestionar imágenes."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation de gérer les images."
 
 #: includes/class-taxocommerce-images-assignment.php:43
 msgid "Páginas"
-msgstr ""
+msgstr "Pages"
 
 #: includes/class-taxocommerce-images-assignment.php:44
 msgid "Entradas"
-msgstr ""
+msgstr "Articles"
 
 #: includes/class-taxocommerce-images-assignment.php:45
 msgid "Categorías"
-msgstr ""
+msgstr "Catégories"
 
 #: includes/class-taxocommerce-images-assignment.php:46
 msgid "Productos"
-msgstr ""
+msgstr "Produits"
 
 #: includes/class-taxocommerce-images-assignment.php:541
 msgid "Imagen de este mismo producto"
-msgstr ""
+msgstr "Image de ce produit"
 
 #: includes/class-taxocommerce-images-assignment.php:686
 msgid "El elemento no existe o no se puede editar."
-msgstr ""
+msgstr "L'élément n'existe pas ou ne peut pas être modifié."
 
 #: includes/class-taxocommerce-images-assignment.php:689
 msgid "El elemento ya tiene una imagen asignada."
-msgstr ""
+msgstr "Une image est déjà associée à cet élément."
 
 #: includes/class-taxocommerce-images-assignment.php:692
 msgid ""
 "La imagen seleccionada ya no está disponible en Media o su archivo local no "
 "existe."
-msgstr ""
+msgstr "L'image sélectionnée n'est plus disponible dans la médiathèque ou son fichier local est absent."
 
 #: includes/class-taxocommerce-images-assignment.php:695
 msgid "No se pudo asignar la imagen seleccionada."
-msgstr ""
+msgstr "Impossible d'associer l'image sélectionnée."
 
 #: includes/class-taxocommerce-images-assignment.php:729
 msgid "No tienes permisos para asignar imágenes."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'associer des images."
 
 #: includes/class-taxocommerce-images-assignment.php:739
 msgid "Tipo de contenido no válido."
-msgstr ""
+msgstr "Type de contenu non valide."
 
 #: includes/class-taxocommerce-images-assignment.php:760
 msgid ""
 "La imagen no pertenece a las categorías relacionadas o ya no está "
 "disponible."
-msgstr ""
+msgstr "L'image n'appartient pas aux catégories associées ou n'est plus disponible."
 
 #: includes/class-taxocommerce-images-assignment.php:763
 msgid "Imagen relacionada asignada correctamente."
-msgstr ""
+msgstr "Image associée correctement."
 
 #: includes/class-taxocommerce-images-assignment.php:765
 msgid "No se pudo asignar la imagen o el contenido ya tenía una imagen."
-msgstr ""
+msgstr "Impossible d'associer l'image ou le contenu possède déjà une image."
 
 #: includes/class-taxocommerce-images-assignment.php:783
 msgid "Imagen existente de Media asignada correctamente."
-msgstr ""
+msgstr "Image existante de la médiathèque associée."
 
 #: includes/class-taxocommerce-images-assignment.php:851
 #: includes/class-taxocommerce-images-maintenance.php:333
 msgid "Sin permisos."
-msgstr ""
+msgstr "Accès refusé."
 
 #: includes/class-taxocommerce-images-assignment.php:861
 msgid "Proceso de asignación no válido."
-msgstr ""
+msgstr "Processus d'association non valide."
 
 #: includes/class-taxocommerce-images-assignment.php:866
 msgid "Este mismo grupo de asignación ya tiene un lote en curso."
-msgstr ""
+msgstr "Un autre lot est déjà en cours pour ce groupe d'association."
 
 #: includes/class-taxocommerce-images-assignment.php:885
 msgid "Asignación automática completa iniciada."
-msgstr ""
+msgstr "Association automatique complète démarrée."
 
 #. translators: 1: reviewed objects, 2: assigned images, 3: unresolved
 #. objects.
@@ -189,7 +189,7 @@ msgstr ""
 msgid ""
 "Pasada completa: %1$d elementos revisados, %2$d imágenes asignadas y %3$d "
 "elementos permanecen sin candidato válido."
-msgstr ""
+msgstr "Passage complet : %1$d éléments vérifiés, %2$d images associées et %3$d éléments sans candidat valide."
 
 #. translators: 1: reviewed objects, 2: assigned images, 3: all remaining
 #. objects, 4: next batch.
@@ -197,103 +197,103 @@ msgstr ""
 msgid ""
 "Revisados: %1$d. Asignados: %2$d. Pendientes totales: %3$d. Siguiente lote "
 "regulado: %4$d."
-msgstr ""
+msgstr "Vérifiés : %1$d. Associés : %2$d. Total en attente : %3$d. Prochain lot régulé : %4$d."
 
 #: includes/class-taxocommerce-images-assignment.php:1007
 msgid "No tienes permisos o el contenido ya tiene imagen."
-msgstr ""
+msgstr "Autorisation insuffisante ou contenu déjà associé à une image."
 
 #: includes/class-taxocommerce-images-assignment.php:1015
 msgid "El archivo no es válido o supera el límite de subida de WordPress."
-msgstr ""
+msgstr "Fichier non valide ou taille supérieure à la limite de WordPress."
 
 #: includes/class-taxocommerce-images-assignment.php:1034
 msgid "WordPress no ha podido incorporar el archivo a Media."
-msgstr ""
+msgstr "WordPress n'a pas pu ajouter le fichier à la médiathèque."
 
 #: includes/class-taxocommerce-images-assignment.php:1037
 msgid "Archivo subido a Media y asignado correctamente."
-msgstr ""
+msgstr "Fichier téléversé dans la médiathèque et associé."
 
 #: includes/class-taxocommerce-images-assignment.php:1040
 msgid ""
 "La imagen está en Media, pero no ha podido asociarse. Revisa el contenido."
-msgstr ""
+msgstr "L'image est dans la médiathèque mais n'a pas pu être associée. Vérifiez le contenu."
 
 #: includes/class-taxocommerce-images-audit.php:52
 msgid "Sin asociación padre (no implica falta de uso)"
-msgstr ""
+msgstr "Aucun parent associé (ne signifie pas que l'image est inutilisée)"
 
 #: includes/class-taxocommerce-images-audit.php:53
 #: includes/class-taxocommerce-images.php:647
 msgid "Sin texto ALT"
-msgstr ""
+msgstr "Texte ALT manquant"
 
 #: includes/class-taxocommerce-images-audit.php:54
 msgid "Archivo físico ausente o ilegible"
-msgstr ""
+msgstr "Fichier physique absent ou illisible"
 
 #: includes/class-taxocommerce-images-audit.php:55
 #: includes/class-taxocommerce-images.php:652
 msgid "Metadatos de dimensiones ausentes"
-msgstr ""
+msgstr "Métadonnées des dimensions absentes"
 
 #: includes/class-taxocommerce-images-audit.php:56
 msgid "Dimensiones superiores al límite"
-msgstr ""
+msgstr "Dimensions supérieures à la limite"
 
 #: includes/class-taxocommerce-images-audit.php:57
 msgid "Peso superior al límite"
-msgstr ""
+msgstr "Poids du fichier supérieur à la limite"
 
 #: includes/class-taxocommerce-images-audit.php:58
 msgid "Miniaturas ausentes (en disco o metadatos)"
-msgstr ""
+msgstr "Miniatures absentes (disque ou métadonnées)"
 
 #: includes/class-taxocommerce-images-audit.php:59
 msgid "Título equivalente al nombre del archivo"
-msgstr ""
+msgstr "Titre identique au nom du fichier"
 
 #: includes/class-taxocommerce-images-audit.php:130
 msgid "Hay otro lote en ejecución."
-msgstr ""
+msgstr "Un autre lot est en cours."
 
 #: includes/class-taxocommerce-images-audit.php:448
 msgid "No tienes permisos para auditar imágenes."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'auditer les images."
 
 #: includes/class-taxocommerce-images-auto-test.php:27
 msgid "Sin permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'exécuter l'Auto Test."
 
 #: includes/class-taxocommerce-images-auto-test.php:320
 msgid "Acceso denegado a Auto Test."
-msgstr ""
+msgstr "Accès à l'Auto Test refusé."
 
 #: includes/class-taxocommerce-images-auto-test.php:326
 #: includes/class-taxocommerce-images.php:258
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto Test"
 
 #: includes/class-taxocommerce-images-auto-test.php:327
 msgid ""
 "Comprueba las funciones principales de Images tras cada actualización. Solo "
 "lee datos y guarda temporalmente el resultado de este usuario."
-msgstr ""
+msgstr "Vérifie les fonctions principales d'Images après chaque mise à jour. Lit uniquement les données et conserve temporairement les résultats de cet utilisateur."
 
 #: includes/class-taxocommerce-images-auto-test.php:343
 msgid "Ejecutar Auto Test"
-msgstr ""
+msgstr "Exécuter l'Auto Test"
 
 #: includes/class-taxocommerce-images-auto-test.php:344
 msgid "Sin cambios en archivos, catálogo, metadatos o colas de imágenes."
-msgstr ""
+msgstr "Aucune modification des fichiers, du catalogue, des métadonnées ou des files d'attente d'images."
 
 #: includes/class-taxocommerce-images-auto-test.php:347
 msgid ""
 "No existen resultados todavía. Ejecuta el chequeo para ver el estado de "
 "Images."
-msgstr ""
+msgstr "Aucun résultat pour le moment. Lancez le contrôle pour connaître l'état d'Images."
 
 #: includes/class-taxocommerce-images-auto-test.php:351
 msgid "Correctas"
