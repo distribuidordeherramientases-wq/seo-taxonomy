@@ -1,3 +1,10 @@
+## [Unreleased] — Internacionalización de Social Network (#2302)
+
+- Traducidas las 143 cadenas del catálogo vigente a español, inglés, francés, alemán y neerlandés; PO y MO sincronizados.
+- Corregidas expresiones y acentuación del catálogo español, conservando términos técnicos (OAuth, WP-Cron, CSV, proveedores, nombres de redes).
+- Sin cambios en el programador, fechas y reglas de publicación, permisos, opciones almacenadas ni conexiones de terceros.
+- Pendientes de revisión los literales que puedan permanecer fuera de gettext y la verificación funcional de idioma en WordPress.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
