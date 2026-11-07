@@ -689,22 +689,22 @@ msgstr ""
 #: templates/template-helpers.php:1828
 msgid "%d artículo"
 msgid_plural "%d artículos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d article"
+msgstr[1] "%d articles"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2035
 msgid "Ver %d comentario externo"
 msgid_plural "Ver %d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Voir %d commentaire externe"
+msgstr[1] "Voir %d commentaires externes"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2045
 msgid "%d comentario externo"
 msgid_plural "%d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d commentaire externe"
+msgstr[1] "%d commentaires externes"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
@@ -740,8 +740,8 @@ msgstr ""
 #: templates/template-search.php:43
 msgid "%s producto encontrado"
 msgid_plural "%s productos encontrados"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s produit trouvé"
+msgstr[1] "%s produits trouvés"
 
 #: templates/template-search.php:122
 msgid "Oferta"
