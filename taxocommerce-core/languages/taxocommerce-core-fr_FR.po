@@ -367,7 +367,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:362
 msgid "Actualizar informe"
-msgstr ""
+msgstr "Actualiser le rapport"
 
 #: includes/class-taxocommerce-core-architecture-report.php:395
 msgid "Distribución de la jerarquía SEO"
@@ -381,7 +381,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:405
 msgid "No existen clusters publicados con los que construir el informe."
-msgstr ""
+msgstr "Aucun cluster publié ne permet de générer le rapport."
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid "Productos publicados por cluster"
@@ -409,7 +409,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:422
 msgid "Resumen por cluster"
-msgstr ""
+msgstr "Résumé par cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:423
 #: includes/class-taxocommerce-core-hierarchy-classic.php:23
@@ -463,7 +463,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:454
 msgid "Reparto por hub primario"
-msgstr ""
+msgstr "Répartition par hub principal"
 
 #: includes/class-taxocommerce-core-architecture-report.php:460
 #: includes/class-taxocommerce-core-hierarchy-classic.php:653
@@ -478,7 +478,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:466
 msgid "Este cluster no tiene hubs primarios vinculados."
-msgstr ""
+msgstr "Ce cluster n’a pas de hubs principaux associés."
 
 #: includes/class-taxocommerce-core-auto-test.php:26
 msgid "Sin permisos para ejecutar Auto Test."
@@ -563,7 +563,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:113
 msgid "Navegación de la cabecera (tema de bloques)"
-msgstr ""
+msgstr "Navigation de l’en-tête (thème à blocs)"
 
 #: includes/class-taxocommerce-core-block-navigation.php:114
 msgid ""
@@ -574,15 +574,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:117
 msgid "Navegaciones encontradas en las cabeceras"
-msgstr ""
+msgstr "Navigations trouvées dans les en-têtes"
 
 #: includes/class-taxocommerce-core-block-navigation.php:118
 msgid "Selecciona una navegación"
-msgstr ""
+msgstr "Sélectionnez une navigation"
 
 #: includes/class-taxocommerce-core-block-navigation.php:123
 msgid "Cargar navegación de cabecera"
-msgstr ""
+msgstr "Charger la navigation de l’en-tête"
 
 #: includes/class-taxocommerce-core-block-navigation.php:126
 msgid ""
@@ -610,11 +610,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:149
 msgid "Este bloque requiere el Editor del sitio para cambios avanzados."
-msgstr ""
+msgstr "Ce bloc nécessite l’éditeur du site pour les modifications avancées."
 
 #: includes/class-taxocommerce-core-block-navigation.php:153
 msgid "Guardar navegación de cabecera"
-msgstr ""
+msgstr "Enregistrer la navigation de l’en-tête"
 
 #: includes/class-taxocommerce-core-block-navigation.php:155
 msgid ""
@@ -624,43 +624,43 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-block-navigation.php:158
 msgid "Editar cabecera en el Editor del sitio"
-msgstr ""
+msgstr "Modifier l’en-tête dans l’éditeur du site"
 
 #: includes/class-taxocommerce-core-block-navigation.php:159
 msgid "Menús clásicos (independientes de la navegación de bloques)"
-msgstr ""
+msgstr "Menus classiques (indépendants de la navigation par blocs)"
 
 #: includes/class-taxocommerce-core-block-navigation.php:168
 msgid "Faltan elementos de la navegación. Recarga la página."
-msgstr ""
+msgstr "Des éléments de navigation manquent. Rechargez la page."
 
 #: includes/class-taxocommerce-core-block-navigation.php:175
 msgid "El texto de un enlace no es válido."
-msgstr ""
+msgstr "Le texte d’un lien est invalide."
 
 #: includes/class-taxocommerce-core-block-navigation.php:180
 msgid "La URL del enlace no es válida."
-msgstr ""
+msgstr "L’URL du lien est invalide."
 
 #: includes/class-taxocommerce-core-block-navigation.php:196
 msgid "No tienes permisos para editar la navegación."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de modifier la navigation."
 
 #: includes/class-taxocommerce-core-block-navigation.php:202
 msgid "La navegación seleccionada no es editable."
-msgstr ""
+msgstr "La navigation sélectionnée ne peut pas être modifiée."
 
 #: includes/class-taxocommerce-core-block-navigation.php:206
 msgid "La navegación ha cambiado. Recarga la página antes de guardar."
-msgstr ""
+msgstr "La navigation a changé. Rechargez la page avant d’enregistrer."
 
 #: includes/class-taxocommerce-core-block-navigation.php:213
 msgid "El número de enlaces no coincide. Recarga la página."
-msgstr ""
+msgstr "Le nombre de liens ne correspond pas. Rechargez la page."
 
 #: includes/class-taxocommerce-core-block-navigation.php:221
 msgid "Navegación de bloques guardada en WordPress."
-msgstr ""
+msgstr "Navigation par blocs enregistrée dans WordPress."
 
 #: includes/class-taxocommerce-core-content-inventory.php:116
 msgid "No tienes permisos para consultar el inventario."
@@ -1296,15 +1296,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "CONTROL EDITORIAL"
-msgstr ""
+msgstr "CONTRÔLE ÉDITORIAL"
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "Publicación"
-msgstr ""
+msgstr "Publication"
 
 #: includes/class-taxocommerce-core-editor-ui.php:204
 msgid "Estado del contenido"
-msgstr ""
+msgstr "État du contenu"
 
 #: includes/class-taxocommerce-core-editor-ui.php:208
 msgid ""
@@ -1327,35 +1327,35 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "IDENTIDAD"
-msgstr ""
+msgstr "IDENTITÉ"
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "Información principal"
-msgstr ""
+msgstr "Informations principales"
 
 #: includes/class-taxocommerce-core-editor-ui.php:262
 msgid "DESCRIPCIÓN BREVE"
-msgstr ""
+msgstr "DESCRIPTION COURTE"
 
 #: includes/class-taxocommerce-core-editor-ui.php:262
 msgid "Resumen comercial"
-msgstr ""
+msgstr "Résumé commercial"
 
 #: includes/class-taxocommerce-core-editor-ui.php:271
 msgid "Datos comerciales"
-msgstr ""
+msgstr "Données commerciales"
 
 #: includes/class-taxocommerce-core-editor-ui.php:286
 msgid "Disponibilidad"
-msgstr ""
+msgstr "Disponibilité"
 
 #: includes/class-taxocommerce-core-editor-ui.php:306
 msgid "Extracto"
-msgstr ""
+msgstr "Extrait"
 
 #: includes/class-taxocommerce-core-editor-ui.php:331
 msgid "Organización"
-msgstr ""
+msgstr "Organisation"
 
 #: includes/class-taxocommerce-core-editor-ui.php:332
 msgid "La categoría superior define la posición en la jerarquía WooCommerce."
@@ -1367,7 +1367,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "Atributos del producto"
-msgstr ""
+msgstr "Attributs du produit"
 
 #: includes/class-taxocommerce-core-editor-ui.php:363
 msgid ""
@@ -1376,7 +1376,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:365
 msgid "WooCommerce no ofrece la API de atributos en esta instalación."
-msgstr ""
+msgstr "L’API des attributs WooCommerce n’est pas disponible sur cette installation."
 
 #: includes/class-taxocommerce-core-editor-ui.php:370
 msgid ""
@@ -1386,11 +1386,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:383
 msgid "+ Atributo global"
-msgstr ""
+msgstr "+ Attribut global"
 
 #: includes/class-taxocommerce-core-editor-ui.php:384
 msgid "+ Atributo personalizado"
-msgstr ""
+msgstr "+ Attribut personnalisé"
 
 #: includes/class-taxocommerce-core-editor-ui.php:385
 msgid ""
@@ -1400,7 +1400,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:398
 msgid "USADO EN VARIACIONES"
-msgstr ""
+msgstr "UTILISÉ DANS LES VARIATIONS"
 
 #: includes/class-taxocommerce-core-editor-ui.php:404
 msgid "Se conserva intacto para no afectar a las variaciones del producto."
@@ -1408,7 +1408,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:431
 msgid "Nuevo atributo global"
-msgstr ""
+msgstr "Nouvel attribut global"
 
 #: includes/class-taxocommerce-core-editor-ui.php:433
 msgid "Atributo"
@@ -1416,16 +1416,16 @@ msgstr "Attribut"
 
 #: includes/class-taxocommerce-core-editor-ui.php:434
 msgid "Seleccionar atributo…"
-msgstr ""
+msgstr "Sélectionner un attribut…"
 
 #: includes/class-taxocommerce-core-editor-ui.php:442
 #: includes/class-taxocommerce-core-editor-ui.php:448
 msgid "Visible en la ficha del producto"
-msgstr ""
+msgstr "Visible sur la fiche produit"
 
 #: includes/class-taxocommerce-core-editor-ui.php:445
 msgid "Nuevo atributo personalizado"
-msgstr ""
+msgstr "Nouvel attribut personnalisé"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:27
 msgid ""
@@ -2071,15 +2071,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:72
 msgid "Tipos de gestor de menús"
-msgstr ""
+msgstr "Types de gestionnaire de menus"
 
 #: includes/class-taxocommerce-core-menu-editor.php:74
 msgid "Menús SEO / WooCommerce"
-msgstr ""
+msgstr "Menus SEO / WooCommerce"
 
 #: includes/class-taxocommerce-core-menu-editor.php:75
 msgid "Menús WordPress"
-msgstr ""
+msgstr "Menus WordPress"
 
 #: includes/class-taxocommerce-core-menu-editor.php:99
 msgid ""
@@ -2089,7 +2089,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:106
 msgid "La cabecera puede usar una navegación de bloques distinta."
-msgstr ""
+msgstr "L’en-tête peut utiliser une autre navigation par blocs."
 
 #: includes/class-taxocommerce-core-menu-editor.php:107
 msgid ""
@@ -2100,7 +2100,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:109
 msgid "Abrir Editor del sitio"
-msgstr ""
+msgstr "Ouvrir l’éditeur du site"
 
 #: includes/class-taxocommerce-core-menu-editor.php:122
 msgid "Estado de publicación:"
