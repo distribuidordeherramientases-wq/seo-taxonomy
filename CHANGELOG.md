@@ -1,3 +1,10 @@
+## 2026-11-07 — Saneamiento de cargadores históricos (Issue #2347)
+
+- El bootstrap raíz delega en la única cadena activa de `includes/seo-includes-bootstrap.php`; se eliminan referencias obsoletas y duplicadas.
+- Marketing, la cabecera pública y Clonador históricos delegan en sus implementaciones canónicas, sin rutas inexistentes ni versiones alternativas.
+- Añadida prueba regresiva para las cuatro entradas de compatibilidad en CI y validación PHP.
+- Sin cambios en datos, módulos autónomos ni rutas de publicación a producción; la coexistencia de clases queda para una validación separada.
+
 ## 2026-11-07 — Entrega directa de Core manteniendo los tres workflows (#2340)
 
 - El workflow existente de STAGING/Focazul identifica los cambios de Core y/o Tasks en el propio evento push, incluso cuando una validación anterior hace que la base Git parezca idéntica a HEAD.
