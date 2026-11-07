@@ -269,4 +269,4 @@ msgstr ""
 
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
-msgstr ""
+msgstr "Ongeldige code voor domeinverificatie."
