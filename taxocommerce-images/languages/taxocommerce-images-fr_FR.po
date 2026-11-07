@@ -312,7 +312,7 @@ msgid ""
 "Verde confirma la comprobación descrita. Gris indica no aplicable o sin "
 "ejecutar. Las muestras no sustituyen una auditoría completa ni las pruebas "
 "de escritura de staging."
-msgstr ""
+msgstr "Le vert confirme la réussite du contrôle décrit. Le gris indique non applicable ou non exécuté. Les échantillons ne remplacent ni un audit complet ni les tests d'écriture en préproduction."
 
 #: includes/class-taxocommerce-images-background.php:61
 msgid "Proceso de imágenes no válido."
@@ -380,27 +380,27 @@ msgstr "Maximale"
 msgid ""
 "Escaneo completo iniciado. Los lotes internos se regulan automáticamente "
 "hasta recorrer toda la biblioteca."
-msgstr ""
+msgstr "Analyse complète lancée. Les lots internes s'ajustent automatiquement jusqu'à ce que toute la médiathèque soit parcourue."
 
 #: includes/class-taxocommerce-images-maintenance.php:120
 msgid ""
 "Escaneo completo de etiquetas iniciado. Los lotes internos se regulan "
 "automáticamente hasta recorrer toda la biblioteca."
-msgstr ""
+msgstr "Analyse complète des métadonnées lancée. Les lots internes s'ajustent automatiquement jusqu'à ce que toute la médiathèque soit parcourue."
 
 #. translators: 1: scanned images, 2: unused images, 3: exact duplicates.
 #: includes/class-taxocommerce-images-maintenance.php:216
 msgid ""
 "Escaneo completo: %1$d imágenes analizadas, %2$d sin uso conocido y %3$d "
 "duplicadas exactas."
-msgstr ""
+msgstr "Analyse terminée : %1$d images analysées, %2$d sans utilisation connue et %3$d doublons exacts."
 
 #. translators: 1: scanned images, 2: missing ALT, 3: titles to review.
 #: includes/class-taxocommerce-images-maintenance.php:224
 msgid ""
 "Escaneo completo de etiquetas: %1$d imágenes analizadas, %2$d sin ALT "
 "informativo y %3$d con título a revisar."
-msgstr ""
+msgstr "Analyse des métadonnées terminée : %1$d images analysées, %2$d sans ALT descriptif et %3$d avec un titre à vérifier."
 
 #: includes/class-taxocommerce-images-maintenance.php:297
 msgid "No tienes permisos para cambiar la prioridad."
@@ -435,7 +435,7 @@ msgid ""
 "1 trabaja suavemente a largo plazo; 3 es el equilibrio recomendado; 5 "
 "prioriza terminar cuanto antes. Images ajusta automáticamente el tamaño del "
 "siguiente lote según el coste real de sus propias peticiones."
-msgstr ""
+msgstr "1 fonctionne doucement sur la durée ; 3 offre l'équilibre recommandé ; 5 privilégie une fin rapide. Images ajuste automatiquement la taille du prochain lot selon le coût réel des requêtes."
 
 #: includes/class-taxocommerce-images-maintenance.php:371
 #: includes/class-taxocommerce-images.php:367
@@ -452,7 +452,7 @@ msgstr "Utilisation CPU par requête indisponible"
 msgid ""
 "Último lote: %1$s elementos · %2$s · %3$s s · pico %4$s · siguiente lote "
 "%5$s."
-msgstr ""
+msgstr "Dernier lot : %1$s éléments · %2$s · %3$s s · pic %4$s · prochain lot %5$s."
 
 #: includes/class-taxocommerce-images-maintenance.php:403
 #: includes/class-taxocommerce-images-maintenance.php:440
@@ -490,7 +490,7 @@ msgstr "Rapport de nettoyage :"
 msgid ""
 "%1$d imágenes sin uso conocido · %2$d copias duplicadas exactas · %3$d "
 "originales conservados de grupos duplicados · %4$d casos para revisar."
-msgstr ""
+msgstr "%1$d images sans utilisation connue · %2$d copies identiques · %3$d originaux conservés des groupes de doublons · %4$d cas à vérifier."
 
 #: includes/class-taxocommerce-images-maintenance.php:442
 msgid "Sin ALT informativo"
@@ -522,7 +522,7 @@ msgstr "Rapport sur les métadonnées :"
 msgid ""
 "%1$d sin ALT · %2$d con título a revisar · %3$d sin dimensiones · %4$d con "
 "archivo ausente."
-msgstr ""
+msgstr "%1$d sans ALT · %2$d titres à vérifier · %3$d sans dimensions · %4$d fichiers manquants."
 
 #: includes/class-taxocommerce-images-maintenance.php:488
 msgid "Sin uso + duplicadas + revisión"
@@ -629,7 +629,7 @@ msgstr "Famille TaxoCommerce"
 msgid ""
 "Media de WordPress es la fuente de verdad. La importación y exportación de "
 "archivos pertenece a TaxoCommerce Import-Export."
-msgstr ""
+msgstr "La médiathèque WordPress est la référence. L'importation et l'exportation de fichiers relèvent de TaxoCommerce Import-Export."
 
 #: includes/class-taxocommerce-images.php:274
 msgid "Secciones de imágenes"
@@ -640,7 +640,7 @@ msgid ""
 "Productos: solo se propone una imagen de su propia galería. Nunca la de otro"
 " producto. Cada grupo de asignación tiene su propio regulador 1–5 y puede "
 "ejecutarse en paralelo con los demás; los lotes son internos y adaptativos."
-msgstr ""
+msgstr "Produits : seule une image de la propre galerie du produit est proposée, jamais celle d'un autre produit. Chaque groupe d'attribution dispose de son propre réglage 1–5 et peut fonctionner en parallèle ; les lots internes s'adaptent automatiquement."
 
 #: includes/class-taxocommerce-images.php:328
 msgid "Asignación de imágenes por categorías relacionadas"
@@ -651,7 +651,7 @@ msgid ""
 "Primero se propone la imagen asociada a la categoría; después, imágenes de "
 "productos o entradas pertenecientes a esa categoría. No se utiliza una "
 "imagen aleatoria de Media ni se descargan imágenes de proveedores."
-msgstr ""
+msgstr "L'image de la catégorie est proposée en premier, puis celles des produits ou articles de cette catégorie. Aucune image aléatoire de la médiathèque n'est utilisée et aucune image fournisseur n'est téléchargée."
 
 #: includes/class-taxocommerce-images.php:330
 msgid ""
@@ -659,7 +659,7 @@ msgid ""
 "existente en Media, lanzar una pasada automática completa por grupo o subir "
 "un archivo desde tu equipo. La pasada automática se divide en lotes internos"
 " regulados y puede pausarse o reanudarse sin un control central."
-msgstr ""
+msgstr "Vous pouvez attribuer une image suggérée, choisir une image existante dans la médiathèque, lancer une passe automatique complète par groupe ou téléverser un fichier. Les passes automatiques utilisent des lots ajustables et peuvent être interrompues ou reprises séparément."
 
 #: includes/class-taxocommerce-images.php:346
 msgid "sin imagen"
@@ -678,20 +678,20 @@ msgstr "Aucun élément sans image attribuée."
 #. translators: %s: assignment group name, for example Pages or Products.
 #: includes/class-taxocommerce-images.php:358
 msgid "Prioridad de %s"
-msgstr ""
+msgstr "Priorité de %s"
 
 #: includes/class-taxocommerce-images.php:366
 msgid ""
 "Este control solo afecta a este grupo. Si otros procesos cargan el servidor,"
 " el tiempo real de sus peticiones hará que reduzca automáticamente el "
 "siguiente lote."
-msgstr ""
+msgstr "Ce réglage n'affecte que ce groupe. Si d'autres processus chargent le serveur, la durée réelle des requêtes réduira automatiquement le prochain lot."
 
 #. translators: 1: processed items, 2: elapsed seconds, 3: next adaptive batch
 #. size.
 #: includes/class-taxocommerce-images.php:371
 msgid " Último lote: %1$d elementos · %2$s s · siguiente lote %3$d."
-msgstr ""
+msgstr " Dernier lot : %1$d éléments · %2$s s · prochain lot %3$d."
 
 #: includes/class-taxocommerce-images.php:376
 msgid "Asignar automáticamente todo el grupo"
@@ -709,12 +709,12 @@ msgstr "Pause"
 msgid ""
 "Solo se asigna si hay un candidato de la categoría relacionada; no se cambia"
 " ninguna imagen existente."
-msgstr ""
+msgstr "Une image est attribuée uniquement si une image candidate existe dans une catégorie associée ; les images existantes restent inchangées."
 
 #. translators: 1: reviewed objects, 2: assigned images, 3: remaining objects.
 #: includes/class-taxocommerce-images.php:385
 msgid "Última pasada: %1$d revisados · %2$d asignados · %3$d pendientes."
-msgstr ""
+msgstr "Dernière passe : %1$d vérifiés · %2$d attribués · %3$d en attente."
 
 #: includes/class-taxocommerce-images.php:391
 msgid "No hay una pasada automática iniciada."
@@ -752,7 +752,7 @@ msgstr "Attribuer cette image"
 msgid ""
 "No hay imágenes válidas en las categorías relacionadas. Puedes elegir una "
 "existente de Media o subir una propia."
-msgstr ""
+msgstr "Aucune image valide trouvée dans les catégories associées. Vous pouvez en choisir une dans la médiathèque ou téléverser votre propre image."
 
 #: includes/class-taxocommerce-images.php:467
 msgid "Buscar en Media"
@@ -769,7 +769,7 @@ msgstr "Attribuer depuis la médiathèque"
 #. translators: %s: maximum WordPress upload size.
 #: includes/class-taxocommerce-images.php:478
 msgid "Subir imagen desde el equipo (límite: %s)"
-msgstr ""
+msgstr "Téléverser une image depuis votre ordinateur (limite : %s)"
 
 #: includes/class-taxocommerce-images.php:482
 msgid "Subir y asignar"
@@ -782,7 +782,7 @@ msgstr "Précédent"
 #. translators: 1: current page; 2: total number of pages.
 #: includes/class-taxocommerce-images.php:503
 msgid "Página %1$d de %2$d"
-msgstr ""
+msgstr "Page %1$d sur %2$d"
 
 #: includes/class-taxocommerce-images.php:508
 msgid "Siguiente"
@@ -809,7 +809,7 @@ msgid ""
 "Conservamos la recompresión y conversión WebP del sistema anterior. Los "
 "lotes pequeños solo comienzan tras confirmación; la conversión modifica "
 "archivos y enlaces y requiere copia de seguridad."
-msgstr ""
+msgstr "La recompression et la conversion WebP de l'ancien système sont conservées. Les petits lots ne commencent qu'après confirmation ; la conversion modifie les fichiers et les liens et nécessite une sauvegarde."
 
 #: includes/class-taxocommerce-images.php:541
 msgid "Optimizar originales y miniaturas"
@@ -859,12 +859,12 @@ msgstr "État des images"
 msgid ""
 "Ejecuta la Auditoría para calcular ALT ausentes, imágenes sin relación "
 "padre, archivos perdidos, tamaños excesivos y miniaturas incompletas."
-msgstr ""
+msgstr "Exécutez l'audit pour repérer les textes ALT manquants, les images sans association parente, les fichiers absents, les dimensions excessives et les miniatures incomplètes."
 
 #. translators: 1: audit date, 2: images checked, 3: total images.
 #: includes/class-taxocommerce-images.php:572
 msgid "Última auditoría: %1$s · %2$d/%3$d imágenes revisadas."
-msgstr ""
+msgstr "Dernier audit : %1$s · %2$d/%3$d images vérifiées."
 
 #: includes/class-taxocommerce-images.php:577
 msgid "Criterios del nuevo sistema"
@@ -874,17 +874,17 @@ msgstr "Critères du nouveau système"
 msgid ""
 "Mantener título, ALT, leyenda y descripción gestionables desde un único "
 "lugar."
-msgstr ""
+msgstr "Gérer le titre, le texte ALT, la légende et la description au même endroit."
 
 #: includes/class-taxocommerce-images.php:580
 msgid ""
 "Detectar imágenes grandes antes de optimizarlas; las reducciones manuales "
 "crean copia de seguridad."
-msgstr ""
+msgstr "Détecter les images trop grandes avant optimisation ; les réductions manuelles créent une sauvegarde."
 
 #: includes/class-taxocommerce-images.php:581
 msgid "Usar las miniaturas registradas por WordPress y poder regenerarlas."
-msgstr ""
+msgstr "Utiliser les tailles de miniatures enregistrées dans WordPress et permettre leur régénération."
 
 #: includes/class-taxocommerce-images.php:596
 msgid "Auditoría de Biblioteca de Medios"
@@ -894,7 +894,7 @@ msgstr "Audit de la médiathèque"
 msgid ""
 "Comprueba originales, metadatos y miniaturas reales. Cada lote se adapta a "
 "la velocidad elegida y guarda el cursor sin perder imágenes ya revisadas."
-msgstr ""
+msgstr "Vérifie les originaux, les métadonnées et les miniatures réelles. Chaque lot s'adapte à la vitesse choisie et enregistre sa position sans perdre les images déjà contrôlées."
 
 #: includes/class-taxocommerce-images.php:603
 msgid "Velocidad de auditoría (1–5)"
@@ -906,7 +906,7 @@ msgid ""
 "continúa desde el mismo cursor; no reinicia la auditoría. El regulador "
 "aumenta si termina rápido y reduce ante presión de tiempo, memoria o CPU de "
 "PHP."
-msgstr ""
+msgstr "Enregistrer la vitesse modifie la taille des prochains lots. Le traitement reprend à la même position sans relancer l'audit. Le contrôleur augmente les lots si le traitement est rapide et les réduit en cas de pression sur le temps, la mémoire ou le CPU PHP."
 
 #: includes/class-taxocommerce-images.php:611
 msgid "Guardar velocidad"
@@ -917,7 +917,7 @@ msgstr "Enregistrer la vitesse"
 #: includes/class-taxocommerce-images.php:616
 msgid ""
 "Último lote: %1$d imágenes en %2$s s · siguiente objetivo: %3$d · %4$s."
-msgstr ""
+msgstr "Dernier lot : %1$d images en %2$s s · prochain objectif : %3$d · %4$s."
 
 #: includes/class-taxocommerce-images.php:628
 msgid "Iniciar auditoría"
@@ -939,7 +939,7 @@ msgstr "En cours"
 msgid ""
 "El procesamiento continúa mediante WP-Cron aunque cierres esta pantalla. El "
 "estado se actualiza al consultar el panel."
-msgstr ""
+msgstr "Le traitement se poursuit via WP-Cron même si vous fermez cette page. L'état se met à jour lorsque vous consultez le tableau de bord."
 
 #: includes/class-taxocommerce-images.php:637
 msgid "Continuar siguiente lote (manual)"
@@ -1052,7 +1052,7 @@ msgstr "Nom physique"
 msgid ""
 "En esta primera versión se audita pero no se renombra físicamente para no "
 "romper URLs y miniaturas existentes."
-msgstr ""
+msgstr "Dans cette première version, les images sont auditées mais pas renommées physiquement pour éviter de casser les URL et miniatures existantes."
 
 #: includes/class-taxocommerce-images.php:802
 msgid "Guardar metadatos"
@@ -1079,7 +1079,7 @@ msgid ""
 "La selección solo afecta a nuevas imágenes. No borra miniaturas existentes y"
 " puede afectar al diseño de la web si desactivas tamaños usados por el tema "
 "o WooCommerce."
-msgstr ""
+msgstr "La sélection n'affecte que les nouvelles images. Elle ne supprime aucune miniature existante et peut modifier la présentation du site si vous désactivez des tailles utilisées par le thème ou WooCommerce."
 
 #: includes/class-taxocommerce-images.php:835
 msgid "Tamaño"
@@ -1117,7 +1117,7 @@ msgstr "Enregistrer les tailles désactivées"
 msgid ""
 "Desde Biblioteca puedes regenerar las miniaturas de un archivo. La auditoría"
 " tendrá en cuenta qué tamaños has desactivado."
-msgstr ""
+msgstr "Vous pouvez régénérer les miniatures d'un fichier depuis la médiathèque. L'audit tient compte des tailles désactivées."
 
 #: includes/class-taxocommerce-images.php:867
 msgid "Límites y optimización"
@@ -1145,7 +1145,7 @@ msgstr "Nouveaux téléversements"
 
 #: includes/class-taxocommerce-images.php:876
 msgid "Aplicar el umbral de imagen grande de WordPress usando estos límites."
-msgstr ""
+msgstr "Appliquer le seuil WordPress des grandes images avec ces limites."
 
 #: includes/class-taxocommerce-images.php:877
 msgid "Calidad automática"
@@ -1153,7 +1153,7 @@ msgstr "Qualité automatique"
 
 #: includes/class-taxocommerce-images.php:877
 msgid "Aplicar esta calidad cuando WordPress procese JPEG/WebP/AVIF."
-msgstr ""
+msgstr "Appliquer cette qualité lorsque WordPress traite les images JPEG/WebP/AVIF."
 
 #: includes/class-taxocommerce-images.php:879
 msgid "Guardar ajustes"

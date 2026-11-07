@@ -1,3 +1,9 @@
+## [Unreleased] — Finalización de los catálogos de Images (#2062)
+
+- Añadidas otras 36 traducciones por locale (180 entradas adicionales) a los cinco idiomas y regenerados los MO. Las 257 cadenas no vacías de cada catálogo PO tienen traducción; se conservan 258 entradas por archivo incluyendo la cabecera gettext.
+- Conservados todos los formatos de sustitución printf y los identificadores de origen. Se traducen mensajes largos, informes, control de lotes, asignación automática y advertencias operativas.
+- El catálogo no demuestra cobertura de los textos PHP/JS que todavía no usen gettext ni la carga efectiva por locale. Verificar Plugin Check y funcionamiento en WordPress antes de publicar; no tocar producción.
+
 ## [Unreleased] — Traducciones de interfaz y documentación (#2062)
 
 - Internacionalización de 136/137 cadenas por idioma en los cinco catálogos ES/EN/FR/DE/NL (682 traducciones nuevas). Pestañas de medios, gestión de imágenes, estados, informes, miniaturas, metadatos, auditoría, optimización y procesos por lotes.

@@ -1,3 +1,9 @@
+## [Unreleased] — Finalización de los catálogos de Redirects (#2062)
+
+- Añadidas las 53 traducciones restantes del manual técnico por idioma (265 entradas adicionales). Las 144 cadenas no vacías de cada catálogo PO quedan traducidas en ES/EN/FR/DE/NL; 145 entradas por archivo incluyendo la cabecera.
+- Regenerados los cinco MO; se conservan los nombres y referencias técnicas, los contratos JSON y advertencias de borrado. No se modifican código funcional, redirecciones ni datos.
+- Pendientes auditoría de textos fuera de gettext, Plugin Check y pruebas reales por idioma antes de declarar aptitud WordPress.org. Producción no autorizada.
+
 ## [Unreleased] — Traducciones de interfaz y documentación (#2062)
 
 - Internacionalizadas las 57 primeras cadenas todavía vacías del manual del usuario en ES/EN/FR/DE/NL (285 traducciones), con instrucciones sobre 301/302, reglas, copias JSON, borrado asistido, advertencias y diagnósticos.
