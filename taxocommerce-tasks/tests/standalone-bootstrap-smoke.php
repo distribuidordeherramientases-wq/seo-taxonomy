@@ -218,7 +218,7 @@ echo "PASS: category create/rename/duplicate rules and manuals in five locales.\
 $catalog_prefix = dirname( __DIR__ ) . '/languages/taxocommerce-tasks-';
 foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
     $po = file_get_contents( $catalog_prefix . $locale . '.po' );
-    if ( ! is_string( $po ) || 126 !== preg_match_all( '/^msgid /m', $po ) || 1 !== preg_match_all( '/^msgstr ""$/m', $po ) ) {
+    if ( ! is_string( $po ) || 133 !== preg_match_all( '/^msgid /m', $po ) || 1 !== preg_match_all( '/^msgstr ""$/m', $po ) ) {
         fwrite( STDERR, "FAIL: incomplete Tasks PO $locale\\n" );
         exit( 1 );
     }
@@ -234,13 +234,13 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
         exit( 1 );
     }
     $header = unpack( 'Vmagic/Vrevision/Vcount', $raw );
-    if ( 0x950412de !== $header['magic'] || 126 !== $header['count'] ) {
+    if ( 0x950412de !== $header['magic'] || 133 !== $header['count'] ) {
         fwrite( STDERR, "FAIL: invalid Tasks MO $locale\\n" );
         exit( 1 );
     }
 }
 $pot = file_get_contents( dirname( __DIR__ ) . '/languages/taxocommerce-tasks.pot' );
-if ( ! is_string( $pot ) || 126 !== preg_match_all( '/^msgid /m', $pot ) ) {
+if ( ! is_string( $pot ) || 133 !== preg_match_all( '/^msgid /m', $pot ) ) {
     fwrite( STDERR, "FAIL: incomplete POT source catalog\\n" );
     exit( 1 );
 }
