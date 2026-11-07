@@ -240,7 +240,7 @@ class DeltaTests(unittest.TestCase):
                 module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-suppliers")
 
     def test_scoped_core_workflow_remains_test_only(self):
-        workflow = (ROOT / ".github/workflows/deploy-core-staging.yml").read_text()
+        workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/deploy-core-staging.yml").read_text()
         self.assertIn("target_plugin: taxocommerce-core", workflow)
         self.assertIn("'taxocommerce-core/**'", workflow)
         self.assertNotIn("production", workflow.lower())
