@@ -277,7 +277,9 @@ final class TaxoCommerce_Insights_Head_Tags {
             if ( 'tracking' === $kind ) {
                 // Default deny. Consent plugins can implement WP Consent API's
                 // wp_has_consent('statistics') or integrate with this filter.
-                $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( 'statistics' );
+                // GTM can load marketing pixels: require marketing consent, not just analytics.
+                $category = 'google_tag_manager' === ( $entry['provider'] ?? '' ) ? 'marketing' : 'statistics';
+                $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( $category );
                 $consented = (bool) apply_filters( 'taxocommerce_insights_head_tracking_allowed', $consented, $entry );
                 if ( ! $consented ) {
                     continue;
@@ -336,7 +338,7 @@ final class TaxoCommerce_Insights_Head_Tags {
         echo '</select></label></p>';
         echo '<p><label><strong>' . esc_html__( 'Codigo proporcionado por el proveedor', 'taxocommerce-google-bing' ) . '</strong><br><textarea name="entry_code" class="large-text code" rows="10" required maxlength="12000" spellcheck="false">' . esc_textarea( $current['code'] ?? '' ) . '</textarea></label></p>';
         echo '<p><label><input type="checkbox" name="entry_enabled" value="1" ' . checked( ! empty( $current['enabled'] ) || ! $current, true, false ) . '> ' . esc_html__( 'Activar esta etiqueta', 'taxocommerce-google-bing' ) . '</label></p>';
-        echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento solo se publican si existe consentimiento estadistico confirmado mediante WP Consent API o el filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento requieren consentimiento: estadisticas para Analytics/Clarity y marketing para Tag Manager. Se usa WP Consent API o un filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( $current ? __( 'Guardar cambios', 'taxocommerce-google-bing' ) : __( 'Añadir etiqueta', 'taxocommerce-google-bing' ) );
         echo '</form>';
         echo '<hr><h3>' . esc_html__( 'Inventario de etiquetas de cabecera', 'taxocommerce-google-bing' )
