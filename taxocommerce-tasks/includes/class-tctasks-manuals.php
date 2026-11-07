@@ -52,7 +52,8 @@ final class TCTasks_Manuals {
                 array(
                     'title' => __( 'Calendar and indicators', 'taxocommerce-tasks' ),
                     'details' => array(
-                        __( 'Calendar shows tasks by due date in a monthly grid. Use Previous and Next to change month, or choose a task to edit it.', 'taxocommerce-tasks' ),
+                        __( 'The calendar displays duration bars from each task\'s start date to its due date. Overlapping tasks use separate lanes; bars continue across weeks and months. A task with only one date is shown for one day.', 'taxocommerce-tasks' ),
+                        __( 'The legend uses colour by priority (Low, Normal, High, Urgent); blocked tasks are striped and completed tasks are faded. Select any bar to edit the task.', 'taxocommerce-tasks' ),
                         __( 'Dashboard shows totals, overdue tasks and breakdowns by status, priority and assignee. Overdue means a due date before today with status other than Completed.', 'taxocommerce-tasks' ),
                     ),
                 ),
@@ -105,7 +106,8 @@ final class TCTasks_Manuals {
                 array(
                     'title' => __( 'Queries and performance', 'taxocommerce-tasks' ),
                     'details' => array(
-                        __( 'The task list returns up to 500 rows ordered by status, priority and due date. The calendar queries only one selected month.', 'taxocommerce-tasks' ),
+                        __( 'The task list returns up to 500 rows ordered by status, priority and due date. The monthly timeline reads tasks intersecting the complete visible week grid, up to 1500 scheduled tasks.', 'taxocommerce-tasks' ),
+                        __( 'The calendar splits intervals into week-sized segments and places overlapping tasks on separate lanes. Tasks without either date are omitted; the table schema is unchanged.', 'taxocommerce-tasks' ),
                         __( 'Dashboard computes counters from current task records. There are no scheduled jobs, remote calls, or public endpoints.', 'taxocommerce-tasks' ),
                     ),
                 ),
