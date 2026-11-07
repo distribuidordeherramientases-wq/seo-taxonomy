@@ -28,6 +28,7 @@ PLUGINS = {
     "import-export": ("dashicons-upload", "Importa y exporta contenidos y productos mediante procesos controlados."),
     "system-check": ("dashicons-shield", "Comprueba el estado de WordPress, el servidor y los plugins."),
     "templates": ("dashicons-layout", "Gestiona plantillas, enrutado de páginas y reglas de presentación."),
+    "tasks": ("dashicons-clipboard", "Private task management, calendar and indicators."),
 }
 
 def main():
@@ -50,7 +51,7 @@ def main():
             path.write_text(result, encoding="utf-8")
     if errors:
         raise SystemExit("Branding files differ from canonical template: " + ", ".join(errors))
-    print("18 independent TaxoCommerce admin headers " + ("match." if args.check else "regenerated."))
+    print(str(len(PLUGINS)) + " independent TaxoCommerce admin headers " + ("match." if args.check else "regenerated."))
 
 if __name__ == "__main__":
     main()

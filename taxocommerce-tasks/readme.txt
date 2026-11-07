@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ A private task agenda with categories, priorities, assignments, calendar and ind
 
 == Description ==
 
-TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator.
+TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator. Its administration uses the same self-contained header as the TaxoCommerce family, displaying the plugin title, installed version and publication date without requiring Core.
 
 * Create, edit and delete tasks and private task categories.
 * Prioritize tasks as Low, Normal, High or Urgent.

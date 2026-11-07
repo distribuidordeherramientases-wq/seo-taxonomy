@@ -41,27 +41,29 @@ class MOReaderBoundsTests(unittest.TestCase):
         with self.assertRaises(InvalidMO):
             validate_mo_bytes(catalog()[:36])
 
+    def test_omitted_optional_hash_table_is_valid(self):
+        value = bytearray(catalog())
+        # GNU gettext permits an empty hash table with a zero offset.
+        struct.pack_into("<I", value, 24, 0)
+        self.assertEqual(validate_mo_bytes(value), 1)
+
     def test_missing_translation_table_address_fails(self):
         value = bytearray(catalog())
         struct.pack_into("<I", value, 16, 0)
         with self.assertRaises(InvalidMO):
             validate_mo_bytes(value)
 
-    def test_valid_mo_without_optional_hash_table(self):
-        value = bytearray(catalog("<", 2))
-        # GNU MO permits both optional hash fields to be zero.
-        struct.pack_into("<II", value, 20, 0, 0)
-        self.assertEqual(validate_mo_bytes(value), 2)
-
-    def test_out_of_bounds_optional_hash_table_fails(self):
+    def test_hash_table_overlapping_translation_indexes_fails(self):
         value = bytearray(catalog())
-        struct.pack_into("<II", value, 20, 3, len(value) + 8)
+        struct.pack_into("<I", value, 20, 1)
+        struct.pack_into("<I", value, 24, 36)
         with self.assertRaises(InvalidMO):
             validate_mo_bytes(value)
 
-    def test_nonzero_invalid_empty_hash_offset_fails(self):
+    def test_hash_table_past_end_fails(self):
         value = bytearray(catalog())
-        struct.pack_into("<II", value, 20, 0, len(value) + 8)
+        struct.pack_into("<I", value, 20, 1)
+        struct.pack_into("<I", value, 24, len(value) + 4)
         with self.assertRaises(InvalidMO):
             validate_mo_bytes(value)
 
