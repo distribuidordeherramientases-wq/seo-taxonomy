@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -13,9 +13,11 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.3' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.4' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
+require_once __DIR__ . '/includes/class-tctasks-calendar.php';
+add_action( 'admin_enqueue_scripts', array( 'TCTasks_Calendar', 'enqueue_assets' ) );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
@@ -377,6 +379,9 @@ function tctasks_save_task() {
     if ( '' === $title || ! isset( tctasks_priorities()[ $priority ] ) || ! isset( tctasks_states()[ $status ] ) ) {
         wp_die( esc_html__( 'Invalid task data.', 'taxocommerce-tasks' ) );
     }
+    if ( $start && $due && $due < $start ) {
+        wp_die( esc_html__( 'Due date cannot be earlier than start date.', 'taxocommerce-tasks' ) );
+    }
     if ( $assignee && ! get_user_by( 'id', $assignee ) ) {
         wp_die( esc_html( tctasks_label( 'Only registered WordPress users can be assigned.' ) ) );
     }
@@ -682,44 +687,9 @@ function tctasks_view_categories() {
     }
     echo '</tbody></table>';
 }
+/** Render the independent monthly duration calendar. */
 function tctasks_view_calendar() {
-    global $wpdb;
-    $tables = tctasks_tables();
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
-    $month_input = isset($_GET['month']) ? sanitize_text_field(wp_unslash($_GET['month'])) : wp_date('Y-m');
-    if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month_input)) { $month_input=wp_date('Y-m'); }
-    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $month_input . '-01', wp_timezone());
-    if (!$date) { $date = new DateTimeImmutable('first day of this month', wp_timezone()); }
-    $first = $date->format('Y-m-01');
-    $last = $date->format('Y-m-t');
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fresh private agenda.
-    $tasks = (array) $wpdb->get_results($wpdb->prepare('SELECT id,title,priority,status,due_date FROM %i WHERE due_date BETWEEN %s AND %s ORDER BY due_date ASC, id ASC', $tables['tasks'], $first, $last));
-    $days = array();
-    foreach ($tasks as $task) { $days[$task->due_date][]=$task; }
-    $link = static function($month) { return add_query_arg(array('page'=>'taxocommerce-tasks','tab'=>'calendar','month'=>$month),admin_url('admin.php')); };
-    echo '<h2><a class="button" href="' . esc_url($link($date->modify('-1 month')->format('Y-m'))) . '">' . esc_html(tctasks_label('Previous')) . '</a> ' . esc_html(wp_date('F Y', $date->getTimestamp())) . ' <a class="button" href="' . esc_url($link($date->modify('+1 month')->format('Y-m'))) . '">' . esc_html(tctasks_label('Next')) . '</a></h2>';
-    echo '<table class="widefat" style="table-layout:fixed"><thead><tr>';
-    $weekdays = array( tctasks_label('Monday'), tctasks_label('Tuesday'), tctasks_label('Wednesday'), tctasks_label('Thursday'), tctasks_label('Friday'), tctasks_label('Saturday'), tctasks_label('Sunday') );
-    foreach($weekdays as $day) { echo '<th scope="col">' . esc_html($day) . '</th>'; }
-    echo '</tr></thead><tbody>';
-    $offset = ((int) $date->format('N')) - 1;
-    $total = (int)$date->format('t');
-    for($cell=0;$cell<ceil(($offset+$total)/7)*7;$cell++) {
-        if (0 === $cell % 7) { echo '<tr>'; }
-        $day=$cell-$offset+1;
-        echo '<td style="vertical-align:top;height:105px;overflow-wrap:anywhere">';
-        if ($day>=1 && $day<=$total) {
-            $key=$date->format('Y-m-') . sprintf('%02d',$day);
-            echo '<strong>' . esc_html((string)$day) . '</strong>';
-            foreach($days[$key]??array() as $task) {
-                $edit=add_query_arg(array('page'=>'taxocommerce-tasks','tab'=>'tasks','edit'=>$task->id),admin_url('admin.php'));
-                echo '<div style="padding:3px;margin-top:3px;border-left:3px solid ' . ('urgent'===$task->priority?'#b32d2e':'#2271b1') . '"><a href="' . esc_url($edit) . '">' . esc_html($task->title) . '</a> <small>' . esc_html(tctasks_label(tctasks_states()[$task->status]??$task->status)) . '</small></div>';
-            }
-        }
-        echo '</td>';
-        if (6 === $cell % 7) { echo '</tr>'; }
-    }
-    echo '</tbody></table>';
+    TCTasks_Calendar::render();
 }
 function tctasks_counts() {
     global $wpdb;
