@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,7 +50,13 @@ No. Categories are private to this plugin and are held in a dedicated SQL table.
 
 No. It is standalone.
 
+When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
+
 == Changelog ==
+
+= 0.1.1 =
+* Display Tasks under the TaxoCommerce Core menu and register it as a family extension when Core is active.
+* Preserve standalone navigation when Core is absent; no schema or task data changes.
 
 = 0.1.0 =
 * Initial private agenda: task and category CRUD, monthly calendar, indicators and read-only Autocheck JSON.
