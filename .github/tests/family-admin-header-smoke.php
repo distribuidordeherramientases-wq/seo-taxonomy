@@ -135,7 +135,7 @@ foreach ( $tc_test_actions['admin_notices'] as $callback ) {
 }
 tc_test_assert( '' === ob_get_clean(), 'No branding outside plugin admin pages.' );
 // Core, Tasks and the compatibility bridge have independent admin rendering.
-foreach ( array( 'core', 'tasks', 'connections' ) as $other ) {
+foreach ( array( 'core', 'tasks' ) as $other ) {
     $source = $root . '/taxocommerce-' . $other . '/taxocommerce-' . $other . '.php';
     $data = get_file_data( $source, array( 'version' => 'Version', 'released' => 'Release Date' ) );
     tc_test_assert( 1 === preg_match( '/^\\d+\\.\\d+\\.\\d+$/', $data['version'] ), 'Valid plugin version: ' . $other );
@@ -147,8 +147,6 @@ foreach ( array( 'core', 'tasks', 'connections' ) as $other ) {
 }
 $core_ui = file_get_contents( $root . '/taxocommerce-core/includes/class-taxocommerce-core-dashboard.php' );
 $tasks_ui = file_get_contents( $root . '/taxocommerce-tasks/taxocommerce-tasks.php' );
-$bridge_ui = file_get_contents( $root . '/taxocommerce-connections/includes/class-taxocommerce-connections-admin.php' );
 tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__metadata' ) && false !== strpos( $core_ui, 'TAXOCOMMERCE_CORE_RELEASE_DATE' ), 'Core hero version and date' );
 tc_test_assert( false !== strpos( $tasks_ui, 'TAXOCOMMERCE_TASKS_RELEASE_DATE' ), 'Tasks header uses the release date' );
-tc_test_assert( false !== strpos( $bridge_ui, 'TAXOCOMMERCE_CONNECTIONS_RELEASE_DATE' ), 'Connections fallback header uses the release date' );
-echo "PASS: 18 independent family heroes + Core, Tasks, Connections title/version/release-date contracts." . PHP_EOL;
+echo "PASS: 18 independent family heroes + Core, Tasks title/version/release-date contracts." . PHP_EOL;

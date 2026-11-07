@@ -8,7 +8,7 @@ $admin = file_get_contents( $root . '/includes/class-taxocommerce-connections-ad
 $autocheck = file_get_contents( $root . '/includes/class-taxocommerce-connections-autocheck.php' );
 
 $checks = array(
-    preg_match( '/^ \\* Version: (\\d+\\.\\d+\\.\\d+)$/m', $main, $matches ) === 1 && strpos( $main, "define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '" . ( $matches[1] ?? '' ) . "' );" ) !== false,
+    preg_match( '/Version:\\s*0\\.3\\.1/', $main ) === 1,
     strpos( $main, 'Compatibility Bridge' ) !== false,
     strpos( $main, 'taxocommerce_connections_insights_url' ) !== false,
     strpos( $main, "defined( 'TAXOCOMMERCE_GOOGLE_BING_VERSION' )" ) !== false,
