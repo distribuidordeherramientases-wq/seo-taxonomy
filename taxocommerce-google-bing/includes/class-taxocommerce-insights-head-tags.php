@@ -302,7 +302,7 @@ final class TaxoCommerce_Insights_Head_Tags {
                 $handle,
                 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $measurement_id ),
                 array(),
-                null,
+                TAXOCOMMERCE_GOOGLE_BING_VERSION,
                 false // Supports WordPress 5.8 where the final argument is a boolean.
             );
             if ( function_exists( 'wp_script_add_data' ) ) {
