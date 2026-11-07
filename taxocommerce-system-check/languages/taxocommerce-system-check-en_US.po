@@ -12,19 +12,19 @@ msgstr ""
 #: taxocommerce-system-check.php taxocommerce-system-check.php:119
 #: taxocommerce-system-check.php:239
 msgid "TaxoCommerce System Check"
-msgstr ""
+msgstr "TaxoCommerce System Check"
 
 #. Description of the plugin
 #: taxocommerce-system-check.php
 msgid ""
 "Independent WordPress, server and plugin diagnostics with local checks, "
 "reports and optional administrator notifications."
-msgstr ""
+msgstr "Independent diagnostics for WordPress, the server and plugins, with local checks, reports and optional administrator notifications."
 
 #. Author of the plugin
 #: taxocommerce-system-check.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-system-check-auto-test.php:170
 #: includes/class-taxocommerce-system-check-php.php:141
@@ -32,28 +32,28 @@ msgstr ""
 #: taxocommerce-system-check.php:233 taxocommerce-system-check.php:284
 #: taxocommerce-system-check.php:354 taxocommerce-system-check.php:372
 msgid "Acceso no autorizado."
-msgstr ""
+msgstr "Unauthorized access."
 
 #: includes/class-taxocommerce-system-check-auto-test.php:176
 msgid "Auto Test · System Check"
-msgstr ""
+msgstr "Auto Test · System Check"
 
 #: includes/class-taxocommerce-system-check-auto-test.php:177
 msgid ""
 "Comprueba las rutas, servicios y contratos del propio plugin. Es una "
 "ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos."
-msgstr ""
+msgstr "Checks this plugin's routes, services and contracts. Runs locally, read-only, without HTTP probes, writes or emails."
 
 #: includes/class-taxocommerce-system-check-auto-test.php:184
 msgid ""
 "Las pruebas no se ejecutan al abrir esta pestaña. Pulsa el botón para "
 "obtener un resultado actual."
-msgstr ""
+msgstr "Tests do not run when you open this tab. Click the button to obtain current results."
 
 #: includes/class-taxocommerce-system-check-auto-test.php:195
 #: includes/class-taxocommerce-system-check-php.php:151
 msgid "Comprobación"
-msgstr ""
+msgstr "Check"
 
 #: includes/class-taxocommerce-system-check-auto-test.php:195
 #: includes/class-taxocommerce-system-check-php.php:151
@@ -71,28 +71,28 @@ msgstr ""
 #: includes/system-check/seo-system-server-status.php:2969
 #: includes/system-check/seo-system-server-status.php:3200
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-taxocommerce-system-check-auto-test.php:195
 msgid "Evidencia"
-msgstr ""
+msgstr "Evidence"
 
 #: includes/class-taxocommerce-system-check-auto-test.php:207
 msgid ""
 "Un resultado correcto indica que el componente está accesible, no que un "
 "escaneo real haya funcionado. Las pruebas omitidas nunca cuentan como "
 "superadas. No equivale al Plugin Check de WordPress.org."
-msgstr ""
+msgstr "A pass means the component is accessible, not that a real scan succeeded. Skipped tests never count as passed. This is not the WordPress.org Plugin Check."
 
 #: includes/class-taxocommerce-system-check-php.php:148
 msgid "PHP · TaxoCommerce System Check"
-msgstr ""
+msgstr "PHP · TaxoCommerce System Check"
 
 #: includes/class-taxocommerce-system-check-php.php:149
 msgid ""
 "Diagnóstico PHP autónomo y de solo lectura. No depende del antiguo "
 "TaxoCommerce SEO."
-msgstr ""
+msgstr "Independent, read-only PHP diagnostics. Does not depend on the former TaxoCommerce SEO."
 
 #: includes/class-taxocommerce-system-check-php.php:151
 #: includes/system-check/seo-core-validation.php:7587
@@ -100,67 +100,67 @@ msgstr ""
 #: includes/system-check/seo-system-server-status.php:291
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Valor"
-msgstr ""
+msgstr "Value"
 
 #: includes/class-taxocommerce-system-check-php.php:151
 msgid "Información"
-msgstr ""
+msgstr "Information"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:655
 #: includes/class-taxocommerce-system-check-url-audit.php:735
 #: includes/class-taxocommerce-system-check-url-audit.php:803
 #: taxocommerce-system-check.php:395
 msgid "No autorizado."
-msgstr ""
+msgstr "Not authorized."
 
 #: includes/class-taxocommerce-system-check-url-audit.php:739
 msgid "El inventario HTTP no está disponible."
-msgstr ""
+msgstr "The HTTP inventory is unavailable."
 
 #: includes/class-taxocommerce-system-check-url-audit.php:805
 msgid "Chequeos HTTP de recursos"
-msgstr ""
+msgstr "HTTP resource checks"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:806
 msgid ""
 "Comprueba las URL públicas desde este servidor mediante peticiones HTTP "
 "reales. No necesita GitHub. No equivale a un monitor externo de "
 "disponibilidad."
-msgstr ""
+msgstr "Checks public URLs from this server using real HTTP requests. Does not require GitHub. This is not an external uptime monitor."
 
 #: includes/class-taxocommerce-system-check-url-audit.php:808
 msgid ""
 "No se ha cargado el motor del inventario. Revisa la instalación de System "
 "Check."
-msgstr ""
+msgstr "The inventory engine did not load. Check the System Check installation."
 
 #: includes/class-taxocommerce-system-check-url-audit.php:984
 msgid "Detalle por URL"
-msgstr ""
+msgstr "Details by URL"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:992
 msgid "Buscar"
-msgstr ""
+msgstr "Search"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:993
 msgid "Recurso"
-msgstr ""
+msgstr "Resource"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:993
 #: includes/system-check/seo-health-scan.php:1390
 msgid "HTTP"
-msgstr ""
+msgstr "HTTP"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:993
 #: includes/system-check/seo-health-scan.php:1390
 msgid "Tiempo"
-msgstr ""
+msgstr "Time"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:993
 #: includes/system-check/seo-core-validation.php:6880
 #: includes/system-check/seo-health-scan.php:1390
 msgid "Último chequeo"
-msgstr ""
+msgstr "Last check"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:993
 #: includes/system-check/seo-core-validation.php:7587
@@ -169,80 +169,80 @@ msgstr ""
 #: includes/system-check/seo-core-validation.php:8376
 #: includes/system-check/seo-health-scan.php:1390
 msgid "Detalle"
-msgstr ""
+msgstr "Details"
 
 #: includes/class-taxocommerce-system-check-url-audit.php:995
 msgid "No hay URLs para este filtro."
-msgstr ""
+msgstr "No URLs match this filter."
 
 #: includes/class-taxocommerce-system-check-user-guide.php:159
 msgid "Manual de System Check"
-msgstr ""
+msgstr "System Check manual"
 
 #: includes/class-taxocommerce-system-check-user-guide.php:160
 msgid ""
 "Documentación de usuario y técnica de las funciones disponibles en este "
 "plugin."
-msgstr ""
+msgstr "User and technical documentation for the features available in this plugin."
 
 #: includes/class-taxocommerce-system-check-user-guide.php:169
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Índice"
-msgstr ""
+msgstr "Contents"
 
 #: includes/system-check/seo-core-validation-settings.php:355
 msgid "Sugerencia de corrección"
-msgstr ""
+msgstr "Suggested fix"
 
 #: includes/system-check/seo-core-validation-settings.php:397
 msgid "Centro de corrección asistida"
-msgstr ""
+msgstr "Assisted remediation center"
 
 #: includes/system-check/seo-core-validation-settings.php:398
 msgid ""
 "Las sugerencias distinguen entre configuración del test, diagnóstico, "
 "edición de archivos y corrección de datos. No se aplican cambios automáticos"
 " al catálogo ni a las tablas SEO."
-msgstr ""
+msgstr "Suggestions distinguish test configuration, diagnosis, file editing and data correction. No automatic changes are applied to the catalog or SEO tables."
 
 #: includes/system-check/seo-core-validation-settings.php:416
 msgid ""
 "No hay incidencias con una guía específica en el último resultado. Ejecuta "
 "la validación completa después de guardar los ajustes."
-msgstr ""
+msgstr "The latest result has no issues with a specific guide. Run full validation after saving settings."
 
 #: includes/system-check/seo-core-validation-settings.php:423
 msgid "Plan semántico sugerido"
-msgstr ""
+msgstr "Suggested semantic plan"
 
 #: includes/system-check/seo-core-validation-settings.php:423
 #: includes/system-check/seo-core-validation.php:7701
 #: includes/system-check/seo-core-validation.php:7784
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Prioridad"
-msgstr ""
+msgstr "Priority"
 
 #: includes/system-check/seo-core-validation-settings.php:423
 msgid "Acción"
-msgstr ""
+msgstr "Action"
 
 #: includes/system-check/seo-core-validation-settings.php:423
 msgid "Afectados"
-msgstr ""
+msgstr "Affected items"
 
 #: includes/system-check/seo-core-validation-settings.php:423
 msgid "Sugerencia"
-msgstr ""
+msgstr "Suggestion"
 
 #: includes/system-check/seo-core-validation-settings.php:435
 msgid "Configuración de Plugin Validation"
-msgstr ""
+msgstr "Plugin Validation settings"
 
 #: includes/system-check/seo-core-validation-settings.php:436
 #: includes/system-check/seo-core-validation.php:8414
 #: includes/system-check/seo-system-mysql-audit.php:737
 msgid "Criterio:"
-msgstr ""
+msgstr "Criterion:"
 
 #: includes/system-check/seo-core-validation-settings.php:436
 msgid ""
