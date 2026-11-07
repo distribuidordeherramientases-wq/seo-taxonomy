@@ -36,6 +36,22 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("TAXOCOMMERCE_TARGET_PLUGIN:", self.staging)
         self.assertNotIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
 
+    def test_ftps_is_serial_across_sites_but_focazul_runs_after_staging_failure(self):
+        # One shared FTP account; failures are still reported independently.
+        focazul = self.staging.split("  deploy-focazul:", 1)[1].split("  verify:", 1)[0]
+        self.assertIn("needs: [plan, deploy-staging]", focazul)
+        self.assertIn("always() && needs.plan.result == 'success'", focazul)
+        self.assertIn("max-parallel: 1", focazul)
+        self.assertIn("--target focazul", focazul)
+        self.assertIn("python3 -u .github/scripts/deploy_staging_delta.py", focazul)
+        self.assertNotIn("for attempt in 1 2 3", focazul)
+        staging = self.staging.split("  deploy-staging:", 1)[1].split("  deploy-focazul:", 1)[0]
+        self.assertIn("max-parallel: 1", staging)
+        self.assertIn("--target staging", staging)
+        self.assertNotIn("for attempt in 1 2 3", staging)
+        self.assertIn('test "$FOCAZUL" = "success"', self.staging)
+        self.assertIn('test "$STAGING" = "success"', self.staging)
+
     def test_order_and_strict_family_check(self):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
         self.assertIn("uses: ./.github/workflows/taxocommerce-plugin-check.yml", self.pipeline)
@@ -71,7 +87,11 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("COPILOT_AGENT_TOKEN", self.pipeline)
         self.assertIn("copilot-swe-agent[bot]", self.pipeline)
         self.assertIn("reruns automatically on push", self.pipeline)
-        self.assertIn("for attempt in 1 2 3", self.staging)
+        self.assertNotIn("for attempt in 1 2 3", self.staging)
+        self.assertIn("python3 -u .github/scripts/deploy_staging_delta.py", self.staging)
+        retry_source = (ROOT / ".github/scripts/deploy_staging_delta.py").read_text(encoding="utf-8")
+        self.assertIn("for attempt in range(3)", retry_source)
+        self.assertIn('phase = "connect"', retry_source)
         self.assertNotIn("gh pr merge", self.pipeline)
         self.assertNotIn("gh workflow run", self.pipeline)
 

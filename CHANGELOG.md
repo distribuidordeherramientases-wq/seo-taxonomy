@@ -1,3 +1,11 @@
+## 2026-11-08 — FTP compartido y guardas de coexistencia legacy (Issue #2347)
+
+- Serializadas las entregas STAGING y Focazul en su servidor FTPS compartido, conservando la comprobación independiente de ambos destinos aunque STAGING falle.
+- Eliminados los reintentos anidados del shell: cada entrega utiliza tres reintentos del cliente Python, con salida sin búfer y la fase de error FTPS identificada.
+- Se preserva la puerta de producción y la entrega exclusiva de archivos modificados de plugins autorizados.
+- Los bootstraps históricos Ojeador e Ingeniero evitan reinicializar clases y hooks cuando Scrappers ya ha cargado el motor.
+- Añadidas pruebas de serialización FTPS y de coexistencia; no se eliminan implementaciones legadas sin validar regresiones.
+
 ## 2026-11-07 — Saneamiento de cargadores históricos (Issue #2347)
 
 - El bootstrap raíz delega en la única cadena activa de `includes/seo-includes-bootstrap.php`; se eliminan referencias obsoletas y duplicadas.
