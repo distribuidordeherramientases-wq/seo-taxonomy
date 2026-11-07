@@ -21,6 +21,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function esc_html__( $value, $domain ) { return $value; }
+function esc_html_e( $value, $domain ) { echo esc_html( $value ); }
 function wp_nonce_field( $action, $field = '_wpnonce' ) { echo '<input type="hidden" name="' . esc_attr($field) . '" value="nonce">'; }
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function wp_die( $message ) { throw new RuntimeException( $message ); }
@@ -122,6 +123,6 @@ tcv_test( strpos( $auto, 'Ejecutar Autocheck' ) !== false, 'autotest form displa
 tcv_test( strpos( $auto, 'tcv_auto_nonce' ) !== false, 'autotest form includes nonce' );
 
 $admin = file_get_contents( dirname( __DIR__ ) . '/includes/class-tcv-admin.php' );
-tcv_test( strpos( $admin, "'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' )" ) !== false && strpos( $admin, "'manual'=>'Manual'" ) !== false, 'tabs wired' );
+tcv_test( strpos( $admin, "'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' )" ) !== false && strpos( $admin, "'manual'=>__( 'Manual', 'taxocommerce-vocabulary' )" ) !== false, 'tabs wired and translated' );
 tcv_test( strpos( $admin, "'control' === \$tab" ) !== false, 'original control route preserved' );
 echo "Vocabulary Auto Test and Manual smoke passed.\n";

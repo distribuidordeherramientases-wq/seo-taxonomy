@@ -530,123 +530,123 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:178
 msgid "Sin permisos para consultar el manual."
-msgstr ""
+msgstr "You do not have permission to view the manual."
 
 #: includes/class-taxocommerce-faqs-manual.php:181
 #: includes/class-taxocommerce-faqs-manual.php:183
 msgid "Manual de TaxoCommerce FAQs"
-msgstr ""
+msgstr "TaxoCommerce FAQs manual"
 
 #: includes/class-taxocommerce-faqs-manual.php:184
 msgid ""
 "Manual de usuario y manual técnico integrados. Su consulta no modifica "
 "preguntas ni inicia trabajos."
-msgstr ""
+msgstr "Integrated user and technical guides. Viewing them does not change questions or start any jobs."
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual de usuario"
-msgstr ""
+msgstr "User guide"
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technical guide"
 
 #: includes/class-taxocommerce-faqs.php:115
 #: includes/class-taxocommerce-faqs.php:558
 #: includes/class-taxocommerce-faqs.php:608
 msgid "FAQs"
-msgstr ""
+msgstr "FAQs"
 
 #: includes/class-taxocommerce-faqs.php:128
 msgid "No tienes permisos para gestionar FAQs."
-msgstr ""
+msgstr "You do not have permission to manage FAQs."
 
 #: includes/class-taxocommerce-faqs.php:557
 msgid "Secciones de FAQs"
-msgstr ""
+msgstr "FAQ sections"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto Test"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-taxocommerce-faqs.php:573
 msgid ""
 "Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para "
 "instalarla."
-msgstr ""
+msgstr "The FAQ table is missing; deactivate and reactivate TaxoCommerce FAQs to install it."
 
 #: includes/class-taxocommerce-faqs.php:608
 msgid ""
 "Preguntas frecuentes asociadas a hubs, categorías o productos. Datos "
 "compartidos con TaxoCommerce SEO."
-msgstr ""
+msgstr "Frequently asked questions linked to hubs, categories or products. Data is shared with TaxoCommerce SEO."
 
 #: includes/class-taxocommerce-faqs.php:617
 msgid "Categoría de producto *"
-msgstr ""
+msgstr "Product category *"
 
 #: includes/class-taxocommerce-faqs.php:621
 msgid ""
 "Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI "
 "correspondiente."
-msgstr ""
+msgstr "Required. Older FAQs without a category appear in the corresponding KPI."
 
 #: includes/class-taxocommerce-faqs.php:621
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Destino"
-msgstr ""
+msgstr "Destination"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Etiquetas de Vocabulary"
-msgstr ""
+msgstr "Vocabulary labels"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Selecciona las etiquetas existentes. No se crean etiquetas nuevas."
-msgstr ""
+msgstr "Select existing labels. No new labels are created."
 
 #: includes/class-taxocommerce-faqs.php:644
 msgid ""
 "Vocabulary no está disponible; se conservarán las etiquetas existentes."
-msgstr ""
+msgstr "Vocabulary is unavailable; existing labels will be preserved."
 
 #: includes/class-taxocommerce-faqs.php:652
 msgid "Buscar"
-msgstr ""
+msgstr "Search"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Pregunta"
-msgstr ""
+msgstr "Question"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Categoría"
-msgstr ""
+msgstr "Category"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Activa"
-msgstr ""
+msgstr "Active"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Aperturas"
-msgstr ""
+msgstr "Opens"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Acciones"
-msgstr ""
+msgstr "Actions"
 
 #: includes/class-taxocommerce-faqs.php:659
 msgid "Eliminar"
-msgstr ""
+msgstr "Delete"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid "Importar / Exportar CSV"
-msgstr ""
+msgstr "Import / Export CSV"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid ""
 "CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID "
 "existente; las nuevas filas reciben ID nuevo."
-msgstr ""
+msgstr "UTF-8 CSV; up to 500 rows and 2 MB per import. Only an existing ID is updated; new rows receive a new ID."

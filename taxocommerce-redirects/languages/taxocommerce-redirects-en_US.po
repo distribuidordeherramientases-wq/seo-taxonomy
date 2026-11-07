@@ -11,106 +11,106 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-redirects.php
 msgid "TaxoCommerce Redirects - SEO Redirect Manager"
-msgstr ""
+msgstr "TaxoCommerce Redirects - SEO Redirect Manager"
 
 #. Plugin URI of the plugin
 #: taxocommerce-redirects.php
 msgid "https://www.distribuidordeherramientas.es/"
-msgstr ""
+msgstr "https://www.distribuidordeherramientas.es/"
 
 #. Description of the plugin
 #: taxocommerce-redirects.php
 msgid ""
 "301/302 redirect management and assisted deletion for WordPress and "
 "WooCommerce content, with optional TaxoCommerce Core integration."
-msgstr ""
+msgstr "301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration."
 
 #. Author of the plugin
 #: taxocommerce-redirects.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-admin.php:20 includes/class-admin.php:23
 #: includes/class-admin.php:74
 msgid "TaxoCommerce Redirects"
-msgstr ""
+msgstr "TaxoCommerce Redirects"
 
 #: includes/class-admin.php:20 includes/class-admin.php:23
 msgid "Redirects"
-msgstr ""
+msgstr "Redirects"
 
 #: includes/class-assisted-delete.php:40
 msgid "Eliminar contenido · TaxoCommerce Redirects"
-msgstr ""
+msgstr "Delete content · TaxoCommerce Redirects"
 
 #: includes/class-assisted-delete.php:41
 msgid "Eliminar contenido"
-msgstr ""
+msgstr "Delete content"
 
 #: includes/class-auto-test.php:379
 msgid "Sin permiso para ejecutar Auto Test."
-msgstr ""
+msgstr "You do not have permission to run Auto Test."
 
 #: includes/class-auto-test.php:400
 msgid "Sin permiso para exportar el diagnóstico."
-msgstr ""
+msgstr "You do not have permission to export the diagnostic report."
 
 #: includes/class-auto-test.php:409
 msgid "No se ha guardado ese informe."
-msgstr ""
+msgstr "That report was not saved."
 
 #: includes/class-auto-test.php:411
 msgid "No se ha podido preparar el JSON."
-msgstr ""
+msgstr "The JSON could not be prepared."
 
 #: includes/class-auto-test.php:455
 msgid "Sin permiso para abrir Auto Test."
-msgstr ""
+msgstr "You do not have permission to open Auto Test."
 
 #: includes/class-auto-test.php:468
 msgid "Auto Test — TaxoCommerce Redirects"
-msgstr ""
+msgstr "Auto Test — TaxoCommerce Redirects"
 
 #: includes/class-auto-test.php:469
 msgid ""
 "Pruebas de solo lectura de tablas, reglas, motor, borrado asistido y "
 "transferencias. No se generan redirecciones, visitas ni eliminaciones. Solo "
 "se almacenan los resultados del diagnóstico."
-msgstr ""
+msgstr "Read-only tests of tables, rules, engine, assisted deletion and data transfers. No redirects, visits or deletions are generated. Only diagnostic results are stored."
 
 #: includes/class-auto-test.php:477
 msgid "Referencia ANTES"
-msgstr ""
+msgstr "BEFORE baseline"
 
 #: includes/class-auto-test.php:483
 msgid "Sin referencia guardada. Ejecútala antes del siguiente despliegue."
-msgstr ""
+msgstr "No saved baseline. Run it before the next deployment."
 
 #: includes/class-auto-test.php:487
 msgid "Último chequeo"
-msgstr ""
+msgstr "Latest check"
 
 #: includes/class-auto-test.php:492
 msgid "Todavía no hay una ejecución registrada."
-msgstr ""
+msgstr "No run has been recorded yet."
 
 #: includes/class-auto-test.php:496
 msgid "Resumen del autochequeo"
-msgstr ""
+msgstr "Auto Test summary"
 
 #: includes/class-auto-test.php:502
 msgid "Comparación de despliegue"
-msgstr ""
+msgstr "Deployment comparison"
 
 #: includes/class-auto-test.php:503
 msgid "Comparación ANTES / DESPUÉS"
-msgstr ""
+msgstr "BEFORE / AFTER comparison"
 
 #: includes/class-auto-test.php:510
 msgid ""
 "Para comparar, ejecuta «Comprobar DESPUÉS» con todos los grupos en el mismo "
 "sitio."
-msgstr ""
+msgstr "To compare, run 'Check AFTER' with all groups on the same site."
 
 #: includes/class-auto-test.php:530
 msgid ""
@@ -118,7 +118,7 @@ msgid ""
 "importaciones JSON y borrados de contenido aparecen como NO verificadas y "
 "requieren pruebas controladas en staging. Un destino no encontrado puede "
 "coexistir con una regla estructuralmente correcta."
-msgstr ""
+msgstr "A pass only confirms the contract being tested. HTTP checks, JSON imports and content deletions are NOT verified and require controlled tests in staging. A missing destination may coexist with a structurally valid rule."
 
 #: includes/class-lifecycle.php:123
 msgid ""
@@ -126,41 +126,41 @@ msgid ""
 " definitivamente la tabla seo_redirects y todas sus reglas, incluidas las "
 "compartidas con TaxoCommerce SEO. Exporta una copia antes de eliminar el "
 "plugin."
-msgstr ""
+msgstr "Deactivating preserves redirects. Uninstalling TaxoCommerce Redirects permanently deletes the seo_redirects table and all its rules, including rules shared with TaxoCommerce SEO. Export a backup before uninstalling the plugin."
 
 #: includes/class-user-guide.php:86
 msgid "Sin permiso para consultar los manuales."
-msgstr ""
+msgstr "You do not have permission to view the guides."
 
 #: includes/class-user-guide.php:97
 msgid "User Guide"
-msgstr ""
+msgstr "User Guide"
 
 #: includes/class-user-guide.php:98
 msgid ""
 "Manual de usuario y manual técnico de TaxoCommerce Redirects. Documentación "
 "integrada, sin operaciones sobre las reglas."
-msgstr ""
+msgstr "TaxoCommerce Redirects user and technical guides. Integrated documentation with no operations on redirect rules."
 
 #: includes/class-user-guide.php:100
 msgid "Tipo de manual"
-msgstr ""
+msgstr "Guide type"
 
 #: includes/class-user-guide.php:104
 msgid "User Manual"
-msgstr ""
+msgstr "User Manual"
 
 #: includes/class-user-guide.php:109
 msgid "Technical Manual"
-msgstr ""
+msgstr "Technical Manual"
 
 #: includes/class-user-guide.php:113
 msgid "Índice del manual"
-msgstr ""
+msgstr "Guide contents"
 
 #: includes/class-user-guide.php:114
 msgid "Contenido"
-msgstr ""
+msgstr "Contents"
 
 #: includes/class-user-guide.php:136
 msgid "1. ¿Para qué sirve Redirects?"

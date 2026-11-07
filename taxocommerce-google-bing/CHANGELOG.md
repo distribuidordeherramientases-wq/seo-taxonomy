@@ -1,3 +1,9 @@
+## [1.1.21] — 2026-11-07 — Google Analytics mediante scripts de WordPress (#2299)
+
+- GA4 configurado en Insights usa el sistema nativo `wp_enqueue_script()` y `wp_add_inline_script()` en lugar de emitir una etiqueta script externa directamente.
+- Se conservan los identificadores, la edición del inventario de etiquetas y la autorización previa de estadísticas. No se duplican cargas cuando Google Analytics ya se gestiona mediante conexiones antiguas.
+- Prueba de regresión para consentimiento, etiquetas y encolado; verificación mediante Plugin Check oficial antes de fusionar.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.

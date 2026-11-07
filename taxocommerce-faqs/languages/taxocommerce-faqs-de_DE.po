@@ -530,123 +530,123 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:178
 msgid "Sin permisos para consultar el manual."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, dieses Handbuch anzuzeigen."
 
 #: includes/class-taxocommerce-faqs-manual.php:181
 #: includes/class-taxocommerce-faqs-manual.php:183
 msgid "Manual de TaxoCommerce FAQs"
-msgstr ""
+msgstr "TaxoCommerce FAQs-Handbuch"
 
 #: includes/class-taxocommerce-faqs-manual.php:184
 msgid ""
 "Manual de usuario y manual técnico integrados. Su consulta no modifica "
 "preguntas ni inicia trabajos."
-msgstr ""
+msgstr "Integrierte Benutzer- und technische Handbücher. Die Anzeige verändert keine Fragen und startet keine Prozesse."
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual de usuario"
-msgstr ""
+msgstr "Benutzerhandbuch"
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technisches Handbuch"
 
 #: includes/class-taxocommerce-faqs.php:115
 #: includes/class-taxocommerce-faqs.php:558
 #: includes/class-taxocommerce-faqs.php:608
 msgid "FAQs"
-msgstr ""
+msgstr "FAQs"
 
 #: includes/class-taxocommerce-faqs.php:128
 msgid "No tienes permisos para gestionar FAQs."
-msgstr ""
+msgstr "Sie haben keine Berechtigung, FAQs zu verwalten."
 
 #: includes/class-taxocommerce-faqs.php:557
 msgid "Secciones de FAQs"
-msgstr ""
+msgstr "FAQ-Bereiche"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto-Test"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Manual"
-msgstr ""
+msgstr "Handbuch"
 
 #: includes/class-taxocommerce-faqs.php:573
 msgid ""
 "Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para "
 "instalarla."
-msgstr ""
+msgstr "Die FAQ-Tabelle fehlt; deaktivieren und reaktivieren Sie TaxoCommerce FAQs, um sie zu installieren."
 
 #: includes/class-taxocommerce-faqs.php:608
 msgid ""
 "Preguntas frecuentes asociadas a hubs, categorías o productos. Datos "
 "compartidos con TaxoCommerce SEO."
-msgstr ""
+msgstr "Häufig gestellte Fragen zu Hubs, Kategorien oder Produkten. Daten werden mit TaxoCommerce SEO geteilt."
 
 #: includes/class-taxocommerce-faqs.php:617
 msgid "Categoría de producto *"
-msgstr ""
+msgstr "Produktkategorie *"
 
 #: includes/class-taxocommerce-faqs.php:621
 msgid ""
 "Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI "
 "correspondiente."
-msgstr ""
+msgstr "Pflichtfeld. Ältere FAQs ohne Kategorie erscheinen in der entsprechenden Kennzahl."
 
 #: includes/class-taxocommerce-faqs.php:621
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Destino"
-msgstr ""
+msgstr "Ziel"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Etiquetas de Vocabulary"
-msgstr ""
+msgstr "Vocabulary-Schlagwörter"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Selecciona las etiquetas existentes. No se crean etiquetas nuevas."
-msgstr ""
+msgstr "Wählen Sie vorhandene Schlagwörter aus. Es werden keine neuen erstellt."
 
 #: includes/class-taxocommerce-faqs.php:644
 msgid ""
 "Vocabulary no está disponible; se conservarán las etiquetas existentes."
-msgstr ""
+msgstr "Vocabulary ist nicht verfügbar; vorhandene Schlagwörter bleiben erhalten."
 
 #: includes/class-taxocommerce-faqs.php:652
 msgid "Buscar"
-msgstr ""
+msgstr "Suchen"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Pregunta"
-msgstr ""
+msgstr "Frage"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Categoría"
-msgstr ""
+msgstr "Kategorie"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Activa"
-msgstr ""
+msgstr "Aktiv"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Aperturas"
-msgstr ""
+msgstr "Aufrufe"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Acciones"
-msgstr ""
+msgstr "Aktionen"
 
 #: includes/class-taxocommerce-faqs.php:659
 msgid "Eliminar"
-msgstr ""
+msgstr "Löschen"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid "Importar / Exportar CSV"
-msgstr ""
+msgstr "CSV importieren / exportieren"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid ""
 "CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID "
 "existente; las nuevas filas reciben ID nuevo."
-msgstr ""
+msgstr "UTF-8-CSV; höchstens 500 Zeilen und 2 MB je Import. Nur eine vorhandene ID wird aktualisiert; neue Zeilen erhalten eine neue ID."

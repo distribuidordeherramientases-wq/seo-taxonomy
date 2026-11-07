@@ -12,19 +12,19 @@ msgstr ""
 #: taxocommerce-facturacion.php taxocommerce-facturacion.php:68
 #: taxocommerce-facturacion.php:128
 msgid "TaxoCommerce Billing"
-msgstr ""
+msgstr "TaxoCommerce Billing"
 
 #. Description of the plugin
 #: taxocommerce-facturacion.php
 msgid ""
 "WooCommerce invoices, proformas, and PDF quotations migrated 1:1 from "
 "TaxoCommerce SEO."
-msgstr ""
+msgstr "WooCommerce-facturen, pro-formafacturen en PDF-offertes zonder functionele wijzigingen overgenomen uit TaxoCommerce SEO."
 
 #. Author of the plugin
 #: taxocommerce-facturacion.php
 msgid "David Pérez"
-msgstr ""
+msgstr "David Pérez"
 
 #: includes/class-seo-facturas-admin.php:32
 #: includes/class-seo-facturas-admin.php:33 taxocommerce-facturacion.php:117
@@ -34,102 +34,102 @@ msgstr "Facturen en offertes"
 
 #: includes/class-seo-facturas-admin.php:96
 msgid "No tienes permisos para acceder a esta pagina."
-msgstr "U hebt geen toegang tot deze pagina."
+msgstr "U hebt geen toestemming om deze pagina te openen."
 
 #: includes/class-seo-facturas-admin.php:191
 msgid "Sin permisos."
-msgstr ""
+msgstr "Geen toestemming."
 
 #: includes/class-seo-facturas-admin.php:197
 msgid "No se ha podido cargar el pedido."
-msgstr ""
+msgstr "De bestelling kon niet worden geladen."
 
 #: includes/class-seo-facturas-admin.php:214
 msgid "El sistema documental esta desactivado en Datos empresa."
-msgstr ""
+msgstr "Het documentsysteem is uitgeschakeld bij Bedrijfsgegevens."
 
 #: includes/class-taxocommerce-billing-autotest.php:142
 msgid "Sin permisos para el Autotest."
-msgstr "Onvoldoende rechten voor de zelftest."
+msgstr "U hebt geen toestemming om de Auto Test uit te voeren."
 
 #: includes/class-taxocommerce-billing-autotest.php:144
 msgid "Autotest de Billing"
-msgstr ""
+msgstr "Billing Auto Test"
 
 #: includes/class-taxocommerce-billing-autotest.php:145
 msgid ""
 "Comprobaciones de disponibilidad y configuración. No se crean facturas, "
 "proformas ni presupuestos, no se generan PDF, no se envían correos y no se "
 "modifica ningún pedido."
-msgstr ""
+msgstr "Controle van beschikbaarheid en instellingen. Er worden geen facturen, pro-formafacturen of offertes aangemaakt, geen PDF's gegenereerd, geen e-mails verzonden en geen bestellingen gewijzigd."
 
 #: includes/class-taxocommerce-billing-autotest.php:154
 msgid ""
 "Pulsa el botón para realizar las comprobaciones. El resultado no se guarda."
-msgstr ""
+msgstr "Klik op de knop om de controles uit te voeren. Het resultaat wordt niet opgeslagen."
 
 #: includes/class-taxocommerce-billing-autotest.php:184
 msgid ""
 "Es un diagnóstico de disponibilidad: no valida cálculos fiscales, PDF "
 "emitidos, entrega de emails ni permisos efectivos de clientes."
-msgstr ""
+msgstr "Dit is alleen een beschikbaarheidsdiagnose: belastingberekeningen, uitgegeven PDF's, e-mailbezorging en daadwerkelijke klantrechten worden niet gecontroleerd."
 
 #: includes/class-taxocommerce-billing-manual.php:10
 msgid "Sin permisos para consultar el manual."
-msgstr "Onvoldoende rechten om de handleiding te bekijken."
+msgstr "U hebt geen toestemming om de handleiding te bekijken."
 
 #: includes/class-taxocommerce-billing-manual.php:13
 msgid "Manual de TaxoCommerce Billing"
-msgstr ""
+msgstr "Handleiding TaxoCommerce Billing"
 
 #: includes/class-taxocommerce-billing-manual.php:15
 #: includes/class-taxocommerce-billing-manual.php:18
 msgid "Manual de usuario"
-msgstr ""
+msgstr "Gebruikershandleiding"
 
 #: includes/class-taxocommerce-billing-manual.php:15
 #: includes/class-taxocommerce-billing-manual.php:49
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technische handleiding"
 
 #: includes/class-taxocommerce-billing-manual.php:15
 #: includes/class-taxocommerce-billing-manual.php:74
 msgid "Resolución de incidencias"
-msgstr ""
+msgstr "Problemen oplossen"
 
 #: includes/class-taxocommerce-billing-manual.php:16
 msgid "Advertencia:"
-msgstr ""
+msgstr "Waarschuwing:"
 
 #: includes/class-taxocommerce-billing-manual.php:16
 msgid ""
 "estas pantallas generan documentos comerciales y fiscales. Configura y "
 "revisa previamente los datos de la entidad, la fiscalidad y las series. "
 "Autotest no comprueba la validez legal de los documentos."
-msgstr ""
+msgstr "Deze schermen maken commerciële en fiscale documenten. Controleer vooraf de bedrijfsgegevens, belastinginstellingen en nummerreeksen. De Auto Test bevestigt niet dat documenten juridisch geldig zijn."
 
 #: includes/class-taxocommerce-billing-manual.php:19
 msgid "1. Acceso y activación"
-msgstr ""
+msgstr "1. Toegang en activering"
 
 #: includes/class-taxocommerce-billing-manual.php:21
 msgid "La opción"
-msgstr ""
+msgstr "De optie"
 
 #: includes/class-taxocommerce-billing-manual.php:21
 msgid "Sistema documental activo"
-msgstr ""
+msgstr "Documentsysteem actief"
 
 #: includes/class-taxocommerce-billing-manual.php:21
 msgid ""
 "se gestiona en Datos empresa. El plugin puede estar instalado pero sus "
 "emisiones desactivadas: revisa este control antes de probar las funciones "
 "comerciales."
-msgstr ""
+msgstr "wordt beheerd bij Bedrijfsgegevens. De plug-in kan geïnstalleerd zijn terwijl documentuitgifte uitgeschakeld is. Controleer dit voordat u commerciële functies test."
 
 #: includes/class-taxocommerce-billing-manual.php:23
 msgid "2. Datos empresa"
-msgstr ""
+msgstr "2. Bedrijfsgegevens"
 
 #: includes/class-taxocommerce-billing-manual.php:24
 msgid ""
@@ -137,18 +137,18 @@ msgid ""
 " dirección postal, localidad, país, contacto y logotipo. Configura el pie de"
 " documento y, cuando sea necesario, las claves de metadatos del NIF/CIF del "
 "comprador. Guarda los cambios antes de emitir documentos."
-msgstr ""
+msgstr "Vul de officiële bedrijfsnaam, handelsnaam, het fiscale nummer, postadres, plaats, land, contactgegevens en logo in. Stel de documentvoettekst en zo nodig de metagegevenssleutels voor het belastingnummer van de koper in. Sla wijzigingen op voordat u documenten uitgeeft."
 
 #: includes/class-taxocommerce-billing-manual.php:25
 msgid ""
 "Los datos de empresa forman parte de la instantánea del documento: comprueba"
 " el resultado PDF y verifica que los datos legales del emisor sean "
 "correctos."
-msgstr ""
+msgstr "Bedrijfsgegevens worden vastgelegd in de momentopname van het document. Controleer de PDF en of de juridische gegevens van de uitgever juist zijn."
 
 #: includes/class-taxocommerce-billing-manual.php:27
 msgid "3. Fiscalidad"
-msgstr ""
+msgstr "3. Belastingen"
 
 #: includes/class-taxocommerce-billing-manual.php:28
 msgid ""
@@ -156,7 +156,7 @@ msgid ""
 "configurar tratamiento de precios con impuestos incluidos, envíos y tipos "
 "para Península, Baleares, Canarias, Ceuta y Melilla. Revisa además las notas"
 " sobre gastos o tributos de destino para territorios especiales."
-msgstr ""
+msgstr "Via het tabblad Belastingen kunt u het beheer van verkoopbelastingen inschakelen en prijzen inclusief belasting, verzending en tarieven instellen voor het Spaanse vasteland, de Balearen, Canarische Eilanden, Ceuta en Melilla. Bekijk ook de opmerkingen over heffingen en belastingen op speciale bestemmingen."
 
 #: includes/class-taxocommerce-billing-manual.php:29
 msgid ""
@@ -164,11 +164,11 @@ msgid ""
 "por correcta una configuración fiscal solo porque Autotest marque el módulo "
 "como disponible; las obligaciones tributarias concretas requieren revisión "
 "profesional."
-msgstr ""
+msgstr "WooCommerce blijft de bron voor bestellingen, producten en betalingen. Ga niet uit van correcte belastingen omdat de Auto Test de module beschikbaar noemt; concrete fiscale verplichtingen vereisen professionele controle."
 
 #: includes/class-taxocommerce-billing-manual.php:31
 msgid "4. Facturas"
-msgstr ""
+msgstr "4. Facturen"
 
 #: includes/class-taxocommerce-billing-manual.php:32
 msgid ""
@@ -177,18 +177,18 @@ msgid ""
 "activada, el módulo reacciona a los estados de pago previstos por "
 "WooCommerce. El sistema conserva el número, la instantánea y el PDF "
 "asociados al pedido."
-msgstr ""
+msgstr "Stel nummerreeks, nummerlengte, titel, automatische uitgifte, zichtbare velden en bijlagen bij WooCommerce-e-mails in. Bij automatische uitgifte reageert de module op de ingestelde betaalstatussen. Nummer, momentopname en PDF blijven aan de bestelling gekoppeld."
 
 #: includes/class-taxocommerce-billing-manual.php:33
 msgid ""
 "Desde un pedido WooCommerce también existen controles manuales para generar,"
 " descargar o enviar el documento, sujetos a permisos. Antes de reintentar, "
 "comprueba si ya existe un documento emitido para ese pedido."
-msgstr ""
+msgstr "Vanuit een WooCommerce-bestelling zijn, afhankelijk van rechten, ook handmatige acties beschikbaar om documenten te maken, downloaden of verzenden. Controleer voor een nieuwe poging of er al een document voor deze bestelling is uitgegeven."
 
 #: includes/class-taxocommerce-billing-manual.php:35
 msgid "5. Proformas"
-msgstr ""
+msgstr "5. Pro-formafacturen"
 
 #: includes/class-taxocommerce-billing-manual.php:36
 msgid ""
@@ -196,17 +196,17 @@ msgid ""
 "proformas (la configuración inicial contempla pedidos en espera). Puedes "
 "mostrar instrucciones de pago, beneficiario, IBAN o Bizum cuando sea "
 "apropiado. La proforma no equivale a factura fiscal definitiva."
-msgstr ""
+msgstr "Configureer een aparte nummerreeks en de bestelstatussen waarvoor pro-formafacturen zijn toegestaan (aanvankelijk ook bestellingen in de wacht). U kunt betalingsinstructies, begunstigde, IBAN of Bizum tonen. Een pro-formafactuur is geen definitieve fiscale factuur."
 
 #: includes/class-taxocommerce-billing-manual.php:37
 msgid ""
 "La emisión y los adjuntos de correos dependen de las casillas activadas y de"
 " los estados de pedido definidos, sin sustituir el registro contable."
-msgstr ""
+msgstr "Uitgifte en e-mailbijlagen hangen af van de aangevinkte opties en ingestelde bestelstatussen; ze vervangen de boekhouding niet."
 
 #: includes/class-taxocommerce-billing-manual.php:39
 msgid "6. Presupuestos desde el carrito"
-msgstr ""
+msgstr "6. Offertes vanuit de winkelwagen"
 
 #: includes/class-taxocommerce-billing-manual.php:40
 msgid ""
@@ -214,11 +214,11 @@ msgid ""
 " validez, permiso a invitados, datos solicitados, visualización de "
 "SKU/impuestos/envío/descuentos/imágenes, posibilidad de copia por email y "
 "límite horario de solicitudes."
-msgstr ""
+msgstr "Schakel het downloaden van offertes voor klanten in en stel geldigheidsduur, toegang voor gasten, vereiste gegevens, weergave van SKU/belastingen/verzending/kortingen/afbeeldingen, optionele e-mailkopie en het uurlimiet in."
 
 #: includes/class-taxocommerce-billing-manual.php:43
 msgid "7. Documentos emitidos"
-msgstr ""
+msgstr "7. Uitgegeven documenten"
 
 #: includes/class-taxocommerce-billing-manual.php:44
 msgid ""
@@ -227,19 +227,19 @@ msgid ""
 "permiten descargar, reenviar o reintentar el PDF según el estado de cada "
 "documento. No utilices esta vista para modificar el estado de pago original "
 "del pedido."
-msgstr ""
+msgstr "Bekijk facturen en pro-formafacturen bij bestellingen: nummer, type, datum, status, e-maildatum en acties. Afhankelijk van de documentstatus kunt u PDF's downloaden, opnieuw versturen of opnieuw proberen te genereren. Wijzig hier niet de oorspronkelijke betaalstatus van de bestelling."
 
 #: includes/class-taxocommerce-billing-manual.php:46
 msgid "8. Autotest"
-msgstr ""
+msgstr "8. Auto Test"
 
 #: includes/class-taxocommerce-billing-manual.php:47
 msgid "Abre Autotest y pulsa"
-msgstr ""
+msgstr "Open Auto Test en klik op"
 
 #: includes/class-taxocommerce-billing-manual.php:47
 msgid "Ejecutar autotest"
-msgstr ""
+msgstr "Auto Test uitvoeren"
 
 #: includes/class-taxocommerce-billing-manual.php:47
 msgid ""
@@ -247,114 +247,114 @@ msgid ""
 "documentos, Dompdf e integraciones de WooCommerce. Un aviso de configuración"
 " pendiente no equivale a una avería del módulo. El resultado se muestra sin "
 "guardarse y sin generar documentos."
-msgstr ""
+msgstr ". Controleert beschikbaarheid, klassen, instellingen, documenttabel, Dompdf en WooCommerce-integraties. Een waarschuwing over ontbrekende instellingen is geen modulefout. Het resultaat wordt getoond zonder opslag of documentaanmaak."
 
 #: includes/class-taxocommerce-billing-manual.php:50
 msgid "9. Arquitectura y compatibilidad"
-msgstr ""
+msgstr "9. Architectuur en compatibiliteit"
 
 #: includes/class-taxocommerce-billing-manual.php:54
 msgid "10. Persistencia y migraciones"
-msgstr ""
+msgstr "10. Opslag en migraties"
 
 #: includes/class-taxocommerce-billing-manual.php:59
 msgid "11. Integración con WooCommerce"
-msgstr ""
+msgstr "11. WooCommerce-integratie"
 
 #: includes/class-taxocommerce-billing-manual.php:63
 msgid "12. Motor PDF y protección"
-msgstr ""
+msgstr "12. PDF-engine en beveiliging"
 
 #: includes/class-taxocommerce-billing-manual.php:65
 msgid ""
 "El archivo PDF es un documento sensible. Respeta los directorios privados y "
 "los controles de descarga; no muevas PDFs a carpetas públicas ni incluyas "
 "datos de clientes en tickets o capturas sin anonimizar."
-msgstr ""
+msgstr "Een PDF kan gevoelige gegevens bevatten. Houd privémappen en downloadcontroles intact. Verplaats PDF's niet naar openbare mappen en anonimiseer klantgegevens in supporttickets of screenshots."
 
 #: includes/class-taxocommerce-billing-manual.php:67
 msgid "13. Seguridad y Autotest"
-msgstr ""
+msgstr "13. Beveiliging en Auto Test"
 
 #: includes/class-taxocommerce-billing-manual.php:71
 msgid "14. Desarrollo y despliegue"
-msgstr ""
+msgstr "14. Ontwikkeling en uitrol"
 
 #: includes/class-taxocommerce-billing-manual.php:75
 msgid "15. Diagnósticos habituales"
-msgstr ""
+msgstr "15. Veelvoorkomende diagnoses"
 
 #: includes/class-taxocommerce-billing-manual.php:77
 msgid "No aparecen facturas:"
-msgstr ""
+msgstr "Facturen ontbreken:"
 
 #: includes/class-taxocommerce-billing-manual.php:77
 msgid ""
 "revisa que WooCommerce esté activo, el sistema documental habilitado, la "
 "emisión automática seleccionada y el estado del pedido."
-msgstr ""
+msgstr "controleer of WooCommerce actief is, het documentsysteem en de automatische uitgifte zijn ingeschakeld en de bestelling de vereiste status heeft."
 
 #: includes/class-taxocommerce-billing-manual.php:78
 msgid "No se genera PDF:"
-msgstr ""
+msgstr "PDF wordt niet aangemaakt:"
 
 #: includes/class-taxocommerce-billing-manual.php:78
 msgid ""
 "revisa Dompdf y permisos de los archivos privados; consulta el último error "
 "del documento."
-msgstr ""
+msgstr "controleer Dompdf en toegangsrechten voor privébestanden; bekijk de laatste foutmelding van het document."
 
 #: includes/class-taxocommerce-billing-manual.php:79
 msgid "Faltan documentos antiguos:"
-msgstr ""
+msgstr "Oude documenten ontbreken:"
 
 #: includes/class-taxocommerce-billing-manual.php:79
 msgid ""
 "comprueba que persiste la tabla legada y que no se ha alterado la numeración"
 " o los datos de migración."
-msgstr ""
+msgstr "controleer of de oude tabel nog bestaat en nummering of migratiegegevens niet zijn gewijzigd."
 
 #: includes/class-taxocommerce-billing-manual.php:80
 msgid "El carrito no ofrece presupuestos:"
-msgstr ""
+msgstr "Offertes ontbreken in de winkelwagen:"
 
 #: includes/class-taxocommerce-billing-manual.php:80
 msgid ""
 "revisa su activación, el tipo de carrito (clásico o bloque) y el shortcode "
 "si procede."
-msgstr ""
+msgstr "controleer of offertes zijn ingeschakeld, of de winkelwagen klassiek of blokgebaseerd is en eventueel de shortcode."
 
 #: includes/class-taxocommerce-billing-manual.php:81
 msgid "El cliente no descarga un documento:"
-msgstr ""
+msgstr "Een klant kan geen document downloaden:"
 
 #: includes/class-taxocommerce-billing-manual.php:81
 msgid ""
 "revisa permisos del pedido y restricciones de descarga, nunca hagas públicos"
 " los archivos."
-msgstr ""
+msgstr "controleer bestelrechten en downloadbeperkingen; maak bestanden nooit openbaar."
 
 #: includes/class-taxocommerce-billing-manual.php:82
 msgid "Autotest indica aviso:"
-msgstr ""
+msgstr "Auto Test toont een waarschuwing:"
 
 #: includes/class-taxocommerce-billing-manual.php:82
 msgid ""
 "distingue una opción no guardada de un error funcional. El test nunca emite "
 "facturas de prueba."
-msgstr ""
+msgstr "onderscheid een niet-opgeslagen instelling van een functionele fout. De test geeft nooit proef facturen uit."
 
 #: includes/class-taxocommerce-billing-manual.php:83
 msgid "Volver al índice"
-msgstr ""
+msgstr "Terug naar de inhoudsopgave"
 
 #: taxocommerce-facturacion.php:49
 msgid "Sin permisos para acceder a Billing."
-msgstr "Geen toegang tot Facturatie."
+msgstr "U hebt geen toestemming voor Billing."
 
 #: taxocommerce-facturacion.php:89
 msgid "El módulo documental de Billing no está disponible."
-msgstr ""
+msgstr "De documentmodule van Billing is niet beschikbaar."
 
 #: taxocommerce-facturacion.php:118
 msgid "Billing"

@@ -57,7 +57,7 @@ final class TCV_Admin {
             return;
         }
         $tab = self::tab();
-        echo '<div class="wrap tcv-wrap"><h1>TaxoCommerce Vocabulary <small>v' . esc_html( TAXOCOMMERCE_VOCABULARY_VERSION ) . '</small></h1><p class="description">Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico.</p>';
+        echo '<div class="wrap tcv-wrap"><h1>' . esc_html__( 'TaxoCommerce Vocabulary', 'taxocommerce-vocabulary' ) . ' <small>v' . esc_html( TAXOCOMMERCE_VOCABULARY_VERSION ) . '</small></h1><p class="description">' . esc_html__( 'Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico.', 'taxocommerce-vocabulary' ) . '</p>';
         // These GET parameters display an escaped notice; no state changes.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended
         if ( ! empty( $_GET['tcv_message'] ) ) {
@@ -85,7 +85,7 @@ final class TCV_Admin {
     }
 
     private static function nav( $active ) {
-        $tabs = array( 'labels'=>'Etiquetas','attributes'=>'Atributos','classifier'=>'Clasificador','io'=>'Importar / Exportar','control'=>'Control','auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' ),'manual'=>'Manual' );
+        $tabs = array( 'labels'=>__( 'Etiquetas', 'taxocommerce-vocabulary' ),'attributes'=>__( 'Atributos', 'taxocommerce-vocabulary' ),'classifier'=>__( 'Clasificador', 'taxocommerce-vocabulary' ),'io'=>__( 'Importar / Exportar', 'taxocommerce-vocabulary' ),'control'=>__( 'Control', 'taxocommerce-vocabulary' ),'auto-test'=>__( 'Autocheck', 'taxocommerce-vocabulary' ),'manual'=>__( 'Manual', 'taxocommerce-vocabulary' ) );
         echo '<nav class="nav-tab-wrapper">';
         foreach ( $tabs as $key => $label ) {
             $url = add_query_arg( array( 'page'=>'taxocommerce-vocabulary','tab'=>$key ), admin_url( 'admin.php' ) );
@@ -111,13 +111,13 @@ final class TCV_Admin {
             echo '<div class="tcv-card"><strong>' . esc_html( strtoupper( $g ) ) . '</strong><span>' . esc_html( number_format_i18n( isset( $counts[$g] ) ? $counts[$g]->n : 0 ) ) . '</span></div>';
         }
         echo '</div>';
-        echo '<div class="tcv-panel"><h2>Alta de etiqueta</h2><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_create_term">';
+        echo '<div class="tcv-panel"><h2>' . esc_html__( 'Alta de etiqueta', 'taxocommerce-vocabulary' ) . '</h2><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_create_term">';
         wp_nonce_field( 'tcv_create_term' );
         echo '<select name="group">';
         foreach ( TCV_Classifier::GROUPS as $g ) {
             echo '<option value="' . esc_attr( $g ) . '">' . esc_html( strtoupper( $g ) ) . '</option>';
         }
-        echo '</select>' . ' ' . '<input name="label" class="regular-text" placeholder="Nombre visible" required>' . ' ' . '<button class="button button-primary">' . esc_html__( 'Dar de alta', 'taxocommerce-vocabulary' ) . '</button>' . '</form>' . '</div>';
+        echo '</select>' . ' ' . '<input name="label" class="regular-text" placeholder="' . esc_attr__( 'Nombre visible', 'taxocommerce-vocabulary' ) . '" required>' . ' ' . '<button class="button button-primary">' . esc_html__( 'Dar de alta', 'taxocommerce-vocabulary' ) . '</button>' . '</form>' . '</div>';
         $rows = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT semantic_group,slug,label,source,active FROM %i ORDER BY semantic_group,label LIMIT %d',
@@ -128,7 +128,7 @@ final class TCV_Admin {
         );
         echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Diccionario', 'taxocommerce-vocabulary' ) . '</h2>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Etiqueta', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Slug', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Origen', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $rows as $r ) {
-            echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? 'Activa' : 'Inactiva' ) . '</td></tr>';
+            echo '<tr><td>' . esc_html( strtoupper( $r['semantic_group'] ) ) . '</td><td>' . esc_html( $r['label'] ) . '</td><td><code>' . esc_html( $r['slug'] ) . '</code></td><td>' . esc_html( $r['source'] ) . '</td><td>' . ( $r['active'] ? esc_html__( 'Activa', 'taxocommerce-vocabulary' ) : esc_html__( 'Inactiva', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
         }
         echo '</tbody>' . '</table>' . '<p class="description">' . esc_html__( 'Se muestran como máximo 300 filas en esta vista.', 'taxocommerce-vocabulary' ) . '</p>' . '</div>';
     }
@@ -153,7 +153,7 @@ final class TCV_Admin {
         );
         echo '<div class="tcv-panel">' . '<h2>' . esc_html__( 'Atributos técnicos canónicos', 'taxocommerce-vocabulary' ) . '</h2>' . '<p>' . esc_html__( 'Definiciones propias de TaxoCommerce. No se convierten automáticamente en atributos WooCommerce.', 'taxocommerce-vocabulary' ) . '</p>' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Atributo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Tipo', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Unidad', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Términos', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Aliases', 'taxocommerce-vocabulary' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-vocabulary' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
         foreach ( $attrs as $a ) {
-            echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? 'Activo' : 'Inactivo' ) . '</td></tr>';
+            echo '<tr><td><strong>' . esc_html( $a['nombre'] ) . '</strong><br><code>' . esc_html( $a['slug'] ) . '</code></td><td>' . esc_html( $a['tipo'] ) . '</td><td>' . esc_html( $a['unidad_base'] ) . '</td><td>' . esc_html( $a['term_count'] ) . '</td><td>' . esc_html( $a['alias_count'] ) . '</td><td>' . ( $a['activo'] ? esc_html__( 'Activo', 'taxocommerce-vocabulary' ) : esc_html__( 'Inactivo', 'taxocommerce-vocabulary' ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }
@@ -181,27 +181,27 @@ final class TCV_Admin {
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="tcv-filter">';
         echo '<input type="hidden" name="action" value="tcv_analyze_filtered">';
         wp_nonce_field( 'tcv_analyze_filtered' );
-        echo '<label>Buscar<input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="Producto, SKU o ID"></label>';
+        echo '<label>' . esc_html__( 'Buscar', 'taxocommerce-vocabulary' ) . '<input type="text" name="search" value="' . esc_attr( $filters['search'] ) . '" placeholder="' . esc_attr__( 'Producto, SKU o ID', 'taxocommerce-vocabulary' ) . '"></label>';
         echo '<label>' . esc_html__( 'Categoría', 'taxocommerce-vocabulary' ) . '<select name="category_id">' . '<option value="0">' . esc_html__( 'Todas', 'taxocommerce-vocabulary' ) . '</option>';
         foreach ( $categories as $category ) {
             echo '<option value="' . esc_attr( $category->term_id ) . '" ' . selected( $filters['category_id'], $category->term_id, false ) . '>' . esc_html( $category->name ) . '</option>';
         }
         echo '</select></label>';
         $coverage_labels = array(
-            'missing_any'=>'Cobertura incompleta (falta alguna)',
-            'without_any'=>'Sin etiquetas semánticas',
-            'without_type'=>'Sin TIPO',
-            'without_role'=>'Sin ROL',
-            'without_application'=>'Sin APLICACIÓN',
-            'without_platform'=>'Sin PLATAFORMA',
-            'without_subtype'=>'Sin SUBTIPO',
+            'missing_any'=>__( 'Cobertura incompleta (falta alguna)', 'taxocommerce-vocabulary' ),
+            'without_any'=>__( 'Sin etiquetas semánticas', 'taxocommerce-vocabulary' ),
+            'without_type'=>__( 'Sin TIPO', 'taxocommerce-vocabulary' ),
+            'without_role'=>__( 'Sin ROL', 'taxocommerce-vocabulary' ),
+            'without_application'=>__( 'Sin APLICACIÓN', 'taxocommerce-vocabulary' ),
+            'without_platform'=>__( 'Sin PLATAFORMA', 'taxocommerce-vocabulary' ),
+            'without_subtype'=>__( 'Sin SUBTIPO', 'taxocommerce-vocabulary' ),
         );
         echo '<label>' . esc_html__( 'Cobertura', 'taxocommerce-vocabulary' ) . '<select name="coverage">';
         foreach ( $coverage_labels as $value=>$label ) {
             echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['coverage'], $value, false ) . '>' . esc_html( $label ) . '</option>';
         }
         echo '</select></label>';
-        $priority_labels = array( 'all'=>'Todas las anomalías','p1'=>'P1 · falta TIPO','p2'=>'P2 · falta ROL','p3'=>'P3 · falta APLICACIÓN','p4'=>'P4 · falta SUBTIPO','p5'=>'P5 · falta PLATAFORMA' );
+        $priority_labels = array( 'all'=>__( 'Todas las anomalías', 'taxocommerce-vocabulary' ),'p1'=>__( 'P1 · falta TIPO', 'taxocommerce-vocabulary' ),'p2'=>__( 'P2 · falta ROL', 'taxocommerce-vocabulary' ),'p3'=>__( 'P3 · falta APLICACIÓN', 'taxocommerce-vocabulary' ),'p4'=>__( 'P4 · falta SUBTIPO', 'taxocommerce-vocabulary' ),'p5'=>__( 'P5 · falta PLATAFORMA', 'taxocommerce-vocabulary' ) );
         echo '<label>' . esc_html__( 'Prioridad', 'taxocommerce-vocabulary' ) . '<select name="priority">';
         foreach ( $priority_labels as $value=>$label ) {
             echo '<option value="' . esc_attr( $value ) . '" ' . selected( $filters['priority'], $value, false ) . '>' . esc_html( $label ) . '</option>';
@@ -218,8 +218,8 @@ final class TCV_Admin {
         $report = TCV_Classifier::last_report();
         if ( $report ) {
             $export = wp_nonce_url( admin_url( 'admin-post.php?action=tcv_export_classifier_json' ), 'tcv_export_classifier_json' );
-            echo '<div class="tcv-panel"><h2>Último análisis filtrado</h2><p>Procesados: <strong>' . esc_html( absint( $report['processed'] ?? 0 ) ) . '</strong> · Generado: ' . esc_html( (string) ( $report['generated_gmt'] ?? '' ) ) . ' UTC.</p>';
-            echo '<p><a class="button" href="' . esc_url( $export ) . '">Exportar JSON del análisis</a></p>';
+            echo '<div class="tcv-panel"><h2>' . esc_html__( 'Último análisis filtrado', 'taxocommerce-vocabulary' ) . '</h2><p>' . esc_html__( 'Procesados:', 'taxocommerce-vocabulary' ) . ' <strong>' . esc_html( absint( $report['processed'] ?? 0 ) ) . '</strong> · ' . esc_html__( 'Generado:', 'taxocommerce-vocabulary' ) . ' ' . esc_html( (string) ( $report['generated_gmt'] ?? '' ) ) . ' UTC.</p>';
+            echo '<p><a class="button" href="' . esc_url( $export ) . '" >' . esc_html__( 'Exportar JSON del análisis', 'taxocommerce-vocabulary' ) . '</a></p>';
             echo '<pre class="tcv-json">' . esc_html( wp_json_encode( (array) ( $report['filters'] ?? array() ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) ) . '</pre></div>';
         }
 
@@ -231,7 +231,7 @@ final class TCV_Admin {
         }
         echo '</tbody></table></div>';
 
-        echo '<div class="tcv-panel"><h2>Análisis puntual de categoría</h2><p>Para revisar una categoría concreta sin recorrer el catálogo completo.</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
+        echo '<div class="tcv-panel"><h2>' . esc_html__( 'Análisis puntual de categoría', 'taxocommerce-vocabulary' ) . '</h2><p>' . esc_html__( 'Para revisar una categoría concreta sin recorrer el catálogo completo.', 'taxocommerce-vocabulary' ) . '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="tcv_analyze_category">';
         wp_nonce_field( 'tcv_analyze_category' );
         echo '<label>' . esc_html__( 'Categoría ID', 'taxocommerce-vocabulary' ) . ' ' . '<input type="number" name="term_id" min="1" required>' . '</label>' . ' ' . '<button class="button">' . esc_html__( 'Analizar categoría', 'taxocommerce-vocabulary' ) . '</button>' . '</form>' . '</div>';
 
@@ -250,11 +250,11 @@ final class TCV_Admin {
         $attrs = wp_nonce_url( admin_url( 'admin-post.php?action=tcv_export_attributes' ), 'tcv_export_attributes' );
 
         echo '<div class="tcv-grid">';
-        echo '<div class="tcv-panel"><h2>Etiquetas</h2><p>Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL.</p><a class="button button-primary" href="' . esc_url( $labels ) . '">Exportar CSV de etiquetas</a>';
+        echo '<div class="tcv-panel"><h2>' . esc_html__( 'Etiquetas', 'taxocommerce-vocabulary' ) . '</h2><p>' . esc_html__( 'Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL.', 'taxocommerce-vocabulary' ) . '</p><a class="button button-primary" href="' . esc_url( $labels ) . '" >' . esc_html__( 'Exportar CSV de etiquetas', 'taxocommerce-vocabulary' ) . '</a>';
         self::render_import_form( 'labels' );
         echo '</div>';
 
-        echo '<div class="tcv-panel"><h2>Atributos</h2><p>Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos.</p><a class="button button-primary" href="' . esc_url( $attrs ) . '">Exportar CSV de atributos</a>';
+        echo '<div class="tcv-panel"><h2>' . esc_html__( 'Atributos', 'taxocommerce-vocabulary' ) . '</h2><p>' . esc_html__( 'Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos.', 'taxocommerce-vocabulary' ) . '</p><a class="button button-primary" href="' . esc_url( $attrs ) . '" >' . esc_html__( 'Exportar CSV de atributos', 'taxocommerce-vocabulary' ) . '</a>';
         self::render_import_form( 'attributes' );
         echo '</div></div>';
 
@@ -268,7 +268,7 @@ final class TCV_Admin {
             <input type="hidden" name="domain" value="<?php echo esc_attr( $domain ); ?>">
             <?php wp_nonce_field( 'tcv_import' ); ?>
             <input type="file" name="csv" accept=".csv,text/csv" required>
-            <button class="button">Importar CSV</button>
+            <button class="button"><?php esc_html_e( 'Importar CSV', 'taxocommerce-vocabulary' ); ?></button>
         </form>
         <?php
     }
@@ -287,7 +287,7 @@ final class TCV_Admin {
                     $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
                 );
             }
-            echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? 'OK' : 'Falta' ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
+            echo '<tr><td><code>' . esc_html( $table ) . '</code></td><td>' . ( $exists === $table ? esc_html__( 'OK', 'taxocommerce-vocabulary' ) : esc_html__( 'Falta', 'taxocommerce-vocabulary' ) ) . '</td><td>' . esc_html( number_format_i18n( $count ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
     }

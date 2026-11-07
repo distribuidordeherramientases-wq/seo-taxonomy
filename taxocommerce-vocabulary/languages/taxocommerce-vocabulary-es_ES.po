@@ -284,3 +284,217 @@ msgid ""
 "atributos; por seguridad no borra maestros canónicos que no estén en el "
 "paquete."
 msgstr "MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete."
+
+msgid "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+msgstr "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+
+msgid "Etiquetas"
+msgstr "Etiquetas"
+
+msgid "Atributos"
+msgstr "Atributos"
+
+msgid "Importar / Exportar"
+msgstr "Importar / Exportar"
+
+msgid "Control"
+msgstr "Control"
+
+msgid "Autocheck"
+msgstr "Autocheck"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Alta de etiqueta"
+msgstr "Alta de etiqueta"
+
+msgid "Nombre visible"
+msgstr "Nombre visible"
+
+msgid "Activa"
+msgstr "Activa"
+
+msgid "Inactiva"
+msgstr "Inactiva"
+
+msgid "Activo"
+msgstr "Activo"
+
+msgid "Inactivo"
+msgstr "Inactivo"
+
+msgid "Buscar"
+msgstr "Buscar"
+
+msgid "Producto, SKU o ID"
+msgstr "Producto, SKU o ID"
+
+msgid "Cobertura incompleta (falta alguna)"
+msgstr "Cobertura incompleta (falta alguna)"
+
+msgid "Sin etiquetas semánticas"
+msgstr "Sin etiquetas semánticas"
+
+msgid "Sin TIPO"
+msgstr "Sin TIPO"
+
+msgid "Sin ROL"
+msgstr "Sin ROL"
+
+msgid "Sin APLICACIÓN"
+msgstr "Sin APLICACIÓN"
+
+msgid "Sin PLATAFORMA"
+msgstr "Sin PLATAFORMA"
+
+msgid "Sin SUBTIPO"
+msgstr "Sin SUBTIPO"
+
+msgid "Todas las anomalías"
+msgstr "Todas las anomalías"
+
+msgid "P1 · falta TIPO"
+msgstr "P1 · falta TIPO"
+
+msgid "P2 · falta ROL"
+msgstr "P2 · falta ROL"
+
+msgid "P3 · falta APLICACIÓN"
+msgstr "P3 · falta APLICACIÓN"
+
+msgid "P4 · falta SUBTIPO"
+msgstr "P4 · falta SUBTIPO"
+
+msgid "P5 · falta PLATAFORMA"
+msgstr "P5 · falta PLATAFORMA"
+
+msgid "Último análisis filtrado"
+msgstr "Último análisis filtrado"
+
+msgid "Procesados:"
+msgstr "Procesados:"
+
+msgid "Generado:"
+msgstr "Generado:"
+
+msgid "Exportar JSON del análisis"
+msgstr "Exportar JSON del análisis"
+
+msgid "Análisis puntual de categoría"
+msgstr "Análisis puntual de categoría"
+
+msgid "Para revisar una categoría concreta sin recorrer el catálogo completo."
+msgstr "Para revisar una categoría concreta sin recorrer el catálogo completo."
+
+msgid "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+msgstr "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+
+msgid "Exportar CSV de etiquetas"
+msgstr "Exportar CSV de etiquetas"
+
+msgid "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+msgstr "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+
+msgid "Exportar CSV de atributos"
+msgstr "Exportar CSV de atributos"
+
+msgid "Importar CSV"
+msgstr "Importar CSV"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Falta"
+msgstr "Falta"
+
+msgid "Exportar catálogo"
+msgstr "Exportar catálogo"
+
+msgid "Maestros: Vocabulary, TIPO → ROL y atributos"
+msgstr "Maestros: Vocabulary, TIPO → ROL y atributos"
+
+msgid "Producto → Vocabulary"
+msgstr "Producto → Vocabulary"
+
+msgid "Categoría → Vocabulary"
+msgstr "Categoría → Vocabulary"
+
+msgid "Producto → atributos canónicos"
+msgstr "Producto → atributos canónicos"
+
+msgid "Producto → etiquetas WooCommerce"
+msgstr "Producto → etiquetas WooCommerce"
+
+msgid "Última simulación:"
+msgstr "Última simulación:"
+
+msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+msgstr "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+
+msgid "Manual de TaxoCommerce Vocabulary"
+msgstr "Manual de TaxoCommerce Vocabulary"
+
+msgid "Manual de usuario"
+msgstr "Manual de usuario"
+
+msgid "Manual técnico"
+msgstr "Manual técnico"
+
+msgid "1. Manual de usuario"
+msgstr "1. Manual de usuario"
+
+msgid "1.1 Para qué sirve Vocabulary"
+msgstr "1.1 Para qué sirve Vocabulary"
+
+msgid "1.2 Acceso y estructura"
+msgstr "1.2 Acceso y estructura"
+
+msgid "1.3 Etiquetas: altas y diccionario"
+msgstr "1.3 Etiquetas: altas y diccionario"
+
+msgid "1.4 Atributos técnicos"
+msgstr "1.4 Atributos técnicos"
+
+msgid "1.5 Clasificador"
+msgstr "1.5 Clasificador"
+
+msgid "1.6 Importar / Exportar: CSV"
+msgstr "1.6 Importar / Exportar: CSV"
+
+msgid "1.7 Catálogo portable: JSON"
+msgstr "1.7 Catálogo portable: JSON"
+
+msgid "1.8 Control de integridad"
+msgstr "1.8 Control de integridad"
+
+msgid "1.9 Auto Test"
+msgstr "1.9 Auto Test"
+
+msgid "1.10 Secuencia recomendada"
+msgstr "1.10 Secuencia recomendada"
+
+msgid "2. Manual técnico"
+msgstr "2. Manual técnico"
+
+msgid "2.1 Componentes y arranque"
+msgstr "2.1 Componentes y arranque"
+
+msgid "2.2 Modelo de datos existente"
+msgstr "2.2 Modelo de datos existente"
+
+msgid "2.3 Contratos del clasificador"
+msgstr "2.3 Contratos del clasificador"
+
+msgid "2.4 Rutas y seguridad"
+msgstr "2.4 Rutas y seguridad"
+
+msgid "2.5 Importaciones y portabilidad"
+msgstr "2.5 Importaciones y portabilidad"
+
+msgid "2.6 Auto Test: alcance y persistencia"
+msgstr "2.6 Auto Test: alcance y persistencia"
+
+msgid "2.7 Límites y pruebas"
+msgstr "2.7 Límites y pruebas"
+

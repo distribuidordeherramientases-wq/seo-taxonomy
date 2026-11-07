@@ -1,3 +1,9 @@
+## [Unreleased] — Primera fase de internacionalización (#2274)
+
+- Traducidas 42 cadenas principales de administración, accesibilidad, diagnósticos y manual en cinco idiomas: es_ES, en_US, fr_FR, de_DE y nl_NL.
+- Regenerados los catálogos binarios MO correspondientes. Sin cambios en los chequeos ni en sus resultados.
+- Continúan pendientes las demás cadenas del POT, la auditoría de literales fuera de gettext y las pruebas reales de locale. No declarar internacionalización completa.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.

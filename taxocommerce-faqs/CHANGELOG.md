@@ -1,3 +1,9 @@
+## [Unreleased] — Internacionalización de interfaz FAQs (#2281)
+
+- Traducidas 27 entradas de interfaz, menús, campos y CSV a es_ES, en_US, fr_FR, de_DE y nl_NL.
+- Regenerados los cinco MO y conservada la compatibilidad del text domain; sin modificar el modelo de preguntas ni la tabla compartida.
+- Pendientes la traducción del resto del manual y pruebas de cambio de idioma en WordPress. No se declara cobertura completa.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.

@@ -1,3 +1,10 @@
+## [Unreleased] — Catálogos i18n completos de Billing (#2276)
+
+- Traducidas las 68 entradas gettext actuales a español, inglés, francés, alemán y neerlandés, incluidos Autotest y manual de usuario/técnico.
+- PO y MO compilados en la carpeta languages del propio plugin; se mantienen el dominio nativo de WordPress y las rutas técnicas originales.
+- Sin modificar facturas, proformas, presupuestos, datos fiscales, PDF, permisos ni WooCommerce.
+- Pendiente la revisión de todos los textos de código fuera de gettext, calidad visual y selección de idioma en WordPress real.
+
 ## [Unreleased] — Regional WordPress locale fallback (#2295)
 
 - Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.

@@ -280,3 +280,288 @@ msgstr ""
 #: includes/class-tcv-portable.php:69
 msgid "MIRROR sustituye las asignaciones incluidas de productos/categorías y sus atributos; por seguridad no borra maestros canónicos que no estén en el paquete."
 msgstr ""
+
+#: includes/class-tcv-admin.php:60
+msgid "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Etiquetas"
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Atributos"
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Importar / Exportar"
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Control"
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Autocheck"
+msgstr ""
+
+#: includes/class-tcv-admin.php:88
+msgid "Manual"
+msgstr ""
+
+#: includes/class-tcv-admin.php:114
+msgid "Alta de etiqueta"
+msgstr ""
+
+#: includes/class-tcv-admin.php:120
+msgid "Nombre visible"
+msgstr ""
+
+#: includes/class-tcv-admin.php:131
+msgid "Activa"
+msgstr ""
+
+#: includes/class-tcv-admin.php:131
+msgid "Inactiva"
+msgstr ""
+
+#: includes/class-tcv-admin.php:156
+msgid "Activo"
+msgstr ""
+
+#: includes/class-tcv-admin.php:156
+msgid "Inactivo"
+msgstr ""
+
+#: includes/class-tcv-admin.php:184
+msgid "Buscar"
+msgstr ""
+
+#: includes/class-tcv-admin.php:184
+msgid "Producto, SKU o ID"
+msgstr ""
+
+#: includes/class-tcv-admin.php:191
+msgid "Cobertura incompleta (falta alguna)"
+msgstr ""
+
+#: includes/class-tcv-admin.php:192
+msgid "Sin etiquetas semánticas"
+msgstr ""
+
+#: includes/class-tcv-admin.php:193
+msgid "Sin TIPO"
+msgstr ""
+
+#: includes/class-tcv-admin.php:194
+msgid "Sin ROL"
+msgstr ""
+
+#: includes/class-tcv-admin.php:195
+msgid "Sin APLICACIÓN"
+msgstr ""
+
+#: includes/class-tcv-admin.php:196
+msgid "Sin PLATAFORMA"
+msgstr ""
+
+#: includes/class-tcv-admin.php:197
+msgid "Sin SUBTIPO"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "Todas las anomalías"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "P1 · falta TIPO"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "P2 · falta ROL"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "P3 · falta APLICACIÓN"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "P4 · falta SUBTIPO"
+msgstr ""
+
+#: includes/class-tcv-admin.php:204
+msgid "P5 · falta PLATAFORMA"
+msgstr ""
+
+#: includes/class-tcv-admin.php:221
+msgid "Último análisis filtrado"
+msgstr ""
+
+#: includes/class-tcv-admin.php:221
+msgid "Procesados:"
+msgstr ""
+
+#: includes/class-tcv-admin.php:221
+msgid "Generado:"
+msgstr ""
+
+#: includes/class-tcv-admin.php:222
+msgid "Exportar JSON del análisis"
+msgstr ""
+
+#: includes/class-tcv-admin.php:234
+msgid "Análisis puntual de categoría"
+msgstr ""
+
+#: includes/class-tcv-admin.php:234
+msgid "Para revisar una categoría concreta sin recorrer el catálogo completo."
+msgstr ""
+
+#: includes/class-tcv-admin.php:253
+msgid "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+msgstr ""
+
+#: includes/class-tcv-admin.php:253
+msgid "Exportar CSV de etiquetas"
+msgstr ""
+
+#: includes/class-tcv-admin.php:257
+msgid "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+msgstr ""
+
+#: includes/class-tcv-admin.php:257
+msgid "Exportar CSV de atributos"
+msgstr ""
+
+#: includes/class-tcv-admin.php:271
+msgid "Importar CSV"
+msgstr ""
+
+#: includes/class-tcv-admin.php:290
+msgid "OK"
+msgstr ""
+
+#: includes/class-tcv-admin.php:290
+msgid "Falta"
+msgstr ""
+
+#: includes/class-tcv-portable.php:37
+msgid "Exportar catálogo"
+msgstr ""
+
+#: includes/class-tcv-portable.php:41
+msgid "Maestros: Vocabulary, TIPO → ROL y atributos"
+msgstr ""
+
+#: includes/class-tcv-portable.php:42
+msgid "Producto → Vocabulary"
+msgstr ""
+
+#: includes/class-tcv-portable.php:43
+msgid "Categoría → Vocabulary"
+msgstr ""
+
+#: includes/class-tcv-portable.php:44
+msgid "Producto → atributos canónicos"
+msgstr ""
+
+#: includes/class-tcv-portable.php:45
+msgid "Producto → etiquetas WooCommerce"
+msgstr ""
+
+#: includes/class-tcv-portable.php:67
+msgid "Última simulación:"
+msgstr ""
+
+#: taxocommerce-vocabulary.php:58
+msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "Manual de TaxoCommerce Vocabulary"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "Manual de usuario"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "Manual técnico"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1. Manual de usuario"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.1 Para qué sirve Vocabulary"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.2 Acceso y estructura"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.3 Etiquetas: altas y diccionario"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.4 Atributos técnicos"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.5 Clasificador"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.6 Importar / Exportar: CSV"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.7 Catálogo portable: JSON"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.8 Control de integridad"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.9 Auto Test"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "1.10 Secuencia recomendada"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2. Manual técnico"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.1 Componentes y arranque"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.2 Modelo de datos existente"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.3 Contratos del clasificador"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.4 Rutas y seguridad"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.5 Importaciones y portabilidad"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.6 Auto Test: alcance y persistencia"
+msgstr ""
+
+#: includes/class-tcv-manual.php
+msgid "2.7 Límites y pruebas"
+msgstr ""
+

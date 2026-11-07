@@ -55,7 +55,7 @@ function taxocommerce_vocabulary_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Vocabulary',
             'version'     => TAXOCOMMERCE_VOCABULARY_VERSION,
             'status'      => 'active',
-            'description' => 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.',
+            'description' => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.', 'taxocommerce-vocabulary' ),
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
         )
     );

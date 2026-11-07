@@ -4,6 +4,8 @@
  * No WordPress installation or outbound provider calls required.
  */
 define( 'ABSPATH', __DIR__ );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.21' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.21' );
 function get_option( $key, $default = array() ) {
     return isset( $GLOBALS['test_head_options'][ $key ] ) ? $GLOBALS['test_head_options'][ $key ] : $default;
 }
@@ -12,6 +14,12 @@ function is_admin() { return false; }
 function is_feed() { return false; }
 function wp_has_consent( $category ) { return 'statistics' === $category ? ! empty( $GLOBALS['test_head_consent'] ) : ( 'marketing' === $category && ! empty( $GLOBALS['test_head_marketing'] ) ); }
 function apply_filters( $name, $value ) { return $value; }
+function wp_json_encode( $value ) { return json_encode( $value ); }
+function wp_get_script_tag( $args ) { return '<script async src="' . htmlspecialchars( $args['src'], ENT_QUOTES, 'UTF-8' ) . '"></script>'; }
+function wp_get_inline_script_tag( $content ) { return '<script>' . $content . '</script>'; }
+function sanitize_key( $key ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', $key ) ); }
+function wp_enqueue_script( $handle, $source, $dependencies, $version, $args ) { $GLOBALS['test_ga_scripts'][] = array( 'handle' => $handle, 'src' => $source, 'args' => $args ); }
+function wp_add_inline_script( $handle, $content, $position ) { $GLOBALS['test_ga_inline'][] = array( $handle, $content, $position ); }
 
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-insights-head-tags.php';
 
@@ -72,6 +80,9 @@ $GLOBALS['test_head_options'] = array(
         'two' => array( 'name' => 'Clarity', 'kind' => 'tracking', 'code' => $clarity, 'enabled' => true ),
         'three' => array( 'name' => 'Inactive', 'kind' => 'verification', 'code' => $bing, 'enabled' => false ),
         'four' => array( 'name' => 'Google Tag Manager', 'kind' => 'tracking', 'code' => $normalizer->invoke( null, 'google_tag_manager', 'GTM-ABCD123', 'tracking' ), 'enabled' => true, 'provider' => 'google_tag_manager', 'provider_id' => 'GTM-ABCD123' ),
+        'five' => array( 'name' => 'GA4', 'kind' => 'tracking',
+            'code' => $normalizer->invoke( null, 'google_analytics', 'G-ABC123456', 'tracking' ),
+            'enabled' => true, 'provider' => 'google_analytics', 'provider_id' => 'G-ABC123456' ),
     ),
 );
 $GLOBALS['test_head_consent'] = false;
@@ -98,4 +109,38 @@ if ( false === strpos( $with_marketing, 'googletagmanager.com/gtm.js' ) ) {
 if ( false === strpos( $with_consent, 'clarity' ) ) {
     throw new RuntimeException( 'Consented tracking script missing' );
 }
+// GA4 scripts must be handled by the WordPress enqueue API and consent.
+$GLOBALS['test_ga_scripts'] = array();
+$GLOBALS['test_ga_inline'] = array();
+$GLOBALS['test_head_consent'] = false;
+TaxoCommerce_Insights_Head_Tags::enqueue_analytics();
+if ( $GLOBALS['test_ga_scripts'] ) {
+    throw new RuntimeException( 'GA4 enqueued without statistics consent' );
+}
+$GLOBALS['test_head_consent'] = true;
+TaxoCommerce_Insights_Head_Tags::enqueue_analytics();
+if ( 1 !== count( $GLOBALS['test_ga_scripts'] )
+    || 1 !== count( $GLOBALS['test_ga_inline'] )
+    || false === strpos( $GLOBALS['test_ga_scripts'][0]['src'], 'G-ABC123456' )
+    || 'after' !== $GLOBALS['test_ga_inline'][0][2]
+    || false === strpos( $GLOBALS['test_ga_inline'][0][1], 'gtag("config","G-ABC123456")' ) ) {
+    throw new RuntimeException( 'GA4 not correctly registered using WordPress script API' );
+}
+ob_start();
+TaxoCommerce_Insights_Head_Tags::output();
+$head_with_ga = ob_get_clean();
+if ( false !== strpos( $head_with_ga, 'googletagmanager.com/gtag/js' ) ) {
+    throw new RuntimeException( 'GA4 was echoed directly despite being enqueued' );
+}
+// If the legacy Google integration is enabled, avoid duplicate gtag requests.
+$GLOBALS['test_head_options']['seo_google_search_settings'] = array(
+    'tracking_enabled' => true,
+    'measurement_id' => 'G-ABC123456',
+);
+$GLOBALS['test_ga_scripts'] = array();
+TaxoCommerce_Insights_Head_Tags::enqueue_analytics();
+if ( $GLOBALS['test_ga_scripts'] ) {
+    throw new RuntimeException( 'GA4 duplicated an existing Google integration' );
+}
+
 echo "Head tags smoke test passed\n";
