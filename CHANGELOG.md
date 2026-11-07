@@ -1,3 +1,11 @@
+## 2026-11-07 — Entrega directa de Core manteniendo los tres workflows (#2340)
+
+- El workflow existente de STAGING/Focazul identifica los cambios de Core y/o Tasks en el propio evento push, incluso cuando una validación anterior hace que la base Git parezca idéntica a HEAD.
+- Reconcilia solo los archivos instalables del plugin seleccionado mediante SHA-256 remoto, sin publicar en PRO ni instalar módulos ajenos.
+- Cuando únicamente cambia el propio workflow/script, reconcilia Core para no perder correcciones de su catálogo.
+- Se conservan exactamente los tres procesos de Actions existentes; no se incorpora un cuarto workflow.
+- Nuevas pruebas de eventos Core, Tasks, ambos, modificaciones ajenas y rechazos de ramas distintas de staging.
+
 ## 2026-11-07 — Core: catálogo completo e índices MO opcionales (#2340)
 
 - Core 0.4.60 registra las 19 extensiones vigentes en su catálogo local, incluyendo Tasks ausente o inactivo, sin necesidad de cargar el plugin y sin instalación automática.

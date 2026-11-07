@@ -198,6 +198,113 @@ class DeltaTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-tasks", full=True)
 
+    def test_scoped_core_delivery_isolated_even_when_git_baseline_equals_head(self):
+        import json
+        import os
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            with mock.patch.dict(os.environ, {
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-core",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={}):
+                            module.plan()
+            data = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            self.assertEqual(json.loads(data["slugs"]), ["taxocommerce-core"])
+            self.assertEqual(data["core"], "true")
+            self.assertEqual(data["count"], "1")
+            self.assertEqual(data["sync"], "false")
+
+        files = [
+            "taxocommerce-core.php",
+            "includes/class-taxocommerce-core.php",
+            "languages/taxocommerce-core-es_ES.mo",
+        ]
+        with mock.patch.dict(os.environ, {"TAXOCOMMERCE_TARGET_PLUGIN": "taxocommerce-core"}):
+            with mock.patch.object(module, "plugin_source_files", return_value=files) as source:
+                with mock.patch.object(module, "changed_files", side_effect=AssertionError("Git baseline not allowed")):
+                    self.assertEqual(
+                        module.selected_deploy_files("a" * 40, "a" * 40, "taxocommerce-core"),
+                        files,
+                    )
+            source.assert_called_once_with("taxocommerce-core")
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-core", full=True)
+            with self.assertRaises(ValueError):
+                module.selected_deploy_files("a" * 40, "b" * 40, "taxocommerce-suppliers")
+
+    def test_scoped_core_reuses_existing_workflow(self):
+        workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/deploy-staging.yml").read_text()
+        self.assertIn("'taxocommerce-core/**'", workflow)
+        self.assertIn("'taxocommerce-tasks/**'", workflow)
+        self.assertIn("&& 'auto'", workflow)
+        self.assertIn("target_plugin:", workflow)
+        self.assertFalse((Path(__file__).resolve().parents[2] / ".github/workflows/deploy-core-staging.yml").exists())
+
+    def test_scoped_push_uses_actual_event_changes_only(self):
+        import json
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            event_path = Path(directory) / "event.json"
+            examples = [
+                (["taxocommerce-core/includes/class-taxocommerce-core.php"], ["taxocommerce-core"]),
+                (["taxocommerce-tasks/taxocommerce-tasks.php"], ["taxocommerce-tasks"]),
+                (["taxocommerce-core/taxocommerce-core.php", "taxocommerce-tasks/readme.txt"], ["taxocommerce-core", "taxocommerce-tasks"]),
+                ([".github/workflows/deploy-staging.yml"], ["taxocommerce-core"]),
+                (["taxocommerce-templates/taxocommerce-templates.php"], []),
+            ]
+            for paths, expected in examples:
+                event_path.write_text(json.dumps({
+                    "ref": "refs/heads/staging",
+                    "commits": [{"added": paths, "modified": [], "removed": []}],
+                }))
+                with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(event_path)}):
+                    self.assertEqual(module.scoped_push_plugins(), expected)
+            event_path.write_text(json.dumps({
+                "ref": "refs/heads/main",
+                "commits": [{"added": ["taxocommerce-core/taxocommerce-core.php"]}],
+            }))
+            with mock.patch.dict(os.environ, {"GITHUB_EVENT_PATH": str(event_path)}):
+                with self.assertRaises(ValueError):
+                    module.scoped_push_plugins()
+
+    def test_scoped_push_reconciles_core_when_baseline_already_equals_head(self):
+        import json
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as directory:
+            event = Path(directory) / "event.json"
+            output = Path(directory) / "output"
+            event.write_text(json.dumps({
+                "ref": "refs/heads/staging",
+                "commits": [{"modified": [".github/scripts/deploy_staging_delta.py"]}],
+            }))
+            with mock.patch.dict(os.environ, {
+                "GITHUB_EVENT_PATH": str(event),
+                "GITHUB_REPOSITORY": "shop/test",
+                "GITHUB_TOKEN": "fake",
+                "GITHUB_OUTPUT": str(output),
+                "TAXOCOMMERCE_FULL_SYNC": "0",
+                "TAXOCOMMERCE_TARGET_PLUGIN": "auto",
+            }):
+                with mock.patch.object(module, "git", return_value=b"a" * 40):
+                    with mock.patch.object(module, "last_successful_base", return_value="a" * 40):
+                        with mock.patch.object(module, "changed_files", return_value={}):
+                            module.plan()
+            recorded = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            self.assertEqual(json.loads(recorded["slugs"]), ["taxocommerce-core"])
+            self.assertEqual(recorded["core"], "true")
+            self.assertEqual(recorded["count"], "1")
+
     def test_targeted_push_rejects_other_plugins_and_manual_full_sync(self):
         import os
         with tempfile.TemporaryDirectory() as root:
@@ -212,7 +319,7 @@ class DeltaTests(unittest.TestCase):
                         "taxocommerce-tasks": ["taxocommerce-tasks.php"]
                     }):
                         with mock.patch.dict(os.environ, dict(env,
-                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-core",
+                            TAXOCOMMERCE_TARGET_PLUGIN="taxocommerce-templates",
                             TAXOCOMMERCE_FULL_SYNC="0")):
                             with self.assertRaises(ValueError):
                                 module.plan()

@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      target_plugin:
+        description: 'Optional scoped delivery: taxocommerce-core or taxocommerce-tasks'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       full_sync:
@@ -15,12 +20,13 @@ on:
         required: false
         type: boolean
         default: false
-  # Issue #2290: direct, non-production, single-plugin delivery for Tasks.
-  # Never run an unrestricted family-wide delta on this push event.
+  # Scoped, non-production delivery: select Core and/or Tasks from the
+  # actual push file list. No automatic installation of absent other modules.
   push:
     branches:
       - staging
     paths:
+      - 'taxocommerce-core/**'
       - 'taxocommerce-tasks/**'
       - '.github/workflows/deploy-staging.yml'
       - '.github/scripts/deploy_staging_delta.py'
@@ -217,7 +223,7 @@ jobs:
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
           # Called workflows inherit the caller's github event. Scope only a
           # direct workflow push, not the standard gated reusable workflow.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || (github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'auto' || '') }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
@@ -247,7 +253,7 @@ jobs:
           # Only direct Tasks pushes reconcile tracked installable files.
           # The uploader still skips identical hashes; gated family calls
           # retain the incremental file-diff behavior.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || (github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'auto' || '') }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
@@ -286,7 +292,7 @@ jobs:
           # Only direct Tasks pushes reconcile tracked installable files.
           # The uploader still skips identical hashes; gated family calls
           # retain the incremental file-diff behavior.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || (github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'auto' || '') }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
