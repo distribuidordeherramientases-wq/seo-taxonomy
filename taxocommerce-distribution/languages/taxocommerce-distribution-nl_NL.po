@@ -1042,7 +1042,7 @@ msgid ""
 "Con monolito activo: evita duplicar tareas que publican los mismos nombres "
 "de archivo. Distribución manual y automática tienen propietarios distintos "
 "durante la migración."
-msgstr ""
+msgstr "Voorkom met de actieve monoliet dubbele taken die dezelfde bestandsnamen publiceren. Tijdens de migratie hebben handmatige en automatische generatie verschillende verantwoordelijken."
 
 #: includes/admin.php includes/sitemaps/batch-worker.php
 msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
@@ -1166,7 +1166,7 @@ msgstr "Snelheid opslaan"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
-msgstr ""
+msgstr "Maximaal 250 items per uitvoering. De snelheid bepaalt de pauzes; als PHP te veel geheugen of tijd gebruikt, verlaagt de beheerder automatisch de frequentie. De getoonde CPU-belasting betreft het PHP-proces, niet de hele server."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Estado de generación:"
@@ -1226,11 +1226,11 @@ msgstr "Controleer WP_ENVIRONMENT_TYPE in de omgevingsconfiguratie."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
-msgstr ""
+msgstr "Commerciële feeds zijn niet ingeschakeld onder Processen > Distribution-verwerker. Je kunt generatie starten, maar die verloopt pas verder als dat proces is geactiveerd."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generates public product feeds for platforms that download the catalog by URL. It does not replace sitemaps: this publishes commercial inventory with price, stock, image, GTIN/MPN, brand, and category."
-msgstr ""
+msgstr "Genereert openbare productfeeds voor platforms die de catalogus via een URL downloaden. Dit vervangt geen sitemaps: het publiceert commerciële voorraadgegevens met prijs, voorraad, afbeelding, GTIN/MPN, merk en categorie."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno informado por WordPress:"
@@ -1254,7 +1254,7 @@ msgstr "Detectiebron:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
-msgstr ""
+msgstr "Een uit een andere omgeving overgenomen uploads-URL is automatisch gecorrigeerd om PRO en STAGING niet te vermengen."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Settings"
@@ -1286,7 +1286,7 @@ msgstr "Opnieuw genereren na een leverancierssynchronisatie met productwijziging
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
-msgstr ""
+msgstr "In PRODUCTIE wordt regeneratie ongeveer 2 minuten na voltooiing van de synchronisatie gepland. STAGING plant dit niet."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration en PRODUCTION"
@@ -1298,7 +1298,7 @@ msgstr "Dagelijks tijdstip"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
-msgstr ""
+msgstr "Lokale WordPress-tijd. Dit werkt als terugvaloptie, ook wanneer er nog geen leverancierssynchronisatie is uitgevoerd."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Save settings"
@@ -1398,11 +1398,11 @@ msgstr "Generatie stoppen"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
-msgstr ""
+msgstr "Start maakt een nieuwe generatie en draagt deze over aan de Distribution-verwerker. Stop maakt de huidige uitvoering ongeldig zonder de laatste geldige feed te vervangen. Batchgrootte, pauzes, belasting en herstel worden door Processen geregeld; deze plugin houdt één begrensde verwerker aan."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Google, Microsoft y Pinterest descargan despues los archivos desde sus URLs; no existe un envio directo."
-msgstr ""
+msgstr "Google, Microsoft en Pinterest downloaden de bestanden daarna via hun URL’s; er is geen rechtstreekse verzending."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Exclusion reasons"
@@ -1418,11 +1418,11 @@ msgstr "Inventaris-URL’s"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
-msgstr ""
+msgstr "Deze stabiele URL’s worden eenmaal bij elk platform geregistreerd. Het platform downloadt ze vervolgens opnieuw volgens zijn eigen planning."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "The plugin records feed generation, not each remote download: these files are served directly by the web server."
-msgstr ""
+msgstr "De plugin registreert het genereren van feeds, niet elke externe download: de webserver levert de bestanden rechtstreeks."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Status"
@@ -1502,19 +1502,19 @@ msgstr "of"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
-msgstr ""
+msgstr "JSON bewaart het volledige record inclusief extra afbeeldingen. Eigen kanalen kunnen worden geregistreerd via de filter:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "This version uses the most stable full-catalog model: the store publishes the feed and each platform downloads it. APIs remain reserved for near-real-time incremental updates if needed later."
-msgstr ""
+msgstr "Deze versie gebruikt het meest stabiele volledige-catalogusmodel: de winkel publiceert de feed en elk platform downloadt deze. API’s blijven gereserveerd voor latere vrijwel realtime incrementele updates als dat nodig is."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Abre TaxoCommerce Core > Distribution; si Core no está instalado, utiliza Distribution en el menú principal. El plugin cuenta con Commercial Feeds, Sitemaps, Automation, Manual y Autocheck; la información general aparece resumida debajo de la cabecera. Requiere los permisos de gestión de WooCommerce configurados para Distribution, o permisos de administrador."
-msgstr ""
+msgstr "Open TaxoCommerce Core > Distribution of gebruik Distribution in het hoofdmenu als Core ontbreekt. De plugin heeft Commercial Feeds, Sitemaps, Automation, Manual en Autocheck; het algemene overzicht staat onder de kop. Vereist zijn de voor Distribution ingestelde WooCommerce-beheerdersrechten of algemene beheerdersrechten."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Revisa el resumen bajo la cabecera y Automation antes de modificar canales. Un aviso de archivo no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Bekijk het overzicht onder de kop en Automation voordat je kanalen wijzigt. Een waarschuwing voor een niet-gegenereerd bestand betekent niet dat de engine is mislukt."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "2. Resumen general bajo la cabecera"
@@ -1522,7 +1522,7 @@ msgstr "2. Algemeen overzicht onder de kop"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron."
-msgstr ""
+msgstr "Sinds versie 0.1.3 gebeurt regeneratie in batches van 250 URL’s met vijf onafhankelijke belastingsniveaus: Zacht, Laag, Normaal, Hoog en Maximaal. Kies de snelheid en klik op Opslaan voordat je genereert. De status toont verwerkte items, voorbereide URL’s en CPU- en geheugengebruik van het PHP-proces. Je kunt stoppen zonder de laatste openbare sitemap te verwijderen. Het oude indexbestand blijft staan totdat het nieuwe is gepubliceerd; onderbroken taken worden hervat via WP-Cron."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ejecutar Autocheck"
@@ -1538,7 +1538,7 @@ msgstr "Uitvoeringsdatum:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado."
-msgstr ""
+msgstr "Het laatste rapport blijft een uur beschikbaar om te downloaden. Het bestaan van een bestand bewijst niet dat de XML geldig is of dat externe platforms het hebben gedownload."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos para descargar el Autocheck."
