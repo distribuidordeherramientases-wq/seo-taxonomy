@@ -87,7 +87,11 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("COPILOT_AGENT_TOKEN", self.pipeline)
         self.assertIn("copilot-swe-agent[bot]", self.pipeline)
         self.assertIn("reruns automatically on push", self.pipeline)
-        self.assertIn("for attempt in 1 2 3", self.staging)
+        self.assertNotIn("for attempt in 1 2 3", self.staging)
+        self.assertIn("python3 -u .github/scripts/deploy_staging_delta.py", self.staging)
+        retry_source = (ROOT / ".github/scripts/deploy_staging_delta.py").read_text(encoding="utf-8")
+        self.assertIn("for attempt in range(3)", retry_source)
+        self.assertIn('phase = "connect"', retry_source)
         self.assertNotIn("gh pr merge", self.pipeline)
         self.assertNotIn("gh workflow run", self.pipeline)
 
