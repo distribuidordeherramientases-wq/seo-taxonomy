@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.1' );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
