@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-tasks 0.1.3\n"
+"Project-Id-Version: taxocommerce-tasks 0.1.4\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -506,3 +506,31 @@ msgstr "Het controleert de gegevensintegriteit niet en wijzigt geen taken. Deact
 #: includes/class-tctasks-manuals.php
 msgid "The same code is deployed to authorized STAGING and Focazul sites. File delivery and functional verification are separate checks."
 msgstr "Dezelfde code wordt uitgerold naar de toegestane STAGING- en Focazul-sites. Bestandsoverdracht en functionele verificatie zijn aparte controles."
+
+#: includes/class-tctasks-calendar.php
+msgid "Showing the first 1500 scheduled tasks."
+msgstr "De eerste 1500 geplande taken worden weergegeven."
+
+#: includes/class-tctasks-calendar.php
+msgid "Tasks without start or due dates do not appear on the calendar."
+msgstr "Taken zonder start- of vervaldatum verschijnen niet in de kalender."
+
+#: taxocommerce-tasks.php
+msgid "Due date cannot be earlier than start date."
+msgstr "De vervaldatum mag niet vóór de startdatum liggen."
+
+#: includes/class-tctasks-manuals.php
+msgid "The calendar displays duration bars from each task's start date to its due date. Overlapping tasks use separate lanes; bars continue across weeks and months. A task with only one date is shown for one day."
+msgstr "De kalender toont tijdbalken van de startdatum tot de vervaldatum van een taak. Overlappende taken krijgen aparte banen en de balken lopen door over weken en maanden. Met slechts één datum duurt de taak één dag."
+
+#: includes/class-tctasks-manuals.php
+msgid "The legend uses colour by priority (Low, Normal, High, Urgent); blocked tasks are striped and completed tasks are faded. Select any bar to edit the task."
+msgstr "De legenda gebruikt kleuren voor prioriteit (Laag, Normaal, Hoog, Dringend). Geblokkeerde taken hebben strepen en voltooide taken zijn vervaagd. Selecteer een balk om de taak te bewerken."
+
+#: includes/class-tctasks-manuals.php
+msgid "The task list returns up to 500 rows ordered by status, priority and due date. The monthly timeline reads tasks intersecting the complete visible week grid, up to 1500 scheduled tasks."
+msgstr "De takenlijst haalt maximaal 500 rijen op, gesorteerd op status, prioriteit en vervaldatum. Het maandoverzicht leest maximaal 1500 taken die overlappen met de zichtbare weken."
+
+#: includes/class-tctasks-manuals.php
+msgid "The calendar splits intervals into week-sized segments and places overlapping tasks on separate lanes. Tasks without either date are omitted; the table schema is unchanged."
+msgstr "De kalender verdeelt perioden in weeksegmenten en plaatst overlappende taken in aparte banen. Taken zonder datum worden weggelaten; het tabelschema blijft ongewijzigd."
