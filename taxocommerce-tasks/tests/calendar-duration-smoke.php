@@ -107,6 +107,7 @@ ob_start();
 TCTasks_Calendar::render();
 $output = ob_get_clean();
 assert_tasks( strpos( $wpdb->last_sql, 'start_date IS NOT NULL' ) !== false, 'SQL includes start dates for cross-month tasks' );
+assert_tasks( strpos( $wpdb->last_sql, 'start_date IS NOT NULL AND due_date IS NULL AND start_date BETWEEN' ) !== false, 'one-date tasks must be bounded by visible week grid' );
 assert_tasks( $wpdb->last_args[0] === 'wp_tctasks_tasks' && $wpdb->last_args[1] === '2026-12-06' && $wpdb->last_args[2] === '2026-10-26', 'SQL query covers the complete visible grid' );
 assert_tasks( strpos( $output, 'tctasks-calendar-bar tctasks-priority-urgent' ) !== false, 'priority class rendered' );
 assert_tasks( strpos( $output, 'tctasks-status-blocked' ) !== false, 'blocked state rendered' );
