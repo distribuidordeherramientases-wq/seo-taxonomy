@@ -27,7 +27,7 @@ msgstr ""
 
 #: includes/admin.php:17
 msgid "You do not have permission to manage TaxoCommerce Distribution."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de gérer TaxoCommerce Distribution."
 
 #: includes/admin.php:27 includes/admin.php:28 includes/admin.php:38
 msgid "Distribution"
@@ -298,7 +298,7 @@ msgstr "Exécuter l’autocontrôle"
 
 #: includes/autocheck.php:245
 msgid "Aún no se ha ejecutado el autocheck en esta visita."
-msgstr ""
+msgstr "L’autocontrôle n’a pas encore été exécuté pendant cette visite."
 
 #: includes/autocheck.php:256
 msgid "Resultado"
@@ -353,15 +353,15 @@ msgstr ""
 
 #: includes/feeds/admin.php:31
 msgid "You do not have permission to configure commercial feeds."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de configurer les flux commerciaux."
 
 #: includes/feeds/admin.php:102
 msgid "You do not have permission to regenerate commercial feeds."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de régénérer les flux commerciaux."
 
 #: includes/feeds/admin.php:146
 msgid "You do not have permission to stop commercial feeds."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation d’arrêter les flux commerciaux."
 
 #: includes/feeds/admin.php:239
 msgid "Settings saved."
@@ -375,7 +375,7 @@ msgstr ""
 
 #: includes/feeds/admin.php:245
 msgid "Generation stopped by the user. No partial file was published."
-msgstr ""
+msgstr "Génération arrêtée par l’utilisateur. Aucun fichier partiel n’a été publié."
 
 #: includes/feeds/admin.php:254
 msgid "STAGING:"
@@ -1106,11 +1106,11 @@ msgstr "La génération est en cours. L'index visible appartient encore à la pu
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Selecciona una velocidad entre 1 y 5."
-msgstr ""
+msgstr "Choisissez une vitesse entre 1 et 5."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "La generación se ha detenido."
-msgstr ""
+msgstr "La génération a été arrêtée."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos."
@@ -1118,51 +1118,51 @@ msgstr "Accès refusé."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generando sitemaps por bloques de 250…"
-msgstr ""
+msgstr "Génération des sitemaps par lots de 250…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Finalizado. Actualizando el informe…"
-msgstr ""
+msgstr "Terminé. Mise à jour du rapport…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "El trabajador ha detectado un error."
-msgstr ""
+msgstr "Le processus de traitement a détecté une erreur."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publishing summary"
-msgstr ""
+msgstr "Résumé de publication"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds:"
-msgstr ""
+msgstr "Flux commerciaux :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published products:"
-msgstr ""
+msgstr "Produits publiés :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Active channels:"
-msgstr ""
+msgstr "Canaux actifs :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "XML index:"
-msgstr ""
+msgstr "Index XML :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Valid"
-msgstr ""
+msgstr "Valide"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review"
-msgstr ""
+msgstr "À vérifier"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Control de carga del generador XML"
-msgstr ""
+msgstr "Gestion de la charge du générateur XML"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Guardar velocidad"
-msgstr ""
+msgstr "Enregistrer la vitesse"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
@@ -1170,59 +1170,59 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Estado de generación:"
-msgstr ""
+msgstr "État de la génération :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "%1$d elementos revisados; %2$d URL preparadas."
-msgstr ""
+msgstr "%1$d éléments vérifiés ; %2$d URL préparées."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Último bloque: %1$s s · CPU PHP: %2$s%% · Memoria PHP: %3$s%%"
-msgstr ""
+msgstr "Dernier lot : %1$s s · CPU PHP : %2$s%% · Mémoire PHP : %3$s%%"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generar sitemaps en bloques de 250"
-msgstr ""
+msgstr "Générer les sitemaps par lots de 250"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detener generación"
-msgstr ""
+msgstr "Arrêter la génération"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Invalid"
-msgstr ""
+msgstr "Invalide"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Manual from Processes"
-msgstr ""
+msgstr "Manuellement depuis Processus"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Supplier synchronization completed"
-msgstr ""
+msgstr "Synchronisation des fournisseurs terminée"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration"
-msgstr ""
+msgstr "Régénération quotidienne de sécurité"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Programada"
-msgstr ""
+msgstr "Programmée"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno discrepante:"
-msgstr ""
+msgstr "Environnement incohérent :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress informa"
-msgstr ""
+msgstr "WordPress indique"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pero la detección efectiva por hostname es"
-msgstr ""
+msgstr "mais la détection réelle par nom d’hôte donne"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review WP_ENVIRONMENT_TYPE in the environment configuration."
-msgstr ""
+msgstr "Vérifiez WP_ENVIRONMENT_TYPE dans la configuration de l’environnement."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Commercial feeds are not enabled in Processes > Distribution worker. You can start a generation, but it will not progress until that process is enabled."
@@ -1234,23 +1234,23 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno informado por WordPress:"
-msgstr ""
+msgstr "Environnement déclaré par WordPress :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno efectivo:"
-msgstr ""
+msgstr "Environnement effectif :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host:"
-msgstr ""
+msgstr "Hôte :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host de feeds:"
-msgstr ""
+msgstr "Hôte des flux :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detection source:"
-msgstr ""
+msgstr "Source de détection :"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se ha corregido automaticamente una URL de uploads heredada de otro entorno para evitar mezclar PRO y STAGING."
@@ -1258,31 +1258,31 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Settings"
-msgstr ""
+msgstr "Paramètres"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Country"
-msgstr ""
+msgstr "Pays"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Language"
-msgstr ""
+msgstr "Langue"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Batch"
-msgstr ""
+msgstr "Lot"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Adaptive"
-msgstr ""
+msgstr "Adaptatif"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "view Automation"
-msgstr ""
+msgstr "afficher Automatisation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regenerate after a supplier synchronization that changed products"
-msgstr ""
+msgstr "Régénérer après une synchronisation des fournisseurs ayant modifié des produits"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "In PRODUCTION, regeneration is scheduled about 2 minutes after synchronization finishes. STAGING does not schedule it."
@@ -1290,11 +1290,11 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily safety regeneration en PRODUCTION"
-msgstr ""
+msgstr "Régénération quotidienne de sécurité en PRODUCTION"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Daily time"
-msgstr ""
+msgstr "Heure quotidienne"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress local time. This acts as a fallback even when no supplier synchronization has occurred."
@@ -1302,7 +1302,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Save settings"
-msgstr ""
+msgstr "Enregistrer les paramètres"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation"
