@@ -32,7 +32,7 @@ msgstr ""
 
 #: includes/class-manual.php:55
 msgid ", lotes de"
-msgstr ", beaucoup de"
+msgstr ", lots de"
 
 #: includes/class-manual.php:58
 msgid ", posts, taxonomías y metadatos), WooCommerce ("
@@ -52,7 +52,7 @@ msgstr ""
 
 #: includes/class-manual.php:34
 msgid "; una auditoría pausada puede"
-msgstr "; un audit tranquille peut"
+msgstr " ; un audit mis en pause peut"
 
 #: includes/class-manual.php:62
 msgid ". Ejecuta"
@@ -112,9 +112,7 @@ msgstr ""
 msgid ""
 ". Las ejecuciones largas dependen de WP-Cron. No repitas el arranque "
 "mientras esté procesándose el mismo ámbito."
-msgstr ""
-". Les longues courses dépendent de WP-Cron. Ne répétez pas le démarrage "
-"pendant que la même étendue est en cours de traitement."
+msgstr ". Les audits de longue durée dépendent de WP-Cron. Ne relancez pas un audit tant que le même périmètre est en cours de traitement."
 
 #: includes/class-manual.php:52
 msgid ". No depende del arranque del monolito ni de sus clases globales."
@@ -2568,11 +2566,11 @@ msgstr ""
 
 #: includes/class-manual.php:62
 msgid "y nonce"
-msgstr "et jamais"
+msgstr "et un nonce"
 
 #: includes/class-manual.php:60
 msgid "y un nonce asociado a cada ámbito. La navegación por"
-msgstr "et un nom occasionnel associé à chaque portée. Navigation par"
+msgstr "et un nonce associé à chaque périmètre. La navigation par"
 
 #: includes/class-admin.php:655
 msgid ""

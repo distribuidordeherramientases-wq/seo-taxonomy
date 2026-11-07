@@ -11,106 +11,106 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-redirects.php
 msgid "TaxoCommerce Redirects - SEO Redirect Manager"
-msgstr ""
+msgstr "TaxoCommerce Redirects - Gestionnaire de redirections SEO"
 
 #. Plugin URI of the plugin
 #: taxocommerce-redirects.php
 msgid "https://www.distribuidordeherramientas.es/"
-msgstr ""
+msgstr "https://www.distribuidordeherramientas.es/"
 
 #. Description of the plugin
 #: taxocommerce-redirects.php
 msgid ""
 "301/302 redirect management and assisted deletion for WordPress and "
 "WooCommerce content, with optional TaxoCommerce Core integration."
-msgstr ""
+msgstr "Gestion des redirections 301/302 et suppression assistée de contenus WordPress et WooCommerce, avec intégration facultative à TaxoCommerce Core."
 
 #. Author of the plugin
 #: taxocommerce-redirects.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-admin.php:20 includes/class-admin.php:23
 #: includes/class-admin.php:74
 msgid "TaxoCommerce Redirects"
-msgstr ""
+msgstr "TaxoCommerce Redirects"
 
 #: includes/class-admin.php:20 includes/class-admin.php:23
 msgid "Redirects"
-msgstr ""
+msgstr "Redirections"
 
 #: includes/class-assisted-delete.php:40
 msgid "Eliminar contenido · TaxoCommerce Redirects"
-msgstr ""
+msgstr "Supprimer du contenu · TaxoCommerce Redirects"
 
 #: includes/class-assisted-delete.php:41
 msgid "Eliminar contenido"
-msgstr ""
+msgstr "Supprimer du contenu"
 
 #: includes/class-auto-test.php:379
 msgid "Sin permiso para ejecutar Auto Test."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'exécuter l'Auto Test."
 
 #: includes/class-auto-test.php:400
 msgid "Sin permiso para exportar el diagnóstico."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'exporter le diagnostic."
 
 #: includes/class-auto-test.php:409
 msgid "No se ha guardado ese informe."
-msgstr ""
+msgstr "Ce rapport n'a pas été enregistré."
 
 #: includes/class-auto-test.php:411
 msgid "No se ha podido preparar el JSON."
-msgstr ""
+msgstr "Impossible de préparer le JSON."
 
 #: includes/class-auto-test.php:455
 msgid "Sin permiso para abrir Auto Test."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'ouvrir l'Auto Test."
 
 #: includes/class-auto-test.php:468
 msgid "Auto Test — TaxoCommerce Redirects"
-msgstr ""
+msgstr "Auto Test — TaxoCommerce Redirects"
 
 #: includes/class-auto-test.php:469
 msgid ""
 "Pruebas de solo lectura de tablas, reglas, motor, borrado asistido y "
 "transferencias. No se generan redirecciones, visitas ni eliminaciones. Solo "
 "se almacenan los resultados del diagnóstico."
-msgstr ""
+msgstr "Tests en lecture seule des tables, règles, moteur, suppression assistée et transferts. Aucune redirection, visite ou suppression n'est générée. Seuls les résultats du diagnostic sont enregistrés."
 
 #: includes/class-auto-test.php:477
 msgid "Referencia ANTES"
-msgstr ""
+msgstr "Référence AVANT"
 
 #: includes/class-auto-test.php:483
 msgid "Sin referencia guardada. Ejecútala antes del siguiente despliegue."
-msgstr ""
+msgstr "Aucune référence enregistrée. Exécutez-la avant le prochain déploiement."
 
 #: includes/class-auto-test.php:487
 msgid "Último chequeo"
-msgstr ""
+msgstr "Dernier contrôle"
 
 #: includes/class-auto-test.php:492
 msgid "Todavía no hay una ejecución registrada."
-msgstr ""
+msgstr "Aucune exécution enregistrée pour le moment."
 
 #: includes/class-auto-test.php:496
 msgid "Resumen del autochequeo"
-msgstr ""
+msgstr "Résumé de l'Auto Test"
 
 #: includes/class-auto-test.php:502
 msgid "Comparación de despliegue"
-msgstr ""
+msgstr "Comparaison des déploiements"
 
 #: includes/class-auto-test.php:503
 msgid "Comparación ANTES / DESPUÉS"
-msgstr ""
+msgstr "Comparaison AVANT / APRÈS"
 
 #: includes/class-auto-test.php:510
 msgid ""
 "Para comparar, ejecuta «Comprobar DESPUÉS» con todos los grupos en el mismo "
 "sitio."
-msgstr ""
+msgstr "Pour comparer, exécutez « Contrôler APRÈS » avec tous les groupes sur le même site."
 
 #: includes/class-auto-test.php:530
 msgid ""
@@ -118,7 +118,7 @@ msgid ""
 "importaciones JSON y borrados de contenido aparecen como NO verificadas y "
 "requieren pruebas controladas en staging. Un destino no encontrado puede "
 "coexistir con una regla estructuralmente correcta."
-msgstr ""
+msgstr "Un résultat correct confirme uniquement le contrat testé. Les contrôles HTTP, importations JSON et suppressions de contenu ne sont PAS vérifiés et exigent des tests contrôlés en préproduction. Une destination introuvable peut coexister avec une règle structurellement valide."
 
 #: includes/class-lifecycle.php:123
 msgid ""
@@ -126,41 +126,41 @@ msgid ""
 " definitivamente la tabla seo_redirects y todas sus reglas, incluidas las "
 "compartidas con TaxoCommerce SEO. Exporta una copia antes de eliminar el "
 "plugin."
-msgstr ""
+msgstr "La désactivation conserve les redirections. La désinstallation de TaxoCommerce Redirects supprime définitivement la table seo_redirects et toutes ses règles, y compris celles partagées avec TaxoCommerce SEO. Exportez une sauvegarde avant de désinstaller l'extension."
 
 #: includes/class-user-guide.php:86
 msgid "Sin permiso para consultar los manuales."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation de consulter les guides."
 
 #: includes/class-user-guide.php:97
 msgid "User Guide"
-msgstr ""
+msgstr "Guide utilisateur"
 
 #: includes/class-user-guide.php:98
 msgid ""
 "Manual de usuario y manual técnico de TaxoCommerce Redirects. Documentación "
 "integrada, sin operaciones sobre las reglas."
-msgstr ""
+msgstr "Guides utilisateur et technique de TaxoCommerce Redirects. Documentation intégrée sans opération sur les règles."
 
 #: includes/class-user-guide.php:100
 msgid "Tipo de manual"
-msgstr ""
+msgstr "Type de guide"
 
 #: includes/class-user-guide.php:104
 msgid "User Manual"
-msgstr ""
+msgstr "Manuel utilisateur"
 
 #: includes/class-user-guide.php:109
 msgid "Technical Manual"
-msgstr ""
+msgstr "Manuel technique"
 
 #: includes/class-user-guide.php:113
 msgid "Índice del manual"
-msgstr ""
+msgstr "Sommaire du guide"
 
 #: includes/class-user-guide.php:114
 msgid "Contenido"
-msgstr ""
+msgstr "Contenu"
 
 #: includes/class-user-guide.php:136
 msgid "1. ¿Para qué sirve Redirects?"

@@ -199,12 +199,12 @@ final class TCV_Auto_Test {
 
     private static function test_portable() {
         $scopes = TCV_Portable::allowed_scopes();
-        $expected = array( 'masters', 'product_semantic', 'category_semantic', 'product_attributes', 'product_tags' );
+        $expected = array( 'masters', 'product_semantic', 'category_semantic', 'product_attributes', 'product_tags', 'post_semantic', 'page_semantic' );
         return $scopes === $expected && method_exists( 'TCV_Portable', 'build_document' )
             && method_exists( 'TCV_Portable', 'import_request' )
             && method_exists( 'TCV_IO', 'export_labels' )
             && method_exists( 'TCV_IO', 'export_attributes' )
-            ? self::pass( 'CSV y cinco ámbitos JSON portable disponibles; no se descargan ni importan datos.' )
+            ? self::pass( 'CSV y siete ámbitos JSON portable disponibles; no se descargan ni importan datos.' )
             : self::fail( 'Faltan servicios de intercambio CSV/JSON.' );
     }
 

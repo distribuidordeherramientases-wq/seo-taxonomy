@@ -1,3 +1,23 @@
+## [Unreleased] — Social translations (#2316)
+
+- Traducidas las primeras 30 cadenas de interfaz, calendario, redes y Auto Test a ES/EN/FR/DE/NL.
+- PO/MO sincronizados, sin cambiar el programador ni los datos sociales.
+- Traducciones restantes y validación funcional pendientes.
+
+## [Unreleased] — Internacionalización de Social Network (#2302)
+
+- Traducidas las 143 cadenas originales y 17 cadenas adicionales de interfaz (160 en total) del catálogo vigente a español, inglés, francés, alemán y neerlandés; PO y MO sincronizados.
+- Corregidas expresiones y acentuación del catálogo español, conservando términos técnicos (OAuth, WP-Cron, CSV, proveedores, nombres de redes).
+- Se han incorporado a gettext las pestañas, estados de conexión, mensajes de resultados del Auto Test y tipos de contenido, conservando el comportamiento.
+- Sin cambios en el programador, fechas y reglas de publicación, permisos, opciones almacenadas ni conexiones de terceros.
+- Pendientes de revisión los literales que puedan permanecer fuera de gettext y la verificación funcional de idioma en WordPress.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## Unreleased - Familia i18n #2062
 
 

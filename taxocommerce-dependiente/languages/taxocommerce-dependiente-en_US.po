@@ -176,7 +176,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:230
 msgid "Origen"
-msgstr ""
+msgstr "Source"
 
 #: includes/class-tcd-admin.php:230
 msgid "Por qué"
@@ -341,7 +341,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:429
 msgid "Calidad"
-msgstr ""
+msgstr "Quality"
 
 #: includes/class-tcd-admin.php:429
 msgid "Auditoría"
@@ -373,11 +373,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:549 includes/class-tcd-admin.php:558
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-tcd-admin.php:549
 msgid "Resultado"
-msgstr ""
+msgstr "Result"
 
 #: includes/class-tcd-admin.php:550
 msgid "M11 · Lingüista original v1.2.0"
@@ -443,7 +443,7 @@ msgstr ""
 
 #: includes/class-tcd-auto-test.php:84
 msgid "No tienes permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "You do not have permission to run Auto Test."
 
 #: includes/class-tcd-auto-test.php:613
 msgid "No tienes permisos para abrir Auto Test."
@@ -489,7 +489,7 @@ msgstr ""
 
 #: includes/class-tcd-auto-test.php:659
 msgid "Sin ejecutar"
-msgstr ""
+msgstr "Not executed"
 
 #: includes/class-tcd-auto-test.php:673
 msgid "Ejecutar este grupo"
@@ -549,7 +549,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:161
 msgid "Sí"
-msgstr ""
+msgstr "Yes"
 
 #: includes/class-tcd-backup.php:169
 msgid "Descargar backup completo"
@@ -634,7 +634,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:222
 msgid "Generado:"
-msgstr ""
+msgstr "Generated:"
 
 #: includes/class-tcd-backup.php:225
 msgid "La copia no ha superado la validación completa. No debe restaurarse."
@@ -786,7 +786,7 @@ msgstr ""
 
 #: includes/class-tcd-knowledge-transfer.php:388
 msgid "Filas"
-msgstr ""
+msgstr "Rows"
 
 #: includes/class-tcd-knowledge-transfer.php:388
 msgid "Compatibilidad"

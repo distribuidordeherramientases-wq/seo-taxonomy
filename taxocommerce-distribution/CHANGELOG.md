@@ -1,4 +1,22 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## Unreleased - Familia i18n #2062
+
+## [0.1.8] — 2026-11-07 — Bing sitemap (Issue #2259)
+- Nueva revisión diaria de los sitemaps XML mediante WP-Cron y el trabajador incremental existente (250 registros por bloque, cinco velocidades); ninguna segunda implementación ni escritura durante la petición de la página.
+- Evita regeneraciones simultáneas y respeta el generador monolítico cuando sea el propietario activo de la ruta. Limpia su evento recurrente al desactivar el plugin.
+- Prueba del evento diario, de la recuperación de una cola ocupada, de la coexistencia legacy y del apagado; el resultado de Bing solo puede comprobarse con los XML publicados y un nuevo rastreo.
+- La categoría VEVOR FR - Peinture del ejemplo de Bing tiene productos publicados; esta versión no crea URL específicas ni modifica categorías de otras tiendas.
 
 ## [0.1.7] — 2026-11-04
 

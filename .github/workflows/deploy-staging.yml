@@ -1,9 +1,13 @@
 name: Immediate deployment to STAGING
 
 on:
-  push:
-    branches:
-      - staging
+  workflow_call:
+    inputs:
+      full_sync:
+        description: 'Allow a full reconciliation when called by the gated pipeline'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       full_sync:
@@ -11,6 +15,15 @@ on:
         required: false
         type: boolean
         default: false
+  # Issue #2290: direct, non-production, single-plugin delivery for Tasks.
+  # Never run an unrestricted family-wide delta on this push event.
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-tasks/**'
+      - '.github/workflows/deploy-staging.yml'
+      - '.github/scripts/deploy_staging_delta.py'
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -41,11 +54,15 @@ jobs:
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
+          python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
+          python3 -m unittest discover -s .github/tests -p test_insights_head_tags_bootstrap.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
           python3 -m unittest discover -s .github/tests -p test_audit_core_dual_sites.py -v
       - name: Verify all 20 Autocheck JSON contracts and PHP syntax
         run: |
           set -euo pipefail
+          php -l .github/tests/i18n-19-locale-smoke.php
+          php .github/tests/i18n-19-locale-smoke.php
           php -l .github/tests/taxocommerce-autocheck-family.php
           php .github/tests/taxocommerce-autocheck-family.php
           find taxocommerce-* -type f -name '*.php' -not -path '*/tests/*' -not -path '*/templates/*' -print0 | while IFS= read -r -d '' file; do
@@ -54,6 +71,9 @@ jobs:
           php taxocommerce-connections/tests/connections-smoke.php
           php taxocommerce-auditor/tests/auto-test-manual-smoke.php
           php taxocommerce-database/tests/auto-test-smoke.php
+          php -l taxocommerce-tasks/includes/class-tctasks-manuals.php
+          php -l taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
+          php taxocommerce-tasks/tests/standalone-bootstrap-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
@@ -72,6 +92,11 @@ jobs:
           php taxocommerce-facturacion/tests/manual-autotest-smoke.php
           php taxocommerce-faqs/tests/auto-test-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php
+          php taxocommerce-google-bing/tests/head-tags-smoke.php
+          php taxocommerce-google-bing/tests/head-tags-inventory-smoke.php
+          node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
+          php taxocommerce-google-bing/tests/indexnow-smoke.php
+          php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
           php taxocommerce-import-export/tests/auto-test-smoke.php
           php taxocommerce-logistica/tests/auto-test-smoke.php
@@ -82,6 +107,9 @@ jobs:
           php taxocommerce-suppliers/tests/template-creation-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-templates/tests/bing-meta-head-smoke.php
+          php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
+          php taxocommerce-templates/tests/bing-title-home-alt-smoke.php
           php taxocommerce-templates/tests/manual-smoke.php
           php -l taxocommerce-templates/tests/filesystem-smoke.php
           php taxocommerce-templates/tests/filesystem-smoke.php
@@ -126,6 +154,9 @@ jobs:
           php -l taxocommerce-distribution/includes/admin.php
           php -l taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
           php taxocommerce-distribution/tests/sitemap-publish-state-smoke.php
+          php -l taxocommerce-distribution/tests/sitemap-daily-smoke.php
+          php taxocommerce-distribution/tests/sitemap-daily-smoke.php
+          php taxocommerce-distribution/tests/sitemap-daily-smoke.php legacy
           php .github/tests/taxocommerce-core/auto-test-smoke.php
           php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-functional-smoke.php
@@ -172,7 +203,10 @@ jobs:
         id: changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAXOCOMMERCE_FULL_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.full_sync && '1' || '0' }}
+          TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
+          # Called workflows inherit the caller's github event. Scope only a
+          # direct workflow push, not the standard gated reusable workflow.
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
@@ -199,7 +233,18 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target staging --slug "$SLUG" --full "$SYNC"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::STAGING deployment still failing after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
 
   deploy-focazul:
     name: Focazul / ${{ matrix.slug }}
@@ -223,7 +268,18 @@ jobs:
           BASE: ${{ needs.plan.outputs.base }}
           SLUG: ${{ matrix.slug }}
           SYNC: ${{ needs.plan.outputs.sync }}
-        run: python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if python3 .github/scripts/deploy_staging_delta.py deploy --base "$BASE" --target focazul --slug "$SLUG" --full "$SYNC"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Focazul deployment still failing after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
 
   verify:
     name: Require successful delivery to every applicable site

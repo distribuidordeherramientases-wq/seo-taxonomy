@@ -543,4 +543,16 @@ tct_assert( strpos( $entrypoint, "load_textdomain( \$domain, \$catalog );" ) !==
     'Standalone translations must load at init using the native Core fallback.' );
 
 
+
+$sync_src = file_get_contents( TCT_DIR . 'includes/class-tct-category-content-sync.php' );
+tct_assert( strpos( $sync_src, 'check_admin_referer( self::ACTION )' ) !== false,
+    'SEO content reconciliation requires nonce' );
+tct_assert( strpos( $sync_src, "current_user_can( 'manage_options' )" ) !== false,
+    'SEO content reconciliation requires administrator permissions' );
+tct_assert( strpos( $sync_src, 'hash_equals( self::fingerprint(' ) !== false,
+    'SEO content reconciliation rejects edits after preview' );
+tct_assert( strpos( $sync_src, "array( 'id' => absint( \$row['id'] ) )" ) !== false,
+    'SEO content reconciliation updates one precise legacy row, not a full category group' );
+tct_assert( strpos( $entrypoint, "TCT_Category_Content_Sync::render();" ) !== false,
+    'SEO content reconciliation stays inside Templates' );
 echo "OK: Smoke tests TaxoCommerce Templates\n";

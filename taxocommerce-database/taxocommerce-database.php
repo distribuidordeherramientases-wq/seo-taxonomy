@@ -141,10 +141,25 @@ add_action( 'init', static function () {
     }
     $locale = sanitize_file_name( determine_locale() );
     // Prefer official WordPress language packs when installed.
-    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+    $official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
         return;
     }
     $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( ! is_readable( $catalog ) ) {
+        // Use a bundled base-language catalog for WordPress locale variants.
+        $language = strtolower( substr( $locale, 0, 2 ) );
+        $fallback_locales = array(
+            'es' => 'es_ES',
+            'en' => 'en_US',
+            'fr' => 'fr_FR',
+            'de' => 'de_DE',
+            'nl' => 'nl_NL',
+        );
+        if ( isset( $fallback_locales[ $language ] ) ) {
+            $catalog = __DIR__ . '/languages/' . $domain . '-' . $fallback_locales[ $language ] . '.mo';
+        }
+    }
     if ( is_readable( $catalog ) ) {
         load_textdomain( $domain, $catalog );
     }

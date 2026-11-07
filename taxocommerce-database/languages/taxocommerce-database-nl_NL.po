@@ -888,3 +888,37 @@ msgstr "onbekend eindpunttype"
 
 msgid "Último resultado"
 msgstr "Laatste resultaat"
+
+msgid "Usuario ID %d"
+msgstr "Gebruikers-ID %d"
+
+msgid "No disponible"
+msgstr "Niet beschikbaar"
+
+msgid "Existe un bloqueo activo."
+msgstr "Er is een actieve vergrendeling."
+
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr "Controleer of er geen ander proces voor bulkacceptatie actief is voordat u de vergrendeling verwijdert."
+
+msgid "Opción de WordPress"
+msgstr "WordPress-optie"
+
+msgid "Usuario que inició el proceso"
+msgstr "Gebruiker die het proces heeft gestart"
+
+msgid "Fecha de inicio"
+msgstr "Startdatum"
+
+msgid "Antigüedad"
+msgstr "Verstreken tijd"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Desbloquear aceptación masiva"
+msgstr "Bulkacceptatie ontgrendelen"
+
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr "Verwijder de vergrendeling alleen als u hebt gecontroleerd dat er geen ander bulkacceptatieproces actief is. Doorgaan?"
+

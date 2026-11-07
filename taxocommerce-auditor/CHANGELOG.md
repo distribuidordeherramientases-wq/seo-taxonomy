@@ -1,3 +1,15 @@
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
+## [Unreleased] — Auditor translation quality (#2257)
+
+- Corrected mistranslations in English, French and German manuals, including paused audits, processing batches and WordPress security nonces.
+- Rebuilt the corresponding native GNU gettext MO catalogs without changing audit logic or stored data.
+- Preserved WordPress locale selection and the existing five-language catalogs.
+
 ## [0.3.6] — 2026-11-06 — Internacionalización Auditor (#2062)
 
 - Revisión de textos visibles, botones, estados, pestañas, informes, KPI, autochequeo, manual y mensajes de reglas con gettext nativo de WordPress.

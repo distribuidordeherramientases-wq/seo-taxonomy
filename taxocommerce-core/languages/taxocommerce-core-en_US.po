@@ -77,7 +77,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Resultado"
-msgstr ""
+msgstr "Result"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Lectura"
@@ -102,7 +102,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-content-manager.php:210
 #: includes/class-taxocommerce-core.php:254
 msgid "FAQs"
-msgstr ""
+msgstr "FAQs"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
@@ -832,7 +832,7 @@ msgstr "Overview"
 
 #: includes/class-taxocommerce-core-content-manager.php:208
 msgid "Posts"
-msgstr ""
+msgstr "Posts"
 
 #: includes/class-taxocommerce-core-content-manager.php:214
 msgid "Opciones de contenidos"
@@ -1332,7 +1332,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-editor-ui.php:431
 #: includes/class-taxocommerce-core-editor-ui.php:445
 msgid "Quitar"
-msgstr ""
+msgstr "Remove"
 
 #: includes/class-taxocommerce-core-editor-ui.php:244
 msgid ""
@@ -1427,7 +1427,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:433
 msgid "Atributo"
-msgstr ""
+msgstr "Attribute"
 
 #: includes/class-taxocommerce-core-editor-ui.php:434
 msgid "Seleccionar atributo…"
@@ -2028,7 +2028,7 @@ msgstr "No clusters classified yet."
 
 #: includes/class-taxocommerce-core-hierarchy.php:109
 msgid "Landing"
-msgstr ""
+msgstr "Landing page"
 
 #: includes/class-taxocommerce-core-hierarchy.php:110
 msgid "Página corporativa"
@@ -3083,7 +3083,7 @@ msgstr "Screen"
 
 #: includes/class-taxocommerce-core-technical-guide.php:124
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
 #: includes/class-taxocommerce-core-technical-guide.php:126
 msgid "Inicio"
@@ -3806,7 +3806,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:247
 msgid "Vocabulary"
-msgstr ""
+msgstr "Vocabulary"
 
 #: includes/class-taxocommerce-core.php:248
 msgid "Sales Assistant"
@@ -3834,7 +3834,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:255
 msgid "Database"
-msgstr ""
+msgstr "Database"
 
 #: includes/class-taxocommerce-core.php:256
 msgid "System Check"
@@ -3854,15 +3854,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:260
 msgid "Auditor"
-msgstr ""
+msgstr "Auditor"
 
 #: includes/class-taxocommerce-core.php:261
 msgid "Social"
-msgstr ""
+msgstr "Social"
 
 #: includes/class-taxocommerce-core.php:262
 msgid "Billing"
-msgstr ""
+msgstr "Billing"
 
 #: includes/class-taxocommerce-core.php:263
 msgid "Logistics"

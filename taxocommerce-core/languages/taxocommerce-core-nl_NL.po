@@ -76,7 +76,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Resultado"
-msgstr ""
+msgstr "Resultaat"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Lectura"
@@ -101,7 +101,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-content-manager.php:210
 #: includes/class-taxocommerce-core.php:254
 msgid "FAQs"
-msgstr ""
+msgstr "Veelgestelde vragen"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
@@ -530,7 +530,7 @@ msgstr "Gebruikershandleiding"
 
 #: includes/class-taxocommerce-core-auto-test.php:443
 msgid "Ejecutar Auto Test"
-msgstr ""
+msgstr "Voer een zelftest uit"
 
 #: includes/class-taxocommerce-core-auto-test.php:444
 msgid "Sin cambios en el catálogo, la jerarquía ni los menús."
@@ -815,7 +815,7 @@ msgstr "Overzicht"
 
 #: includes/class-taxocommerce-core-content-manager.php:208
 msgid "Posts"
-msgstr ""
+msgstr "Berichten"
 
 #: includes/class-taxocommerce-core-content-manager.php:214
 msgid "Opciones de contenidos"
@@ -865,7 +865,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-content-manager.php:312
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "Categoría"
-msgstr ""
+msgstr "Categorie"
 
 #: includes/class-taxocommerce-core-content-manager.php:327
 msgid "Buscar categoría…"
@@ -877,11 +877,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:336
 msgid "Limpiar"
-msgstr ""
+msgstr "Wissen"
 
 #: includes/class-taxocommerce-core-content-manager.php:394
 msgid "Título"
-msgstr ""
+msgstr "Titel"
 
 #: includes/class-taxocommerce-core-content-manager.php:395
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -927,13 +927,13 @@ msgstr ""
 #: includes/class-taxocommerce-core-content-manager.php:491
 #: includes/class-taxocommerce-core-content-manager.php:492
 msgid "Sí"
-msgstr ""
+msgstr "Ja"
 
 #: includes/class-taxocommerce-core-content-manager.php:427
 #: includes/class-taxocommerce-core-content-manager.php:491
 #: includes/class-taxocommerce-core-content-manager.php:492
 msgid "No"
-msgstr ""
+msgstr "Nee"
 
 #: includes/class-taxocommerce-core-content-manager.php:432
 #: includes/class-taxocommerce-core-content-manager.php:494
@@ -1315,7 +1315,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-editor-ui.php:431
 #: includes/class-taxocommerce-core-editor-ui.php:445
 msgid "Quitar"
-msgstr ""
+msgstr "Verwijderen"
 
 #: includes/class-taxocommerce-core-editor-ui.php:244
 msgid ""
@@ -1410,7 +1410,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:433
 msgid "Atributo"
-msgstr ""
+msgstr "Kenmerk"
 
 #: includes/class-taxocommerce-core-editor-ui.php:434
 msgid "Seleccionar atributo…"
@@ -1900,7 +1900,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-hierarchy.php:109
 msgid "Landing"
-msgstr ""
+msgstr "Landingspagina"
 
 #: includes/class-taxocommerce-core-hierarchy.php:110
 msgid "Página corporativa"
@@ -1965,7 +1965,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-hierarchy.php:477
 msgid "Filtrar"
-msgstr ""
+msgstr "Filteren"
 
 #: includes/class-taxocommerce-core-hierarchy.php:481
 #: includes/class-taxocommerce-core-menu-editor.php:28
@@ -1974,11 +1974,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-hierarchy.php:481
 msgid "Rol SEO"
-msgstr ""
+msgstr "SEO-rol"
 
 #: includes/class-taxocommerce-core-hierarchy.php:481
 msgid "Acción"
-msgstr ""
+msgstr "Actie"
 
 #: includes/class-taxocommerce-core-hierarchy.php:484
 msgid "No se han encontrado páginas."
@@ -2297,7 +2297,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-menu-editor.php:341
 msgid "Manual"
-msgstr ""
+msgstr "Handleiding"
 
 #: includes/class-taxocommerce-core-menu-editor.php:344
 msgid "Modifica este elemento en la Jerarquía SEO y sincroniza la propuesta."
@@ -2584,7 +2584,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-technical-guide.php:16
 #: includes/class-taxocommerce-core-user-guide.php:19
 msgid "No tienes permisos para consultar este manual."
-msgstr ""
+msgstr "Je hebt geen toestemming om deze handleiding te bekijken."
 
 #: includes/class-taxocommerce-core-technical-guide.php:35
 msgid "Índice del manual técnico"
@@ -2620,7 +2620,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-technical-guide.php:44
 msgid "Seguridad"
-msgstr ""
+msgstr "Beveiliging"
 
 #: includes/class-taxocommerce-core-technical-guide.php:45
 msgid "Caché y diagnósticos"
@@ -2889,11 +2889,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-technical-guide.php:124
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
 #: includes/class-taxocommerce-core-technical-guide.php:126
 msgid "Inicio"
-msgstr ""
+msgstr "Begin"
 
 #: includes/class-taxocommerce-core-technical-guide.php:127
 #: includes/class-taxocommerce-core.php:189
@@ -3472,7 +3472,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-vocabulary.php:98
 msgid "TaxoCommerce Vocabulary"
-msgstr ""
+msgstr "TaxoCommerce Vocabulary"
 
 #: includes/class-taxocommerce-core-vocabulary.php:98
 msgid "Etiquetas transversales"
@@ -3765,7 +3765,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:1056
 msgid "Informes"
-msgstr ""
+msgstr "Rapporten"
 
 #: includes/class-taxocommerce-core.php:1057
 msgid "Distribución de contenidos y arquitectura SEO."
@@ -3807,7 +3807,7 @@ msgstr "Niet geïnstalleerd"
 
 #: includes/class-taxocommerce-core.php:1245
 msgid "Versión"
-msgstr ""
+msgstr "Versie"
 
 #: includes/class-taxocommerce-core.php:1247
 msgid "ZIP local disponible"

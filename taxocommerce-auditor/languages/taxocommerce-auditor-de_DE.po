@@ -32,7 +32,7 @@ msgstr ""
 
 #: includes/class-manual.php:55
 msgid ", lotes de"
-msgstr ", viele"
+msgstr ", Verarbeitung in Stapeln mit jeweils"
 
 #: includes/class-manual.php:58
 msgid ", posts, taxonomías y metadatos), WooCommerce ("
@@ -52,7 +52,7 @@ msgstr ""
 
 #: includes/class-manual.php:34
 msgid "; una auditoría pausada puede"
-msgstr "; Eine gemütliche Prüfung kann"
+msgstr "; eine pausierte Prüfung kann"
 
 #: includes/class-manual.php:62
 msgid ". Ejecuta"

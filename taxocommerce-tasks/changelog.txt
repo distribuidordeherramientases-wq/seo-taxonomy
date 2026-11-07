@@ -1,0 +1,15 @@
+TaxoCommerce Tasks historical changelog.
+
+0.1.2 (2026-11-07)
+- In-admin user and technical manuals in Spanish, English, French and German.
+- Rename task categories without changing existing task links.
+- Secure category update and duplicate-name handling, with regression tests.
+
+0.1.1 (2026-11-07)
+- TaxoCommerce Core submenu and optional family extension registration.
+- Keep standalone fallback and all existing task data/URLs.
+
+0.1.0 (2026-11-07)
+- Initial standalone private task agenda.
+- Separate SQL categories and tasks.
+- List, calendar, dashboard and Autocheck.

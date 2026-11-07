@@ -1,6 +1,12 @@
 name: TaxoCommerce Plugin Check - independent preflight
 
 on:
+  workflow_call:
+    inputs:
+      plugin:
+        description: 'Specific plugin slug or all TaxoCommerce plugins'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       plugin:
@@ -46,7 +52,15 @@ jobs:
           from pathlib import Path
 
           valid = re.compile(r"taxocommerce-[a-z0-9-]+\Z")
-          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+          if os.environ.get("REQUESTED_PLUGIN") == "all":
+              selected = sorted(
+                  folder.name for folder in Path(".").glob("taxocommerce-*")
+                  if folder.name != "taxocommerce-connections"
+                  and folder.is_dir() and (folder / (folder.name + ".php")).is_file()
+              )
+              if not selected:
+                  raise SystemExit("No TaxoCommerce plugins found for strict gate")
+          elif os.environ["EVENT_NAME"] == "workflow_dispatch":
               selected = [os.environ["REQUESTED_PLUGIN"]]
           else:
               diff = subprocess.check_output(
@@ -77,6 +91,7 @@ jobs:
     timeout-minutes: 35
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         plugin: ${{ fromJSON(needs.select.outputs.plugins) }}
     steps:

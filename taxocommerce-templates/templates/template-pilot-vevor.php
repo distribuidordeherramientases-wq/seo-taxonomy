@@ -341,11 +341,16 @@ if ( is_wp_error( $main_url ) || ! $main_url ) {
 <meta charset="<?php bloginfo('charset'); ?>">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
-if (function_exists('dht_template_render_wp_head')) {
-    dht_template_render_wp_head();
-} else {
-    wp_head();
-}
+require_once __DIR__ . '/template-pilot-seo.php';
+$seo_source = $is_category
+    ? ( '' !== trim( wp_strip_all_tags( (string) $category_description ) ) ? $category_description : $category_excerpt )
+    : ( $is_landing
+        ? ( '' !== trim( wp_strip_all_tags( (string) $category_description ) ) ? $category_description : $category_excerpt )
+        : ( $product instanceof WC_Product ? ( $product->get_short_description() ?: $product->get_description() ?: $product->get_name() ) : '' ) );
+TCT_Pilot_SEO_Head::render(
+    ! is_wp_error( $dht_current_url ) && $dht_current_url ? (string) $dht_current_url : '',
+    (string) $seo_source
+);
 ?>
 <style>
 /* Diseno autocontenido: sin menus, widgets ni pie de venta espanoles. */

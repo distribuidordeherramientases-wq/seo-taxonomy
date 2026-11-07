@@ -727,7 +727,7 @@ msgstr ""
 
 #: includes/class-user-guide.php:310
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-user-guide.php:311
 msgid ""

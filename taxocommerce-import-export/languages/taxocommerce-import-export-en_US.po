@@ -173,7 +173,7 @@ msgstr ""
 #: includes/class-taxocommerce-import-export-batch.php:182
 #: includes/class-taxocommerce-import-export-exporter.php:123
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-taxocommerce-import-export-batch.php:183
 msgid "Archivo actual"
@@ -182,7 +182,7 @@ msgstr ""
 #: includes/class-taxocommerce-import-export-batch.php:184
 #: includes/class-taxocommerce-import-export.php:349
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/class-taxocommerce-import-export-batch.php:185
 msgid "Velocidad"
@@ -829,7 +829,7 @@ msgstr ""
 #: includes/class-taxocommerce-import-export-exporter.php:179
 #: includes/class-taxocommerce-import-export.php:352
 msgid "Categorías"
-msgstr ""
+msgstr "Categories"
 
 #: includes/class-taxocommerce-import-export-exporter.php:185
 msgid ""
@@ -863,7 +863,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export-exporter.php:258
 msgid "Tipo de exportación no válido."
-msgstr ""
+msgstr "Invalid export type."
 
 #: includes/class-taxocommerce-import-export-exporter.php:288
 msgid "No se pudo crear el CSV temporal."
@@ -1443,7 +1443,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export.php:223
 msgid "Exportación"
-msgstr ""
+msgstr "Export"
 
 #: includes/class-taxocommerce-import-export.php:224
 msgid "Importación individual"
@@ -1459,7 +1459,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export.php:227
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-taxocommerce-import-export.php:249
 msgid "Media · paquete ZIP"
@@ -1492,7 +1492,7 @@ msgstr ""
 #: includes/class-taxocommerce-import-export.php:286
 #: includes/class-taxocommerce-import-export.php:295
 msgid "Importar CSV"
-msgstr ""
+msgstr "Import CSV"
 
 #: includes/class-taxocommerce-import-export.php:287
 msgid "Importa un CSV generado por este plugin."
@@ -1557,7 +1557,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export.php:351
 msgid "Productos"
-msgstr ""
+msgstr "Products"
 
 #: includes/class-taxocommerce-import-export.php:351
 msgid ""

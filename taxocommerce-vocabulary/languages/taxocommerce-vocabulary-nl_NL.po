@@ -12,174 +12,174 @@ msgstr ""
 #: taxocommerce-vocabulary.php includes/class-tcv-admin.php:20
 #: includes/class-tcv-admin.php:30
 msgid "TaxoCommerce Vocabulary"
-msgstr ""
+msgstr "TaxoCommerce Vocabulary"
 
 #. Description of the plugin
 #: taxocommerce-vocabulary.php
 msgid ""
 "Vocabulario semántico, atributos técnicos, clasificación asistida e "
 "importación/exportación para TaxoCommerce."
-msgstr ""
+msgstr "Semantische woordenschat, technische kenmerken, ondersteunde classificatie en import/export voor TaxoCommerce."
 
 #. Author of the plugin
 #: taxocommerce-vocabulary.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tcv-admin.php:21 includes/class-tcv-admin.php:31
 msgid "Vocabulary"
-msgstr ""
+msgstr "Woordenschat"
 
 #: includes/class-tcv-admin.php:120
 msgid "Dar de alta"
-msgstr ""
+msgstr "Toevoegen"
 
 #: includes/class-tcv-admin.php:129
 msgid "Diccionario"
-msgstr ""
+msgstr "Woordenboek"
 
 #: includes/class-tcv-admin.php:129 includes/class-tcv-admin.php:227
 #: includes/class-tcv-admin.php:239 includes/class-tcv-auto-test.php:257
 msgid "Grupo"
-msgstr ""
+msgstr "Groep"
 
 #: includes/class-tcv-admin.php:129
 msgid "Etiqueta"
-msgstr ""
+msgstr "Label"
 
 #: includes/class-tcv-admin.php:129
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
 #: includes/class-tcv-admin.php:129
 msgid "Origen"
-msgstr ""
+msgstr "Bron"
 
 #: includes/class-tcv-admin.php:129 includes/class-tcv-admin.php:154
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 #: includes/class-tcv-admin.php:281 includes/class-tcv-auto-test.php:257
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-tcv-admin.php:133
 msgid "Se muestran como máximo 300 filas en esta vista."
-msgstr ""
+msgstr "In deze weergave worden maximaal 300 rijen getoond."
 
 #: includes/class-tcv-admin.php:154
 msgid "Atributos técnicos canónicos"
-msgstr ""
+msgstr "Canonieke technische kenmerken"
 
 #: includes/class-tcv-admin.php:154
 msgid ""
 "Definiciones propias de TaxoCommerce. No se convierten automáticamente en "
 "atributos WooCommerce."
-msgstr ""
+msgstr "Definities die specifiek zijn voor TaxoCommerce. Ze worden niet automatisch omgezet naar WooCommerce-kenmerken."
 
 #: includes/class-tcv-admin.php:154
 msgid "Atributo"
-msgstr ""
+msgstr "Kenmerk"
 
 #: includes/class-tcv-admin.php:154
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/class-tcv-admin.php:154
 msgid "Unidad"
-msgstr ""
+msgstr "Eenheid"
 
 #: includes/class-tcv-admin.php:154
 msgid "Términos"
-msgstr ""
+msgstr "Termen"
 
 #: includes/class-tcv-admin.php:154
 msgid "Aliases"
-msgstr ""
+msgstr "Aliassen"
 
 #: includes/class-tcv-admin.php:180
 msgid "Clasificador"
-msgstr ""
+msgstr "Classificatie"
 
 #: includes/class-tcv-admin.php:180
 msgid ""
 "El análisis es correctivo y limitado. No recorre todo el catálogo: primero "
 "filtra y después analiza como máximo el número de filas seleccionado."
-msgstr ""
+msgstr "De analyse is corrigerend en beperkt. Niet de hele catalogus wordt doorlopen: eerst wordt gefilterd, daarna worden maximaal het geselecteerde aantal rijen geanalyseerd."
 
 #: includes/class-tcv-admin.php:185 includes/class-tcv-admin.php:239
 msgid "Categoría"
-msgstr ""
+msgstr "Categorie"
 
 #: includes/class-tcv-admin.php:185
 msgid "Todas"
-msgstr ""
+msgstr "Alle"
 
 #: includes/class-tcv-admin.php:199
 msgid "Cobertura"
-msgstr ""
+msgstr "Dekking"
 
 #: includes/class-tcv-admin.php:205
 msgid "Prioridad"
-msgstr ""
+msgstr "Prioriteit"
 
 #: includes/class-tcv-admin.php:210 includes/class-tcv-admin.php:281
 msgid "Filas"
-msgstr ""
+msgstr "Rijen"
 
 #: includes/class-tcv-admin.php:215
 msgid "Analizar filtro"
-msgstr ""
+msgstr "Gefilterde resultaten analyseren"
 
 #: includes/class-tcv-admin.php:227
 msgid "Propuestas recientes"
-msgstr ""
+msgstr "Recente voorstellen"
 
 #: includes/class-tcv-admin.php:227
 msgid "Producto"
-msgstr ""
+msgstr "Product"
 
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 msgid "Propuesta"
-msgstr ""
+msgstr "Voorstel"
 
 #: includes/class-tcv-admin.php:227 includes/class-tcv-admin.php:239
 msgid "Confianza"
-msgstr ""
+msgstr "Betrouwbaarheid"
 
 #: includes/class-tcv-admin.php:227
 msgid "Actualizado"
-msgstr ""
+msgstr "Bijgewerkt"
 
 #: includes/class-tcv-admin.php:236
 msgid "Categoría ID"
-msgstr ""
+msgstr "Categorie-ID"
 
 #: includes/class-tcv-admin.php:236
 msgid "Analizar categoría"
-msgstr ""
+msgstr "Categorie analyseren"
 
 #: includes/class-tcv-admin.php:239
 msgid "Propuestas recientes de categorías"
-msgstr ""
+msgstr "Recente categorievoorstellen"
 
 #: includes/class-tcv-admin.php:281
 msgid "Control de integridad"
-msgstr ""
+msgstr "Integriteitscontrole"
 
 #: includes/class-tcv-admin.php:281
 msgid "Tabla"
-msgstr ""
+msgstr "Tabel"
 
 #: includes/class-tcv-auto-test.php:219
 msgid "No tienes permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "Je hebt geen toestemming om de Auto Test uit te voeren."
 
 #: includes/class-tcv-auto-test.php:231
 msgid "No tienes permisos para Auto Test."
-msgstr ""
+msgstr "Je hebt geen toestemming voor de Auto Test."
 
 #: includes/class-tcv-auto-test.php:235
 msgid "Auto Test de Vocabulary"
-msgstr ""
+msgstr "Vocabulary Auto Test"
 
 #: includes/class-tcv-auto-test.php:235
 msgid ""
@@ -187,100 +187,314 @@ msgid ""
 "consultas limitadas y disponibilidad de exportación. No corrige datos ni "
 "ejecuta procesos. Se conservan los dos últimos informes por usuario durante "
 "30 días."
-msgstr ""
+msgstr "Alleen-lezencontrole van diensten, routes, tabellen, kolommen, beperkte zoekopdrachten en exportbeschikbaarheid. Gegevens worden niet gewijzigd en er worden geen processen gestart. De twee recentste rapporten per gebruiker blijven 30 dagen bewaard."
 
 #: includes/class-tcv-auto-test.php:240
 msgid "No hay un informe previo. Ejecuta Auto Test."
-msgstr ""
+msgstr "Er is geen eerder rapport. Voer de Auto Test uit."
 
 #: includes/class-tcv-auto-test.php:255
 msgid "No hay una ejecución anterior con la que comparar."
-msgstr ""
+msgstr "Er is geen eerdere uitvoering om mee te vergelijken."
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnose"
 
 #: includes/class-tcv-auto-test.php:257
 msgid "Tiempo"
-msgstr ""
+msgstr "Tijd"
 
 #: includes/class-tcv-auto-test.php:262
 msgid ""
 "Las tablas vacías no son errores técnicos. Auto Test no garantiza la calidad"
 " del catálogo ni prueba importaciones/restauraciones reales."
-msgstr ""
+msgstr "Lege tabellen zijn geen technische fouten. De Auto Test garandeert niet de kwaliteit van de catalogus en test geen echte importen of herstelacties."
 
 #: includes/class-tcv-io.php:14 includes/class-tcv-portable.php:23
 msgid "No tienes permisos para gestionar Vocabulary."
-msgstr ""
+msgstr "Je hebt geen toestemming om de woordenschat te beheren."
 
 #: includes/class-tcv-manual.php:8
 msgid "No tienes permisos para consultar este manual."
-msgstr ""
+msgstr "Je hebt geen toestemming om deze handleiding te bekijken."
 
 #: includes/class-tcv-portable.php:33
 msgid "Catálogo completo · JSON portable"
-msgstr ""
+msgstr "Volledige catalogus · draagbare JSON"
 
 #: includes/class-tcv-portable.php:34
 msgid ""
 "Copia portable para backup, análisis externo o traslado entre instalaciones."
 " Los IDs numéricos viajan solo como auditoría; el destino se resuelve "
 "mediante claves portables."
-msgstr ""
+msgstr "Draagbare kopie voor back-ups, externe analyse of overdracht tussen installaties. Numerieke ID's dienen alleen ter controle; de bestemming wordt bepaald met draagbare sleutels."
 
 #: includes/class-tcv-portable.php:50
 msgid "Descargar JSON completo"
-msgstr ""
+msgstr "Volledige JSON downloaden"
 
 #: includes/class-tcv-portable.php:51
 msgid ""
 "No incluye productos completos, imágenes, pedidos, usuarios ni configuración"
 " general de WordPress."
-msgstr ""
+msgstr "Bevat geen volledige producten, afbeeldingen, bestellingen, gebruikers of algemene WordPress-instellingen."
 
 #: includes/class-tcv-portable.php:53
 msgid "Importar catálogo"
-msgstr ""
+msgstr "Catalogus importeren"
 
 #: includes/class-tcv-portable.php:54
 msgid "La simulación es obligatoria."
-msgstr ""
+msgstr "Een simulatie is verplicht."
 
 #: includes/class-tcv-portable.php:54
 msgid ""
 "Para aplicar debes volver a subir exactamente el mismo archivo y mantener el"
 " mismo modo."
-msgstr ""
+msgstr "Om de import toe te passen, upload je exact hetzelfde bestand opnieuw met dezelfde modus."
 
 #: includes/class-tcv-portable.php:59
 msgid "Modo"
-msgstr ""
+msgstr "Modus"
 
 #: includes/class-tcv-portable.php:60
 msgid "MERGE · añadir/actualizar sin retirar asignaciones locales"
-msgstr ""
+msgstr "MERGE · toevoegen/bijwerken zonder lokale koppelingen te verwijderen"
 
 #: includes/class-tcv-portable.php:61
 msgid "MIRROR · igualar asignaciones de los objetos incluidos"
-msgstr ""
+msgstr "MIRROR · koppelingen van de opgenomen objecten gelijkmaken"
 
 #: includes/class-tcv-portable.php:63
 msgid "1. Simular importación"
-msgstr ""
+msgstr "1. Import simuleren"
 
 #: includes/class-tcv-portable.php:64
 msgid "2. Aplicar archivo simulado"
-msgstr ""
+msgstr "2. Gesimuleerd bestand toepassen"
 
 #: includes/class-tcv-portable.php:69
 msgid ""
 "MIRROR sustituye las asignaciones incluidas de productos/categorías y sus "
 "atributos; por seguridad no borra maestros canónicos que no estén en el "
 "paquete."
-msgstr ""
+msgstr "MIRROR vervangt de opgenomen product-/categoriekoppelingen en kenmerken; om veiligheidsredenen worden canonieke basisgegevens die niet in het pakket staan niet verwijderd."
+
+msgid "Vocabulario canónico y atributos técnicos compartidos. Clasificador propone; Vocabulary conserva el dato canónico."
+msgstr "Gedeelde canonieke woordenschat en technische kenmerken. De classificatie doet voorstellen; Vocabulary bewaart de canonieke gegevens."
+
+msgid "Etiquetas"
+msgstr "Labels"
+
+msgid "Atributos"
+msgstr "Kenmerken"
+
+msgid "Importar / Exportar"
+msgstr "Importeren / Exporteren"
+
+msgid "Control"
+msgstr "Controle"
+
+msgid "Autocheck"
+msgstr "Automatische controle"
+
+msgid "Manual"
+msgstr "Handleiding"
+
+msgid "Alta de etiqueta"
+msgstr "Label toevoegen"
+
+msgid "Nombre visible"
+msgstr "Weergavenaam"
+
+msgid "Activa"
+msgstr "Actief"
+
+msgid "Inactiva"
+msgstr "Inactief"
+
+msgid "Activo"
+msgstr "Actief"
+
+msgid "Inactivo"
+msgstr "Inactief"
+
+msgid "Buscar"
+msgstr "Zoeken"
+
+msgid "Producto, SKU o ID"
+msgstr "Product, SKU of ID"
+
+msgid "Cobertura incompleta (falta alguna)"
+msgstr "Onvolledige dekking (er ontbreekt iets)"
+
+msgid "Sin etiquetas semánticas"
+msgstr "Geen semantische labels"
+
+msgid "Sin TIPO"
+msgstr "Zonder TYPE"
+
+msgid "Sin ROL"
+msgstr "Zonder ROL"
+
+msgid "Sin APLICACIÓN"
+msgstr "Zonder TOEPASSING"
+
+msgid "Sin PLATAFORMA"
+msgstr "Zonder PLATFORM"
+
+msgid "Sin SUBTIPO"
+msgstr "Zonder SUBTYPE"
+
+msgid "Todas las anomalías"
+msgstr "Alle afwijkingen"
+
+msgid "P1 · falta TIPO"
+msgstr "P1 · TYPE ontbreekt"
+
+msgid "P2 · falta ROL"
+msgstr "P2 · ROL ontbreekt"
+
+msgid "P3 · falta APLICACIÓN"
+msgstr "P3 · TOEPASSING ontbreekt"
+
+msgid "P4 · falta SUBTIPO"
+msgstr "P4 · SUBTYPE ontbreekt"
+
+msgid "P5 · falta PLATAFORMA"
+msgstr "P5 · PLATFORM ontbreekt"
+
+msgid "Último análisis filtrado"
+msgstr "Laatste gefilterde analyse"
+
+msgid "Procesados:"
+msgstr "Verwerkt:"
+
+msgid "Generado:"
+msgstr "Gegenereerd:"
+
+msgid "Exportar JSON del análisis"
+msgstr "Analyse-JSON exporteren"
+
+msgid "Análisis puntual de categoría"
+msgstr "Analyse van één categorie"
+
+msgid "Para revisar una categoría concreta sin recorrer el catálogo completo."
+msgstr "Bekijk een specifieke categorie zonder de hele catalogus te doorlopen."
+
+msgid "Exporta/importa términos ROL, TIPO, APLICACIÓN, PLATAFORMA, SUBTIPO y la correspondencia TIPO → ROL."
+msgstr "Exporteer/importeer termen voor ROL, TYPE, TOEPASSING, PLATFORM, SUBTYPE en de koppeling TYPE → ROL."
+
+msgid "Exportar CSV de etiquetas"
+msgstr "Labels als CSV exporteren"
+
+msgid "Exporta/importa definiciones de atributos, términos controlados y aliases. No incluye valores asignados a productos."
+msgstr "Exporteer/importeer kenmerkdefinities, gecontroleerde termen en aliassen. Waarden die aan producten zijn gekoppeld, zijn niet inbegrepen."
+
+msgid "Exportar CSV de atributos"
+msgstr "Kenmerken als CSV exporteren"
+
+msgid "Importar CSV"
+msgstr "CSV importeren"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Falta"
+msgstr "Ontbreekt"
+
+msgid "Exportar catálogo"
+msgstr "Catalogus exporteren"
+
+msgid "Maestros: Vocabulary, TIPO → ROL y atributos"
+msgstr "Basisgegevens: Vocabulary, TYPE → ROL en kenmerken"
+
+msgid "Producto → Vocabulary"
+msgstr "Product → Vocabulary"
+
+msgid "Categoría → Vocabulary"
+msgstr "Categorie → Vocabulary"
+
+msgid "Producto → atributos canónicos"
+msgstr "Product → canonieke kenmerken"
+
+msgid "Producto → etiquetas WooCommerce"
+msgstr "Product → WooCommerce-labels"
+
+msgid "Última simulación:"
+msgstr "Laatste simulatie:"
+
+msgid "Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local."
+msgstr "Overkoepelende inventaris van labels en kenmerken met automatische classificatie en lokale verwerking."
+
+msgid "Manual de TaxoCommerce Vocabulary"
+msgstr "Handleiding TaxoCommerce Vocabulary"
+
+msgid "Manual de usuario"
+msgstr "Gebruikershandleiding"
+
+msgid "Manual técnico"
+msgstr "Technische handleiding"
+
+msgid "1. Manual de usuario"
+msgstr "1. Gebruikershandleiding"
+
+msgid "1.1 Para qué sirve Vocabulary"
+msgstr "1.1 Waarvoor dient Vocabulary?"
+
+msgid "1.2 Acceso y estructura"
+msgstr "1.2 Toegang en structuur"
+
+msgid "1.3 Etiquetas: altas y diccionario"
+msgstr "1.3 Labels: toevoegen en woordenboek"
+
+msgid "1.4 Atributos técnicos"
+msgstr "1.4 Technische kenmerken"
+
+msgid "1.5 Clasificador"
+msgstr "1.5 Classificatie"
+
+msgid "1.6 Importar / Exportar: CSV"
+msgstr "1.6 Importeren / Exporteren: CSV"
+
+msgid "1.7 Catálogo portable: JSON"
+msgstr "1.7 Draagbare catalogus: JSON"
+
+msgid "1.8 Control de integridad"
+msgstr "1.8 Integriteitscontrole"
+
+msgid "1.9 Auto Test"
+msgstr "1.9 Auto Test"
+
+msgid "1.10 Secuencia recomendada"
+msgstr "1.10 Aanbevolen stappen"
+
+msgid "2. Manual técnico"
+msgstr "2. Technische handleiding"
+
+msgid "2.1 Componentes y arranque"
+msgstr "2.1 Onderdelen en opstarten"
+
+msgid "2.2 Modelo de datos existente"
+msgstr "2.2 Bestaand gegevensmodel"
+
+msgid "2.3 Contratos del clasificador"
+msgstr "2.3 Classificatiecontracten"
+
+msgid "2.4 Rutas y seguridad"
+msgstr "2.4 Routes en beveiliging"
+
+msgid "2.5 Importaciones y portabilidad"
+msgstr "2.5 Import en overdraagbaarheid"
+
+msgid "2.6 Auto Test: alcance y persistencia"
+msgstr "2.6 Auto Test: bereik en opslag"
+
+msgid "2.7 Límites y pruebas"
+msgstr "2.7 Beperkingen en tests"
+

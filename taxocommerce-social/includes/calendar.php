@@ -93,7 +93,7 @@ function tcsocial_calendar_events()
         }
 
         $type_key = 'other';
-        $type_label = 'Otro';
+        $type_label = __( 'Otro', 'taxocommerce-social' );
         if ('post' === $raw_type) {
             $type_key = 'post';
             $type_label = 'Entrada';
@@ -109,7 +109,7 @@ function tcsocial_calendar_events()
 
         $events[] = array(
             'content_id'     => $content_id,
-            'title'          => $title !== '' ? $title : ('Contenido #' . $content_id),
+            'title'          => $title !== '' ? $title : sprintf( /* translators: %d: WordPress content ID. */ __( 'Contenido #%d', 'taxocommerce-social' ), $content_id ),
             'type_key'       => $type_key,
             'type_label'     => $type_label,
             'provider'       => $provider,

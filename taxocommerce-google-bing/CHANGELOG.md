@@ -1,3 +1,30 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
+## [1.1.21] — 2026-11-07 — Google Analytics mediante scripts de WordPress (#2299)
+
+- GA4 configurado en Insights usa el sistema nativo `wp_enqueue_script()` y `wp_add_inline_script()` en lugar de emitir una etiqueta script externa directamente.
+- Se conservan los identificadores, la edición del inventario de etiquetas y la autorización previa de estadísticas. No se duplican cargas cuando Google Analytics ya se gestiona mediante conexiones antiguas.
+- Prueba de regresión para consentimiento, etiquetas y encolado; verificación mediante Plugin Check oficial antes de fusionar.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
+## [1.1.17] — 2026-11-06 — IndexNow independiente de Cloudflare (#2259)
+
+- Emisor IndexNow opcional por tienda dentro de Insights > Connections > Bing, desactivado por defecto para evitar duplicaciones con proveedores SEO o CDN.
+- Clave pública aleatoria generada por instalación, URL de verificación virtual y cola deduplicada de hasta 1000 cambios; envío por WP-Cron de 100 URL como máximo, con reintentos controlados para 429, 5xx y errores de red.
+- Notifica cambios de entradas, productos y taxonomías publicadas, sin enviar URL de otros dominios ni contenido privado. Formulario para notificar una URL concreta del sitio.
+- Estado visible: URL de clave, pendientes y último HTTP; sin dependencia de otros plugins TaxoCommerce ni credenciales Bing Webmaster.
+- Se elimina la suposición histórica de que Cloudflare siempre gestiona IndexNow. Activarlo y comprobar la URL de clave en la tienda pertinente antes de esperar avisos Bing.
+- Test offline de permisos de dominio, cola, deduplicación y reintentos; ningún envío a producción.
+
 ## Unreleased - Familia i18n #2062
 
 

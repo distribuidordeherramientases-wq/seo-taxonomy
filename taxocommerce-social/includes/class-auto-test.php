@@ -293,7 +293,7 @@ final class TCSocial_Auto_Test {
         echo '<p>' . esc_html__( 'Chequeo local de solo lectura de conexiones registradas, plantillas, tablas, calendario y programador. No conecta cuentas ni publica. Se guardan los dos últimos resultados por administrador durante 30 días.', 'taxocommerce-social' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         wp_nonce_field( self::NONCE, 'tcsocial_auto_nonce' );
-        submit_button( 'Ejecutar Autocheck', 'primary', 'submit', false );
+        submit_button( esc_html__( 'Ejecutar Autocheck', 'taxocommerce-social' ), 'primary', 'submit', false );
         echo '</form>';
         if ( ! $current ) {
             echo '<p>' . esc_html__( 'No existen resultados todavía. Pulsa Ejecutar Autocheck.', 'taxocommerce-social' ) . '</p>' . '</section>';
@@ -305,8 +305,8 @@ final class TCSocial_Auto_Test {
         submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-social' ), 'secondary', 'submit', false );
         echo '</form>';
 
-        echo '<h3>Último resultado · v' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-social' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
-        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' correctas</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' fallidas</strong> · ' . esc_html( (string) $totals['skip'] ) . ' omitidas · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
+        echo '<h3>' . esc_html__( 'Último resultado', 'taxocommerce-social' ) . ' · v' . esc_html( $current['version'] ) . ' · ' . esc_html__( 'Fecha de ejecución:', 'taxocommerce-social' ) . ' ' . esc_html( $current['date'] ) . '</h3>';
+        echo '<p><strong>' . esc_html( (string) $totals['pass'] ) . ' ' . esc_html__( 'correctas', 'taxocommerce-social' ) . '</strong> · <strong>' . esc_html( (string) $totals['fail'] ) . ' ' . esc_html__( 'fallidas', 'taxocommerce-social' ) . '</strong> · ' . esc_html( (string) $totals['skip'] ) . ' ' . esc_html__( 'omitidas', 'taxocommerce-social' ) . ' · ' . esc_html( (string) $current['ms'] ) . ' ms</p>';
         if ( $previous ) {
             $old = array();
             foreach ( $previous['rows'] as $row ) $old[ $row['id'] ] = $row['status'];
@@ -314,14 +314,14 @@ final class TCSocial_Auto_Test {
             foreach ( $current['rows'] as $row ) {
                 if ( 'fail' === $row['status'] && isset( $old[ $row['id'] ] ) && 'pass' === $old[ $row['id'] ] ) $regressions[] = $row['label'];
             }
-            echo '<p><strong>Comparación:</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
-            echo $regressions ? '<strong style="color:#b32d2e">Regresiones: ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : 'Sin regresiones de correcto a fallido.';
+            echo '<p><strong>' . esc_html__( 'Comparación:', 'taxocommerce-social' ) . '</strong> ' . esc_html( $previous['version'] . ' (' . $previous['date'] . ') → ' . $current['version'] ) . '. ';
+            echo $regressions ? '<strong style="color:#b32d2e">' . esc_html__( 'Regresiones:', 'taxocommerce-social' ) . ' ' . esc_html( implode( ', ', $regressions ) ) . '</strong>' : esc_html__( 'Sin regresiones de correcto a fallido.', 'taxocommerce-social' );
             echo '</p>';
         } else {
             echo '<p>' . esc_html__( 'No existe una ejecución anterior para comparar.', 'taxocommerce-social' ) . '</p>';
         }
         echo '<div style="overflow-x:auto">' . '<table class="widefat striped">' . '<thead>' . '<tr>' . '<th>' . esc_html__( 'Grupo', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Prueba', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Estado', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Diagnóstico', 'taxocommerce-social' ) . '</th>' . '<th>' . esc_html__( 'Tiempo', 'taxocommerce-social' ) . '</th>' . '</tr>' . '</thead>' . '<tbody>';
-        $names = array( 'pass' => 'Correcto', 'fail' => 'Error', 'skip' => 'No ejecutado' );
+        $names = array( 'pass' => esc_html__( 'Correcto', 'taxocommerce-social' ), 'fail' => esc_html__( 'Error', 'taxocommerce-social' ), 'skip' => esc_html__( 'No ejecutado', 'taxocommerce-social' ) );
         foreach ( $current['rows'] as $row ) {
             echo '<tr><td>' . esc_html( $row['group'] ) . '</td><td>' . esc_html( $row['label'] ) . '</td><td><strong>' . esc_html( $names[ $row['status'] ] ) . '</strong></td><td>' . esc_html( $row['message'] ) . '</td><td>' . esc_html( (string) $row['ms'] ) . ' ms</td></tr>';
         }

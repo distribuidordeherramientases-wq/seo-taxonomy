@@ -1,3 +1,21 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
+## [Unreleased] — Primera fase de internacionalización (#2274)
+
+- Traducidas 42 cadenas principales de administración, accesibilidad, diagnósticos y manual en cinco idiomas: es_ES, en_US, fr_FR, de_DE y nl_NL.
+- Regenerados los catálogos binarios MO correspondientes. Sin cambios en los chequeos ni en sus resultados.
+- Continúan pendientes las demás cadenas del POT, la auditoría de literales fuera de gettext y las pruebas reales de locale. No declarar internacionalización completa.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
 ## [0.2.18] — 2026-11-06 — Supervisión de procesos de WordPress (#2250)
 
 - Nueva pestaña Procesos: inventario acotado de Action Scheduler y WP-Cron (100 registros por estado), más los procesos conocidos de Dependiente, Import-Export (incluidas exportaciones CSV) y auditorías HTTP si están activos.

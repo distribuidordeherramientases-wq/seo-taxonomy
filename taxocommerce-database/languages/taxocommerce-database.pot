@@ -885,3 +885,49 @@ msgstr ""
 
 msgid "Último resultado"
 msgstr ""
+
+#. translators: %d: WordPress user ID.
+#: includes/legacy/seo-database-clean.php
+msgid "Usuario ID %d"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "No disponible"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Existe un bloqueo activo."
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Opción de WordPress"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Usuario que inició el proceso"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Fecha de inicio"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Antigüedad"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Token"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Desbloquear aceptación masiva"
+msgstr ""
+
+#: includes/legacy/seo-database-clean.php
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr ""
+

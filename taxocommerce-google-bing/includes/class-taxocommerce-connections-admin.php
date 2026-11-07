@@ -193,6 +193,7 @@ final class TaxoCommerce_Connections_Admin {
 		$google = TaxoCommerce_Connections_Google_Bing::google_settings();
 		$google_merchant = TaxoCommerce_Connections_Google_Bing::merchant_account();
 		$bing = TaxoCommerce_Connections_Google_Bing::bing_settings();
+		$indexnow = TaxoCommerce_Insights_IndexNow::status();
 		$amazon = TaxoCommerce_Connections_Amazon::settings();
 		$pinterest = TaxoCommerce_Connections_Pinterest::settings();
 		$merchant = TaxoCommerce_Connections_Pinterest::merchant_settings();
@@ -270,8 +271,37 @@ final class TaxoCommerce_Connections_Admin {
 						<?php if ( ! empty( $bing['api_key'] ) && ! defined( 'SEO_BING_WEBMASTER_API_KEY' ) ) : ?>
 							<p><label><input type="checkbox" name="clear_api_key" value="1"> Remove the stored API key.</label></p>
 						<?php endif; ?>
+						<p><label><input type="checkbox" name="indexnow_enabled" value="1" <?php checked( ! empty( $indexnow['enabled'] ) ); ?>> <?php esc_html_e( 'Activar IndexNow para avisar a Bing de URL creadas, modificadas o eliminadas. No actives esta opción si otro servicio ya envía estas notificaciones.', 'taxocommerce-google-bing' ); ?></label></p>
 						<?php submit_button( __( 'Save Bing', 'taxocommerce-google-bing' ), 'primary', 'submit', false ); ?>
 					</form>
+					<div class="notice notice-info inline" style="margin:10px 0;padding:8px 12px;">
+						<p><strong><?php esc_html_e( 'IndexNow (independiente de Cloudflare)', 'taxocommerce-google-bing' ); ?></strong></p>
+						<?php if ( ! empty( $indexnow['enabled'] ) && ! empty( $indexnow['key_url'] ) ) : ?>
+							<p><?php esc_html_e( 'Archivo público de verificación:', 'taxocommerce-google-bing' ); ?> <a href="<?php echo esc_url( $indexnow['key_url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $indexnow['key_url'] ); ?></a></p>
+						<?php endif; ?>
+						<p><?php echo esc_html( sprintf(
+							/* translators: %d: number of queued URLs. */
+							__( 'URL pendientes: %d', 'taxocommerce-google-bing' ),
+							absint( $indexnow['pending'] ?? 0 )
+						) ); ?></p>
+						<?php if ( ! empty( $indexnow['last'] ) ) : ?>
+							<p><?php echo esc_html( sprintf(
+							/* translators: %1$d: HTTP status code, %2$s: result message. */
+							__( 'Último envío: HTTP %1$d — %2$s', 'taxocommerce-google-bing' ),
+							absint( $indexnow['last']['code'] ?? 0 ),
+							(string) ( $indexnow['last']['message'] ?? '' )
+						) ); ?></p>
+						<?php endif; ?>
+					</div>
+					<?php if ( ! empty( $indexnow['enabled'] ) ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-bottom:10px;">
+							<input type="hidden" name="action" value="taxocommerce_insights_indexnow_url">
+							<?php wp_nonce_field( 'taxocommerce_insights_indexnow_url' ); ?>
+							<label for="tgb-indexnow-manual-url"><?php esc_html_e( 'Notificar una URL propia actualizada:', 'taxocommerce-google-bing' ); ?></label>
+							<input id="tgb-indexnow-manual-url" class="large-text code" type="url" name="indexnow_url" required placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>">
+							<?php submit_button( __( 'Añadir a la cola IndexNow', 'taxocommerce-google-bing' ), 'secondary', 'submit', false ); ?>
+						</form>
+					<?php endif; ?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:10px;">
 						<input type="hidden" name="action" value="taxocommerce_connections_test_bing">
 						<?php wp_nonce_field( 'taxocommerce_connections_test_bing' ); ?>

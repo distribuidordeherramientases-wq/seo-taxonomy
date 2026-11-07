@@ -1,3 +1,9 @@
+= 1.1.21 (2026-11-07) =
+* GA4 con sistema nativo de encolado WordPress y consentimiento, sin script externo duplicado. Issue #2299.
+
+= 1.1.17 (2026-11-06) =
+* IndexNow optativo desde Insights, sin Cloudflare, con clave por instalación, avisos por cambios, cola y estado. Issue #2259.
+
 HISTORIAL LEGADO — TAXOCOMMERCE INSIGHTS
 
 Fuente: TaxoCommerce SEO monolítico, no versiones del módulo autónomo.

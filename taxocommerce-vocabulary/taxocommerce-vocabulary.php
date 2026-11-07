@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Vocabulary
  * Description: Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.
- * Version: 0.3.9
+ * Version: 0.3.10
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.9' );
+define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.10' );
 define( 'TAXOCOMMERCE_VOCABULARY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_VOCABULARY_URL', plugin_dir_url( __FILE__ ) );
 
@@ -55,7 +55,7 @@ function taxocommerce_vocabulary_register_with_core( $core ) {
             'name'        => 'TaxoCommerce Vocabulary',
             'version'     => TAXOCOMMERCE_VOCABULARY_VERSION,
             'status'      => 'active',
-            'description' => 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.',
+            'description' => __( 'Inventario transversal de etiquetas y atributos con Clasificador automático y ejecución local.', 'taxocommerce-vocabulary' ),
             'admin_url'   => admin_url( 'admin.php?page=taxocommerce-vocabulary' ),
         )
     );
@@ -74,10 +74,25 @@ add_action( 'init', static function () {
     }
     $locale = sanitize_file_name( determine_locale() );
     // Prefer official WordPress language packs when installed.
-    if ( is_readable( WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale . '.mo' ) ) {
+    $official_pack = WP_LANG_DIR . '/plugins/' . $domain . '-' . $locale;
+    if ( is_readable( $official_pack . '.mo' ) || is_readable( $official_pack . '.l10n.php' ) ) {
         return;
     }
     $catalog = __DIR__ . '/languages/' . $domain . '-' . $locale . '.mo';
+    if ( ! is_readable( $catalog ) ) {
+        // Use a bundled base-language catalog for WordPress locale variants.
+        $language = strtolower( substr( $locale, 0, 2 ) );
+        $fallback_locales = array(
+            'es' => 'es_ES',
+            'en' => 'en_US',
+            'fr' => 'fr_FR',
+            'de' => 'de_DE',
+            'nl' => 'nl_NL',
+        );
+        if ( isset( $fallback_locales[ $language ] ) ) {
+            $catalog = __DIR__ . '/languages/' . $domain . '-' . $fallback_locales[ $language ] . '.mo';
+        }
+    }
     if ( is_readable( $catalog ) ) {
         load_textdomain( $domain, $catalog );
     }

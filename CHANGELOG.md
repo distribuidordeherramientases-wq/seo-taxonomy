@@ -1,4 +1,19 @@
+## 2026-11-07 — Despliegue acotado de TaxoCommerce Tasks (Issue #2290)
+
+- El menú de Tasks 0.1.1 ya estaba corregido y fusionado, pero la distribución a STAGING/Focazul quedó en cola del pipeline global.
+- Habilitada la ejecución de despliegue al hacer push en el workflow existente `deploy-staging.yml`, únicamente para el plugin `taxocommerce-tasks` y los dos destinos de prueba.
+- Diferenciado el evento push directo de las llamadas reutilizables del pipeline general, manteniendo la selección de todos los plugins para las rutas existentes.
+- Añadidos tests del filtro específico y del rechazo de sincronizaciones completas/otros plugins; no se habilita ninguna escritura en producción.
+- La entrega real y los checksums remotos se verifican por cada destino en GitHub Actions; no equivale a activar el plugin.
+
 # Changelog
+
+## [Unreleased] — Locales regionales en los 19 plugins TaxoCommerce (#2295)
+
+- Los 19 plugins independientes priorizan las traducciones oficiales de WordPress en formatos .mo y .l10n.php.
+- Si el locale exacto no tiene catálogo local ni paquete oficial, se reutiliza el catálogo disponible del idioma principal para variantes ES/EN/FR/DE/NL (por ejemplo en_GB -> en_US).
+- Nueva prueba CLI sobre los 19 cargadores de gettext y la prioridad de los paquetes oficiales, integrada en la validación de despliegue; ninguna lógica de WooCommerce se altera.
+- Los scripts de inventario y generación de traducciones consideran los 19 plugins activos, excluyendo Connections independiente, integrado en el módulo de Insights/Google-Bing. Pendientes de #2062 los textos y catálogos aún incompletos.
 
 ## GitHub Actions: tres workflows permanentes - 05/11/2026 (Issue #2205)
 

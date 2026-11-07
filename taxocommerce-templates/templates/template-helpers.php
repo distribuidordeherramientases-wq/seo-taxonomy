@@ -73,34 +73,99 @@ if (!function_exists('dht_template_get_canonical_url')) {
     }
 }
 
+/**
+ * Build a non-duplicating, page-specific fallback only when wp_head did not
+ * emit a meta description. External SEO plugins remain the primary owner.
+ *
+ * @return string Plain-text description, or empty for nonindexable views.
+ */
+if (!function_exists('dht_template_fallback_meta_description')) {
+    function dht_template_fallback_meta_description()
+    {
+        if (is_404() || is_search()) {
+            return '';
+        }
+        $text = '';
+        if (is_singular()) {
+            $id = absint(get_queried_object_id());
+            if ($id) {
+                $text = (string) get_post_field('post_excerpt', $id);
+                if ('' === trim($text)) {
+                    $text = (string) get_post_field('post_content', $id);
+                }
+                if ('' === trim($text)) {
+                    $text = (string) get_the_title($id);
+                }
+            }
+        } elseif (is_category() || is_tag() || is_tax()) {
+            $term = get_queried_object();
+            if ($term && is_a($term, 'WP_Term')) {
+                $text = (string) $term->description;
+                if ('' === trim($text)) {
+                    $text = (string) $term->name;
+                }
+            }
+        } elseif (is_front_page()) {
+            $text = (string) get_bloginfo('description');
+            if ('' === trim($text)) {
+                $text = (string) get_bloginfo('name');
+            }
+        } elseif (is_post_type_archive()) {
+            $text = (string) post_type_archive_title('', false);
+        }
+        $text = trim((string) wp_strip_all_tags(strip_shortcodes($text), true));
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        if ('' === $text) {
+            return '';
+        }
+        $text = wp_html_excerpt($text, 160, '');
+        return (string) apply_filters('taxocommerce_templates_fallback_meta_description', $text);
+    }
+}
+
 if (!function_exists('dht_template_render_wp_head')) {
     function dht_template_render_wp_head()
     {
+        // Preserve wp_head hooks, analytics, scripts and external SEO providers.
+        // The output was already buffered here for canonical consolidation.
         $canonical = dht_template_get_canonical_url();
-
-        if ($canonical === '') {
-            wp_head();
-            return;
-        }
-
-        /*
-         * Ejecuta wp_head completo para conservar todos sus efectos y hooks,
-         * pero elimina cualquier canonical publicado por Core o plugins.
-         * Despues se imprime una sola canonical DHT calculada desde la URL
-         * publica actual de la entidad.
-         */
         ob_start();
         wp_head();
         $head = (string) ob_get_clean();
 
-        $head = preg_replace(
-            '~<link\\b[^>]*\\brel\\s*=\\s*["\\\']canonical["\\\'][^>]*>\\s*~i',
-            '',
+        // Keep the first actual SEO description and remove subsequent copies.
+        // Match both attribute orders and both HTML quote styles.
+        $has_description = false;
+        $head = preg_replace_callback(
+            '~<meta\b(?=[^>]*\bname\s*=\s*(["\x27])description\1)[^>]*>~i',
+            static function ($match) use (&$has_description) {
+                if ($has_description) {
+                    return '';
+                }
+                $has_description = true;
+                return $match[0];
+            },
             $head
         );
 
-        echo $head; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        echo "\n<link rel=\"canonical\" href=\"" . esc_url($canonical) . "\">\n";
+        if ('' !== $canonical) {
+            $head = preg_replace(
+                '~<link\b[^>]*\brel\s*=\s*["\x27]canonical["\x27][^>]*>\s*~i',
+                '',
+                $head
+            );
+        }
+
+        echo $head; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted wp_head hooks, unmodified except duplicate meta/canonical removal.
+        if (!$has_description) {
+            $fallback = dht_template_fallback_meta_description();
+            if ('' !== $fallback) {
+                echo "\n<meta name=\"description\" content=\"" . esc_attr($fallback) . "\">\n";
+            }
+        }
+        if ('' !== $canonical) {
+            echo "\n<link rel=\"canonical\" href=\"" . esc_url($canonical) . "\">\n";
+        }
     }
 }
 

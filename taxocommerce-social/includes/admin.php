@@ -70,7 +70,7 @@ function tcsocial_admin_render() {
     tcsocial_network_render_styles();
     tcsocial_network_render_notice();
 
-    echo '<div class="wrap"><h1>TaxoCommerce Social <small>v' . esc_html( TAXOCOMMERCE_SOCIAL_VERSION ) . '</small></h1>';
+    echo '<div class="wrap"><h1>' . esc_html__( 'TaxoCommerce Social', 'taxocommerce-social' ) . ' <small>v' . esc_html( TAXOCOMMERCE_SOCIAL_VERSION ) . '</small></h1>';
     echo '<p class="description">' . esc_html__( 'Publicación social autónoma. Conexiones, formatos y calendario sin campañas, ofertas ni reglas especiales de Noticias.', 'taxocommerce-social' ) . '</p>';
 
     $settings = tcsocial_network_get_settings();
@@ -79,17 +79,17 @@ function tcsocial_admin_render() {
         $connected = ! empty( $settings['providers'][ $provider_key ]['enabled'] );
         echo '<span class="seo-social-provider-pill ' . ( $connected ? 'is-connected' : '' ) . '">';
         echo esc_html( isset( $provider['label'] ) ? $provider['label'] : ucfirst( $provider_key ) );
-        echo ' · ' . esc_html( $connected ? 'conectado' : 'sin conectar' );
+        echo ' · ' . esc_html( $connected ? esc_html__( 'Conectado', 'taxocommerce-social' ) : esc_html__( 'Sin conectar', 'taxocommerce-social' ) );
         echo '</span>';
     }
     echo '</div></div>';
 
     $tabs = array(
-        'connections' => 'Conexiones',
-        'templates'   => 'Plantillas',
-        'calendar'    => 'Calendario',
+        'connections' => esc_html__( 'Conexiones', 'taxocommerce-social' ),
+        'templates'   => esc_html__( 'Plantillas', 'taxocommerce-social' ),
+        'calendar'    => esc_html__( 'Calendario', 'taxocommerce-social' ),
         'auto-test'   => __( 'Autocheck', 'taxocommerce-social' ),
-        'manual'      => 'Manual',
+        'manual'      => esc_html__( 'Manual', 'taxocommerce-social' ),
     );
     echo '<nav class="nav-tab-wrapper" style="margin-bottom:18px">';
     foreach ( $tabs as $key => $label ) {

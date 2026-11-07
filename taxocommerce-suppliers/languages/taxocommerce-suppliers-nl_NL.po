@@ -331,7 +331,7 @@ msgid "Duplicate"
 msgstr ""
 
 msgid "Ejecuta el Autocheck antes de descargar el JSON."
-msgstr ""
+msgstr "Voer Autocheck uit voordat je het JSON-rapport downloadt."
 
 msgid "Ejecutar Autocheck"
 msgstr "Zelfcontrole uitvoeren"
@@ -340,7 +340,7 @@ msgid "El nombre de una columna de origen está vacío o es demasiado largo."
 msgstr ""
 
 msgid "Error"
-msgstr ""
+msgstr "Fout"
 
 msgid "Excl. tax"
 msgstr "Excl. btw"
@@ -487,7 +487,7 @@ msgid "No se pudo exportar la plantilla."
 msgstr ""
 
 msgid "No se pudo generar el informe JSON."
-msgstr ""
+msgstr "Het JSON-rapport kon niet worden gemaakt."
 
 msgid "No templates have been created on this site."
 msgstr "Er zijn nog geen sjablonen aangemaakt op deze website."
@@ -592,7 +592,7 @@ msgid "Select all rows on this page"
 msgstr "Alle rijen op deze pagina selecteren"
 
 msgid "Sin permisos para descargar el Autocheck."
-msgstr ""
+msgstr "Geen toestemming om Autocheck te downloaden."
 
 msgid "Solo se admiten definiciones JSON, CSV o TXT."
 msgstr ""

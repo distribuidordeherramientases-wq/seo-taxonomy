@@ -888,3 +888,37 @@ msgstr "type de point de terminaison inconnu"
 
 msgid "Último resultado"
 msgstr "Dernier résultat"
+
+msgid "Usuario ID %d"
+msgstr "ID utilisateur %d"
+
+msgid "No disponible"
+msgstr "Indisponible"
+
+msgid "Existe un bloqueo activo."
+msgstr "Un verrouillage est actif."
+
+msgid "Comprueba que no haya otra aceptación masiva ejecutándose antes de eliminarlo."
+msgstr "Vérifiez qu'aucun autre traitement d'acceptation groupée n'est en cours avant de supprimer le verrouillage."
+
+msgid "Opción de WordPress"
+msgstr "Option WordPress"
+
+msgid "Usuario que inició el proceso"
+msgstr "Utilisateur à l'origine du traitement"
+
+msgid "Fecha de inicio"
+msgstr "Date de début"
+
+msgid "Antigüedad"
+msgstr "Temps écoulé"
+
+msgid "Token"
+msgstr "Jeton"
+
+msgid "Desbloquear aceptación masiva"
+msgstr "Déverrouiller l'acceptation groupée"
+
+msgid "Elimina el bloqueo únicamente si has comprobado que no hay otra aceptación masiva ejecutándose. ¿Continuar?"
+msgstr "Supprimez le verrouillage uniquement après avoir vérifié qu'aucun autre traitement d'acceptation groupée n'est en cours. Continuer ?"
+

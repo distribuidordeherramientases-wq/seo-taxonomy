@@ -12,219 +12,219 @@ msgstr ""
 #: taxocommerce-social.php includes/admin.php:9 includes/admin.php:19
 #: includes/admin.php:20
 msgid "TaxoCommerce Social"
-msgstr ""
+msgstr "TaxoCommerce Social"
 
 #. Description of the plugin
 #: taxocommerce-social.php
 msgid ""
 "Social network connections, publishing templates and calendar for the "
 "TaxoCommerce family."
-msgstr ""
+msgstr "Social network connections, publishing templates and calendar for the TaxoCommerce family."
 
 #. Author of the plugin
 #: taxocommerce-social.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:10
 msgid "Social"
-msgstr ""
+msgstr "Social"
 
 #: includes/admin.php:74
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr ""
+msgstr "Independent social publishing. Connections, formats and calendar without marketing campaigns, offers or special News rules."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
-msgstr ""
+msgstr "Social networks"
 
 #: includes/admin.php:77
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr ""
+msgstr "The calendar is this module's only schedule. Posts are scheduled here using each network's templates."
 
 #: includes/admin.php:109
 msgid "Agenda social"
-msgstr ""
+msgstr "Social calendar"
 
 #: includes/admin.php:109
 msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr ""
+msgstr "Schedule posts manually or via CSV and review the results in the monthly calendar. Marketing campaigns and special News timeslots are not included."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
-msgstr ""
+msgstr "Social networks only"
 
 #: includes/calendar.php:242
 msgid "Calendario de publicaciones"
-msgstr ""
+msgstr "Publishing calendar"
 
 #: includes/calendar.php:242
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr ""
+msgstr "Monthly view for social posts only. Does not include campaigns, offers or special News rules."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
-msgstr ""
+msgstr "Visual schedule"
 
 #: includes/calendar.php:256 includes/core.php:2966 includes/core.php:3156
 #: includes/programador.php:602
 msgid "Red"
-msgstr ""
+msgstr "Network"
 
 #: includes/calendar.php:256
 msgid "Todas las redes"
-msgstr ""
+msgstr "All networks"
 
 #: includes/calendar.php:261
 msgid "Aplicar"
-msgstr ""
+msgstr "Apply"
 
 #: includes/calendar.php:266
 msgid "Entrada"
-msgstr ""
+msgstr "Post"
 
 #: includes/calendar.php:267
 msgid "Landing"
-msgstr ""
+msgstr "Landing page"
 
 #: includes/calendar.php:268
 msgid "Colisión"
-msgstr ""
+msgstr "Conflict"
 
 #: includes/calendar.php:339
 msgid "Sin publicaciones"
-msgstr ""
+msgstr "No posts"
 
 #: includes/calendar.php:349
 msgid "Vista compacta"
-msgstr ""
+msgstr "Compact view"
 
 #: includes/calendar.php:349
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr ""
+msgstr "Chronological monthly listing. Useful on mobile and for quickly checking times, networks and actual duplicates."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
-msgstr ""
+msgstr "You do not have permission to run Auto Test."
 
 #: includes/class-auto-test.php:264
 msgid "Auto Test de TaxoCommerce Social"
-msgstr ""
+msgstr "TaxoCommerce Social Auto Test"
 
 #: includes/class-auto-test.php:265
 msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr ""
+msgstr "Read-only local checks of registered connections, templates, tables, calendar and scheduler. No accounts are connected and nothing is published. The last two results per administrator are saved for 30 days."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr ""
+msgstr "No results yet. Click Run Auto Test."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."
-msgstr ""
+msgstr "There is no previous run to compare against."
 
 #: includes/class-auto-test.php:290
 msgid "Grupo"
-msgstr ""
+msgstr "Group"
 
 #: includes/class-auto-test.php:290
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
 #: includes/class-auto-test.php:290 includes/core.php:3156
 #: includes/programador.php:602
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-auto-test.php:290
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnosis"
 
 #: includes/class-auto-test.php:290
 msgid "Tiempo"
-msgstr ""
+msgstr "Time"
 
 #: includes/class-auto-test.php:295
 msgid ""
 "Un Auto Test correcto confirma los componentes disponibles; no garantiza la "
 "autorización de las cuentas ni una publicación externa satisfactoria."
-msgstr ""
+msgstr "A successful Auto Test confirms available components; it does not guarantee account authorization or successful external publishing."
 
 #: includes/class-manual.php:12
 msgid "Sin permisos para consultar los manuales."
-msgstr ""
+msgstr "You do not have permission to view the manuals."
 
 #: includes/core.php:1476 includes/core.php:1542
 msgid "No tienes permisos para configurar redes sociales."
-msgstr ""
+msgstr "You do not have permission to configure social networks."
 
 #: includes/core.php:1568 includes/core.php:2480
 msgid "No tienes permisos para modificar plantillas sociales."
-msgstr ""
+msgstr "You do not have permission to edit social templates."
 
 #: includes/core.php:1610
 msgid "No tienes permisos para modificar la automatizacion social."
-msgstr ""
+msgstr "You do not have permission to change social automation."
 
 #: includes/core.php:1725
 msgid "No se pudo generar el archivo CSV."
-msgstr ""
+msgstr "The CSV file could not be generated."
 
 #: includes/core.php:1880
 msgid "No tienes permisos para exportar la programacion social."
-msgstr ""
+msgstr "You do not have permission to export the social schedule."
 
 #: includes/core.php:2175 includes/core.php:2231
 msgid "No tienes permisos para importar programaciones sociales."
-msgstr ""
+msgstr "You do not have permission to import social schedules."
 
 #: includes/core.php:2302
 msgid "No tienes permisos para programar publicaciones sociales."
-msgstr ""
+msgstr "You do not have permission to schedule social posts."
 
 #: includes/core.php:2406
 msgid "No tienes permisos para modificar las publicaciones sociales."
-msgstr ""
+msgstr "You do not have permission to edit social posts."
 
 #: includes/core.php:2446
 msgid "No tienes permisos para publicar en redes sociales."
-msgstr ""
+msgstr "You do not have permission to publish to social networks."
 
 #: includes/core.php:2509
 msgid "No tienes permisos para actualizar informes sociales."
-msgstr ""
+msgstr "You do not have permission to update social reports."
 
 #: includes/core.php:2718
 msgid ""
 "Define una vez el formato, automatiza si quieres y usa el Programador solo "
 "como agenda."
-msgstr ""
+msgstr "Define the format once, automate it if you wish, and use the Scheduler solely as a calendar."
 
 #: includes/core.php:2796
 msgid "Conectado"
-msgstr ""
+msgstr "Connected"
 
 #: includes/core.php:2802
 msgid "Sin conectar"
-msgstr ""
+msgstr "Not connected"
 
 #: includes/core.php:2852
 msgid "Plantillas de publicación"
-msgstr ""
+msgstr "Publishing templates"
 
 #: includes/core.php:2852
 msgid ""
@@ -232,189 +232,189 @@ msgid ""
 "producto incluido en una campaña de Marketing para cada red. El Programador "
 "utilizará estas plantillas automáticamente; aquí no se decide cuándo "
 "publicar."
-msgstr ""
+msgstr "Define once how a post, page or product included in a Marketing campaign should be written for each network. The Scheduler uses these templates automatically; publishing times are not set here."
 
 #: includes/core.php:2852
 msgid "Formato general"
-msgstr ""
+msgstr "General format"
 
 #: includes/core.php:2873
 msgid "Variables disponibles:"
-msgstr ""
+msgstr "Available variables:"
 
 #: includes/core.php:2878
 msgid "Guardar plantillas"
-msgstr ""
+msgstr "Save templates"
 
 #: includes/core.php:2891
 msgid "Publicación automática"
-msgstr ""
+msgstr "Automatic publishing"
 
 #: includes/core.php:2891
 msgid ""
 "Activa esta opción únicamente si quieres que una pieza se publique en redes "
 "la primera vez que pasa a estado Publicado en WordPress. No cambia el "
 "formato: utiliza las plantillas generales."
-msgstr ""
+msgstr "Enable this only if you want content to be posted to social networks the first time its WordPress status changes to Published. This does not change the format: it uses the general templates."
 
 #: includes/core.php:2891
 msgid "Disparador"
-msgstr ""
+msgstr "Trigger"
 
 #: includes/core.php:2896
 msgid "Qué contenido activa la automatización"
-msgstr ""
+msgstr "Which content triggers automation"
 
 #: includes/core.php:2902
 msgid "Redes de destino"
-msgstr ""
+msgstr "Destination networks"
 
 #: includes/core.php:2911
 msgid ""
 "Una red no conectada no publicará aunque esté seleccionada. Las ediciones "
 "posteriores del contenido no generan duplicados automáticos."
-msgstr ""
+msgstr "An unconnected network will not publish even if selected. Later edits to content do not generate automatic duplicates."
 
 #: includes/core.php:2912
 msgid "Guardar automatización"
-msgstr ""
+msgstr "Save automation"
 
 #: includes/core.php:2925 includes/programador.php:557
 msgid "Programador"
-msgstr ""
+msgstr "Scheduler"
 
 #: includes/core.php:2925
 msgid "Las ofertas de campaña salen a las"
-msgstr ""
+msgstr "Campaign offers are published at"
 
 #: includes/core.php:2925
 msgid ". Las entradas de"
-msgstr ""
+msgstr ". Posts in"
 
 #: includes/core.php:2925
 msgid "Noticias"
-msgstr ""
+msgstr "News"
 
 #: includes/core.php:2925
 msgid "salen a las"
-msgstr ""
+msgstr "are published at"
 
 #: includes/core.php:2925
 msgid ""
 "y pueden marcarse como prioritarias para adelantar a las noticias normales. "
 "Páginas y landings mantienen fecha y hora manual."
-msgstr ""
+msgstr "and can be marked as high priority to go out before regular news posts. Pages and landing pages retain their manually set date and time."
 
 #: includes/core.php:2925
 msgid "Agenda"
-msgstr ""
+msgstr "Schedule"
 
 #: includes/core.php:2933
 msgid "Validar CSV antes de importar"
-msgstr ""
+msgstr "Validate CSV before importing"
 
 #: includes/core.php:2935
 msgid "Exportar"
-msgstr ""
+msgstr "Export"
 
 #: includes/core.php:2935
 msgid ""
 "Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con "
 "Excel en configuraciones regionales españolas."
-msgstr ""
+msgstr "All files use UTF-8 and semicolon separators for direct opening in Excel with Spanish regional settings."
 
 #: includes/core.php:2939
 msgid "Descargar plantilla CSV"
-msgstr ""
+msgstr "Download CSV template"
 
 #: includes/core.php:2940
 msgid "Exportar contenidos"
-msgstr ""
+msgstr "Export content"
 
 #: includes/core.php:2941
 msgid "Exportar agenda"
-msgstr ""
+msgstr "Export schedule"
 
 #: includes/core.php:2942
 msgid "Exportar historial"
-msgstr ""
+msgstr "Export history"
 
 #: includes/core.php:2966
 msgid "Fila"
-msgstr ""
+msgstr "Row"
 
 #: includes/core.php:2966 includes/core.php:3018 includes/core.php:3156
 #: includes/programador.php:570 includes/programador.php:602
 msgid "Contenido"
-msgstr ""
+msgstr "Content"
 
 #: includes/core.php:2966
 msgid "Fecha y hora"
-msgstr ""
+msgstr "Date and time"
 
 #: includes/core.php:2966
 msgid "Prioridad"
-msgstr ""
+msgstr "Priority"
 
 #: includes/core.php:2966
 msgid "Resultado"
-msgstr ""
+msgstr "Result"
 
 #: includes/core.php:3006
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/core.php:3006
 msgid "Entradas + Páginas/Landings"
-msgstr ""
+msgstr "Posts + Pages/Landing pages"
 
 #: includes/core.php:3011
 msgid "Filtrar"
-msgstr ""
+msgstr "Filter"
 
 #: includes/core.php:3018
 msgid "Redes"
-msgstr ""
+msgstr "Networks"
 
 #: includes/core.php:3018
 msgid "Fecha / prioridad"
-msgstr ""
+msgstr "Date / priority"
 
 #: includes/core.php:3018
 msgid "Acción"
-msgstr ""
+msgstr "Action"
 
 #: includes/core.php:3021
 msgid "No se ha encontrado contenido publicado."
-msgstr ""
+msgstr "No published content was found."
 
 #: includes/core.php:3068
 msgid "Hora fija: 20:00."
-msgstr ""
+msgstr "Fixed time: 20:00."
 
 #: includes/core.php:3068
 msgid ""
 "Una noticia prioritaria adelanta a las no prioritarias ya programadas en "
 "cada red seleccionada."
-msgstr ""
+msgstr "A high-priority news post takes precedence over already scheduled regular news posts on each selected network."
 
 #: includes/core.php:3072
 msgid "Hora fija: 22:00."
-msgstr ""
+msgstr "Fixed time: 22:00."
 
 #: includes/core.php:3072
 msgid ""
 "Entradas y páginas/landings comparten un hueco diario y se alternan cuando "
 "existen ambos tipos."
-msgstr ""
+msgstr "Posts and pages/landing pages share one daily slot and alternate when both types exist."
 
 #: includes/core.php:3076
 msgid "Vista previa"
-msgstr ""
+msgstr "Preview"
 
 #: includes/core.php:3090
 msgid "Cómo funciona:"
-msgstr ""
+msgstr "How it works:"
 
 #: includes/core.php:3090
 msgid ""
@@ -424,61 +424,61 @@ msgid ""
 "página/landing cuando existen ambos tipos. WordPress ejecuta las tareas con "
 "WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente "
 "petición al sitio."
-msgstr ""
+msgstr "Campaign offers at 18:00, News at 20:00, and other posts together with pages/landing pages at 22:00. High-priority News are scheduled before regular News. The 22:00 queue alternates posts and pages/landing pages when both types exist. WordPress runs tasks through WP-Cron, so actual execution may wait until the next request to the site."
 
 #: includes/core.php:3133
 msgid "Rendimiento por publicacion"
-msgstr ""
+msgstr "Performance by post"
 
 #: includes/core.php:3133
 msgid ""
 "Las visitas a la web se miden con el enlace etiquetado generado por el "
 "plugin. Las interacciones se sincronizan desde cada proveedor cuando su API "
 "lo permite."
-msgstr ""
+msgstr "Website visits are measured using the tagged link generated by the plugin. Engagement is synchronized from each provider when its API supports it."
 
 #: includes/core.php:3145
 msgid "La metrica"
-msgstr ""
+msgstr "The metric"
 
 #: includes/core.php:3145
 msgid "Visitas a la web"
-msgstr ""
+msgstr "Website visits"
 
 #: includes/core.php:3145
 msgid ""
 "no depende de Facebook: se incrementa cuando alguien entra mediante el "
 "enlace social firmado. Esto permite comparar que publicaciones traen trafico"
 " real al sitio."
-msgstr ""
+msgstr "does not rely on Facebook: it increases when someone visits through the signed social link. This helps compare which posts drive real traffic to the site."
 
 #: includes/core.php:3156 includes/programador.php:602
 msgid "Fecha"
-msgstr ""
+msgstr "Date"
 
 #: includes/core.php:3156
 msgid "Visitas web"
-msgstr ""
+msgstr "Website visits"
 
 #: includes/core.php:3156
 msgid "Reacciones"
-msgstr ""
+msgstr "Reactions"
 
 #: includes/core.php:3156
 msgid "Comentarios"
-msgstr ""
+msgstr "Comments"
 
 #: includes/core.php:3156
 msgid "Compartidos"
-msgstr ""
+msgstr "Shares"
 
 #: includes/core.php:3156
 msgid "Enlace"
-msgstr ""
+msgstr "Link"
 
 #: includes/core.php:3158
 msgid "Aun no hay publicaciones sociales registradas."
-msgstr ""
+msgstr "No social posts have been registered yet."
 
 #: includes/facebook.php:299
 msgid ""
@@ -486,174 +486,226 @@ msgid ""
 "disponer de los permisos necesarios de Pages. El modo Enlace deja que "
 "Facebook componga la vista previa desde los metadatos Open Graph de tu URL; "
 "el modo Foto fuerza la imagen destacada cuando existe."
-msgstr ""
+msgstr "To publish to a Page, the token must belong to that Page and have the required Pages permissions. In Link mode, Facebook builds the preview from your URL's Open Graph metadata; Photo mode uses the featured image when available."
 
 #: includes/facebook.php:309 includes/instagram.php:435 includes/x.php:668
 msgid "Guardar"
-msgstr ""
+msgstr "Save"
 
 #: includes/facebook.php:309 includes/instagram.php:435
 #: includes/linkedin.php:744 includes/pinterest.php:1021 includes/x.php:669
 msgid "Guardar y probar conexion"
-msgstr ""
+msgstr "Save and test connection"
 
 #: includes/linkedin.php:487
 msgid "No tienes permisos para conectar LinkedIn."
-msgstr ""
+msgstr "You do not have permission to connect LinkedIn."
 
 #: includes/linkedin.php:700
 msgid ""
 "La aplicacion de LinkedIn debe disponer de permisos para administrar/leer la"
 " organizacion y publicar como pagina. El plugin usa OAuth 2.0 y LinkedIn "
 "Posts API."
-msgstr ""
+msgstr "The LinkedIn application must have permission to manage/read the organization and publish as a Page. The plugin uses OAuth 2.0 and the LinkedIn Posts API."
 
 #: includes/linkedin.php:716
 msgid "Pagina de empresa"
-msgstr ""
+msgstr "Company page"
 
 #: includes/linkedin.php:718
 msgid "Selecciona una pagina"
-msgstr ""
+msgstr "Select a page"
 
 #: includes/linkedin.php:742 includes/pinterest.php:1019
 msgid "Guardar configuracion"
-msgstr ""
+msgstr "Save settings"
 
 #: includes/linkedin.php:752
 msgid "Conectar / renovar autorizacion con LinkedIn"
-msgstr ""
+msgstr "Connect / renew LinkedIn authorization"
 
 #: includes/linkedin.php:755
 msgid ""
 "Guarda primero el Client ID y el Client Secret. Despues aparecera el boton "
 "para autorizar LinkedIn."
-msgstr ""
+msgstr "Save the Client ID and Client Secret first. The button to authorize LinkedIn will then appear."
 
 #: includes/pinterest.php:518
 msgid "No tienes permisos para conectar Pinterest."
-msgstr ""
+msgstr "You do not have permission to connect Pinterest."
 
 #: includes/pinterest.php:794
 msgid "No tienes permisos para configurar Pinterest."
-msgstr ""
+msgstr "You do not have permission to configure Pinterest."
 
 #: includes/pinterest.php:987
 msgid "Tablero destino"
-msgstr ""
+msgstr "Destination board"
 
 #: includes/pinterest.php:989
 msgid "Selecciona un tablero"
-msgstr ""
+msgstr "Select a board"
 
 #: includes/pinterest.php:1001
 msgid ""
 "Tras OAuth, el plugin carga los tableros publicos disponibles y permite "
 "elegir el destino."
-msgstr ""
+msgstr "After OAuth, the plugin loads the available public boards so you can select a destination."
 
 #: includes/pinterest.php:1003
 msgid "Modo de publicacion"
-msgstr ""
+msgstr "Publishing mode"
 
 #: includes/pinterest.php:1029
 msgid "Conectar / renovar autorizacion con Pinterest"
-msgstr ""
+msgstr "Connect / renew Pinterest authorization"
 
 #: includes/pinterest.php:1032
 msgid ""
 "Guarda primero el App ID y el App Secret. Despues aparecera el boton para "
 "autorizar Pinterest."
-msgstr ""
+msgstr "Save the App ID and App Secret first. The button to authorize Pinterest will then appear."
 
 #: includes/pinterest.php:1043
 msgid ""
 "Para publicar, cada entrada o landing debe tener una imagen destacada "
 "accesible publicamente por Pinterest."
-msgstr ""
+msgstr "To publish, each post or landing page must have a featured image publicly accessible to Pinterest."
 
 #: includes/programador.php:324
 msgid "No tienes permisos para programar publicaciones."
-msgstr ""
+msgstr "You do not have permission to schedule posts."
 
 #: includes/programador.php:382
 msgid "No tienes permisos para cancelar publicaciones."
-msgstr ""
+msgstr "You do not have permission to cancel posts."
 
 #: includes/programador.php:421
 msgid "No tienes permisos para reintentar publicaciones."
-msgstr ""
+msgstr "You do not have permission to retry posts."
 
 #: includes/programador.php:557
 msgid ""
 "Agenda la publicacion de entradas y landings en las redes conectadas. Esta "
 "primera version solo crea ejecuciones unicas: no modifica la frecuencia SEO "
 "ni republica contenido por su cuenta."
-msgstr ""
+msgstr "Schedule posts and landing pages on connected networks. This first version creates single executions only: it does not change SEO frequency or republish content automatically."
 
 #: includes/programador.php:558
 msgid "MVP · programacion manual"
-msgstr ""
+msgstr "MVP · manual scheduling"
 
 #: includes/programador.php:562
 msgid "Conecta al menos una red social antes de crear programaciones."
-msgstr ""
+msgstr "Connect at least one social network before scheduling posts."
 
 #: includes/programador.php:570
 msgid "Selecciona entrada o landing..."
-msgstr ""
+msgstr "Select a post or landing page..."
 
 #: includes/programador.php:578
 msgid ""
 "Se muestran los 150 contenidos publicados modificados mas recientemente."
-msgstr ""
+msgstr "The 150 most recently modified published items are shown."
 
 #: includes/programador.php:583
 msgid "Publicar en"
-msgstr ""
+msgstr "Publish on"
 
 #: includes/programador.php:592
 msgid "Nota interna opcional"
-msgstr ""
+msgstr "Optional internal note"
 
 #: includes/programador.php:595
 msgid ""
 "La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, "
 "prioridades y recomendaciones de Analista."
-msgstr ""
+msgstr "Execution uses WP-Cron. Recurrence, priorities and recommendations from Analyst may be added later."
 
 #: includes/programador.php:601
 msgid "Cola y historial"
-msgstr ""
+msgstr "Queue and history"
 
 #: includes/programador.php:602
 msgid "Origen / nota"
-msgstr ""
+msgstr "Source / note"
 
 #: includes/programador.php:602
 msgid "Acciones"
-msgstr ""
+msgstr "Actions"
 
 #: includes/programador.php:605
 msgid "Todavia no hay publicaciones programadas."
-msgstr ""
+msgstr "No posts have been scheduled yet."
 
 #: includes/programador.php:665
 msgid "Cancelar"
-msgstr ""
+msgstr "Cancel"
 
 #: includes/programador.php:670
 msgid "Reintentar ahora"
-msgstr ""
+msgstr "Retry now"
 
 #: includes/programador.php:682
 msgid "Siguiente evolucion"
-msgstr ""
+msgstr "Next iteration"
 
 #: includes/x.php:443
 msgid "No tienes permisos para conectar X."
-msgstr ""
+msgstr "You do not have permission to connect X."
 
 #: includes/x.php:677
 msgid "Conectar / renovar X"
-msgstr ""
+msgstr "Connect / renew X"
+
+msgid "Conexiones"
+msgstr "Connections"
+
+msgid "Plantillas"
+msgstr "Templates"
+
+msgid "Calendario"
+msgstr "Calendar"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Ejecutar Autocheck"
+msgstr "Run Auto Test"
+
+msgid "Último resultado"
+msgstr "Latest result"
+
+msgid "correctas"
+msgstr "passed"
+
+msgid "fallidas"
+msgstr "failed"
+
+msgid "omitidas"
+msgstr "skipped"
+
+msgid "Comparación:"
+msgstr "Comparison:"
+
+msgid "Regresiones:"
+msgstr "Regressions:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "No regressions from pass to fail."
+
+msgid "Correcto"
+msgstr "Passed"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "No ejecutado"
+msgstr "Not run"
+
+msgid "Otro"
+msgstr "Other"
+
+msgid "Contenido #%d"
+msgstr "Content #%d"
+

@@ -16,7 +16,7 @@ function tccampaigns_social_image_presets()
 {
     return array(
         'design_1' => array(
-            'label'      => 'Diseño 1 · Tarjeta oscura',
+            'label'      => __( 'Diseño 1 · Tarjeta oscura', 'taxocommerce-campaigns' ),
             'bg_top'     => '#18253f',
             'bg_bottom'  => '#314b87',
             'accent'     => '#f7b733',
@@ -29,7 +29,7 @@ function tccampaigns_social_image_presets()
             'badge_text' => '#16233b',
         ),
         'design_2' => array(
-            'label'      => 'Diseño 2 · Oferta clara',
+            'label'      => __( 'Diseño 2 · Oferta clara', 'taxocommerce-campaigns' ),
             'bg_top'     => '#f7f1e4',
             'bg_bottom'  => '#fffaf0',
             'accent'     => '#db4c3f',
@@ -42,7 +42,7 @@ function tccampaigns_social_image_presets()
             'badge_text' => '#ffffff',
         ),
         'design_3' => array(
-            'label'      => 'Diseño 3 · Banner intenso',
+            'label'      => __( 'Diseño 3 · Banner intenso', 'taxocommerce-campaigns' ),
             'bg_top'     => '#0b3b2e',
             'bg_bottom'  => '#13795b',
             'accent'     => '#8ef0c2',

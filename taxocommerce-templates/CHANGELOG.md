@@ -1,3 +1,44 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
+
+## [0.4.21] — 2026-11-07 — Reconciliación editorial de categorías (#2298)
+
+- Nueva pestaña de mantenimiento SEO dentro de Templates que compara, sin modificar datos, la descripción nativa de WooCommerce con la descripción histórica efectivamente utilizada desde `seo_nodes`.
+- Sincronización optativa y selectiva por categoría, protegida por permisos de administrador, nonce y huella de ambas versiones; solo se actualiza el registro histórico existente y se conserva el resto de la tabla.
+- Compatible con tiendas sin WooCommerce o sin `seo_nodes`: no realiza escrituras ni altera contenido. No introduce claves ni categorías específicas de una instalación.
+- No se sincronizan automáticamente todas las categorías ni se ejecutan migraciones durante la activación. Requiere revisión visual y pruebas en STAGING/Focazul antes de producción.
+
+## [0.4.20] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
+
+- El piloto VEVOR de los cuatro mercados usa una cabecera SEO independiente de las funciones globales del antiguo SEO Taxonomy, sin modificar el diseño ni el contenido de WordPress.
+- Publica una única canonical propia (incluida la paginación), mantiene hreflang y scripts de wp_head, elimina descripciones y verificaciones Pinterest duplicadas y evita el segundo viewport.
+- La descripción de reserva procede de contenido existente en el idioma de la página o de la ficha, solo cuando ningún proveedor SEO genera una descripción válida.
+- Prueba offline de regresión FR/DE/NL/US y su ejecución obligatoria en el workflow de validación STAGING. PRO no se modifica.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
+## [0.4.19] — 2026-11-06 — Bing: títulos de archivo y ALT de portada (#2259)
+
+- Cuando el título nativo de WordPress supera 69 caracteres, omite la coletilla del nombre del sitio; no renombra categorías, entradas, páginas ni sus URLs. Solo cuando están activas las políticas de Templates.
+- Las imágenes enlazadas de categorías, clústeres, hubs y artículos de portada reciben un texto alternativo contextual y escapado en variantes de escritorio y móvil, en vez de alt vacío.
+- Prueba de regresión aislada que verifica títulos cortos sin cambios, preservación del título principal, ausencia de afectación al administrador y ALT informativos.
+- Requiere comprobación del HTML real en STAGING y producción cuando se autorice instalar esta versión. Los avisos históricos de Bing pueden persistir hasta nuevo rastreo.
+
+## [0.4.18] — 2026-11-06 — Meta descriptions para Bing (#2259)
+
+- Elimina el meta description genérico de la portada cuando wp_head ya añade otro. Conserva una sola descripción SEO por documento, sin interferir en otras etiquetas ni scripts de wp_head.
+- Genera descripción de reserva solo si WordPress/SEO no proporciona ninguna, a partir del extracto/contenido de la página, descripción de taxonomía o lema de portada; no genera etiquetas en 404/búsquedas.
+- Preserva la canonical de la política ya existente de Templates y comprueba regresiones con y sin proveedor SEO.
+- No modifica productos, categorías ni páginas existentes; los avisos por URL exacta de Bing requieren CSV para identificar el contenido afectado.
+
 ## [0.4.17] — 2026-11-05 — Corrección de advertencias WPC (#2189)
 
 - Centralizados los accesos a tablas propias mediante `TCT_DB`, con caché de lectura limitada a la petición, claves efímeras e invalidación tras escrituras. Conserva los mismos SQL, datos, filtros y contratos públicos; no depende de otros plugins TaxoCommerce.

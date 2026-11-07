@@ -1,3 +1,14 @@
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
+## [Unreleased] — Etiquetas de diseños localizables (#2239)
+
+- Las tres etiquetas de diseños de imágenes sociales ahora utilizan gettext y el catálogo de TaxoCommerce Campaigns.
+- Se aprovechan traducciones ES/EN/FR/DE/NL ya presentes en POT/PO/MO. Sin cambios en gráficos, colores, imágenes o procesos de campaña.
+
 ## [0.1.4] — 2026-11-05 — Traducciones de campañas de marketing (#2239)
 
 - Menú y pestañas con nombre funcional «Campañas de marketing» en español y equivalentes naturales en inglés, francés, alemán y neerlandés.

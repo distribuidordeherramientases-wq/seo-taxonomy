@@ -97,7 +97,7 @@ msgstr ""
 #: includes/class-tct-association-audit.php:471
 #: includes/class-tct-designs.php:341
 msgid "Estado"
-msgstr ""
+msgstr "État"
 
 #: includes/class-tct-association-audit.php:480
 msgid "Ejemplos de objetos"
@@ -126,7 +126,7 @@ msgstr ""
 
 #: includes/class-tct-association-audit.php:511
 msgid "Activo"
-msgstr ""
+msgstr "Actif"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Disponible en nuevo"
@@ -230,7 +230,7 @@ msgstr ""
 
 #: includes/class-tct-front-composer.php:171
 msgid "Quitar"
-msgstr ""
+msgstr "Retirer"
 
 #: includes/class-tct-front-composer.php:172
 msgid "Configurar"
@@ -390,7 +390,7 @@ msgstr ""
 
 #: includes/class-tct-routing-admin.php:308
 msgid "Buscar"
-msgstr ""
+msgstr "Rechercher"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Petición WordPress / WooCommerce"
@@ -398,7 +398,7 @@ msgstr ""
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Rol SEO"
-msgstr ""
+msgstr "Rôle SEO"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Archivo / plantilla"
@@ -453,7 +453,7 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:437
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Asignado a"
@@ -461,7 +461,7 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:437
 msgid "Tamaño"
-msgstr ""
+msgstr "Taille"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Modificado"
@@ -469,7 +469,7 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:437
 msgid "Acciones"
-msgstr ""
+msgstr "Actions"
 
 #: includes/class-tct-template-editor.php:461
 msgid "abierto"

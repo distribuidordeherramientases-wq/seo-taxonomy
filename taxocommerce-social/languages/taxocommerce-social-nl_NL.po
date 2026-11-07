@@ -12,219 +12,219 @@ msgstr ""
 #: taxocommerce-social.php includes/admin.php:9 includes/admin.php:19
 #: includes/admin.php:20
 msgid "TaxoCommerce Social"
-msgstr ""
+msgstr "TaxoCommerce Social"
 
 #. Description of the plugin
 #: taxocommerce-social.php
 msgid ""
 "Social network connections, publishing templates and calendar for the "
 "TaxoCommerce family."
-msgstr ""
+msgstr "Socialemediaverbindingen, publicatiesjablonen en kalender voor de TaxoCommerce-familie."
 
 #. Author of the plugin
 #: taxocommerce-social.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/admin.php:10
 msgid "Social"
-msgstr ""
+msgstr "Social"
 
 #: includes/admin.php:74
 msgid ""
 "Publicación social autónoma. Conexiones, formatos y calendario sin campañas,"
 " ofertas ni reglas especiales de Noticias."
-msgstr ""
+msgstr "Zelfstandig publiceren op sociale media. Verbindingen, opmaak en kalender zonder marketingcampagnes, aanbiedingen of speciale regels voor nieuws."
 
 #: includes/admin.php:77 includes/core.php:2718
 msgid "Redes sociales"
-msgstr ""
+msgstr "Sociale netwerken"
 
 #: includes/admin.php:77
 msgid ""
 "El calendario es la única agenda de este módulo. Las publicaciones se "
 "programan aquí y utilizan las plantillas de cada red."
-msgstr ""
+msgstr "De kalender is de enige agenda van deze module. Berichten worden hier ingepland met de sjablonen van elk netwerk."
 
 #: includes/admin.php:109
 msgid "Agenda social"
-msgstr ""
+msgstr "Sociale agenda"
 
 #: includes/admin.php:109
 msgid ""
 "Programa publicaciones manualmente o por CSV y revisa el resultado en el "
 "calendario mensual. No se incorporan campañas de Marketing ni se reserva "
 "ninguna franja para Noticias."
-msgstr ""
+msgstr "Plan berichten handmatig of via CSV en controleer de resultaten in de maandkalender. Marketingcampagnes en speciale nieuwstijdvakken worden niet opgenomen."
 
 #: includes/admin.php:109
 msgid "Solo redes sociales"
-msgstr ""
+msgstr "Alleen sociale netwerken"
 
 #: includes/calendar.php:242
 msgid "Calendario de publicaciones"
-msgstr ""
+msgstr "Publicatiekalender"
 
 #: includes/calendar.php:242
 msgid ""
 "Vista mensual exclusiva de publicaciones en redes sociales. No incorpora "
 "campañas, ofertas ni reglas especiales de Noticias."
-msgstr ""
+msgstr "Maandoverzicht uitsluitend voor sociale berichten, zonder campagnes, aanbiedingen of speciale nieuwsregels."
 
 #: includes/calendar.php:242
 msgid "Agenda visual"
-msgstr ""
+msgstr "Visuele agenda"
 
 #: includes/calendar.php:256 includes/core.php:2966 includes/core.php:3156
 #: includes/programador.php:602
 msgid "Red"
-msgstr ""
+msgstr "Netwerk"
 
 #: includes/calendar.php:256
 msgid "Todas las redes"
-msgstr ""
+msgstr "Alle netwerken"
 
 #: includes/calendar.php:261
 msgid "Aplicar"
-msgstr ""
+msgstr "Toepassen"
 
 #: includes/calendar.php:266
 msgid "Entrada"
-msgstr ""
+msgstr "Bericht"
 
 #: includes/calendar.php:267
 msgid "Landing"
-msgstr ""
+msgstr "Landingspagina"
 
 #: includes/calendar.php:268
 msgid "Colisión"
-msgstr ""
+msgstr "Conflict"
 
 #: includes/calendar.php:339
 msgid "Sin publicaciones"
-msgstr ""
+msgstr "Geen berichten"
 
 #: includes/calendar.php:349
 msgid "Vista compacta"
-msgstr ""
+msgstr "Compacte weergave"
 
 #: includes/calendar.php:349
 msgid ""
 "Listado cronológico del mes. Útil en móvil y para revisar rápidamente horas,"
 " redes y duplicados reales."
-msgstr ""
+msgstr "Chronologische lijst van de maand, handig op mobiele apparaten om tijden, netwerken en echte duplicaten snel te controleren."
 
 #: includes/class-auto-test.php:244 includes/class-auto-test.php:258
 msgid "Sin permisos para Auto Test."
-msgstr ""
+msgstr "Je hebt geen toestemming om Auto Test uit te voeren."
 
 #: includes/class-auto-test.php:264
 msgid "Auto Test de TaxoCommerce Social"
-msgstr ""
+msgstr "TaxoCommerce Social Auto Test"
 
 #: includes/class-auto-test.php:265
 msgid ""
 "Chequeo local de solo lectura de conexiones registradas, plantillas, tablas,"
 " calendario y programador. No conecta cuentas ni publica. Se guardan los dos"
 " últimos resultados por administrador durante 30 días."
-msgstr ""
+msgstr "Lokale alleen-lezencontrole van geregistreerde verbindingen, sjablonen, tabellen, kalender en planner. Er worden geen accounts gekoppeld of berichten geplaatst. De twee recentste resultaten per beheerder blijven 30 dagen bewaard."
 
 #: includes/class-auto-test.php:271
 msgid "No existen resultados todavía. Pulsa Ejecutar Auto Test."
-msgstr ""
+msgstr "Nog geen resultaten. Klik op Auto Test uitvoeren."
 
 #: includes/class-auto-test.php:288
 msgid "No existe una ejecución anterior para comparar."
-msgstr ""
+msgstr "Er is geen eerdere uitvoering om mee te vergelijken."
 
 #: includes/class-auto-test.php:290
 msgid "Grupo"
-msgstr ""
+msgstr "Groep"
 
 #: includes/class-auto-test.php:290
 msgid "Prueba"
-msgstr ""
+msgstr "Test"
 
 #: includes/class-auto-test.php:290 includes/core.php:3156
 #: includes/programador.php:602
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/class-auto-test.php:290
 msgid "Diagnóstico"
-msgstr ""
+msgstr "Diagnose"
 
 #: includes/class-auto-test.php:290
 msgid "Tiempo"
-msgstr ""
+msgstr "Tijd"
 
 #: includes/class-auto-test.php:295
 msgid ""
 "Un Auto Test correcto confirma los componentes disponibles; no garantiza la "
 "autorización de las cuentas ni una publicación externa satisfactoria."
-msgstr ""
+msgstr "Een geslaagde Auto Test bevestigt beschikbare onderdelen, maar garandeert niet dat accounts zijn gemachtigd of dat extern publiceren slaagt."
 
 #: includes/class-manual.php:12
 msgid "Sin permisos para consultar los manuales."
-msgstr ""
+msgstr "Je hebt geen toestemming om de handleidingen te bekijken."
 
 #: includes/core.php:1476 includes/core.php:1542
 msgid "No tienes permisos para configurar redes sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om sociale netwerken te configureren."
 
 #: includes/core.php:1568 includes/core.php:2480
 msgid "No tienes permisos para modificar plantillas sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om publicatiesjablonen te wijzigen."
 
 #: includes/core.php:1610
 msgid "No tienes permisos para modificar la automatizacion social."
-msgstr ""
+msgstr "Je hebt geen toestemming om de sociale automatisering te wijzigen."
 
 #: includes/core.php:1725
 msgid "No se pudo generar el archivo CSV."
-msgstr ""
+msgstr "Het CSV-bestand kon niet worden aangemaakt."
 
 #: includes/core.php:1880
 msgid "No tienes permisos para exportar la programacion social."
-msgstr ""
+msgstr "Je hebt geen toestemming om de sociale agenda te exporteren."
 
 #: includes/core.php:2175 includes/core.php:2231
 msgid "No tienes permisos para importar programaciones sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om planningen voor sociale netwerken te importeren."
 
 #: includes/core.php:2302
 msgid "No tienes permisos para programar publicaciones sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om berichten op sociale netwerken te plannen."
 
 #: includes/core.php:2406
 msgid "No tienes permisos para modificar las publicaciones sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om berichten op sociale netwerken te wijzigen."
 
 #: includes/core.php:2446
 msgid "No tienes permisos para publicar en redes sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om op sociale netwerken te publiceren."
 
 #: includes/core.php:2509
 msgid "No tienes permisos para actualizar informes sociales."
-msgstr ""
+msgstr "Je hebt geen toestemming om sociale rapportages bij te werken."
 
 #: includes/core.php:2718
 msgid ""
 "Define una vez el formato, automatiza si quieres y usa el Programador solo "
 "como agenda."
-msgstr ""
+msgstr "Leg het formaat één keer vast, automatiseer indien gewenst en gebruik de planner alleen als agenda."
 
 #: includes/core.php:2796
 msgid "Conectado"
-msgstr ""
+msgstr "Verbonden"
 
 #: includes/core.php:2802
 msgid "Sin conectar"
-msgstr ""
+msgstr "Niet verbonden"
 
 #: includes/core.php:2852
 msgid "Plantillas de publicación"
-msgstr ""
+msgstr "Publicatiesjablonen"
 
 #: includes/core.php:2852
 msgid ""
@@ -232,189 +232,189 @@ msgid ""
 "producto incluido en una campaña de Marketing para cada red. El Programador "
 "utilizará estas plantillas automáticamente; aquí no se decide cuándo "
 "publicar."
-msgstr ""
+msgstr "Definieer één keer hoe een bericht, pagina of product in een marketingcampagne voor elk netwerk wordt geschreven. De planner gebruikt deze sjablonen automatisch; hier bepaal je niet wanneer er wordt gepubliceerd."
 
 #: includes/core.php:2852
 msgid "Formato general"
-msgstr ""
+msgstr "Algemeen formaat"
 
 #: includes/core.php:2873
 msgid "Variables disponibles:"
-msgstr ""
+msgstr "Beschikbare variabelen:"
 
 #: includes/core.php:2878
 msgid "Guardar plantillas"
-msgstr ""
+msgstr "Sjablonen opslaan"
 
 #: includes/core.php:2891
 msgid "Publicación automática"
-msgstr ""
+msgstr "Automatisch publiceren"
 
 #: includes/core.php:2891
 msgid ""
 "Activa esta opción únicamente si quieres que una pieza se publique en redes "
 "la primera vez que pasa a estado Publicado en WordPress. No cambia el "
 "formato: utiliza las plantillas generales."
-msgstr ""
+msgstr "Schakel dit alleen in als inhoud op sociale netwerken moet worden gepubliceerd zodra de WordPress-status voor het eerst op Gepubliceerd komt. Het formaat blijft ongewijzigd: de algemene sjablonen worden gebruikt."
 
 #: includes/core.php:2891
 msgid "Disparador"
-msgstr ""
+msgstr "Trigger"
 
 #: includes/core.php:2896
 msgid "Qué contenido activa la automatización"
-msgstr ""
+msgstr "Welke inhoud de automatisering activeert"
 
 #: includes/core.php:2902
 msgid "Redes de destino"
-msgstr ""
+msgstr "Doelnetwerken"
 
 #: includes/core.php:2911
 msgid ""
 "Una red no conectada no publicará aunque esté seleccionada. Las ediciones "
 "posteriores del contenido no generan duplicados automáticos."
-msgstr ""
+msgstr "Op een niet-verbonden netwerk wordt niets gepubliceerd, ook niet als het is geselecteerd. Latere bewerkingen veroorzaken geen automatische duplicaten."
 
 #: includes/core.php:2912
 msgid "Guardar automatización"
-msgstr ""
+msgstr "Automatisering opslaan"
 
 #: includes/core.php:2925 includes/programador.php:557
 msgid "Programador"
-msgstr ""
+msgstr "Planner"
 
 #: includes/core.php:2925
 msgid "Las ofertas de campaña salen a las"
-msgstr ""
+msgstr "Campagneaanbiedingen verschijnen om"
 
 #: includes/core.php:2925
 msgid ". Las entradas de"
-msgstr ""
+msgstr ". Berichten in"
 
 #: includes/core.php:2925
 msgid "Noticias"
-msgstr ""
+msgstr "Nieuws"
 
 #: includes/core.php:2925
 msgid "salen a las"
-msgstr ""
+msgstr "verschijnen om"
 
 #: includes/core.php:2925
 msgid ""
 "y pueden marcarse como prioritarias para adelantar a las noticias normales. "
 "Páginas y landings mantienen fecha y hora manual."
-msgstr ""
+msgstr "en kunnen voorrang krijgen op gewone nieuwsberichten. Pagina's en landingspagina's behouden de handmatig ingestelde datum en tijd."
 
 #: includes/core.php:2925
 msgid "Agenda"
-msgstr ""
+msgstr "Agenda"
 
 #: includes/core.php:2933
 msgid "Validar CSV antes de importar"
-msgstr ""
+msgstr "CSV valideren vóór import"
 
 #: includes/core.php:2935
 msgid "Exportar"
-msgstr ""
+msgstr "Exporteren"
 
 #: includes/core.php:2935
 msgid ""
 "Todos los archivos usan UTF-8 y punto y coma para abrirlos directamente con "
 "Excel en configuraciones regionales españolas."
-msgstr ""
+msgstr "Alle bestanden gebruiken UTF-8 en puntkomma's, zodat ze direct in Excel met Spaanse regionale instellingen kunnen worden geopend."
 
 #: includes/core.php:2939
 msgid "Descargar plantilla CSV"
-msgstr ""
+msgstr "CSV-sjabloon downloaden"
 
 #: includes/core.php:2940
 msgid "Exportar contenidos"
-msgstr ""
+msgstr "Inhoud exporteren"
 
 #: includes/core.php:2941
 msgid "Exportar agenda"
-msgstr ""
+msgstr "Agenda exporteren"
 
 #: includes/core.php:2942
 msgid "Exportar historial"
-msgstr ""
+msgstr "Geschiedenis exporteren"
 
 #: includes/core.php:2966
 msgid "Fila"
-msgstr ""
+msgstr "Rij"
 
 #: includes/core.php:2966 includes/core.php:3018 includes/core.php:3156
 #: includes/programador.php:570 includes/programador.php:602
 msgid "Contenido"
-msgstr ""
+msgstr "Inhoud"
 
 #: includes/core.php:2966
 msgid "Fecha y hora"
-msgstr ""
+msgstr "Datum en tijd"
 
 #: includes/core.php:2966
 msgid "Prioridad"
-msgstr ""
+msgstr "Prioriteit"
 
 #: includes/core.php:2966
 msgid "Resultado"
-msgstr ""
+msgstr "Resultaat"
 
 #: includes/core.php:3006
 msgid "Tipo"
-msgstr ""
+msgstr "Type"
 
 #: includes/core.php:3006
 msgid "Entradas + Páginas/Landings"
-msgstr ""
+msgstr "Berichten + Pagina's/Landingspagina's"
 
 #: includes/core.php:3011
 msgid "Filtrar"
-msgstr ""
+msgstr "Filteren"
 
 #: includes/core.php:3018
 msgid "Redes"
-msgstr ""
+msgstr "Netwerken"
 
 #: includes/core.php:3018
 msgid "Fecha / prioridad"
-msgstr ""
+msgstr "Datum / prioriteit"
 
 #: includes/core.php:3018
 msgid "Acción"
-msgstr ""
+msgstr "Actie"
 
 #: includes/core.php:3021
 msgid "No se ha encontrado contenido publicado."
-msgstr ""
+msgstr "Er is geen gepubliceerde inhoud gevonden."
 
 #: includes/core.php:3068
 msgid "Hora fija: 20:00."
-msgstr ""
+msgstr "Vaste tijd: 20:00."
 
 #: includes/core.php:3068
 msgid ""
 "Una noticia prioritaria adelanta a las no prioritarias ya programadas en "
 "cada red seleccionada."
-msgstr ""
+msgstr "Een nieuwsbericht met voorrang gaat vóór al geplande gewone nieuwsberichten op elk geselecteerd netwerk."
 
 #: includes/core.php:3072
 msgid "Hora fija: 22:00."
-msgstr ""
+msgstr "Vaste tijd: 22:00."
 
 #: includes/core.php:3072
 msgid ""
 "Entradas y páginas/landings comparten un hueco diario y se alternan cuando "
 "existen ambos tipos."
-msgstr ""
+msgstr "Berichten en pagina's/landingspagina's delen één dagelijks tijdvak en wisselen elkaar af als beide soorten voorkomen."
 
 #: includes/core.php:3076
 msgid "Vista previa"
-msgstr ""
+msgstr "Voorbeeld"
 
 #: includes/core.php:3090
 msgid "Cómo funciona:"
-msgstr ""
+msgstr "Zo werkt het:"
 
 #: includes/core.php:3090
 msgid ""
@@ -424,61 +424,61 @@ msgid ""
 "página/landing cuando existen ambos tipos. WordPress ejecuta las tareas con "
 "WP-Cron, por lo que la ejecución real puede retrasarse hasta la siguiente "
 "petición al sitio."
-msgstr ""
+msgstr "Campagneaanbiedingen om 18:00, Nieuws om 20:00 en overige berichten samen met pagina's/landingspagina's om 22:00. Nieuws met voorrang gaat vóór gewoon Nieuws. In de wachtrij van 22:00 wisselen berichten en pagina's/landingspagina's elkaar af wanneer beide bestaan. WordPress voert taken uit via WP-Cron, waardoor de uitvoering kan wachten tot het volgende bezoek aan de website."
 
 #: includes/core.php:3133
 msgid "Rendimiento por publicacion"
-msgstr ""
+msgstr "Prestaties per publicatie"
 
 #: includes/core.php:3133
 msgid ""
 "Las visitas a la web se miden con el enlace etiquetado generado por el "
 "plugin. Las interacciones se sincronizan desde cada proveedor cuando su API "
 "lo permite."
-msgstr ""
+msgstr "Websitebezoeken worden gemeten met de gelabelde link die de plug-in genereert. Interacties worden gesynchroniseerd vanuit elke aanbieder wanneer diens API dat ondersteunt."
 
 #: includes/core.php:3145
 msgid "La metrica"
-msgstr ""
+msgstr "De metriek"
 
 #: includes/core.php:3145
 msgid "Visitas a la web"
-msgstr ""
+msgstr "Websitebezoeken"
 
 #: includes/core.php:3145
 msgid ""
 "no depende de Facebook: se incrementa cuando alguien entra mediante el "
 "enlace social firmado. Esto permite comparar que publicaciones traen trafico"
 " real al sitio."
-msgstr ""
+msgstr "is niet afhankelijk van Facebook: deze neemt toe wanneer iemand via de ondertekende socialelink binnenkomt. Zo kun je vergelijken welke berichten echt verkeer naar de website brengen."
 
 #: includes/core.php:3156 includes/programador.php:602
 msgid "Fecha"
-msgstr ""
+msgstr "Datum"
 
 #: includes/core.php:3156
 msgid "Visitas web"
-msgstr ""
+msgstr "Websitebezoeken"
 
 #: includes/core.php:3156
 msgid "Reacciones"
-msgstr ""
+msgstr "Reacties"
 
 #: includes/core.php:3156
 msgid "Comentarios"
-msgstr ""
+msgstr "Opmerkingen"
 
 #: includes/core.php:3156
 msgid "Compartidos"
-msgstr ""
+msgstr "Gedeeld"
 
 #: includes/core.php:3156
 msgid "Enlace"
-msgstr ""
+msgstr "Link"
 
 #: includes/core.php:3158
 msgid "Aun no hay publicaciones sociales registradas."
-msgstr ""
+msgstr "Er zijn nog geen publicaties op sociale netwerken geregistreerd."
 
 #: includes/facebook.php:299
 msgid ""
@@ -486,174 +486,226 @@ msgid ""
 "disponer de los permisos necesarios de Pages. El modo Enlace deja que "
 "Facebook componga la vista previa desde los metadatos Open Graph de tu URL; "
 "el modo Foto fuerza la imagen destacada cuando existe."
-msgstr ""
+msgstr "Om op een Pagina te publiceren moet het token bij die Pagina horen en de vereiste Pages-rechten hebben. In de modus Link maakt Facebook de preview met Open Graph-metagegevens van je URL; de modus Foto gebruikt de uitgelichte afbeelding wanneer die bestaat."
 
 #: includes/facebook.php:309 includes/instagram.php:435 includes/x.php:668
 msgid "Guardar"
-msgstr ""
+msgstr "Opslaan"
 
 #: includes/facebook.php:309 includes/instagram.php:435
 #: includes/linkedin.php:744 includes/pinterest.php:1021 includes/x.php:669
 msgid "Guardar y probar conexion"
-msgstr ""
+msgstr "Opslaan en verbinding testen"
 
 #: includes/linkedin.php:487
 msgid "No tienes permisos para conectar LinkedIn."
-msgstr ""
+msgstr "Je hebt geen toestemming om LinkedIn te verbinden."
 
 #: includes/linkedin.php:700
 msgid ""
 "La aplicacion de LinkedIn debe disponer de permisos para administrar/leer la"
 " organizacion y publicar como pagina. El plugin usa OAuth 2.0 y LinkedIn "
 "Posts API."
-msgstr ""
+msgstr "De LinkedIn-app moet rechten hebben om de organisatie te beheren/lezen en namens de pagina te publiceren. De plug-in gebruikt OAuth 2.0 en de LinkedIn Posts API."
 
 #: includes/linkedin.php:716
 msgid "Pagina de empresa"
-msgstr ""
+msgstr "Bedrijfspagina"
 
 #: includes/linkedin.php:718
 msgid "Selecciona una pagina"
-msgstr ""
+msgstr "Selecteer een pagina"
 
 #: includes/linkedin.php:742 includes/pinterest.php:1019
 msgid "Guardar configuracion"
-msgstr ""
+msgstr "Instellingen opslaan"
 
 #: includes/linkedin.php:752
 msgid "Conectar / renovar autorizacion con LinkedIn"
-msgstr ""
+msgstr "LinkedIn verbinden / toestemming vernieuwen"
 
 #: includes/linkedin.php:755
 msgid ""
 "Guarda primero el Client ID y el Client Secret. Despues aparecera el boton "
 "para autorizar LinkedIn."
-msgstr ""
+msgstr "Sla eerst de Client ID en Client Secret op. Daarna verschijnt de knop om LinkedIn toestemming te geven."
 
 #: includes/pinterest.php:518
 msgid "No tienes permisos para conectar Pinterest."
-msgstr ""
+msgstr "Je hebt geen toestemming om Pinterest te verbinden."
 
 #: includes/pinterest.php:794
 msgid "No tienes permisos para configurar Pinterest."
-msgstr ""
+msgstr "Je hebt geen toestemming om Pinterest te configureren."
 
 #: includes/pinterest.php:987
 msgid "Tablero destino"
-msgstr ""
+msgstr "Doelbord"
 
 #: includes/pinterest.php:989
 msgid "Selecciona un tablero"
-msgstr ""
+msgstr "Selecteer een bord"
 
 #: includes/pinterest.php:1001
 msgid ""
 "Tras OAuth, el plugin carga los tableros publicos disponibles y permite "
 "elegir el destino."
-msgstr ""
+msgstr "Na OAuth laadt de plug-in de beschikbare openbare borden zodat je een bestemming kunt kiezen."
 
 #: includes/pinterest.php:1003
 msgid "Modo de publicacion"
-msgstr ""
+msgstr "Publicatiemodus"
 
 #: includes/pinterest.php:1029
 msgid "Conectar / renovar autorizacion con Pinterest"
-msgstr ""
+msgstr "Pinterest verbinden / toestemming vernieuwen"
 
 #: includes/pinterest.php:1032
 msgid ""
 "Guarda primero el App ID y el App Secret. Despues aparecera el boton para "
 "autorizar Pinterest."
-msgstr ""
+msgstr "Sla eerst de App ID en App Secret op. Daarna verschijnt de knop om Pinterest toestemming te geven."
 
 #: includes/pinterest.php:1043
 msgid ""
 "Para publicar, cada entrada o landing debe tener una imagen destacada "
 "accesible publicamente por Pinterest."
-msgstr ""
+msgstr "Elk bericht of elke landingspagina heeft een uitgelichte afbeelding nodig die openbaar bereikbaar is voor Pinterest."
 
 #: includes/programador.php:324
 msgid "No tienes permisos para programar publicaciones."
-msgstr ""
+msgstr "Je hebt geen toestemming om publicaties te plannen."
 
 #: includes/programador.php:382
 msgid "No tienes permisos para cancelar publicaciones."
-msgstr ""
+msgstr "Je hebt geen toestemming om publicaties te annuleren."
 
 #: includes/programador.php:421
 msgid "No tienes permisos para reintentar publicaciones."
-msgstr ""
+msgstr "Je hebt geen toestemming om publicaties opnieuw te proberen."
 
 #: includes/programador.php:557
 msgid ""
 "Agenda la publicacion de entradas y landings en las redes conectadas. Esta "
 "primera version solo crea ejecuciones unicas: no modifica la frecuencia SEO "
 "ni republica contenido por su cuenta."
-msgstr ""
+msgstr "Plan berichten en landingspagina's op verbonden netwerken. Deze eerste versie maakt alleen eenmalige uitvoeringen: de SEO-frequentie verandert niet en inhoud wordt niet automatisch opnieuw geplaatst."
 
 #: includes/programador.php:558
 msgid "MVP · programacion manual"
-msgstr ""
+msgstr "MVP · handmatig plannen"
 
 #: includes/programador.php:562
 msgid "Conecta al menos una red social antes de crear programaciones."
-msgstr ""
+msgstr "Verbind ten minste één sociaal netwerk voordat je publicaties plant."
 
 #: includes/programador.php:570
 msgid "Selecciona entrada o landing..."
-msgstr ""
+msgstr "Selecteer een bericht of landingspagina..."
 
 #: includes/programador.php:578
 msgid ""
 "Se muestran los 150 contenidos publicados modificados mas recientemente."
-msgstr ""
+msgstr "De 150 laatst gewijzigde gepubliceerde items worden getoond."
 
 #: includes/programador.php:583
 msgid "Publicar en"
-msgstr ""
+msgstr "Publiceren op"
 
 #: includes/programador.php:592
 msgid "Nota interna opcional"
-msgstr ""
+msgstr "Optionele interne notitie"
 
 #: includes/programador.php:595
 msgid ""
 "La ejecucion usa WP-Cron. Mas adelante podremos anadir recurrencia, "
 "prioridades y recomendaciones de Analista."
-msgstr ""
+msgstr "De uitvoering gebruikt WP-Cron. Herhaling, prioriteiten en aanbevelingen van Analist kunnen later worden toegevoegd."
 
 #: includes/programador.php:601
 msgid "Cola y historial"
-msgstr ""
+msgstr "Wachtrij en geschiedenis"
 
 #: includes/programador.php:602
 msgid "Origen / nota"
-msgstr ""
+msgstr "Bron / opmerking"
 
 #: includes/programador.php:602
 msgid "Acciones"
-msgstr ""
+msgstr "Acties"
 
 #: includes/programador.php:605
 msgid "Todavia no hay publicaciones programadas."
-msgstr ""
+msgstr "Er zijn nog geen publicaties gepland."
 
 #: includes/programador.php:665
 msgid "Cancelar"
-msgstr ""
+msgstr "Annuleren"
 
 #: includes/programador.php:670
 msgid "Reintentar ahora"
-msgstr ""
+msgstr "Nu opnieuw proberen"
 
 #: includes/programador.php:682
 msgid "Siguiente evolucion"
-msgstr ""
+msgstr "Volgende uitbreiding"
 
 #: includes/x.php:443
 msgid "No tienes permisos para conectar X."
-msgstr ""
+msgstr "Je hebt geen toestemming om X te verbinden."
 
 #: includes/x.php:677
 msgid "Conectar / renovar X"
-msgstr ""
+msgstr "X verbinden / toestemming vernieuwen"
+
+msgid "Conexiones"
+msgstr "Verbindingen"
+
+msgid "Plantillas"
+msgstr "Sjablonen"
+
+msgid "Calendario"
+msgstr "Kalender"
+
+msgid "Manual"
+msgstr "Handleiding"
+
+msgid "Ejecutar Autocheck"
+msgstr "Auto Test uitvoeren"
+
+msgid "Último resultado"
+msgstr "Laatste resultaat"
+
+msgid "correctas"
+msgstr "geslaagd"
+
+msgid "fallidas"
+msgstr "mislukt"
+
+msgid "omitidas"
+msgstr "overgeslagen"
+
+msgid "Comparación:"
+msgstr "Vergelijking:"
+
+msgid "Regresiones:"
+msgstr "Regressies:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Geen regressies van geslaagd naar mislukt."
+
+msgid "Correcto"
+msgstr "Geslaagd"
+
+msgid "Error"
+msgstr "Fout"
+
+msgid "No ejecutado"
+msgstr "Niet uitgevoerd"
+
+msgid "Otro"
+msgstr "Overig"
+
+msgid "Contenido #%d"
+msgstr "Inhoud #%d"
+

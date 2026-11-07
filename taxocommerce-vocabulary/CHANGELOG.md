@@ -1,3 +1,22 @@
+## [0.3.10] — 2026-11-07 — Vocabulary de entradas y landings (#2298)
+
+- El JSON portable de Vocabulary incorpora dos capas opcionales: entradas y páginas nativas de WordPress; las landings se resuelven como páginas sin dependencia de TaxoCommerce SEO ni Core.
+- Se conserva el contrato anterior de productos, categorías, atributos y etiquetas, con simulación obligatoria y modos MERGE/MIRROR. La identidad se resuelve mediante slug o ruta jerárquica de destino, nunca mediante un ID de otra tienda.
+- La simulación informa de conflictos por páginas ausentes, papelera y términos canónicos desconocidos, evitando modificaciones silenciosas; la importación usa la tabla canónica de relaciones.
+- Pruebas offline de identidad y seguridad, lint de PHP y validación de regresión. No migra ni inventa datos específicos de ningún comercio.
+
+## [Unreleased] — Regional WordPress locale fallback (#2295)
+
+- Respeta primero los paquetes oficiales de WordPress .mo y .l10n.php para el locale exacto.
+- Si falta un catálogo local regional, usa el catálogo existente del mismo idioma (es_ES, en_US, fr_FR, de_DE o nl_NL); no cambia la configuración ni el idioma del usuario.
+- Sin cambios en lógica, datos, menús o dependencias del plugin. Las traducciones de contenido incompletas siguen abiertas en #2062.
+
+## [Unreleased] — Completar los cinco catálogos de Vocabulary (#2263)
+
+- Traducidas las 62 cadenas iniciales y 49 textos adicionales de la interfaz (111 entradas visibles) a español, inglés, francés, alemán y neerlandés.
+- Regenerados los cinco catálogos binarios GNU gettext (PO/MO) conservando el text domain y la selección de locale de WordPress. Pendiente internacionalizar el manual integrado, que todavía contiene HTML literal en español.
+- Sin cambios en importación/exportación, clasificación, datos o interfaces de otros plugins. La cobertura de POT no sustituye las pruebas visuales en WordPress.
+
 ## [0.3.9] — 2026-11-05 — Recuperación del clasificador monolítico (#2232)
 
 - Recuperado el análisis contextual local: título, descripción corta/larga, categorías, etiquetas WooCommerce, marcas, SKU y metadatos genéricos/de migración de proveedores, con extensión opcional mediante un filtro estándar.

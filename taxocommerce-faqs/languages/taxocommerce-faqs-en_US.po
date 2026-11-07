@@ -12,7 +12,7 @@ msgstr ""
 #: taxocommerce-faqs.php includes/class-taxocommerce-faqs.php:112
 #: includes/class-taxocommerce-faqs.php:115
 msgid "TaxoCommerce FAQs"
-msgstr ""
+msgstr "TaxoCommerce FAQs"
 
 #. Description of the plugin
 #: taxocommerce-faqs.php
@@ -24,31 +24,31 @@ msgstr ""
 #. Author of the plugin
 #: taxocommerce-faqs.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:195
 msgid "Sin permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "You do not have permission to run Autocheck."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:216
 msgid "Sin permisos para descargar Auto Test."
-msgstr ""
+msgstr "You do not have permission to download Autocheck."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:224
 msgid "No hay informe válido para este sitio."
-msgstr ""
+msgstr "No valid report is available for this site."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:226
 msgid "Error creando JSON."
-msgstr ""
+msgstr "Error generating JSON."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:427
 msgid "Sin permisos para consultar Auto Test."
-msgstr ""
+msgstr "You do not have permission to view Autocheck."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:457
 msgid "Auto Test — FAQs"
-msgstr ""
+msgstr "Autocheck — FAQs"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:458
 msgid ""
@@ -59,27 +59,27 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-auto-test.php:466
 msgid "Referencia ANTES"
-msgstr ""
+msgstr "BEFORE reference"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:472
 msgid "Sin referencia guardada. Ejecútala antes de actualizar."
-msgstr ""
+msgstr "No saved reference. Run it before updating."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:476
 msgid "Último chequeo"
-msgstr ""
+msgstr "Latest check"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:482
 msgid "Todavía no hay una ejecución."
-msgstr ""
+msgstr "No runs yet."
 
 #: includes/class-taxocommerce-faqs-auto-test.php:486
 msgid "Resultados"
-msgstr ""
+msgstr "Results"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:494
 msgid "Comparación de despliegues"
-msgstr ""
+msgstr "Deployment comparison"
 
 #: includes/class-taxocommerce-faqs-auto-test.php:499
 msgid ""
@@ -110,7 +110,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:19
 msgid "1. Acceso y precauciones"
-msgstr ""
+msgstr "1. Access and precautions"
 
 #: includes/class-taxocommerce-faqs-manual.php:21
 msgid ""
@@ -134,7 +134,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:28
 msgid "2. Inventario e indicadores"
-msgstr ""
+msgstr "2. Inventory and metrics"
 
 #: includes/class-taxocommerce-faqs-manual.php:30
 msgid ""
@@ -158,7 +158,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:37
 msgid "3. Crear una pregunta frecuente"
-msgstr ""
+msgstr "3. Create a frequently asked question"
 
 #: includes/class-taxocommerce-faqs-manual.php:39
 msgid ""
@@ -183,7 +183,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:46
 msgid "4. Editar, activar y desactivar"
-msgstr ""
+msgstr "4. Edit, enable and disable"
 
 #: includes/class-taxocommerce-faqs-manual.php:48
 msgid ""
@@ -207,7 +207,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:55
 msgid "5. Destinos y categoría obligatoria"
-msgstr ""
+msgstr "5. Destinations and required category"
 
 #: includes/class-taxocommerce-faqs-manual.php:57
 msgid ""
@@ -231,7 +231,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:64
 msgid "6. Etiquetas semánticas de Vocabulary"
-msgstr ""
+msgstr "6. Vocabulary semantic tags"
 
 #: includes/class-taxocommerce-faqs-manual.php:66
 msgid ""
@@ -256,7 +256,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:73
 msgid "7. Exportar FAQs a CSV"
-msgstr ""
+msgstr "7. Export FAQs to CSV"
 
 #: includes/class-taxocommerce-faqs-manual.php:75
 msgid ""
@@ -279,7 +279,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:82
 msgid "8. Importar FAQs desde CSV"
-msgstr ""
+msgstr "8. Import FAQs from CSV"
 
 #: includes/class-taxocommerce-faqs-manual.php:84
 msgid ""
@@ -304,7 +304,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:91
 msgid "9. Borrado y conservación de datos"
-msgstr ""
+msgstr "9. Deletion and data retention"
 
 #: includes/class-taxocommerce-faqs-manual.php:93
 msgid ""
@@ -328,7 +328,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:100
 msgid "10. Auto Test antes y después de actualizar"
-msgstr ""
+msgstr "10. Autocheck before and after updating"
 
 #: includes/class-taxocommerce-faqs-manual.php:102
 msgid ""
@@ -353,7 +353,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:109
 msgid "11. Resolución de incidencias"
-msgstr ""
+msgstr "11. Troubleshooting"
 
 #: includes/class-taxocommerce-faqs-manual.php:111
 msgid ""
@@ -378,7 +378,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:118
 msgid "12. Arquitectura y responsabilidades"
-msgstr ""
+msgstr "12. Architecture and responsibilities"
 
 #: includes/class-taxocommerce-faqs-manual.php:120
 msgid ""
@@ -403,7 +403,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:127
 msgid "13. Esquema y migración"
-msgstr ""
+msgstr "13. Schema and migration"
 
 #: includes/class-taxocommerce-faqs-manual.php:129
 msgid ""
@@ -428,7 +428,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:136
 msgid "14. Rutas, permisos y seguridad"
-msgstr ""
+msgstr "14. Routes, permissions and security"
 
 #: includes/class-taxocommerce-faqs-manual.php:138
 msgid ""
@@ -453,7 +453,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:145
 msgid "15. Contrato CSV y Vocabulary"
-msgstr ""
+msgstr "15. CSV and Vocabulary contract"
 
 #: includes/class-taxocommerce-faqs-manual.php:147
 msgid ""
@@ -479,7 +479,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:154
 msgid "16. Ciclo de vida y riesgos de desinstalación"
-msgstr ""
+msgstr "16. Lifecycle and uninstall risks"
 
 #: includes/class-taxocommerce-faqs-manual.php:156
 msgid ""
@@ -505,7 +505,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:163
 msgid "17. Pruebas y despliegue"
-msgstr ""
+msgstr "17. Testing and deployment"
 
 #: includes/class-taxocommerce-faqs-manual.php:165
 msgid ""
@@ -530,123 +530,123 @@ msgstr ""
 
 #: includes/class-taxocommerce-faqs-manual.php:178
 msgid "Sin permisos para consultar el manual."
-msgstr ""
+msgstr "You do not have permission to view the manual."
 
 #: includes/class-taxocommerce-faqs-manual.php:181
 #: includes/class-taxocommerce-faqs-manual.php:183
 msgid "Manual de TaxoCommerce FAQs"
-msgstr ""
+msgstr "TaxoCommerce FAQs manual"
 
 #: includes/class-taxocommerce-faqs-manual.php:184
 msgid ""
 "Manual de usuario y manual técnico integrados. Su consulta no modifica "
 "preguntas ni inicia trabajos."
-msgstr ""
+msgstr "Integrated user and technical guides. Viewing them does not change questions or start any jobs."
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual de usuario"
-msgstr ""
+msgstr "User guide"
 
 #: includes/class-taxocommerce-faqs-manual.php:185
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technical guide"
 
 #: includes/class-taxocommerce-faqs.php:115
 #: includes/class-taxocommerce-faqs.php:558
 #: includes/class-taxocommerce-faqs.php:608
 msgid "FAQs"
-msgstr ""
+msgstr "FAQs"
 
 #: includes/class-taxocommerce-faqs.php:128
 msgid "No tienes permisos para gestionar FAQs."
-msgstr ""
+msgstr "You do not have permission to manage FAQs."
 
 #: includes/class-taxocommerce-faqs.php:557
 msgid "Secciones de FAQs"
-msgstr ""
+msgstr "FAQ sections"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto Test"
 
 #: includes/class-taxocommerce-faqs.php:558
 msgid "Manual"
-msgstr ""
+msgstr "Manual"
 
 #: includes/class-taxocommerce-faqs.php:573
 msgid ""
 "Falta la tabla de FAQs; desactiva y reactiva TaxoCommerce FAQs para "
 "instalarla."
-msgstr ""
+msgstr "The FAQ table is missing; deactivate and reactivate TaxoCommerce FAQs to install it."
 
 #: includes/class-taxocommerce-faqs.php:608
 msgid ""
 "Preguntas frecuentes asociadas a hubs, categorías o productos. Datos "
 "compartidos con TaxoCommerce SEO."
-msgstr ""
+msgstr "Frequently asked questions linked to hubs, categories or products. Data is shared with TaxoCommerce SEO."
 
 #: includes/class-taxocommerce-faqs.php:617
 msgid "Categoría de producto *"
-msgstr ""
+msgstr "Product category *"
 
 #: includes/class-taxocommerce-faqs.php:621
 msgid ""
 "Obligatoria. Las FAQs anteriores sin categoría aparecen en el KPI "
 "correspondiente."
-msgstr ""
+msgstr "Required. Older FAQs without a category appear in the corresponding KPI."
 
 #: includes/class-taxocommerce-faqs.php:621
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Destino"
-msgstr ""
+msgstr "Destination"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Etiquetas de Vocabulary"
-msgstr ""
+msgstr "Vocabulary labels"
 
 #: includes/class-taxocommerce-faqs.php:631
 msgid "Selecciona las etiquetas existentes. No se crean etiquetas nuevas."
-msgstr ""
+msgstr "Select existing labels. No new labels are created."
 
 #: includes/class-taxocommerce-faqs.php:644
 msgid ""
 "Vocabulary no está disponible; se conservarán las etiquetas existentes."
-msgstr ""
+msgstr "Vocabulary is unavailable; existing labels will be preserved."
 
 #: includes/class-taxocommerce-faqs.php:652
 msgid "Buscar"
-msgstr ""
+msgstr "Search"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Pregunta"
-msgstr ""
+msgstr "Question"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Categoría"
-msgstr ""
+msgstr "Category"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Activa"
-msgstr ""
+msgstr "Active"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Aperturas"
-msgstr ""
+msgstr "Opens"
 
 #: includes/class-taxocommerce-faqs.php:653
 msgid "Acciones"
-msgstr ""
+msgstr "Actions"
 
 #: includes/class-taxocommerce-faqs.php:659
 msgid "Eliminar"
-msgstr ""
+msgstr "Delete"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid "Importar / Exportar CSV"
-msgstr ""
+msgstr "Import / Export CSV"
 
 #: includes/class-taxocommerce-faqs.php:665
 msgid ""
 "CSV UTF-8; hasta 500 filas y 2 MB por importación. Solo se actualiza un ID "
 "existente; las nuevas filas reciben ID nuevo."
-msgstr ""
+msgstr "UTF-8 CSV; up to 500 rows and 2 MB per import. Only an existing ID is updated; new rows receive a new ID."

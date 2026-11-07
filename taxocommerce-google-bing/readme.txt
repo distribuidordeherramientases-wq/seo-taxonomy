@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.16
+Stable tag: 1.1.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,6 +18,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 * Google Search downloads.
 * Google Analytics downloads.
 * Bing downloads.
+* Optional IndexNow notifications for public URL changes, independent of Cloudflare; disabled by default to avoid duplicate providers. Configure in Connections > Bing. Uses WP-Cron, so regular scheduled execution is required.
 * Google Trends automatically compares all Spanish clusters (up to 5 per chart), then separately compares each cluster's primary hubs on page load. The underlying SEO hierarchy is dynamic, category and secondary-hub consultations remain manual; five-speed browser load controller, pause/resume/stop, and links to Google Explore. Charts are visual and do not provide machine-readable growth scores or verification of search term meaning. Historical RSS snapshots remain supported.
 * Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views.
 * User Guide contains read-only User Manual and Technical Manual explaining active features, integrations, data and maintenance.
@@ -52,6 +53,25 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.21 =
+* Google Analytics 4 is loaded with WordPress wp_enqueue_script and wp_add_inline_script when statistics consent is granted; avoids the redundant script in wp_head and retains existing provider settings.
+
+= 1.1.20 =
+* Add Google Search Console verification, Google Analytics 4 and Google Tag Manager head tags from pasted provider snippets without executable HTML in the admin POST.
+* Show a persistent editable tag inventory, including enable/disable/delete, and prevent duplicate measurement IDs.
+
+
+= 1.1.19 =
+* Save Microsoft Clarity head tracking tags using only the validated project ID, avoiding host firewall rejection of executable HTML in admin POST.
+
+
+= 1.1.18 =
+* Restore the editable head verification and tracking tags tab in Insights, preserving IndexNow and provider connections.
+
+
+= 1.1.17 =
+* Added optional per-site IndexNow with public ownership key, bounded queue and manual URL notification. Bing Webmaster API credentials are not required for IndexNow.
 
 = 1.1.16 =
 * Pestaña «Autocheck» con descarga JSON ya existente y conservación de las comparaciones antes/después.
