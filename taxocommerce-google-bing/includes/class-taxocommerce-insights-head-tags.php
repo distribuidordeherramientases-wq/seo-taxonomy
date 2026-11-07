@@ -302,10 +302,14 @@ final class TaxoCommerce_Insights_Head_Tags {
             'deleted' => __( 'Etiqueta eliminada.', 'taxocommerce-google-bing' ),
             'invalid' => __( 'Codigo no valido. Usa etiquetas meta para verificacion, o codigo script para seguimiento. No se admiten etiquetas de pagina ni PHP.', 'taxocommerce-google-bing' ),
             'limit'   => __( 'Has alcanzado el limite de etiquetas.', 'taxocommerce-google-bing' ),
+            'updated' => __( 'Estado de la etiqueta actualizado.', 'taxocommerce-google-bing' ),
+            'duplicate' => __( 'Ya existe una etiqueta de este proveedor con el mismo identificador.', 'taxocommerce-google-bing' ),
+            'duplicate_ga4' => __( 'Ese ID de Google Analytics ya esta activo en la configuracion de conexiones de Insights. Evita duplicar el seguimiento.', 'taxocommerce-google-bing' ),
         );
 
         echo '<h2>' . esc_html__( 'Etiquetas de cabecera', 'taxocommerce-google-bing' ) . '</h2>';
         echo '<p>' . esc_html__( 'Pega el codigo HTML completo del proveedor. Se insertara automaticamente en el head de WordPress sin modificar la plantilla.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Admite Google Search Console (meta), Google Analytics 4, Google Tag Manager y Microsoft Clarity. Los identificadores se extraen del codigo pegado para evitar bloqueos al guardar.', 'taxocommerce-google-bing' ) . '</p>';
         if ( isset( $messages[ $notice ] ) ) {
             echo '<div class="notice notice-' . esc_attr( 'invalid' === $notice || 'limit' === $notice ? 'error' : 'success' ) . ' inline"><p>' . esc_html( $messages[ $notice ] ) . '</p></div>';
         }
@@ -314,24 +318,15 @@ final class TaxoCommerce_Insights_Head_Tags {
             return;
         }
 
-        if ( $entries ) {
-            echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Nombre', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Tipo', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Estado', 'taxocommerce-google-bing' ) . '</th><th>' . esc_html__( 'Acciones', 'taxocommerce-google-bing' ) . '</th></tr></thead><tbody>';
-            foreach ( $entries as $id => $entry ) {
-                $edit_url = add_query_arg( 'edit_tag', sanitize_key( $id ), self::url() );
-                echo '<tr><td>' . esc_html( $entry['name'] ?? '' ) . '</td><td>' . esc_html( 'verification' === ( $entry['kind'] ?? '' ) ? __( 'Verificacion', 'taxocommerce-google-bing' ) : __( 'Seguimiento', 'taxocommerce-google-bing' ) ) . '</td><td>' . esc_html( ! empty( $entry['enabled'] ) ? __( 'Activa', 'taxocommerce-google-bing' ) : __( 'Inactiva', 'taxocommerce-google-bing' ) ) . '</td><td>';
-                echo '<a class="button button-small" href="' . esc_url( $edit_url ) . '">' . esc_html__( 'Editar', 'taxocommerce-google-bing' ) . '</a> ';
-                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
-                echo '<input type="hidden" name="action" value="tgb_head_tag_delete"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
-                wp_nonce_field( self::NONCE );
-                echo '<button class="button button-small" type="submit">' . esc_html__( 'Eliminar', 'taxocommerce-google-bing' ) . '</button></form></td></tr>';
-            }
-            echo '</tbody></table>';
-        }
-
         echo '<h3>' . esc_html( $current ? __( 'Editar etiqueta', 'taxocommerce-google-bing' ) : __( 'Nueva etiqueta', 'taxocommerce-google-bing' ) ) . '</h3>';
+        if ( $current ) {
+            echo '<p><a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Cancelar edicion y crear nueva', 'taxocommerce-google-bing' ) . '</a></p>';
+        }
         echo '<form id="tgb-head-tags-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tgb_head_tag_save"><input type="hidden" name="entry_id" value="' . esc_attr( $current ? $edit : '' ) . '">';
         echo '<input type="hidden" name="entry_clarity_id" id="tgb-head-tags-clarity-id" value="">';
+        echo '<input type="hidden" name="entry_provider" id="tgb-head-tags-provider" value="">';
+        echo '<input type="hidden" name="entry_provider_id" id="tgb-head-tags-provider-id" value="">';
         wp_nonce_field( self::NONCE );
         echo '<p><label><strong>' . esc_html__( 'Nombre del proveedor', 'taxocommerce-google-bing' ) . '</strong><br><input class="regular-text" name="entry_name" required maxlength="200" value="' . esc_attr( $current['name'] ?? '' ) . '" placeholder="Microsoft Clarity"></label></p>';
         echo '<p><label><strong>' . esc_html__( 'Tipo de codigo', 'taxocommerce-google-bing' ) . '</strong><br><select name="entry_kind">';
@@ -344,6 +339,56 @@ final class TaxoCommerce_Insights_Head_Tags {
         echo '<p class="description">' . esc_html__( 'Las etiquetas de verificacion se publican sin cookies. Los scripts de seguimiento solo se publican si existe consentimiento estadistico confirmado mediante WP Consent API o el filtro de integracion. No pegues codigo de fuentes desconocidas.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( $current ? __( 'Guardar cambios', 'taxocommerce-google-bing' ) : __( 'Añadir etiqueta', 'taxocommerce-google-bing' ) );
         echo '</form>';
+        echo '<hr><h3>' . esc_html__( 'Inventario de etiquetas de cabecera', 'taxocommerce-google-bing' )
+            . ' (' . esc_html( (string) count( $entries ) ) . ')</h3>';
+        if ( ! $entries ) {
+            echo '<p class="description">' . esc_html__( 'Todavia no hay etiquetas guardadas. Añade una desde el formulario anterior.', 'taxocommerce-google-bing' ) . '</p>';
+        } else {
+            echo '<table class="widefat striped"><thead><tr>';
+            foreach ( array(
+                __( 'Nombre', 'taxocommerce-google-bing' ),
+                __( 'Proveedor', 'taxocommerce-google-bing' ),
+                __( 'Tipo', 'taxocommerce-google-bing' ),
+                __( 'Identificador', 'taxocommerce-google-bing' ),
+                __( 'Estado', 'taxocommerce-google-bing' ),
+                __( 'Acciones', 'taxocommerce-google-bing' ),
+            ) as $heading ) {
+                echo '<th scope="col">' . esc_html( $heading ) . '</th>';
+            }
+            echo '</tr></thead><tbody>';
+            foreach ( $entries as $id => $entry ) {
+                if ( ! is_array( $entry ) ) {
+                    continue;
+                }
+                $active = ! empty( $entry['enabled'] );
+                $edit_url = add_query_arg( 'edit_tag', sanitize_key( $id ), self::url() );
+                $provider_id = isset( $entry['provider_id'] ) && '' !== $entry['provider_id']
+                    ? $entry['provider_id'] : '—';
+                echo '<tr><td><strong>' . esc_html( $entry['name'] ?? '' ) . '</strong></td>';
+                echo '<td>' . esc_html( self::provider_name( $entry ) ) . '</td>';
+                echo '<td>' . esc_html( 'verification' === ( $entry['kind'] ?? '' )
+                    ? __( 'Verificacion', 'taxocommerce-google-bing' )
+                    : __( 'Seguimiento', 'taxocommerce-google-bing' ) ) . '</td>';
+                echo '<td><code>' . esc_html( $provider_id ) . '</code></td>';
+                echo '<td>' . esc_html( $active
+                    ? __( 'Activa', 'taxocommerce-google-bing' )
+                    : __( 'Inactiva', 'taxocommerce-google-bing' ) ) . '</td><td>';
+                echo '<a class="button button-small" href="' . esc_url( $edit_url ) . '">'
+                    . esc_html__( 'Editar', 'taxocommerce-google-bing' ) . '</a> ';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
+                echo '<input type="hidden" name="action" value="tgb_head_tag_toggle"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
+                wp_nonce_field( self::NONCE );
+                echo '<button class="button button-small" type="submit">'
+                    . esc_html( $active ? __( 'Desactivar', 'taxocommerce-google-bing' ) : __( 'Activar', 'taxocommerce-google-bing' ) )
+                    . '</button></form> ';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) . '" style="display:inline">';
+                echo '<input type="hidden" name="action" value="tgb_head_tag_delete"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
+                wp_nonce_field( self::NONCE );
+                echo '<button class="button button-small" type="submit">'
+                    . esc_html__( 'Eliminar', 'taxocommerce-google-bing' ) . '</button></form></td></tr>';
+            }
+            echo '</tbody></table>';
+        }
 
         // A host WAF may reject POST requests containing raw <script> markup.
         // Extract only a known Clarity project ID in the browser, and generate
