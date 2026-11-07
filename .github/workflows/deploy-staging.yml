@@ -221,6 +221,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
+          TAXOCOMMERCE_PUSH_BEFORE: ${{ github.event.before }}
           # Called workflows inherit the caller's github event. Scope only a
           # direct workflow push, not the standard gated reusable workflow.
           TAXOCOMMERCE_TARGET_PLUGIN: ${{ inputs.target_plugin || (github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'auto' || '') }}
