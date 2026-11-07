@@ -200,12 +200,12 @@ function taxocommerce_google_bing_screen() {
 
 
 /**
- * Reuse the established historical report engine while the SEO monolith is
- * installed. Do not copy hundreds of global seo_analista_* functions into the
- * modular plugin: loading both would fatal on function redeclaration.
+ * Render the historical Analysis reports from Insights' bundled engine.
  *
- * This is an explicitly transitional bridge, not an independent rewrite.
- * No provider APIs or heavy analyses run until a report is clicked.
+ * The included analysis/analista-bootstrap.php owns the report definitions.
+ * Legacy function names are retained for stored settings and compatibility;
+ * no CSS, JS, or runtime constant is loaded from the former SEO monolith.
+ * Heavy reports are only generated after an authenticated AJAX click.
  */
 function taxocommerce_google_bing_analysis_screen() {
     // seo_analista_* is a historical API bundled in Insights/analysis.
