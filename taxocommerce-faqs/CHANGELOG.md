@@ -1,3 +1,8 @@
+## [Unreleased] — Catálogos i18n FAQs (#2319)
+
+- Completadas 31 entradas gettext que estaban vacías en cada catálogo PO (es_ES, en_US, fr_FR, de_DE, nl_NL), principalmente mensajes de Autocheck y títulos de manuales.
+- Sin cambios de lógica funcional ni datos. Pendiente recompilar MO, comprobar traducciones multilínea y verificar el idioma efectivo en WordPress antes de integrar/desplegar.
+
 ## [Unreleased] — Internacionalización de interfaz FAQs (#2281)
 
 - Traducidas 27 entradas de interfaz, menús, campos y CSV a es_ES, en_US, fr_FR, de_DE y nl_NL.
