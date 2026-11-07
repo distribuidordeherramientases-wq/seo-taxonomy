@@ -17,7 +17,13 @@ function esc_url( $value ) { return esc_html( $value ); }
 function esc_textarea( $value ) { return esc_html( $value ); }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', $value ) ); }
 function admin_url( $path ) { return '/wp-admin/' . $path; }
-function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function add_query_arg( $key, $value, $url = null ) {
+    if ( is_array( $key ) ) {
+        return $value . '?' . http_build_query( $key );
+    }
+    return $url . ( false !== strpos( $url, '?' ) ? '&' : '?' )
+        . urlencode( $key ) . '=' . urlencode( $value );
+}
 function wp_nonce_field( $name ) { echo '<input name="_wpnonce" value="test">'; }
 function submit_button( $text ) { echo '<button type="submit">' . esc_html( $text ) . '</button>'; }
 function selected( $actual, $expected, $echo = true ) {
