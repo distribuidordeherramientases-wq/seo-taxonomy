@@ -19,60 +19,60 @@ msgstr "TaxoCommerce Templates"
 msgid ""
 "Standalone WordPress/WooCommerce request-template routing, SEO role "
 "assignments and migration audit."
-msgstr ""
+msgstr "Eigenständiges Routing von WordPress-/WooCommerce-Anfragevorlagen, Zuordnung von SEO-Rollen und Migrationsprüfung."
 
 #. Author of the plugin
 #: taxocommerce-templates.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tct-association-audit.php:425
 msgid "Auditoria de asociaciones antiguas y modernas"
-msgstr ""
+msgstr "Prüfung alter und neuer Zuordnungen"
 
 #: includes/class-tct-association-audit.php:427
 msgid "Tablas de asociaciones no disponibles."
-msgstr ""
+msgstr "Zuordnungstabellen sind nicht verfügbar."
 
 #: includes/class-tct-association-audit.php:435
 msgid ""
 "No se cambian los roles ni los objetos ya asignados. Esta auditoria "
 "comprueba si la biblioteca del nuevo modulo dispone de sus archivos."
-msgstr ""
+msgstr "Bereits zugewiesene Rollen und Objekte werden nicht verändert. Diese Prüfung ermittelt, ob die Bibliothek des neuen Moduls die benötigten Dateien enthält."
 
 #: includes/class-tct-association-audit.php:444
 msgid "Comprobacion de cambio de plugin"
-msgstr ""
+msgstr "Prüfung des Pluginwechsels"
 
 #: includes/class-tct-association-audit.php:448
 msgid "Ver incidencias de sustitucion"
-msgstr ""
+msgstr "Probleme beim Ersetzen anzeigen"
 
 #: includes/class-tct-association-audit.php:454
 msgid "Se han localizado todos los archivos activos registrados,"
-msgstr ""
+msgstr "Alle registrierten aktiven Dateien wurden gefunden,"
 
 #: includes/class-tct-association-audit.php:455
 msgid ""
 "pero no se ha verificado la equivalencia funcional ni los recursos. Mantener"
 " el motor nuevo desactivado."
-msgstr ""
+msgstr "aber die funktionale Gleichwertigkeit und die Ressourcen wurden nicht überprüft. Lass die neue Engine deaktiviert."
 
 #: includes/class-tct-association-audit.php:457
 msgid ""
 "Una asociacion guardada NO confirma que su PHP funcione sin el plugin "
 "antiguo."
-msgstr ""
+msgstr "Eine gespeicherte Zuordnung bestätigt NICHT, dass die zugehörige PHP-Datei ohne das alte Plugin funktioniert."
 
 #: includes/class-tct-association-audit.php:458
 msgid ""
 "Las funciones, assets y dependencias deben migrarse y probarse antes de "
 "activar el motor de plantillas."
-msgstr ""
+msgstr "Funktionen, Ressourcen und Abhängigkeiten müssen migriert und getestet werden, bevor die Vorlagen-Engine aktiviert wird."
 
 #: includes/class-tct-association-audit.php:470
 msgid "Asociaciones y archivos"
-msgstr ""
+msgstr "Zuordnungen und Dateien"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Rol / tipo"
@@ -105,11 +105,11 @@ msgstr "Beispiele für Objekte"
 
 #: includes/class-tct-association-audit.php:507
 msgid "Correos WooCommerce del gestor antiguo"
-msgstr ""
+msgstr "WooCommerce-E-Mails des alten Managers"
 
 #: includes/class-tct-association-audit.php:509
 msgid "No existen asignaciones antiguas de correo en esta base de datos."
-msgstr ""
+msgstr "In dieser Datenbank gibt es keine alten E-Mail-Zuordnungen."
 
 #: includes/class-tct-association-audit.php:511
 msgid "Correo"
@@ -136,7 +136,7 @@ msgstr "Im neuen System verfügbar"
 msgid ""
 "Diagnostico local: no supone que STAGING tenga los mismos datos que "
 "produccion si la clonacion esta desactualizada."
-msgstr ""
+msgstr "Lokale Diagnose: Wenn der Klon veraltet ist, enthält STAGING möglicherweise nicht dieselben Daten wie die Produktionsumgebung."
 
 #: includes/class-tct-designs.php:272
 msgid ""
@@ -144,7 +144,7 @@ msgid ""
 "que se aplica y configura por separado los módulos de cada país. La "
 "presentación modular es un borrador mientras no exista un renderizador "
 "público."
-msgstr ""
+msgstr "Jede Vorlage hat eigene Einstellungen. Wähle die Länder aus, für die sie gilt, und konfiguriere die Module für jedes Land separat. Die modulare Darstellung bleibt ein Entwurf, solange kein öffentlicher Renderer vorhanden ist."
 
 #: includes/class-tct-designs.php:279
 #: includes/class-tct-front-composer.php:204
@@ -165,13 +165,13 @@ msgstr "Länder dieser Vorlage"
 
 #: includes/class-tct-designs.php:293
 msgid "Editar módulos del país"
-msgstr ""
+msgstr "Module für das Land bearbeiten"
 
 #: includes/class-tct-designs.php:298
 msgid ""
 "Guarda antes de cambiar de país para conservar los cambios de esta "
 "composición."
-msgstr ""
+msgstr "Speichere vor dem Länderwechsel, damit die Änderungen an dieser Zusammenstellung erhalten bleiben."
 
 #: includes/class-tct-designs.php:300
 #: includes/class-tct-front-composer.php:224
@@ -198,7 +198,7 @@ msgid ""
 "Solo se puede activar con archivo PHP existente y sin países solapados con "
 "otra plantilla activa del mismo rol. Requiere además el enrutador general "
 "habilitado. Los módulos visuales no modifican todavía el PHP."
-msgstr ""
+msgstr "Eine Aktivierung ist nur mit vorhandener PHP-Datei möglich, wenn sich die Länder nicht mit einer anderen aktiven Vorlage derselben Rolle überschneiden. Außerdem muss der allgemeine Router aktiviert sein. Visuelle Module ändern den PHP-Code noch nicht."
 
 #: includes/class-tct-designs.php:341
 msgid "Petición / rol"
@@ -222,7 +222,7 @@ msgstr "Editor"
 
 #: includes/class-tct-front-composer.php:113
 msgid "No tienes permisos para guardar plantillas."
-msgstr ""
+msgstr "Du hast keine Berechtigung, Vorlagen zu speichern."
 
 #: includes/class-tct-front-composer.php:170
 msgid "Añadir"
@@ -242,7 +242,7 @@ msgstr "Sichtbar"
 
 #: includes/class-tct-front-composer.php:174
 msgid "Título opcional del módulo"
-msgstr ""
+msgstr "Optionaler Modultitel"
 
 #: includes/class-tct-front-composer.php:175
 msgid "Subir"
@@ -254,7 +254,7 @@ msgstr "Nach unten"
 
 #: includes/class-tct-front-composer.php:177
 msgid "Hay cambios sin guardar. ¿Cambiar de mercado y descartarlos?"
-msgstr ""
+msgstr "Es gibt ungespeicherte Änderungen. Markt wechseln und Änderungen verwerfen?"
 
 #: includes/class-tct-front-composer.php:184
 #: includes/class-tct-routing-admin.php:130
@@ -265,13 +265,13 @@ msgstr "Zugriff verweigert."
 
 #: includes/class-tct-front-composer.php:196
 msgid "Compositor de plantillas — FRONT"
-msgstr ""
+msgstr "Vorlagen-Composer — FRONT"
 
 #: includes/class-tct-front-composer.php:197
 msgid ""
 "Prueba funcional del editor. Guarda un borrador por mercado y dispositivo; "
 "no sustituye la portada, su PHP ni las asignaciones existentes."
-msgstr ""
+msgstr "Funktionstest des Editors. Speichere einen Entwurf je Markt und Gerät; dadurch werden weder die Startseite noch deren PHP-Datei oder bestehende Zuordnungen ersetzt."
 
 #: includes/class-tct-front-composer.php:207
 msgid "Rol asignado"
@@ -287,7 +287,7 @@ msgstr "Gerät"
 
 #: includes/class-tct-front-composer.php:230
 msgid "Arrastra o pulsa Añadir."
-msgstr ""
+msgstr "Ziehe ein Element oder klicke auf Hinzufügen."
 
 #: includes/class-tct-front-composer.php:235
 msgid ""
