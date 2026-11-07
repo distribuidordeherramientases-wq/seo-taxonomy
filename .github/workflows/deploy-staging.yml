@@ -200,9 +200,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
-          # Direct push is restricted to Tasks; manual/workflow_call retains
-          # the existing baseline and installed-plugin safeguards.
-          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && 'taxocommerce-tasks' || '' }}
+          # Called workflows inherit the caller's github event. Scope only a
+          # direct workflow push, not the standard gated reusable workflow.
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && github.workflow == 'Immediate deployment to STAGING' && 'taxocommerce-tasks' || '' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
