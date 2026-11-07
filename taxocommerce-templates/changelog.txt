@@ -1,3 +1,6 @@
+= 0.4.20 (2026-11-07) =
+* Cabecera SEO del piloto VEVOR FR/DE/NL/US aislada de funciones antiguas: meta description y canonical únicas, paginación, hreflang conservado y verificaciones duplicadas eliminadas. Issue #2259.
+
 = 0.4.19 (2026-11-06) =
 * Titulos SEO nativos concisos sin alterar el nombre de categorias; ALT descriptivos de imágenes informativas en portada desktop/mobile. Issue #2259.
 

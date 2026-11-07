@@ -105,6 +105,7 @@ jobs:
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           php taxocommerce-templates/tests/smoke.php
           php taxocommerce-templates/tests/bing-meta-head-smoke.php
+          php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
           php taxocommerce-templates/tests/bing-title-home-alt-smoke.php
           php taxocommerce-templates/tests/manual-smoke.php
           php -l taxocommerce-templates/tests/filesystem-smoke.php
