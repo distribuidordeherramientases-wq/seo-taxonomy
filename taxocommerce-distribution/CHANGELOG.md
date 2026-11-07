@@ -1,3 +1,8 @@
+## [Unreleased] — Traducciones gettext (taxocommerce-distribution)
+
+- Completadas las entradas de traducción vacías detectadas en los catálogos de EN/FR/DE/NL; idioma ES ya tenía traducción.
+- No se modifica la lógica, el contenido de tienda ni los ajustes del plugin. Seguimiento global #2062.
+
 ## [Unreleased] — Reutilización segura de traducciones (#2307)
 
 - Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.

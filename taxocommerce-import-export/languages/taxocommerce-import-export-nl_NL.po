@@ -1586,4 +1586,4 @@ msgstr ""
 
 #: includes/class-taxocommerce-import-export.php:385
 msgid "No tienes permisos para gestionar TaxoCommerce Import-Export."
-msgstr ""
+msgstr "Je hebt geen toestemming om TaxoCommerce Import-Export te beheren."

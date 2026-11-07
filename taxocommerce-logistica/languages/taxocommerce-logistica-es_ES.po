@@ -786,4 +786,4 @@ msgstr ""
 
 #: includes/seo-transporte.php:646
 msgid "Logistics — Shipping Weight & Costs"
-msgstr ""
+msgstr "Logística — Peso y costes de envío"

@@ -784,4 +784,4 @@ msgid "Índice"
 msgstr "Inhoud"
 
 msgid "— Do not import —"
-msgstr ""
+msgstr "— Niet importeren —"
