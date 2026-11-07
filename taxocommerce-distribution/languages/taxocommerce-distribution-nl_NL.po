@@ -1306,95 +1306,95 @@ msgstr "Instellingen opslaan"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation"
-msgstr ""
+msgstr "Generatie"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source:"
-msgstr ""
+msgstr "Bron:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates:"
-msgstr ""
+msgstr "Kandidaten:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "published:"
-msgstr ""
+msgstr "gepubliceerd:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "excluded:"
-msgstr ""
+msgstr "uitgesloten:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Regulator:"
-msgstr ""
+msgstr "Regelaar:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "next batch"
-msgstr ""
+msgstr "volgende batch"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pressure"
-msgstr ""
+msgstr "belasting"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pause"
-msgstr ""
+msgstr "pauze"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last batch:"
-msgstr ""
+msgstr "Laatste batch:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "products in"
-msgstr ""
+msgstr "producten in"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Waiting for the first Distribution worker window."
-msgstr ""
+msgstr "Wachten op het eerste uitvoeringsvenster van de Distribution-verwerker."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "% completed."
-msgstr ""
+msgstr "% voltooid."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inicio:"
-msgstr ""
+msgstr "Start:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End:"
-msgstr ""
+msgstr "Einde:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Next daily regeneration:"
-msgstr ""
+msgstr "Volgende dagelijkse hergeneratie:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pending scheduling"
-msgstr ""
+msgstr "planning in afwachting"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Automatic regeneration is not active in this environment."
-msgstr ""
+msgstr "Automatisch opnieuw genereren is niet actief in deze omgeving."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Last activity:"
-msgstr ""
+msgstr "Laatste activiteit:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "s without changes"
-msgstr ""
+msgstr "s zonder wijzigingen"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start generation"
-msgstr ""
+msgstr "Generatie starten"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop the current generation? Partial files will not be published."
-msgstr ""
+msgstr "De huidige generatie stoppen? Gedeeltelijke bestanden worden niet gepubliceerd."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Stop generation"
-msgstr ""
+msgstr "Generatie stoppen"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Start creates a new generation and hands it to the Distribution worker. Stop invalidates the current run without replacing the last valid feed. Batch size, pause, pressure, and recovery are controlled by Processes; this plugin keeps a single bounded worker."
@@ -1406,15 +1406,15 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Exclusion reasons"
-msgstr ""
+msgstr "Redenen voor uitsluiting"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Technical errors"
-msgstr ""
+msgstr "Technische fouten"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inventory URLs"
-msgstr ""
+msgstr "Inventaris-URL’s"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "These are stable URLs registered once with each platform. The platform then downloads them again according to its own schedule."
@@ -1426,79 +1426,79 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ready"
-msgstr ""
+msgstr "Gereed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Pending generation"
-msgstr ""
+msgstr "Generatie in afwachting"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generation history"
-msgstr ""
+msgstr "Generatiegeschiedenis"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno."
-msgstr ""
+msgstr "De laatste 20 voltooide of mislukte uitvoeringen worden in deze omgeving bewaard."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Aun no hay ejecuciones finalizadas registradas."
-msgstr ""
+msgstr "Er zijn nog geen voltooide uitvoeringen geregistreerd."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End"
-msgstr ""
+msgstr "Einde"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Source"
-msgstr ""
+msgstr "Bron"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Candidates"
-msgstr ""
+msgstr "Kandidaten"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Published"
-msgstr ""
+msgstr "Gepubliceerd"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Excluded"
-msgstr ""
+msgstr "Uitgesloten"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Files"
-msgstr ""
+msgstr "Bestanden"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Initial platform setup"
-msgstr ""
+msgstr "Eerste platforminstellingen"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a product data source from a file and register the URL:"
-msgstr ""
+msgstr "Maak een productgegevensbron vanuit een bestand en registreer de URL:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Create a feed with automatic download from URL and register:"
-msgstr ""
+msgstr "Maak een feed met automatische download vanaf een URL en registreer deze:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Add a hosted data source by URL and register:"
-msgstr ""
+msgstr "Voeg een gehoste gegevensbron toe via een URL en registreer deze:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Other receivers:"
-msgstr ""
+msgstr "Overige ontvangers:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Use"
-msgstr ""
+msgstr "Gebruiken"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "or"
-msgstr ""
+msgstr "of"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "JSON preserves the complete record including additional images. Custom channels can be registered using the filter:"
@@ -1518,7 +1518,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "2. Resumen general bajo la cabecera"
-msgstr ""
+msgstr "2. Algemeen overzicht onder de kop"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Desde la versión 0.1.3 la regeneración funciona por lotes de 250 URL, con cinco velocidades de carga independientes: Suave, Baja, Normal, Alta y Máxima. Elige la velocidad y pulsa Guardar antes de generar. El estado muestra elementos procesados, URL preparadas, CPU y memoria del proceso PHP. Puedes detener sin eliminar el último sitemap público. El sistema mantiene el índice antiguo hasta publicar el nuevo y recupera los trabajos interrumpidos mediante WP-Cron."
@@ -1526,7 +1526,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ejecutar Autocheck"
-msgstr ""
+msgstr "Zelfcontrole uitvoeren"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Descargar resultados (JSON)"
@@ -1554,7 +1554,7 @@ msgstr "Het JSON-rapport kon niet worden gemaakt."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publica feeds comerciales y sitemaps XML de tu catálogo."
-msgstr ""
+msgstr "Publiceert commerciële feeds en XML-sitemaps van je catalogus."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Versión"
@@ -1562,19 +1562,19 @@ msgstr "Versie"
 
 #: includes/feeds/admin.php
 msgid "Not started"
-msgstr ""
+msgstr "Niet gestart"
 
 #: includes/feeds/admin.php
 msgid "Running"
-msgstr ""
+msgstr "Wordt uitgevoerd"
 
 #: includes/feeds/admin.php
 msgid "Completed"
-msgstr ""
+msgstr "Voltooid"
 
 #: includes/feeds/admin.php
 msgid "Failed"
-msgstr ""
+msgstr "Mislukt"
 
 #: includes/feeds/admin.php
 msgid "Stopped"
