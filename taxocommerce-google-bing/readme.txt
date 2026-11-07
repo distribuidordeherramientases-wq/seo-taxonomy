@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.19
+Stable tag: 1.1.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,11 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.20 =
+* Add Google Search Console verification, Google Analytics 4 and Google Tag Manager head tags from pasted provider snippets without executable HTML in the admin POST.
+* Show a persistent editable tag inventory, including enable/disable/delete, and prevent duplicate measurement IDs.
+
 
 = 1.1.19 =
 * Save Microsoft Clarity head tracking tags using only the validated project ID, avoiding host firewall rejection of executable HTML in admin POST.
