@@ -166,13 +166,22 @@ final class TaxoCommerce_Insights_Head_Tags {
         $clarity_id = isset( $_POST['entry_clarity_id'] ) && is_string( $_POST['entry_clarity_id'] )
             ? sanitize_text_field( wp_unslash( $_POST['entry_clarity_id'] ) )
             : '';
+        $provider = isset( $_POST['entry_provider'] ) ? sanitize_key( wp_unslash( $_POST['entry_provider'] ) ) : '';
+        $provider_id = isset( $_POST['entry_provider_id'] ) && is_string( $_POST['entry_provider_id'] )
+            ? sanitize_text_field( wp_unslash( $_POST['entry_provider_id'] ) )
+            : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-        if ( '' !== $clarity_id ) {
-            if ( 'tracking' !== $kind || ! preg_match( '/\\A[a-z0-9]{6,32}\\z/', $clarity_id ) ) {
+        if ( '' !== $clarity_id && '' === $provider ) {
+            // Compatibility with the Clarity form from 1.1.19.
+            $provider = 'clarity';
+            $provider_id = $clarity_id;
+        }
+        if ( '' !== $provider ) {
+            $code = self::normalized_provider_code( $provider, $provider_id, $kind );
+            if ( '' === $code ) {
                 self::redirect( 'invalid' );
             }
-            $code = self::clarity_code( $clarity_id );
         }
         if ( ! in_array( $kind, array( 'verification', 'tracking' ), true ) || ! self::validate_code( $code, $kind ) || '' === $name ) {
             self::redirect( 'invalid' );
@@ -187,11 +196,26 @@ final class TaxoCommerce_Insights_Head_Tags {
             }
             $id = sanitize_key( wp_generate_uuid4() );
         }
+        if ( '' !== $provider ) {
+            foreach ( $entries as $other_id => $other ) {
+                if ( $id !== $other_id && is_array( $other ) && ( $other['provider'] ?? '' ) === $provider && ( $other['provider_id'] ?? '' ) === $provider_id ) {
+                    self::redirect( 'duplicate' );
+                }
+            }
+            if ( 'google_analytics' === $provider && $enabled ) {
+                $google = get_option( 'seo_google_search_settings', array() );
+                if ( is_array( $google ) && ! empty( $google['tracking_enabled'] ) && strtoupper( (string) ( $google['measurement_id'] ?? '' ) ) === $provider_id ) {
+                    self::redirect( 'duplicate_ga4' );
+                }
+            }
+        }
         $entries[ $id ] = array(
-            'name'    => $name,
-            'kind'    => $kind,
-            'code'    => $code,
-            'enabled' => $enabled,
+            'name'        => $name,
+            'kind'        => $kind,
+            'code'        => $code,
+            'enabled'     => $enabled,
+            'provider'    => $provider,
+            'provider_id' => $provider_id,
         );
         update_option( self::OPTION, $entries, false );
         self::redirect( 'saved' );
@@ -210,6 +234,31 @@ final class TaxoCommerce_Insights_Head_Tags {
             update_option( self::OPTION, $entries, false );
         }
         self::redirect( 'deleted' );
+    }
+
+    /** Enable/disable an existing tag without posting its HTML to admin-post.php. */
+    public static function toggle() {
+        if ( ! self::allowed() ) {
+            wp_die( esc_html__( 'No tienes permiso para cambiar etiquetas.', 'taxocommerce-google-bing' ) );
+        }
+        check_admin_referer( self::NONCE );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+        $id = isset( $_POST['entry_id'] ) ? sanitize_key( wp_unslash( $_POST['entry_id'] ) ) : '';
+        $entries = self::entries();
+        if ( ! isset( $entries[ $id ] ) || ! is_array( $entries[ $id ] ) ) {
+            self::redirect( 'invalid' );
+        }
+        $enabled = empty( $entries[ $id ]['enabled'] );
+        $entry = $entries[ $id ];
+        if ( $enabled && 'google_analytics' === ( $entry['provider'] ?? '' ) ) {
+            $google = get_option( 'seo_google_search_settings', array() );
+            if ( is_array( $google ) && ! empty( $google['tracking_enabled'] ) && strtoupper( (string) ( $google['measurement_id'] ?? '' ) ) === ( $entry['provider_id'] ?? '' ) ) {
+                self::redirect( 'duplicate_ga4' );
+            }
+        }
+        $entries[ $id ]['enabled'] = $enabled;
+        update_option( self::OPTION, $entries, false );
+        self::redirect( 'updated' );
     }
 
     public static function output() {
