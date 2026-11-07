@@ -12,7 +12,7 @@ msgstr ""
 #: taxocommerce-templates.php taxocommerce-templates.php:157
 #: taxocommerce-templates.php:158 taxocommerce-templates.php:402
 msgid "TaxoCommerce Templates"
-msgstr ""
+msgstr "TaxoCommerce Templates"
 
 #. Description of the plugin
 #: taxocommerce-templates.php
@@ -76,23 +76,23 @@ msgstr ""
 
 #: includes/class-tct-association-audit.php:471
 msgid "Rol / tipo"
-msgstr ""
+msgstr "Rol / type"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Archivo asignado"
-msgstr ""
+msgstr "Toegewezen bestand"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Objetos"
-msgstr ""
+msgstr "Objecten"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Antiguo"
-msgstr ""
+msgstr "Oud"
 
 #: includes/class-tct-association-audit.php:471
 msgid "Nuevo"
-msgstr ""
+msgstr "Nieuw"
 
 #: includes/class-tct-association-audit.php:471
 #: includes/class-tct-designs.php:341
@@ -101,7 +101,7 @@ msgstr "Status"
 
 #: includes/class-tct-association-audit.php:480
 msgid "Ejemplos de objetos"
-msgstr ""
+msgstr "Voorbeelden van objecten"
 
 #: includes/class-tct-association-audit.php:507
 msgid "Correos WooCommerce del gestor antiguo"
@@ -113,16 +113,16 @@ msgstr ""
 
 #: includes/class-tct-association-audit.php:511
 msgid "Correo"
-msgstr ""
+msgstr "E-mail"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Clave de plantilla"
-msgstr ""
+msgstr "Sjabloonsleutel"
 
 #: includes/class-tct-association-audit.php:511
 #: includes/class-tct-template-editor.php:437
 msgid "Archivo"
-msgstr ""
+msgstr "Bestand"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Activo"
@@ -130,7 +130,7 @@ msgstr "Actief"
 
 #: includes/class-tct-association-audit.php:511
 msgid "Disponible en nuevo"
-msgstr ""
+msgstr "Beschikbaar in het nieuwe systeem"
 
 #: includes/class-tct-association-audit.php:519
 msgid ""
@@ -149,19 +149,19 @@ msgstr ""
 #: includes/class-tct-designs.php:279
 #: includes/class-tct-front-composer.php:204
 msgid "Nombre de la plantilla"
-msgstr ""
+msgstr "Sjabloonnaam"
 
 #: includes/class-tct-designs.php:281
 msgid "Archivo PHP asociado"
-msgstr ""
+msgstr "Gekoppeld PHP-bestand"
 
 #: includes/class-tct-designs.php:282
 msgid "Sin archivo (borrador visual)"
-msgstr ""
+msgstr "Zonder bestand (visueel concept)"
 
 #: includes/class-tct-designs.php:287
 msgid "Países de esta plantilla"
-msgstr ""
+msgstr "Landen van dit sjabloon"
 
 #: includes/class-tct-designs.php:293
 msgid "Editar módulos del país"
@@ -176,22 +176,22 @@ msgstr ""
 #: includes/class-tct-designs.php:300
 #: includes/class-tct-front-composer.php:224
 msgid "Ordenador"
-msgstr ""
+msgstr "Desktop"
 
 #: includes/class-tct-designs.php:301
 #: includes/class-tct-front-composer.php:225
 msgid "Móvil"
-msgstr ""
+msgstr "Mobiel"
 
 #: includes/class-tct-designs.php:302
 #: includes/class-tct-front-composer.php:229
 msgid "Módulos disponibles"
-msgstr ""
+msgstr "Beschikbare modules"
 
 #: includes/class-tct-designs.php:303
 #: includes/class-tct-front-composer.php:234
 msgid "Composición de la plantilla"
-msgstr ""
+msgstr "Sjabloonsamenstelling"
 
 #: includes/class-tct-designs.php:311
 msgid ""
@@ -202,23 +202,23 @@ msgstr ""
 
 #: includes/class-tct-designs.php:341
 msgid "Petición / rol"
-msgstr ""
+msgstr "Verzoek / rol"
 
 #: includes/class-tct-designs.php:341
 msgid "Plantilla"
-msgstr ""
+msgstr "Sjabloon"
 
 #: includes/class-tct-designs.php:341
 msgid "Archivo PHP"
-msgstr ""
+msgstr "PHP-bestand"
 
 #: includes/class-tct-designs.php:341
 msgid "Países"
-msgstr ""
+msgstr "Landen"
 
 #: includes/class-tct-designs.php:341
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: includes/class-tct-front-composer.php:113
 msgid "No tienes permisos para guardar plantillas."
@@ -226,7 +226,7 @@ msgstr ""
 
 #: includes/class-tct-front-composer.php:170
 msgid "Añadir"
-msgstr ""
+msgstr "Toevoegen"
 
 #: includes/class-tct-front-composer.php:171
 msgid "Quitar"
@@ -234,11 +234,11 @@ msgstr "Verwijderen"
 
 #: includes/class-tct-front-composer.php:172
 msgid "Configurar"
-msgstr ""
+msgstr "Configureren"
 
 #: includes/class-tct-front-composer.php:173
 msgid "Visible"
-msgstr ""
+msgstr "Zichtbaar"
 
 #: includes/class-tct-front-composer.php:174
 msgid "Título opcional del módulo"
@@ -246,11 +246,11 @@ msgstr ""
 
 #: includes/class-tct-front-composer.php:175
 msgid "Subir"
-msgstr ""
+msgstr "Omhoog"
 
 #: includes/class-tct-front-composer.php:176
 msgid "Bajar"
-msgstr ""
+msgstr "Omlaag"
 
 #: includes/class-tct-front-composer.php:177
 msgid "Hay cambios sin guardar. ¿Cambiar de mercado y descartarlos?"
@@ -261,7 +261,7 @@ msgstr ""
 #: includes/class-tct-routing-admin.php:209
 #: includes/class-tct-unified-manager.php:28 taxocommerce-templates.php:261
 msgid "Acceso denegado."
-msgstr ""
+msgstr "Toegang geweigerd."
 
 #: includes/class-tct-front-composer.php:196
 msgid "Compositor de plantillas — FRONT"
@@ -275,15 +275,15 @@ msgstr ""
 
 #: includes/class-tct-front-composer.php:207
 msgid "Rol asignado"
-msgstr ""
+msgstr "Toegewezen rol"
 
 #: includes/class-tct-front-composer.php:210
 msgid "Mercado"
-msgstr ""
+msgstr "Markt"
 
 #: includes/class-tct-front-composer.php:223
 msgid "Dispositivo"
-msgstr ""
+msgstr "Apparaat"
 
 #: includes/class-tct-front-composer.php:230
 msgid "Arrastra o pulsa Añadir."
@@ -345,15 +345,15 @@ msgstr ""
 #: includes/class-tct-request-admin.php:128
 #: includes/class-tct-routing-admin.php:304
 msgid "Familia"
-msgstr ""
+msgstr "Familie"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Peticion"
-msgstr ""
+msgstr "Verzoek"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Referencia del sistema"
-msgstr ""
+msgstr "Systeemreferentie"
 
 #: includes/class-tct-request-admin.php:138
 msgid "Archivo asignado / respaldo"
@@ -380,7 +380,7 @@ msgstr ""
 
 #: includes/class-tct-routing-admin.php:258
 msgid "Enrutamiento de plantillas"
-msgstr ""
+msgstr "Sjabloonroutering"
 
 #: includes/class-tct-routing-admin.php:268
 msgid ""
@@ -406,11 +406,11 @@ msgstr ""
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Estado y origen"
-msgstr ""
+msgstr "Status en bron"
 
 #: includes/class-tct-routing-admin.php:337
 msgid "Diseñador"
-msgstr ""
+msgstr "Ontwerper"
 
 #: includes/class-tct-routing-admin.php:340
 msgid "No hay rutas que coincidan con el filtro."
@@ -457,7 +457,7 @@ msgstr "Type"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Asignado a"
-msgstr ""
+msgstr "Toegewezen aan"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Tamaño"
@@ -465,7 +465,7 @@ msgstr "Grootte"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Modificado"
-msgstr ""
+msgstr "Gewijzigd"
 
 #: includes/class-tct-template-editor.php:437
 msgid "Acciones"
@@ -473,7 +473,7 @@ msgstr "Acties"
 
 #: includes/class-tct-template-editor.php:461
 msgid "abierto"
-msgstr ""
+msgstr "open"
 
 #: includes/class-tct-template-editor.php:506
 msgid "No hay archivos que coincidan con el filtro."
@@ -495,7 +495,7 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:575
 msgid "Editor y biblioteca de plantillas"
-msgstr ""
+msgstr "Sjablooneditor en -bibliotheek"
 
 #: includes/class-tct-template-editor.php:577
 msgid ""
@@ -510,7 +510,7 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:578
 msgid "solo lectura"
-msgstr ""
+msgstr "alleen-lezen"
 
 #: includes/class-tct-template-editor.php:578
 msgid ""
@@ -527,11 +527,11 @@ msgstr ""
 
 #: includes/class-tct-template-editor.php:588
 msgid "Editor de codigo PHP"
-msgstr ""
+msgstr "PHP-code-editor"
 
 #: includes/class-tct-template-editor.php:608
 msgid "Guardar en archivo"
-msgstr ""
+msgstr "Opslaan in bestand"
 
 #: includes/class-tct-template-editor.php:615
 msgid "Contenido de la plantilla"
@@ -689,22 +689,22 @@ msgstr ""
 #: templates/template-helpers.php:1828
 msgid "%d artículo"
 msgid_plural "%d artículos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d artikel"
+msgstr[1] "%d artikelen"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2035
 msgid "Ver %d comentario externo"
 msgid_plural "Ver %d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d externe reactie bekijken"
+msgstr[1] "%d externe reacties bekijken"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2045
 msgid "%d comentario externo"
 msgid_plural "%d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d externe reactie"
+msgstr[1] "%d externe reacties"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
@@ -740,8 +740,8 @@ msgstr ""
 #: templates/template-search.php:43
 msgid "%s producto encontrado"
 msgid_plural "%s productos encontrados"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s product gevonden"
+msgstr[1] "%s producten gevonden"
 
 #: templates/template-search.php:122
 msgid "Oferta"
@@ -750,3 +750,171 @@ msgstr ""
 #: templates/template-shop.php:525
 msgid "No hay productos disponibles en este bloque."
 msgstr "Er zijn geen producten beschikbaar in dit blok."
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicación de políticas de plantillas"
+msgstr "Sjabloonbeleid toepassen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Estado:"
+msgstr "Status:"
+
+#. TaxoCommerce Templates administration UI
+msgid "Aplicando las políticas de Templates"
+msgstr "Templates-beleid wordt toegepast"
+
+#. TaxoCommerce Templates administration UI
+msgid "Políticas suspendidas"
+msgstr "Beleid gepauzeerd"
+
+#. TaxoCommerce Templates administration UI
+msgid "Guardar estado de las políticas"
+msgstr "Beleidsstatus opslaan"
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutamiento"
+msgstr "Routering"
+
+#. TaxoCommerce Templates administration UI
+msgid "Diseñador de plantillas"
+msgstr "Sjabloonontwerper"
+
+#. TaxoCommerce Templates administration UI
+msgid "Autocheck"
+msgstr "Zelfcontrole"
+
+#. TaxoCommerce Templates administration UI
+msgid "Selecciona qué archivo usa cada petición de WordPress, WooCommerce o rol SEO. Las asociaciones se guardan en seo_templates, sin modificar archivos PHP."
+msgstr "Selecteer welk bestand voor elk WordPress-, WooCommerce- of SEO-rolverzoek wordt gebruikt. Koppelingen worden opgeslagen in seo_templates, zonder PHP-bestanden te wijzigen."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce habilitado."
+msgstr "TaxoCommerce-router ingeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Enrutador TaxoCommerce desactivado."
+msgstr "TaxoCommerce-router uitgeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Las rutas especializadas y el tema pueden tener prioridad; esta tabla muestra configuraciones, no una ejecución comprobada."
+msgstr "Gespecialiseerde routes en het thema kunnen voorrang hebben; deze tabel toont configuraties en geen geverifieerde uitvoering."
+
+#. TaxoCommerce Templates administration UI
+msgid "Puedes guardar relaciones, pero no sustituirán la plantilla pública mientras el enrutador esté desactivado."
+msgstr "Je kunt koppelingen opslaan, maar ze vervangen de publieke sjabloon niet zolang de router is uitgeschakeld."
+
+#. TaxoCommerce Templates administration UI
+msgid "Mis plantillas"
+msgstr "Mijn sjablonen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Por configurar"
+msgstr "Nog te configureren"
+
+#. TaxoCommerce Templates administration UI
+msgid "Todas"
+msgstr "Alle"
+
+#. TaxoCommerce Templates administration UI
+msgid "Vista de enrutamiento"
+msgstr "Routeringsoverzicht"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rol, petición o archivo"
+msgstr "Rol, verzoek of bestand"
+
+#. TaxoCommerce Templates administration UI
+msgid "Filtrar"
+msgstr "Filteren"
+
+#. TaxoCommerce Templates administration UI
+msgid "Solo aparecen relaciones con un archivo asignado y activo, incluso si el archivo falta. El catálogo completo permanece disponible."
+msgstr "Alleen koppelingen met een toegewezen en actief bestand worden getoond, ook als het bestand ontbreekt. De volledige catalogus blijft beschikbaar."
+
+#. TaxoCommerce Templates administration UI
+msgid "Tipos principales que aún no tienen una plantilla activa. Los fragmentos internos de WooCommerce están en «Todas»."
+msgstr "Belangrijkste typen waarvoor nog geen actief sjabloon bestaat. Interne WooCommerce-fragmenten staan onder ‘Alle’."
+
+#. TaxoCommerce Templates administration UI
+msgid "Inventario completo, incluidos archivos internos WooCommerce y rutas todavía no configuradas."
+msgstr "Volledig overzicht, inclusief interne WooCommerce-bestanden en nog niet geconfigureerde routes."
+
+#. TaxoCommerce Templates administration UI
+msgid "plantillas y rutas propias"
+msgstr "eigen sjablonen en routes"
+
+#. TaxoCommerce Templates administration UI
+msgid "tipos pendientes"
+msgstr "openstaande typen"
+
+#. TaxoCommerce Templates administration UI
+msgid "opciones y plantillas"
+msgstr "opties en sjablonen"
+
+#. TaxoCommerce Templates administration UI
+msgid "Rutas heredadas existentes"
+msgstr "Bestaande verouderde routes"
+
+#. TaxoCommerce Templates administration UI
+msgid "Catálogo de peticiones"
+msgstr "Verzoekcatalogus"
+
+#. Templates UI
+msgid "Gestiona plantillas, enrutado de páginas y reglas de presentación."
+msgstr "Beheer sjablonen, paginaroutering en weergaveregels."
+
+#. Templates UI
+msgid "Versión"
+msgstr "Versie"
+
+#. Templates UI
+msgid "Todas las peticiones"
+msgstr "Alle verzoeken"
+
+#. Templates UI
+msgid "Guardar"
+msgstr "Opslaan"
+
+#. Templates UI
+msgid "Asociar archivo"
+msgstr "Bestand koppelen"
+
+#. Templates UI
+msgid "Desasignar"
+msgstr "Koppeling verwijderen"
+
+#. Templates UI
+msgid "Asignar pagina"
+msgstr "Pagina koppelen"
+
+#. Templates UI
+msgid "Crear rol"
+msgstr "Rol maken"
+
+#. Templates UI
+msgid "Automático / sin rol SEO"
+msgstr "Automatisch / zonder SEO-rol"
+
+#. Templates UI
+msgid "Aún no tienes plantillas asignadas y activas."
+msgstr "Er zijn nog geen actieve sjablonen toegewezen."
+
+#. Templates UI
+msgid "Elegir el primer tipo de contenido para configurar"
+msgstr "Eerste inhoudstype kiezen om te configureren"
+
+#. Templates UI
+msgid "Ir al Diseñador de plantillas"
+msgstr "Naar de sjabloonontwerper"
+
+#. Templates UI
+msgid "Ver archivo PHP"
+msgstr "PHP-bestand bekijken"
+
+#. Templates UI
+msgid "Abrir auditoría técnica de asociaciones existentes"
+msgstr "Technische controle van bestaande koppelingen openen"
+
+#. Templates UI
+msgid "Gestionar las páginas asignadas a cada rol"
+msgstr "De aan elke rol toegewezen pagina’s beheren"

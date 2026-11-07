@@ -689,22 +689,22 @@ msgstr "No hay productos VEVOR publicados disponibles."
 #: templates/template-helpers.php:1828
 msgid "%d artículo"
 msgid_plural "%d artículos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d artículo"
+msgstr[1] "%d artículos"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2035
 msgid "Ver %d comentario externo"
 msgid_plural "Ver %d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Ver %d comentario externo"
+msgstr[1] "Ver %d comentarios externos"
 
 #. translators: %d: número de comentarios externos disponibles.
 #: templates/template-helpers.php:2045
 msgid "%d comentario externo"
 msgid_plural "%d comentarios externos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d comentario externo"
+msgstr[1] "%d comentarios externos"
 
 #: templates/template-product-desktop.php:26
 #: templates/template-product-mobile.php:26
@@ -740,8 +740,8 @@ msgstr "No related products are available."
 #: templates/template-search.php:43
 msgid "%s producto encontrado"
 msgid_plural "%s productos encontrados"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s producto encontrado"
+msgstr[1] "%s productos encontrados"
 
 #: templates/template-search.php:122
 msgid "Oferta"
