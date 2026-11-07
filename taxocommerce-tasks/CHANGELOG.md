@@ -4,6 +4,7 @@
 - Se elimina el encabezado sencillo duplicado; se mantienen intactas las siete pestañas, navegación, tareas, categorías, calendario, manuales y autocheck.
 - La cabecera se genera desde la plantilla común con gettext de WordPress para ES/EN/FR/DE/NL y funciona con o sin Core.
 - Prueba de regresión de cabecera común y versión sincronizada con readme.
+- Corregido el auditor GNU `.mo` de CI: acepta catálogos válidos sin tabla hash opcional; mantiene comprobaciones de tablas y punteros dañados, con pruebas adicionales. Esta corrección evita falsos bloqueos de despliegue.
 
 ## [0.1.5] — 2026-11-07 — Cabecera con versión y fecha (#2336)
 
