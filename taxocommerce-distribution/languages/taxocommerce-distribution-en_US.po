@@ -653,28 +653,28 @@ msgstr "Definitions of formats, columns, transformations and serialisation for e
 msgid ""
 "Formularios, controles iniciar/detener, AJAX de seguimiento y enlaces de "
 "archivos."
-msgstr ""
+msgstr "Forms, start/stop controls, AJAX progress monitoring and file links."
 
 #: includes/manual.php:92
 msgid "Ventanas de proceso mediante WP-Cron, reanudación y supervisión."
-msgstr ""
+msgstr "Processing windows through WP-Cron, resumption and monitoring."
 
 #: includes/manual.php:93
 msgid ""
 "Reescrituras y rutas XML, fuentes de URLs, grupos, manifiesto, publicación y"
 " validación."
-msgstr ""
+msgstr "XML rewrites and routes, URL sources, groups, manifest, publication and validation."
 
 #: includes/manual.php:94
 msgid ""
 "Documentación de usuario y desarrollador, renderizada sin escribir datos."
-msgstr ""
+msgstr "User and developer documentation displayed without writing data."
 
 #: includes/manual.php:95
 msgid ""
 "Diagnósticos de solo lectura; no inicializa almacenamiento, workers ni "
 "generadores."
-msgstr ""
+msgstr "Read-only diagnostics; does not initialise storage, workers or generators."
 
 #: includes/manual.php:99
 msgid "8. Arquitectura y enrutado"
@@ -688,7 +688,7 @@ msgid ""
 "estado, formatos, generación y acciones. includes/worker.php ejecuta las "
 "ventanas programadas. includes/sitemaps/engine.php sirve, valida y publica "
 "XML. Manual y Autocheck son pantallas propias y no alteran los motores."
-msgstr ""
+msgstr "Entry point: taxocommerce-distribution.php. includes/admin.php registers administration with the taxocommerce-distribution slug and tcdist_tab selector. includes/feeds/core.php, channels.php and admin.php define state, formats, generation and actions. includes/worker.php runs scheduled processing windows. includes/sitemaps/engine.php serves, validates and publishes XML. Manual and Autocheck have their own screens and do not change the engines."
 
 #: includes/manual.php:102
 msgid "9. Canales y almacenamiento"
@@ -701,7 +701,7 @@ msgid ""
 "catalogo-universal.csv y catalogo-universal.json. Los sitemaps se almacenan "
 "bajo wp-content/uploads/seo-sitemaps/ y se sirven desde URLs estables del "
 "dominio principal, incluido /sitemap.xml."
-msgstr ""
+msgstr "Feeds are published under wp-content/uploads/seo-system-feeds/ as google-merchant.xml, microsoft-merchant.txt, pinterest-catalog.csv, catalogo-universal.csv and catalogo-universal.json. Sitemaps are stored under wp-content/uploads/seo-sitemaps/ and served at stable URLs on the main domain, including /sitemap.xml."
 
 #: includes/manual.php:104
 msgid ""
@@ -709,7 +709,7 @@ msgid ""
 " sitemap valida estructura XML antes de publicar. No coloques los ficheros "
 "generados dentro del ZIP del plugin ni cambies sus rutas públicas sin plan "
 "de migración."
-msgstr ""
+msgstr "Commercial publishing uses temporary files and atomic replacement. The sitemap validates XML structure before publishing. Do not include generated files in the plugin ZIP or change their public paths without a migration plan."
 
 #: includes/manual.php:106
 msgid "10. Opciones, hooks y ejecución"
@@ -723,7 +723,7 @@ msgid ""
 "La migración inicial copia ajustes e historial desde "
 "seo_ie_commercial_feeds_* solo cuando aún no existen opciones propias; no "
 "borra los originales."
-msgstr ""
+msgstr "Options: tcdist_commercial_feeds_settings_v1, tcdist_commercial_feeds_state_v1, tcdist_commercial_feeds_history_v1, tcdist_worker_state, tcdist_worker_components and tcdist_activation_version. Initial migration copies settings and history from seo_ie_commercial_feeds_* only when standalone options do not yet exist; the originals are not deleted."
 
 #: includes/manual.php:108
 msgid ""
@@ -733,7 +733,7 @@ msgid ""
 "Los sitemaps utilizan tcdist_sitemap_regenerate_sitemaps_event. Se escuchan "
 "cambios de productos y categorías para planificar la siguiente regeneración "
 "cuando Distribution es el responsable."
-msgstr ""
+msgstr "Worker: taxocommerce_distribution_feed_worker. Feed hooks: tcdist_feed_daily_refresh, tcdist_feed_build_batch and tcdist_feed_queued_refresh, registered according to automation ownership. Sitemaps use tcdist_sitemap_regenerate_sitemaps_event. Product and category changes are monitored to schedule the next regeneration when Distribution owns it."
 
 #: includes/manual.php:109
 msgid ""
@@ -741,7 +741,7 @@ msgid ""
 "post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop y admin-"
 "post_tcdist_sitemap_regenerate realizan acciones operativas con comprobación"
 " de permisos y nonce. No deben ejecutarse desde Autocheck."
-msgstr ""
+msgstr "The admin-post_tcdist_feed_save_settings, admin-post_tcdist_feed_regenerate, admin-post_tcdist_feed_stop and admin-post_tcdist_sitemap_regenerate controllers perform operational actions with capability and nonce checks. They must not be invoked by Autocheck."
 
 #: includes/manual.php:111
 msgid "Contrato de datos y eventos"
@@ -760,7 +760,7 @@ msgid ""
 "actualización diaria y sincronización. tcdist_commercial_feeds_state_v1 "
 "guarda el ciclo de generación, cursor, recuentos y estado. "
 "tcdist_commercial_feeds_history_v1 conserva el historial."
-msgstr ""
+msgstr "Distribution does not need a new table for feeds: it stores settings, cursor and results in wp_options. Always use the feed ID constants rather than duplicating strings. tcdist_commercial_feeds_settings_v1 stores channels, country, language, daily update and synchronisation. tcdist_commercial_feeds_state_v1 stores generation cycle, cursor, counters and state. tcdist_commercial_feeds_history_v1 stores the history."
 
 #: includes/manual.php:114
 msgid ""
@@ -770,7 +770,7 @@ msgid ""
 "seo_ie_commercial_feeds_settings_v1 y seo_ie_commercial_feeds_history_v1 son"
 " solo fuente de migración: se copian si aún no hay opciones nuevas y no se "
 "borran las originales."
-msgstr ""
+msgstr "The supervisor writes tcdist_worker_state and tcdist_worker_components. The sitemap engine stores rewrite, generation and manifest metadata through its own functions. The old options seo_ie_commercial_feeds_settings_v1 and seo_ie_commercial_feeds_history_v1 are migration sources only: they are copied when new options are absent, and the originals are preserved."
 
 #: includes/manual.php:115
 msgid "10.2. Ciclo de un feed"
@@ -780,34 +780,34 @@ msgstr "10.2. Feed lifecycle"
 msgid ""
 "La administración valida capacidades/nonce y llama a "
 "tcdist_feed_start_build() para crear un estado de ejecución."
-msgstr ""
+msgstr "Administration checks capability and nonce, then calls tcdist_feed_start_build() to create an execution state."
 
 #: includes/manual.php:118
 msgid ""
 "tcdist_process_nudge() programa el hook de worker si es necesario; el "
 "proceso lee estado y espera hasta not_before cuando existe una pausa "
 "adaptativa."
-msgstr ""
+msgstr "tcdist_process_nudge() schedules the worker hook if necessary; the process reads its state and waits until not_before when an adaptive pause is active."
 
 #: includes/manual.php:119
 msgid ""
 "tcdist_feed_run_manager_slice() procesa lotes acotados, actualiza cursor y "
 "contadores. El worker usa una ventana de hasta 45 segundos y reagenda si "
 "sigue running."
-msgstr ""
+msgstr "tcdist_feed_run_manager_slice() processes bounded batches and updates the cursor and counters. The worker runs in windows of up to 45 seconds and reschedules itself if it is still running."
 
 #: includes/manual.php:120
 msgid ""
 "channels.php serializa cada registro canónico al formato requerido y el "
 "motor finaliza y publica solo al terminar. Al detener se evita publicar "
 "archivos parciales."
-msgstr ""
+msgstr "channels.php serialises each canonical record into the required format; the engine finalises and publishes only after completion. Stopping prevents partial files from being published."
 
 #: includes/manual.php:121
 msgid ""
 "Al completar, revisa el estado, histórico, recuentos y fichero; un resultado"
 " sin productos exige analizar exclusiones antes de considerarlo fallo."
-msgstr ""
+msgstr "On completion, review state, history, counts and file; when the result contains no products, analyse exclusions before treating it as a failure."
 
 #: includes/manual.php:123
 msgid "10.3. Mapa de hooks"
@@ -821,26 +821,26 @@ msgstr ""
 msgid ""
 "Refresco diario, compatibilidad del lote y regeneración diferida; solo se "
 "registran con propiedad de automatización."
-msgstr ""
+msgstr "Daily refresh, batch compatibility and deferred regeneration; hooks are registered only when Distribution owns the automation."
 
 #: includes/manual.php:129
 msgid ""
 "Avisan de cambios para una regeneración diferida, sin ejecutar una "
 "publicación por cada producto."
-msgstr ""
+msgstr "Signal changes for deferred regeneration without triggering a publication for each product."
 
 #: includes/manual.php:130
 msgid "Controles protegidos de ajustes, ejecución y seguimiento AJAX."
-msgstr ""
+msgstr "Protected controls for settings, execution and AJAX progress monitoring."
 
 #: includes/manual.php:131
 msgid ""
 "Servicio y anuncio de sitemaps cuando el motor independiente es propietario."
-msgstr ""
+msgstr "Serve and announce sitemaps when the standalone engine owns them."
 
 #: includes/manual.php:132
 msgid "Regeneración silenciosa programada de sitemaps."
-msgstr ""
+msgstr "Scheduled background regeneration of sitemaps."
 
 #: includes/manual.php:135
 msgid "11. Propiedad de procesos y protección de datos"
@@ -853,7 +853,7 @@ msgid ""
 "duplicados para los mismos ficheros. Para estudiar el estado consulta las "
 "opciones persistidas y WP-Cron sin forzar disparos. El proceso trabaja con "
 "lotes, cursores, exclusiones y bloqueos para limitar consumo."
-msgstr ""
+msgstr "TCDIST_LEGACY_FEED_ACTIVE and TCDIST_LEGACY_SITEMAP_ACTIVE detect coexistence. While both systems coexist, duplicate automated workers are not registered for the same files. To inspect state, read persisted options and WP-Cron without forcing execution. The process uses batches, cursors, exclusions and locks to limit resource consumption."
 
 #: includes/manual.php:137
 msgid ""
@@ -861,7 +861,7 @@ msgid ""
 "sistema de archivos. No llama a tcdist_feed_storage(), porque esta función "
 "puede crear un directorio o index.html al inicializar el almacenamiento. "
 "Tampoco llama al generador de XML ni al worker."
-msgstr ""
+msgstr "Autocheck uses read-only WordPress functions and filesystem checks. It does not call tcdist_feed_storage(), because that function may create a directory or index.html when initialising storage. It does not call the XML generator or worker either."
 
 #: includes/manual.php:139
 msgid "11.1. Seguridad y contratos de rutas"
@@ -874,7 +874,7 @@ msgid ""
 " ajustes, inician trabajos o regeneran sitemaps utilizan admin-post, la "
 "capacidad requerida y check_admin_referer. El pulso AJAX usa nonce y "
 "comprueba permisos."
-msgstr ""
+msgstr "The standalone screen uses page=taxocommerce-distribution and tcdist_tab; it does not reuse the monolith's admin slug. Controllers that change settings, start jobs or regenerate sitemaps use admin-post, the required capability and check_admin_referer. AJAX polling uses a nonce and checks permissions."
 
 #: includes/manual.php:141
 msgid ""
@@ -884,7 +884,7 @@ msgid ""
 " el enrutado público normaliza los nombres permitidos y sirve URLs del "
 "dominio actual. Reescrituras y sitemap de WordPress Core solo se sustituyen "
 "si el motor independiente es propietario."
-msgstr ""
+msgstr "Feeds are written to uploads/seo-system-feeds. tcdist_feed_storage() may create the directory and index.html: NEVER call it during a read-only check. Sitemaps are stored in uploads/seo-sitemaps; public routing normalises permitted names and serves URLs from the current domain. WordPress Core rewrite rules and its sitemap are replaced only when the standalone engine owns the service."
 
 #: includes/manual.php:142
 msgid "11.2. Coexistencia y riesgo de doble escritura"
@@ -899,14 +899,14 @@ msgid ""
 "rutas propias de sitemap. Una generación manual de Distribution debe "
 "rechazarse mientras haya una generación legada running, porque ambas pueden "
 "apuntar al mismo fichero público."
-msgstr ""
+msgstr "taxocommerce_distribution_boot() runs on plugins_loaded at priority 50, checks legacy functions and defines TCDIST_LEGACY_FEED_ACTIVE / TCDIST_LEGACY_SITEMAP_ACTIVE. If the monolith owns the automatic service, duplicate feed runtime and custom sitemap routes are not registered. Manual Distribution generation must be rejected while a legacy generation is running, as both could target the same public file."
 
 #: includes/manual.php:144
 msgid ""
 "No elimines comprobaciones de coexistencia, locks, cursores ni publicación "
 "atómica al refactorizar. Evita modificar los ficheros de salida con acceso "
 "directo o repetir hooks al registrar una extensión."
-msgstr ""
+msgstr "Do not remove coexistence checks, locks, cursors or atomic publishing when refactoring. Avoid directly changing output files or registering duplicate hooks in an extension."
 
 #: includes/manual.php:146
 msgid "12. Validación y despliegue"
@@ -918,7 +918,7 @@ msgid ""
 "ZIP de WordPress. Ejecuta PHP lint, smoke de regresión, autocheck aislado y "
 "Plugin Check. Actualiza CHANGELOG.md y readme.txt sin alterar el histórico "
 "changelog.txt. Prueba en STAGING; producción requiere autorización expresa."
-msgstr ""
+msgstr "Keep development tests under tests/ on GitHub but outside the WordPress ZIP. Run PHP lint, regression smoke tests, an isolated Autocheck and Plugin Check. Update CHANGELOG.md and readme.txt without changing the historical changelog.txt. Test on STAGING; production requires explicit authorisation."
 
 #: includes/manual.php:149
 msgid "Procedimiento para futuros desarrolladores"
@@ -932,47 +932,47 @@ msgstr "12.1. How to develop an improvement without breaking existing functional
 msgid ""
 "Localiza la funcionalidad y la función responsable en el mapa de código. "
 "Comprueba los hooks, opciones, rutas y dependencias antes de editar."
-msgstr ""
+msgstr "Locate the feature and its responsible function in the code map. Check hooks, options, routes and dependencies before making changes."
 
 #: includes/manual.php:153
 msgid ""
 "Documenta el cambio en un issue y trabaja en una rama de GitHub. Evita "
 "cambios en archivos del monolito; Distribution debe seguir siendo autónomo."
-msgstr ""
+msgstr "Document the change in an issue and work in a GitHub branch. Avoid changes to monolith files; Distribution must remain standalone."
 
 #: includes/manual.php:154
 msgid ""
 "Preserva el registro canónico de productos, las cinco salidas comerciales "
 "existentes, los filtros, los formatos, el cursor, los locks y la publicación"
 " atómica."
-msgstr ""
+msgstr "Preserve the canonical product record, the five existing commercial outputs, filters, formats, cursor, locks and atomic publishing."
 
 #: includes/manual.php:155
 msgid ""
 "Usa los permisos y nonces de WordPress, valida entradas y escapa salidas; "
 "mantén el aislamiento entre PRO y STAGING y el control de propiedad cuando "
 "coexista el monolito."
-msgstr ""
+msgstr "Use WordPress capabilities and nonces, validate input and escape output; maintain separation between PRO and STAGING and ensure correct ownership while the monolith coexists."
 
 #: includes/manual.php:156
 msgid ""
 "Añade pruebas de regresión que cubran el caso nuevo y los casos anteriores. "
 "Las pruebas de desarrollo permanecen en tests/ y deben excluirse del paquete"
 " de WordPress."
-msgstr ""
+msgstr "Add regression tests covering the new case and existing behaviour. Development tests remain under tests/ and must be excluded from the WordPress package."
 
 #: includes/manual.php:157
 msgid ""
 "Actualiza el Manual de usuario y este Manual técnico, CHANGELOG.md y "
 "readme.txt en la misma PR; conserva changelog.txt como histórico."
-msgstr ""
+msgstr "Update the user guide, this technical guide, CHANGELOG.md and readme.txt in the same PR; preserve changelog.txt as historical documentation."
 
 #: includes/manual.php:158
 msgid ""
 "Valida PHP 7.4/8.4, smoke, Plugin Check, coexistencia y ausencia de efectos "
 "secundarios. Integra y comprueba STAGING; producción requiere autorización "
 "expresa."
-msgstr ""
+msgstr "Validate PHP 7.4/8.4, smoke tests, Plugin Check, coexistence and the absence of side effects. Integrate and verify STAGING; production requires explicit authorisation."
 
 #: includes/manual.php:160
 msgid "12.2. Comandos de prueba y límites"
@@ -985,7 +985,7 @@ msgid ""
 "exportados, el comportamiento real del cron, el XML desde HTTP o la "
 "aceptación por Google/Microsoft/Pinterest: esos contratos requieren pruebas "
 "funcionales específicas en STAGING."
-msgstr ""
+msgstr "CI .github/workflows/taxocommerce-distribution.yml runs these tests and validates the package. Autocheck does not verify exported price accuracy, real cron behaviour, XML served over HTTP or acceptance by Google/Microsoft/Pinterest: those contracts require dedicated functional testing on STAGING."
 
 #: includes/manual.php:164
 msgid "Fuera de alcance:"
@@ -996,7 +996,7 @@ msgid ""
 "No hay envío directo a Merchant Center, repositorio externo de feeds, "
 "migración destructiva de opciones legadas ni restauración automática de "
 "versiones anteriores."
-msgstr ""
+msgstr "There is no direct submission to Merchant Center, no external feed repository, no destructive migration of legacy options and no automatic restoration of earlier versions."
 
 #: includes/manual.php:165 includes/manual.php:177
 msgid "Volver al índice"
@@ -1015,34 +1015,34 @@ msgid ""
 "Un feed no aparece: revisa el estado, canales activados, exclusiones, worker"
 " y permisos del directorio uploads. No vuelvas a iniciar procesos "
 "simultáneos."
-msgstr ""
+msgstr "A feed is missing: check status, enabled channels, exclusions, worker and uploads-directory permissions. Do not start concurrent processes again."
 
 #: includes/manual.php:172
 msgid ""
 "El sitemap falta o no es válido: comprueba el informe de Sitemaps, rutas de "
 "publicación, reescrituras y propiedad del monolito. Regenera solo después de"
 " verificar el motivo."
-msgstr ""
+msgstr "A sitemap is missing or invalid: check the Sitemaps report, publication paths, rewrite rules and monolith ownership. Regenerate only after establishing the cause."
 
 #: includes/manual.php:173
 msgid ""
 "STAGING muestra un host incorrecto: revisa el entorno efectivo y "
 "WP_ENVIRONMENT_TYPE; los feeds de STAGING no deben anunciar URLs de PRO."
-msgstr ""
+msgstr "STAGING shows the wrong host: check the effective environment and WP_ENVIRONMENT_TYPE; STAGING feeds must not advertise PRO URLs."
 
 #: includes/manual.php:174
 msgid ""
 "Autocheck muestra avisos: un archivo aún no generado o un cron sin programar"
 " no equivale necesariamente a un fallo técnico. Contrasta con Automation y "
 "la configuración de producción."
-msgstr ""
+msgstr "Autocheck reports warnings: a file that has not yet been generated or an unscheduled cron job does not necessarily indicate a technical failure. Compare with Automation and production settings."
 
 #: includes/manual.php:175
 msgid ""
 "Con monolito activo: evita duplicar tareas que publican los mismos nombres "
 "de archivo. Distribución manual y automática tienen propietarios distintos "
 "durante la migración."
-msgstr ""
+msgstr "With the monolith active, avoid duplicate tasks that publish the same filenames. Manual and automatic generation have different owners during migration."
 
 #: includes/admin.php includes/sitemaps/batch-worker.php
 msgid "WordPress no ha podido programar el generador de sitemaps. Comprueba WP-Cron."
