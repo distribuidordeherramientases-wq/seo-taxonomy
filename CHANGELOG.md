@@ -1,3 +1,10 @@
+## 2026-11-07 — Core: catálogo completo e índices MO opcionales (#2340)
+
+- Core 0.4.60 registra las 19 extensiones vigentes en su catálogo local, incluyendo Tasks ausente o inactivo, sin necesidad de cargar el plugin y sin instalación automática.
+- Corregido el validador de ficheros GNU gettext MO para aceptar una tabla hash opcional ausente (tamaño y desplazamiento cero), formato legítimo presente en algunos catálogos; los límites de los índices originales y traducidos siguen verificándose.
+- Añadidas pruebas para los tres estados de Tasks y para hash ausente, tabla fuera de límites y desplazamiento incorrecto. No se alteraron los catálogos de otros plugins.
+- Cambios destinados a STAGING y Asociación Focazul, sin publicar en producción.
+
 ## 2026-11-07 — Recuperación del despliegue de manuales Tasks 0.1.3 (Issue #2313)
 
 - Corregido el caso en el que una validación PR satisfactoria del mismo SHA era tomada como baseline de despliegue, aunque las transferencias FTPS se hubieran omitido.
