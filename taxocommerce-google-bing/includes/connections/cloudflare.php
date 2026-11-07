@@ -14,6 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! function_exists( 'seo_cloudflare_normalize_zone_name' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_normalize_zone_name( $value ) {
         $value = strtolower( trim( sanitize_text_field( (string) $value ) ) );
         if ( preg_match( '#^https?://#i', $value ) ) {
@@ -29,6 +30,7 @@ if ( ! function_exists( 'seo_cloudflare_normalize_zone_name' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_guess_zone_name' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_guess_zone_name() {
         $host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
         if ( 0 === strpos( $host, 'www.' ) ) {
@@ -39,12 +41,14 @@ if ( ! function_exists( 'seo_cloudflare_guess_zone_name' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_crypto_key' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_crypto_key() {
         return hash( 'sha256', wp_salt( 'auth' ) . '|seo-system-cloudflare|v1', true );
     }
 }
 
 if ( ! function_exists( 'seo_cloudflare_encrypt_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_encrypt_token( $token ) {
         $token = trim( (string) $token );
         if ( '' === $token ) {
@@ -84,6 +88,7 @@ if ( ! function_exists( 'seo_cloudflare_encrypt_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_decrypt_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_decrypt_token( $stored ) {
         $stored = trim( (string) $stored );
         if ( '' === $stored || 0 !== strpos( $stored, 'v1:' ) || ! function_exists( 'openssl_decrypt' ) ) {
@@ -113,6 +118,7 @@ if ( ! function_exists( 'seo_cloudflare_decrypt_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_settings() {
         $defaults = [
             'enabled'          => 0,
@@ -132,6 +138,7 @@ if ( ! function_exists( 'seo_cloudflare_settings' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_api_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_api_token() {
         if ( defined( 'SEO_SYSTEM_CLOUDFLARE_API_TOKEN' ) ) {
             $constant = trim( (string) SEO_SYSTEM_CLOUDFLARE_API_TOKEN );
@@ -146,6 +153,7 @@ if ( ! function_exists( 'seo_cloudflare_api_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_token_source' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_token_source() {
         if ( defined( 'SEO_SYSTEM_CLOUDFLARE_API_TOKEN' ) && '' !== trim( (string) SEO_SYSTEM_CLOUDFLARE_API_TOKEN ) ) {
             return 'constant';
@@ -156,6 +164,7 @@ if ( ! function_exists( 'seo_cloudflare_token_source' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_connection_state' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_connection_state() {
         $settings = seo_cloudflare_settings();
         $token_source = seo_cloudflare_token_source();
@@ -176,6 +185,7 @@ if ( ! function_exists( 'seo_cloudflare_connection_state' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_api_request' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_api_request( $method, $path, $query = [] ) {
         $token = seo_cloudflare_api_token();
         if ( '' === $token ) {
@@ -222,6 +232,7 @@ if ( ! function_exists( 'seo_cloudflare_api_request' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_verify_token' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_verify_token() {
         $response = seo_cloudflare_api_request( 'GET', 'user/tokens/verify' );
         if ( is_wp_error( $response ) ) {
@@ -237,6 +248,7 @@ if ( ! function_exists( 'seo_cloudflare_verify_token' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_find_zone' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_find_zone( $zone_name = '' ) {
         $zone_name = seo_cloudflare_normalize_zone_name( $zone_name ?: ( seo_cloudflare_settings()['zone_name'] ?? '' ) );
         if ( '' === $zone_name ) {
@@ -268,6 +280,7 @@ if ( ! function_exists( 'seo_cloudflare_find_zone' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_test_connection' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_test_connection() {
         $result = [ 'ok' => false, 'messages' => [] ];
 
@@ -316,6 +329,7 @@ if ( ! function_exists( 'seo_cloudflare_refresh_zone_metadata' ) ) {
      * Refresca los metadatos publicos de la zona usando solo operaciones GET.
      * No modifica ninguna configuracion de Cloudflare.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_refresh_zone_metadata() {
         $settings = seo_cloudflare_settings();
         $zone = seo_cloudflare_find_zone( (string) ( $settings['zone_name'] ?? '' ) );
@@ -349,6 +363,7 @@ if ( ! function_exists( 'seo_cloudflare_get_zone_setting' ) ) {
      * Lee un ajuste individual de zona. Cloudflare recomienda actualmente
      * este endpoint frente al listado global de settings, que esta obsoleto.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_get_zone_setting( $zone_id, $setting_id ) {
         $zone_id = trim( sanitize_text_field( (string) $zone_id ) );
         $setting_id = sanitize_key( (string) $setting_id );
@@ -372,6 +387,7 @@ if ( ! function_exists( 'seo_cloudflare_get_dnssec' ) ) {
     /**
      * Devuelve el estado DNSSEC de la zona mediante GET /zones/{zone_id}/dnssec.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_get_dnssec( $zone_id ) {
         $zone_id = trim( sanitize_text_field( (string) $zone_id ) );
         if ( '' === $zone_id ) {
@@ -391,6 +407,7 @@ if ( ! function_exists( 'seo_cloudflare_get_security_rulesets' ) ) {
      * Inventario ligero de rulesets de seguridad visibles para el token.
      * No lee reglas completas ni realiza cambios.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_get_security_rulesets( $zone_id ) {
         $zone_id = trim( sanitize_text_field( (string) $zone_id ) );
         if ( '' === $zone_id ) {
@@ -439,6 +456,7 @@ if ( ! function_exists( 'seo_cloudflare_security_audit' ) ) {
      * Se cachea para evitar repetir llamadas al API al navegar por el panel.
      * Un chequeo completo de Server Status puede forzar el refresco.
      */
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_security_audit( $refresh = false ) {
         $cache_key = 'seo_cloudflare_security_audit_v1';
         if ( ! $refresh ) {
@@ -524,6 +542,7 @@ if ( ! function_exists( 'seo_cloudflare_security_audit' ) ) {
 }
 
 if ( ! function_exists( 'seo_cloudflare_save_settings' ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Existing public Cloudflare API is retained for compatibility with System Check and the monolith during migration.
     function seo_cloudflare_save_settings() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No tienes permisos para guardar esta conexion.', 'taxocommerce-google-bing' ) );
