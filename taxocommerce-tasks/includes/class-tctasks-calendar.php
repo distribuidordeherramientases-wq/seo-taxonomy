@@ -116,7 +116,7 @@ final class TCTasks_Calendar {
             $candidate = isset( $preferred_lanes[ $id ] ) ? (int) $preferred_lanes[ $id ] : -1;
             $lane      = -1;
 
-            if ( $candidate >= 0 && ( ! isset( $lanes[ $candidate ] ) || $lanes[ $candidate ] < $bar['from'] ) ) {
+            if ( $candidate >= 0 && $candidate <= count( $lanes ) && ( ! isset( $lanes[ $candidate ] ) || $lanes[ $candidate ] < $bar['from'] ) ) {
                 $lane = $candidate;
             } else {
                 // Avoid reuse of a lane whose previous bar overlaps this date.
