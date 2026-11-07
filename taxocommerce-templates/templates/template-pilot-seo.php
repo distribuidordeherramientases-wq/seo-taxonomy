@@ -60,6 +60,13 @@ if ( ! class_exists( 'TCT_Pilot_SEO_Head', false ) ) {
 		 */
 		public static function render( $canonical, $fallback ) {
 			$canonical = esc_url_raw( (string) $canonical );
+			// Each paginated category page is a distinct canonical URL.
+			if ( function_exists( 'is_paged' ) && is_paged() && function_exists( 'get_pagenum_link' ) ) {
+				$page = max( 1, absint( get_query_var( 'paged' ) ) );
+				if ( $page > 1 ) {
+					$canonical = esc_url_raw( (string) get_pagenum_link( $page ) );
+				}
+			}
 			$fallback  = self::description( $fallback );
 
 			ob_start();
