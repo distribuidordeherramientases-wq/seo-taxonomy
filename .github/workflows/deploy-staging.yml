@@ -15,6 +15,15 @@ on:
         required: false
         type: boolean
         default: false
+  # Issue #2290: direct, non-production, single-plugin delivery for Tasks.
+  # Never run an unrestricted family-wide delta on this push event.
+  push:
+    branches:
+      - staging
+    paths:
+      - 'taxocommerce-tasks/**'
+      - '.github/workflows/deploy-staging.yml'
+      - '.github/scripts/deploy_staging_delta.py'
   pull_request:
     paths:
       - 'taxocommerce-*/**'
@@ -191,6 +200,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAXOCOMMERCE_FULL_SYNC: ${{ inputs.full_sync && '1' || '0' }}
+          # Direct push is restricted to Tasks; manual/workflow_call retains
+          # the existing baseline and installed-plugin safeguards.
+          TAXOCOMMERCE_TARGET_PLUGIN: ${{ github.event_name == 'push' && 'taxocommerce-tasks' || '' }}
         run: python3 .github/scripts/deploy_staging_delta.py plan
 
   deploy-staging:
