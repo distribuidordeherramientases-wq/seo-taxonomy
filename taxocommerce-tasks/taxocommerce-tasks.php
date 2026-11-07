@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Release Date: 2026-11-07
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -14,11 +14,13 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.5' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.6' );
 define( 'TAXOCOMMERCE_TASKS_RELEASE_DATE', '2026-11-07' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
 require_once __DIR__ . '/includes/class-tctasks-calendar.php';
+// Standalone family-wide visual header; no dependency on TaxoCommerce Core.
+require_once __DIR__ . '/includes/admin-branding.php';
 add_action( 'admin_enqueue_scripts', array( 'TCTasks_Calendar', 'enqueue_assets' ) );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
@@ -524,20 +526,8 @@ function tctasks_admin() {
         $tab = 'tasks';
     }
     $labels = array( 'tasks'=>'Tasks', 'calendar'=>'Calendar', 'dashboard'=>'Dashboard', 'categories'=>'Categories', 'autocheck'=>'Autocheck', 'manual-user'=>'User manual', 'manual-technical'=>'Technical manual' );
-    $tc_updated_label = __( 'Last updated', 'taxocommerce-tasks' );
-    $tc_language = strtolower( substr( determine_locale(), 0, 2 ) );
-    $tc_fallback = array(
-        'es' => 'Última actualización',
-        'en' => 'Last updated',
-        'fr' => 'Dernière mise à jour',
-        'de' => 'Zuletzt aktualisiert',
-        'nl' => 'Laatst bijgewerkt',
-    );
-    if ( 'Last updated' === $tc_updated_label && isset( $tc_fallback[ $tc_language ] ) ) {
-        $tc_updated_label = $tc_fallback[ $tc_language ];
-    }
-    echo '<div class="wrap"><h1>' . esc_html( tctasks_label( 'Task agenda' ) ) . ' <small style="font-weight:normal;font-size:13px">v' . esc_html( TAXOCOMMERCE_TASKS_VERSION ) . ' · ' . esc_html( $tc_updated_label ) . ': ' . esc_html( TAXOCOMMERCE_TASKS_RELEASE_DATE ) . '</small></h1>';
-    echo '<p>' . esc_html( tctasks_label( 'Private task management, calendar and indicators.' ) ) . '</p><nav class="nav-tab-wrapper">';
+    // Title, version and release date are rendered once by admin-branding.php.
+    echo '<div class="wrap"><nav class="nav-tab-wrapper">';
     foreach ( $labels as $key=>$label ) {
         $url = add_query_arg( array( 'page'=>'taxocommerce-tasks','tab'=>$key ), admin_url( 'admin.php' ) );
         echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( tctasks_label( $label ) ) . '</a>';

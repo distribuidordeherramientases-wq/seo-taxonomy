@@ -70,7 +70,7 @@ $slugs = array(
     'auditor', 'redirects', 'faqs', 'images', 'social', 'database',
     'campaigns', 'suppliers', 'scrappers', 'logistica', 'vocabulary',
     'facturacion', 'dependiente', 'google-bing', 'distribution',
-    'import-export', 'system-check', 'templates',
+    'import-export', 'system-check', 'templates', 'tasks',
 );
 $root = dirname( __DIR__, 2 );
 foreach ( $slugs as $slug ) {
@@ -135,7 +135,7 @@ foreach ( $tc_test_actions['admin_notices'] as $callback ) {
 }
 tc_test_assert( '' === ob_get_clean(), 'No branding outside plugin admin pages.' );
 // Core, Tasks and the compatibility bridge have independent admin rendering.
-foreach ( array( 'core', 'tasks' ) as $other ) {
+foreach ( array( 'core' ) as $other ) {
     $source = $root . '/taxocommerce-' . $other . '/taxocommerce-' . $other . '.php';
     $data = get_file_data( $source, array( 'version' => 'Version', 'released' => 'Release Date' ) );
     tc_test_assert( 1 === preg_match( '/^\\d+\\.\\d+\\.\\d+$/', $data['version'] ), 'Valid plugin version: ' . $other );
@@ -148,5 +148,9 @@ foreach ( array( 'core', 'tasks' ) as $other ) {
 $core_ui = file_get_contents( $root . '/taxocommerce-core/includes/class-taxocommerce-core-dashboard.php' );
 $tasks_ui = file_get_contents( $root . '/taxocommerce-tasks/taxocommerce-tasks.php' );
 tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__metadata' ) && false !== strpos( $core_ui, 'TAXOCOMMERCE_CORE_RELEASE_DATE' ), 'Core hero version and date' );
-tc_test_assert( false !== strpos( $tasks_ui, 'TAXOCOMMERCE_TASKS_RELEASE_DATE' ), 'Tasks header uses the release date' );
-echo "PASS: 18 independent family heroes + Core, Tasks title/version/release-date contracts." . PHP_EOL;
+tc_test_assert( false !== strpos( $tasks_ui, "require_once __DIR__ . '/includes/admin-branding.php';" ), 'Tasks loads the shared autonomous visual header' );
+tc_test_assert( false === strpos( $tasks_ui, '<div class="wrap"><h1>' ), 'Tasks old duplicate heading removed' );
+tc_test_assert( false !== strpos( $tasks_ui, '<div class="wrap"><nav class="nav-tab-wrapper">' ), 'Tasks keeps its seven-tab navigation below the hero' );
+$tasks_data = get_file_data( $root . '/taxocommerce-tasks/taxocommerce-tasks.php', array( 'version' => 'Version', 'released' => 'Release Date' ) );
+tc_test_assert( false !== strpos( file_get_contents( $root . '/taxocommerce-tasks/readme.txt' ), 'Stable tag: ' . $tasks_data['version'] ), 'Tasks release version matches readme' );
+echo "PASS: 19 independent family heroes (including Tasks) + Core release metadata." . PHP_EOL;
