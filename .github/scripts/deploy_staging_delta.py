@@ -115,12 +115,12 @@ def plan():
     sync = os.environ.get("TAXOCOMMERCE_FULL_SYNC", "0") == "1"
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
     if target:
-        # Only the explicitly authorized Tasks push may bypass the blocked
-        # all-plugin queue. Never permit dynamic or arbitrary plugin selection.
-        if target != "taxocommerce-tasks" or sync:
-            raise ValueError("Targeted push deployment only permits Tasks without full sync")
-        # Reconcile Tasks against the real remote SHA-256 manifest, not a Git
-        # baseline that can incorrectly include a successful PR validation.
+        # Only explicitly reviewed Core or Tasks deliveries may run scoped.
+        # Never permit arbitrary plugins or a broad full_sync in this path.
+        if target not in ("taxocommerce-tasks", "taxocommerce-core") or sync:
+            raise ValueError("Targeted push deployment permits only Core or Tasks")
+        # Reconcile the chosen plugin against the actual remote SHA-256 values,
+        # not a Git baseline that may include validation-only jobs.
         # The FTPS uploader writes ONLY files whose remote bytes differ.
         slugs = [target]
     elif sync:
@@ -290,17 +290,16 @@ def reconcile_core():
 
 
 def selected_deploy_files(base, head, slug, full=False):
-    """Select only Tasks for direct push, checking each remote file SHA-256.
+    """Select Core or Tasks for a verified scoped dual-site reconciliation.
 
-    The standard gated family workflow retains its incremental Git baseline.
-    A direct Tasks delivery reconciles the tracked installable files because
-    successful PR validation workflows may report the target commit without
-    delivering any files to either WordPress site.
+    The normal gated family workflow remains incremental. Scoped deployments
+    compare every tracked installable file against its remote SHA-256 because
+    successful validation-only runs do not imply file delivery.
     """
     target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
     if target:
-        if target != "taxocommerce-tasks" or slug != target or full:
-            raise ValueError("Targeted reconciliation is restricted to Tasks")
+        if target not in ("taxocommerce-tasks", "taxocommerce-core") or slug != target or full:
+            raise ValueError("Targeted reconciliation is restricted to Core or Tasks")
         return plugin_source_files(slug)
     if full:
         return plugin_source_files(slug)
