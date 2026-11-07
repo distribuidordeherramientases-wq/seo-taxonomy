@@ -23,6 +23,7 @@ $ui = array(
     'social' => 'includes/admin.php',
     'suppliers' => 'includes/class-tcsup-admin.php',
     'system-check' => 'taxocommerce-system-check.php',
+    'tasks' => 'taxocommerce-tasks.php',
     'templates' => 'taxocommerce-templates.php',
     'vocabulary' => 'includes/class-tcv-admin.php',
 );
@@ -45,11 +46,12 @@ $reporter = array(
     'social' => 'includes/class-auto-test.php',
     'suppliers' => 'includes/class-tcsup-autotest.php',
     'system-check' => 'includes/class-taxocommerce-system-check-auto-test.php',
+    'tasks' => 'taxocommerce-tasks.php',
     'templates' => 'includes/class-tct-autocheck.php',
     'vocabulary' => 'includes/class-tcv-auto-test.php',
 );
 $actual = glob( $root . '/taxocommerce-*', GLOB_ONLYDIR );
-if ( count( $ui ) !== 20 || count( $actual ) !== 20 || array_keys( $ui ) !== array_keys( $reporter ) ) {
+if ( count( $ui ) !== 21 || count( $actual ) !== 21 || array_keys( $ui ) !== array_keys( $reporter ) ) {
     fwrite( STDERR, "Autocheck family inventory has changed; update this audit.\n" );
     exit( 1 );
 }
@@ -98,4 +100,4 @@ if ( $errors ) {
     }
     exit( 1 );
 }
-echo "PASS: 20/20 TaxoCommerce plugins expose Autocheck and protected JSON result export.\n";
+echo "PASS: 21/21 TaxoCommerce plugins expose Autocheck and protected JSON result export.\n";
