@@ -34,13 +34,13 @@ msgstr ""
 #: includes/analysis/analista-bing.php:379
 #: includes/class-taxocommerce-google-bing-bing-service.php:379
 msgid "· conexion complementaria"
-msgstr ""
+msgstr "· connexion complémentaire"
 
 #: includes/analysis/analista-bing.php:386
 #: includes/class-taxocommerce-google-bing-bing-service.php:386
 #: includes/class-taxocommerce-google-bing-connections.php:287
 msgid "Eliminar la API key guardada"
-msgstr ""
+msgstr "Supprimer la clé API enregistrée"
 
 #: includes/analysis/analista-bing.php:387
 #: includes/class-taxocommerce-google-bing-bing-service.php:387
@@ -70,11 +70,11 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:926
 msgid "Informe competitivo generado y guardado."
-msgstr ""
+msgstr "Rapport concurrentiel généré et enregistré."
 
 #: includes/analysis/analista-competitivo.php:937
 msgid "Informe competitivo profundo"
-msgstr ""
+msgstr "Rapport concurrentiel approfondi"
 
 #: includes/analysis/analista-competitivo.php:938
 msgid ""
@@ -92,29 +92,29 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:965
 msgid "Configura primero los dominios en"
-msgstr ""
+msgstr "Configurez d’abord les domaines dans"
 
 #: includes/analysis/analista-competitivo.php:965
 #: includes/analysis/analista-informe.php:479
 msgid "Competidores"
-msgstr ""
+msgstr "Concurrents"
 
 #: includes/analysis/analista-competitivo.php:965
 msgid ". Las palabras vigiladas son opcionales."
-msgstr ""
+msgstr ". Les mots-clés suivis sont facultatifs."
 
 #: includes/analysis/analista-competitivo.php:971
 msgid "Conclusión ejecutiva"
-msgstr ""
+msgstr "Synthèse de direction"
 
 #: includes/analysis/analista-competitivo.php:984
 #: includes/analysis/analista-informe.php:446
 msgid "Dominio"
-msgstr ""
+msgstr "Domaine"
 
 #: includes/analysis/analista-competitivo.php:986
 msgid "Índice"
-msgstr ""
+msgstr "Index"
 
 #: includes/analysis/analista-competitivo.php:986
 msgid "Evidencia"
@@ -122,11 +122,11 @@ msgstr "Preuve"
 
 #: includes/analysis/analista-competitivo.php:1000
 msgid "Dónde estamos por encima"
-msgstr ""
+msgstr "Nos points d’avance"
 
 #: includes/analysis/analista-competitivo.php:1009
 msgid "Dónde estamos por debajo"
-msgstr ""
+msgstr "Nos points de retard"
 
 #: includes/analysis/analista-competitivo.php:1017
 msgid "Plan priorizado"
@@ -145,7 +145,7 @@ msgstr "Priorité"
 #: includes/analysis/analista-competitivo.php:1018
 #: includes/google/seo-google-info.php:4285
 msgid "Área"
-msgstr ""
+msgstr "Domaine"
 
 #: includes/analysis/analista-competitivo.php:1018
 msgid "Acción"
@@ -153,23 +153,23 @@ msgstr "Action"
 
 #: includes/analysis/analista-competitivo.php:1018
 msgid "Impacto"
-msgstr ""
+msgstr "Impact"
 
 #: includes/analysis/analista-competitivo.php:1018
 msgid "Esfuerzo"
-msgstr ""
+msgstr "Effort"
 
 #: includes/analysis/analista-competitivo.php:1024
 msgid "Calidad y límites de la evidencia"
-msgstr ""
+msgstr "Qualité et limites des données probantes"
 
 #: includes/analysis/analista-core.php:220
 msgid "No tienes permisos para configurar Analista."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de configurer Analista."
 
 #: includes/analysis/analista-geo-bridge.php:36
 msgid "Plan de acción"
-msgstr ""
+msgstr "Plan d’action"
 
 #: includes/analysis/analista-geo-bridge.php:36
 msgid ""
@@ -197,11 +197,11 @@ msgstr ""
 
 #: includes/analysis/analista-geo.php:443
 msgid "Sesiones atribuidas a asistentes IA:"
-msgstr ""
+msgstr "Sessions attribuées aux assistants IA :"
 
 #: includes/analysis/analista-geo.php:443
 msgid "N/D (GA4 no disponible)."
-msgstr ""
+msgstr "S/O (GA4 indisponible)."
 
 #: includes/analysis/analista-geo.php:445
 msgid ""
@@ -213,7 +213,7 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:142
 msgid "Cómo avanzan nuestras posiciones"
-msgstr ""
+msgstr "Évolution de nos positions"
 
 #: includes/analysis/analista-informe.php:142
 msgid ""
@@ -223,15 +223,15 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:143
 msgid "Actual"
-msgstr ""
+msgstr "Actuel"
 
 #: includes/analysis/analista-informe.php:143
 msgid "Periodo anterior"
-msgstr ""
+msgstr "Période précédente"
 
 #: includes/analysis/analista-informe.php:159
 msgid "Movimiento de keywords"
-msgstr ""
+msgstr "Évolution des mots-clés"
 
 #: includes/analysis/analista-informe.php:159
 msgid ""
@@ -241,7 +241,7 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:174
 msgid "Cómo se posiciona el catálogo"
-msgstr ""
+msgstr "Positionnement du catalogue"
 
 #: includes/analysis/analista-informe.php:174
 msgid ""
@@ -251,19 +251,19 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:174
 msgid "Tipo de URL"
-msgstr ""
+msgstr "Type d’URL"
 
 #: includes/analysis/analista-informe.php:174
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4293
 msgid "Páginas"
-msgstr ""
+msgstr "Pages"
 
 #: includes/analysis/analista-informe.php:174
 #: includes/analysis/analista-lazy.php:187
 #: includes/analysis/analista-lazy.php:226
 msgid "Impresiones"
-msgstr ""
+msgstr "Impressions"
 
 #: includes/analysis/analista-informe.php:174
 #: includes/analysis/analista-lazy.php:187
@@ -276,18 +276,18 @@ msgstr ""
 #: includes/google/seo-google-info.php:4285
 #: includes/google/seo-google-info.php:4550
 msgid "Clics"
-msgstr ""
+msgstr "Clics"
 
 #: includes/analysis/analista-informe.php:174
 #: includes/google/seo-google-demand-catalog.php:1724
 #: includes/google/seo-google-info.php:3399
 #: includes/google/seo-google-info.php:4126
 msgid "Consultas"
-msgstr ""
+msgstr "Requêtes"
 
 #: includes/analysis/analista-informe.php:235
 msgid "Lectura rápida"
-msgstr ""
+msgstr "Lecture rapide"
 
 #: includes/analysis/analista-informe.php:235
 msgid "Lo importante del periodo sin recorrer todos los informes."
@@ -295,7 +295,7 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:303
 msgid "Tráfico y conversión"
-msgstr ""
+msgstr "Trafic et conversion"
 
 #: includes/analysis/analista-informe.php:303
 msgid ""
@@ -306,37 +306,37 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:318
 msgid "Fuente / medio"
-msgstr ""
+msgstr "Source / support"
 
 #: includes/analysis/analista-informe.php:318
 msgid "Canal"
-msgstr ""
+msgstr "Canal"
 
 #: includes/analysis/analista-informe.php:318
 msgid "Sesiones"
-msgstr ""
+msgstr "Sessions"
 
 #: includes/analysis/analista-informe.php:318
 #: includes/analysis/analista-informe.php:327
 msgid "Usuarios"
-msgstr ""
+msgstr "Utilisateurs"
 
 #: includes/analysis/analista-informe.php:326
 msgid "Rutas 404 vistas en Analytics"
-msgstr ""
+msgstr "Chemins 404 vus dans Analytics"
 
 #: includes/analysis/analista-informe.php:327
 msgid "Ruta"
-msgstr ""
+msgstr "Chemin"
 
 #: includes/analysis/analista-informe.php:327
 msgid "Vistas"
-msgstr ""
+msgstr "Vues"
 
 #: includes/analysis/analista-informe.php:341
 #: includes/google/seo-google-info.php:2644
 msgid "Evolución en Google"
-msgstr ""
+msgstr "Évolution sur Google"
 
 #: includes/analysis/analista-informe.php:341
 msgid ""
@@ -346,7 +346,7 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:353
 msgid "Arquitectura que Analista tiene en cuenta"
-msgstr ""
+msgstr "Architecture prise en compte par Analista"
 
 #: includes/analysis/analista-informe.php:353
 msgid ""
@@ -358,7 +358,7 @@ msgstr ""
 #: includes/analysis/analista-informe.php:397
 #: includes/analysis/analista-informe.php:481
 msgid "Palabras clave vigiladas"
-msgstr ""
+msgstr "Mots-clés suivis"
 
 #: includes/analysis/analista-informe.php:393
 msgid ""
@@ -380,39 +380,39 @@ msgstr ""
 #: includes/analysis/analista-informe.php:398
 #: includes/analysis/analista-informe.php:454
 msgid "Palabra clave"
-msgstr ""
+msgstr "Mot-clé"
 
 #: includes/analysis/analista-informe.php:398
 #: includes/analysis/analista-informe.php:454
 msgid "Nosotros"
-msgstr ""
+msgstr "Nous"
 
 #: includes/analysis/analista-informe.php:398
 #: includes/google/seo-google-info.php:3578
 msgid "Antes"
-msgstr ""
+msgstr "Avant"
 
 #: includes/analysis/analista-informe.php:398
 msgid "Movimiento"
-msgstr ""
+msgstr "Évolution"
 
 #: includes/analysis/analista-informe.php:398
 #: includes/analysis/analista-informe.php:454
 msgid "Mejor competidor"
-msgstr ""
+msgstr "Principal concurrent"
 
 #: includes/analysis/analista-informe.php:398
 msgid "Distancia"
-msgstr ""
+msgstr "Écart"
 
 #: includes/analysis/analista-informe.php:398
 #: includes/analysis/analista-lazy.php:226
 msgid "Lectura"
-msgstr ""
+msgstr "Interprétation"
 
 #: includes/analysis/analista-informe.php:398
 msgid "Proyección"
-msgstr ""
+msgstr "Projection"
 
 #: includes/analysis/analista-informe.php:427
 msgid "La comparación externa todavía no tiene posiciones disponibles."
