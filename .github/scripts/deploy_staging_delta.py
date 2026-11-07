@@ -119,7 +119,10 @@ def plan():
         # all-plugin queue. Never permit dynamic or arbitrary plugin selection.
         if target != "taxocommerce-tasks" or sync:
             raise ValueError("Targeted push deployment only permits Tasks without full sync")
-        slugs = [target] if changes.get(target) else []
+        # Reconcile Tasks against the real remote SHA-256 manifest, not a Git
+        # baseline that can incorrectly include a successful PR validation.
+        # The FTPS uploader writes ONLY files whose remote bytes differ.
+        slugs = [target]
     elif sync:
         slugs = sorted(
             d.name for d in Path(".").glob("taxocommerce-*")
@@ -286,15 +289,30 @@ def reconcile_core():
             pass
 
 
+def selected_deploy_files(base, head, slug, full=False):
+    """Select only Tasks for direct push, checking each remote file SHA-256.
+
+    The standard gated family workflow retains its incremental Git baseline.
+    A direct Tasks delivery reconciles the tracked installable files because
+    successful PR validation workflows may report the target commit without
+    delivering any files to either WordPress site.
+    """
+    target = os.environ.get("TAXOCOMMERCE_TARGET_PLUGIN", "")
+    if target:
+        if target != "taxocommerce-tasks" or slug != target or full:
+            raise ValueError("Targeted reconciliation is restricted to Tasks")
+        return plugin_source_files(slug)
+    if full:
+        return plugin_source_files(slug)
+    changes = changed_files(base, head, selected_slug=slug)
+    if slug not in changes:
+        raise ValueError(f"No distributable changes selected for {slug}")
+    return changes[slug]
+
+
 def deploy(base, target, slug, full=False):
     head = git("rev-parse", "HEAD").decode().strip()
-    if full:
-        files = plugin_source_files(slug)
-    else:
-        changes = changed_files(base, head, selected_slug=slug)
-        if slug not in changes:
-            raise ValueError(f"No distributable changes selected for {slug}")
-        files = changes[slug]
+    files = selected_deploy_files(base, head, slug, full)
     # One FTPS login shared by both clients; each site has an isolated path.
     # Validate the destination before connecting to the server.
     remote_plugin_dir(target, slug)
