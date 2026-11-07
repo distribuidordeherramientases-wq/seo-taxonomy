@@ -1,3 +1,10 @@
+## [Unreleased] — Internacionalización de la interfaz de System Check (#2062)
+
+- Traducidas 71 cadenas visibles de administración, validación, permisos, informes y escaneo en es_ES, en_US, fr_FR, de_DE y nl_NL: 355 entradas gettext nuevas.
+- Regenerados los cinco catálogos GNU MO con 308 entradas por idioma; sin cambios en identificadores gettext, funcionalidades, datos, permisos, rutas, cron o consultas.
+- Cobertura todavía parcial: quedan cadenas en informes, configuraciones y otras pantallas por traducir, así como comprobar textos fuera de gettext y la carga real por locale en WordPress.
+- Validación pendiente: comprobación de PO/MO, Plugin Check oficial y pruebas funcionales en STAGING y Focazul. No desplegar a producción.
+
 ## [0.2.19] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.

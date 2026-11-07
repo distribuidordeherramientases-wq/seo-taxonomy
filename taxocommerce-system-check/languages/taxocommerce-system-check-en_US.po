@@ -253,11 +253,11 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation-settings.php:441
 msgid "Producto y búsqueda representativos"
-msgstr ""
+msgstr "Representative product and search"
 
 #: includes/system-check/seo-core-validation-settings.php:447
 msgid "Modo de búsqueda"
-msgstr ""
+msgstr "Search mode"
 
 #: includes/system-check/seo-core-validation-settings.php:451
 msgid ""
@@ -267,11 +267,11 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation-settings.php:456
 msgid "HTTP, plantillas y SEO técnico"
-msgstr ""
+msgstr "HTTP, templates and technical SEO"
 
 #: includes/system-check/seo-core-validation-settings.php:467
 msgid "Rangos de salud semántica"
-msgstr ""
+msgstr "Semantic health ranges"
 
 #: includes/system-check/seo-core-validation-settings.php:478
 #: includes/system-check/seo-system-server-status.php:3200
@@ -280,29 +280,29 @@ msgstr "Diagnosis"
 
 #: includes/system-check/seo-core-validation-settings.php:482
 msgid "Guardar configuración"
-msgstr ""
+msgstr "Save settings"
 
 #: includes/system-check/seo-core-validation-settings.php:488
 msgid "Muestra que se usará"
-msgstr ""
+msgstr "Sample to be used"
 
 #: includes/system-check/seo-core-validation-settings.php:493
 msgid "No se ha podido resolver un producto publicado representativo."
-msgstr ""
+msgstr "Could not identify a representative published product."
 
 #: includes/system-check/seo-core-validation-visual.php:240
 msgid "No tienes permisos para ejecutar este chequeo."
-msgstr ""
+msgstr "You do not have permission to run this check."
 
 #: includes/system-check/seo-core-validation-visual.php:574
 msgid ""
 "Chequeo visual enviado a GitHub Actions. El resultado llegara "
 "automaticamente a esta seccion."
-msgstr ""
+msgstr "Visual check sent to GitHub Actions. The result will appear automatically in this section."
 
 #: includes/system-check/seo-core-validation-visual.php:582
 msgid "Renderizado real:"
-msgstr ""
+msgstr "Actual rendering:"
 
 #: includes/system-check/seo-core-validation-visual.php:582
 msgid ""
@@ -324,29 +324,29 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:171
 msgid "Descarga de afectados"
-msgstr ""
+msgstr "Download affected items"
 
 #: includes/system-check/seo-core-validation.php:194
 msgid "No tienes permisos para exportar estos datos."
-msgstr ""
+msgstr "You do not have permission to export this data."
 
 #: includes/system-check/seo-core-validation.php:201
 msgid "Formato de exportacion no valido."
-msgstr ""
+msgstr "Invalid export format."
 
 #: includes/system-check/seo-core-validation.php:240
 msgid "No se pudo abrir la salida CSV."
-msgstr ""
+msgstr "Could not open the CSV output."
 
 #: includes/system-check/seo-core-validation.php:298
 #: includes/system-check/seo-system-server-status.php:25
 msgid "No tienes permisos para acceder a esta página."
-msgstr ""
+msgstr "You do not have permission to access this page."
 
 #: includes/system-check/seo-core-validation.php:362
 #: taxocommerce-system-check.php:126 taxocommerce-system-check.php:132
 msgid "Plugin Validation"
-msgstr ""
+msgstr "Plugin validation"
 
 #: includes/system-check/seo-core-validation.php:363
 msgid ""
@@ -356,11 +356,11 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:398
 msgid "Inventario de funciones y archivos del plugin"
-msgstr ""
+msgstr "Plugin function and file inventory"
 
 #: includes/system-check/seo-core-validation.php:399
 msgid "Este inventario pertenece únicamente a Integridad del código."
-msgstr ""
+msgstr "This inventory only covers code integrity."
 
 #: includes/system-check/seo-core-validation.php:508
 msgid ""
@@ -373,7 +373,7 @@ msgstr ""
 msgid ""
 "Los tests se ejecutan en una sola pasada; cada vista solo organiza y filtra "
 "los resultados."
-msgstr ""
+msgstr "Tests run in a single pass; each view only organizes and filters the results."
 
 #: includes/system-check/seo-core-validation.php:550
 msgid ""
@@ -383,19 +383,19 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:648
 msgid "Validación pendiente"
-msgstr ""
+msgstr "Validation pending"
 
 #: includes/system-check/seo-core-validation.php:649
 msgid "Pulsa"
-msgstr ""
+msgstr "Click"
 
 #: includes/system-check/seo-core-validation.php:649
 msgid "Ejecutar validación completa"
-msgstr ""
+msgstr "Run full validation"
 
 #: includes/system-check/seo-core-validation.php:649
 msgid "para lanzar los chequeos básicos de continuidad del sistema."
-msgstr ""
+msgstr "to run the basic system continuity checks."
 
 #: includes/system-check/seo-core-validation.php:651
 msgid ""
@@ -406,35 +406,35 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:6880
 msgid "No hay una ejecución guardada todavía."
-msgstr ""
+msgstr "No saved run yet."
 
 #: includes/system-check/seo-core-validation.php:7262
 #: includes/system-check/seo-system-server-status.php:2216
 msgid "Sin incidencias prioritarias:"
-msgstr ""
+msgstr "No high-priority issues:"
 
 #: includes/system-check/seo-core-validation.php:7262
 msgid ""
 "los chequeos ejecutados no contienen errores críticos, importantes ni "
 "avisos."
-msgstr ""
+msgstr "the completed checks contain no critical errors, major issues or warnings."
 
 #: includes/system-check/seo-core-validation.php:7266
 #: includes/system-check/seo-system-server-status.php:2219
 msgid "Qué requiere atención"
-msgstr ""
+msgstr "What needs attention"
 
 #: includes/system-check/seo-core-validation.php:7306
 msgid "Estado por pestaña"
-msgstr ""
+msgstr "Status by tab"
 
 #: includes/system-check/seo-core-validation.php:7353
 msgid "KPIs por área"
-msgstr ""
+msgstr "KPIs by area"
 
 #: includes/system-check/seo-core-validation.php:7547
 msgid "Servicios y conexiones"
-msgstr ""
+msgstr "Services and connections"
 
 #: includes/system-check/seo-core-validation.php:7548
 msgid ""
@@ -444,24 +444,24 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:7556
 msgid "Aceptación post-release"
-msgstr ""
+msgstr "Post-release acceptance"
 
 #: includes/system-check/seo-core-validation.php:7580
 msgid "Todavía no hay resultados para este bloque."
-msgstr ""
+msgstr "No results for this section yet."
 
 #: includes/system-check/seo-core-validation.php:7587
 msgid "Servicio"
-msgstr ""
+msgstr "Service"
 
 #: includes/system-check/seo-core-validation.php:7681
 msgid "Todavía no hay resultados para esta sección."
-msgstr ""
+msgstr "No results for this section yet."
 
 #: includes/system-check/seo-core-validation.php:7701
 #: includes/system-check/seo-core-validation.php:7784
 msgid "URL"
-msgstr ""
+msgstr "URL"
 
 #: includes/system-check/seo-core-validation.php:7701
 #: includes/system-check/seo-core-validation.php:7784
@@ -470,7 +470,7 @@ msgstr "Source"
 
 #: includes/system-check/seo-core-validation.php:7734
 msgid "Funcionalidad del negocio"
-msgstr ""
+msgstr "Business functionality"
 
 #: includes/system-check/seo-core-validation.php:7735
 msgid ""
@@ -481,7 +481,7 @@ msgstr ""
 #: includes/system-check/seo-core-validation.php:7745
 #: includes/system-check/seo-core-validation.php:7773
 msgid "Modo seguro:"
-msgstr ""
+msgstr "Safe mode:"
 
 #: includes/system-check/seo-core-validation.php:7745
 msgid ""
@@ -495,7 +495,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:7765
 msgid "Enlaces y errores 404"
-msgstr ""
+msgstr "Links and 404 errors"
 
 #: includes/system-check/seo-core-validation.php:7766
 msgid ""
@@ -515,7 +515,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:7801
 msgid "Integridad del código"
-msgstr ""
+msgstr "Code integrity"
 
 #: includes/system-check/seo-core-validation.php:7802
 msgid ""
@@ -526,12 +526,12 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8009
 msgid "Callback"
-msgstr ""
+msgstr "Callback"
 
 #: includes/system-check/seo-core-validation.php:8009
 #: includes/system-check/seo-system-server-status.php:3200
 msgid "Hook"
-msgstr ""
+msgstr "Hook"
 
 #: includes/system-check/seo-core-validation.php:8009
 msgid "Registro"
@@ -539,20 +539,20 @@ msgstr "Record"
 
 #: includes/system-check/seo-core-validation.php:8009
 msgid "Ubicación"
-msgstr ""
+msgstr "Location"
 
 #: includes/system-check/seo-core-validation.php:8031
 msgid "Sin elementos."
-msgstr ""
+msgstr "No items."
 
 #: includes/system-check/seo-core-validation.php:8097
 #: includes/system-check/seo-system-diagnostics-reporting.php:2016
 msgid "Resumen ejecutivo"
-msgstr ""
+msgstr "Executive summary"
 
 #: includes/system-check/seo-core-validation.php:8098
 msgid "Vista general de la última validación."
-msgstr ""
+msgstr "Overview of the latest validation."
 
 #: includes/system-check/seo-core-validation.php:8098
 msgid ""
@@ -563,7 +563,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8119
 msgid "Informe técnico en texto para desarrolladores"
-msgstr ""
+msgstr "Technical text report for developers"
 
 #: includes/system-check/seo-core-validation.php:8376
 msgid "Grupo"
@@ -571,7 +571,7 @@ msgstr "Group"
 
 #: includes/system-check/seo-core-validation.php:8376
 msgid "Test"
-msgstr ""
+msgstr "Test"
 
 #: includes/system-check/seo-core-validation.php:8376
 #: includes/system-check/seo-system-diagnostics-reporting.php:1868
@@ -580,7 +580,7 @@ msgstr "Result"
 
 #: includes/system-check/seo-core-validation.php:8409
 msgid "Informe final"
-msgstr ""
+msgstr "Final report"
 
 #: includes/system-check/seo-core-validation.php:8410
 msgid ""
@@ -596,7 +596,7 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8612
 msgid "Envío opcional de diagnósticos al desarrollador"
-msgstr ""
+msgstr "Optional diagnostic reports to the developer"
 
 #: includes/system-check/seo-core-validation.php:8615
 msgid ""
@@ -624,15 +624,15 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8625
 msgid "Guardar autorización"
-msgstr ""
+msgstr "Save authorization"
 
 #: includes/system-check/seo-core-validation.php:8628
 msgid "Ejecuta primero la validación completa para generar el informe."
-msgstr ""
+msgstr "Run full validation first to generate the report."
 
 #: includes/system-check/seo-core-validation.php:8703
 msgid "Inventario de funciones globales del plugin"
-msgstr ""
+msgstr "Inventory of global plugin functions"
 
 #: includes/system-check/seo-core-validation.php:8706
 msgid ""
@@ -642,23 +642,23 @@ msgstr ""
 
 #: includes/system-check/seo-core-validation.php:8735
 msgid "Funciones globales duplicadas"
-msgstr ""
+msgstr "Duplicate global functions"
 
 #: includes/system-check/seo-core-validation.php:8739
 #: includes/system-check/seo-core-validation.php:8768
 msgid "Función"
-msgstr ""
+msgstr "Function"
 
 #: includes/system-check/seo-core-validation.php:8740
 #: includes/system-check/seo-core-validation.php:8769
 #: includes/system-check/seo-system-server-status.php:2969
 msgid "Archivo"
-msgstr ""
+msgstr "File"
 
 #: includes/system-check/seo-core-validation.php:8741
 #: includes/system-check/seo-core-validation.php:8770
 msgid "Línea"
-msgstr ""
+msgstr "Line"
 
 #: includes/system-check/seo-core-validation.php:8742
 #: includes/system-check/seo-core-validation.php:8771
@@ -668,11 +668,11 @@ msgstr "Type"
 
 #: includes/system-check/seo-core-validation.php:8763
 msgid "Ver inventario completo de funciones"
-msgstr ""
+msgstr "View full function inventory"
 
 #: includes/system-check/seo-health-scan.php:1238
 msgid "Ámbito de auditoría no válido."
-msgstr ""
+msgstr "Invalid audit scope."
 
 #: includes/system-check/seo-health-scan.php:1260
 msgid ""
@@ -697,15 +697,15 @@ msgstr ""
 #: includes/system-check/seo-health-scan.php:1273
 #: includes/system-check/seo-health-scan.php:1275
 msgid "Iniciar escaneo"
-msgstr ""
+msgstr "Start scan"
 
 #: includes/system-check/seo-health-scan.php:1296
 msgid "Parar escaneo"
-msgstr ""
+msgstr "Stop scan"
 
 #: includes/system-check/seo-health-scan.php:1301
 msgid "Escaneo completo:"
-msgstr ""
+msgstr "Scan complete:"
 
 #: includes/system-check/seo-health-scan.php:1301
 msgid ""
@@ -716,19 +716,19 @@ msgstr ""
 
 #: includes/system-check/seo-health-scan.php:1322
 msgid "Última ejecución"
-msgstr ""
+msgstr "Last run"
 
 #: includes/system-check/seo-health-scan.php:1381
 msgid "Estado por elemento"
-msgstr ""
+msgstr "Status by item"
 
 #: includes/system-check/seo-health-scan.php:1390
 msgid "Elemento"
-msgstr ""
+msgstr "Item"
 
 #: includes/system-check/seo-health-scan.php:1392
 msgid "No hay resultados para este filtro."
-msgstr ""
+msgstr "No results for this filter."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1771
 msgid "Análisis actualizado y resumen enviado automáticamente."
@@ -810,11 +810,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "Actualizar auditoría"
-msgstr ""
+msgstr "Update audit"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1868
 msgid "Área"
-msgstr ""
+msgstr "Area"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1868
 msgid "Control"
@@ -822,7 +822,7 @@ msgstr "Checks"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1911
 msgid "Qué modificar"
-msgstr ""
+msgstr "What to change"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1913
 msgid "No se han generado acciones editoriales prioritarias."
@@ -834,11 +834,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Registros"
-msgstr ""
+msgstr "Records"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Acción recomendada"
-msgstr ""
+msgstr "Recommended action"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1947
 msgid ""
@@ -899,7 +899,7 @@ msgstr ""
 #: includes/system-check/seo-system-diagnostics-reporting.php:2128
 #: includes/system-check/seo-system-diagnostics-reporting.php:2141
 msgid "No tienes permisos para descargar este informe."
-msgstr ""
+msgstr "You do not have permission to download this report."
 
 #: includes/system-check/seo-system-mysql-audit.php:294
 msgid "Necesita al menos 2 chequeos completos."
