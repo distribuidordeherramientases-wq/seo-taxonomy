@@ -62,7 +62,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:282
 msgid "🧩 FAQs sin elemento relacionado"
-msgstr ""
+msgstr "🧩 FAQs ohne zugehöriges Objekt"
 
 #: includes/class-taxocommerce-core-anomalies.php:283
 msgid ""
@@ -72,7 +72,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Chequeo"
-msgstr ""
+msgstr "Prüfung"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Resultado"
@@ -80,20 +80,20 @@ msgstr "Ergebnis"
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Lectura"
-msgstr ""
+msgstr "Schreibgeschützt"
 
 #: includes/class-taxocommerce-core-anomalies.php:395
 msgid "No se encontraron incidencias estructurales en FAQs."
-msgstr ""
+msgstr "Keine strukturellen Probleme in den FAQs gefunden."
 
 #: includes/class-taxocommerce-core-anomalies.php:421
 msgid "Resumen de categorías perdidas con FAQs"
-msgstr ""
+msgstr "Übersicht fehlender Kategorien mit FAQs"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Object ID perdido"
-msgstr ""
+msgstr "Fehlende Objekt-ID"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
@@ -106,26 +106,26 @@ msgstr "FAQs"
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Activas"
-msgstr ""
+msgstr "Aktiv"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Inactivas"
-msgstr ""
+msgstr "Inaktiv"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Primera creación"
-msgstr ""
+msgstr "Zuerst erstellt"
 
 #: includes/class-taxocommerce-core-anomalies.php:424
 #: includes/class-taxocommerce-core-anomalies.php:470
 msgid "Última actualización"
-msgstr ""
+msgstr "Zuletzt aktualisiert"
 
 #: includes/class-taxocommerce-core-anomalies.php:441
 msgid "Borrar FAQs de categorías desaparecidas"
-msgstr ""
+msgstr "FAQs für gelöschte Kategorien löschen"
 
 #: includes/class-taxocommerce-core-anomalies.php:441
 #: includes/class-taxocommerce-core-anomalies.php:487
@@ -135,15 +135,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:467
 msgid "Resumen de productos perdidos con FAQs"
-msgstr ""
+msgstr "Übersicht fehlender Produkte mit FAQs"
 
 #: includes/class-taxocommerce-core-anomalies.php:487
 msgid "Borrar FAQs de productos desaparecidos"
-msgstr ""
+msgstr "FAQs für gelöschte Produkte löschen"
 
 #: includes/class-taxocommerce-core-anomalies.php:492
 msgid "Nota:"
-msgstr ""
+msgstr "Hinweis:"
 
 #: includes/class-taxocommerce-core-anomalies.php:492
 msgid ""
@@ -160,7 +160,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:795
 msgid "🚨 Reporte de Auditoría y Control de Estructura"
-msgstr ""
+msgstr "🚨 Bericht zur Strukturprüfung und -kontrolle"
 
 #: includes/class-taxocommerce-core-anomalies.php:796
 msgid ""
@@ -170,11 +170,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:801
 msgid "JSON correctivo no disponible: faltan las tablas de Vocabulary."
-msgstr ""
+msgstr "Korrektur-JSON nicht verfügbar: Vocabulary-Tabellen fehlen."
 
 #: includes/class-taxocommerce-core-anomalies.php:806
 msgid "Clusters sin hubs primarios"
-msgstr ""
+msgstr "Cluster ohne primäre Hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:816
 #: includes/class-taxocommerce-core-anomalies.php:828
@@ -182,7 +182,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-anomalies.php:983
 #: includes/class-taxocommerce-core-anomalies.php:998
 msgid "No se encontraron incidencias en esta sección."
-msgstr ""
+msgstr "Keine Probleme in diesem Abschnitt gefunden."
 
 #: includes/class-taxocommerce-core-anomalies.php:818
 #: includes/class-taxocommerce-core-hierarchy-classic.php:703
@@ -191,11 +191,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:830
 msgid "Hubs secundarios sin hub primary"
-msgstr ""
+msgstr "Sekundäre Hubs ohne primären Hub"
 
 #: includes/class-taxocommerce-core-anomalies.php:849
 msgid "Hubs secundarios sin categorías"
-msgstr ""
+msgstr "Sekundäre Hubs ohne Kategorien"
 
 #: includes/class-taxocommerce-core-anomalies.php:900
 msgid ""
@@ -211,23 +211,23 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:969
 msgid "Todos los hubs secundarios tienen al menos una categoría vinculada."
-msgstr ""
+msgstr "Alle sekundären Hubs haben mindestens eine verknüpfte Kategorie."
 
 #: includes/class-taxocommerce-core-anomalies.php:975
 msgid "Hubs primarios en múltiples clusters"
-msgstr ""
+msgstr "Primäre Hubs in mehreren Clustern"
 
 #: includes/class-taxocommerce-core-anomalies.php:986
 msgid "Landings sin hub secondary"
-msgstr ""
+msgstr "Landingpages ohne sekundären Hub"
 
 #: includes/class-taxocommerce-core-anomalies.php:1005
 msgid "🧭 Landing pages sin categoría de producto asociada"
-msgstr ""
+msgstr "🧭 Landingpages ohne verknüpfte Produktkategorie"
 
 #: includes/class-taxocommerce-core-anomalies.php:1051
 msgid "Sin relación comercial landing_to_category."
-msgstr ""
+msgstr "Keine kommerzielle Beziehung landing_to_category."
 
 #: includes/class-taxocommerce-core-anomalies.php:1073
 msgid ""
@@ -237,11 +237,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1084
 msgid "🔗 Posts editoriales sin categoría de producto relacionada"
-msgstr ""
+msgstr "🔗 Redaktionelle Beiträge ohne zugehörige Produktkategorie"
 
 #: includes/class-taxocommerce-core-anomalies.php:1188
 msgid "Sin relación comercial post_to_category."
-msgstr ""
+msgstr "Keine kommerzielle Beziehung post_to_category."
 
 #: includes/class-taxocommerce-core-anomalies.php:1208
 msgid ""
@@ -251,7 +251,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1224
 msgid "📰 Entradas editoriales sin Vocabulary semántico activo"
-msgstr ""
+msgstr "📰 Redaktionelle Beiträge ohne aktives semantisches Vocabulary"
 
 #: includes/class-taxocommerce-core-anomalies.php:1343
 msgid ""
@@ -272,7 +272,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1388
 msgid "⚠️ Categorías sin asignación estructural"
-msgstr ""
+msgstr "⚠️ Kategorien ohne strukturelle Zuordnung"
 
 #: includes/class-taxocommerce-core-anomalies.php:1400
 msgid ""
@@ -282,11 +282,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1405
 msgid "📦 Categorías de producto con 0 productos"
-msgstr ""
+msgstr "📦 Produktkategorien mit 0 Produkten"
 
 #: includes/class-taxocommerce-core-anomalies.php:1410
 msgid "🔄 Recalcular contadores"
-msgstr ""
+msgstr "🔄 Zähler neu berechnen"
 
 #: includes/class-taxocommerce-core-anomalies.php:1422
 msgid ""
@@ -296,15 +296,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1576
 msgid "Contadores de categorías desactualizados"
-msgstr ""
+msgstr "Veraltete Kategoriezähler"
 
 #: includes/class-taxocommerce-core-anomalies.php:1578
 msgid "No se consideran categorías vacías y no se ofrece su borrado."
-msgstr ""
+msgstr "Sie gelten nicht als leere Kategorien und können hier nicht gelöscht werden."
 
 #: includes/class-taxocommerce-core-anomalies.php:1602
 msgid "No se encontraron categorías realmente vacías."
-msgstr ""
+msgstr "Keine tatsächlich leeren Kategorien gefunden."
 
 #: includes/class-taxocommerce-core-anomalies.php:1607
 msgid ""
@@ -316,15 +316,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1608
 msgid "No se elimina ningún producto."
-msgstr ""
+msgstr "Es werden keine Produkte gelöscht."
 
 #: includes/class-taxocommerce-core-anomalies.php:1647
 msgid "Seleccionar todas las eliminables"
-msgstr ""
+msgstr "Alle löschbaren Elemente auswählen"
 
 #: includes/class-taxocommerce-core-anomalies.php:1648
 msgid "Eliminar categorías seleccionadas"
-msgstr ""
+msgstr "Ausgewählte Kategorien löschen"
 
 #: includes/class-taxocommerce-core-anomalies.php:1652
 msgid ""
@@ -334,7 +334,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1667
 msgid "Hubs secundarios en múltiples hubs primarios"
-msgstr ""
+msgstr "Sekundäre Hubs in mehreren primären Hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:1751
 msgid ""
@@ -343,7 +343,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies.php:1755
 msgid "💥 Categorías DUPLICADAS en múltiples Hubs Secundarios"
-msgstr ""
+msgstr "💥 DOPPELTE Kategorien in mehreren sekundären Hubs"
 
 #: includes/class-taxocommerce-core-anomalies.php:1793
 msgid ""
