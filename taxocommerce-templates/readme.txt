@@ -4,13 +4,16 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.20
+Stable tag: 0.4.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Register WordPress and WooCommerce request templates, maintain SEO role assignments and audit existing PHP template associations.
 
 == Description ==
+
+Version 0.4.21 adds a guarded, opt-in SEO content reconciliation tab: compare native WooCommerce category descriptions against the optional legacy SEO table and synchronize selected, unchanged rows after an administrator nonce check. It never runs automatically.
+
 
 TaxoCommerce Templates is a standalone request-template routing and management plugin for WordPress and WooCommerce. It supports three areas:
 
