@@ -39,7 +39,7 @@ msgstr ""
 
 #: includes/admin.php:71
 msgid "Resultado desconocido."
-msgstr ""
+msgstr "Unknown result."
 
 #: includes/admin.php:88
 msgid ""
@@ -49,7 +49,7 @@ msgstr ""
 
 #: includes/admin.php:90
 msgid "Secciones de Distribution"
-msgstr ""
+msgstr "Distribution sections"
 
 #: includes/admin.php:94
 msgid "Overview"
@@ -283,7 +283,7 @@ msgstr ""
 
 #: includes/autocheck.php:235
 msgid "Autocheck de Distribution"
-msgstr ""
+msgstr "Distribution self-check"
 
 #: includes/autocheck.php:236
 msgid ""
@@ -294,11 +294,11 @@ msgstr ""
 
 #: includes/autocheck.php:240
 msgid "Ejecutar autocheck"
-msgstr ""
+msgstr "Run self-check"
 
 #: includes/autocheck.php:245
 msgid "Aún no se ha ejecutado el autocheck en esta visita."
-msgstr ""
+msgstr "The self-check has not been run during this visit."
 
 #: includes/autocheck.php:256
 msgid "Resultado"
@@ -306,7 +306,7 @@ msgstr "Result"
 
 #: includes/autocheck.php:258
 msgid "comprobaciones"
-msgstr ""
+msgstr "checks"
 
 #: includes/autocheck.php:259
 msgid "correctas"
@@ -314,11 +314,11 @@ msgstr "passed"
 
 #: includes/autocheck.php:260
 msgid "avisos"
-msgstr ""
+msgstr "warnings"
 
 #: includes/autocheck.php:261
 msgid "errores"
-msgstr ""
+msgstr "errors"
 
 #: includes/autocheck.php:272
 msgid "Control"
@@ -338,7 +338,7 @@ msgstr "Passed"
 
 #: includes/autocheck.php:276
 msgid "Aviso"
-msgstr ""
+msgstr "Notice"
 
 #: includes/autocheck.php:276
 msgid "Error"
@@ -404,11 +404,11 @@ msgstr ""
 
 #: includes/manual.php:12
 msgid "Documentación de TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution documentation"
 
 #: includes/manual.php:32
 msgid "Manual de TaxoCommerce Distribution"
-msgstr ""
+msgstr "TaxoCommerce Distribution user guide"
 
 #: includes/manual.php:33
 msgid ""
@@ -418,11 +418,11 @@ msgstr ""
 
 #: includes/manual.php:34
 msgid "Índice de documentación"
-msgstr ""
+msgstr "Documentation index"
 
 #: includes/manual.php:35
 msgid "Contenido"
-msgstr ""
+msgstr "Contents"
 
 #: includes/manual.php:36 includes/manual.php:43
 msgid "Manual de usuario"
@@ -430,11 +430,11 @@ msgstr ""
 
 #: includes/manual.php:37
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technical guide"
 
 #: includes/manual.php:38
 msgid "Diagnóstico y mantenimiento"
-msgstr ""
+msgstr "Diagnostics and maintenance"
 
 #: includes/manual.php:44
 msgid ""
@@ -445,7 +445,7 @@ msgstr ""
 
 #: includes/manual.php:45
 msgid "1. Acceso y pestañas"
-msgstr ""
+msgstr "1. Access and tabs"
 
 #: includes/manual.php:46
 msgid ""
@@ -458,7 +458,7 @@ msgstr ""
 
 #: includes/manual.php:48
 msgid "1.1. Secuencia inicial segura"
-msgstr ""
+msgstr "1.1. Safe initial procedure"
 
 #: includes/manual.php:50
 msgid ""
@@ -493,7 +493,7 @@ msgstr ""
 
 #: includes/manual.php:57
 msgid "2. Overview: estado general"
-msgstr ""
+msgstr "2. Overview: general status"
 
 #: includes/manual.php:58
 msgid ""
@@ -505,7 +505,7 @@ msgstr ""
 
 #: includes/manual.php:60
 msgid "3. Commercial Feeds: configuración y generación"
-msgstr ""
+msgstr "3. Commercial Feeds: configuration and generation"
 
 #: includes/manual.php:61
 msgid ""
@@ -535,7 +535,7 @@ msgstr ""
 
 #: includes/manual.php:65
 msgid "4. Sitemaps: comprobación y regeneración"
-msgstr ""
+msgstr "4. Sitemaps: verification and regeneration"
 
 #: includes/manual.php:66
 msgid ""
@@ -555,7 +555,7 @@ msgstr ""
 
 #: includes/manual.php:69
 msgid "5. Automation: supervisar el trabajo"
-msgstr ""
+msgstr "5. Automation: monitor processing"
 
 #: includes/manual.php:70
 msgid ""
@@ -567,7 +567,7 @@ msgstr ""
 
 #: includes/manual.php:72
 msgid "6. Migración y entornos"
-msgstr ""
+msgstr "6. Migration and environments"
 
 #: includes/manual.php:73
 msgid ""
@@ -579,7 +579,7 @@ msgstr ""
 
 #: includes/manual.php:75
 msgid "7. Autocheck: verificación sin riesgos"
-msgstr ""
+msgstr "7. Self-check: safe verification"
 
 #: includes/manual.php:76
 msgid ""
@@ -593,7 +593,7 @@ msgstr ""
 
 #: includes/manual.php:80
 msgid "Manual técnico para futuros desarrolladores"
-msgstr ""
+msgstr "Technical guide for future developers"
 
 #: includes/manual.php:81
 msgid ""
@@ -604,7 +604,7 @@ msgstr ""
 
 #: includes/manual.php:82
 msgid "Mapa de código y responsabilidades"
-msgstr ""
+msgstr "Code and responsibility map"
 
 #: includes/manual.php:83
 msgid ""
@@ -615,15 +615,15 @@ msgstr ""
 
 #: includes/manual.php:85
 msgid "Archivo"
-msgstr ""
+msgstr "File"
 
 #: includes/manual.php:85 includes/manual.php:125
 msgid "Responsabilidad"
-msgstr ""
+msgstr "Responsibility"
 
 #: includes/manual.php:85
 msgid "Puntos de entrada"
-msgstr ""
+msgstr "Entry points"
 
 #: includes/manual.php:87
 msgid ""
@@ -678,7 +678,7 @@ msgstr ""
 
 #: includes/manual.php:99
 msgid "8. Arquitectura y enrutado"
-msgstr ""
+msgstr "8. Architecture and routing"
 
 #: includes/manual.php:100
 msgid ""
@@ -692,7 +692,7 @@ msgstr ""
 
 #: includes/manual.php:102
 msgid "9. Canales y almacenamiento"
-msgstr ""
+msgstr "9. Channels and storage"
 
 #: includes/manual.php:103
 msgid ""
@@ -713,7 +713,7 @@ msgstr ""
 
 #: includes/manual.php:106
 msgid "10. Opciones, hooks y ejecución"
-msgstr ""
+msgstr "10. Options, hooks and execution"
 
 #: includes/manual.php:107
 msgid ""
@@ -745,11 +745,11 @@ msgstr ""
 
 #: includes/manual.php:111
 msgid "Contrato de datos y eventos"
-msgstr ""
+msgstr "Data and event contract"
 
 #: includes/manual.php:112
 msgid "10.1. Persistencia WordPress"
-msgstr ""
+msgstr "10.1. WordPress persistence"
 
 #: includes/manual.php:113
 msgid ""
@@ -774,7 +774,7 @@ msgstr ""
 
 #: includes/manual.php:115
 msgid "10.2. Ciclo de un feed"
-msgstr ""
+msgstr "10.2. Feed lifecycle"
 
 #: includes/manual.php:117
 msgid ""
@@ -811,7 +811,7 @@ msgstr ""
 
 #: includes/manual.php:123
 msgid "10.3. Mapa de hooks"
-msgstr ""
+msgstr "10.3. Hook map"
 
 #: includes/manual.php:125
 msgid "Hook"
@@ -844,7 +844,7 @@ msgstr ""
 
 #: includes/manual.php:135
 msgid "11. Propiedad de procesos y protección de datos"
-msgstr ""
+msgstr "11. Process ownership and data protection"
 
 #: includes/manual.php:136
 msgid ""
@@ -865,7 +865,7 @@ msgstr ""
 
 #: includes/manual.php:139
 msgid "11.1. Seguridad y contratos de rutas"
-msgstr ""
+msgstr "11.1. Security and route contracts"
 
 #: includes/manual.php:140
 msgid ""
@@ -888,7 +888,7 @@ msgstr ""
 
 #: includes/manual.php:142
 msgid "11.2. Coexistencia y riesgo de doble escritura"
-msgstr ""
+msgstr "11.2. Coexistence and double-write risk"
 
 #: includes/manual.php:143
 msgid ""
@@ -910,7 +910,7 @@ msgstr ""
 
 #: includes/manual.php:146
 msgid "12. Validación y despliegue"
-msgstr ""
+msgstr "12. Validation and deployment"
 
 #: includes/manual.php:147
 msgid ""
@@ -922,11 +922,11 @@ msgstr ""
 
 #: includes/manual.php:149
 msgid "Procedimiento para futuros desarrolladores"
-msgstr ""
+msgstr "Procedure for future developers"
 
 #: includes/manual.php:150
 msgid "12.1. Cómo desarrollar una mejora sin romper lo existente"
-msgstr ""
+msgstr "12.1. How to develop an improvement without breaking existing functionality"
 
 #: includes/manual.php:152
 msgid ""
@@ -976,7 +976,7 @@ msgstr ""
 
 #: includes/manual.php:160
 msgid "12.2. Comandos de prueba y límites"
-msgstr ""
+msgstr "12.2. Test commands and limitations"
 
 #: includes/manual.php:163
 msgid ""
@@ -989,7 +989,7 @@ msgstr ""
 
 #: includes/manual.php:164
 msgid "Fuera de alcance:"
-msgstr ""
+msgstr "Out of scope:"
 
 #: includes/manual.php:164
 msgid ""
@@ -1004,11 +1004,11 @@ msgstr "Back to contents"
 
 #: includes/manual.php:168
 msgid "Diagnóstico y problemas habituales"
-msgstr ""
+msgstr "Diagnostics and common problems"
 
 #: includes/manual.php:169
 msgid "13. Interpretación de incidencias"
-msgstr ""
+msgstr "13. Interpreting issues"
 
 #: includes/manual.php:171
 msgid ""
@@ -1106,11 +1106,11 @@ msgstr "Generation is in progress. The visible index still belongs to the previo
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Selecciona una velocidad entre 1 y 5."
-msgstr ""
+msgstr "Select a speed between 1 and 5."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "La generación se ha detenido."
-msgstr ""
+msgstr "Generation has stopped."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos."
@@ -1118,15 +1118,15 @@ msgstr "Permission denied."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generando sitemaps por bloques de 250…"
-msgstr ""
+msgstr "Generating sitemaps in batches of 250…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Finalizado. Actualizando el informe…"
-msgstr ""
+msgstr "Finished. Updating the report…"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "El trabajador ha detectado un error."
-msgstr ""
+msgstr "The worker detected an error."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publishing summary"
@@ -1158,11 +1158,11 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Control de carga del generador XML"
-msgstr ""
+msgstr "XML generator load control"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Guardar velocidad"
-msgstr ""
+msgstr "Save speed"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Máximo 250 elementos por ejecución. La velocidad regula las pausas; si PHP consume demasiada memoria o tiempo, el gestor reduce automáticamente la frecuencia. La CPU mostrada es del proceso PHP, no del servidor."
@@ -1170,23 +1170,23 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Estado de generación:"
-msgstr ""
+msgstr "Generation status:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "%1$d elementos revisados; %2$d URL preparadas."
-msgstr ""
+msgstr "%1$d items checked; %2$d URLs prepared."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Último bloque: %1$s s · CPU PHP: %2$s%% · Memoria PHP: %3$s%%"
-msgstr ""
+msgstr "Last batch: %1$s s · PHP CPU: %2$s%% · PHP memory: %3$s%%"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generar sitemaps en bloques de 250"
-msgstr ""
+msgstr "Generate sitemaps in batches of 250"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detener generación"
-msgstr ""
+msgstr "Stop generation"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Invalid"
@@ -1206,19 +1206,19 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Programada"
-msgstr ""
+msgstr "Scheduled"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno discrepante:"
-msgstr ""
+msgstr "Environment mismatch:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "WordPress informa"
-msgstr ""
+msgstr "WordPress reports"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "pero la detección efectiva por hostname es"
-msgstr ""
+msgstr "but the actual hostname-based detection is"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Review WP_ENVIRONMENT_TYPE in the environment configuration."
@@ -1234,11 +1234,11 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno informado por WordPress:"
-msgstr ""
+msgstr "Environment reported by WordPress:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Entorno efectivo:"
-msgstr ""
+msgstr "Effective environment:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host:"
@@ -1246,7 +1246,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Host de feeds:"
-msgstr ""
+msgstr "Feed host:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Detection source:"
@@ -1358,7 +1358,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Inicio:"
-msgstr ""
+msgstr "Start:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End:"
@@ -1442,11 +1442,11 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conservan las ultimas 20 ejecuciones completadas o fallidas en este entorno."
-msgstr ""
+msgstr "The most recent 20 completed or failed runs are retained in this environment."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Aun no hay ejecuciones finalizadas registradas."
-msgstr ""
+msgstr "No completed runs have been recorded yet."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "End"
@@ -1554,7 +1554,7 @@ msgstr "Could not generate the JSON report."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publica feeds comerciales y sitemaps XML de tu catálogo."
-msgstr ""
+msgstr "Publishes commercial feeds and XML sitemaps for your catalogue."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Versión"
