@@ -69,11 +69,11 @@ msgstr ""
 
 #: includes/admin.php:98
 msgid "Manual"
-msgstr ""
+msgstr "Handleiding"
 
 #: includes/admin.php:99
 msgid "Autocheck"
-msgstr ""
+msgstr "Automatische controle"
 
 #: includes/admin.php:135
 msgid "Safe migration:"
@@ -302,7 +302,7 @@ msgstr ""
 
 #: includes/autocheck.php:256
 msgid "Resultado"
-msgstr ""
+msgstr "Resultaat"
 
 #: includes/autocheck.php:258
 msgid "comprobaciones"
@@ -310,7 +310,7 @@ msgstr ""
 
 #: includes/autocheck.php:259
 msgid "correctas"
-msgstr ""
+msgstr "geslaagd"
 
 #: includes/autocheck.php:260
 msgid "avisos"
@@ -322,19 +322,19 @@ msgstr ""
 
 #: includes/autocheck.php:272
 msgid "Control"
-msgstr ""
+msgstr "Controle"
 
 #: includes/autocheck.php:273
 msgid "Estado"
-msgstr ""
+msgstr "Status"
 
 #: includes/autocheck.php:274
 msgid "Detalle"
-msgstr ""
+msgstr "Details"
 
 #: includes/autocheck.php:276
 msgid "Correcto"
-msgstr ""
+msgstr "Geslaagd"
 
 #: includes/autocheck.php:276
 msgid "Aviso"
@@ -342,7 +342,7 @@ msgstr ""
 
 #: includes/autocheck.php:276
 msgid "Error"
-msgstr ""
+msgstr "Fout"
 
 #: includes/autocheck.php:284
 msgid ""
@@ -422,15 +422,15 @@ msgstr ""
 
 #: includes/manual.php:35
 msgid "Contenido"
-msgstr ""
+msgstr "Inhoud"
 
 #: includes/manual.php:36 includes/manual.php:43
 msgid "Manual de usuario"
-msgstr ""
+msgstr "Gebruikershandleiding"
 
 #: includes/manual.php:37
 msgid "Manual técnico"
-msgstr ""
+msgstr "Technische handleiding"
 
 #: includes/manual.php:38
 msgid "Diagnóstico y mantenimiento"
@@ -1000,7 +1000,7 @@ msgstr ""
 
 #: includes/manual.php:165 includes/manual.php:177
 msgid "Volver al índice"
-msgstr ""
+msgstr "Terug naar de inhoudsopgave"
 
 #: includes/manual.php:168
 msgid "Diagnóstico y problemas habituales"
@@ -1114,7 +1114,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos."
-msgstr ""
+msgstr "Geen toestemming."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Generando sitemaps por bloques de 250…"
@@ -1530,11 +1530,11 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Descargar resultados (JSON)"
-msgstr ""
+msgstr "Resultaten downloaden (JSON)"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Fecha de ejecución:"
-msgstr ""
+msgstr "Uitvoeringsdatum:"
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Se conserva el último informe durante una hora para descargarlo. La presencia de un archivo no demuestra su validez XML ni confirma que las plataformas externas lo hayan descargado."
@@ -1542,15 +1542,15 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Sin permisos para descargar el Autocheck."
-msgstr ""
+msgstr "Geen toestemming om Autocheck te downloaden."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Ejecuta el Autocheck antes de descargar el JSON."
-msgstr ""
+msgstr "Voer Autocheck uit voordat je het JSON-rapport downloadt."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "No se pudo generar el informe JSON."
-msgstr ""
+msgstr "Het JSON-rapport kon niet worden gemaakt."
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Publica feeds comerciales y sitemaps XML de tu catálogo."
@@ -1558,7 +1558,7 @@ msgstr ""
 
 #: includes/admin.php includes/feeds/admin.php
 msgid "Versión"
-msgstr ""
+msgstr "Versie"
 
 #: includes/feeds/admin.php
 msgid "Not started"
