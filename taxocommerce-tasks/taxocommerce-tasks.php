@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.7
  * Requires PHP: 7.4
  * Author: David Perez
@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.0' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.1' );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
@@ -130,10 +130,82 @@ KEY category_id (category_id)
 }
 register_activation_hook( __FILE__, 'tctasks_activate' );
 
+/**
+ * Keep Tasks in the TaxoCommerce family submenu when Core is available.
+ *
+ * Tasks remains fully independent: without Core, its own top-level menu is
+ * registered instead. Both paths preserve the original page slug and callback.
+ */
 function tctasks_admin_menu() {
-    add_menu_page( tctasks_label( 'Task agenda' ), tctasks_label( 'Tasks' ), 'manage_options', 'taxocommerce-tasks', 'tctasks_admin', 'dashicons-clipboard', 58 );
+    if ( function_exists( 'taxocommerce_core' ) || defined( 'TAXOCOMMERCE_CORE_VERSION' ) ) {
+        add_submenu_page(
+            'taxocommerce-core',
+            tctasks_label( 'Task agenda' ),
+            tctasks_label( 'Tasks' ),
+            'manage_options',
+            'taxocommerce-tasks',
+            'tctasks_admin'
+        );
+        return;
+    }
+
+    add_menu_page(
+        tctasks_label( 'Task agenda' ),
+        tctasks_label( 'Tasks' ),
+        'manage_options',
+        'taxocommerce-tasks',
+        'tctasks_admin',
+        'dashicons-clipboard',
+        58
+    );
 }
-add_action( 'admin_menu', 'tctasks_admin_menu' );
+add_action( 'admin_menu', 'tctasks_admin_menu', 60 );
+
+/**
+ * Register the task agenda in the optional Core module registry.
+ *
+ * @param object $core Optional Core registry.
+ * @return void
+ */
+function tctasks_register_core_module( $core ) {
+    if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
+        return;
+    }
+
+    $core->register_module(
+        'tasks',
+        array(
+            'name'        => 'TaxoCommerce Tasks',
+            'version'     => TAXOCOMMERCE_TASKS_VERSION,
+            'status'      => 'active',
+            'description' => 'Private task agenda, calendar, categories and indicators.',
+            'admin_url'   => admin_url( 'admin.php?page=taxocommerce-tasks' ),
+        )
+    );
+}
+add_action( 'taxocommerce_core_register_modules', 'tctasks_register_core_module' );
+
+/**
+ * Include Tasks in the Core extensions page without depending on Core.
+ *
+ * @param array $extensions Current catalog entries.
+ * @return array Updated catalog entries.
+ */
+function tctasks_register_family_extension( $extensions ) {
+    $extensions = is_array( $extensions ) ? $extensions : array();
+    $extensions['tasks'] = array(
+        'id'            => 'tasks',
+        'name'          => 'TaxoCommerce Tasks',
+        'plugin_file'   => 'taxocommerce-tasks/taxocommerce-tasks.php',
+        'org_slug'      => 'taxocommerce-tasks',
+        'search_term'   => 'TaxoCommerce Tasks',
+        'wordpress_org' => false,
+        'admin_url'     => admin_url( 'admin.php?page=taxocommerce-tasks' ),
+        'description'   => 'Private task agenda, calendar, categories and indicators.',
+    );
+    return $extensions;
+}
+add_filter( 'taxocommerce_core_family_extensions', 'tctasks_register_family_extension' );
 function tctasks_states() {
     return array( 'pending'=>'Pending', 'progress'=>'In progress', 'blocked'=>'Blocked', 'completed'=>'Completed' );
 }
