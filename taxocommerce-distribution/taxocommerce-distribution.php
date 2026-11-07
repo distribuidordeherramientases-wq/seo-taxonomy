@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Distribution - Feeds & Sitemaps for WooCommerce
  * Description: Publishes commercial feeds and professional XML sitemaps through independent bounded processes.
- * Version: 0.1.7
+ * Version: 0.1.8
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.7' );
+define( 'TAXOCOMMERCE_DISTRIBUTION_VERSION', '0.1.8' );
 define( 'TAXOCOMMERCE_DISTRIBUTION_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DISTRIBUTION_PATH', plugin_dir_path( __FILE__ ) );
 
@@ -63,6 +63,7 @@ function taxocommerce_distribution_boot() {
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/feeds/admin.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/sitemaps/engine.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/sitemaps/batch-worker.php';
+    require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/sitemaps/daily.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/manual.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/autocheck.php';
     require_once TAXOCOMMERCE_DISTRIBUTION_PATH . 'includes/admin.php';
@@ -127,6 +128,7 @@ register_deactivation_hook(
         wp_clear_scheduled_hook( 'taxocommerce_distribution_feed_worker' );
         wp_clear_scheduled_hook( 'tcdist_sitemap_regenerate_sitemaps_event' );
         wp_clear_scheduled_hook( TCDIST_SITEMAP_WORKER_HOOK );
+        wp_clear_scheduled_hook( 'tcdist_sitemap_daily_refresh' );
         flush_rewrite_rules( false );
     }
 );

@@ -1,5 +1,11 @@
 ## Unreleased - Familia i18n #2062
 
+## [0.1.8] — 2026-11-07 — Bing sitemap (Issue #2259)
+- Nueva revisión diaria de los sitemaps XML mediante WP-Cron y el trabajador incremental existente (250 registros por bloque, cinco velocidades); ninguna segunda implementación ni escritura durante la petición de la página.
+- Evita regeneraciones simultáneas y respeta el generador monolítico cuando sea el propietario activo de la ruta. Limpia su evento recurrente al desactivar el plugin.
+- Prueba del evento diario, de la recuperación de una cola ocupada, de la coexistencia legacy y del apagado; el resultado de Bing solo puede comprobarse con los XML publicados y un nuevo rastreo.
+- La categoría VEVOR FR - Peinture del ejemplo de Bing tiene productos publicados; esta versión no crea URL específicas ni modifica categorías de otras tiendas.
+
 ## [0.1.7] — 2026-11-04
 
 - Issue #2172: interfaz administrativa de Distribution traducible al español, incluidos controles de feeds; traducciones gettext es_ES completas y catálogos binarios coherentes.
