@@ -1,3 +1,9 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
 ## [1.1.21] — 2026-11-07 — Google Analytics mediante scripts de WordPress (#2299)
 
 - GA4 configurado en Insights usa el sistema nativo `wp_enqueue_script()` y `wp_add_inline_script()` en lugar de emitir una etiqueta script externa directamente.

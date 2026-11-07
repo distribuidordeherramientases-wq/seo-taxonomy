@@ -1,3 +1,9 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
 ## [Unreleased] — Primera fase de internacionalización (#2274)
 
 - Traducidas 42 cadenas principales de administración, accesibilidad, diagnósticos y manual en cinco idiomas: es_ES, en_US, fr_FR, de_DE y nl_NL.

@@ -1,3 +1,9 @@
+## [Unreleased] — Reutilización segura de traducciones (#2307)
+
+- Completadas únicamente entradas gettext PO vacías con traducciones idénticas y no ambiguas ya existentes en otros catálogos TaxoCommerce.
+- Regenerados los MO de los idiomas modificados. Se conservan los textos, identificadores técnicos, funciones y datos anteriores sin cambios.
+- Esta corrección es parcial: los textos restantes, las cadenas fuera de gettext y la validación visual por idioma siguen abiertos en #2062.
+
 ## [0.4.20] — 2026-11-07 — SEO piloto internacional FR/DE/NL/US (#2259)
 
 - El piloto VEVOR de los cuatro mercados usa una cabecera SEO independiente de las funciones globales del antiguo SEO Taxonomy, sin modificar el diseño ni el contenido de WordPress.
