@@ -17,14 +17,11 @@ define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.0' );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
 function tctasks_label( $source ) {
-    $translated = translate( $source, 'taxocommerce-tasks' );
-    if ( $translated !== $source ) {
-        return $translated;
-    }
     $locale = determine_locale();
     $lang   = substr( $locale, 0, 2 );
     $labels = array(
         'es' => array(
+            'Monday'=>'Lunes','Tuesday'=>'Martes','Wednesday'=>'Miércoles','Thursday'=>'Jueves','Friday'=>'Viernes','Saturday'=>'Sábado','Sunday'=>'Domingo',
             'Tasks' => 'Tareas', 'Calendar' => 'Calendario', 'Dashboard' => 'Indicadores', 'Categories' => 'Categorías',
             'Autocheck' => 'Autocheck', 'New task' => 'Nueva tarea', 'Edit task' => 'Editar tarea', 'Title' => 'Título',
             'Description' => 'Descripción', 'Category' => 'Categoría', 'Priority' => 'Prioridad', 'Status' => 'Estado',
@@ -47,6 +44,7 @@ function tctasks_label( $source ) {
             'Cancel' => 'Cancelar', 'Only registered WordPress users can be assigned.' => 'Solo se pueden asignar usuarios registrados de WordPress.',
         ),
         'fr' => array(
+            'Monday'=>'Lundi','Tuesday'=>'Mardi','Wednesday'=>'Mercredi','Thursday'=>'Jeudi','Friday'=>'Vendredi','Saturday'=>'Samedi','Sunday'=>'Dimanche',
             'Tasks'=>'Tâches','Calendar'=>'Calendrier','Dashboard'=>'Indicateurs','Categories'=>'Catégories','Autocheck'=>'Autocontrôle',
             'New task'=>'Nouvelle tâche','Edit task'=>'Modifier la tâche','Title'=>'Titre','Description'=>'Description',
             'Category'=>'Catégorie','Priority'=>'Priorité','Status'=>'Statut','Assignee'=>'Responsable',
@@ -67,6 +65,7 @@ function tctasks_label( $source ) {
             'Cancel'=>'Annuler','Only registered WordPress users can be assigned.'=>'Seuls les utilisateurs WordPress peuvent être désignés.',
         ),
         'de' => array(
+            'Monday'=>'Montag','Tuesday'=>'Dienstag','Wednesday'=>'Mittwoch','Thursday'=>'Donnerstag','Friday'=>'Freitag','Saturday'=>'Samstag','Sunday'=>'Sonntag',
             'Tasks'=>'Aufgaben','Calendar'=>'Kalender','Dashboard'=>'Kennzahlen','Categories'=>'Kategorien','Autocheck'=>'Selbsttest',
             'New task'=>'Neue Aufgabe','Edit task'=>'Aufgabe bearbeiten','Title'=>'Titel','Description'=>'Beschreibung',
             'Category'=>'Kategorie','Priority'=>'Priorität','Status'=>'Status','Assignee'=>'Zuständig',
@@ -159,7 +158,7 @@ function tctasks_redirect( $tab, $message = '' ) {
 }
 function tctasks_save_task() {
     if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'Sorry, you are not allowed to access this page.' ) );
+        wp_die( esc_html__( 'Sorry, you are not allowed to access this page.', 'taxocommerce-tasks' ) );
     }
     check_admin_referer( 'tctasks_save_task' );
     global $wpdb;
@@ -199,12 +198,12 @@ function tctasks_save_task() {
             wp_die( esc_html__( 'Task not found.', 'taxocommerce-tasks' ) );
         }
         $data['completed_at'] = 'completed' === $status ? ( 'completed' === $existing->status && $existing->completed_at ? $existing->completed_at : $now ) : null;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned private table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned private table.
         $wpdb->update( $tables['tasks'], $data, array( 'id'=>$id ) );
     } else {
         $data['created_at']   = $now;
         $data['completed_at'] = 'completed' === $status ? $now : null;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned private table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned private table.
         $wpdb->insert( $tables['tasks'], $data );
     }
     tctasks_redirect( 'tasks', 'saved' );
@@ -219,7 +218,7 @@ function tctasks_delete_task() {
     global $wpdb;
     $tables = tctasks_tables();
     if ( $id ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned private table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned private table.
         $wpdb->delete( $tables['tasks'], array( 'id'=>$id ) );
     }
     tctasks_redirect( 'tasks', 'deleted' );
@@ -236,7 +235,7 @@ function tctasks_save_category() {
     }
     global $wpdb;
     $tables = tctasks_tables();
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Private categories table.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private categories table.
     $wpdb->insert( $tables['categories'], array( 'name'=>$name ) );
     tctasks_redirect( 'categories', 'category-saved' );
 }
@@ -255,7 +254,7 @@ function tctasks_delete_category() {
         tctasks_redirect( 'categories', 'category-used' );
     }
     if ( $id ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Private categories table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private categories table.
         $wpdb->delete( $tables['categories'], array( 'id'=>$id ) );
     }
     tctasks_redirect( 'categories', 'category-deleted' );
@@ -275,6 +274,7 @@ function tctasks_admin() {
         return;
     }
     $allowed = array( 'tasks','calendar','dashboard','categories','autocheck' );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'tasks';
     if ( ! in_array( $tab, $allowed, true ) ) {
         $tab = 'tasks';
@@ -287,6 +287,7 @@ function tctasks_admin() {
         echo '<a class="nav-tab ' . ( $tab === $key ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $url ) . '">' . esc_html( tctasks_label( $label ) ) . '</a>';
     }
     echo '</nav>';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $notice = isset( $_GET['notice'] ) ? sanitize_key( wp_unslash( $_GET['notice'] ) ) : '';
     $notices = array( 'saved'=>'Task saved.','deleted'=>'Task deleted.','category-saved'=>'Category saved.','category-deleted'=>'Category deleted.','category-used'=>'Cannot delete a category that has tasks.' );
     if ( isset( $notices[ $notice ] ) ) {
@@ -318,6 +319,7 @@ function tctasks_select( $name, $options, $value, $any = '' ) {
 function tctasks_view_tasks() {
     global $wpdb;
     $tables = tctasks_tables();
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $edit_id = isset( $_GET['edit'] ) ? absint( wp_unslash( $_GET['edit'] ) ) : 0;
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Always show current task when editing.
     $editing = $edit_id ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $tables['tasks'], $edit_id ) ) : null;
@@ -356,9 +358,13 @@ function tctasks_view_tasks() {
     echo '</tbody></table>';
     submit_button( tctasks_label( 'Save task' ) );
     echo '</form><hr><h2>' . esc_html( tctasks_label( 'Tasks' ) ) . '</h2>';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $f_status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $f_priority = isset( $_GET['priority'] ) ? sanitize_key( wp_unslash( $_GET['priority'] ) ) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $f_category = isset( $_GET['category'] ) ? absint( wp_unslash( $_GET['category'] ) ) : 0;
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $f_assignee = isset( $_GET['assignee'] ) ? absint( wp_unslash( $_GET['assignee'] ) ) : 0;
     echo '<form method="get"><input type="hidden" name="page" value="taxocommerce-tasks"><input type="hidden" name="tab" value="tasks">';
     tctasks_select( 'status', tctasks_states(), $f_status, 'All statuses' );
@@ -366,16 +372,20 @@ function tctasks_view_tasks() {
     tctasks_select( 'category', $cats, $f_category, 'All categories' );
     tctasks_select( 'assignee', $users, $f_assignee, 'All assignees' );
     echo ' <button class="button">' . esc_html( tctasks_label( 'Filter' ) ) . '</button></form>';
-    $where = array( '1=1' );
-    $args = array();
-    if ( $f_status && isset( tctasks_states()[ $f_status ] ) ) { $where[]='status = %s'; $args[]=$f_status; }
-    if ( $f_priority && isset( tctasks_priorities()[ $f_priority ] ) ) { $where[]='priority = %s'; $args[]=$f_priority; }
-    if ( $f_category ) { $where[]='category_id = %d'; $args[]=$f_category; }
-    if ( $f_assignee ) { $where[]='assignee_id = %d'; $args[]=$f_assignee; }
-    $sql = 'SELECT * FROM %i WHERE ' . implode( ' AND ', $where ) . " ORDER BY FIELD(status, 'pending', 'progress', 'blocked', 'completed'), FIELD(priority, 'urgent', 'high', 'normal', 'low'), due_date IS NULL, due_date ASC, id DESC LIMIT 500";
-    array_unshift( $args, $tables['tasks'] );
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Only predeclared whitelist fragments in SQL; all values prepared.
-    $tasks = (array) $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
+    // Read-only query with a fixed SQL template and fully prepared values.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Private plugin task table.
+    $tasks = (array) $wpdb->get_results( $wpdb->prepare(
+        "SELECT * FROM %i
+         WHERE (%s = '' OR status = %s)
+           AND (%s = '' OR priority = %s)
+           AND (%d = 0 OR category_id = %d)
+           AND (%d = 0 OR assignee_id = %d)
+         ORDER BY FIELD(status, 'pending', 'progress', 'blocked', 'completed'),
+                  FIELD(priority, 'urgent', 'high', 'normal', 'low'),
+                  due_date IS NULL, due_date ASC, id DESC LIMIT 500",
+        $tables['tasks'], $f_status, $f_status, $f_priority, $f_priority,
+        $f_category, $f_category, $f_assignee, $f_assignee
+    ) );
     echo '<table class="widefat striped"><thead><tr>';
     foreach ( array('Title','Status','Priority','Category','Assignee','Due date','Actions') as $h ) { echo '<th scope="col">' . esc_html( tctasks_label( $h ) ) . '</th>'; }
     echo '</tr></thead><tbody>';
@@ -406,6 +416,7 @@ function tctasks_view_categories() {
 function tctasks_view_calendar() {
     global $wpdb;
     $tables = tctasks_tables();
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only administrator navigation/filter, no stored data is changed.
     $month_input = isset($_GET['month']) ? sanitize_text_field(wp_unslash($_GET['month'])) : wp_date('Y-m');
     if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month_input)) { $month_input=wp_date('Y-m'); }
     $date = DateTimeImmutable::createFromFormat('!Y-m-d', $month_input . '-01', wp_timezone());
@@ -419,7 +430,7 @@ function tctasks_view_calendar() {
     $link = static function($month) { return add_query_arg(array('page'=>'taxocommerce-tasks','tab'=>'calendar','month'=>$month),admin_url('admin.php')); };
     echo '<h2><a class="button" href="' . esc_url($link($date->modify('-1 month')->format('Y-m'))) . '">' . esc_html(tctasks_label('Previous')) . '</a> ' . esc_html(wp_date('F Y', $date->getTimestamp())) . ' <a class="button" href="' . esc_url($link($date->modify('+1 month')->format('Y-m'))) . '">' . esc_html(tctasks_label('Next')) . '</a></h2>';
     echo '<table class="widefat" style="table-layout:fixed"><thead><tr>';
-    $weekdays = array( __('Monday'), __('Tuesday'), __('Wednesday'), __('Thursday'), __('Friday'), __('Saturday'), __('Sunday') );
+    $weekdays = array( tctasks_label('Monday'), tctasks_label('Tuesday'), tctasks_label('Wednesday'), tctasks_label('Thursday'), tctasks_label('Friday'), tctasks_label('Saturday'), tctasks_label('Sunday') );
     foreach($weekdays as $day) { echo '<th scope="col">' . esc_html($day) . '</th>'; }
     echo '</tr></thead><tbody>';
     $offset = ((int) $date->format('N')) - 1;
