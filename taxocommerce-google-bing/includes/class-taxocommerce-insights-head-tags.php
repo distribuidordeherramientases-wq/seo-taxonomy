@@ -381,7 +381,7 @@ final class TaxoCommerce_Insights_Head_Tags {
                 echo '<button class="button button-small" type="submit">'
                     . esc_html( $active ? __( 'Desactivar', 'taxocommerce-google-bing' ) : __( 'Activar', 'taxocommerce-google-bing' ) )
                     . '</button></form> ';
-                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) . '" style="display:inline">';
+                echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline">';
                 echo '<input type="hidden" name="action" value="tgb_head_tag_delete"><input type="hidden" name="entry_id" value="' . esc_attr( $id ) . '">';
                 wp_nonce_field( self::NONCE );
                 echo '<button class="button button-small" type="submit">'
@@ -400,20 +400,72 @@ final class TaxoCommerce_Insights_Head_Tags {
             var form = document.getElementById('tgb-head-tags-form');
             var code = form && form.querySelector('textarea[name="entry_code"]');
             var kind = form && form.querySelector('select[name="entry_kind"]');
-            var idField = document.getElementById('tgb-head-tags-clarity-id');
-            if (!form || !code || !kind || !idField) {
+            var legacyClarity = document.getElementById('tgb-head-tags-clarity-id');
+            var providerInput = document.getElementById('tgb-head-tags-provider');
+            var providerIdInput = document.getElementById('tgb-head-tags-provider-id');
+            if (!form || !code || !kind || !legacyClarity || !providerInput || !providerIdInput) {
                 return;
             }
             form.addEventListener('submit', function () {
-                if (kind.value !== 'tracking') {
-                    return;
+                var text = code.value;
+                var provider = '';
+                var identifier = '';
+                var type = '';
+                var match;
+                code.disabled = false;
+                legacyClarity.value = '';
+                providerInput.value = '';
+                providerIdInput.value = '';
+
+                // Search Console's official meta verification tag (independent of attribute order).
+                var tags = text.match(/<meta\b[^>]*>/gi) || [];
+                for (var i = 0; i < tags.length; i++) {
+                    if (/\bname\s*=\s*["']google-site-verification["']/i.test(tags[i])) {
+                        match = tags[i].match(/\bcontent\s*=\s*["']([A-Za-z0-9_-]{8,256})["']/);
+                        if (match) {
+                            provider = 'google_verification';
+                            identifier = match[1];
+                            type = 'verification';
+                            break;
+                        }
+                    }
                 }
-                var match = code.value.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
-                if (!match) {
-                    match = code.value.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
+                if (!provider) {
+                    match = text.match(/\b(GTM-[A-Z0-9]{5,32})\b/i);
+                    if (match && (text.indexOf('<script') !== -1 || /^\s*GTM-[A-Z0-9]+\s*$/i.test(text))) {
+                        provider = 'google_tag_manager';
+                        identifier = match[1].toUpperCase();
+                        type = 'tracking';
+                    }
                 }
-                if (match) {
-                    idField.value = match[1].toLowerCase();
+                if (!provider) {
+                    match = text.match(/\b(G-[A-Z0-9]{5,32})\b/i);
+                    if (match && (text.indexOf('<script') !== -1 || /^\s*G-[A-Z0-9]+\s*$/i.test(text))) {
+                        provider = 'google_analytics';
+                        identifier = match[1].toUpperCase();
+                        type = 'tracking';
+                    }
+                }
+                if (!provider) {
+                    match = text.match(/\}\s*\)\s*\(\s*window\s*,\s*document\s*,\s*["']clarity["']\s*,\s*["']script["']\s*,\s*["']([a-z0-9]{6,32})["']\s*\)/i);
+                    if (!match) {
+                        match = text.match(/https:\/\/(?:www\.)?clarity\.ms\/tag\/([a-z0-9]{6,32})/i);
+                    }
+                    if (match) {
+                        provider = 'clarity';
+                        identifier = match[1].toLowerCase();
+                        type = 'tracking';
+                    }
+                }
+                if (provider) {
+                    // The user still pastes the provider's full snippet. No HTML/JS
+                    // travels through the WAF: PHP rebuilds a fixed, vetted snippet.
+                    kind.value = type;
+                    providerInput.value = provider;
+                    providerIdInput.value = identifier;
+                    if (provider === 'clarity') {
+                        legacyClarity.value = identifier;
+                    }
                     code.disabled = true;
                 }
             });
