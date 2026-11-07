@@ -657,3 +657,55 @@ msgstr "Sie haben keine Berechtigung, X zu verbinden."
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr "X verbinden / Autorisierung erneuern"
+
+msgid "Conexiones"
+msgstr "Verbindungen"
+
+msgid "Plantillas"
+msgstr "Vorlagen"
+
+msgid "Calendario"
+msgstr "Kalender"
+
+msgid "Manual"
+msgstr "Handbuch"
+
+msgid "Ejecutar Autocheck"
+msgstr "Auto-Test ausführen"
+
+msgid "Último resultado"
+msgstr "Letztes Ergebnis"
+
+msgid "correctas"
+msgstr "bestanden"
+
+msgid "fallidas"
+msgstr "fehlgeschlagen"
+
+msgid "omitidas"
+msgstr "übersprungen"
+
+msgid "Comparación:"
+msgstr "Vergleich:"
+
+msgid "Regresiones:"
+msgstr "Regressionen:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Kein Wechsel von bestanden zu fehlgeschlagen."
+
+msgid "Correcto"
+msgstr "Bestanden"
+
+msgid "Error"
+msgstr "Fehler"
+
+msgid "No ejecutado"
+msgstr "Nicht ausgeführt"
+
+msgid "Otro"
+msgstr "Sonstiges"
+
+msgid "Contenido #%d"
+msgstr "Inhalt Nr. %d"
+

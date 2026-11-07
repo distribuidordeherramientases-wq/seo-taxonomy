@@ -657,3 +657,55 @@ msgstr "Vous n'avez pas l'autorisation de connecter X."
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr "Connecter / renouveler X"
+
+msgid "Conexiones"
+msgstr "Connexions"
+
+msgid "Plantillas"
+msgstr "Modèles"
+
+msgid "Calendario"
+msgstr "Calendrier"
+
+msgid "Manual"
+msgstr "Manuel"
+
+msgid "Ejecutar Autocheck"
+msgstr "Exécuter l'Auto Test"
+
+msgid "Último resultado"
+msgstr "Dernier résultat"
+
+msgid "correctas"
+msgstr "réussies"
+
+msgid "fallidas"
+msgstr "échouées"
+
+msgid "omitidas"
+msgstr "ignorées"
+
+msgid "Comparación:"
+msgstr "Comparaison :"
+
+msgid "Regresiones:"
+msgstr "Régressions :"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Aucune régression du succès à l'échec."
+
+msgid "Correcto"
+msgstr "Réussi"
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "No ejecutado"
+msgstr "Non exécuté"
+
+msgid "Otro"
+msgstr "Autre"
+
+msgid "Contenido #%d"
+msgstr "Contenu nº %d"
+

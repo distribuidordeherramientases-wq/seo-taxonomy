@@ -657,3 +657,55 @@ msgstr "No tienes permisos para conectar X."
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr "Conectar / renovar X"
+
+msgid "Conexiones"
+msgstr "Conexiones"
+
+msgid "Plantillas"
+msgstr "Plantillas"
+
+msgid "Calendario"
+msgstr "Calendario"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Ejecutar Autocheck"
+msgstr "Ejecutar Autocheck"
+
+msgid "Último resultado"
+msgstr "Último resultado"
+
+msgid "correctas"
+msgstr "correctas"
+
+msgid "fallidas"
+msgstr "fallidas"
+
+msgid "omitidas"
+msgstr "omitidas"
+
+msgid "Comparación:"
+msgstr "Comparación:"
+
+msgid "Regresiones:"
+msgstr "Regresiones:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Sin regresiones de correcto a fallido."
+
+msgid "Correcto"
+msgstr "Correcto"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "No ejecutado"
+msgstr "No ejecutado"
+
+msgid "Otro"
+msgstr "Otro"
+
+msgid "Contenido #%d"
+msgstr "Contenido #%d"
+

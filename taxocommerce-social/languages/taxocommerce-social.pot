@@ -614,3 +614,73 @@ msgstr ""
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Conexiones"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Plantillas"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Calendario"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Manual"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Ejecutar Autocheck"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Último resultado"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "correctas"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "fallidas"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "omitidas"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Comparación:"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Regresiones:"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Sin regresiones de correcto a fallido."
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Correcto"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Error"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "No ejecutado"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+msgid "Otro"
+msgstr ""
+
+#: includes/admin.php includes/class-auto-test.php includes/calendar.php
+#. translators: %d: WordPress content ID.
+msgid "Contenido #%d"
+msgstr ""
+

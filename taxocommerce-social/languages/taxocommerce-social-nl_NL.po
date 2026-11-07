@@ -657,3 +657,55 @@ msgstr "Je hebt geen toestemming om X te verbinden."
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr "X verbinden / toestemming vernieuwen"
+
+msgid "Conexiones"
+msgstr "Verbindingen"
+
+msgid "Plantillas"
+msgstr "Sjablonen"
+
+msgid "Calendario"
+msgstr "Kalender"
+
+msgid "Manual"
+msgstr "Handleiding"
+
+msgid "Ejecutar Autocheck"
+msgstr "Auto Test uitvoeren"
+
+msgid "Último resultado"
+msgstr "Laatste resultaat"
+
+msgid "correctas"
+msgstr "geslaagd"
+
+msgid "fallidas"
+msgstr "mislukt"
+
+msgid "omitidas"
+msgstr "overgeslagen"
+
+msgid "Comparación:"
+msgstr "Vergelijking:"
+
+msgid "Regresiones:"
+msgstr "Regressies:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "Geen regressies van geslaagd naar mislukt."
+
+msgid "Correcto"
+msgstr "Geslaagd"
+
+msgid "Error"
+msgstr "Fout"
+
+msgid "No ejecutado"
+msgstr "Niet uitgevoerd"
+
+msgid "Otro"
+msgstr "Overig"
+
+msgid "Contenido #%d"
+msgstr "Inhoud #%d"
+

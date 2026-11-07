@@ -657,3 +657,55 @@ msgstr "You do not have permission to connect X."
 #: includes/x.php:677
 msgid "Conectar / renovar X"
 msgstr "Connect / renew X"
+
+msgid "Conexiones"
+msgstr "Connections"
+
+msgid "Plantillas"
+msgstr "Templates"
+
+msgid "Calendario"
+msgstr "Calendar"
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Ejecutar Autocheck"
+msgstr "Run Auto Test"
+
+msgid "Último resultado"
+msgstr "Latest result"
+
+msgid "correctas"
+msgstr "passed"
+
+msgid "fallidas"
+msgstr "failed"
+
+msgid "omitidas"
+msgstr "skipped"
+
+msgid "Comparación:"
+msgstr "Comparison:"
+
+msgid "Regresiones:"
+msgstr "Regressions:"
+
+msgid "Sin regresiones de correcto a fallido."
+msgstr "No regressions from pass to fail."
+
+msgid "Correcto"
+msgstr "Passed"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "No ejecutado"
+msgstr "Not run"
+
+msgid "Otro"
+msgstr "Other"
+
+msgid "Contenido #%d"
+msgstr "Content #%d"
+
