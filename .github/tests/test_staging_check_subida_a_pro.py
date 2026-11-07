@@ -27,14 +27,15 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", self.pipeline)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
-        # Only the explicitly authorized Tasks direct-push path is allowed.
-        # All other plugins continue using the three-phase gated pipeline.
+        # Only Core/Tasks may use the direct push scoped path.
+        # Other family plugins continue using the three-phase gated pipeline.
         self.assertIn("  push:", self.staging)
         push_block = self.staging.split("  push:", 1)[1].split("  pull_request:", 1)[0]
         self.assertIn("- staging", push_block)
         self.assertIn("'taxocommerce-tasks/**'", push_block)
-        self.assertNotIn("'taxocommerce-core/**'", push_block)
+        self.assertIn("'taxocommerce-core/**'", push_block)
         self.assertNotIn("'taxocommerce-templates/**'", push_block)
+        self.assertIn("&& 'auto'", self.staging)
         self.assertIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
         self.assertIn("TAXOCOMMERCE_TARGET_PLUGIN:", self.staging)
 
