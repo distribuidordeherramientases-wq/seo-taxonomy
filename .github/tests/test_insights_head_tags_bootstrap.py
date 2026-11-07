@@ -1,5 +1,6 @@
 """Keep the Insights head tag manager wired after independent feature merges."""
 import unittest
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,8 +36,12 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         self.assertIn("TaxoCommerce_Insights_Head_Tags::register();", self.main)
 
     def test_version_header_and_readme_match(self):
-        self.assertIn("* Version: 1.1.22", self.main)
-        self.assertIn("Stable tag: 1.1.22", README.read_text(encoding="utf-8"))
+        header = re.search(r"^ \* Version: (\d+\.\d+\.\d+)$", self.main, re.MULTILINE)
+        self.assertIsNotNone(header)
+        version = header.group(1)
+        self.assertIn(f"Stable tag: {version}", README.read_text(encoding="utf-8"))
+        self.assertIn(f"define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '{version}' );", self.main)
+        self.assertIn("* Release Date: 2026-11-07", self.main)
 
 
 if __name__ == "__main__":
