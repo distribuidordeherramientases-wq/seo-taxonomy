@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: taxocommerce-tasks 0.1.1\n"
+"Project-Id-Version: taxocommerce-tasks 0.1.3\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -291,3 +291,218 @@ msgstr "Annuler"
 msgid "Only registered WordPress users can be assigned."
 msgstr "Seuls les utilisateurs WordPress peuvent être désignés."
 
+#: taxocommerce-tasks.php
+msgid "User manual"
+msgstr "Manuel utilisateur"
+
+#: taxocommerce-tasks.php
+msgid "Technical manual"
+msgstr "Manuel technique"
+
+#: taxocommerce-tasks.php
+msgid "New category"
+msgstr "Nouvelle catégorie"
+
+#: taxocommerce-tasks.php
+msgid "Edit category"
+msgstr "Modifier la catégorie"
+
+#: taxocommerce-tasks.php
+msgid "Update category"
+msgstr "Enregistrer les modifications"
+
+#: taxocommerce-tasks.php
+msgid "Category updated."
+msgstr "Catégorie mise à jour."
+
+#: taxocommerce-tasks.php
+msgid "Category not found."
+msgstr "Catégorie introuvable."
+
+#: taxocommerce-tasks.php
+msgid "Unable to save category. Name must be unique."
+msgstr "Enregistrement impossible. Le nom doit être unique."
+
+#: taxocommerce-tasks.php
+msgid "Renaming a category preserves the tasks assigned to it."
+msgstr "Renommer une catégorie conserve ses tâches."
+
+#: taxocommerce-tasks.php
+msgid "Cancel edit"
+msgstr "Annuler la modification"
+
+#: includes/class-tctasks-manuals.php
+msgid "Access and privacy"
+msgstr "Accès et confidentialité"
+
+#: includes/class-tctasks-manuals.php
+msgid "Open TaxoCommerce Core → Tasks when Core is available; otherwise use the standalone Tasks menu. Both routes open the same private agenda."
+msgstr "Ouvrez TaxoCommerce Core → Tasks si Core est actif ; sinon, utilisez le menu autonome Tasks. Les données restent privées."
+
+#: includes/class-tctasks-manuals.php
+msgid "Only users with manage_options can administer tasks. No posts, products or public pages are created."
+msgstr "Seuls les comptes ayant manage_options peuvent gérer les tâches. Aucun article, produit ou contenu public n’est créé."
+
+#: includes/class-tctasks-manuals.php
+msgid "Task categories"
+msgstr "Catégories"
+
+#: includes/class-tctasks-manuals.php
+msgid "On Categories, enter a name and choose Save category. Categories belong exclusively to Tasks, not WordPress or WooCommerce taxonomies."
+msgstr "Dans Catégories, saisissez un nom puis enregistrez. Ces catégories sont propres à Tasks, indépendamment de WordPress et WooCommerce."
+
+#: includes/class-tctasks-manuals.php
+msgid "To rename one, select Edit, change the name and choose Update category; Cancel edit discards the changes. Existing task assignments remain linked to the same category ID."
+msgstr "Cliquez sur Modifier, renommez et enregistrez ; Annuler abandonne la modification. Les tâches associées conservent leur catégorie."
+
+#: includes/class-tctasks-manuals.php
+msgid "Names must be unique. A category with assigned tasks cannot be deleted until the tasks are reassigned."
+msgstr "Les noms doivent être uniques. Une catégorie utilisée par des tâches ne peut pas être supprimée."
+
+#: includes/class-tctasks-manuals.php
+msgid "Create and update tasks"
+msgstr "Créer et modifier une tâche"
+
+#: includes/class-tctasks-manuals.php
+msgid "In Tasks, enter a title and optional description, category, registered WordPress assignee, start date and due date."
+msgstr "Renseignez un titre puis, si nécessaire, une description, une catégorie, un responsable WordPress, une date de début et une échéance."
+
+#: includes/class-tctasks-manuals.php
+msgid "Choose Low, Normal, High or Urgent priority and Pending, In progress, Blocked or Completed status. Completion records a timestamp; reopening a task clears it."
+msgstr "Choisissez une priorité Faible, Normale, Élevée ou Urgente et un statut En attente, En cours, Bloquée ou Terminée. L’achèvement enregistre la date ; rouvrir la tâche l’efface."
+
+#: includes/class-tctasks-manuals.php
+msgid "Save the task. Use Edit from the list to modify it or Delete to remove it."
+msgstr "Enregistrez, puis utilisez Modifier ou Supprimer depuis la liste."
+
+#: includes/class-tctasks-manuals.php
+msgid "Task list and filters"
+msgstr "Liste et filtres"
+
+#: includes/class-tctasks-manuals.php
+msgid "Filter by status, priority, category and assignee. Open tasks are prioritized, followed by priority and due date."
+msgstr "Filtrez par statut, priorité, catégorie et responsable. Les tâches ouvertes et urgentes apparaissent en premier."
+
+#: includes/class-tctasks-manuals.php
+msgid "At most 500 tasks are returned per list query."
+msgstr "La liste affiche au maximum 500 tâches par requête."
+
+#: includes/class-tctasks-manuals.php
+msgid "Calendar and indicators"
+msgstr "Calendrier et indicateurs"
+
+#: includes/class-tctasks-manuals.php
+msgid "Calendar shows tasks by due date in a monthly grid. Use Previous and Next to change month, or choose a task to edit it."
+msgstr "Le calendrier mensuel classe les tâches par échéance. Utilisez Précédent ou Suivant, puis cliquez sur une tâche pour la modifier."
+
+#: includes/class-tctasks-manuals.php
+msgid "Dashboard shows totals, overdue tasks and breakdowns by status, priority and assignee. Overdue means a due date before today with status other than Completed."
+msgstr "Les indicateurs montrent les totaux, les retards, les statuts, les priorités et les responsables. Une tâche non terminée est en retard après son échéance."
+
+#: includes/class-tctasks-manuals.php
+msgid "Autocheck and retention"
+msgstr "Autocontrôle et données"
+
+#: includes/class-tctasks-manuals.php
+msgid "Autocheck checks the two plugin tables and the administrator capability. Run the check and download the read-only JSON report."
+msgstr "Autocontrôle vérifie les deux tables et les droits de l’administrateur. Exécutez-le puis téléchargez le rapport JSON, sans modifier les tâches."
+
+#: includes/class-tctasks-manuals.php
+msgid "Each site owns its tasks and categories. Deactivation and uninstall do not erase these tables. Make backups before manual database maintenance."
+msgstr "Chaque site conserve ses propres données. La désactivation et la désinstallation ne suppriment pas les tables ; sauvegardez-les avant toute maintenance."
+
+#: includes/class-tctasks-manuals.php
+msgid "Requirements and independence"
+msgstr "Prérequis et indépendance"
+
+#: includes/class-tctasks-manuals.php
+msgid "Requires WordPress 6.7+ and PHP 7.4+. WooCommerce and TaxoCommerce Core are optional."
+msgstr "WordPress 6.7+ et PHP 7.4+ sont requis. WooCommerce et TaxoCommerce Core restent facultatifs."
+
+#: includes/class-tctasks-manuals.php
+msgid "The page slug stays admin.php?page=taxocommerce-tasks. Tasks appears under Core if installed, otherwise as a top-level administrator menu."
+msgstr "La route admin.php?page=taxocommerce-tasks est stable. Le sous-menu Core est utilisé si disponible, sinon le menu autonome."
+
+#: includes/class-tctasks-manuals.php
+msgid "Database schema"
+msgstr "Stockage SQL"
+
+#: includes/class-tctasks-manuals.php
+msgid "dbDelta creates {prefix}tctasks_tasks and {prefix}tctasks_categories at activation, using the local WordPress table prefix."
+msgstr "À l’activation, dbDelta crée {prefix}tctasks_tasks et {prefix}tctasks_categories avec le préfixe local."
+
+#: includes/class-tctasks-manuals.php
+msgid "Categories have primary key id and unique varchar(190) name. Tasks contain id, title, description, category_id, priority, status, assignee_id, start_date, due_date, completed_at, created_at, and updated_at."
+msgstr "Les catégories ont un id primaire et un name unique de 190 caractères. Les tâches stockent id, title, description, category_id, priority, status, assignee_id, start_date, due_date, completed_at, created_at et updated_at."
+
+#: includes/class-tctasks-manuals.php
+msgid "Renaming changes only a category name, never its ID or any task category_id. In-use categories cannot be deleted."
+msgstr "Renommer une catégorie ne change ni son ID ni les références des tâches ; la suppression des catégories utilisées est interdite."
+
+#: includes/class-tctasks-manuals.php
+msgid "Task state and dates"
+msgstr "États et échéances"
+
+#: includes/class-tctasks-manuals.php
+msgid "Internal statuses: pending, progress, blocked, completed. Priorities: low, normal, high, urgent."
+msgstr "Statuts : pending, progress, blocked, completed. Priorités : low, normal, high, urgent."
+
+#: includes/class-tctasks-manuals.php
+msgid "assignee_id references a WordPress user ID, or zero when unassigned. Calendar fields use DATE, completion timestamps DATETIME in the WordPress timezone."
+msgstr "assignee_id est un identifiant utilisateur WordPress ou zéro. Les dates sont de type DATE et la fin DATETIME selon l’heure WordPress."
+
+#: includes/class-tctasks-manuals.php
+msgid "Administration and hooks"
+msgstr "Administration et hooks"
+
+#: includes/class-tctasks-manuals.php
+msgid "Tabs: tasks, calendar, dashboard, categories, autocheck, manual-user and manual-technical."
+msgstr "Onglets : tasks, calendar, dashboard, categories, autocheck, manual-user et manual-technical."
+
+#: includes/class-tctasks-manuals.php
+msgid "POST handlers save/delete tasks and categories; Autocheck has its own run and JSON export handlers. Category editing is identified by a validated category ID."
+msgstr "Les actions admin_post enregistrent ou suppriment tâches et catégories. L’autocontrôle a ses propres actions de lancement et export JSON."
+
+#: includes/class-tctasks-manuals.php
+msgid "Optional family integration uses taxocommerce_core_register_modules and taxocommerce_core_family_extensions; storage does not depend on Core."
+msgstr "L’intégration facultative à Core repose sur taxocommerce_core_register_modules et taxocommerce_core_family_extensions."
+
+#: includes/class-tctasks-manuals.php
+msgid "Security"
+msgstr "Sécurité"
+
+#: includes/class-tctasks-manuals.php
+msgid "All administration requires manage_options. Mutating POST actions verify nonces using check_admin_referer."
+msgstr "L’administration exige manage_options ; les écritures POST contrôlent les nonces."
+
+#: includes/class-tctasks-manuals.php
+msgid "Inputs are sanitized, SQL query values use prepare placeholders, and HTML output is escaped. Manuals are read-only and require no external service."
+msgstr "Les champs sont nettoyés, les requêtes utilisent prepare et l’affichage est échappé. Aucune API publique n’est créée."
+
+#: includes/class-tctasks-manuals.php
+msgid "Queries and performance"
+msgstr "Requêtes et performances"
+
+#: includes/class-tctasks-manuals.php
+msgid "The task list returns up to 500 rows ordered by status, priority and due date. The calendar queries only one selected month."
+msgstr "La liste limite les résultats à 500, triés par statut, priorité et échéance. Le calendrier interroge un seul mois."
+
+#: includes/class-tctasks-manuals.php
+msgid "Dashboard computes counters from current task records. There are no scheduled jobs, remote calls, or public endpoints."
+msgstr "Les indicateurs calculent les compteurs à partir des tâches. Aucun cron, service externe ou publication n’est utilisé."
+
+#: includes/class-tctasks-manuals.php
+msgid "Autocheck and operations"
+msgstr "Autocontrôle et exploitation"
+
+#: includes/class-tctasks-manuals.php
+msgid "Autocheck verifies the plugin-owned tables and capability; JSON includes plugin, version, generated_at, executed_at, rows and totals."
+msgstr "Le rapport JSON contient plugin, version, generated_at, executed_at, rows et totals ; les vérifications concernent les tables et les permissions."
+
+#: includes/class-tctasks-manuals.php
+msgid "It does not perform data-integrity checks or alter tasks. Deactivation and uninstall preserve data; administrators should back up the tables."
+msgstr "La désactivation et la désinstallation conservent les données. Des sauvegardes restent nécessaires."
+
+#: includes/class-tctasks-manuals.php
+msgid "The same code is deployed to authorized STAGING and Focazul sites. File delivery and functional verification are separate checks."
+msgstr "Le code déployé sur STAGING et Focazul est identique ; le transfert de fichiers doit être distingué des tests fonctionnels."
