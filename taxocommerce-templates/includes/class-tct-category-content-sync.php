@@ -73,7 +73,7 @@ final class TCT_Category_Content_Sync {
      */
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'You do not have permission to manage this site.' ) );
+            wp_die( esc_html__( 'You do not have permission to manage this site.', 'taxocommerce-templates' ) );
         }
         echo '<div class="wrap"><h2>' . esc_html__( 'Category descriptions', 'taxocommerce-templates' ) . '</h2>';
         echo '<p>' . esc_html__( 'Compare native WooCommerce descriptions with the legacy SEO descriptions used by templates. No data changes until you select rows and apply.', 'taxocommerce-templates' ) . '</p>';
@@ -148,17 +148,19 @@ final class TCT_Category_Content_Sync {
      */
     public static function handle() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'You do not have permission to manage this site.' ) );
+            wp_die( esc_html__( 'You do not have permission to manage this site.', 'taxocommerce-templates' ) );
         }
         check_admin_referer( self::ACTION );
         if ( ! self::available() ) {
             wp_die( esc_html__( 'The optional SEO table or WooCommerce taxonomy is unavailable.', 'taxocommerce-templates' ) );
         }
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Every array member is immediately reduced to a positive integer.
         $raw_ids = isset( $_POST['term_ids'] ) && is_array( $_POST['term_ids'] )
-            ? wp_unslash( $_POST['term_ids'] ) : array();
-        $ids = array_slice( array_values( array_unique( array_filter( array_map( 'absint', $raw_ids ) ) ) ), 0, self::LIMIT );
+            ? array_map( 'absint', wp_unslash( $_POST['term_ids'] ) ) : array();
+        $ids = array_slice( array_values( array_unique( array_filter( $raw_ids ) ) ), 0, self::LIMIT );
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each submitted fingerprint is sanitized before hash_equals.
         $hashes = isset( $_POST['fingerprints'] ) && is_array( $_POST['fingerprints'] )
-            ? wp_unslash( $_POST['fingerprints'] ) : array();
+            ? map_deep( wp_unslash( $_POST['fingerprints'] ), 'sanitize_text_field' ) : array();
         $updated = 0;
         $skipped = 0;
         global $wpdb;
