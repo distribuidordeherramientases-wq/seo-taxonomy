@@ -290,7 +290,7 @@ msgid ""
 "Diagnóstico manual y no destructivo: comprueba componentes, hooks, "
 "configuración y metadatos de archivos. No genera feeds ni sitemaps, no "
 "consulta servicios externos, no inicia trabajos y no escribe datos."
-msgstr ""
+msgstr "Manual, non-destructive diagnostics: checks components, hooks, settings and file metadata. It does not generate feeds or sitemaps, query external services, start jobs or write data."
 
 #: includes/autocheck.php:240
 msgid "Ejecutar autocheck"
@@ -349,7 +349,7 @@ msgid ""
 "Los resultados no se guardan. La presencia física de un fichero no demuestra"
 " su validez XML ni confirma que las plataformas externas lo hayan "
 "descargado."
-msgstr ""
+msgstr "Results are not saved. A file’s physical presence does not prove its XML is valid or confirm that external platforms have downloaded it."
 
 #: includes/feeds/admin.php:31
 msgid "You do not have permission to configure commercial feeds."
@@ -414,7 +414,7 @@ msgstr "TaxoCommerce Distribution user guide"
 msgid ""
 "Guía de uso y referencia técnica del plugin independiente de publicación de "
 "feeds comerciales y sitemaps XML."
-msgstr ""
+msgstr "User guide and technical reference for the standalone plugin publishing commercial feeds and XML sitemaps."
 
 #: includes/manual.php:34
 msgid "Índice de documentación"
@@ -426,7 +426,7 @@ msgstr "Contents"
 
 #: includes/manual.php:36 includes/manual.php:43
 msgid "Manual de usuario"
-msgstr ""
+msgstr "User guide"
 
 #: includes/manual.php:37
 msgid "Manual técnico"
@@ -441,7 +441,7 @@ msgid ""
 "Destinatarios: responsables de catálogo, operaciones y administración de "
 "WooCommerce. Explica qué revisar antes, durante y después de publicar un "
 "feed o sitemap."
-msgstr ""
+msgstr "Audience: catalogue managers, operations staff and WooCommerce administrators. Explains what to check before, during and after publishing a feed or sitemap."
 
 #: includes/manual.php:45
 msgid "1. Acceso y pestañas"
@@ -454,7 +454,7 @@ msgid ""
 " Feeds, Sitemaps, Automation, Manual y Autocheck. Requiere los permisos de "
 "gestión de WooCommerce configurados para Distribution, o permisos de "
 "administrador."
-msgstr ""
+msgstr "Open TaxoCommerce Core > Distribution; if Core is not installed, use Distribution in the main menu. The plugin has Overview, Commercial Feeds, Sitemaps, Automation, Manual and Autocheck tabs. Administration requires the WooCommerce management permissions configured for Distribution or administrator permissions."
 
 #: includes/manual.php:48
 msgid "1.1. Secuencia inicial segura"
@@ -465,31 +465,31 @@ msgid ""
 "Confirma el entorno (STAGING o PRO) y que WooCommerce esté activo. Comprueba"
 " si el módulo SEO monolítico sigue siendo propietario de las tareas "
 "automáticas."
-msgstr ""
+msgstr "Confirm the environment (STAGING or PRO) and that WooCommerce is active. Check whether the monolithic SEO module still owns scheduled tasks."
 
 #: includes/manual.php:51
 msgid ""
 "Revisa Overview y Automation antes de modificar canales. Un aviso de archivo"
 " no generado no implica que el motor haya fallado."
-msgstr ""
+msgstr "Review Overview and Automation before changing channels. A warning that a file has not been generated does not mean the engine has failed."
 
 #: includes/manual.php:52
 msgid ""
 "Abre Commercial Feeds, selecciona canales, país e idioma y guarda; esta "
 "operación puede retirar el fichero de un canal desactivado."
-msgstr ""
+msgstr "Open Commercial Feeds, select channels, country and language, then save. This may remove the file for a disabled channel."
 
 #: includes/manual.php:53
 msgid ""
 "Inicia la generación manual solo cuando no haya otra activa; sigue el estado"
 " de lotes y comprueba los enlaces publicados."
-msgstr ""
+msgstr "Start manual generation only when another generation is not active; monitor batch status and check the published links."
 
 #: includes/manual.php:54
 msgid ""
 "Comprueba Sitemaps y, si procede, regenera el índice; valida el XML "
 "publicado antes de facilitar su URL a buscadores."
-msgstr ""
+msgstr "Check Sitemaps and regenerate the index if appropriate; validate the published XML before submitting its URL to search engines."
 
 #: includes/manual.php:57
 msgid "2. Overview: estado general"
@@ -501,7 +501,7 @@ msgid ""
 "productos publicados, canales activos, estado del índice de sitemaps, URL "
 "publicadas y ficheros existentes. Estos indicadores no lanzan ninguna "
 "generación."
-msgstr ""
+msgstr "Review commercial-generation status, processed candidates, published products, active channels, sitemap index status, published URLs and existing files. These indicators do not start any generation."
 
 #: includes/manual.php:60
 msgid "3. Commercial Feeds: configuración y generación"
@@ -514,7 +514,7 @@ msgid ""
 "idioma de dos letras, regeneración tras sincronización de proveedores y la "
 "hora de actualización diaria. Guarda los ajustes antes de iniciar el "
 "proceso."
-msgstr ""
+msgstr "Select Google Merchant (XML), Microsoft/Bing Shopping (TXT), Pinterest (CSV), universal CSV catalogue and JSON catalogue channels. Set the country, two-letter language code, regeneration after supplier synchronisation and daily update time. Save the settings before starting."
 
 #: includes/manual.php:62
 msgid ""
@@ -523,7 +523,7 @@ msgid ""
 "del servidor y última actividad. Stop generation cancela el trabajo actual "
 "sin sustituir el último fichero público válido por uno parcial. Revisa los "
 "motivos de exclusión y los errores antes de repetir."
-msgstr ""
+msgstr "The Start generation button launches an adaptively regulated batch job, displaying candidates, processed, published and excluded items, server pressure and last activity. Stop generation cancels the current job without replacing the last valid public file with a partial one. Review exclusions and errors before restarting."
 
 #: includes/manual.php:63
 msgid ""
@@ -531,7 +531,7 @@ msgid ""
 "descargan desde tu web; el plugin no envía archivos a esas plataformas. Las "
 "actualizaciones automáticas comerciales se programan solamente cuando el "
 "entorno efectivo es producción y Distribution posee la automatización."
-msgstr ""
+msgstr "Files have stable URLs. Google, Microsoft and Pinterest download them from your website; the plugin does not send files to those platforms. Automatic commercial updates are scheduled only when the effective environment is production and Distribution owns the automation."
 
 #: includes/manual.php:65
 msgid "4. Sitemaps: comprobación y regeneración"
@@ -543,7 +543,7 @@ msgid ""
 "categorías de producto, entradas, páginas, clústeres y hubs. El informe "
 "indica validación XML, URLs, cobertura de auditoría, tamaño y fecha de "
 "modificación cuando existen datos."
-msgstr ""
+msgstr "View the public /sitemap.xml index and its child files for products, product categories, posts, pages, clusters and hubs. The report shows XML validation, URLs, audit coverage, size and modification date where available."
 
 #: includes/manual.php:67
 msgid ""
@@ -551,7 +551,7 @@ msgid ""
 "agrupa productos en bloques, valida el XML y publica de manera atómica para "
 "evitar exponer archivos incompletos. Ejecuta esta operación solo cuando "
 "proceda; Autocheck no la activa."
-msgstr ""
+msgstr "Regenerate and validate sitemaps performs a real generation. The engine groups products into batches, validates XML and publishes atomically to avoid exposing incomplete files. Run this only when necessary; Autocheck does not trigger it."
 
 #: includes/manual.php:69
 msgid "5. Automation: supervisar el trabajo"
@@ -563,7 +563,7 @@ msgid ""
 "o al módulo antiguo, la regeneración diaria, el último lote y la propiedad "
 "de los sitemaps. El worker funciona por ventanas con cursor y bloqueo; no es"
 " necesario dejar abierta la pantalla para publicar."
-msgstr ""
+msgstr "Check whether commercial automation is owned by the standalone plugin or the old module, as well as daily regeneration, last batch and sitemap ownership. The worker operates in windows using a cursor and lock; you do not need to leave the screen open for publishing."
 
 #: includes/manual.php:72
 msgid "6. Migración y entornos"
@@ -575,7 +575,7 @@ msgid ""
 "prioridad temporal para evitar workers duplicados; Distribution mantiene la "
 "generación manual para pruebas. STAGING usa sus propios productos y URLs: no"
 " registres sus feeds en las plataformas comerciales."
-msgstr ""
+msgstr "If the monolithic SEO plugin is active, its automation has temporary priority to avoid duplicate workers; Distribution still allows manual generation for testing. STAGING uses its own products and URLs: do not register its feeds with commercial platforms."
 
 #: includes/manual.php:75
 msgid "7. Autocheck: verificación sin riesgos"
@@ -589,7 +589,7 @@ msgid ""
 "procesos, no consulta servicios externos ni modifica ficheros o base de "
 "datos. La ausencia de una publicación se muestra como aviso, no como error "
 "de código."
-msgstr ""
+msgstr "Open Autocheck and click Run self-check. It reads load status, components, hooks, options, automation ownership and presence of published files. It does not generate feeds or sitemaps, schedule processes, query external services or change files or the database. A missing publication is reported as a warning, not a code error."
 
 #: includes/manual.php:80
 msgid "Manual técnico para futuros desarrolladores"
@@ -600,7 +600,7 @@ msgid ""
 "Destinatarios: desarrolladores que deban mantener, auditar o ampliar el "
 "plugin independiente sin duplicar el monolito. Describe las API existentes y"
 " los puntos de extensión comprobados en el código."
-msgstr ""
+msgstr "Audience: developers maintaining, auditing or extending the standalone plugin without duplicating the monolith. Describes existing APIs and extension points verified in the code."
 
 #: includes/manual.php:82
 msgid "Mapa de código y responsabilidades"
@@ -611,7 +611,7 @@ msgid ""
 "Los siguientes archivos constituyen el contrato de mantenimiento. Los "
 "nombres tcdist_* son propios del plugin independiente y no deben sustituirse"
 " por llamadas al monolito."
-msgstr ""
+msgstr "The following files define the maintenance contract. Names beginning tcdist_* belong to the standalone plugin and must not be replaced by calls to the monolith."
 
 #: includes/manual.php:85
 msgid "Archivo"
@@ -629,25 +629,25 @@ msgstr "Entry points"
 msgid ""
 "Bootstrap, versión, coexistencia, migración inicial de opciones, registro en"
 " Core, activación y desactivación."
-msgstr ""
+msgstr "Bootstrap, version, coexistence, initial option migration, registration with Core, activation and deactivation."
 
 #: includes/manual.php:88
 msgid ""
 "Identidad y navegación propia; pantallas Overview, Sitemaps y Automation; "
 "acción de regeneración de XML."
-msgstr ""
+msgstr "Own identity and navigation; Overview, Sitemaps and Automation screens; XML regeneration action."
 
 #: includes/manual.php:89
 msgid ""
 "Ajustes, selección de productos, estado, lotes adaptativos, histórico, "
 "locks, programación y publicación."
-msgstr ""
+msgstr "Settings, product selection, state, adaptive batches, history, locks, scheduling and publishing."
 
 #: includes/manual.php:90
 msgid ""
 "Definición de formatos, columnas, transformación y serialización de cada "
 "canal comercial."
-msgstr ""
+msgstr "Definitions of formats, columns, transformations and serialisation for each commercial channel."
 
 #: includes/manual.php:91
 msgid ""
