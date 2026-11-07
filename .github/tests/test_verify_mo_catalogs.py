@@ -43,7 +43,25 @@ class MOReaderBoundsTests(unittest.TestCase):
 
     def test_missing_translation_table_address_fails(self):
         value = bytearray(catalog())
-        struct.pack_into("<I", value, 24, 0)
+        struct.pack_into("<I", value, 16, 0)
+        with self.assertRaises(InvalidMO):
+            validate_mo_bytes(value)
+
+    def test_valid_mo_without_optional_hash_table(self):
+        value = bytearray(catalog("<", 2))
+        # GNU MO permits both optional hash fields to be zero.
+        struct.pack_into("<II", value, 20, 0, 0)
+        self.assertEqual(validate_mo_bytes(value), 2)
+
+    def test_out_of_bounds_optional_hash_table_fails(self):
+        value = bytearray(catalog())
+        struct.pack_into("<II", value, 20, 3, len(value) + 8)
+        with self.assertRaises(InvalidMO):
+            validate_mo_bytes(value)
+
+    def test_nonzero_invalid_empty_hash_offset_fails(self):
+        value = bytearray(catalog())
+        struct.pack_into("<II", value, 20, 0, len(value) + 8)
         with self.assertRaises(InvalidMO):
             validate_mo_bytes(value)
 
