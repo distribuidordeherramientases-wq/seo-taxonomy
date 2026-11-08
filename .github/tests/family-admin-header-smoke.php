@@ -92,6 +92,12 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( 1 === substr_count( $html, 'tc-family-hero__updated' ), 'Exactly one release date on ' . $slug );
     tc_test_assert( strpos( $html, 'tc-family-hero__copy' ) !== false, 'Title and description on ' . $slug );
     tc_test_assert( strpos( $html, 'dashicons-' ) !== false, 'Native WordPress icon on ' . $slug );
+    if ( 'tasks' === $slug ) {
+        tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-history">' ), 'Tasks history expands without an extra tab.' );
+        tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Tasks history label follows Spanish locale.' );
+        tc_test_assert( false !== strpos( $html, '[0.1.8]' ), 'Tasks history includes the latest bundled changelog.' );
+        tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'Tasks history starts collapsed.' );
+    }
     $version = get_file_data( $root . '/taxocommerce-' . $slug . '/taxocommerce-' . $slug . '.php', array( 'version' => 'Version', 'released' => 'Release Date' ) );
     tc_test_assert( 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $version['released'] ), 'Valid release date on ' . $slug );
     tc_test_assert( false !== strpos( $html, $version['released'] ), 'Visible release date matches plugin header on ' . $slug );
