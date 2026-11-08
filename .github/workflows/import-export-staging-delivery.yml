@@ -90,16 +90,31 @@ jobs:
     if: always()
     needs: [validate, staging, focazul]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: Report both independent outcomes
         env:
           VALIDATE: ${{ needs.validate.result }}
           STAGING: ${{ needs.staging.result }}
           FOCAZUL: ${{ needs.focazul.result }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           echo "Validation: $VALIDATE; STAGING: $STAGING; Focazul: $FOCAZUL"
           echo "Production is not part of this workflow."
+          {
+            echo "## Import-Export scoped delivery"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Validation: $VALIDATE"
+            echo "- STAGING: $STAGING"
+            echo "- Focazul: $FOCAZUL"
+            echo "- Production: not deployed"
+            echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > /tmp/import-export-delivery.md
+          cat /tmp/import-export-delivery.md >> "$GITHUB_STEP_SUMMARY"
+          gh issue comment 2428 --body-file /tmp/import-export-delivery.md
           test "$VALIDATE" = "success"
           test "$STAGING" = "success"
           test "$FOCAZUL" = "success"
