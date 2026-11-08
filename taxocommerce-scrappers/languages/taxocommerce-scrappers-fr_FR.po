@@ -33,7 +33,7 @@ msgstr "Vous n’avez pas l’autorisation d’exécuter l’autotest."
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:141
 msgid "Autotest de Scrappers"
-msgstr ""
+msgstr "Autotest de Scrappers"
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:142
 msgid ""
@@ -45,7 +45,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:151
 msgid "El autotest aún no se ha ejecutado en esta visita."
-msgstr ""
+msgstr "L'autotest n'a pas encore été exécuté pendant cette visite."
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:175
 msgid "Comprobación"
@@ -79,11 +79,11 @@ msgstr "Vous n’avez pas l’autorisation de consulter le manuel."
 
 #: includes/class-taxocommerce-scrappers-manual.php:21
 msgid "Manual de TaxoCommerce Scrappers"
-msgstr ""
+msgstr "Manuel de TaxoCommerce Scrappers"
 
 #: includes/class-taxocommerce-scrappers-manual.php:23
 msgid "Importante:"
-msgstr ""
+msgstr "Important :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:23
 msgid ""
@@ -93,7 +93,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 msgid "Índice:"
-msgstr ""
+msgstr "Sommaire :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 #: includes/class-taxocommerce-scrappers-manual.php:26
@@ -103,7 +103,7 @@ msgstr "Guide utilisateur"
 #: includes/class-taxocommerce-scrappers-manual.php:24
 #: includes/class-taxocommerce-scrappers-manual.php:59
 msgid "Manual técnico"
-msgstr ""
+msgstr "Manuel technique"
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 msgid "Diagnóstico"
@@ -111,11 +111,11 @@ msgstr "Diagnostic"
 
 #: includes/class-taxocommerce-scrappers-manual.php:27
 msgid "1. Acceso y navegación"
-msgstr ""
+msgstr "1. Accès et navigation"
 
 #: includes/class-taxocommerce-scrappers-manual.php:32
 msgid "2. Connections: proveedores externos"
-msgstr ""
+msgstr "2. Connections : fournisseurs externes"
 
 #: includes/class-taxocommerce-scrappers-manual.php:34
 msgid "La cadena de búsqueda sigue el orden"
@@ -124,7 +124,7 @@ msgstr ""
 #: includes/class-taxocommerce-scrappers-manual.php:34
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid "SerpApi → ScraperAPI"
-msgstr ""
+msgstr "SerpApi → ScraperAPI"
 
 #: includes/class-taxocommerce-scrappers-manual.php:34
 msgid ""
@@ -136,11 +136,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:35
 msgid "El botón"
-msgstr ""
+msgstr "Le bouton"
 
 #: includes/class-taxocommerce-scrappers-manual.php:35
 msgid "Probar cadena"
-msgstr ""
+msgstr "Tester la chaîne"
 
 #: includes/class-taxocommerce-scrappers-manual.php:35
 msgid ""
@@ -151,11 +151,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:37
 msgid "3. Ojeador: mercado y precios"
-msgstr ""
+msgstr "3. Ojeador : marché et prix"
 
 #: includes/class-taxocommerce-scrappers-manual.php:40
 msgid "Análisis y recomendaciones:"
-msgstr ""
+msgstr "Analyse et recommandations :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:40
 msgid ""
@@ -165,7 +165,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:41
 msgid "Posición de precio:"
-msgstr ""
+msgstr "Positionnement des prix :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:41
 msgid ""
@@ -175,7 +175,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:42
 msgid "Comparador de productos:"
-msgstr ""
+msgstr "Comparateur de produits :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:42
 msgid ""
@@ -185,7 +185,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:43
 msgid "Operación y consultas:"
-msgstr ""
+msgstr "Opérations et requêtes :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:43
 msgid ""
@@ -195,7 +195,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:44
 msgid "Merchant · Comparación gratuita:"
-msgstr ""
+msgstr "Merchant · Comparaison gratuite :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:44
 msgid ""
@@ -205,7 +205,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "Continuar / actualizar mercado"
-msgstr ""
+msgstr "Continuer / actualiser le marché"
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "inicia un recorrido por categorías aptas y"
@@ -213,7 +213,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "Detener"
-msgstr ""
+msgstr "Arrêter"
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid ""
@@ -232,19 +232,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:49
 msgid "4. Ingeniero: investigación técnica y editorial"
-msgstr ""
+msgstr "4. Ingeniero : recherche technique et éditoriale"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "La interfaz incluye"
-msgstr ""
+msgstr "L'interface comprend"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Investigación"
-msgstr ""
+msgstr "Recherche"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Editorial"
-msgstr ""
+msgstr "Éditorial"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Posts"
@@ -252,22 +252,22 @@ msgstr "Messages"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Landings"
-msgstr ""
+msgstr "Pages de destination"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid "Radar externo"
-msgstr ""
+msgstr "Veille externe"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 #: includes/class-taxocommerce-scrappers-manual.php:53
 #: includes/ingeniero/class-seo-ingeniero-admin.php:802
 msgid "Datos y fuentes"
-msgstr ""
+msgstr "Données et sources"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 #: includes/class-taxocommerce-scrappers-manual.php:53
 msgid "Pruebas"
-msgstr ""
+msgstr "Tests"
 
 #: includes/class-taxocommerce-scrappers-manual.php:51
 msgid ""
@@ -295,7 +295,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:55
 msgid "5. Autotest y resultados"
-msgstr ""
+msgstr "5. Autotest et résultats"
 
 #: includes/class-taxocommerce-scrappers-manual.php:57
 msgid "Una clave API pendiente de configurar aparece como"
@@ -303,7 +303,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:57
 msgid "Aviso"
-msgstr ""
+msgstr "Avertissement"
 
 #: includes/class-taxocommerce-scrappers-manual.php:57
 msgid ""
@@ -314,19 +314,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:60
 msgid "6. Estructura y ciclo de carga"
-msgstr ""
+msgstr "6. Structure et cycle de chargement"
 
 #: includes/class-taxocommerce-scrappers-manual.php:64
 msgid "7. Persistencia y compatibilidad"
-msgstr ""
+msgstr "7. Persistance et compatibilité"
 
 #: includes/class-taxocommerce-scrappers-manual.php:69
 msgid "8. Procesos programados y seguridad"
-msgstr ""
+msgstr "8. Tâches planifiées et sécurité"
 
 #: includes/class-taxocommerce-scrappers-manual.php:73
 msgid "9. Validación, despliegue y límites"
-msgstr ""
+msgstr "9. Validation, déploiement et limites"
 
 #: includes/class-taxocommerce-scrappers-manual.php:74
 msgid ""
@@ -348,15 +348,15 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:77
 msgid "Diagnóstico y resolución de incidencias"
-msgstr ""
+msgstr "Diagnostic et résolution des incidents"
 
 #: includes/class-taxocommerce-scrappers-manual.php:78
 msgid "10. Problemas frecuentes"
-msgstr ""
+msgstr "10. Problèmes fréquents"
 
 #: includes/class-taxocommerce-scrappers-manual.php:80
 msgid "Sin clave de proveedor:"
-msgstr ""
+msgstr "Clé fournisseur manquante :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:80
 msgid ""
@@ -366,7 +366,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:81
 msgid "Sin resultados de Shopping:"
-msgstr ""
+msgstr "Aucun résultat Shopping :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:81
 msgid ""
@@ -376,7 +376,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:82
 msgid "Un proceso no avanza:"
-msgstr ""
+msgstr "Un processus n'avance pas :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:82
 msgid ""
@@ -387,7 +387,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:83
 msgid "Faltan tablas:"
-msgstr ""
+msgstr "Tables manquantes :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:83
 msgid ""
@@ -397,7 +397,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:84
 msgid "Ingeniero sin propuestas:"
-msgstr ""
+msgstr "Ingeniero sans propositions :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:84
 msgid ""
@@ -407,7 +407,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:85
 msgid "Coexistencia con monolito:"
-msgstr ""
+msgstr "Coexistence avec le monolithe :"
 
 #: includes/class-taxocommerce-scrappers-manual.php:85
 msgid ""
@@ -424,16 +424,16 @@ msgstr "Retour au sommaire"
 #: includes/ingeniero/class-seo-ingeniero-admin.php:443
 #: taxocommerce-scrappers.php:141
 msgid "Ingeniero"
-msgstr ""
+msgstr "Ingeniero"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:75
 #: includes/ingeniero/class-seo-ingeniero-admin.php:381
 msgid "No tienes permisos para usar Ingeniero."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'utiliser Ingeniero."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid "Servicio de investigación externa y editorial."
-msgstr ""
+msgstr "Service de recherche externe et éditoriale."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid "Investiga por categoría y clasifica cada fuente/evidencia como"
@@ -483,19 +483,19 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:451
 msgid "Investigación externa L1 / L2 / L3"
-msgstr ""
+msgstr "Recherche externe L1 / L2 / L3"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:456
 msgid "Categorías por lote"
-msgstr ""
+msgstr "Catégories par lot"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:456
 msgid "Se seleccionan entre las pendientes."
-msgstr ""
+msgstr "Sélectionnées parmi les catégories en attente."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:486
 msgid "Fuente de búsqueda"
-msgstr ""
+msgstr "Fournisseur de recherche"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid "Proveedores Google compartidos con Ojeador:"
@@ -510,15 +510,15 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid "Herramientas → Conexiones con proveedores"
-msgstr ""
+msgstr "Outils → Connexions fournisseurs"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:488
 msgid "El contador propio de Ingeniero es"
-msgstr ""
+msgstr "Le compteur propre à Ingeniero est"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:488
 msgid "informativo"
-msgstr ""
+msgstr "informatif"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:488
 msgid ""
@@ -527,11 +527,11 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:507
 msgid "Capas de conocimiento activas"
-msgstr ""
+msgstr "Couches de connaissances actives"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:508
 msgid "L1 · Técnica:"
-msgstr ""
+msgstr "L1 · Technique :"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:508
 msgid "manuales, fichas, fabricantes, organismos y normativa."
@@ -539,7 +539,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:509
 msgid "L2 · Práctica:"
-msgstr ""
+msgstr "L2 · Pratique :"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:509
 msgid ""
@@ -549,7 +549,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:510
 msgid "L3 · Actualidad:"
-msgstr ""
+msgstr "L3 · Actualité :"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:510
 msgid ""
@@ -560,7 +560,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:546
 msgid "Editorial por temas"
-msgstr ""
+msgstr "Éditorial par thèmes"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:547
 msgid "Ingeniero agrupa la investigación L1/L2/L3 por"
@@ -568,7 +568,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:547
 msgid "tema editorial"
-msgstr ""
+msgstr "sujet éditorial"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:547
 msgid ""

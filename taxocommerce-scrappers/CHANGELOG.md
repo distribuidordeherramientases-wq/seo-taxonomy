@@ -1,3 +1,10 @@
+## [Unreleased] — Traducciones de interfaz y manuales Scrappers (#2062)
+
+- Incorporadas 283 entradas gettext antes vacías: ES 56, EN 58, FR 57, DE 56 y NL 56. Cobertura parcial de 58 cadenas de interfaz: Autotest, menús Ojeador/Ingeniero, funciones de investigación, avisos, controles de procesos, navegación y documentación para usuarios.
+- PO y MO regenerados y sincronizados en los cinco idiomas. Se mantienen 233 mensajes traducibles y cabecera por catálogo, los identificadores, los nombres de API y los parámetros de formato.
+- Cambios exclusivamente de traducción, sin alterar PHP/JS, las cuotas de SerpApi/ScraperAPI, trabajos programados, opciones, entradas, productos o configuración de tiendas.
+- Pendiente: ES 153, EN 153, FR 151, DE 151, NL 151 cadenas PO vacías; revisar literales fuera de gettext y completar validaciones de Plugin Check, CI y visualización por idioma en STAGING/Focazul.
+
 ## [0.1.13] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
