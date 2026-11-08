@@ -589,11 +589,11 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:581
 msgid "Descargar JSON"
-msgstr ""
+msgstr "Télécharger JSON"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:587
 msgid "Todos"
-msgstr ""
+msgstr "Tous"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:592
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
@@ -606,7 +606,7 @@ msgstr "Toutes"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Categoría / tema"
-msgstr ""
+msgstr "Catégorie / sujet"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Cobertura"
@@ -614,11 +614,11 @@ msgstr "Couverture"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Base"
-msgstr ""
+msgstr "Base"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Post"
-msgstr ""
+msgstr "Article"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:601
 msgid "Actualizado"
@@ -631,11 +631,11 @@ msgstr "Actions"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:651
 msgid "Todavía no hay dossiers que coincidan con los filtros."
-msgstr ""
+msgstr "Aucun dossier ne correspond encore aux filtres."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:687
 msgid "Brief editorial para Editora"
-msgstr ""
+msgstr "Brief éditorial pour Editora"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:693
 msgid ""
@@ -646,23 +646,23 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:708
 msgid "No hay preguntas-respuestas técnicas en este dossier."
-msgstr ""
+msgstr "Ce dossier ne contient aucune question-réponse technique."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:711
 msgid "Must cover"
-msgstr ""
+msgstr "Points obligatoires"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 msgid "Diagnóstico del knowledge incluido"
-msgstr ""
+msgstr "Diagnostic des connaissances incluses"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 msgid "Tipo / concepto"
-msgstr ""
+msgstr "Type / concept"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 msgid "Síntesis"
-msgstr ""
+msgstr "Synthèse"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
@@ -674,16 +674,16 @@ msgstr "Fiabilité"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:715
 msgid "Evidencias"
-msgstr ""
+msgstr "Éléments probants"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 msgid "Fuentes trazables"
-msgstr ""
+msgstr "Sources traçables"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
 msgid "Fuente"
-msgstr ""
+msgstr "Source"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
@@ -692,11 +692,11 @@ msgstr "Type"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:724
 msgid "Recuperada"
-msgstr ""
+msgstr "Récupérée"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:734
 msgid "Enlaces internos sugeridos"
-msgstr ""
+msgstr "Liens internes suggérés"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:735
 msgid ""
@@ -706,23 +706,23 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:737
 msgid "Categorías:"
-msgstr ""
+msgstr "Catégories :"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:757
 msgid "Cobertura existente"
-msgstr ""
+msgstr "Couverture existante"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:771
 msgid "Rendimiento · Analista · 28 días"
-msgstr ""
+msgstr "Performance · Analista · 28 jours"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:803
 msgid "Fuentes, conocimiento e intercambio de datos de Ingeniero."
-msgstr ""
+msgstr "Sources, connaissances et échange de données d'Ingeniero."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:814
 msgid "Pruebas del proceso editorial"
-msgstr ""
+msgstr "Tests du processus éditorial"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:815
 msgid ""
@@ -733,7 +733,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:817
 msgid "No está disponible la batería de pruebas."
-msgstr ""
+msgstr "La suite de tests est indisponible."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:823
 msgid "Prueba"
@@ -741,7 +741,7 @@ msgstr "Test"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "Investigadas"
-msgstr ""
+msgstr "Étudiées"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "significa que Ingeniero ya ha obtenido conocimiento de la categoría."
@@ -749,7 +749,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "Aprobadas"
-msgstr ""
+msgstr "Approuvées"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "son las investigadas que ya no tienen bloques pendientes de revisión."
@@ -770,23 +770,23 @@ msgstr "Produits"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Fuentes"
-msgstr ""
+msgstr "Sources"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Conocimiento"
-msgstr ""
+msgstr "Connaissances"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:902
 msgid "Última"
-msgstr ""
+msgstr "Dernière"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:931
 msgid "Reinvestigar categoría"
-msgstr ""
+msgstr "Réexaminer la catégorie"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:934
 msgid "No hay categorías de producto."
-msgstr ""
+msgstr "Aucune catégorie de produits."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:972
 msgid ""
@@ -796,60 +796,60 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:981
 msgid "Conocimiento consolidado"
-msgstr ""
+msgstr "Connaissances consolidées"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1021
 msgid "Capa"
-msgstr ""
+msgstr "Couche"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 msgid "Subtipo"
-msgstr ""
+msgstr "Sous-type"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 msgid "Resumen/evidencia"
-msgstr ""
+msgstr "Résumé/preuve"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:982
 msgid "Revisión"
-msgstr ""
+msgstr "Révision"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:990
 msgid "Ver evidencias y fuentes"
-msgstr ""
+msgstr "Voir preuves et sources"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1012
 msgid "Aprobar"
-msgstr ""
+msgstr "Approuver"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1013
 msgid "Mantener revisión"
-msgstr ""
+msgstr "Conserver en révision"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1014
 msgid "Rechazar"
-msgstr ""
+msgstr "Rejeter"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1017
 msgid "Todavía no hay conocimiento consolidado para esta capa."
-msgstr ""
+msgstr "Aucune connaissance consolidée pour cette couche."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1020
 msgid "Fuentes originales consultadas"
-msgstr ""
+msgstr "Sources originales consultées"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:1030
 msgid "No hay fuentes guardadas para esta capa."
-msgstr ""
+msgstr "Aucune source enregistrée pour cette couche."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:59
 msgid "No tienes permisos para importar o exportar conocimiento de Ingeniero."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'importer ou d'exporter les connaissances d'Ingeniero."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:72
 msgid "Importar / Exportar conocimiento"
-msgstr ""
+msgstr "Importer / Exporter les connaissances"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:74
 msgid ""
@@ -860,11 +860,11 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:87
 msgid "Archivo"
-msgstr ""
+msgstr "Fichier"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:89
 msgid "Máximo 10 MB. JSON o CSV UTF-8."
-msgstr ""
+msgstr "Maximum 10 Mo. JSON ou CSV UTF-8."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:91
 msgid "Modo"
@@ -872,11 +872,11 @@ msgstr "Mode"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:92
 msgid "Añadir solo conocimiento que no exista"
-msgstr ""
+msgstr "Ajouter uniquement les connaissances absentes"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:93
 msgid "Actualizar existentes y dejar en revisión"
-msgstr ""
+msgstr "Mettre à jour l'existant et soumettre à révision"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:94
 msgid ""
@@ -896,7 +896,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:104
 msgid "Columnas CSV"
-msgstr ""
+msgstr "Colonnes CSV"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:106
 msgid ""
@@ -907,15 +907,15 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:400
 msgid "Ingeniero · novedades técnicas"
-msgstr ""
+msgstr "Ingeniero · nouveautés techniques"
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:406
 msgid "Novedades de Ingeniero marcadas como revisadas."
-msgstr ""
+msgstr "Nouveautés Ingeniero marquées comme examinées."
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:433
 msgid "Marcar novedades como revisadas"
-msgstr ""
+msgstr "Marquer les nouveautés comme examinées"
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:453
 msgid ""
@@ -925,11 +925,11 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:456
 msgid "No hay novedades técnicas pendientes."
-msgstr ""
+msgstr "Aucune nouveauté technique en attente."
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:462
 msgid "Reescanear novedades"
-msgstr ""
+msgstr "Analyser à nouveau les nouveautés"
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:463
 msgid ""
@@ -939,7 +939,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:127
 msgid "Radar externo · novedades, tendencias y nuevos ámbitos"
-msgstr ""
+msgstr "Veille externe · nouveautés, tendances et nouveaux domaines"
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:128
 msgid ""
@@ -964,16 +964,16 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:143
 msgid "Destino editorial"
-msgstr ""
+msgstr "Destination éditoriale"
 
 #: includes/ojeador/class-ojeador-admin.php:30 taxocommerce-scrappers.php:140
 msgid "Ojeador"
-msgstr ""
+msgstr "Ojeador"
 
 #: includes/ojeador/class-ojeador-admin.php:75
 #: includes/ojeador/class-ojeador-novedades.php:74
 msgid "No autorizado."
-msgstr ""
+msgstr "Non autorisé."
 
 #: includes/ojeador/class-ojeador-merchant.php:310
 msgid ""
@@ -994,7 +994,7 @@ msgstr ""
 
 #: includes/ojeador/class-ojeador-merchant.php:317
 msgid "Fuente de mercado"
-msgstr ""
+msgstr "Source des données de marché"
 
 #: includes/ojeador/class-ojeador-merchant.php:321
 msgid ""
@@ -1014,11 +1014,11 @@ msgstr ""
 
 #: includes/ojeador/class-ojeador-merchant.php:331
 msgid "Reiniciar lectura desde primera página"
-msgstr ""
+msgstr "Reprendre la lecture depuis la première page"
 
 #: includes/ojeador/class-ojeador-merchant.php:334
 msgid "Comparar con Ojeador PRO"
-msgstr ""
+msgstr "Comparer avec Ojeador PRO"
 
 #: includes/ojeador/class-ojeador-merchant.php:335
 msgid ""
@@ -1039,23 +1039,23 @@ msgstr "Produit"
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Mediana ofertas observadas"
-msgstr ""
+msgstr "Médiane des offres observées"
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Benchmark Merchant"
-msgstr ""
+msgstr "Référence Merchant"
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Diferencia"
-msgstr ""
+msgstr "Différence"
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Ofertas históricas"
-msgstr ""
+msgstr "Offres historiques"
 
 #: includes/ojeador/class-ojeador-merchant.php:350
 msgid "Productos populares ajenos al inventario"
-msgstr ""
+msgstr "Produits populaires hors inventaire"
 
 #: includes/ojeador/class-ojeador-merchant.php:351
 msgid ""
@@ -1065,23 +1065,23 @@ msgstr ""
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Producto / marca"
-msgstr ""
+msgstr "Produit / marque"
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Categoría Google"
-msgstr ""
+msgstr "Catégorie Google"
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Popularidad"
-msgstr ""
+msgstr "Popularité"
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Evolución"
-msgstr ""
+msgstr "Évolution"
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Fecha del informe"
-msgstr ""
+msgstr "Date du rapport"
 
 #: taxocommerce-scrappers.php:68 taxocommerce-scrappers.php:78
 msgid "Scrappers"
@@ -1105,11 +1105,11 @@ msgstr ""
 
 #: taxocommerce-scrappers.php:139
 msgid "Connections"
-msgstr ""
+msgstr "Connections"
 
 #: taxocommerce-scrappers.php:142
 msgid "Autotest"
-msgstr ""
+msgstr "Autotest"
 
 #: taxocommerce-scrappers.php:143
 msgid "Manual"

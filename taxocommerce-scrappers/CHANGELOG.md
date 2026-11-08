@@ -1,3 +1,9 @@
+## [Unreleased] — Ampliación del panel de Ingeniero y Ojeador en cinco idiomas (#2062)
+
+- Segunda tanda: 366 traducciones adicionales sobre 74 cadenas de interfaz y paneles (ES 73, EN 74, FR 73, DE 73, NL 73): fuentes, conocimiento, evaluación editorial, aprobación humana, importación/exportación, investigación, Merchant, estados y acciones.
+- Acumulado en este PR: 649 entradas gettext añadidas (ES 129, EN 132, FR 130, DE 129 y NL 129). Se regeneran los cinco archivos MO sin cambiar lógica ni datos.
+- Pendientes en PO: ES 80, EN 79, FR/DE/NL 78 por idioma. Se requiere completar y comprobar interfaz real antes de dar por terminada la internacionalización de Scrappers.
+
 ## [Unreleased] — Traducciones de interfaz y manuales Scrappers (#2062)
 
 - Incorporadas 283 entradas gettext antes vacías: ES 56, EN 58, FR 57, DE 56 y NL 56. Cobertura parcial de 58 cadenas de interfaz: Autotest, menús Ojeador/Ingeniero, funciones de investigación, avisos, controles de procesos, navegación y documentación para usuarios.
