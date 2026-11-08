@@ -24,7 +24,12 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("workflow_dispatch:", self.pipeline)
         self.assertIn("  push:", self.pipeline)
         self.assertIn("refs/heads/staging", self.pipeline)
-        self.assertIn("cancel-in-progress: false", self.pipeline)
+        # A long-running Plugin Check must NOT block newer staging uploads.
+        pipeline_header = self.pipeline.split("\njobs:\n", 1)[0]
+        self.assertNotIn("\nconcurrency:\n", pipeline_header)
+        self.assertIn("concurrency:", self.staging)
+        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("cancel-in-progress: false", self.staging)
         self.assertIn("git ls-remote origin refs/heads/staging", self.pipeline)
         self.assertIn("needs.preflight.outputs.current == 'true'", self.pipeline)
         # A single push-driven pipeline must own *all* staging deliveries.
@@ -35,6 +40,17 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("STAGING_FTP_PASSWORD:", self.staging)
         self.assertIn("TAXOCOMMERCE_TARGET_PLUGIN:", self.staging)
         self.assertNotIn("github.workflow == 'Immediate deployment to STAGING'", self.staging)
+
+
+    def test_plugin_check_does_not_monopolize_the_ftp_delivery_lock(self):
+        # Only the reusable delivery workflow serializes the shared FTPS
+        # account; the downstream 20-plugin WordPress.org check may continue.
+        self.assertNotIn("taxocommerce-staging-check-pro\n", self.pipeline)
+        self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
+        self.assertIn("needs: staging", self.pipeline)
+        self.assertIn("needs: [staging, plugin-check]", self.pipeline)
+        self.assertIn("taxocommerce-staging-focazul-", self.staging)
+        self.assertIn("cancel-in-progress: false", self.staging)
 
     def test_ftps_is_serial_across_sites_but_focazul_runs_after_staging_failure(self):
         # One shared FTP account; failures are still reported independently.

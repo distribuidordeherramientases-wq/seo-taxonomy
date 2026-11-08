@@ -1,3 +1,10 @@
+## 2026-11-08 — Desbloquear entregas FTPS de pruebas durante Plugin Check (#2376)
+
+- Eliminada la exclusión mutua del pipeline completo: el chequeo oficial de 20 plugins no monopoliza la cola de las siguientes entregas a STAGING y Focazul.
+- Conservada la exclusión mutua en el workflow de transferencias FTPS existente, con procesamiento ordenado de ambos sitios y verificación de sus entregas.
+- Sin cambios en los controles del SHA actual, pruebas oficiales estrictas, autorizaciones de publicación a PRO ni en los plugins instalados.
+- Añadida prueba de regresión que impide volver a bloquear FTPS por un chequeo completo. No se modifica el monolito.
+
 ## 2026-11-08 — FTP compartido y guardas de coexistencia legacy (Issue #2347)
 
 - Serializadas las entregas STAGING y Focazul en su servidor FTPS compartido, conservando la comprobación independiente de ambos destinos aunque STAGING falle.
