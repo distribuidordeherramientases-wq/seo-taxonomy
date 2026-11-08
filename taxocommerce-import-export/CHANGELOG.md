@@ -1,3 +1,8 @@
+## [0.4.22] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [0.4.21] — 2026-11-08 — Protección contra textos vacíos en Import-Export (#2412)
 
 - Recupera el texto original de botones, opciones y leyendas cuando un catálogo MO externo, antiguo o cacheado devuelve una traducción vacía.

@@ -4,13 +4,16 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.25
+Stable tag: 0.2.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce System Check provides a standalone administration entry for diagnostics, and can integrate its menu with TaxoCommerce Core when installed.
 
@@ -122,3 +125,7 @@ System diagnostics can include server configuration, URLs and error details. Tre
 * During modularisation System Check was isolated from SEO_SYSTEM_* globals and constants to prevent collisions with the still-installed monolith.
 * Standalone diagnostics distinguished the active plugin modules from installed but inactive extensions and retained administrator-controlled bounded scans and reports.
 * Later WordPress.org work corrected text-domain usage and prepared SQL identifiers; the historical original checker remained distinct from each plugin's own Auto Test.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

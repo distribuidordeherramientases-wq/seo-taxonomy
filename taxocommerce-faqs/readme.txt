@@ -4,13 +4,16 @@ Tags: faq, woocommerce, questions, csv, vocabulary
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.11
+Stable tag: 0.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Manage product and page FAQs in WordPress and WooCommerce with CSV exchange, status reporting and semantic labels.
 
 == Description ==
+
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
 
 TaxoCommerce FAQs works with an existing canonical FAQ table on migration and optionally integrates its admin screens into TaxoCommerce Core.
 
@@ -85,3 +88,7 @@ On multisite, the cleanup is limited to sites marked as initialized by this modu
 * Standalone 0.1.x extracted FAQ storage and administration while maintaining compatibility with existing seo_faq records and explicit content relationships.
 * Later migrations protected existing data during installation/uninstallation, updated CSV handling and maintained the Assistant L6 compatibility path.
 * Version 0.1.5 added a dedicated Auto Test and user/technical guide; 0.1.6 concentrated on Plugin Check and clean distribution.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

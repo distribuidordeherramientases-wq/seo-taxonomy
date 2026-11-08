@@ -12,6 +12,9 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 == Description ==
 
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
+
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
 
 * Products: descriptions, titles, SKUs, categories, attributes, vocabulary and possible duplicate content.
@@ -116,3 +119,7 @@ No. It reads already-saved local evidence; no third-party requests are started.
 * Standalone Auditor 0.1.0 established five groups of checks based on native WordPress and WooCommerce data.
 * Standalone 0.2.0 restored the original Auditor checks and interface; 0.3.0 expanded complete audit results, JSON export, KPIs and decision context.
 * The independent reports were kept separate from the external traffic reporting now owned by Insights.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

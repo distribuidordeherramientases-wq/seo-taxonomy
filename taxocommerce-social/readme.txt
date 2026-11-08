@@ -4,13 +4,16 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Manage authorized social connections, publication templates and a content calendar.
 
 == Description ==
+
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
 
 TaxoCommerce Social supports optional Facebook, Instagram, LinkedIn, Pinterest and X connections, manual publication planning, CSV-based scheduling and queue/history views.
 
@@ -77,3 +80,7 @@ Social publishing sends authorized content and associated account data to the se
 * Standalone 0.1.0 moved network integrations and scheduled publication into an independent module with its own bootstrap, navigation and Core registration.
 * Staging and deployment work subsequently introduced a separate ZIP workflow and reconciled the canonical shared storage used by the former monolith and the new plugin.
 * Marketing campaign planning and banners belong to Campaigns, while Social owns its authorised publishing actions; no external-network publication is implied merely by installing the module.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

@@ -4,13 +4,16 @@ Tags: woocommerce, mysql, database, backup, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.13
+Stable tag: 0.4.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Standalone migration of the original Clean Database and SEO Data Table tools from TaxoCommerce SEO.
 
 == Description ==
+
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
 
 Version 0.4.5 preserves the two original database tools:
 
@@ -91,3 +94,7 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 * The SQL/data-table explorer and original cleanup checks formed two distinct functional areas; their historic behavior and existing tables were preserved during extraction.
 * The standalone migration was corrected to restore complete legacy Clean Database and SEO Data Table functions instead of replacing them with a simplified Data Layer design.
 * Later standalone releases brought six sibling tabs, documentation, 17 grouped Auto Test checks and a before/after baseline without removing the legacy cleanup actions.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

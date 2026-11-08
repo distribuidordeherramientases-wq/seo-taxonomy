@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.11
+Stable tag: 0.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Publish WooCommerce commercial feeds and professional XML sitemaps with bounded background processing.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Distribution separates technical catalog publication from marketing, templates and supplier imports.
 
@@ -120,3 +123,7 @@ English is the base source and UI language. Future localization should use stand
 * Distribution 0.1.0 separated feed generation and sitemap responsibilities into an independent module while keeping established content/catalogue relationships.
 * Modular compatibility work retained a fallback for Core role data so distribution does not require the legacy monolith at runtime.
 * Follow-up work addressed WordPress.org translation comments and package validation; these are maintenance changes to the same 0.1.0 line, not claimed additional releases.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

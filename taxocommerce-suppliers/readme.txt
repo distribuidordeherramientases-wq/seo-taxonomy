@@ -4,12 +4,15 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.12
+Stable tag: 0.2.13
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Suppliers owns the supplier intake and intermediate supplier catalogue workflow.
 
@@ -93,3 +96,7 @@ Explicitly excluded:
 * The original catalogue workflow used supplier data and an intermediate product inventory before WooCommerce publication, with availability and images kept attributable to their suppliers.
 * Standalone Suppliers 0.1.0 established CSV-based supplier catalogue handling and integration with the family of modular plugins.
 * Standalone 0.2.0 moved purchasing functions out of Logistics and into Suppliers, separating procurement from delivery and transport calculation.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

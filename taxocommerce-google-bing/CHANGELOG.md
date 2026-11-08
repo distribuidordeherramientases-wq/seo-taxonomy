@@ -1,3 +1,8 @@
+## [1.1.30] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [1.1.29] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.

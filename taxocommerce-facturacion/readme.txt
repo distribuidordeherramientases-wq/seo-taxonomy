@@ -4,12 +4,15 @@ Tags: woocommerce, invoices, proforma, quotes, pdf
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: MIT
 
 WooCommerce invoices, proformas and quotations migrated from TaxoCommerce SEO.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Billing keeps the existing document workflow while moving it into an independent plugin.
 
@@ -72,3 +75,7 @@ It does not create a parallel document database and does not include a destructi
 * Earlier checkout and tax corrections avoided adding VAT twice to retail prices already expressed with tax included.
 * The original document enable/disable control was restored after an earlier regression; billing behavior depends on those explicit administrative settings.
 * Standalone 0.1.0 was a one-to-one extraction of the legacy billing/document functions, keeping existing options and document data rather than redesigning accounting.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

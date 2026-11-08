@@ -4,13 +4,16 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.21
+Stable tag: 0.2.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Image management for WordPress and WooCommerce with Media as the canonical source of truth.
 
 == Description ==
+
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
 
 TaxoCommerce Images is an independent member of the TaxoCommerce family.
 
@@ -172,3 +175,7 @@ Current functionality includes:
 * TaxoCommerce SEO 2.3.x linked supplier image imports, catalogue records and Media metadata; the 2.4.1 monolith version is not an Images release.
 * Images 0.2.0 extracted WebP, optimisation, image references, HTTP checks and thumbnails. Media ZIP import/export moved to Import-Export.
 * Later standalone versions added category-based image assignment, external-provider distinctions, inventory audits, adaptive background batches and Auto Test.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

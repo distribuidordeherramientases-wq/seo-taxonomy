@@ -4,12 +4,15 @@ Tags: woocommerce, logistics, shipping, weight, orders
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.11
+Stable tag: 0.2.12
 License: MIT
 
 Manage shipping costs, package weight and dimensions in WooCommerce with manual rules and shipment audits.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Logistics is the shipping-cost domain for the TaxoCommerce family.
 
@@ -100,3 +103,7 @@ The WordPress administration locale automatically selects the gettext language. 
 * The independent plugin was created by a one-to-one migration together with Billing, with original shipping logic retained rather than replaced.
 * Supplier purchasing operations were moved from Logistics into Suppliers so shipping rules and procurement have separate owners.
 * Later standalone releases added grouped Auto Test checks, before/after comparison, user/technical manuals, and integration into the Core family menu without claiming independent checkout behavior.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

@@ -12,6 +12,9 @@ External research for TaxoCommerce using the proven Ojeador and Ingeniero engine
 
 == Description ==
 
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
+
 TaxoCommerce Scrappers separates external market and technical research from the historical monolithic plugin.
 
 The plugin provides five administration areas:
