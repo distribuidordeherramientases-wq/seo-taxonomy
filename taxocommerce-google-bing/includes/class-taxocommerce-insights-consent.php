@@ -277,6 +277,8 @@ final class TaxoCommerce_Insights_Consent {
             // A change to legal wording or purpose requires a new affirmative choice.
             'revision' => max( 1, (int) $old['revision'] + 1 ),
         );
+        TaxoCommerce_Insights_Consent_Ledger::archive( $old );
+        TaxoCommerce_Insights_Consent_Ledger::archive( $next );
         update_option( self::OPTION, $next, false );
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended
         wp_safe_redirect( self::url( 'saved' ) );
@@ -334,9 +336,10 @@ final class TaxoCommerce_Insights_Consent {
         }
         echo '<p><label><input type="checkbox" name="legal_reviewed" value="1" ' . checked( ! empty( $cfg['legal_reviewed'] ), true, false ) . '> '
             . esc_html__( 'Confirmo que he revisado los textos y las obligaciones legales de esta instalación en los idiomas publicados.', 'taxocommerce-google-bing' ) . '</label></p>';
-        echo '<p class="description">' . esc_html__( 'Se guarda en wp_options. No se crea ninguna tabla nueva. Desactivar Insights conserva esta información; desinstalarlo elimina esta opción. Los visitantes guardan su elección en una cookie esencial durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Los textos se guardan en wp_options y las decisiones en una tabla SQL persistente. Desactivar o desinstalar el plugin no elimina las evidencias. Las preferencias del navegador se guardan durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( __( 'Guardar textos y consentimientos', 'taxocommerce-google-bing' ) );
         echo '</form></div>';
+        TaxoCommerce_Insights_Consent_Ledger::render();
     }
 
     public static function privacy_cache_headers() {
@@ -371,7 +374,7 @@ final class TaxoCommerce_Insights_Consent {
         );
         $cfg = self::settings();
         wp_add_inline_script( 'tci-consent', 'window.tciConsentConfig=' . wp_json_encode(
-            array( 'cookie' => self::COOKIE, 'revision' => (int) $cfg['revision'], 'days' => self::DAYS ),
+            array( 'cookie' => self::COOKIE, 'revision' => (int) $cfg['revision'], 'days' => self::DAYS, 'endpoint' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'tci_consent_record' ) ),
             JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
         ) . ';', 'before' );
     }
