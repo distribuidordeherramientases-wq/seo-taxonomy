@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ English is the base source and UI language. Future localization should use stand
 6. Validate staging feeds before registering production URLs with Google, Microsoft or Pinterest.
 
 == Changelog ==
+
+= 0.1.10 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.1.8 =
 * Schedule a daily sitemap rebuild using the existing incremental 250-item worker. Avoid duplicate scheduled jobs and skip this schedule when a legacy sitemap provider owns the endpoint. WordPress-Cron requires site traffic or an external cron trigger.

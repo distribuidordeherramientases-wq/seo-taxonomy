@@ -102,6 +102,20 @@ final class TaxoCommerce_Core_Dashboard {
                 $tc_updated_label = $tc_translations[ $tc_locale ][1];
             }
         }
+        // The version history is bundled with this plugin, not fetched from GitHub.
+        $tc_history_file = dirname( __DIR__ ) . '/CHANGELOG.md';
+        $tc_history = is_readable( $tc_history_file ) ? file_get_contents( $tc_history_file ) : '';
+        $tc_history_names = array(
+            'es' => 'Historial de versiones y mejoras',
+            'en' => 'Version history and improvements',
+            'fr' => 'Historique des versions et améliorations',
+            'de' => 'Versionsverlauf und Verbesserungen',
+            'nl' => 'Versiegeschiedenis en verbeteringen',
+        );
+        $tc_history_label = __( 'Version history and improvements', 'taxocommerce-core' );
+        if ( 'Version history and improvements' === $tc_history_label && isset( $tc_history_names[ $tc_locale ] ) ) {
+            $tc_history_label = $tc_history_names[ $tc_locale ];
+        }
 		?>
 		<div class="wrap tcc-dashboard" id="taxocommerce-core-dashboard">
 			<header class="tcc-hero" aria-labelledby="tcc-dashboard-title">
@@ -111,6 +125,12 @@ final class TaxoCommerce_Core_Dashboard {
 						<p class="tcc-eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 						<h1 id="tcc-dashboard-title"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
+                        <?php if ( is_string( $tc_history ) && '' !== trim( $tc_history ) ) : ?>
+                            <details class="tcc-hero__history">
+                                <summary><?php echo esc_html( $tc_history_label ); ?></summary>
+                                <div class="tcc-hero__history-content"><?php echo esc_html( $tc_history ); ?></div>
+                            </details>
+                        <?php endif; ?>
 					</div>
 				</div>
 				<div class="tcc-hero__metadata">

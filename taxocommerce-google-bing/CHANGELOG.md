@@ -1,3 +1,9 @@
+## [1.1.27] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
+- Textos del título preparados para ES/EN/FR/DE/NL, salida escapada, desplazamiento vertical y mantenimiento de menús y funciones existentes.
+- El paquete instalable y la subida incremental incluyen únicamente el historial raíz necesario. Sin cambios en base de datos ni servicios.
+
 ## 1.1.25 - 2026-11-08 - Consentimientos: textos legales editables y ciclo de vida (#2366)
 
 - Nueva pestaña Consentimientos de Insights con mensaje público y texto legal ampliado editables en ES/EN/FR/DE/NL, etiquetas de botones y URL de política de cookies.

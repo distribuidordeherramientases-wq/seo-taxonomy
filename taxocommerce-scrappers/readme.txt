@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.12
+Stable tag: 0.1.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,10 @@ This plugin can connect to:
 The administrator supplies and controls all API credentials. Provider usage can incur external costs according to the administrator's provider plan.
 
 == Changelog ==
+
+= 0.1.13 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.1.12 =
 * Cancel Scrappers-owned WordPress cron and Ingeniero Action Scheduler jobs on deactivation, while retaining all store data.

@@ -1,3 +1,7 @@
+## [0.2.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable del historial de este plugin, cerrado por defecto bajo el título; no interfiere con la compra a proveedores ni traducciones.
+
 ## [Unreleased] — Acceso directo a compra de productos del proveedor desde Logistics (#2379)
 
 - Nueva pestaña «Supplier purchases» con relación entre cada línea del pedido WooCommerce y las fuentes del catálogo de Suppliers, incluidas variaciones, fuentes alternativas, referencias, SKU, coste y enlaces externos «Comprar».

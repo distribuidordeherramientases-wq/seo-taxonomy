@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.22
+Stable tag: 0.4.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,10 @@ Open the Manual tab in Templates to read two integrated guides without executing
 Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
 
 == Changelog ==
+
+= 0.4.23 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.4.19 =
 * For long native document titles, omit the redundant site name while retaining post/category names. Provide descriptive ALT text for informative homepage image links on desktop and mobile.

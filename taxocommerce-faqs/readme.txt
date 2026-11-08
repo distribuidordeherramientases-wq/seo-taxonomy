@@ -4,7 +4,7 @@ Tags: faq, woocommerce, questions, csv, vocabulary
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,10 @@ No. Deactivation and ordinary plugin updates preserve FAQ records.
 On multisite, the cleanup is limited to sites marked as initialized by this module. Removing files manually by FTP does not run `uninstall.php`.
 
 == Changelog ==
+
+= 0.1.10 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.1.8 =
 * Pestaña «Autocheck» con descarga JSON ya existente y conservación de las comparaciones antes/después.

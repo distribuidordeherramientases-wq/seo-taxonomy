@@ -4,7 +4,7 @@ Tags: social-media, scheduling, pinterest, publishing, calendar
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.6
+Stable tag: 0.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,10 @@ The plugin interacts with selected social network services when an administrator
 Social publishing sends authorized content and associated account data to the selected external social network. Store tokens securely, review provider policies and avoid including personal information in generated posts without permission. Disconnect accounts when the integration is not required.
 
 == Changelog ==
+
+= 0.1.7 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.1.5 =
 * Nombre uniforme «Autocheck» y exportación JSON autenticada de los resultados con detalle por prueba.
