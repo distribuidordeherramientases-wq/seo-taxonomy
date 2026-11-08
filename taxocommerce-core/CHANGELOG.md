@@ -1,3 +1,8 @@
+## [0.4.65] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [0.4.64] - 2026-11-08 - Autotest en dos subpestanas (#2401)
 
 - Mantiene el Autotest funcional de Core. Incorpora Code Check autonomo (PHP, WordPress, seguridad), por lotes y JSON.
