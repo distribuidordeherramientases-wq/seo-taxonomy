@@ -33,7 +33,7 @@ foreach ( array( 'es_ES', 'en_US', 'fr_FR', 'de_DE', 'nl_NL' ) as $locale ) {
         }
         $original = substr( $data, $o['offset'], $o['length'] );
         $translated = substr( $data, $t['offset'], $t['length'] );
-        if ( '' !== $original && '' === trim( $translated, "\\0" ) ) {
+        if ( '' !== $original && '' === str_replace( chr( 0 ), '', $translated ) ) {
             throw new RuntimeException( 'Empty translation hides UI label in ' . $locale . ': ' . $original );
         }
     }
