@@ -5,7 +5,7 @@
  * revision, XSS escaping, Clarity Consent V2, and cache separation.
  */
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.25' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.26' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', 'https://shop.test/wp-content/plugins/taxocommerce-google-bing/' );
 $GLOBALS['opts'] = array();
 $GLOBALS['locale'] = 'es_ES';
@@ -37,6 +37,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_js( $value ) { return addslashes( $value ); }
 function esc_url( $value ) { return esc_attr( $value ); }
+function admin_url( $path = '' ) { return 'https://shop.test/wp-admin/' . ltrim( $path, '/' ); }
 function wp_json_encode( $value, $flags = 0 ) { return json_encode( $value, $flags ); }
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { return true; }
 function add_filter( $name, $callback, $priority = 10, $args = 1 ) { return true; }

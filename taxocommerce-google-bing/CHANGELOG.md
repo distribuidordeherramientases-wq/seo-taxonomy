@@ -1,3 +1,9 @@
+## 1.1.26 - 2026-11-08 - Reparar validación CI global (#2392)
+
+- Sin cambios en el código de ejecución: readme Stable tag sincronizado con la cabecera existente 1.1.26.
+- Test PHP aislado del ciclo de consentimientos: simular admin_url() de WordPress, evitando error fatal por función ausente en el mock.
+- Mantener el chequeo estricto de Plugin Check y el test de consentimiento sin desactivarlos.
+
 ## 1.1.25 - 2026-11-08 - Consentimientos: textos legales editables y ciclo de vida (#2366)
 
 - Nueva pestaña Consentimientos de Insights con mensaje público y texto legal ampliado editables en ES/EN/FR/DE/NL, etiquetas de botones y URL de política de cookies.
