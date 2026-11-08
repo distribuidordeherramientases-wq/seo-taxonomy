@@ -58,6 +58,20 @@ jobs:
           php taxocommerce-system-check/tests/code-check-deep-smoke.php
           php taxocommerce-system-check/tests/code-check-smoke.php
 
+      - name: Validate independent Autotest Code Check for the entire new family
+        run: |
+          set -euo pipefail
+          for plugin in auditor campaigns core database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
+            php -l "taxocommerce-${plugin}/includes/class-taxocommerce-autotest-code.php"
+            php .github/tests/autotest-code-vendor-smoke.php "${plugin}"
+            node --check "taxocommerce-${plugin}/assets/autotest-code.js"
+          done
+          php -l taxocommerce-system-check/taxocommerce-system-check.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-auto-test.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php taxocommerce-system-check/tests/code-check-smoke.php
+          php taxocommerce-system-check/tests/auto-test-guide-smoke.php
+
       - name: Validate Insights consent and editable legal text lifecycle
         run: |
           php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
