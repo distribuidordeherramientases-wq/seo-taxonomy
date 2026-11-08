@@ -4,7 +4,8 @@
  * No imports, exports, database writes or cron dispatch.
  */
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.15' );
+define( 'TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.21' );
+define( 'HOUR_IN_SECONDS', 3600 );
 
 $GLOBALS['tcie_site'] = 'https://example.test';
 $GLOBALS['tcie_report'] = array();
@@ -23,6 +24,12 @@ function esc_html( $x ) { return htmlspecialchars( (string) $x, ENT_QUOTES, 'UTF
 function esc_attr_e( $x, $domain = '' ) { echo esc_attr( $x ); }
 function esc_html_e( $x, $domain = '' ) { echo esc_html( $x ); }
 function admin_url( $x = '' ) { return '/wp-admin/' . $x; }
+function remove_query_arg( $key, $url = '/wp-admin/admin.php?page=taxocommerce-import-export' ) { return $url; }
+function add_query_arg( $key, $value = null, $url = '' ) { return ( $url ?: admin_url( 'admin.php?page=taxocommerce-import-export' ) ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
+function esc_attr__( $x, $domain = '' ) { return esc_attr( $x ); }
+function esc_html__( $x, $domain = '' ) { return esc_html( $x ); }
+function sanitize_key( $x ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $x ) ); }
+function wp_unslash( $x ) { return $x; }
 function current_user_can( $x ) { return true; }
 function apply_filters( $hook, $value ) { return $value; }
 function wp_nonce_field( $name, $key ) { echo '<input type="hidden" name="' . esc_attr( $key ) . '">'; }
@@ -35,6 +42,7 @@ function assert_ie( $ok, $name ) {
     if ( ! $ok ) { echo 'FAIL ' . $name . PHP_EOL; exit( 1 ); }
 }
 
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-import-export-auto-test.php';
 
 $cases = TaxoCommerce_Import_Export_Auto_Test::cases();
