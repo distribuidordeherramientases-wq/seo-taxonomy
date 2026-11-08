@@ -75,7 +75,7 @@ msgstr "El resultado es puntual, no se guarda. La conexión real de proveedores 
 
 #: includes/class-taxocommerce-scrappers-manual.php:18
 msgid "No tienes permisos para consultar el manual."
-msgstr ""
+msgstr "No tienes permisos para consultar el manual."
 
 #: includes/class-taxocommerce-scrappers-manual.php:21
 msgid "Manual de TaxoCommerce Scrappers"
