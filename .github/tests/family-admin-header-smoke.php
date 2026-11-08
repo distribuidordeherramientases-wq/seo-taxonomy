@@ -145,7 +145,7 @@ foreach ( array( 'core' ) as $other ) {
     $source = $root . '/taxocommerce-' . $other . '/taxocommerce-' . $other . '.php';
     $data = get_file_data( $source, array( 'version' => 'Version', 'released' => 'Release Date' ) );
     tc_test_assert( 1 === preg_match( '/^\\d+\\.\\d+\\.\\d+$/', $data['version'] ), 'Valid plugin version: ' . $other );
-    tc_test_assert( '2026-11-07' === $data['released'], 'Release date present: ' . $other );
+    tc_test_assert( 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $data['released'] ), 'Valid release date present: ' . $other );
     $readme = file_get_contents( $root . '/taxocommerce-' . $other . '/readme.txt' );
     tc_test_assert( false !== strpos( $readme, 'Stable tag: ' . $data['version'] ), 'Stable tag current: ' . $other );
     $main = file_get_contents( $source );

@@ -4,7 +4,7 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.20
+Stable tag: 0.2.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,11 @@ Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO pl
 System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
 == Changelog ==
+
+= 0.2.21 =
+* Remove duplicate admin GET parsing and narrowly document the nonce-free, read-only asset selector to pass strict WordPress Plugin Check.
+* Preserve the two Autocheck subtabs (Functionality Check and Code Check) and their native, independent PHP/WordPress/security checks.
+
 
 = 0.2.20 =
 * Split Autocheck into Functionality Check and Code Check subtabs, both only for System Check itself.
