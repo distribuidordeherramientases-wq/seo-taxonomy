@@ -60,7 +60,7 @@ $main_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-system-che
 $auto_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-auto-test.php' );
 $code_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-code-check.php' );
 tcs_code_expect( false !== strpos( $main_source, "'code-check' => __( 'Code Check', 'taxocommerce-system-check' )" ), 'Code Check must have its own primary tab.' );
-tcs_code_expect( false !== strpos( $main_source, "'code-check' === $tab" ), 'Primary Code Check must render without Autocheck.' );
+tcs_code_expect( false !== strpos( $main_source, "'code-check' === " . '$tab' ), 'Primary Code Check must render without Autocheck.' );
 tcs_code_expect( false === strpos( $auto_source, 'tcs_subtab' ), 'Autocheck must not include a second nested code navigation.' );
 tcs_code_expect( false !== strpos( $auto_source, "Run Functionality Check" ), 'Existing functionality check must stay intact.' );
 tcs_code_expect( false !== strpos( $code_source, "taxocommerce_system_check_tab_url( 'code-check' )" ), 'Postback must return to primary Code Check tab.' );
