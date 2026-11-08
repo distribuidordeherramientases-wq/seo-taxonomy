@@ -26,6 +26,7 @@ function tccampaigns_autotest_results() {
     return $checks;
 }
 function tccampaigns_render_autotest() {
+    if ( \TaxoCommerce_Campaigns_Autotest_Code::render_subtabs() ) { return; }
     if (!current_user_can('manage_options')) return;
     echo '<section class="tcc-card">' . '<h2>' . esc_html__( 'Autocheck de TaxoCommerce Campaigns', 'taxocommerce-campaigns' ) . '</h2>';
     echo '<p>' . esc_html__( 'Comprobaciones de disponibilidad y esquema en modo lectura. No ejecutan campañas, no modifican precios, no crean tablas ni solicitan servicios externos.', 'taxocommerce-campaigns' ) . '</p>';
