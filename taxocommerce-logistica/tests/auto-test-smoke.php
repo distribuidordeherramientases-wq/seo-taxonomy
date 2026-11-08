@@ -148,4 +148,5 @@ verify_log( null === TaxoCommerce_Logistica_Auto_Test::compare( $before, $after 
 $after['phase'] = 'after';
 $before['group'] = 'pricing';
 verify_log( null === TaxoCommerce_Logistica_Auto_Test::compare( $before, $after ), 'Partial baseline rejected' );
+require __DIR__ . '/i18n-catalog-smoke.php';
 echo 'Logistics Auto Test smoke passed.' . PHP_EOL;

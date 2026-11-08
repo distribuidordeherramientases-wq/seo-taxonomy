@@ -1,4 +1,12 @@
-## [Unreleased] — Traducciones administrativas y manuales Logistics (#2062)
+## [0.2.8] — 2026-11-08 — Catálogos Logistics completos en cinco idiomas (#2062)
+
+- Traducidas las 80 cadenas que faltaban en ES, FR, DE y NL, y las 76 pendientes en EN: **396 entradas nuevas**. Textos de administración, resultados de autocheck, gestión de transporte, importación/exportación, permisos y manuales de usuario y técnicos.
+- Cinco catálogos PO con 141 mensajes traducibles y cabecera; 0 vacíos, 0 claves ausentes respecto al POT, 0 marcadores printf diferentes. Regenerados los cinco catálogos MO.
+- Añadida comprobación de regresión de las traducciones MO desde el autotest CLI existente. Versión 0.2.8 y fecha de publicación 2026-11-08 actualizadas en cabecera y `readme.txt`; historial `changelog.txt` conservado.
+- Sin cambios de reglas, tarifas, pedidos, productos, costes, SQL, ajustes ni flujos de checkout. Independencia respecto a Core preservada.
+- Queda pendiente revisar literales no extraídos por gettext y validar visualmente el idioma del administrador en STAGING/Focazul. Nunca producción sin autorización.
+
+## [Pre-0.2.8] — Traducciones administrativas y manuales Logistics (#2062)
 
 - Incorporadas 270 traducciones de interfaz, diagnósticos, documentación y ayudas de envíos en es_ES, en_US, fr_FR, de_DE y nl_NL (49 EN, 56 FR, 55 DE, 55 NL y 55 ES), sin sobrescribir traducciones existentes.
 - Los catálogos PO conservan 142 entradas por idioma y se han regenerado los cinco MO correspondientes. Se mantienen intactos los datos, el motor de transporte, el checkout, las opciones y los identificadores gettext.
