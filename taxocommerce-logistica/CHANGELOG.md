@@ -1,3 +1,10 @@
+## [Unreleased] — Acceso directo a compra de productos del proveedor desde Logistics (#2379)
+
+- Nueva pestaña «Supplier purchases» con relación entre cada línea del pedido WooCommerce y las fuentes del catálogo de Suppliers, incluidas variaciones, fuentes alternativas, referencias, SKU, coste y enlaces externos «Comprar».
+- Acceso a la compra desde la tabla de pedidos; el pedido # seleccionado abre solamente las líneas correspondientes.
+- Dependencia opcional: si Suppliers está inactivo, Logistics conserva sus funciones de transporte y presenta un aviso informativo. No se crean tablas ni se altera el checkout.
+- Pendiente validar la coincidencia de pedidos reales y enlaces en STAGING/Focazul, además de Plugin Check.
+
 ## [Unreleased] — Traducciones administrativas y manuales Logistics (#2062)
 
 - Incorporadas 270 traducciones de interfaz, diagnósticos, documentación y ayudas de envíos en es_ES, en_US, fr_FR, de_DE y nl_NL (49 EN, 56 FR, 55 DE, 55 NL y 55 ES), sin sobrescribir traducciones existentes.
