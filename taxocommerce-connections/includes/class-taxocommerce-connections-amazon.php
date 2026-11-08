@@ -380,6 +380,7 @@ final class TaxoCommerce_Connections_Amazon {
 		return $out;
 	}
 
+	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Retain published compatibility API names to prevent regressions.
 	public static function register_legacy_helpers() {
 		if ( ! function_exists( 'seo_supplier_recipe_amazon_settings' ) ) {
 			function seo_supplier_recipe_amazon_settings() {
@@ -417,4 +418,5 @@ final class TaxoCommerce_Connections_Amazon {
 			}
 		}
 	}
+	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 }
