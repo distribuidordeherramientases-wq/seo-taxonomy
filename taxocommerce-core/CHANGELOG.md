@@ -1,3 +1,9 @@
+## [Unreleased] — Corregir internacionalización de atributo de navegación (#2062)
+
+- Corregido `class-taxocommerce-core-hierarchy-classic.php`: el atributo técnico `data-tc-search="local"` se imprime como HTML fijo, no mediante gettext. Evita que una traducción pueda romper el buscador de categorías/elementos.
+- Eliminada esta falsa cadena traducible del POT y los cinco PO, y recompilados cinco MO coherentes (792 entradas por idioma). Se conserva el HTML emitido y no se modifica el procesamiento de relaciones ni los datos.
+- Revisar sintaxis PHP, Plugin Check, regresiones y funcionamiento real en STAGING/Focazul antes de fusionar o desplegar. Nunca PRODUCCIÓN.
+
 ## [Unreleased] — Cobertura de inventarios y administración Core (#2062)
 
 - Traducidas otras 100 cadenas de Core para FR, DE y NL, y explicitadas las correspondientes versiones ES: 400 entradas gettext adicionales. Incluyen etiquetas de navegación, filtros, inventario de contenido, arquitectura SEO, estados de edición, diagnósticos, permisos, campos de producto, WooCommerce y opciones de sistema.

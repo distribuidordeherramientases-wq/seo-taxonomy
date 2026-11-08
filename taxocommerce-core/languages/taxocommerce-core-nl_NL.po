@@ -1876,10 +1876,6 @@ msgstr "Zoeken op naam of ID…"
 msgid "Buscar elementos disponibles"
 msgstr "Beschikbare items zoeken"
 
-#: includes/class-taxocommerce-core-hierarchy-classic.php:817
-msgid "data-tc-search=\"local\""
-msgstr ""
-
 #: includes/class-taxocommerce-core-hierarchy-classic.php:830
 msgid ""
 "Se muestran 40 categorías iniciales. Escribe para buscar cualquier categoría"
