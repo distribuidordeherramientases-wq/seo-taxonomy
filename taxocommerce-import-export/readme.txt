@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.21
+Stable tag: 0.4.22
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
 
@@ -188,3 +191,7 @@ The package transports original image files plus title, ALT, caption, descriptio
 
 * Monolith: Supplier Import / Sync V2 (2.2.0); supplier CSV/XLSX catalogues (2.3.x); VEVOR CSV and trash-aware content (2.4.0).
 * Standalone: CSV pilot (0.1.x), Media ZIP (0.2.0), multi-file queue (0.3.0), then 0.4.x resumable exports, country codes, adaptive batches and Auto Test.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.
