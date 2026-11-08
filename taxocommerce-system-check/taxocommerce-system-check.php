@@ -161,13 +161,14 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 }
 
 function taxocommerce_system_check_active_tab() {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+    // GET affects navigation only; all state-changing actions verify nonces separately.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Both selectors are read-only.
     $tab = isset( $_GET['tcs_tab'] ) && is_scalar( $_GET['tcs_tab'] )
         ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
     // Preserve links published by v0.2.20/0.2.21 without keeping a second code checker.
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy tab selector.
     $legacy_subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
         ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
     if ( 'auto-test' === $tab && 'code' === $legacy_subtab ) {
         return 'code-check';
     }
