@@ -1179,3 +1179,96 @@ msgstr "%1$s · %2$d tests%3$s"
 #: includes/class-auto-test.php
 msgid " · %d errores"
 msgstr " · %d errors"
+
+#: includes/class-supplier-purchasing.php
+msgid "You are not allowed to view purchases."
+msgstr "You are not allowed to view purchases."
+
+#: includes/class-supplier-purchasing.php
+msgid "Activate TaxoCommerce Suppliers to see supplier references and purchase links. Shipping works independently."
+msgstr "Activate TaxoCommerce Suppliers to see supplier references and purchase links. Shipping works independently."
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce must be active."
+msgstr "WooCommerce must be active."
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases for WooCommerce orders"
+msgstr "Supplier purchases for WooCommerce orders"
+
+#: includes/class-supplier-purchasing.php
+msgid "Open Purchase to visit the exact supplier product page. Supplier selection and purchase execution remain outside Logistics."
+msgstr "Open Purchase to visit the exact supplier product page. Supplier selection and purchase execution remain outside Logistics."
+
+#: includes/class-supplier-purchasing.php
+msgid "All active orders"
+msgstr "All active orders"
+
+#: includes/class-supplier-purchasing.php
+msgid "Order"
+msgstr "Order"
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce product"
+msgstr "WooCommerce product"
+
+#: includes/class-supplier-purchasing.php
+msgid "Qty."
+msgstr "Qty."
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier"
+msgstr "Supplier"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier ID"
+msgstr "Supplier ID"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier SKU"
+msgstr "Supplier SKU"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier product"
+msgstr "Supplier product"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier price"
+msgstr "Supplier price"
+
+#: includes/class-supplier-purchasing.php
+msgid "Purchase"
+msgstr "Purchase"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier source inherited from parent product"
+msgstr "Supplier source inherited from parent product"
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier source linked to this product."
+msgstr "No supplier source linked to this product."
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier purchase link"
+msgstr "No supplier purchase link"
+
+#: includes/class-supplier-purchasing.php
+msgid "No active order lines found."
+msgstr "No active order lines found."
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases"
+msgstr "Supplier purchases"
+
+#: includes/seo-transporte.php
+msgid "Supplier purchase"
+msgstr "Supplier purchase"
+
+#: includes/seo-transporte.php
+msgid "View supplier purchases"
+msgstr "View supplier purchases"
+
+#: includes/seo-transporte.php
+msgid "Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page."
+msgstr "Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page."
+
