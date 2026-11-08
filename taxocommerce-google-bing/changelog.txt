@@ -1,3 +1,6 @@
+= 1.1.25 (2026-11-08) =
+* Consentimientos: textos legales, mensajes y botones editables por idioma, URL de política, aceptación/rechazo por finalidad, guardado en wp_options y borrado exclusivo al desinstalar. Issue #2366.
+
 = 1.1.23 (2026-11-07) =
 * Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
 
