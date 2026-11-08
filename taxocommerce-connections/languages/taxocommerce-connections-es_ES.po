@@ -270,3 +270,67 @@ msgstr "El usuario de OAuth no tiene permisos."
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
 msgstr "El código de verificación del dominio no es válido."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Access denied."
+msgstr "Acceso denegado."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check first."
+msgstr "Ejecuta primero el chequeo de código."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Unable to create JSON."
+msgstr "No se ha podido generar el JSON."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Autotest sections"
+msgstr "Secciones del Autotest"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Functionality Check"
+msgstr "Chequeo de funcionalidades"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Code Check"
+msgstr "Chequeo del código"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr "Sintaxis PHP, estructura WordPress e indicadores de seguridad solo de este plugin. No requiere otro comprobador. Los resultados no sustituyen Plugin Check oficial ni una auditoría de seguridad."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "CPU usage"
+msgstr "Uso de CPU"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check"
+msgstr "Ejecutar chequeo del código"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Progress"
+msgstr "Progreso"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Stop"
+msgstr "Detener"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Continue batch"
+msgstr "Continuar lote"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Resume"
+msgstr "Reanudar"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Download JSON"
+msgstr "Descargar JSON"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "File"
+msgstr "Archivo"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Security"
+msgstr "Seguridad"

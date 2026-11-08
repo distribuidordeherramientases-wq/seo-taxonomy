@@ -22,9 +22,10 @@ final class TaxoCommerce_Connections_Autotest_Code {
     }
 
     public static function assets() {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only; never changes data.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector, not data processing.
         $section = isset( $_GET['tc_autotest_section'] ) && is_scalar( $_GET['tc_autotest_section'] )
             ? sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'code' === $section && current_user_can( 'manage_options' ) ) {
             wp_enqueue_script(
                 'taxocommerce-connections-autotest-code',
@@ -381,7 +382,7 @@ final class TaxoCommerce_Connections_Autotest_Code {
 
     public static function handle() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied.', self::DOMAIN ) );
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-connections' ) );
         }
         check_admin_referer( self::ACTION );
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
@@ -432,16 +433,16 @@ final class TaxoCommerce_Connections_Autotest_Code {
 
     public static function export() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied.', self::DOMAIN ) );
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-connections' ) );
         }
         check_admin_referer( self::EXPORT_ACTION );
         $state = self::state();
         if ( ! is_array( $state ) || ! $state['results'] ) {
-            wp_die( esc_html__( 'Run Code Check first.', self::DOMAIN ) );
+            wp_die( esc_html__( 'Run Code Check first.', 'taxocommerce-connections' ) );
         }
         $json = wp_json_encode( $state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
         if ( ! is_string( $json ) ) {
-            wp_die( esc_html__( 'Unable to create JSON.', self::DOMAIN ) );
+            wp_die( esc_html__( 'Unable to create JSON.', 'taxocommerce-connections' ) );
         }
         nocache_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
@@ -458,17 +459,18 @@ final class TaxoCommerce_Connections_Autotest_Code {
      */
     public static function render_subtabs() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied.', self::DOMAIN ) );
+            wp_die( esc_html__( 'Access denied.', 'taxocommerce-connections' ) );
         }
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only subtab selector, no data changes.
         $code = isset( $_GET['tc_autotest_section'] ) && 'code' === sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $base = remove_query_arg( 'tc_autotest_section' );
-        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autotest sections', self::DOMAIN ) . '">';
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autotest sections', 'taxocommerce-connections' ) . '">';
         echo '<a class="nav-tab' . ( $code ? '' : ' nav-tab-active' ) . '" href="' . esc_url( $base ) . '">'
-            . esc_html__( 'Functionality Check', self::DOMAIN ) . '</a>';
+            . esc_html__( 'Functionality Check', 'taxocommerce-connections' ) . '</a>';
         echo '<a class="nav-tab' . ( $code ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( add_query_arg( 'tc_autotest_section', 'code', $base ) ) . '">'
-            . esc_html__( 'Code Check', self::DOMAIN ) . '</a></nav>';
+            . esc_html__( 'Code Check', 'taxocommerce-connections' ) . '</a></nav>';
         if ( $code ) {
             self::render();
         }
@@ -488,12 +490,12 @@ final class TaxoCommerce_Connections_Autotest_Code {
         $state = self::state();
         $speeds = self::speeds();
         echo '<section class="wrap tc-autotest-code">';
-        echo '<h2>' . esc_html__( 'Code Check', self::DOMAIN ) . '</h2>';
-        echo '<p>' . esc_html__( 'PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit.', self::DOMAIN ) . '</p>';
+        echo '<h2>' . esc_html__( 'Code Check', 'taxocommerce-connections' ) . '</h2>';
+        echo '<p>' . esc_html__( 'PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit.', 'taxocommerce-connections' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '"><input type="hidden" name="operation" value="start">';
         wp_nonce_field( self::ACTION );
-        echo '<label for="tc-autotest-code-speed">' . esc_html__( 'CPU usage', self::DOMAIN ) . '</label> ';
+        echo '<label for="tc-autotest-code-speed">' . esc_html__( 'CPU usage', 'taxocommerce-connections' ) . '</label> ';
         echo '<select id="tc-autotest-code-speed" name="speed">';
         foreach ( $speeds as $value => $config ) {
             echo '<option value="' . esc_attr( (string) $value ) . '"'
@@ -501,32 +503,32 @@ final class TaxoCommerce_Connections_Autotest_Code {
                 . esc_html( (string) $value ) . '</option>';
         }
         echo '</select> ';
-        submit_button( __( 'Run Code Check', self::DOMAIN ), 'primary', 'submit', false );
+        submit_button( __( 'Run Code Check', 'taxocommerce-connections' ), 'primary', 'submit', false );
         echo '</form>';
         if ( is_array( $state ) ) {
-            echo '<p>' . esc_html__( 'Progress', self::DOMAIN ) . ': '
+            echo '<p>' . esc_html__( 'Progress', 'taxocommerce-connections' ) . ': '
                 . esc_html( (string) $state['cursor'] ) . '/' . esc_html( (string) count( $state['files'] ) )
                 . ' · ' . esc_html( $state['status'] ) . '</p>';
             if ( 'running' === $state['status'] ) {
-                self::button( 'stop', __( 'Stop', self::DOMAIN ) );
+                self::button( 'stop', __( 'Stop', 'taxocommerce-connections' ) );
                 echo '<form id="tc-autotest-code-step" data-delay="'
                     . esc_attr( (string) $speeds[ $state['speed'] ]['delay'] )
                     . '" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
                 echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
                 echo '<input type="hidden" name="operation" value="step">';
                 wp_nonce_field( self::ACTION );
-                echo '<noscript><button type="submit" class="button">' . esc_html__( 'Continue batch', self::DOMAIN ) . '</button></noscript></form>';
+                echo '<noscript><button type="submit" class="button">' . esc_html__( 'Continue batch', 'taxocommerce-connections' ) . '</button></noscript></form>';
             } elseif ( 'paused' === $state['status'] ) {
-                self::button( 'resume', __( 'Resume', self::DOMAIN ), true );
+                self::button( 'resume', __( 'Resume', 'taxocommerce-connections' ), true );
             }
             if ( $state['results'] ) {
                 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
                 echo '<input type="hidden" name="action" value="' . esc_attr( self::EXPORT_ACTION ) . '">';
                 wp_nonce_field( self::EXPORT_ACTION );
-                submit_button( __( 'Download JSON', self::DOMAIN ), 'secondary', 'submit', false );
+                submit_button( __( 'Download JSON', 'taxocommerce-connections' ), 'secondary', 'submit', false );
                 echo '</form>';
-                echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', self::DOMAIN )
-                    . '</th><th>PHP</th><th>WordPress</th><th>' . esc_html__( 'Security', self::DOMAIN ) . '</th></tr></thead><tbody>';
+                echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'taxocommerce-connections' )
+                    . '</th><th>PHP</th><th>WordPress</th><th>' . esc_html__( 'Security', 'taxocommerce-connections' ) . '</th></tr></thead><tbody>';
                 foreach ( $state['results'] as $file => $checks ) {
                     echo '<tr><th scope="row">' . esc_html( $file ) . '</th>';
                     foreach ( array( 'php', 'wordpress', 'security' ) as $section ) {
