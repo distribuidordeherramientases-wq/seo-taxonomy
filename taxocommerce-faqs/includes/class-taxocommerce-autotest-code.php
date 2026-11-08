@@ -22,10 +22,9 @@ final class TaxoCommerce_FAQs_Autotest_Code {
     }
 
     public static function assets() {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector, not data processing.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only; never changes data.
         $section = isset( $_GET['tc_autotest_section'] ) && is_scalar( $_GET['tc_autotest_section'] )
             ? sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) ) : '';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'code' === $section && current_user_can( 'manage_options' ) ) {
             wp_enqueue_script(
                 'taxocommerce-faqs-autotest-code',
@@ -461,9 +460,8 @@ final class TaxoCommerce_FAQs_Autotest_Code {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Access denied.', 'taxocommerce-faqs' ) );
         }
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only subtab selector, no data changes.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
         $code = isset( $_GET['tc_autotest_section'] ) && 'code' === sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         $base = remove_query_arg( 'tc_autotest_section' );
         echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autotest sections', 'taxocommerce-faqs' ) . '">';
         echo '<a class="nav-tab' . ( $code ? '' : ' nav-tab-active' ) . '" href="' . esc_url( $base ) . '">'
