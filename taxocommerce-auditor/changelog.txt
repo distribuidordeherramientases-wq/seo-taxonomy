@@ -1,3 +1,6 @@
+== 0.3.10 ==
+* Five independent workload levels for each audit scope, safe background batch pacing and progress preservation.
+
 = 0.3.8 (2026-11-07) =
 * Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
 
