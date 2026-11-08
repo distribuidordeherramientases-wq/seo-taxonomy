@@ -3,6 +3,7 @@
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.6' );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'HOUR_IN_SECONDS', 3600 );
 define( 'ARRAY_A', 'ARRAY_A' );
 $tcv_hooks = array();
 $tcv_transients = array();
@@ -17,6 +18,10 @@ function get_current_user_id() { return 9; }
 function get_transient( $key ) { global $tcv_transients; return $tcv_transients[$key] ?? false; }
 function set_transient( $key, $data, $ttl ) { global $tcv_transients; $tcv_transients[$key] = $data; return true; }
 function admin_url( $value ) { return '/wp-admin/' . $value; }
+function remove_query_arg( $key, $url = '/wp-admin/admin.php?page=taxocommerce-vocabulary' ) { return $url; }
+function add_query_arg( $key, $value = null, $url = '' ) { return ( $url ?: admin_url( 'admin.php?page=taxocommerce-vocabulary' ) ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
+function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
+function wp_unslash( $value ) { return $value; }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
@@ -101,6 +106,7 @@ require dirname( __DIR__ ) . '/includes/class-tcv-io.php';
 require dirname( __DIR__ ) . '/includes/class-tcv-portable.php';
 require dirname( __DIR__ ) . '/includes/class-tcv-admin.php';
 require dirname( __DIR__ ) . '/includes/class-tcv-manual.php';
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php';
 require dirname( __DIR__ ) . '/includes/class-tcv-auto-test.php';
 
 TCV_IO::boot();
