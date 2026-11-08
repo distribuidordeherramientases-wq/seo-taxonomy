@@ -1,3 +1,8 @@
+= 0.4.62 (2026-11-08) =
+* Complete Core gettext catalogs for Spanish, English, French, German and Dutch (791 translatable messages per locale, plus gettext header); no remaining empty translations for currently extracted strings.
+* Preserve native WordPress/WooCommerce contents, role and menu APIs, and fixed HTML search attributes. Add regression checks for translated interface labels.
+* Translation QA and WordPress Plugin Check required before staging and Focazul deployment. Issue #2062.
+
 = 0.4.61 (2026-11-07) =
 * Mantiene el rótulo del menú padre TaxoCommerce Core frente a alteraciones de otros módulos; sin modificar enlaces ni permisos. Issue #2351.
 
