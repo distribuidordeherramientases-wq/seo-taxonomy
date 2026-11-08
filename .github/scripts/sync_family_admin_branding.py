@@ -50,7 +50,8 @@ def main():
                   .replace("__TC_DESCRIPTION__", description)
                   .replace("__TC_HISTORY_CSS__", history_css)
                   .replace("__TC_HISTORY_PHP__", history_php)
-                  .replace("__TC_HISTORY_HTML__", history_html))
+                  .replace("__TC_HISTORY_HTML__", history_html)
+                  .replace("__TC_DOMAIN__", "taxocommerce-" + slug))
         path = ROOT / ("taxocommerce-" + slug) / "includes/admin-branding.php"
         if args.check:
             if not path.is_file() or path.read_text(encoding="utf-8") != result:
