@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.28
+ * Version: 1.1.29
  * Release Date: 2026-11-08
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.28' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.29' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
