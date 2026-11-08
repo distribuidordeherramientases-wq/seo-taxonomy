@@ -154,9 +154,9 @@ final class Admin {
         echo '<section class="card taxocommerce-auditor-scope-controls">';
         echo '<div class="taxocommerce-auditor-scope-status"><div>';
         echo '<h2> ' . esc_html__( 'Auditoría de', 'taxocommerce-auditor' ) . ' ' . esc_html( Runner::scopes()[ $scope ] ) . '</h2>';
-        echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  ' . esc_html( self::state_label( $status ) );
+        echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  <span data-tca-status-label>' . esc_html( self::state_label( $status ) ) . '</span>';
         if ( in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
-            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected );
+            echo ' · <span data-tca-counter>' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected ) . '</span>';
         }
         echo '</p>';
         if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
