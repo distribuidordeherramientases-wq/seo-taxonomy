@@ -35,19 +35,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies-json.php:352
 msgid "Exportación JSON de anomalías editoriales"
-msgstr ""
+msgstr "Exportación JSON de anomalías editoriales"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:354
 msgid "Objetos incluidos ahora:"
-msgstr ""
+msgstr "Objetos incluidos ahora:"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:357
 msgid "Descargar JSON"
-msgstr ""
+msgstr "Descargar JSON"
 
 #: includes/class-taxocommerce-core-anomalies.php:40
 msgid "No tienes permisos para ver Anomalías."
-msgstr ""
+msgstr "No tienes permisos para ver Anomalías."
 
 #: includes/class-taxocommerce-core-anomalies.php:42
 #: includes/class-taxocommerce-core-content-manager.php:211
@@ -187,7 +187,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-anomalies.php:818
 #: includes/class-taxocommerce-core-hierarchy-classic.php:703
 msgid "Hubs primarios sin cluster"
-msgstr ""
+msgstr "Hubs primarios sin cluster"
 
 #: includes/class-taxocommerce-core-anomalies.php:830
 msgid "Hubs secundarios sin hub primary"
@@ -353,11 +353,11 @@ msgstr "No hay categorías duplicadas. Cada categoría de WooCommerce pertenece 
 
 #: includes/class-taxocommerce-core-architecture-report.php:46
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "No tienes permisos para actualizar este informe."
 
 #: includes/class-taxocommerce-core-architecture-report.php:353
 msgid "Distribución de la arquitectura SEO"
-msgstr ""
+msgstr "Distribución de la arquitectura SEO"
 
 #: includes/class-taxocommerce-core-architecture-report.php:354
 msgid ""
@@ -371,7 +371,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:395
 msgid "Distribución de la jerarquía SEO"
-msgstr ""
+msgstr "Distribución de la jerarquía SEO"
 
 #: includes/class-taxocommerce-core-architecture-report.php:396
 msgid ""
@@ -385,7 +385,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid "Productos publicados por cluster"
-msgstr ""
+msgstr "Productos publicados por cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid ""
@@ -395,11 +395,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:420
 msgid "Visión global"
-msgstr ""
+msgstr "Visión global"
 
 #: includes/class-taxocommerce-core-architecture-report.php:420
 msgid "Cómo se reparte la arquitectura"
-msgstr ""
+msgstr "Cómo se reparte la arquitectura"
 
 #: includes/class-taxocommerce-core-architecture-report.php:421
 msgid ""
@@ -445,15 +445,15 @@ msgstr "Productos"
 #: includes/class-taxocommerce-core-architecture-report.php:423
 #: includes/class-taxocommerce-core-architecture-report.php:449
 msgid "Prod./categoría"
-msgstr ""
+msgstr "Prod./categoría"
 
 #: includes/class-taxocommerce-core-architecture-report.php:434
 msgid "Anatomía interna"
-msgstr ""
+msgstr "Anatomía interna"
 
 #: includes/class-taxocommerce-core-architecture-report.php:434
 msgid "Detalle por cluster"
-msgstr ""
+msgstr "Detalle por cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:435
 msgid ""
@@ -470,11 +470,11 @@ msgstr ""
 #: includes/class-taxocommerce-core-hierarchy-classic.php:706
 #: includes/class-taxocommerce-core-hierarchy.php:107
 msgid "Hub primario"
-msgstr ""
+msgstr "Hub primario"
 
 #: includes/class-taxocommerce-core-architecture-report.php:460
 msgid "Subhubs"
-msgstr ""
+msgstr "Subhubs"
 
 #: includes/class-taxocommerce-core-architecture-report.php:466
 msgid "Este cluster no tiene hubs primarios vinculados."
@@ -482,11 +482,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-auto-test.php:26
 msgid "Sin permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "Sin permisos para ejecutar Auto Test."
 
 #: includes/class-taxocommerce-core-auto-test.php:413
 msgid "Acceso denegado a Auto Test."
-msgstr ""
+msgstr "Acceso denegado a Auto Test."
 
 #: includes/class-taxocommerce-core-auto-test.php:420
 #: includes/class-taxocommerce-core-auto-test.php:426
@@ -534,7 +534,7 @@ msgstr "Ejecutar Auto Test"
 
 #: includes/class-taxocommerce-core-auto-test.php:444
 msgid "Sin cambios en el catálogo, la jerarquía ni los menús."
-msgstr ""
+msgstr "Sin cambios en el catálogo, la jerarquía ni los menús."
 
 #: includes/class-taxocommerce-core-auto-test.php:447
 msgid ""
@@ -606,7 +606,7 @@ msgstr "Este contenido se utiliza en una plantilla de cabecera. Guardarlo modifi
 #: includes/class-taxocommerce-core-menu-editor.php:356
 #: includes/class-taxocommerce-core-menu-editor.php:408
 msgid "Texto del enlace"
-msgstr ""
+msgstr "Texto del enlace"
 
 #: includes/class-taxocommerce-core-block-navigation.php:149
 msgid "Este bloque requiere el Editor del sitio para cambios avanzados."
@@ -664,19 +664,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-inventory.php:116
 msgid "No tienes permisos para consultar el inventario."
-msgstr ""
+msgstr "No tienes permisos para consultar el inventario."
 
 #: includes/class-taxocommerce-core-content-inventory.php:136
 msgid "Ver contenidos"
-msgstr ""
+msgstr "Ver contenidos"
 
 #: includes/class-taxocommerce-core-content-inventory.php:147
 msgid "Inventario de contenidos"
-msgstr ""
+msgstr "Inventario de contenidos"
 
 #: includes/class-taxocommerce-core-content-inventory.php:148
 msgid "Resumen general de contenidos"
-msgstr ""
+msgstr "Resumen general de contenidos"
 
 #: includes/class-taxocommerce-core-content-inventory.php:149
 msgid ""
@@ -687,11 +687,11 @@ msgstr ""
 #. translators: %s: date and time of latest cached inventory.
 #: includes/class-taxocommerce-core-content-inventory.php:152
 msgid "Actualizado: %s · Caché de 15 minutos"
-msgstr ""
+msgstr "Actualizado: %s · Caché de 15 minutos"
 
 #: includes/class-taxocommerce-core-content-inventory.php:158
 msgid "Actualizar inventario"
-msgstr ""
+msgstr "Actualizar inventario"
 
 #: includes/class-taxocommerce-core-content-inventory.php:163
 #: includes/class-taxocommerce-core-editorial-guide.php:77
@@ -709,46 +709,46 @@ msgstr ""
 #. translators: %d: published content count.
 #: includes/class-taxocommerce-core-content-inventory.php:171
 msgid "%d publicados"
-msgstr ""
+msgstr "%d publicados"
 
 #: includes/class-taxocommerce-core-content-inventory.php:176
 #: includes/class-taxocommerce-core-content-manager.php:207
 #: includes/class-taxocommerce-core-menu-editor.php:157
 msgid "Categorías de producto"
-msgstr ""
+msgstr "Categorías de producto"
 
 #. translators: %d: empty product categories.
 #: includes/class-taxocommerce-core-content-inventory.php:178
 msgid "%d sin productos"
-msgstr ""
+msgstr "%d sin productos"
 
 #: includes/class-taxocommerce-core-content-inventory.php:183
 msgid "Categorías de entradas"
-msgstr ""
+msgstr "Categorías de entradas"
 
 #. translators: %d: categories with content.
 #: includes/class-taxocommerce-core-content-inventory.php:185
 msgid "%d con entradas"
-msgstr ""
+msgstr "%d con entradas"
 
 #: includes/class-taxocommerce-core-content-inventory.php:189
 msgid "Archivos multimedia"
-msgstr ""
+msgstr "Archivos multimedia"
 
 #: includes/class-taxocommerce-core-content-inventory.php:189
 msgid "Elementos en la biblioteca"
-msgstr ""
+msgstr "Elementos en la biblioteca"
 
 #. translators: %d: enabled FAQ count.
 #. translators: %d: número de extensiones activas.
 #: includes/class-taxocommerce-core-content-inventory.php:193
 #: includes/class-taxocommerce-core.php:1221
 msgid "%d activas"
-msgstr ""
+msgstr "%d activas"
 
 #: includes/class-taxocommerce-core-content-inventory.php:199
 msgid "Estados editoriales"
-msgstr ""
+msgstr "Estados editoriales"
 
 #: includes/class-taxocommerce-core-content-inventory.php:215
 msgid ""
@@ -758,11 +758,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-inventory.php:217
 msgid "Arquitectura SEO"
-msgstr ""
+msgstr "Arquitectura SEO"
 
 #: includes/class-taxocommerce-core-content-inventory.php:218
 msgid "Revisar anomalías"
-msgstr ""
+msgstr "Revisar anomalías"
 
 #: includes/class-taxocommerce-core-content-inventory.php:219
 msgid ""
@@ -800,14 +800,14 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:121
 msgid "Solicitud de contenido no válida."
-msgstr ""
+msgstr "Solicitud de contenido no válida."
 
 #: includes/class-taxocommerce-core-content-manager.php:183
 #: includes/class-taxocommerce-core-hierarchy.php:873
 #: includes/class-taxocommerce-core-menu.php:700
 #: includes/class-taxocommerce-core.php:322
 msgid "No tienes permisos para gestionar TaxoCommerce Core."
-msgstr ""
+msgstr "No tienes permisos para gestionar TaxoCommerce Core."
 
 #: includes/class-taxocommerce-core-content-manager.php:205
 msgid "Resumen"
@@ -819,11 +819,11 @@ msgstr "Entradas"
 
 #: includes/class-taxocommerce-core-content-manager.php:214
 msgid "Opciones de contenidos"
-msgstr ""
+msgstr "Opciones de contenidos"
 
 #: includes/class-taxocommerce-core-content-manager.php:245
 msgid "Con productos"
-msgstr ""
+msgstr "Con productos"
 
 #: includes/class-taxocommerce-core-content-manager.php:250
 #: includes/class-taxocommerce-core-content-manager.php:915
@@ -837,12 +837,12 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:252
 msgid "Pendiente"
-msgstr ""
+msgstr "Pendiente"
 
 #: includes/class-taxocommerce-core-content-manager.php:253
 #: includes/class-taxocommerce-core-content-manager.php:919
 msgid "Papelera"
-msgstr ""
+msgstr "Papelera"
 
 #: includes/class-taxocommerce-core-content-manager.php:294
 msgid "Buscar contenido"
@@ -850,7 +850,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:295
 msgid "Título o descripción…"
-msgstr ""
+msgstr "Título o descripción…"
 
 #: includes/class-taxocommerce-core-content-manager.php:300
 #: includes/class-taxocommerce-core-content-manager.php:395
@@ -860,7 +860,7 @@ msgstr "Estado"
 
 #: includes/class-taxocommerce-core-content-manager.php:302
 msgid "Todos los estados"
-msgstr ""
+msgstr "Todos los estados"
 
 #: includes/class-taxocommerce-core-content-manager.php:312
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -869,11 +869,11 @@ msgstr "Categoría"
 
 #: includes/class-taxocommerce-core-content-manager.php:327
 msgid "Buscar categoría…"
-msgstr ""
+msgstr "Buscar categoría…"
 
 #: includes/class-taxocommerce-core-content-manager.php:335
 msgid "Aplicar filtros"
-msgstr ""
+msgstr "Aplicar filtros"
 
 #: includes/class-taxocommerce-core-content-manager.php:336
 msgid "Limpiar"
@@ -898,7 +898,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:399
 msgid "Stock"
-msgstr ""
+msgstr "Existencias"
 
 #: includes/class-taxocommerce-core-content-manager.php:400
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -912,7 +912,7 @@ msgstr "Indicadores clave"
 
 #: includes/class-taxocommerce-core-content-manager.php:403
 msgid "Modificado"
-msgstr ""
+msgstr "Modificado"
 
 #: includes/class-taxocommerce-core-content-manager.php:404
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -921,7 +921,7 @@ msgstr "Acciones"
 
 #: includes/class-taxocommerce-core-content-manager.php:409
 msgid "No se ha encontrado contenido."
-msgstr ""
+msgstr "No se ha encontrado contenido."
 
 #: includes/class-taxocommerce-core-content-manager.php:427
 #: includes/class-taxocommerce-core-content-manager.php:491
@@ -938,16 +938,16 @@ msgstr "No"
 #: includes/class-taxocommerce-core-content-manager.php:432
 #: includes/class-taxocommerce-core-content-manager.php:494
 msgid "Editar aquí"
-msgstr ""
+msgstr "Editar aquí"
 
 #: includes/class-taxocommerce-core-content-manager.php:433
 #: includes/class-taxocommerce-core-content-manager.php:494
 msgid "Editor nativo"
-msgstr ""
+msgstr "Editor nativo"
 
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "Superior"
-msgstr ""
+msgstr "Superior"
 
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "Descripción"
@@ -955,16 +955,16 @@ msgstr "Descripción"
 
 #: includes/class-taxocommerce-core-content-manager.php:480
 msgid "No se han encontrado categorías."
-msgstr ""
+msgstr "No se han encontrado categorías."
 
 #: includes/class-taxocommerce-core-content-manager.php:529
 msgid "La edición de productos no está disponible."
-msgstr ""
+msgstr "La edición de productos no está disponible."
 
 #: includes/class-taxocommerce-core-content-manager.php:533
 #: includes/class-taxocommerce-core-content-manager.php:596
 msgid "Producto no encontrado."
-msgstr ""
+msgstr "Producto no encontrado."
 
 #: includes/class-taxocommerce-core-content-manager.php:547
 msgid "La edición de categorías de producto no está disponible."
@@ -972,63 +972,63 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:551
 msgid "Categoría no encontrada."
-msgstr ""
+msgstr "Categoría no encontrada."
 
 #: includes/class-taxocommerce-core-content-manager.php:566
 msgid "El contenido no existe o no se puede editar."
-msgstr ""
+msgstr "El contenido no existe o no se puede editar."
 
 #: includes/class-taxocommerce-core-content-manager.php:592
 msgid "No tienes permisos para editar este producto."
-msgstr ""
+msgstr "No tienes permisos para editar este producto."
 
 #: includes/class-taxocommerce-core-content-manager.php:616
 msgid "Los datos del producto no son válidos."
-msgstr ""
+msgstr "Los datos del producto no son válidos."
 
 #: includes/class-taxocommerce-core-content-manager.php:619
 msgid "No se ha podido mover el producto a la papelera."
-msgstr ""
+msgstr "No se ha podido mover el producto a la papelera."
 
 #: includes/class-taxocommerce-core-content-manager.php:700
 msgid "No tienes permisos para editar categorías de producto."
-msgstr ""
+msgstr "No tienes permisos para editar categorías de producto."
 
 #: includes/class-taxocommerce-core-content-manager.php:715
 msgid "Los datos de la categoría no son válidos."
-msgstr ""
+msgstr "Los datos de la categoría no son válidos."
 
 #: includes/class-taxocommerce-core-content-manager.php:720
 msgid "La categoría superior no existe."
-msgstr ""
+msgstr "La categoría superior no existe."
 
 #: includes/class-taxocommerce-core-content-manager.php:752
 msgid "No tienes permisos para editar este contenido."
-msgstr ""
+msgstr "No tienes permisos para editar este contenido."
 
 #: includes/class-taxocommerce-core-content-manager.php:767
 msgid "Los datos del contenido no son válidos."
-msgstr ""
+msgstr "Los datos del contenido no son válidos."
 
 #: includes/class-taxocommerce-core-content-manager.php:770
 msgid "No se ha podido mover el contenido a la papelera."
-msgstr ""
+msgstr "No se ha podido mover el contenido a la papelera."
 
 #: includes/class-taxocommerce-core-content-manager.php:917
 msgid "Pendiente de revisión"
-msgstr ""
+msgstr "Pendiente de revisión"
 
 #: includes/class-taxocommerce-core-content-manager.php:918
 msgid "Privado"
-msgstr ""
+msgstr "Privado"
 
 #: includes/class-taxocommerce-core-content-manager.php:990
 msgid "&laquo; Anterior"
-msgstr ""
+msgstr "&laquo; Anterior"
 
 #: includes/class-taxocommerce-core-content-manager.php:991
 msgid "Siguiente &raquo;"
-msgstr ""
+msgstr "Siguiente &raquo;"
 
 #: includes/class-taxocommerce-core-country.php:19
 msgid "España"
@@ -1062,24 +1062,24 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-country.php:140
 msgid "País no válido."
-msgstr ""
+msgstr "País no válido."
 
 #: includes/class-taxocommerce-core-country.php:146
 msgid "No se puede actualizar el país de este contenido."
-msgstr ""
+msgstr "No se puede actualizar el país de este contenido."
 
 #: includes/class-taxocommerce-core-country.php:150
 #: includes/class-taxocommerce-core-country.php:168
 msgid "No se pudo guardar el país."
-msgstr ""
+msgstr "No se pudo guardar el país."
 
 #: includes/class-taxocommerce-core-country.php:164
 msgid "No se puede actualizar el país de esta categoría."
-msgstr ""
+msgstr "No se puede actualizar el país de esta categoría."
 
 #: includes/class-taxocommerce-core-dashboard.php:35
 msgid "Versión del Core"
-msgstr ""
+msgstr "Versión del Core"
 
 #: includes/class-taxocommerce-core-dashboard.php:41
 msgid "WooCommerce"
@@ -1087,24 +1087,24 @@ msgstr "WooCommerce"
 
 #: includes/class-taxocommerce-core-dashboard.php:42
 msgid "Detectado"
-msgstr ""
+msgstr "Detectado"
 
 #: includes/class-taxocommerce-core-dashboard.php:42
 #: includes/class-taxocommerce-core-dashboard.php:48
 msgid "No detectado"
-msgstr ""
+msgstr "No detectado"
 
 #: includes/class-taxocommerce-core-dashboard.php:47
 msgid "TaxoCommerce SEO actual"
-msgstr ""
+msgstr "TaxoCommerce SEO actual"
 
 #: includes/class-taxocommerce-core-dashboard.php:48
 msgid "Detectado · convivencia"
-msgstr ""
+msgstr "Detectado · convivencia"
 
 #: includes/class-taxocommerce-core-dashboard.php:53
 msgid "Extensiones registradas"
-msgstr ""
+msgstr "Extensiones registradas"
 
 #: includes/class-taxocommerce-core-dashboard.php:63
 msgid ""
@@ -1129,7 +1129,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:72
 msgid "Piloto funcional"
-msgstr ""
+msgstr "Piloto funcional"
 
 #: includes/class-taxocommerce-core-dashboard.php:77
 #: includes/class-taxocommerce-core-hierarchy.php:289
@@ -1146,7 +1146,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:80
 msgid "Modelo nativo del Core"
-msgstr ""
+msgstr "Modelo nativo del Core"
 
 #: includes/class-taxocommerce-core-dashboard.php:85
 #: includes/class-taxocommerce-core-menu-editor.php:96
@@ -1163,7 +1163,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:88
 msgid "Migrado al Core"
-msgstr ""
+msgstr "Migrado al Core"
 
 #: includes/class-taxocommerce-core-dashboard.php:103
 msgid ""
@@ -1181,11 +1181,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:116
 msgid "Estado del sistema"
-msgstr ""
+msgstr "Estado del sistema"
 
 #: includes/class-taxocommerce-core-dashboard.php:135
 msgid "Módulos del Core"
-msgstr ""
+msgstr "Módulos del Core"
 
 #: includes/class-taxocommerce-core-dashboard.php:136
 msgid ""
@@ -1204,7 +1204,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:42
 msgid "No hay términos coincidentes."
-msgstr ""
+msgstr "No hay términos coincidentes."
 
 #: includes/class-taxocommerce-core-editor-ui.php:43
 msgid "Buscando…"
@@ -1212,11 +1212,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:44
 msgid "No se han podido cargar los términos."
-msgstr ""
+msgstr "No se han podido cargar los términos."
 
 #: includes/class-taxocommerce-core-editor-ui.php:45
 msgid "Selecciona primero un atributo global."
-msgstr ""
+msgstr "Selecciona primero un atributo global."
 
 #. translators: %s: name of the attribute term being removed.
 #: includes/class-taxocommerce-core-editor-ui.php:46
@@ -1240,23 +1240,23 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editor-ui.php:63
 msgid "Acceso no autorizado."
-msgstr ""
+msgstr "Acceso no autorizado."
 
 #: includes/class-taxocommerce-core-editor-ui.php:75
 msgid "Taxonomía no admitida."
-msgstr ""
+msgstr "Taxonomía no admitida."
 
 #: includes/class-taxocommerce-core-editor-ui.php:88
 msgid "No se pudieron consultar las etiquetas."
-msgstr ""
+msgstr "No se pudieron consultar las etiquetas."
 
 #: includes/class-taxocommerce-core-editor-ui.php:119
 msgid "Ver en la tienda ↗"
-msgstr ""
+msgstr "Ver en la tienda ↗"
 
 #: includes/class-taxocommerce-core-editor-ui.php:122
 msgid "Editor WordPress / WooCommerce ↗"
-msgstr ""
+msgstr "Editor WordPress / WooCommerce ↗"
 
 #: includes/class-taxocommerce-core-editor-ui.php:130
 msgid ""
@@ -1275,7 +1275,7 @@ msgstr "Guardar cambios"
 
 #: includes/class-taxocommerce-core-editor-ui.php:155
 msgid "EDITOR VISUAL"
-msgstr ""
+msgstr "EDITOR VISUAL"
 
 #: includes/class-taxocommerce-core-editor-ui.php:156
 msgid ""
@@ -1722,23 +1722,23 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editorial-guide.php:116
 msgid "Contenido útil y fiable"
-msgstr ""
+msgstr "Contenido útil y fiable"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:117
 msgid "Estructura de comercio electrónico"
-msgstr ""
+msgstr "Estructura de comercio electrónico"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:118
 msgid "Títulos de resultados"
-msgstr ""
+msgstr "Títulos de resultados"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:119
 msgid "Metadescripciones y fragmentos"
-msgstr ""
+msgstr "Metadescripciones y fragmentos"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:120
 msgid "Datos de producto y comercio"
-msgstr ""
+msgstr "Datos de producto y comercio"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:121
 msgid "Políticas de spam y contenido masivo"

@@ -1,3 +1,9 @@
+## [Unreleased] — Cobertura de inventarios y administración Core (#2062)
+
+- Traducidas otras 100 cadenas de Core para FR, DE y NL, y explicitadas las correspondientes versiones ES: 400 entradas gettext adicionales. Incluyen etiquetas de navegación, filtros, inventario de contenido, arquitectura SEO, estados de edición, diagnósticos, permisos, campos de producto, WooCommerce y opciones de sistema.
+- Se conservan todas las traducciones EN existentes; los mensajes restantes seguirán comprobándose antes de publicar. Sin cambios en los datos, los menús reales o la lógica PHP/JS.
+- Cinco catálogos GNU MO regenerados. Continuar con el resto de claves y ejecutar CI, Plugin Check y validación del idioma del administrador.
+
 ## [Unreleased] — Interfaz de extensiones Core multidioma (#2062)
 
 - Añadidas 139 traducciones adicionales de 52 mensajes en cinco idiomas para el catálogo de extensiones, menús, descripciones, instalación ZIP, seguridad de carga, activación y desactivación, sin sobrescribir traducciones previas.
