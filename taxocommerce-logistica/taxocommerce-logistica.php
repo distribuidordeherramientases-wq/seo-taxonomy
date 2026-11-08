@@ -23,6 +23,7 @@ define( 'TAXOCOMMERCE_LOGISTICA_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_LOGISTICA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_LOGISTICA_URL', plugin_dir_url( __FILE__ ) );
 
+require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/class-supplier-purchasing.php';
 require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/seo-transporte.php';
 require_once TAXOCOMMERCE_LOGISTICA_DIR . 'includes/class-auto-test.php';
 TaxoCommerce_Logistica_Auto_Test::register();
