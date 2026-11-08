@@ -1680,3 +1680,23 @@ msgstr "Contrôle des fonctionnalités · System Check"
 #: includes/class-taxocommerce-system-check-code-check.php
 msgid "Run Functionality Check"
 msgstr "Lancer le contrôle des fonctionnalités"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This code may use features newer than the declared minimum PHP version."
+msgstr "Ce code peut utiliser des fonctionnalités postérieures à la version minimale de PHP déclarée."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code references and declarations require review."
+msgstr "Les références et déclarations du code nécessitent une vérification."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potential security issues need a manual code-flow review."
+msgstr "Les risques potentiels de sécurité nécessitent une analyse manuelle du flux du code."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Possible duplicate PHP symbols need review."
+msgstr "Les déclarations PHP potentiellement dupliquées nécessitent une vérification."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Native local checks: PHP, literal include paths, duplicate declarations, WordPress conventions and security patterns. Full data flow, runtime and official Plugin Check remain unverified."
+msgstr "Contrôles locaux natifs : PHP, chemins d’inclusion littéraux, déclarations dupliquées, conventions WordPress et motifs de sécurité. Les flux de données complets, l’exécution et le Plugin Check officiel ne sont pas vérifiés."

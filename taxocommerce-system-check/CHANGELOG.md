@@ -1,3 +1,13 @@
+## [0.2.23] — 2026-11-08 — Auditoría propia de código ampliada (#2384)
+
+- Conserva el Autocheck funcional y las tres columnas PHP, WordPress y Seguridad en Code Check, con cinco niveles de limitación de CPU, pausa y JSON.
+- Comprueba rutas locales resolubles de include/require sin ejecutar archivos: destino ausente (fallo), referencia exterior (revisión) e inclusión dinámica (no verificado).
+- Detecta nombres declarados de clases y funciones globales y avisa de duplicidades posibles entre archivos; no asume que ambos se cargan simultáneamente.
+- Detecta construcciones y funciones de PHP 8 que podrían superar el mínimo declarado PHP 7.4. El parser nativo sigue validando solo la versión de PHP actualmente instalada.
+- Añade indicios de revisión sobre entrada sin sanitización evidente, salida sin escape evidente, consultas SQL sin prepare, REST sin permission_callback y endpoints AJAX/admin sin verificación identificable de nonce/capacidades.
+- Los resultados registran códigos de regla y líneas, sin atribuir una auditoría completa de seguridad o equivalencia con PCP. No ejecuta código externo ni requiere Plugin Check, WP-CLI o otros módulos.
+- Solo plugin nuevo System Check, sin modificaciones en monolito ni en el resto de la familia.
+
 ## [0.2.22] — 2026-11-08 — Separar Autocheck funcional y Chequeo del código (#2372)
 
 - Se mantienen los chequeos funcionales existentes de Autocheck, sin subpestañas. Chequeo del código pasa a pestaña principal independiente, junto a Sistema, Plugin Validation, HTTP y Procesos.
