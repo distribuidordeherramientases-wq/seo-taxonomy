@@ -1,3 +1,10 @@
+## [0.2.25] — 2026-11-08 — Dos subpestañas en un solo Autocheck (#2401)
+
+- Eliminada la pestaña principal redundante «Code Check». «Autocheck» muestra «Funcionalidades» y «Código» con motores independientes.
+- Conservados por completo los chequeos de servidor PHP, MySQL, WordPress, CPU, memoria y procesos en «Sistema», sin confundirlos con el Autotest del plugin.
+- Los enlaces anteriores a Code Check siguen abriéndose, dentro de Autocheck. Mantiene sus tres análisis, limitación CPU, stop/reanudación y JSON.
+- Sin requerir PCP, Core, otros módulos ni el monolito.
+
 ## [0.2.24] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Historial propio en un desplegable cerrado bajo el título, sin nuevas pestañas ni cambios en los chequeos de código.
