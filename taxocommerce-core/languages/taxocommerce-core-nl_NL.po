@@ -11,19 +11,19 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-core.php
 msgid "TaxoCommerce Core - Catalog & Content Management for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Core — Catalogus- en inhoudsbeheer voor WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-core.php
 msgid ""
 "Modular core for catalog hierarchy, unified content editing, logs, and "
 "extensions in WooCommerce stores."
-msgstr ""
+msgstr "Modulaire kern voor catalogushiërarchie, centraal inhoudsbeheer, logboeken en uitbreidingen in WooCommerce-webwinkels."
 
 #. Author of the plugin
 #: taxocommerce-core.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:321
 msgid "No tienes permisos para exportar contenidos de anomalías."
@@ -35,19 +35,19 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-anomalies-json.php:352
 msgid "Exportación JSON de anomalías editoriales"
-msgstr ""
+msgstr "JSON-export van redactionele afwijkingen"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:354
 msgid "Objetos incluidos ahora:"
-msgstr ""
+msgstr "Momenteel opgenomen items:"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:357
 msgid "Descargar JSON"
-msgstr ""
+msgstr "JSON downloaden"
 
 #: includes/class-taxocommerce-core-anomalies.php:40
 msgid "No tienes permisos para ver Anomalías."
-msgstr ""
+msgstr "Je hebt geen toestemming om afwijkingen te bekijken."
 
 #: includes/class-taxocommerce-core-anomalies.php:42
 #: includes/class-taxocommerce-core-content-manager.php:211
@@ -58,7 +58,7 @@ msgstr "Afwijkingen"
 msgid ""
 "No existen las tablas originales seo_nodes / seo_relations. No es posible "
 "realizar los chequeos estructurales."
-msgstr ""
+msgstr "De oorspronkelijke tabellen seo_nodes / seo_relations ontbreken. Structurele controles zijn niet mogelijk."
 
 #: includes/class-taxocommerce-core-anomalies.php:282
 msgid "🧩 FAQs sin elemento relacionado"
@@ -68,7 +68,7 @@ msgstr "🧩 FAQ’s zonder gekoppeld object"
 msgid ""
 "Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera"
 " categorías, productos o páginas/hubs."
-msgstr ""
+msgstr "Detecteert verweesde FAQ's na het verwijderen, verplaatsen of naar de prullenbak verplaatsen van categorieën, producten of pagina's/hubs."
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Chequeo"
@@ -131,7 +131,7 @@ msgstr "FAQ’s van verdwenen categorieën verwijderen"
 #: includes/class-taxocommerce-core-anomalies.php:487
 msgid ""
 "El borrado requiere SEO Data Layer. Informe disponible en modo consulta."
-msgstr ""
+msgstr "Voor verwijderen is SEO Data Layer vereist. Het rapport is alleen-lezen beschikbaar."
 
 #: includes/class-taxocommerce-core-anomalies.php:467
 msgid "Resumen de productos perdidos con FAQs"
@@ -150,7 +150,7 @@ msgid ""
 "estas acciones limpian solo FAQs verdaderamente huérfanas. Los productos que"
 " todavía existen pero no están publicados permanecen fuera del borrado "
 "automático para revisión manual."
-msgstr ""
+msgstr "Deze acties verwijderen alleen daadwerkelijk verweesde FAQ's. Bestaande ongepubliceerde producten worden uitgesloten van automatisch verwijderen voor handmatige controle."
 
 #: includes/class-taxocommerce-core-anomalies.php:678
 msgid ""
@@ -166,7 +166,7 @@ msgstr "🚨 Rapport structuurcontrole en -audit"
 msgid ""
 "Monitoreo global de la integridad estructural de Nodos y relaciones "
 "semánticas en la base de datos."
-msgstr ""
+msgstr "Algemene bewaking van de structurele integriteit van knooppunten en semantische relaties in de database."
 
 #: includes/class-taxocommerce-core-anomalies.php:801
 msgid "JSON correctivo no disponible: faltan las tablas de Vocabulary."
@@ -187,7 +187,7 @@ msgstr "Geen problemen gevonden in dit onderdeel."
 #: includes/class-taxocommerce-core-anomalies.php:818
 #: includes/class-taxocommerce-core-hierarchy-classic.php:703
 msgid "Hubs primarios sin cluster"
-msgstr ""
+msgstr "Primaire hubs zonder cluster"
 
 #: includes/class-taxocommerce-core-anomalies.php:830
 msgid "Hubs secundarios sin hub primary"
@@ -201,13 +201,13 @@ msgstr "Secundaire hubs zonder categorieën"
 msgid ""
 "Estos hubs secundarios pertenecen a la estructura, pero no conducen a "
 "ninguna categoría de WooCommerce."
-msgstr ""
+msgstr "Deze secundaire hubs maken deel uit van de structuur, maar verwijzen niet naar een WooCommerce-categorie."
 
 #: includes/class-taxocommerce-core-anomalies.php:941
 msgid ""
 "Revisar si debe recibir categorías, mantenerse como página informativa o "
 "eliminarse de la estructura."
-msgstr ""
+msgstr "Controleer of ze categorieën moeten krijgen, informatiepagina's moeten blijven of uit de structuur moeten worden verwijderd."
 
 #: includes/class-taxocommerce-core-anomalies.php:969
 msgid "Todos los hubs secundarios tienen al menos una categoría vinculada."
@@ -233,7 +233,7 @@ msgstr "Geen commerciële relatie landing_to_category."
 msgid ""
 "Todas las landing pages publicadas o programadas tienen al menos una "
 "categoría de producto asociada."
-msgstr ""
+msgstr "Alle gepubliceerde of geplande landingspagina's hebben ten minste één gekoppelde productcategorie."
 
 #: includes/class-taxocommerce-core-anomalies.php:1084
 msgid "🔗 Posts editoriales sin categoría de producto relacionada"
@@ -247,7 +247,7 @@ msgstr "Geen commerciële relatie post_to_category."
 msgid ""
 "Todas las Guías y Comparativas publicadas o programadas tienen al menos una "
 "categoría de producto relacionada."
-msgstr ""
+msgstr "Alle gepubliceerde of geplande gidsen en vergelijkingen hebben ten minste één verwante productcategorie."
 
 #: includes/class-taxocommerce-core-anomalies.php:1224
 msgid "📰 Entradas editoriales sin Vocabulary semántico activo"
@@ -256,19 +256,19 @@ msgstr "📰 Redactionele berichten zonder actieve semantische Vocabulary"
 #: includes/class-taxocommerce-core-anomalies.php:1343
 msgid ""
 "Sin datos: faltan tablas de Vocabulary; este bloque no se ha comprobado."
-msgstr ""
+msgstr "Geen gegevens: de Vocabulary-tabellen ontbreken. Dit onderdeel is niet gecontroleerd."
 
 #: includes/class-taxocommerce-core-anomalies.php:1366
 msgid ""
 "Sin Vocabulary semántico activo en rol, tipo, aplicación, plataforma o "
 "subtipo."
-msgstr ""
+msgstr "Geen actief semantisch Vocabulary voor rol, type, toepassing, platform of subtype gevonden."
 
 #: includes/class-taxocommerce-core-anomalies.php:1385
 msgid ""
 "Todas las entradas editoriales publicadas o programadas tienen al menos un "
 "término de Vocabulary canónico activo."
-msgstr ""
+msgstr "Alle gepubliceerde of geplande redactionele berichten hebben ten minste één actieve canonieke Vocabulary-term."
 
 #: includes/class-taxocommerce-core-anomalies.php:1388
 msgid "⚠️ Categorías sin asignación estructural"
@@ -278,7 +278,7 @@ msgstr "⚠️ Categorieën zonder structurele toewijzing"
 msgid ""
 "Todas las categorías de WooCommerce están correctamente vinculadas en la "
 "tabla de relaciones SEO."
-msgstr ""
+msgstr "Alle WooCommerce-categorieën zijn correct gekoppeld in de SEO-relatietabel."
 
 #: includes/class-taxocommerce-core-anomalies.php:1405
 msgid "📦 Categorías de producto con 0 productos"
@@ -292,7 +292,7 @@ msgstr "🔄 Tellers opnieuw berekenen"
 msgid ""
 "La acción solo reconstruye los contadores; no mueve, publica ni elimina "
 "productos o categorías."
-msgstr ""
+msgstr "Deze actie bouwt alleen de tellers opnieuw op; producten of categorieën worden niet verplaatst, gepubliceerd of verwijderd."
 
 #: includes/class-taxocommerce-core-anomalies.php:1576
 msgid "Contadores de categorías desactualizados"
@@ -312,7 +312,7 @@ msgid ""
 "permite eliminar categorías con 0 productos, sin relaciones funcionales "
 "protegidas y con un Hub secundario publicado único. Al borrar se crea "
 "automáticamente un redirect 301 hacia ese Hub."
-msgstr ""
+msgstr "Vlak voor het verwijderen wordt de actuele toestand opnieuw gecontroleerd. Alleen categorieën zonder producten, zonder beschermde functionele koppelingen en met één unieke gepubliceerde secundaire hub mogen worden verwijderd. Er wordt automatisch een 301-omleiding naar die hub gemaakt."
 
 #: includes/class-taxocommerce-core-anomalies.php:1608
 msgid "No se elimina ningún producto."
@@ -330,7 +330,7 @@ msgstr "Geselecteerde categorieën verwijderen"
 msgid ""
 "La limpieza automática requiere el servicio original de redirecciones y Data"
 " Layer. Esta vista permite revisar las categorías sin borrarlas."
-msgstr ""
+msgstr "Automatisch opschonen vereist de oorspronkelijke omleidingsdienst en Data Layer. In dit scherm kun je categorieën controleren zonder ze te verwijderen."
 
 #: includes/class-taxocommerce-core-anomalies.php:1667
 msgid "Hubs secundarios en múltiples hubs primarios"
@@ -339,7 +339,7 @@ msgstr "Secundaire hubs in meerdere primaire hubs"
 #: includes/class-taxocommerce-core-anomalies.php:1751
 msgid ""
 "No se encontraron hubs secundarios asociados a múltiples hubs primarios."
-msgstr ""
+msgstr "Er zijn geen secundaire hubs gevonden die aan meerdere primaire hubs zijn gekoppeld."
 
 #: includes/class-taxocommerce-core-anomalies.php:1755
 msgid "💥 Categorías DUPLICADAS en múltiples Hubs Secundarios"
@@ -349,15 +349,15 @@ msgstr "💥 DUBBELE categorieën in meerdere secundaire hubs"
 msgid ""
 "¡Excelente! No existen categorías duplicadas. Cada categoría de WooCommerce "
 "pertenece a un único Hub Secundario."
-msgstr ""
+msgstr "Geen dubbele categorieën gevonden. Elke WooCommerce-categorie hoort bij één secundaire hub."
 
 #: includes/class-taxocommerce-core-architecture-report.php:46
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "Je hebt geen toestemming om dit rapport bij te werken."
 
 #: includes/class-taxocommerce-core-architecture-report.php:353
 msgid "Distribución de la arquitectura SEO"
-msgstr ""
+msgstr "Verdeling van de SEO-architectuur"
 
 #: includes/class-taxocommerce-core-architecture-report.php:354
 msgid ""
@@ -371,7 +371,7 @@ msgstr "Rapport bijwerken"
 
 #: includes/class-taxocommerce-core-architecture-report.php:395
 msgid "Distribución de la jerarquía SEO"
-msgstr ""
+msgstr "Verdeling van de SEO-hiërarchie"
 
 #: includes/class-taxocommerce-core-architecture-report.php:396
 msgid ""
@@ -385,7 +385,7 @@ msgstr "Er zijn geen gepubliceerde clusters om het rapport op te stellen."
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid "Productos publicados por cluster"
-msgstr ""
+msgstr "Gepubliceerde producten per cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:411
 msgid ""
@@ -395,11 +395,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-architecture-report.php:420
 msgid "Visión global"
-msgstr ""
+msgstr "Totaaloverzicht"
 
 #: includes/class-taxocommerce-core-architecture-report.php:420
 msgid "Cómo se reparte la arquitectura"
-msgstr ""
+msgstr "Verdeling van de architectuur"
 
 #: includes/class-taxocommerce-core-architecture-report.php:421
 msgid ""
@@ -445,21 +445,21 @@ msgstr "Producten"
 #: includes/class-taxocommerce-core-architecture-report.php:423
 #: includes/class-taxocommerce-core-architecture-report.php:449
 msgid "Prod./categoría"
-msgstr ""
+msgstr "Producten/categorie"
 
 #: includes/class-taxocommerce-core-architecture-report.php:434
 msgid "Anatomía interna"
-msgstr ""
+msgstr "Interne structuur"
 
 #: includes/class-taxocommerce-core-architecture-report.php:434
 msgid "Detalle por cluster"
-msgstr ""
+msgstr "Details per cluster"
 
 #: includes/class-taxocommerce-core-architecture-report.php:435
 msgid ""
 "Cada barra indica el peso de un hub primario dentro del cluster; los "
 "productos presentes en varios hubs pueden repetirse entre filas."
-msgstr ""
+msgstr "Elke balk toont het aandeel van een primaire hub binnen het cluster; producten in meerdere hubs kunnen op verschillende rijen terugkomen."
 
 #: includes/class-taxocommerce-core-architecture-report.php:454
 msgid "Reparto por hub primario"
@@ -470,11 +470,11 @@ msgstr "Verdeling per primaire hub"
 #: includes/class-taxocommerce-core-hierarchy-classic.php:706
 #: includes/class-taxocommerce-core-hierarchy.php:107
 msgid "Hub primario"
-msgstr ""
+msgstr "Primaire hub"
 
 #: includes/class-taxocommerce-core-architecture-report.php:460
 msgid "Subhubs"
-msgstr ""
+msgstr "Subhubs"
 
 #: includes/class-taxocommerce-core-architecture-report.php:466
 msgid "Este cluster no tiene hubs primarios vinculados."
@@ -482,11 +482,11 @@ msgstr "Dit cluster heeft geen gekoppelde primaire hubs."
 
 #: includes/class-taxocommerce-core-auto-test.php:26
 msgid "Sin permisos para ejecutar Auto Test."
-msgstr ""
+msgstr "Je hebt geen toestemming om de autotest uit te voeren."
 
 #: includes/class-taxocommerce-core-auto-test.php:413
 msgid "Acceso denegado a Auto Test."
-msgstr ""
+msgstr "Toegang tot de autotest geweigerd."
 
 #: includes/class-taxocommerce-core-auto-test.php:420
 #: includes/class-taxocommerce-core-auto-test.php:426
@@ -534,7 +534,7 @@ msgstr "Voer een zelftest uit"
 
 #: includes/class-taxocommerce-core-auto-test.php:444
 msgid "Sin cambios en el catálogo, la jerarquía ni los menús."
-msgstr ""
+msgstr "Geen wijzigingen in catalogus, hiërarchie of menu's."
 
 #: includes/class-taxocommerce-core-auto-test.php:447
 msgid ""
@@ -570,7 +570,7 @@ msgid ""
 "Los menús clásicos y los bloques de navegación son sistemas distintos. Para "
 "cambiar la cabecera debes editar la navegación referenciada por su "
 "plantilla."
-msgstr ""
+msgstr "Klassieke menu's en navigatieblokken zijn afzonderlijke systemen. Bewerk de navigatie die door het sjabloon wordt gebruikt om de koptekst te wijzigen."
 
 #: includes/class-taxocommerce-core-block-navigation.php:117
 msgid "Navegaciones encontradas en las cabeceras"
@@ -588,25 +588,25 @@ msgstr "Kopnavigatie laden"
 msgid ""
 "Hay enlaces de navegación integrados en la plantilla, sin menú "
 "independiente. Se editan en el Editor del sitio."
-msgstr ""
+msgstr "Navigatielinks zijn in het sjabloon opgenomen zonder afzonderlijk menu. Bewerk ze in de site-editor."
 
 #: includes/class-taxocommerce-core-block-navigation.php:129
 msgid ""
 "No se ha identificado una única navegación editable. No se modificará ningún"
 " menú por suposición."
-msgstr ""
+msgstr "Er is geen eenduidige bewerkbare navigatie gevonden. Er wordt geen menu op basis van aannames gewijzigd."
 
 #: includes/class-taxocommerce-core-block-navigation.php:136
 msgid ""
 "Este contenido está referenciado desde una plantilla de cabecera. Guardarlo "
 "modifica esa navegación de bloques, no los menús clásicos."
-msgstr ""
+msgstr "Deze inhoud wordt gebruikt door een kopsjabloon. Opslaan wijzigt die bloknavigatie en niet de klassieke menu's."
 
 #: includes/class-taxocommerce-core-block-navigation.php:143
 #: includes/class-taxocommerce-core-menu-editor.php:356
 #: includes/class-taxocommerce-core-menu-editor.php:408
 msgid "Texto del enlace"
-msgstr ""
+msgstr "Linktekst"
 
 #: includes/class-taxocommerce-core-block-navigation.php:149
 msgid "Este bloque requiere el Editor del sitio para cambios avanzados."
@@ -620,7 +620,7 @@ msgstr "Kopnavigatie opslaan"
 msgid ""
 "Esta navegación utiliza bloques que deben editarse desde el Editor del "
 "sitio."
-msgstr ""
+msgstr "Deze navigatie gebruikt blokken die in de site-editor moeten worden bewerkt."
 
 #: includes/class-taxocommerce-core-block-navigation.php:158
 msgid "Editar cabecera en el Editor del sitio"
@@ -664,19 +664,19 @@ msgstr "Bloknavigatie opgeslagen in WordPress."
 
 #: includes/class-taxocommerce-core-content-inventory.php:116
 msgid "No tienes permisos para consultar el inventario."
-msgstr ""
+msgstr "Je hebt geen toestemming om de inventaris te bekijken."
 
 #: includes/class-taxocommerce-core-content-inventory.php:136
 msgid "Ver contenidos"
-msgstr ""
+msgstr "Inhoud bekijken"
 
 #: includes/class-taxocommerce-core-content-inventory.php:147
 msgid "Inventario de contenidos"
-msgstr ""
+msgstr "Inhoudsinventaris"
 
 #: includes/class-taxocommerce-core-content-inventory.php:148
 msgid "Resumen general de contenidos"
-msgstr ""
+msgstr "Overzicht van inhoud"
 
 #: includes/class-taxocommerce-core-content-inventory.php:149
 msgid ""
@@ -687,11 +687,11 @@ msgstr ""
 #. translators: %s: date and time of latest cached inventory.
 #: includes/class-taxocommerce-core-content-inventory.php:152
 msgid "Actualizado: %s · Caché de 15 minutos"
-msgstr ""
+msgstr "Bijgewerkt: %s · Cache van 15 minuten"
 
 #: includes/class-taxocommerce-core-content-inventory.php:158
 msgid "Actualizar inventario"
-msgstr ""
+msgstr "Inventaris vernieuwen"
 
 #: includes/class-taxocommerce-core-content-inventory.php:163
 #: includes/class-taxocommerce-core-editorial-guide.php:77
@@ -709,46 +709,46 @@ msgstr "Pagina's"
 #. translators: %d: published content count.
 #: includes/class-taxocommerce-core-content-inventory.php:171
 msgid "%d publicados"
-msgstr ""
+msgstr "%d gepubliceerd"
 
 #: includes/class-taxocommerce-core-content-inventory.php:176
 #: includes/class-taxocommerce-core-content-manager.php:207
 #: includes/class-taxocommerce-core-menu-editor.php:157
 msgid "Categorías de producto"
-msgstr ""
+msgstr "Productcategorieën"
 
 #. translators: %d: empty product categories.
 #: includes/class-taxocommerce-core-content-inventory.php:178
 msgid "%d sin productos"
-msgstr ""
+msgstr "%d zonder producten"
 
 #: includes/class-taxocommerce-core-content-inventory.php:183
 msgid "Categorías de entradas"
-msgstr ""
+msgstr "Berichtcategorieën"
 
 #. translators: %d: categories with content.
 #: includes/class-taxocommerce-core-content-inventory.php:185
 msgid "%d con entradas"
-msgstr ""
+msgstr "%d met berichten"
 
 #: includes/class-taxocommerce-core-content-inventory.php:189
 msgid "Archivos multimedia"
-msgstr ""
+msgstr "Mediabestanden"
 
 #: includes/class-taxocommerce-core-content-inventory.php:189
 msgid "Elementos en la biblioteca"
-msgstr ""
+msgstr "Items in de mediabibliotheek"
 
 #. translators: %d: enabled FAQ count.
 #. translators: %d: número de extensiones activas.
 #: includes/class-taxocommerce-core-content-inventory.php:193
 #: includes/class-taxocommerce-core.php:1221
 msgid "%d activas"
-msgstr ""
+msgstr "%d actief"
 
 #: includes/class-taxocommerce-core-content-inventory.php:199
 msgid "Estados editoriales"
-msgstr ""
+msgstr "Redactionele statussen"
 
 #: includes/class-taxocommerce-core-content-inventory.php:215
 msgid ""
@@ -758,11 +758,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-inventory.php:217
 msgid "Arquitectura SEO"
-msgstr ""
+msgstr "SEO-architectuur"
 
 #: includes/class-taxocommerce-core-content-inventory.php:218
 msgid "Revisar anomalías"
-msgstr ""
+msgstr "Afwijkingen controleren"
 
 #: includes/class-taxocommerce-core-content-inventory.php:219
 msgid ""
@@ -782,7 +782,7 @@ msgstr ""
 #: includes/class-taxocommerce-core.php:180
 #: includes/class-taxocommerce-core.php:242
 msgid "TaxoCommerce Core"
-msgstr ""
+msgstr "TaxoCommerce Core"
 
 #: includes/class-taxocommerce-core-content-manager.php:81
 msgid "Gestor de contenidos"
@@ -800,14 +800,14 @@ msgstr "Inhoud bijgewerkt."
 
 #: includes/class-taxocommerce-core-content-manager.php:121
 msgid "Solicitud de contenido no válida."
-msgstr ""
+msgstr "Ongeldig inhoudsverzoek."
 
 #: includes/class-taxocommerce-core-content-manager.php:183
 #: includes/class-taxocommerce-core-hierarchy.php:873
 #: includes/class-taxocommerce-core-menu.php:700
 #: includes/class-taxocommerce-core.php:322
 msgid "No tienes permisos para gestionar TaxoCommerce Core."
-msgstr ""
+msgstr "Je hebt geen toestemming om TaxoCommerce Core te beheren."
 
 #: includes/class-taxocommerce-core-content-manager.php:205
 msgid "Resumen"
@@ -819,11 +819,11 @@ msgstr "Berichten"
 
 #: includes/class-taxocommerce-core-content-manager.php:214
 msgid "Opciones de contenidos"
-msgstr ""
+msgstr "Inhoudsopties"
 
 #: includes/class-taxocommerce-core-content-manager.php:245
 msgid "Con productos"
-msgstr ""
+msgstr "Met producten"
 
 #: includes/class-taxocommerce-core-content-manager.php:250
 #: includes/class-taxocommerce-core-content-manager.php:915
@@ -837,12 +837,12 @@ msgstr "Concept"
 
 #: includes/class-taxocommerce-core-content-manager.php:252
 msgid "Pendiente"
-msgstr ""
+msgstr "In behandeling"
 
 #: includes/class-taxocommerce-core-content-manager.php:253
 #: includes/class-taxocommerce-core-content-manager.php:919
 msgid "Papelera"
-msgstr ""
+msgstr "Prullenbak"
 
 #: includes/class-taxocommerce-core-content-manager.php:294
 msgid "Buscar contenido"
@@ -850,7 +850,7 @@ msgstr "Inhoud zoeken"
 
 #: includes/class-taxocommerce-core-content-manager.php:295
 msgid "Título o descripción…"
-msgstr ""
+msgstr "Titel of beschrijving…"
 
 #: includes/class-taxocommerce-core-content-manager.php:300
 #: includes/class-taxocommerce-core-content-manager.php:395
@@ -860,7 +860,7 @@ msgstr "Status"
 
 #: includes/class-taxocommerce-core-content-manager.php:302
 msgid "Todos los estados"
-msgstr ""
+msgstr "Alle statussen"
 
 #: includes/class-taxocommerce-core-content-manager.php:312
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -869,11 +869,11 @@ msgstr "Categorie"
 
 #: includes/class-taxocommerce-core-content-manager.php:327
 msgid "Buscar categoría…"
-msgstr ""
+msgstr "Categorie zoeken…"
 
 #: includes/class-taxocommerce-core-content-manager.php:335
 msgid "Aplicar filtros"
-msgstr ""
+msgstr "Filters toepassen"
 
 #: includes/class-taxocommerce-core-content-manager.php:336
 msgid "Limpiar"
@@ -898,7 +898,7 @@ msgstr "Prijs"
 
 #: includes/class-taxocommerce-core-content-manager.php:399
 msgid "Stock"
-msgstr ""
+msgstr "Voorraad"
 
 #: includes/class-taxocommerce-core-content-manager.php:400
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -908,11 +908,11 @@ msgstr "Afbeelding"
 #: includes/class-taxocommerce-core-content-manager.php:402
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "KPI"
-msgstr ""
+msgstr "Kerncijfers"
 
 #: includes/class-taxocommerce-core-content-manager.php:403
 msgid "Modificado"
-msgstr ""
+msgstr "Gewijzigd"
 
 #: includes/class-taxocommerce-core-content-manager.php:404
 #: includes/class-taxocommerce-core-content-manager.php:477
@@ -921,7 +921,7 @@ msgstr "Acties"
 
 #: includes/class-taxocommerce-core-content-manager.php:409
 msgid "No se ha encontrado contenido."
-msgstr ""
+msgstr "Geen inhoud gevonden."
 
 #: includes/class-taxocommerce-core-content-manager.php:427
 #: includes/class-taxocommerce-core-content-manager.php:491
@@ -938,16 +938,16 @@ msgstr "Nee"
 #: includes/class-taxocommerce-core-content-manager.php:432
 #: includes/class-taxocommerce-core-content-manager.php:494
 msgid "Editar aquí"
-msgstr ""
+msgstr "Hier bewerken"
 
 #: includes/class-taxocommerce-core-content-manager.php:433
 #: includes/class-taxocommerce-core-content-manager.php:494
 msgid "Editor nativo"
-msgstr ""
+msgstr "Standaardeditor"
 
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "Superior"
-msgstr ""
+msgstr "Bovenliggend"
 
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "Descripción"
@@ -955,16 +955,16 @@ msgstr "Beschrijving"
 
 #: includes/class-taxocommerce-core-content-manager.php:480
 msgid "No se han encontrado categorías."
-msgstr ""
+msgstr "Geen categorieën gevonden."
 
 #: includes/class-taxocommerce-core-content-manager.php:529
 msgid "La edición de productos no está disponible."
-msgstr ""
+msgstr "Producten bewerken is niet beschikbaar."
 
 #: includes/class-taxocommerce-core-content-manager.php:533
 #: includes/class-taxocommerce-core-content-manager.php:596
 msgid "Producto no encontrado."
-msgstr ""
+msgstr "Product niet gevonden."
 
 #: includes/class-taxocommerce-core-content-manager.php:547
 msgid "La edición de categorías de producto no está disponible."
@@ -972,63 +972,63 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-content-manager.php:551
 msgid "Categoría no encontrada."
-msgstr ""
+msgstr "Categorie niet gevonden."
 
 #: includes/class-taxocommerce-core-content-manager.php:566
 msgid "El contenido no existe o no se puede editar."
-msgstr ""
+msgstr "De inhoud bestaat niet of kan niet worden bewerkt."
 
 #: includes/class-taxocommerce-core-content-manager.php:592
 msgid "No tienes permisos para editar este producto."
-msgstr ""
+msgstr "Je hebt geen toestemming om dit product te bewerken."
 
 #: includes/class-taxocommerce-core-content-manager.php:616
 msgid "Los datos del producto no son válidos."
-msgstr ""
+msgstr "Ongeldige productgegevens."
 
 #: includes/class-taxocommerce-core-content-manager.php:619
 msgid "No se ha podido mover el producto a la papelera."
-msgstr ""
+msgstr "Het product kon niet naar de prullenbak worden verplaatst."
 
 #: includes/class-taxocommerce-core-content-manager.php:700
 msgid "No tienes permisos para editar categorías de producto."
-msgstr ""
+msgstr "Je hebt geen toestemming om productcategorieën te bewerken."
 
 #: includes/class-taxocommerce-core-content-manager.php:715
 msgid "Los datos de la categoría no son válidos."
-msgstr ""
+msgstr "Ongeldige categoriegegevens."
 
 #: includes/class-taxocommerce-core-content-manager.php:720
 msgid "La categoría superior no existe."
-msgstr ""
+msgstr "De bovenliggende categorie bestaat niet."
 
 #: includes/class-taxocommerce-core-content-manager.php:752
 msgid "No tienes permisos para editar este contenido."
-msgstr ""
+msgstr "Je hebt geen toestemming om deze inhoud te bewerken."
 
 #: includes/class-taxocommerce-core-content-manager.php:767
 msgid "Los datos del contenido no son válidos."
-msgstr ""
+msgstr "Ongeldige inhoudsgegevens."
 
 #: includes/class-taxocommerce-core-content-manager.php:770
 msgid "No se ha podido mover el contenido a la papelera."
-msgstr ""
+msgstr "De inhoud kon niet naar de prullenbak worden verplaatst."
 
 #: includes/class-taxocommerce-core-content-manager.php:917
 msgid "Pendiente de revisión"
-msgstr ""
+msgstr "Wacht op beoordeling"
 
 #: includes/class-taxocommerce-core-content-manager.php:918
 msgid "Privado"
-msgstr ""
+msgstr "Privé"
 
 #: includes/class-taxocommerce-core-content-manager.php:990
 msgid "&laquo; Anterior"
-msgstr ""
+msgstr "&laquo; Vorige"
 
 #: includes/class-taxocommerce-core-content-manager.php:991
 msgid "Siguiente &raquo;"
-msgstr ""
+msgstr "Volgende &raquo;"
 
 #: includes/class-taxocommerce-core-country.php:19
 msgid "España"
@@ -1062,49 +1062,49 @@ msgstr "Niet toegewezen"
 
 #: includes/class-taxocommerce-core-country.php:140
 msgid "País no válido."
-msgstr ""
+msgstr "Ongeldig land."
 
 #: includes/class-taxocommerce-core-country.php:146
 msgid "No se puede actualizar el país de este contenido."
-msgstr ""
+msgstr "Het land voor deze inhoud kan niet worden bijgewerkt."
 
 #: includes/class-taxocommerce-core-country.php:150
 #: includes/class-taxocommerce-core-country.php:168
 msgid "No se pudo guardar el país."
-msgstr ""
+msgstr "Het land kon niet worden opgeslagen."
 
 #: includes/class-taxocommerce-core-country.php:164
 msgid "No se puede actualizar el país de esta categoría."
-msgstr ""
+msgstr "Het land voor deze categorie kan niet worden bijgewerkt."
 
 #: includes/class-taxocommerce-core-dashboard.php:35
 msgid "Versión del Core"
-msgstr ""
+msgstr "Core-versie"
 
 #: includes/class-taxocommerce-core-dashboard.php:41
 msgid "WooCommerce"
-msgstr ""
+msgstr "WooCommerce"
 
 #: includes/class-taxocommerce-core-dashboard.php:42
 msgid "Detectado"
-msgstr ""
+msgstr "Gedetecteerd"
 
 #: includes/class-taxocommerce-core-dashboard.php:42
 #: includes/class-taxocommerce-core-dashboard.php:48
 msgid "No detectado"
-msgstr ""
+msgstr "Niet gedetecteerd"
 
 #: includes/class-taxocommerce-core-dashboard.php:47
 msgid "TaxoCommerce SEO actual"
-msgstr ""
+msgstr "Huidige TaxoCommerce SEO"
 
 #: includes/class-taxocommerce-core-dashboard.php:48
 msgid "Detectado · convivencia"
-msgstr ""
+msgstr "Gedetecteerd · naast elkaar actief"
 
 #: includes/class-taxocommerce-core-dashboard.php:53
 msgid "Extensiones registradas"
-msgstr ""
+msgstr "Geregistreerde uitbreidingen"
 
 #: includes/class-taxocommerce-core-dashboard.php:63
 msgid ""
@@ -1133,7 +1133,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:72
 msgid "Piloto funcional"
-msgstr ""
+msgstr "Functionele proef"
 
 #: includes/class-taxocommerce-core-dashboard.php:77
 #: includes/class-taxocommerce-core-hierarchy.php:289
@@ -1152,7 +1152,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:80
 msgid "Modelo nativo del Core"
-msgstr ""
+msgstr "Standaardmodel van Core"
 
 #: includes/class-taxocommerce-core-dashboard.php:85
 #: includes/class-taxocommerce-core-menu-editor.php:96
@@ -1171,7 +1171,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:88
 msgid "Migrado al Core"
-msgstr ""
+msgstr "Naar Core gemigreerd"
 
 #: includes/class-taxocommerce-core-dashboard.php:103
 msgid ""
@@ -1191,11 +1191,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:116
 msgid "Estado del sistema"
-msgstr ""
+msgstr "Systeemstatus"
 
 #: includes/class-taxocommerce-core-dashboard.php:135
 msgid "Módulos del Core"
-msgstr ""
+msgstr "Core-modules"
 
 #: includes/class-taxocommerce-core-dashboard.php:136
 msgid ""
@@ -1214,7 +1214,7 @@ msgstr "Openen"
 
 #: includes/class-taxocommerce-core-editor-ui.php:42
 msgid "No hay términos coincidentes."
-msgstr ""
+msgstr "Geen overeenkomende termen."
 
 #: includes/class-taxocommerce-core-editor-ui.php:43
 msgid "Buscando…"
@@ -1222,11 +1222,11 @@ msgstr "Zoeken…"
 
 #: includes/class-taxocommerce-core-editor-ui.php:44
 msgid "No se han podido cargar los términos."
-msgstr ""
+msgstr "De termen konden niet worden geladen."
 
 #: includes/class-taxocommerce-core-editor-ui.php:45
 msgid "Selecciona primero un atributo global."
-msgstr ""
+msgstr "Selecteer eerst een globaal kenmerk."
 
 #. translators: %s: name of the attribute term being removed.
 #: includes/class-taxocommerce-core-editor-ui.php:46
@@ -1250,29 +1250,29 @@ msgstr "Geen uitgelichte afbeelding"
 
 #: includes/class-taxocommerce-core-editor-ui.php:63
 msgid "Acceso no autorizado."
-msgstr ""
+msgstr "Onbevoegde toegang."
 
 #: includes/class-taxocommerce-core-editor-ui.php:75
 msgid "Taxonomía no admitida."
-msgstr ""
+msgstr "Niet-ondersteunde taxonomie."
 
 #: includes/class-taxocommerce-core-editor-ui.php:88
 msgid "No se pudieron consultar las etiquetas."
-msgstr ""
+msgstr "De tags konden niet worden opgehaald."
 
 #: includes/class-taxocommerce-core-editor-ui.php:119
 msgid "Ver en la tienda ↗"
-msgstr ""
+msgstr "Bekijk in winkel ↗"
 
 #: includes/class-taxocommerce-core-editor-ui.php:122
 msgid "Editor WordPress / WooCommerce ↗"
-msgstr ""
+msgstr "WordPress-/WooCommerce-editor ↗"
 
 #: includes/class-taxocommerce-core-editor-ui.php:130
 msgid ""
 "Edición centralizada: los cambios se guardan en las tablas nativas de "
 "WordPress y WooCommerce."
-msgstr ""
+msgstr "Centraal bewerken: wijzigingen worden opgeslagen in de standaardtabellen van WordPress en WooCommerce."
 
 #: includes/class-taxocommerce-core-editor-ui.php:150
 msgid "Los cambios se aplican al contenido original, sin crear copias."
@@ -1285,12 +1285,12 @@ msgstr "Wijzigingen opslaan"
 
 #: includes/class-taxocommerce-core-editor-ui.php:155
 msgid "EDITOR VISUAL"
-msgstr ""
+msgstr "VISUELE EDITOR"
 
 #: includes/class-taxocommerce-core-editor-ui.php:156
 msgid ""
 "Utiliza negritas, listas, enlaces y medios para estructurar el contenido."
-msgstr ""
+msgstr "Gebruik vetgedrukte tekst, lijsten, links en media om de inhoud te structureren."
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "CONTROL EDITORIAL"
@@ -1308,7 +1308,7 @@ msgstr "Inhoudsstatus"
 msgid ""
 "La publicación y la papelera se aplican solo al guardar. Los estados "
 "existentes permanecen sin cambios si no eliges otro."
-msgstr ""
+msgstr "Publiceren en naar de prullenbak verplaatsen gebeurt pas bij opslaan. De bestaande status blijft ongewijzigd als je geen andere kiest."
 
 #: includes/class-taxocommerce-core-editor-ui.php:223
 #: includes/class-taxocommerce-core-editor-ui.php:400
@@ -1321,7 +1321,7 @@ msgstr "Verwijderen"
 msgid ""
 "Busca por nombre y selecciona los términos. Los cambios se aplican al "
 "guardar."
-msgstr ""
+msgstr "Zoek termen op naam en selecteer ze. Wijzigingen worden toegepast bij het opslaan."
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "IDENTIDAD"
@@ -1357,11 +1357,11 @@ msgstr "Organisatie"
 
 #: includes/class-taxocommerce-core-editor-ui.php:332
 msgid "La categoría superior define la posición en la jerarquía WooCommerce."
-msgstr ""
+msgstr "De bovenliggende categorie bepaalt de positie in de WooCommerce-hiërarchie."
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "WOOCOMMERCE"
-msgstr ""
+msgstr "WOOCOMMERCE"
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "Atributos del producto"
@@ -1370,7 +1370,7 @@ msgstr "Producteigenschappen"
 #: includes/class-taxocommerce-core-editor-ui.php:363
 msgid ""
 "Atributos globales compartidos y atributos personalizados del artículo."
-msgstr ""
+msgstr "Gedeelde globale kenmerken en aangepaste kenmerken van het product."
 
 #: includes/class-taxocommerce-core-editor-ui.php:365
 msgid "WooCommerce no ofrece la API de atributos en esta instalación."
@@ -1380,7 +1380,7 @@ msgstr "De WooCommerce-API voor eigenschappen is niet beschikbaar in deze instal
 msgid ""
 "Los atributos de esta variación se editan desde su producto variable "
 "principal para preservar las combinaciones."
-msgstr ""
+msgstr "Bewerk de kenmerken van deze variant in het bovenliggende variabele product om combinaties te behouden."
 
 #: includes/class-taxocommerce-core-editor-ui.php:383
 msgid "+ Atributo global"
@@ -1394,7 +1394,7 @@ msgstr "+ Aangepaste eigenschap"
 msgid ""
 "Los atributos usados para variaciones se muestran bloqueados. No se borran "
 "ni se alteran desde este editor."
-msgstr ""
+msgstr "Kenmerken die voor varianten worden gebruikt zijn vergrendeld. Ze kunnen niet via deze editor worden verwijderd of gewijzigd."
 
 #: includes/class-taxocommerce-core-editor-ui.php:398
 msgid "USADO EN VARIACIONES"
@@ -1402,7 +1402,7 @@ msgstr "GEBRUIKT IN VARIATIES"
 
 #: includes/class-taxocommerce-core-editor-ui.php:404
 msgid "Se conserva intacto para no afectar a las variaciones del producto."
-msgstr ""
+msgstr "Dit blijft ongewijzigd om productvarianten niet te beïnvloeden."
 
 #: includes/class-taxocommerce-core-editor-ui.php:431
 msgid "Nuevo atributo global"
@@ -1732,23 +1732,23 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-editorial-guide.php:116
 msgid "Contenido útil y fiable"
-msgstr ""
+msgstr "Nuttige en betrouwbare inhoud"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:117
 msgid "Estructura de comercio electrónico"
-msgstr ""
+msgstr "E-commercestructuur"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:118
 msgid "Títulos de resultados"
-msgstr ""
+msgstr "Titels van zoekresultaten"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:119
 msgid "Metadescripciones y fragmentos"
-msgstr ""
+msgstr "Metabeschrijvingen en fragmenten"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:120
 msgid "Datos de producto y comercio"
-msgstr ""
+msgstr "Product- en handelsgegevens"
 
 #: includes/class-taxocommerce-core-editorial-guide.php:121
 msgid "Políticas de spam y contenido masivo"
@@ -1875,10 +1875,6 @@ msgstr "Zoeken op naam of ID…"
 #: includes/class-taxocommerce-core-hierarchy-classic.php:813
 msgid "Buscar elementos disponibles"
 msgstr "Beschikbare items zoeken"
-
-#: includes/class-taxocommerce-core-hierarchy-classic.php:817
-msgid "data-tc-search=\"local\""
-msgstr ""
 
 #: includes/class-taxocommerce-core-hierarchy-classic.php:830
 msgid ""
@@ -2065,7 +2061,7 @@ msgstr ""
 msgid ""
 "¿Eliminar definitivamente este menú y todos sus elementos? Esta operación no"
 " se puede deshacer."
-msgstr ""
+msgstr "Dit menu en alle onderdelen definitief verwijderen? Deze actie kan niet ongedaan worden gemaakt."
 
 #: includes/class-taxocommerce-core-menu-editor.php:72
 msgid "Tipos de gestor de menús"
@@ -2083,7 +2079,7 @@ msgstr "WordPress-menu’s"
 msgid ""
 "Menús básicos de WordPress: páginas, entradas, categorías y enlaces "
 "personalizados. No requieren WooCommerce ni jerarquía SEO."
-msgstr ""
+msgstr "Standaard WordPress-menu's: pagina's, berichten, categorieën en aangepaste links. WooCommerce of een SEO-hiërarchie is niet vereist."
 
 #: includes/class-taxocommerce-core-menu-editor.php:106
 msgid "La cabecera puede usar una navegación de bloques distinta."
@@ -2094,7 +2090,7 @@ msgid ""
 "Guardar este menú clásico no cambia necesariamente la navegación visible de "
 "la web. Comprueba qué bloque Navegación utiliza la cabecera en el Editor del"
 " sitio."
-msgstr ""
+msgstr "Het opslaan van dit klassieke menu verandert mogelijk niet de zichtbare navigatie. Controleer in de site-editor welk navigatieblok de koptekst gebruikt."
 
 #: includes/class-taxocommerce-core-menu-editor.php:109
 msgid "Abrir Editor del sitio"
@@ -2118,7 +2114,7 @@ msgstr "Dit menu is niet toegewezen aan een klassieke thema-locatie."
 msgid ""
 "Selecciona un menú de WordPress existente o crea uno nuevo para añadir y "
 "editar sus elementos."
-msgstr ""
+msgstr "Selecteer een bestaand WordPress-menu of maak een nieuw menu om onderdelen toe te voegen en te bewerken."
 
 #: includes/class-taxocommerce-core-menu-editor.php:135
 msgid "Identificador del menú:"
@@ -2133,7 +2129,7 @@ msgid ""
 "Los cambios de texto, enlaces, jerarquía, orden o nombre se aplicarán al "
 "pulsar Guardar menú. Añadir o quitar un elemento se guarda al confirmar esa "
 "operación."
-msgstr ""
+msgstr "Wijzigingen in tekst, links, hiërarchie, volgorde of naam worden toegepast bij Menu opslaan. Toevoegen of verwijderen van onderdelen wordt bij bevestiging opgeslagen."
 
 #: includes/class-taxocommerce-core-menu-editor.php:142
 msgid "Hay cambios pendientes de guardar."
@@ -2175,7 +2171,7 @@ msgstr "Nieuw menu maken"
 msgid ""
 "La selección no modifica ni copia el menú. Los cambios guardados afectan al "
 "menú elegido; crear uno nuevo no reemplaza el menú activo del tema."
-msgstr ""
+msgstr "Een menu selecteren wijzigt of kopieert het niet. Opgeslagen wijzigingen gelden voor het gekozen menu; een nieuw menu vervangt het actieve themamenu niet."
 
 #: includes/class-taxocommerce-core-menu-editor.php:248
 msgid "El menú seleccionado ya no existe."
@@ -2223,13 +2219,13 @@ msgstr "Menu verwijderen"
 msgid ""
 "Atención: está asignado a una ubicación del tema. Si lo eliminas, dejará de "
 "utilizarse allí."
-msgstr ""
+msgstr "Let op: dit menu is toegewezen aan een locatie in het thema. Als je het verwijdert, wordt het daar niet meer gebruikt."
 
 #: includes/class-taxocommerce-core-menu-editor.php:299
 msgid ""
 "Confirmo que quiero eliminar definitivamente este menú de WordPress y sus "
 "elementos."
-msgstr ""
+msgstr "Ik bevestig dat ik dit WordPress-menu en alle onderdelen definitief wil verwijderen."
 
 #: includes/class-taxocommerce-core-menu-editor.php:303
 #: includes/class-taxocommerce-core-menu-editor.php:307
@@ -2248,14 +2244,14 @@ msgstr ""
 msgid ""
 "Gestiona las páginas, entradas, categorías y enlaces de este menú nativo "
 "WordPress."
-msgstr ""
+msgstr "Beheer pagina's, berichten, categorieën en links in dit standaard WordPress-menu."
 
 #: includes/class-taxocommerce-core-menu-editor.php:324
 msgid ""
 "Puedes editar los elementos del menú cargado. Los elementos generados desde "
 "la jerarquía SEO se conservan protegidos; los manuales pueden modificarse o "
 "eliminarse."
-msgstr ""
+msgstr "Je kunt de onderdelen van het geladen menu bewerken. Onderdelen uit de SEO-hiërarchie blijven beschermd; handmatig toegevoegde onderdelen kunnen worden gewijzigd of verwijderd."
 
 #: includes/class-taxocommerce-core-menu-editor.php:325
 msgid "Añadir elementos al menú"
@@ -2283,7 +2279,7 @@ msgstr ""
 msgid ""
 "Este menú está vacío. Añade páginas, entradas, categorías o enlaces desde el"
 " panel izquierdo."
-msgstr ""
+msgstr "Dit menu is leeg. Voeg pagina's, berichten, categorieën of links toe vanuit het linkerpaneel."
 
 #: includes/class-taxocommerce-core-menu-editor.php:335
 msgid ""
@@ -2374,7 +2370,7 @@ msgstr "Controleer de titel en positie van het item."
 
 #: includes/class-taxocommerce-core-menu-editor.php:497
 msgid "El superior debe pertenecer al mismo menú y no puede crear un ciclo."
-msgstr ""
+msgstr "Het bovenliggende onderdeel moet bij hetzelfde menu horen en mag geen lus veroorzaken."
 
 #: includes/class-taxocommerce-core-menu-editor.php:519
 msgid "Introduce una URL válida."
@@ -2387,7 +2383,7 @@ msgstr "Gebruik het tabblad WordPress-menu’s om een standaardmenu op te slaan.
 #: includes/class-taxocommerce-core-menu-editor.php:559
 msgid ""
 "El menú SEO gestionado no puede guardarse desde la pestaña de menús básicos."
-msgstr ""
+msgstr "Het beheerde SEO-menu kan niet worden opgeslagen via het tabblad voor standaardmenu's."
 
 #: includes/class-taxocommerce-core-menu-editor.php:567
 msgid "Este nombre está reservado para los menús SEO de TaxoCommerce."
@@ -2404,7 +2400,7 @@ msgstr "De verzonden items zijn ongeldig."
 #: includes/class-taxocommerce-core-menu-editor.php:585
 msgid ""
 "El menú ha cambiado desde que se abrió. Recarga la página antes de guardar."
-msgstr ""
+msgstr "Het menu is gewijzigd sinds het werd geopend. Vernieuw de pagina voordat je opslaat."
 
 #: includes/class-taxocommerce-core-menu-editor.php:591
 msgid "Hay elementos ajenos al menú o no editables."
@@ -2463,7 +2459,7 @@ msgstr "Nieuw menu gemaakt. Je kunt het bewerken zonder bestaande menu’s te wi
 msgid ""
 "Menú clásico guardado en WordPress. La cabecera de un tema de bloques puede "
 "usar otra navegación."
-msgstr ""
+msgstr "Klassiek menu opgeslagen in WordPress. De koptekst van een blokthema kan een andere navigatie gebruiken."
 
 #: includes/class-taxocommerce-core-menu-editor.php:704
 msgid "Menú eliminado correctamente de WordPress."
@@ -2500,7 +2496,7 @@ msgid ""
 "Menú de WordPress cargado. Puedes modificar sus elementos manuales aquí. No "
 "se ha sustituido el menú gestionado del país ni se ha cambiado su ubicación "
 "en el tema."
-msgstr ""
+msgstr "WordPress-menu geladen. Je kunt de onderdelen handmatig bewerken. Het beheerde landenmenu en de themalocatie zijn niet gewijzigd."
 
 #: includes/class-taxocommerce-core-menu.php:231
 msgid "Identificador para llamar al menú desde una plantilla:"
@@ -2709,14 +2705,14 @@ msgstr ""
 msgid ""
 "Menús nativos: gestor WordPress estándar y sincronización SEO por país en "
 "pestañas separadas."
-msgstr ""
+msgstr "Standaardmenu's: normaal WordPress-menubeheer en SEO-synchronisatie per land op afzonderlijke tabbladen."
 
 #: includes/class-taxocommerce-core-technical-guide.php:76
 msgid ""
 "Modo independiente de WooCommerce: entradas, páginas y categorías "
 "habituales, sin filtro de país ni product_cat. Requiere seleccionar un menú "
 "nativo explícito antes de escribir."
-msgstr ""
+msgstr "Werkt zonder WooCommerce: standaard berichten, pagina's en categorieën, zonder landenfilter of product_cat. Selecteer eerst expliciet een standaardmenu voordat je wijzigingen aanbrengt."
 
 #: includes/class-taxocommerce-core-technical-guide.php:77
 msgid ""
@@ -2724,7 +2720,7 @@ msgid ""
 "con formulario HTML asociado. Eliminación únicamente de menús básicos no "
 "protegidos y con confirmación. Ambas acciones usan el controlador admin_post"
 " de menús con permisos y nonce. La sincronización SEO permanece separada."
-msgstr ""
+msgstr "Onderdelen van een standaardmenu worden expliciet in gevalideerde batches opgeslagen via een HTML-formulier. Alleen onbeveiligde standaardmenu's kunnen na bevestiging worden verwijderd. Beide acties gebruiken de admin_post-menucontroller met rechten- en noncecontrole. SEO-synchronisatie blijft gescheiden."
 
 #: includes/class-taxocommerce-core-technical-guide.php:78
 msgid "Normalización y lectura del país de cada contenido."
@@ -3150,11 +3146,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-user-guide.php:42
 msgid "User Manual"
-msgstr ""
+msgstr "Gebruikershandleiding"
 
 #: includes/class-taxocommerce-core-user-guide.php:43
 msgid "Technical Manual"
-msgstr ""
+msgstr "Technische handleiding"
 
 #: includes/class-taxocommerce-core-user-guide.php:49
 msgid "Índice del manual"
@@ -3311,7 +3307,7 @@ msgstr ""
 msgid ""
 "Gestor de menús incluye Menús SEO / WooCommerce y Menús WordPress, "
 "independientes entre sí."
-msgstr ""
+msgstr "Menubeheer bevat SEO/WooCommerce-menu's en WordPress-menu's, die onafhankelijk van elkaar werken."
 
 #: includes/class-taxocommerce-core-user-guide.php:103
 msgid "Menús WordPress (sin WooCommerce)"
@@ -3325,36 +3321,36 @@ msgstr "Open in Menubeheer het tabblad WordPress-menu’s."
 msgid ""
 "Carga un menú existente o crea uno nuevo; cargar no modifica los menús "
 "publicados."
-msgstr ""
+msgstr "Laad een bestaand menu of maak een nieuw menu; laden wijzigt gepubliceerde menu's niet."
 
 #: includes/class-taxocommerce-core-user-guide.php:107
 msgid ""
 "Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y "
 "posición."
-msgstr ""
+msgstr "Voeg pagina's, berichten, categorieën en links toe en bewerk de hiërarchie, tekst en positie."
 
 #: includes/class-taxocommerce-core-user-guide.php:108
 msgid ""
 "Pulsa Guardar menú para grabar juntos el nombre y los cambios de sus "
 "elementos. Hasta entonces son cambios sin guardar. Añadir o quitar un "
 "elemento sí se guarda al confirmar su operación."
-msgstr ""
+msgstr "Klik op Menu opslaan om de naam en wijzigingen van onderdelen samen op te slaan. Tot die tijd zijn deze wijzigingen niet opgeslagen. Toevoegen of verwijderen van een onderdeel wordt bij bevestiging opgeslagen."
 
 #: includes/class-taxocommerce-core-user-guide.php:109
 msgid ""
 "Para eliminar un menú básico, selecciona ese menú y usa Eliminar menú; exige"
 " marcar la casilla y confirmar. No se permite borrar los menús SEO de país."
-msgstr ""
+msgstr "Selecteer een standaardmenu en klik op Menu verwijderen; vink het vakje aan en bevestig. Landspecifieke SEO-menu's kunnen niet worden verwijderd."
 
 #: includes/class-taxocommerce-core-user-guide.php:110
 msgid ""
 "Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema."
-msgstr ""
+msgstr "Wijs het menu expliciet toe aan een themalocatie om het op de website te tonen."
 
 #: includes/class-taxocommerce-core-user-guide.php:112
 msgid ""
 "La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO."
-msgstr ""
+msgstr "Het tabblad voor standaardmenu's vereist geen WooCommerce en synchroniseert de SEO-hiërarchie niet."
 
 #: includes/class-taxocommerce-core-user-guide.php:113
 msgid "Crear y publicar un menú"
@@ -3492,11 +3488,11 @@ msgstr ""
 msgid ""
 "Usa términos existentes del vocabulario canónico. Las etiquetas asignadas "
 "por procesos automáticos se muestran protegidas y no se sobrescriben aquí."
-msgstr ""
+msgstr "Gebruik bestaande termen uit het canonieke Vocabulary. Automatisch toegewezen tags zijn beschermd en kunnen hier niet worden overschreven."
 
 #: includes/class-taxocommerce-core.php:152
 msgid "Open Core"
-msgstr ""
+msgstr "Core openen"
 
 #: includes/class-taxocommerce-core.php:247
 msgid "Vocabulary"
@@ -3677,71 +3673,71 @@ msgstr ""
 #: includes/class-taxocommerce-core.php:838
 #: includes/class-taxocommerce-core.php:876
 msgid "Unknown TaxoCommerce extension."
-msgstr ""
+msgstr "Onbekende TaxoCommerce-uitbreiding."
 
 #: includes/class-taxocommerce-core.php:633
 #: includes/class-taxocommerce-core.php:699
 msgid "The extension is already installed."
-msgstr ""
+msgstr "De uitbreiding is al geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:640
 msgid ""
 "The local ZIP for this extension was not found in uploads/taxocommerce-"
 "core/plugins."
-msgstr ""
+msgstr "Het lokale ZIP-bestand van deze uitbreiding is niet gevonden in uploads/taxocommerce-core/plugins."
 
 #: includes/class-taxocommerce-core.php:656
 msgid "WordPress could not install the local ZIP."
-msgstr ""
+msgstr "WordPress kon het lokale ZIP-bestand niet installeren."
 
 #: includes/class-taxocommerce-core.php:663
 msgid ""
 "The ZIP was processed, but it does not contain the expected structure for "
 "this extension."
-msgstr ""
+msgstr "Het ZIP-bestand is verwerkt, maar bevat niet de verwachte structuur voor deze uitbreiding."
 
 #: includes/class-taxocommerce-core.php:667
 msgid "Extension installed from the local ZIP. You can activate it now."
-msgstr ""
+msgstr "De uitbreiding is geïnstalleerd vanuit het lokale ZIP-bestand. Je kunt deze nu activeren."
 
 #: includes/class-taxocommerce-core.php:707
 msgid "A valid ZIP was not received."
-msgstr ""
+msgstr "Er is geen geldig ZIP-bestand ontvangen."
 
 #: includes/class-taxocommerce-core.php:715
 msgid "The file must be a correctly uploaded ZIP."
-msgstr ""
+msgstr "Het bestand moet een correct geüpload ZIP-bestand zijn."
 
 #: includes/class-taxocommerce-core.php:720
 msgid "The ZIP exceeds the maximum upload size allowed by WordPress."
-msgstr ""
+msgstr "Het ZIP-bestand overschrijdt de maximale uploadgrootte van WordPress."
 
 #: includes/class-taxocommerce-core.php:724
 msgid "ZipArchive is not available on the server to validate the package."
-msgstr ""
+msgstr "ZipArchive is niet beschikbaar op de server om het pakket te controleren."
 
 #: includes/class-taxocommerce-core.php:737
 msgid "WordPress could not prepare the ZIP temporarily."
-msgstr ""
+msgstr "WordPress kon het ZIP-bestand niet tijdelijk voorbereiden."
 
 #. translators: %s: expected plugin basename.
 #: includes/class-taxocommerce-core.php:760
 msgid "The ZIP does not match this extension. It must contain %s."
-msgstr ""
+msgstr "Het ZIP-bestand hoort niet bij deze uitbreiding. Het moet %s bevatten."
 
 #: includes/class-taxocommerce-core.php:775
 msgid "WordPress could not install the uploaded ZIP."
-msgstr ""
+msgstr "WordPress kon het geüploade ZIP-bestand niet installeren."
 
 #: includes/class-taxocommerce-core.php:782
 msgid ""
 "The ZIP was processed, but the extension was not installed at the expected "
 "path."
-msgstr ""
+msgstr "Het ZIP-bestand is verwerkt, maar de uitbreiding is niet op de verwachte locatie geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:786
 msgid "Extension installed from ZIP. You can activate it now."
-msgstr ""
+msgstr "De uitbreiding is geïnstalleerd vanuit het ZIP-bestand. Je kunt deze nu activeren."
 
 #: includes/class-taxocommerce-core.php:829
 msgid "No tienes permisos para activar plugins."
@@ -3749,11 +3745,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:843
 msgid "The extension is not installed yet."
-msgstr ""
+msgstr "De uitbreiding is nog niet geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:855
 msgid "Extension activated."
-msgstr ""
+msgstr "Uitbreiding geactiveerd."
 
 #: includes/class-taxocommerce-core.php:867
 msgid "No tienes permisos para desactivar plugins."
@@ -3761,7 +3757,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:885
 msgid "Extension deactivated."
-msgstr ""
+msgstr "Uitbreiding gedeactiveerd."
 
 #: includes/class-taxocommerce-core.php:1056
 msgid "Informes"
