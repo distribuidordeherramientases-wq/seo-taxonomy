@@ -1,4 +1,4 @@
-=== TaxoCommerce Connections Compatibility Bridge ===
+=== TaxoCommerce Connections (Compatibility Bridge) ===
 Contributors: davidperezmartorell
 Tags: integrations, compatibility, insights
 Requires at least: 6.5
