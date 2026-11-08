@@ -1,3 +1,9 @@
+## [1.1.28] — 2026-11-08 — Limpieza de opciones de consentimiento al desinstalar (#2395)
+
+- La desinstalación elimina la opción `taxocommerce_insights_consent_settings` (texto legal editable y configuración) del sitio, también en cada sitio de WordPress Multisite.
+- Mantiene el ledger independiente de evidencias legales, que no se destruye al desinstalar; la desactivación tampoco elimina opciones.
+- Sin cambios en el frontal ni en las decisiones de consentimiento de visitantes mientras el plugin está activo. Restablece la comprobación automatizada de ciclo de vida.
+
 ## [1.1.27] — 2026-11-08 — Compatibilidad de pruebas de consentimiento (#2392)
 
 - Se añade en la prueba aislada el stub admin_url y nonce para evitar falsos fallos de CI, sin cambiar el consentimiento público.

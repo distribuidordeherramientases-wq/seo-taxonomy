@@ -62,8 +62,9 @@ foreach ( $patterns as $pattern ) {
 }
 
 /**
- * Consent evidence is retained on uninstall for legal accountability.
- * The ledger, key, legal versions, and consent settings survive plugin removal.
+ * Erase plugin-owned editable legal texts on uninstall, per administrator intent.
+ * Keep only the separate immutable consent ledger as legal evidence; disabling
+ * this plugin does not run this cleanup.
  */
 (static function () {
     if ( is_multisite() ) {
@@ -72,12 +73,15 @@ foreach ( $patterns as $pattern ) {
             $sites = get_sites( array( 'number' => 100, 'offset' => $offset, 'fields' => 'ids' ) );
             foreach ( $sites as $site_id ) {
                 switch_to_blog( (int) $site_id );
-                // Consent settings and evidence retained by design.
+                // Per-site editable consent texts and settings are plugin-owned.
+                delete_option( 'taxocommerce_insights_consent_settings' );
+                // The independent evidence ledger is intentionally preserved.
                 restore_current_blog();
             }
             $offset += count( $sites );
         } while ( count( $sites ) === 100 );
     } else {
-        // Consent settings and evidence retained by design.
+        delete_option( 'taxocommerce_insights_consent_settings' );
+        // The independent evidence ledger is intentionally preserved.
     }
 })();
