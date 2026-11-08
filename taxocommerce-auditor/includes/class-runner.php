@@ -81,7 +81,21 @@ final class Runner {
 
     private static function enqueue( $scope ) {
         if ( ! wp_next_scheduled( self::HOOK, array( $scope ) ) ) {
-            wp_schedule_single_event( time() + 12, self::HOOK, array( $scope ) );
+            wp_schedule_single_event( time() + Workload::delay_seconds( $scope ), self::HOOK, array( $scope ) );
+        }
+    }
+
+    /**
+     * Apply a speed change to a queued/running scope without resetting its cursor.
+     */
+    public static function reschedule( $scope ) {
+        if ( ! self::valid_scope( $scope ) ) {
+            return;
+        }
+        $state = self::state( $scope );
+        if ( in_array( (string) ( $state['status'] ?? '' ), array( 'queued', 'running' ), true ) ) {
+            wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
+            self::enqueue( $scope );
         }
     }
 
@@ -260,7 +274,8 @@ final class Runner {
      */
     private static function batch( $scope, $cursor, $filters = array(), $remaining = null ) {
         $filters = self::sanitize_filters( $scope, $filters );
-        $batch_size = min( self::BATCH_SIZE, null === $remaining ? self::BATCH_SIZE : max( 1, absint( $remaining ) ) );
+        $speed_batch = Workload::batch_size( $scope );
+        $batch_size = min( $speed_batch, null === $remaining ? $speed_batch : max( 1, absint( $remaining ) ) );
         if ( 'faqs' === $scope && FAQ_Source::available() ) {
             return FAQ_Source::batch(
                 absint( $cursor ),
@@ -727,9 +742,13 @@ final class Runner {
                 return;
             }
             $objects = self::batch( $scope, absint( $state['cursor'] ), (array) ( $state['filters'] ?? array() ), $remaining );
+            $batch_started = microtime( true );
+            $processed_batch = 0;
+            $fetched_batch = count( $objects );
             foreach ( $objects as $object ) {
                 $analysis = Rules::inspect( $scope, $object );
                 $state['processed']++;
+                $processed_batch++;
                 $id = $object instanceof \WP_Term ? absint( $object->term_id ) : absint( $object->ID );
 
                 if ( 'categories' !== $scope ) {
@@ -738,6 +757,9 @@ final class Runner {
 
                 if ( ! empty( $analysis['excluded'] ) ) {
                     $state['excluded']++;
+                    if ( microtime( true ) - $batch_started >= Workload::budget_seconds( $scope ) ) {
+                        break;
+                    }
                     continue;
                 }
 
@@ -901,9 +923,12 @@ final class Runner {
                     $quality['band'] = Rules::band( $quality['score'] );
                 }
                 self::append_quality( $state, $scope, $object, $quality );
+                if ( microtime( true ) - $batch_started >= Workload::budget_seconds( $scope ) ) {
+                    break;
+                }
             }
             if ( 'categories' === $scope ) {
-                $state['cursor'] = absint( $state['cursor'] ) + count( $objects );
+                $state['cursor'] = absint( $state['cursor'] ) + $processed_batch;
             }
             // A user may pause/restart while this worker is running. Never
             // overwrite that explicit newer state with an old batch.
@@ -916,10 +941,13 @@ final class Runner {
             self::trim_samples( $state );
             $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
             $limit_reached = ! $full && absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
+            $speed_batch = Workload::batch_size( $scope );
             $effective_batch = $full
-                ? self::BATCH_SIZE
-                : min( self::BATCH_SIZE, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - count( $objects ) ) ) );
-            if ( $limit_reached || count( $objects ) < $effective_batch ) {
+                ? $speed_batch
+                : min( $speed_batch, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - $processed_batch ) ) );
+            // A time-budgeted loop may have fetched more rows than it processed.
+            // Do not mark such a run complete or skip category offsets.
+            if ( $limit_reached || ( $processed_batch === $fetched_batch && $fetched_batch < $effective_batch ) ) {
                 self::complete( $scope, $state );
             } else {
                 self::save_indexes( $state );
