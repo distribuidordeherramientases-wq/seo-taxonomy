@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.24
+ * Version: 1.1.25
  * Release Date: 2026-11-08
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.24' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.25' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connec
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-user-guide.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-auto-test.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-head-tags.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-consent.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-ecommerce.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/connections/cloudflare.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-cloudflare-ui.php';
@@ -76,6 +77,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_User_Guide::register();
     TaxoCommerce_Google_Bing_Auto_Test::register();
     TaxoCommerce_Insights_Head_Tags::register();
+    TaxoCommerce_Insights_Consent::register();
     TaxoCommerce_Insights_Ecommerce::register();
     TaxoCommerce_Insights_Cloudflare_UI::register();
 
@@ -87,6 +89,7 @@ function taxocommerce_google_bing_boot() {
     add_action( 'admin_menu', 'taxocommerce_google_bing_register_menu', 65 );
 }
 add_action( 'plugins_loaded', 'taxocommerce_google_bing_boot', 100 );
+register_activation_hook( __FILE__, array( 'TaxoCommerce_Insights_Consent', 'install' ) );
 
 function taxocommerce_google_bing_register_with_core( $core ) {
     if ( ! is_object( $core ) || ! method_exists( $core, 'register_module' ) ) {
@@ -143,7 +146,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'user_guide', 'auto_test' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -160,6 +163,7 @@ function taxocommerce_google_bing_screen() {
             'google_trends'    => 'Google Trends',
             'head_tags'        => __( 'Etiquetas de cabecera', 'taxocommerce-google-bing' ),
             'ecommerce'        => __( 'Comercio electrónico', 'taxocommerce-google-bing' ),
+            'consent'          => __( 'Consentimientos', 'taxocommerce-google-bing' ),
             'user_guide'       => 'User Guide',
             'auto_test'        => __( 'Autocheck', 'taxocommerce-google-bing' ),
         ) as $key => $label
@@ -182,6 +186,8 @@ function taxocommerce_google_bing_screen() {
         TaxoCommerce_Insights_Head_Tags::render();
     } elseif ( 'ecommerce' === $tab ) {
         TaxoCommerce_Insights_Ecommerce::render();
+    } elseif ( 'consent' === $tab ) {
+        TaxoCommerce_Insights_Consent::render();
     } elseif ( 'auto_test' === $tab ) {
         TaxoCommerce_Google_Bing_Auto_Test::render();
     } elseif ( 'user_guide' === $tab ) {

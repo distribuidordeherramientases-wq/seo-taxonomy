@@ -60,3 +60,24 @@ foreach ( $patterns as $pattern ) {
         delete_option( $name );
     }
 }
+
+/**
+ * Consentimientos uses only wp_options, never custom SQL tables.
+ * Its drafts survive deactivation and are deleted only on final uninstall.
+ */
+(static function () {
+    if ( is_multisite() ) {
+        $offset = 0;
+        do {
+            $sites = get_sites( array( 'number' => 100, 'offset' => $offset, 'fields' => 'ids' ) );
+            foreach ( $sites as $site_id ) {
+                switch_to_blog( (int) $site_id );
+                delete_option( 'taxocommerce_insights_consent_settings' );
+                restore_current_blog();
+            }
+            $offset += count( $sites );
+        } while ( count( $sites ) === 100 );
+    } else {
+        delete_option( 'taxocommerce_insights_consent_settings' );
+    }
+})();
