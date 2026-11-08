@@ -130,10 +130,11 @@ $uninstall = file_get_contents( dirname( __DIR__ ) . '/uninstall.php' );
 consent_test( false !== strpos( $uninstall, "delete_option( 'taxocommerce_insights_consent_settings' )" ), 'uninstall does not remove owned texts' );
 $ledger_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-insights-consent-ledger.php' );
 consent_test(
-    false !== strpos( $ledger_source, 'FROM %i WHERE' )
-    && false !== strpos( $ledger_source, 'UPDATE %i SET' )
-    && false !== strpos( $ledger_source, 'FROM %i ORDER BY' ),
-    'ledger must bind table identifiers through WordPress %i'
+    false !== strpos( $ledger_source, 'esc_sql( self::table() )' )
+    && false === strpos( $ledger_source, 'FROM %i' )
+    && false !== strpos( $ledger_source, 'WHERE (%s' )
+    && false !== strpos( $ledger_source, 'UPDATE {$table} SET' ),
+    'ledger must escape its static table identifier and prepare user-supplied filters on WordPress 5.8+'
 );
 consent_test(
     false === strpos( $ledger_source, 'fclose( $stream )' ),

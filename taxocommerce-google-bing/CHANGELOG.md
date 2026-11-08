@@ -1,6 +1,6 @@
 ## [1.1.29] — 2026-11-08 — WordPress Plugin Check sobre evidencias de consentimiento (#2399)
 
-- Consultas SELECT, UPDATE y exportación CSV de la tabla propia de consentimiento: identificadores con `%i` y valores mediante `$wpdb->prepare()`; sin concatenar SQL dinámico.
+- Consultas SELECT, UPDATE y exportación CSV de la tabla propia de consentimiento: identificadores con `esc_sql()` y valores mediante `$wpdb->prepare()`; sin SQL derivado del usuario y manteniendo compatibilidad con WordPress 5.8.
 - Sanitizadas expresamente las tres selecciones del formulario (estadísticas, marketing, preferencias), con rechazo de tipos complejos; permanece la verificación de nonce.
 - Retirado `fclose()` innecesario de `php://output` y documentadas puntualmente las escrituras y lecturas SQL inmediatas sin caché, necesarias para evidencia legal.
 - Se conservan permisos, funcionalidades, esquema de datos y decisiones ya almacenadas. Sin despliegue a producción.

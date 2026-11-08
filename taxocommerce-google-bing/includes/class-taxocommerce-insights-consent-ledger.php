@@ -139,17 +139,21 @@ KEY purpose_date (purpose,created_at)
         global $wpdb;
         self::maybe_install();
         $f = self::filters();
-        // Bind the table identifier using %i (WordPress 6.2+) and bind each filter.
-        // An empty filter matches all decisions/purposes, preserving old behavior.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached live evidence, no stale consent inventory.
+        // The database prefix is provided by WordPress. Escape the known,
+        // plugin-owned identifier while retaining WordPress 5.8 compatibility.
+        // Every variable filter is still bound through wpdb::prepare().
+        $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Live legal evidence must not use stale caching.
         $total = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM %i WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s)",
-            self::table(), $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Escaped plugin-owned table identifier, all values bound below.
+            "SELECT COUNT(*) FROM {$table} WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s)",
+            $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
         ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicitly bounded, current legal audit results.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicitly bounded live evidence results.
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM %i WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s) ORDER BY id DESC LIMIT 100",
-            self::table(), $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Escaped plugin-owned identifier, all filter values bound.
+            "SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM {$table} WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s) ORDER BY id DESC LIMIT 100",
+            $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
         ), ARRAY_A );
         echo '<div class="card" style="max-width:1200px;padding:20px;margin-top:18px">';
         echo '<h2>' . esc_html__( 'Inventario de consentimientos', 'taxocommerce-google-bing' ) . '</h2>';
@@ -205,10 +209,11 @@ KEY purpose_date (purpose,created_at)
         }
         global $wpdb;
         // Remove the subject link but preserve a minimal immutable legal evidence record.
+        $table = esc_sql( self::table() );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immediate anonymization of stored legal evidence.
         $wpdb->query( $wpdb->prepare(
-            'UPDATE %i SET subject_hash=%s, erased_at=%s WHERE subject_hash=%s AND erased_at IS NULL',
-            self::table(),
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Escaped plugin-owned table; subject values remain bound.
+            "UPDATE {$table} SET subject_hash=%s, erased_at=%s WHERE subject_hash=%s AND erased_at IS NULL",
             str_repeat( '0', 64 ),
             current_time( 'mysql', true ),
             $hash
@@ -222,11 +227,13 @@ KEY purpose_date (purpose,created_at)
         }
         check_admin_referer( self::NONCE );
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator-only snapshot, explicitly limited to 10,000 legal evidence rows.
-        $rows = $wpdb->get_results( $wpdb->prepare(
-            'SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM %i ORDER BY id DESC LIMIT 10000',
-            self::table()
-        ), ARRAY_A );
+        $table = esc_sql( self::table() );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current, administrator-only export, limited to 10,000 rows.
+        $rows = $wpdb->get_results(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- Escaped fixed, plugin-owned table with no user-derived SQL.
+            "SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM {$table} ORDER BY id DESC LIMIT 10000",
+            ARRAY_A
+        );
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="insights-consent-evidence-' . gmdate( 'Ymd' ) . '.csv"' );
