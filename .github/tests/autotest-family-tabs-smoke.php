@@ -52,7 +52,7 @@ foreach ( $plugins as $slug ) {
         fwrite( STDERR, 'Autotest code engine incomplete in ' . $slug . PHP_EOL );
         exit( 1 );
     }
-    if ( false !== strpos( $checker, 'self::DOMAIN )' ) {
+    if ( false !== strpos( $checker, 'self::DOMAIN )' ) ) {
         fwrite( STDERR, 'Dynamic gettext textdomain in ' . $slug . PHP_EOL );
         exit( 1 );
     }
