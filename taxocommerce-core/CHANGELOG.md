@@ -1,3 +1,9 @@
+## [Unreleased] — Traducción de administración y menús Core (Issue #2062)
+
+- Completadas 332 traducciones nuevas de 72 mensajes originales en ES/EN/FR/DE/NL, sin sobrescribir traducciones existentes. Incluye Anomalías, avisos de integridad, navegación de bloques, gestión de menús nativos, seguridad de borrado, atributos de WooCommerce y documentación de usuario y técnica.
+- Catálogos `.po` y `.mo` sincronizados, 793 registros gettext por idioma, con `msgid` y marcadores de formato conservados.
+- Pendiente ampliar el resto de mensajes, auditar PHP/JS sin gettext, validar carga según locale y ejecutar Plugin Check y pruebas en STAGING/Focazul. No desplegar a PRODUCCIÓN.
+
 ## [0.4.61] — 2026-11-07 — Menú padre TaxoCommerce Core estable (#2351)
 
 - Se restablece el título del menú principal TaxoCommerce Core al final del registro de extensiones, sin alterar los submenús, rutas, iconos ni capacidades.

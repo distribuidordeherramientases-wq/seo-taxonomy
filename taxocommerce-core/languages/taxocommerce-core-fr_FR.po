@@ -58,7 +58,7 @@ msgstr "Anomalies"
 msgid ""
 "No existen las tablas originales seo_nodes / seo_relations. No es posible "
 "realizar los chequeos estructurales."
-msgstr ""
+msgstr "Les tables d'origine seo_nodes / seo_relations sont absentes. Les contrôles structurels sont impossibles."
 
 #: includes/class-taxocommerce-core-anomalies.php:282
 msgid "🧩 FAQs sin elemento relacionado"
@@ -68,7 +68,7 @@ msgstr "🧩 FAQ sans objet associé"
 msgid ""
 "Detecta FAQs que quedaron vivas después de borrar, mover o enviar a papelera"
 " categorías, productos o páginas/hubs."
-msgstr ""
+msgstr "Détecte les FAQ devenues orphelines après la suppression, le déplacement ou la mise à la corbeille de catégories, produits ou pages/hubs."
 
 #: includes/class-taxocommerce-core-anomalies.php:385
 msgid "Chequeo"
@@ -131,7 +131,7 @@ msgstr "Supprimer les FAQ des catégories disparues"
 #: includes/class-taxocommerce-core-anomalies.php:487
 msgid ""
 "El borrado requiere SEO Data Layer. Informe disponible en modo consulta."
-msgstr ""
+msgstr "La suppression nécessite SEO Data Layer. Le rapport reste disponible en lecture seule."
 
 #: includes/class-taxocommerce-core-anomalies.php:467
 msgid "Resumen de productos perdidos con FAQs"
@@ -150,7 +150,7 @@ msgid ""
 "estas acciones limpian solo FAQs verdaderamente huérfanas. Los productos que"
 " todavía existen pero no están publicados permanecen fuera del borrado "
 "automático para revisión manual."
-msgstr ""
+msgstr "Ces actions suppriment uniquement les FAQ réellement orphelines. Les produits encore présents mais non publiés sont exclus de la suppression automatique pour examen manuel."
 
 #: includes/class-taxocommerce-core-anomalies.php:678
 msgid ""
@@ -166,7 +166,7 @@ msgstr "🚨 Rapport d’audit et de contrôle de structure"
 msgid ""
 "Monitoreo global de la integridad estructural de Nodos y relaciones "
 "semánticas en la base de datos."
-msgstr ""
+msgstr "Surveillance globale de l'intégrité structurelle des nœuds et des relations sémantiques dans la base de données."
 
 #: includes/class-taxocommerce-core-anomalies.php:801
 msgid "JSON correctivo no disponible: faltan las tablas de Vocabulary."
@@ -201,13 +201,13 @@ msgstr "Hubs secondaires sans catégories"
 msgid ""
 "Estos hubs secundarios pertenecen a la estructura, pero no conducen a "
 "ninguna categoría de WooCommerce."
-msgstr ""
+msgstr "Ces hubs secondaires font partie de la structure, mais ne mènent à aucune catégorie WooCommerce."
 
 #: includes/class-taxocommerce-core-anomalies.php:941
 msgid ""
 "Revisar si debe recibir categorías, mantenerse como página informativa o "
 "eliminarse de la estructura."
-msgstr ""
+msgstr "Vérifiez s'ils doivent recevoir des catégories, rester des pages d'information ou être retirés de la structure."
 
 #: includes/class-taxocommerce-core-anomalies.php:969
 msgid "Todos los hubs secundarios tienen al menos una categoría vinculada."
@@ -233,7 +233,7 @@ msgstr "Aucune relation commerciale landing_to_category."
 msgid ""
 "Todas las landing pages publicadas o programadas tienen al menos una "
 "categoría de producto asociada."
-msgstr ""
+msgstr "Toutes les pages de destination publiées ou programmées ont au moins une catégorie de produit associée."
 
 #: includes/class-taxocommerce-core-anomalies.php:1084
 msgid "🔗 Posts editoriales sin categoría de producto relacionada"
@@ -247,7 +247,7 @@ msgstr "Aucune relation commerciale post_to_category."
 msgid ""
 "Todas las Guías y Comparativas publicadas o programadas tienen al menos una "
 "categoría de producto relacionada."
-msgstr ""
+msgstr "Tous les guides et comparatifs publiés ou programmés ont au moins une catégorie de produit associée."
 
 #: includes/class-taxocommerce-core-anomalies.php:1224
 msgid "📰 Entradas editoriales sin Vocabulary semántico activo"
@@ -256,19 +256,19 @@ msgstr "📰 Articles éditoriaux sans Vocabulary sémantique actif"
 #: includes/class-taxocommerce-core-anomalies.php:1343
 msgid ""
 "Sin datos: faltan tablas de Vocabulary; este bloque no se ha comprobado."
-msgstr ""
+msgstr "Aucune donnée : les tables Vocabulary sont absentes. Cette section n'a pas été vérifiée."
 
 #: includes/class-taxocommerce-core-anomalies.php:1366
 msgid ""
 "Sin Vocabulary semántico activo en rol, tipo, aplicación, plataforma o "
 "subtipo."
-msgstr ""
+msgstr "Aucun Vocabulary sémantique actif pour le rôle, le type, l'application, la plateforme ou le sous-type."
 
 #: includes/class-taxocommerce-core-anomalies.php:1385
 msgid ""
 "Todas las entradas editoriales publicadas o programadas tienen al menos un "
 "término de Vocabulary canónico activo."
-msgstr ""
+msgstr "Tous les articles éditoriaux publiés ou programmés possèdent au moins un terme canonique actif de Vocabulary."
 
 #: includes/class-taxocommerce-core-anomalies.php:1388
 msgid "⚠️ Categorías sin asignación estructural"
@@ -278,7 +278,7 @@ msgstr "⚠️ Catégories sans affectation structurelle"
 msgid ""
 "Todas las categorías de WooCommerce están correctamente vinculadas en la "
 "tabla de relaciones SEO."
-msgstr ""
+msgstr "Toutes les catégories WooCommerce sont correctement liées dans la table des relations SEO."
 
 #: includes/class-taxocommerce-core-anomalies.php:1405
 msgid "📦 Categorías de producto con 0 productos"
@@ -292,7 +292,7 @@ msgstr "🔄 Recalculer les compteurs"
 msgid ""
 "La acción solo reconstruye los contadores; no mueve, publica ni elimina "
 "productos o categorías."
-msgstr ""
+msgstr "Cette action reconstruit uniquement les compteurs ; elle ne déplace, ne publie et ne supprime aucun produit ni aucune catégorie."
 
 #: includes/class-taxocommerce-core-anomalies.php:1576
 msgid "Contadores de categorías desactualizados"
@@ -312,7 +312,7 @@ msgid ""
 "permite eliminar categorías con 0 productos, sin relaciones funcionales "
 "protegidas y con un Hub secundario publicado único. Al borrar se crea "
 "automáticamente un redirect 301 hacia ese Hub."
-msgstr ""
+msgstr "La suppression revérifie l'état réel juste avant l'exécution. Seules les catégories sans produits, sans relations fonctionnelles protégées et avec un unique hub secondaire publié peuvent être supprimées. Une redirection 301 vers ce hub est créée automatiquement."
 
 #: includes/class-taxocommerce-core-anomalies.php:1608
 msgid "No se elimina ningún producto."
@@ -330,7 +330,7 @@ msgstr "Supprimer les catégories sélectionnées"
 msgid ""
 "La limpieza automática requiere el servicio original de redirecciones y Data"
 " Layer. Esta vista permite revisar las categorías sin borrarlas."
-msgstr ""
+msgstr "Le nettoyage automatique nécessite le service de redirections d'origine et Data Layer. Cet écran permet de vérifier les catégories sans les supprimer."
 
 #: includes/class-taxocommerce-core-anomalies.php:1667
 msgid "Hubs secundarios en múltiples hubs primarios"
@@ -339,7 +339,7 @@ msgstr "Hubs secondaires dans plusieurs hubs principaux"
 #: includes/class-taxocommerce-core-anomalies.php:1751
 msgid ""
 "No se encontraron hubs secundarios asociados a múltiples hubs primarios."
-msgstr ""
+msgstr "Aucun hub secondaire lié à plusieurs hubs principaux n'a été trouvé."
 
 #: includes/class-taxocommerce-core-anomalies.php:1755
 msgid "💥 Categorías DUPLICADAS en múltiples Hubs Secundarios"
@@ -349,7 +349,7 @@ msgstr "💥 Catégories EN DOUBLE dans plusieurs hubs secondaires"
 msgid ""
 "¡Excelente! No existen categorías duplicadas. Cada categoría de WooCommerce "
 "pertenece a un único Hub Secundario."
-msgstr ""
+msgstr "Aucune catégorie en double. Chaque catégorie WooCommerce appartient à un seul hub secondaire."
 
 #: includes/class-taxocommerce-core-architecture-report.php:46
 msgid "No tienes permisos para actualizar este informe."
@@ -459,7 +459,7 @@ msgstr ""
 msgid ""
 "Cada barra indica el peso de un hub primario dentro del cluster; los "
 "productos presentes en varios hubs pueden repetirse entre filas."
-msgstr ""
+msgstr "Chaque barre représente le poids d'un hub principal dans le cluster ; les produits présents dans plusieurs hubs peuvent apparaître sur plusieurs lignes."
 
 #: includes/class-taxocommerce-core-architecture-report.php:454
 msgid "Reparto por hub primario"
@@ -570,7 +570,7 @@ msgid ""
 "Los menús clásicos y los bloques de navegación son sistemas distintos. Para "
 "cambiar la cabecera debes editar la navegación referenciada por su "
 "plantilla."
-msgstr ""
+msgstr "Les menus classiques et les blocs de navigation sont des systèmes distincts. Pour modifier l'en-tête, modifiez la navigation référencée par son modèle."
 
 #: includes/class-taxocommerce-core-block-navigation.php:117
 msgid "Navegaciones encontradas en las cabeceras"
@@ -588,19 +588,19 @@ msgstr "Charger la navigation de l’en-tête"
 msgid ""
 "Hay enlaces de navegación integrados en la plantilla, sin menú "
 "independiente. Se editan en el Editor del sitio."
-msgstr ""
+msgstr "Des liens de navigation sont intégrés au modèle sans menu indépendant. Modifiez-les dans l'éditeur du site."
 
 #: includes/class-taxocommerce-core-block-navigation.php:129
 msgid ""
 "No se ha identificado una única navegación editable. No se modificará ningún"
 " menú por suposición."
-msgstr ""
+msgstr "Aucune navigation modifiable unique n'a été trouvée. Aucun menu ne sera modifié sur une simple supposition."
 
 #: includes/class-taxocommerce-core-block-navigation.php:136
 msgid ""
 "Este contenido está referenciado desde una plantilla de cabecera. Guardarlo "
 "modifica esa navegación de bloques, no los menús clásicos."
-msgstr ""
+msgstr "Ce contenu est utilisé par un modèle d'en-tête. L'enregistrer modifie cette navigation par blocs, pas les menus classiques."
 
 #: includes/class-taxocommerce-core-block-navigation.php:143
 #: includes/class-taxocommerce-core-menu-editor.php:356
@@ -620,7 +620,7 @@ msgstr "Enregistrer la navigation de l’en-tête"
 msgid ""
 "Esta navegación utiliza bloques que deben editarse desde el Editor del "
 "sitio."
-msgstr ""
+msgstr "Cette navigation utilise des blocs qui doivent être modifiés dans l'éditeur du site."
 
 #: includes/class-taxocommerce-core-block-navigation.php:158
 msgid "Editar cabecera en el Editor del sitio"
@@ -908,7 +908,7 @@ msgstr "Image"
 #: includes/class-taxocommerce-core-content-manager.php:402
 #: includes/class-taxocommerce-core-content-manager.php:477
 msgid "KPI"
-msgstr ""
+msgstr "Indicateurs clés"
 
 #: includes/class-taxocommerce-core-content-manager.php:403
 msgid "Modificado"
@@ -1083,7 +1083,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-dashboard.php:41
 msgid "WooCommerce"
-msgstr ""
+msgstr "WooCommerce"
 
 #: includes/class-taxocommerce-core-dashboard.php:42
 msgid "Detectado"
@@ -1274,7 +1274,7 @@ msgstr ""
 msgid ""
 "Edición centralizada: los cambios se guardan en las tablas nativas de "
 "WordPress y WooCommerce."
-msgstr ""
+msgstr "Édition centralisée : les modifications sont enregistrées dans les tables natives de WordPress et WooCommerce."
 
 #: includes/class-taxocommerce-core-editor-ui.php:150
 msgid "Los cambios se aplican al contenido original, sin crear copias."
@@ -1292,7 +1292,7 @@ msgstr ""
 #: includes/class-taxocommerce-core-editor-ui.php:156
 msgid ""
 "Utiliza negritas, listas, enlaces y medios para estructurar el contenido."
-msgstr ""
+msgstr "Utilisez le gras, les listes, les liens et les médias pour structurer le contenu."
 
 #: includes/class-taxocommerce-core-editor-ui.php:199
 msgid "CONTROL EDITORIAL"
@@ -1310,7 +1310,7 @@ msgstr "État du contenu"
 msgid ""
 "La publicación y la papelera se aplican solo al guardar. Los estados "
 "existentes permanecen sin cambios si no eliges otro."
-msgstr ""
+msgstr "La publication et la mise à la corbeille prennent effet uniquement lors de l'enregistrement. Les états existants restent inchangés si vous n'en choisissez pas un autre."
 
 #: includes/class-taxocommerce-core-editor-ui.php:223
 #: includes/class-taxocommerce-core-editor-ui.php:400
@@ -1323,7 +1323,7 @@ msgstr "Retirer"
 msgid ""
 "Busca por nombre y selecciona los términos. Los cambios se aplican al "
 "guardar."
-msgstr ""
+msgstr "Recherchez des termes par nom et sélectionnez-les. Les modifications prennent effet lors de l'enregistrement."
 
 #: includes/class-taxocommerce-core-editor-ui.php:248
 msgid "IDENTIDAD"
@@ -1359,11 +1359,11 @@ msgstr "Organisation"
 
 #: includes/class-taxocommerce-core-editor-ui.php:332
 msgid "La categoría superior define la posición en la jerarquía WooCommerce."
-msgstr ""
+msgstr "La catégorie parente détermine sa position dans la hiérarchie WooCommerce."
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "WOOCOMMERCE"
-msgstr ""
+msgstr "WOOCOMMERCE"
 
 #: includes/class-taxocommerce-core-editor-ui.php:362
 msgid "Atributos del producto"
@@ -1372,7 +1372,7 @@ msgstr "Attributs du produit"
 #: includes/class-taxocommerce-core-editor-ui.php:363
 msgid ""
 "Atributos globales compartidos y atributos personalizados del artículo."
-msgstr ""
+msgstr "Attributs globaux partagés et attributs personnalisés propres au produit."
 
 #: includes/class-taxocommerce-core-editor-ui.php:365
 msgid "WooCommerce no ofrece la API de atributos en esta instalación."
@@ -1382,7 +1382,7 @@ msgstr "L’API des attributs WooCommerce n’est pas disponible sur cette insta
 msgid ""
 "Los atributos de esta variación se editan desde su producto variable "
 "principal para preservar las combinaciones."
-msgstr ""
+msgstr "Modifiez les attributs de cette variation depuis le produit variable parent pour conserver les combinaisons."
 
 #: includes/class-taxocommerce-core-editor-ui.php:383
 msgid "+ Atributo global"
@@ -1396,7 +1396,7 @@ msgstr "+ Attribut personnalisé"
 msgid ""
 "Los atributos usados para variaciones se muestran bloqueados. No se borran "
 "ni se alteran desde este editor."
-msgstr ""
+msgstr "Les attributs utilisés pour les variations sont verrouillés. Ils ne peuvent être ni supprimés ni modifiés dans cet éditeur."
 
 #: includes/class-taxocommerce-core-editor-ui.php:398
 msgid "USADO EN VARIACIONES"
@@ -1404,7 +1404,7 @@ msgstr "UTILISÉ DANS LES VARIATIONS"
 
 #: includes/class-taxocommerce-core-editor-ui.php:404
 msgid "Se conserva intacto para no afectar a las variaciones del producto."
-msgstr ""
+msgstr "Il reste inchangé pour ne pas affecter les variations du produit."
 
 #: includes/class-taxocommerce-core-editor-ui.php:431
 msgid "Nuevo atributo global"
@@ -2067,7 +2067,7 @@ msgstr ""
 msgid ""
 "¿Eliminar definitivamente este menú y todos sus elementos? Esta operación no"
 " se puede deshacer."
-msgstr ""
+msgstr "Supprimer définitivement ce menu et tous ses éléments ? Cette opération est irréversible."
 
 #: includes/class-taxocommerce-core-menu-editor.php:72
 msgid "Tipos de gestor de menús"
@@ -2085,7 +2085,7 @@ msgstr "Menus WordPress"
 msgid ""
 "Menús básicos de WordPress: páginas, entradas, categorías y enlaces "
 "personalizados. No requieren WooCommerce ni jerarquía SEO."
-msgstr ""
+msgstr "Menus WordPress classiques : pages, articles, catégories et liens personnalisés. WooCommerce et la hiérarchie SEO ne sont pas nécessaires."
 
 #: includes/class-taxocommerce-core-menu-editor.php:106
 msgid "La cabecera puede usar una navegación de bloques distinta."
@@ -2096,7 +2096,7 @@ msgid ""
 "Guardar este menú clásico no cambia necesariamente la navegación visible de "
 "la web. Comprueba qué bloque Navegación utiliza la cabecera en el Editor del"
 " sitio."
-msgstr ""
+msgstr "Enregistrer ce menu classique ne modifie pas nécessairement la navigation visible sur le site. Vérifiez le bloc Navigation utilisé par l'en-tête dans l'éditeur du site."
 
 #: includes/class-taxocommerce-core-menu-editor.php:109
 msgid "Abrir Editor del sitio"
@@ -2120,7 +2120,7 @@ msgstr "Ce menu n’est attribué à aucun emplacement classique du thème."
 msgid ""
 "Selecciona un menú de WordPress existente o crea uno nuevo para añadir y "
 "editar sus elementos."
-msgstr ""
+msgstr "Sélectionnez un menu WordPress existant ou créez-en un pour ajouter et modifier ses éléments."
 
 #: includes/class-taxocommerce-core-menu-editor.php:135
 msgid "Identificador del menú:"
@@ -2135,7 +2135,7 @@ msgid ""
 "Los cambios de texto, enlaces, jerarquía, orden o nombre se aplicarán al "
 "pulsar Guardar menú. Añadir o quitar un elemento se guarda al confirmar esa "
 "operación."
-msgstr ""
+msgstr "Les modifications du texte, des liens, de la hiérarchie, de l'ordre ou du nom s'appliquent avec Enregistrer le menu. L'ajout ou le retrait d'un élément est enregistré après confirmation."
 
 #: includes/class-taxocommerce-core-menu-editor.php:142
 msgid "Hay cambios pendientes de guardar."
@@ -2177,7 +2177,7 @@ msgstr "Créer un nouveau menu"
 msgid ""
 "La selección no modifica ni copia el menú. Los cambios guardados afectan al "
 "menú elegido; crear uno nuevo no reemplaza el menú activo del tema."
-msgstr ""
+msgstr "Sélectionner un menu ne le modifie ni ne le copie. Les modifications enregistrées affectent le menu choisi ; créer un autre menu ne remplace pas le menu actif du thème."
 
 #: includes/class-taxocommerce-core-menu-editor.php:248
 msgid "El menú seleccionado ya no existe."
@@ -2225,13 +2225,13 @@ msgstr "Supprimer le menu"
 msgid ""
 "Atención: está asignado a una ubicación del tema. Si lo eliminas, dejará de "
 "utilizarse allí."
-msgstr ""
+msgstr "Attention : ce menu est affecté à un emplacement du thème. Si vous le supprimez, il ne sera plus utilisé à cet endroit."
 
 #: includes/class-taxocommerce-core-menu-editor.php:299
 msgid ""
 "Confirmo que quiero eliminar definitivamente este menú de WordPress y sus "
 "elementos."
-msgstr ""
+msgstr "Je confirme vouloir supprimer définitivement ce menu WordPress et tous ses éléments."
 
 #: includes/class-taxocommerce-core-menu-editor.php:303
 #: includes/class-taxocommerce-core-menu-editor.php:307
@@ -2250,14 +2250,14 @@ msgstr ""
 msgid ""
 "Gestiona las páginas, entradas, categorías y enlaces de este menú nativo "
 "WordPress."
-msgstr ""
+msgstr "Gérez les pages, articles, catégories et liens de ce menu WordPress natif."
 
 #: includes/class-taxocommerce-core-menu-editor.php:324
 msgid ""
 "Puedes editar los elementos del menú cargado. Los elementos generados desde "
 "la jerarquía SEO se conservan protegidos; los manuales pueden modificarse o "
 "eliminarse."
-msgstr ""
+msgstr "Vous pouvez modifier les éléments du menu chargé. Ceux issus de la hiérarchie SEO restent protégés ; les éléments manuels peuvent être modifiés ou supprimés."
 
 #: includes/class-taxocommerce-core-menu-editor.php:325
 msgid "Añadir elementos al menú"
@@ -2285,7 +2285,7 @@ msgstr ""
 msgid ""
 "Este menú está vacío. Añade páginas, entradas, categorías o enlaces desde el"
 " panel izquierdo."
-msgstr ""
+msgstr "Ce menu est vide. Ajoutez des pages, articles, catégories ou liens depuis le panneau de gauche."
 
 #: includes/class-taxocommerce-core-menu-editor.php:335
 msgid ""
@@ -2376,7 +2376,7 @@ msgstr "Vérifiez le titre et la position de l’élément."
 
 #: includes/class-taxocommerce-core-menu-editor.php:497
 msgid "El superior debe pertenecer al mismo menú y no puede crear un ciclo."
-msgstr ""
+msgstr "L'élément parent doit appartenir au même menu et ne peut pas créer de boucle."
 
 #: includes/class-taxocommerce-core-menu-editor.php:519
 msgid "Introduce una URL válida."
@@ -2389,7 +2389,7 @@ msgstr "Utilisez l’onglet Menus WordPress pour enregistrer un menu natif."
 #: includes/class-taxocommerce-core-menu-editor.php:559
 msgid ""
 "El menú SEO gestionado no puede guardarse desde la pestaña de menús básicos."
-msgstr ""
+msgstr "Le menu SEO géré ne peut pas être enregistré depuis l'onglet des menus classiques."
 
 #: includes/class-taxocommerce-core-menu-editor.php:567
 msgid "Este nombre está reservado para los menús SEO de TaxoCommerce."
@@ -2406,7 +2406,7 @@ msgstr "Les éléments envoyés ne sont pas valides."
 #: includes/class-taxocommerce-core-menu-editor.php:585
 msgid ""
 "El menú ha cambiado desde que se abrió. Recarga la página antes de guardar."
-msgstr ""
+msgstr "Le menu a changé depuis son ouverture. Rechargez la page avant d'enregistrer."
 
 #: includes/class-taxocommerce-core-menu-editor.php:591
 msgid "Hay elementos ajenos al menú o no editables."
@@ -2465,7 +2465,7 @@ msgstr "Nouveau menu créé. Vous pouvez le modifier sans changer les menus exis
 msgid ""
 "Menú clásico guardado en WordPress. La cabecera de un tema de bloques puede "
 "usar otra navegación."
-msgstr ""
+msgstr "Menu classique enregistré dans WordPress. L'en-tête d'un thème à blocs peut utiliser une autre navigation."
 
 #: includes/class-taxocommerce-core-menu-editor.php:704
 msgid "Menú eliminado correctamente de WordPress."
@@ -2502,7 +2502,7 @@ msgid ""
 "Menú de WordPress cargado. Puedes modificar sus elementos manuales aquí. No "
 "se ha sustituido el menú gestionado del país ni se ha cambiado su ubicación "
 "en el tema."
-msgstr ""
+msgstr "Menu WordPress chargé. Vous pouvez modifier ses éléments manuellement. Le menu géré par pays et l'emplacement du thème restent inchangés."
 
 #: includes/class-taxocommerce-core-menu.php:231
 msgid "Identificador para llamar al menú desde una plantilla:"
@@ -2711,14 +2711,14 @@ msgstr ""
 msgid ""
 "Menús nativos: gestor WordPress estándar y sincronización SEO por país en "
 "pestañas separadas."
-msgstr ""
+msgstr "Menus natifs : gestionnaire standard de WordPress et synchronisation SEO par pays dans des onglets séparés."
 
 #: includes/class-taxocommerce-core-technical-guide.php:76
 msgid ""
 "Modo independiente de WooCommerce: entradas, páginas y categorías "
 "habituales, sin filtro de país ni product_cat. Requiere seleccionar un menú "
 "nativo explícito antes de escribir."
-msgstr ""
+msgstr "Fonctionne sans WooCommerce : articles, pages et catégories classiques, sans filtre par pays ni product_cat. Vous devez choisir explicitement un menu natif avant toute modification."
 
 #: includes/class-taxocommerce-core-technical-guide.php:77
 msgid ""
@@ -2726,7 +2726,7 @@ msgid ""
 "con formulario HTML asociado. Eliminación únicamente de menús básicos no "
 "protegidos y con confirmación. Ambas acciones usan el controlador admin_post"
 " de menús con permisos y nonce. La sincronización SEO permanece separada."
-msgstr ""
+msgstr "Les éléments d'un menu natif sont enregistrés explicitement par lots validés via un formulaire HTML. Seuls les menus classiques non protégés peuvent être supprimés, après confirmation. Les deux actions utilisent le contrôleur admin_post avec vérifications des droits et du nonce. La synchronisation SEO reste séparée."
 
 #: includes/class-taxocommerce-core-technical-guide.php:78
 msgid "Normalización y lectura del país de cada contenido."
@@ -3152,11 +3152,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core-user-guide.php:42
 msgid "User Manual"
-msgstr ""
+msgstr "Manuel utilisateur"
 
 #: includes/class-taxocommerce-core-user-guide.php:43
 msgid "Technical Manual"
-msgstr ""
+msgstr "Manuel technique"
 
 #: includes/class-taxocommerce-core-user-guide.php:49
 msgid "Índice del manual"
@@ -3313,7 +3313,7 @@ msgstr ""
 msgid ""
 "Gestor de menús incluye Menús SEO / WooCommerce y Menús WordPress, "
 "independientes entre sí."
-msgstr ""
+msgstr "Le gestionnaire contient les menus SEO/WooCommerce et les menus WordPress, indépendants les uns des autres."
 
 #: includes/class-taxocommerce-core-user-guide.php:103
 msgid "Menús WordPress (sin WooCommerce)"
@@ -3327,36 +3327,36 @@ msgstr "Dans Gestionnaire de menus, ouvrez l’onglet Menus WordPress."
 msgid ""
 "Carga un menú existente o crea uno nuevo; cargar no modifica los menús "
 "publicados."
-msgstr ""
+msgstr "Chargez un menu existant ou créez-en un ; le chargement ne modifie pas les menus publiés."
 
 #: includes/class-taxocommerce-core-user-guide.php:107
 msgid ""
 "Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y "
 "posición."
-msgstr ""
+msgstr "Ajoutez des pages, articles, catégories et liens, puis modifiez leur hiérarchie, leur texte et leur position."
 
 #: includes/class-taxocommerce-core-user-guide.php:108
 msgid ""
 "Pulsa Guardar menú para grabar juntos el nombre y los cambios de sus "
 "elementos. Hasta entonces son cambios sin guardar. Añadir o quitar un "
 "elemento sí se guarda al confirmar su operación."
-msgstr ""
+msgstr "Cliquez sur Enregistrer le menu pour sauvegarder ensemble le nom et les modifications des éléments. D'ici là, ces changements restent non enregistrés. L'ajout ou la suppression d'un élément est enregistré à confirmation."
 
 #: includes/class-taxocommerce-core-user-guide.php:109
 msgid ""
 "Para eliminar un menú básico, selecciona ese menú y usa Eliminar menú; exige"
 " marcar la casilla y confirmar. No se permite borrar los menús SEO de país."
-msgstr ""
+msgstr "Pour supprimer un menu classique, sélectionnez-le et choisissez Supprimer le menu ; cochez la case et confirmez. Les menus SEO par pays ne peuvent pas être supprimés."
 
 #: includes/class-taxocommerce-core-user-guide.php:110
 msgid ""
 "Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema."
-msgstr ""
+msgstr "Pour l'afficher sur le site, affectez-le explicitement à un emplacement du thème."
 
 #: includes/class-taxocommerce-core-user-guide.php:112
 msgid ""
 "La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO."
-msgstr ""
+msgstr "L'onglet des menus classiques ne nécessite pas WooCommerce et ne synchronise pas la hiérarchie SEO."
 
 #: includes/class-taxocommerce-core-user-guide.php:113
 msgid "Crear y publicar un menú"
@@ -3494,7 +3494,7 @@ msgstr ""
 msgid ""
 "Usa términos existentes del vocabulario canónico. Las etiquetas asignadas "
 "por procesos automáticos se muestran protegidas y no se sobrescriben aquí."
-msgstr ""
+msgstr "Utilisez les termes du vocabulaire canonique existants. Les étiquettes attribuées automatiquement sont protégées et ne peuvent pas être remplacées ici."
 
 #: includes/class-taxocommerce-core.php:152
 msgid "Open Core"
