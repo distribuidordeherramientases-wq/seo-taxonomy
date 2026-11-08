@@ -63,4 +63,15 @@ check( isset( $GLOBALS['scripts']['taxocommerce-templates-cookie-footer'] ), 'Sc
 check( strpos( $GLOBALS['scripts']['taxocommerce-templates-cookie-footer'][0], 'footer-cookie-preferences.js' ) !== false, 'JS correctly located' );
 check( strpos( file_get_contents( dirname( __DIR__ ) . '/assets/footer-cookie-preferences.js' ),
     "getElementById('tci-consent-reopen')" ) !== false, 'Uses existing Insights reopen control' );
+$router = file_get_contents( dirname( __DIR__ ) . '/includes/class-tct-pilot-router.php' );
+check( strpos( $router, 'template-cookie-policy-international.php' ) !== false, 'International policy page routed' );
+check( strpos( $router, 'template-corp_page.php' ) !== false, 'Spanish policy uses existing corporate shell' );
+check( strpos( $router, "_seo_pais_origen" ) !== false, 'Routing requires country metadata' );
+foreach ( array( 'footer.php', 'template-pilot-vevor.php', 'template-cluster-international.php' ) as $template ) {
+    $source = file_get_contents( dirname( __DIR__ ) . '/templates/' . $template );
+    check( strpos( $source, 'dht_template_render_cookie_footer_links' ) !== false, 'Cookie links in ' . $template );
+}
+$policy_template = file_get_contents( dirname( __DIR__ ) . '/templates/template-cookie-policy-international.php' );
+check( strpos( $policy_template, 'the_content();' ) !== false, 'International page displays imported legal content' );
+check( strpos( $policy_template, 'wp_footer();' ) !== false, 'Consent scripts run on international legal pages' );
 echo 'Templates cookie footer: five markets, publication rules and reopening PASS' . PHP_EOL;
