@@ -35,7 +35,7 @@ require_once __DIR__ . '/includes/class-auto-test.php';
  * Standalone entry point. No SEO_SYSTEM_* globals or legacy source files.
  */
 final class Plugin {
-    const VERSION = '0.3.8';
+    const VERSION = '0.3.9';
     const MENU_SLUG = 'taxocommerce-auditor';
 
     public static function boot() {

@@ -135,6 +135,23 @@ foreach ( array(
     $header = ob_get_clean();
     tc_test_assert( false !== strpos( $header, $expected ), 'Translated release label for ' . $locale );
 }
+// The history control responds to all five administrator language variants.
+$_GET['page'] = 'taxocommerce-auditor';
+foreach ( array(
+    'es_ES' => 'Historial de versiones y mejoras',
+    'en_US' => 'Version history and improvements',
+    'fr_FR' => 'Historique des versions et améliorations',
+    'de_DE' => 'Versionsverlauf und Verbesserungen',
+    'nl_NL' => 'Versiegeschiedenis en verbeteringen',
+) as $locale => $label ) {
+    $GLOBALS['tc_test_locale'] = $locale;
+    ob_start();
+    foreach ( $tc_test_actions['admin_notices'] as $callback ) {
+        $callback();
+    }
+    $markup = ob_get_clean();
+    tc_test_assert( false !== strpos( $markup, '<summary>' . esc_html( $label ) . '</summary>' ), 'History respects site locale: ' . $locale );
+}
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
