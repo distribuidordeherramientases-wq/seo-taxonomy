@@ -22,7 +22,7 @@ msgstr "Gestion des poids, dimensions et frais de livraison dans WooCommerce."
 #. Author of the plugin
 #: taxocommerce-logistica.php
 msgid "David Pérez"
-msgstr ""
+msgstr "David Pérez"
 
 #: includes/class-auto-test.php:526
 msgid "Sin permisos para Auto Test."
@@ -53,7 +53,7 @@ msgid ""
 "Chequeo no destructivo de tarifas, reglas, pesos, destinos y seguridad. No "
 "realiza envíos, cambia pedidos, recalcula carritos ni importa "
 "configuraciones. Solo guarda sus propios informes."
-msgstr ""
+msgstr "Contrôle non destructif des tarifs, règles, poids, destinations et de la sécurité. N'expédie rien, ne modifie aucune commande, ne recalcule pas les paniers et n'importe aucune configuration. Seuls ses propres rapports sont enregistrés."
 
 #: includes/class-auto-test.php:612
 msgid "Referencia ANTES"
@@ -90,7 +90,7 @@ msgid ""
 "Correcto = contrato o cálculo local comprobado. No verificado = necesita "
 "checkout o importación real en staging. Este chequeo no sustituye a probar "
 "pedidos, impuestos y transporte con diferentes direcciones."
-msgstr ""
+msgstr "Correct = contrat ou calcul local vérifié. Non vérifié = nécessite un vrai test de paiement ou d'importation en préproduction. Ce contrôle ne remplace pas les tests de commandes, taxes et transports avec diverses adresses."
 
 #: includes/class-user-guide.php:63
 msgid "1. Alcance y requisitos"
@@ -102,7 +102,7 @@ msgid ""
 "para WordPress 6.5+, PHP 7.4+ y WooCommerce. Mantiene su propio menú "
 "independiente, incluso con TaxoCommerce Core activo; Core puede mostrar un "
 "acceso adicional desde su catálogo de extensiones."
-msgstr ""
+msgstr "TaxoCommerce Logistics est une extension autonome de gestion du transport pour WordPress 6.5+, PHP 7.4+ et WooCommerce. Elle conserve son propre menu même lorsque TaxoCommerce Core est actif ; Core peut ajouter un accès dans son catalogue d'extensions."
 
 #: includes/class-user-guide.php:66
 msgid ""
@@ -110,7 +110,7 @@ msgid ""
 "logística de pedidos. El carrito, el checkout, los pedidos y la fiscalidad "
 "pertenecen a WooCommerce; las compras y relaciones con proveedores "
 "pertenecen a TaxoCommerce Suppliers."
-msgstr ""
+msgstr "Il gère uniquement le calcul des tarifs de livraison et l'audit logistique des commandes. Le panier, le paiement, les commandes et les taxes relèvent de WooCommerce ; les achats et les fournisseurs relèvent de TaxoCommerce Suppliers."
 
 #: includes/class-user-guide.php:70
 msgid "2. Arquitectura y registro"
@@ -127,7 +127,7 @@ msgid ""
 "guide.php. TaxoCommerce_Logistica_Transporte_Costes::init registra las "
 "acciones de configuración y los filtros WooCommerce. La documentación no "
 "llama al motor operativo."
-msgstr ""
+msgstr "taxocommerce-logistica.php enregistre le menu et l'intégration facultative avec Core, puis charge includes/seo-transporte.php, class-auto-test.php et class-user-guide.php. TaxoCommerce_Logistica_Transporte_Costes::init enregistre les actions de configuration et les filtres WooCommerce. La documentation n'appelle pas le moteur opérationnel."
 
 #: includes/class-user-guide.php:74
 msgid "Integraciones y hooks"
@@ -137,36 +137,36 @@ msgstr "Intégrations et hooks"
 msgid ""
 "admin_post_taxocommerce_logistica_save, _export e _import: acciones "
 "protegidas para configuración y copias JSON."
-msgstr ""
+msgstr "admin_post_taxocommerce_logistica_save, _export et _import : actions protégées pour les paramètres et les sauvegardes JSON."
 
 #: includes/class-user-guide.php:77
 msgid ""
 "wc_shipping_enabled: permite que WooCommerce calcule envíos si el gestor "
 "propio está activo."
-msgstr ""
+msgstr "wc_shipping_enabled : autorise WooCommerce à calculer la livraison si le gestionnaire personnalisé est actif."
 
 #: includes/class-user-guide.php:78
 msgid ""
 "woocommerce_shipping_methods: método interno seo_transporte_bridge, sin "
 "coste propio."
-msgstr ""
+msgstr "woocommerce_shipping_methods : méthode interne seo_transporte_bridge, sans tarif propre."
 
 #: includes/class-user-guide.php:79
 msgid ""
 "woocommerce_cart_shipping_packages: completa el destino utilizado por las "
 "tarifas."
-msgstr ""
+msgstr "woocommerce_cart_shipping_packages : complète la destination utilisée pour les tarifs."
 
 #: includes/class-user-guide.php:80
 msgid ""
 "woocommerce_package_rates: sustituye las tarifas por la primera regla válida"
 " cuando el gestor está activo."
-msgstr ""
+msgstr "woocommerce_package_rates : remplace les tarifs par la première règle valide lorsque le gestionnaire est actif."
 
 #: includes/class-user-guide.php:81
 msgid ""
 "seo_transporte_shipping_rate: filtro de extensión sobre la tarifa calculada."
-msgstr ""
+msgstr "seo_transporte_shipping_rate : filtre d'extension du tarif calculé."
 
 #: includes/class-user-guide.php:86
 msgid "3. Persistencia y configuración"
@@ -178,7 +178,7 @@ msgid ""
 "seo_transporte_costes_settings. Se reutiliza sin migrar a otra tabla, "
 "preservando las reglas existentes. No se crea una tabla de transporte "
 "adicional."
-msgstr ""
+msgstr "La configuration est enregistrée dans l'ancienne option seo_transporte_costes_settings. Elle est réutilisée sans migration vers une autre table, ce qui préserve les règles existantes. Aucune table de transport supplémentaire n'est créée."
 
 #: includes/class-user-guide.php:89
 msgid ""
@@ -186,14 +186,14 @@ msgid ""
 "shipping_taxable, require_known_metrics y rules. Cada regla conserva id, "
 "enabled, priority, name, zone, límites de subtotal, peso, dimensiones y "
 "volumen, fixed_cost, per_kg_cost, per_unit_cost y free_from."
-msgstr ""
+msgstr "Le schéma comprend enabled, only_spain, default_region, rate_label, shipping_taxable, require_known_metrics et rules. Chaque règle conserve id, enabled, priority, name, zone, les limites du sous-total, le poids, les dimensions, le volume, fixed_cost, per_kg_cost, per_unit_cost et free_from."
 
 #: includes/class-user-guide.php:90
 msgid ""
 "sanitize_settings_payload normaliza los campos, limita las zonas y ordena "
 "las reglas por prioridad. Si se intenta activar el gestor sin reglas "
 "activas, lo desactiva para evitar un checkout sin tarifas."
-msgstr ""
+msgstr "sanitize_settings_payload normalise les champs, limite les zones et trie les règles par priorité. Si l'activation est demandée sans règle active, le gestionnaire est désactivé afin d'éviter un paiement sans tarifs."
 
 #: includes/class-user-guide.php:94
 msgid "4. Clasificación de destinos"
@@ -205,7 +205,7 @@ msgid ""
 " la información recibida del checkout y los datos del cliente. "
 "classify_destination consulta SEO_Facturas_Tax::classify_location cuando "
 "está disponible o utiliza país, provincia y código postal."
-msgstr ""
+msgstr "resolve_destination complète la destination à partir du colis WooCommerce, des informations de paiement et des données client. classify_destination utilise SEO_Facturas_Tax::classify_location si disponible, sinon le pays, la province et le code postal."
 
 #: includes/class-user-guide.php:97
 msgid ""
@@ -213,14 +213,14 @@ msgid ""
 "foreign y all. Cuando faltan provincia y código postal se aplica "
 "provisionalmente default_region. La opción only_spain bloquea las tarifas a "
 "destinos extranjeros."
-msgstr ""
+msgstr "Zones acceptées : spain, peninsula, baleares, canarias, ceuta, melilla, foreign et all. Si la province et le code postal manquent, default_region s'applique provisoirement. only_spain bloque les tarifs pour l'étranger."
 
 #: includes/class-user-guide.php:98
 msgid ""
 "La clasificación puede depender del componente fiscal instalado. Validar los"
 " destinos efectivamente usados en el checkout; un autochequeo local no "
 "sustituye a la prueba con direcciones reales."
-msgstr ""
+msgstr "La classification peut dépendre du module fiscal installé. Vérifiez les destinations réellement utilisées au paiement ; l'autocontrôle local ne remplace pas un test avec de vraies adresses."
 
 #: includes/class-user-guide.php:102
 msgid "5. Métricas de paquetes y pedidos"
@@ -232,7 +232,7 @@ msgid ""
 " registra la mayor longitud, anchura y altura individuales y calcula la suma"
 " aproximada de volúmenes en dm³. Los datos WooCommerce se convierten a kg y "
 "cm."
-msgstr ""
+msgstr "package_metrics lit le sous-total contents_cost, additionne unités et poids, conserve les plus grandes longueur, largeur et hauteur individuelles et calcule une somme approximative des volumes en dm³. Les unités WooCommerce sont converties en kg et cm."
 
 #: includes/class-user-guide.php:105
 msgid ""
@@ -240,14 +240,14 @@ msgid ""
 "require_known_metrics activo no se permite utilizar una regla que requiera "
 "esos valores cuando faltan. No existe un optimizador de embalajes ni un "
 "cálculo de bultos físicos."
-msgstr ""
+msgstr "missing_weight et missing_dimensions signalent les mesures absentes. Si require_known_metrics est activé, une règle nécessitant ces valeurs ne peut pas s'appliquer lorsqu'elles manquent. Aucun optimiseur d'emballage ni calcul de colis physiques n'est inclus."
 
 #: includes/class-user-guide.php:106
 msgid ""
 "La auditoría operativa consulta hasta 100 pedidos recientes en estados "
 "pendiente, en espera o procesando. Muestra unidades, peso, productos sin "
 "peso, método, coste e impuestos registrados; no modifica los pedidos."
-msgstr ""
+msgstr "L'audit opérationnel consulte jusqu'à 100 commandes récentes en attente, en suspens ou en cours. Il présente les quantités, le poids, les produits sans poids, la méthode, les coûts et les taxes enregistrés ; aucune commande n'est modifiée."
 
 #: includes/class-user-guide.php:110
 msgid "6. Evaluación y precio de la tarifa"
@@ -264,7 +264,7 @@ msgid ""
 "numérica ascendente. La primera regla que cumpla zona, subtotal y límites de"
 " peso y dimensiones define la tarifa. Si no coincide ninguna, el método "
 "devuelve cero tarifas."
-msgstr ""
+msgstr "filter_package_rates lit les paramètres à chaque calcul, détermine la zone et les mesures, filtre les règles actives et les trie par priorité numérique croissante. La première règle correspondant à la zone, au sous-total, au poids et aux dimensions fixe le tarif. Si aucune règle ne correspond, aucun tarif n'est renvoyé."
 
 #: includes/class-user-guide.php:114
 msgid "Fórmula"
@@ -276,14 +276,14 @@ msgid ""
 "× coste/unidad). Si subtotal es mayor o igual que free_from, el coste es "
 "cero. El resultado se redondea según los decimales configurados en "
 "WooCommerce y nunca puede ser negativo."
-msgstr ""
+msgstr "calculate_rule_cost calcule coût fixe + (poids en kg × coût/kg) + (nombre d'articles × coût/unité). Si le sous-total atteint free_from, le tarif est nul. Le résultat est arrondi selon la précision configurée dans WooCommerce et ne peut pas être négatif."
 
 #: includes/class-user-guide.php:116
 msgid ""
 "Se devuelve una tarifa WC_Shipping_Rate con ID seo_transporte:{id_regla}, "
 "nombre de la regla o etiqueta general, coste e impuestos. El método interno "
 "seo_transporte_bridge no añade una tarifa propia adicional."
-msgstr ""
+msgstr "Renvoie un WC_Shipping_Rate portant l'ID seo_transporte:{id_regla}, le nom de la règle ou le libellé général, le coût et les taxes. La méthode interne seo_transporte_bridge n'ajoute aucun tarif supplémentaire."
 
 #: includes/class-user-guide.php:120
 msgid "7. Impuestos y checkout"
@@ -295,7 +295,7 @@ msgid ""
 "WC_Tax::calc_shipping_tax. Si shipping_taxable está desactivado, la tarifa "
 "es gratuita o no hay API fiscal disponible, no añade un impuesto calculado "
 "por el módulo."
-msgstr ""
+msgstr "rate_taxes délègue le calcul fiscal à WC_Tax::get_shipping_tax_rates et WC_Tax::calc_shipping_tax. Si shipping_taxable est désactivé, si la livraison est gratuite ou si l'API fiscale manque, aucune taxe calculée par le module n'est ajoutée."
 
 #: includes/class-user-guide.php:123
 msgid ""
@@ -303,7 +303,7 @@ msgid ""
 " originales de WooCommerce sin cambiarlas. Cuando está activo, puede "
 "devolver únicamente la tarifa propia o ninguna si el destino está bloqueado "
 "o no coincide una regla."
-msgstr ""
+msgstr "Lorsque le gestionnaire est désactivé, filter_package_rates renvoie les tarifs WooCommerce d'origine sans les modifier. Lorsqu'il est actif, il peut renvoyer uniquement son propre tarif ou aucun si la destination est bloquée ou si aucune règle ne correspond."
 
 #: includes/class-user-guide.php:127
 msgid "8. Copias de seguridad JSON"
@@ -315,14 +315,14 @@ msgid ""
 " configuración completa. El importador valida nonce y permisos, subida "
 "legítima, extensión .json, límite de 2 MiB, formato y versión del esquema "
 "antes de actualizar la opción."
-msgstr ""
+msgstr "L'export utilise le contrat seo-transporte-costes, version 1, et inclut toute la configuration. L'import contrôle le nonce et les droits, l'authenticité du téléversement, l'extension .json, la limite de 2 Mio, le format et la version du schéma avant la mise à jour."
 
 #: includes/class-user-guide.php:130
 msgid ""
 "Importar no combina reglas: REEMPLAZA la configuración y después invalida la"
 " caché de transporte. Para restaurar datos, exportar primero un respaldo y "
 "probar el JSON en staging."
-msgstr ""
+msgstr "L'importation ne fusionne pas les règles : elle REMPLACE la configuration, puis invalide le cache de livraison. Exportez d'abord une sauvegarde et testez la restauration JSON en préproduction."
 
 #: includes/class-user-guide.php:134
 msgid "9. Permisos, validación y seguridad"
@@ -334,7 +334,7 @@ msgid ""
 "está disponible o manage_options como alternativa. Los cambios y "
 "transferencias usan nonces de WordPress. Los datos numéricos, zonas y "
 "etiquetas se normalizan antes de persistirse."
-msgstr ""
+msgstr "Les écrans et actions exigent manage_woocommerce lorsque WooCommerce est disponible, sinon manage_options. Les modifications et transferts utilisent des nonces WordPress. Valeurs numériques, zones et libellés sont normalisés avant stockage."
 
 #: includes/class-user-guide.php:137
 msgid ""
@@ -342,7 +342,7 @@ msgid ""
 "datos de clientes. Su navegación se valida por una lista cerrada de "
 "apartados. Los informes Auto Test solo almacenan nombres y estados de "
 "pruebas, nunca direcciones de clientes."
-msgstr ""
+msgstr "L'écran User Guide est en lecture seule et n'interroge ni commandes, ni règles, ni données clients. Sa navigation utilise une liste fermée de sections. Les rapports Auto Test ne stockent que les noms et états des contrôles, jamais les adresses des clients."
 
 #: includes/class-user-guide.php:141
 msgid "10. Auto Test y pruebas de despliegue"
@@ -354,7 +354,7 @@ msgid ""
 "Compara un diagnóstico completo ANTES y otro DESPUÉS en el mismo sitio y con"
 " el mismo usuario. Detecta errores nuevos, corregidos, persistentes, pérdida"
 " de cobertura y nuevas pruebas."
-msgstr ""
+msgstr "TaxoCommerce_Logistica_Auto_Test exécute 35 contrôles dans huit groupes. Il compare un diagnostic complet AVANT à un diagnostic APRÈS sur le même site avec le même utilisateur. Il détecte les erreurs nouvelles, résolues et persistantes, la perte de couverture et les nouveaux contrôles."
 
 #: includes/class-user-guide.php:144
 msgid ""
@@ -362,7 +362,7 @@ msgid ""
 "costes. No realiza pedidos, importaciones JSON, peticiones externas ni "
 "escrituras sobre las reglas. Las pruebas que requieren checkout o "
 "modificación real aparecen como no verificadas."
-msgstr ""
+msgstr "Des données synthétiques valident régions, poids, volumes, conditions et coûts. Aucun achat n'est créé, aucun JSON importé, aucun appel externe réalisé et aucune règle modifiée. Les contrôles nécessitant un vrai paiement ou une modification sont non vérifiés."
 
 #: includes/class-user-guide.php:145
 msgid "Pruebas complementarias"
@@ -381,13 +381,13 @@ msgstr "Comparer les deux rapports Auto Test et vérifier l'absence de régressi
 msgid ""
 "Probar el checkout con Península, Baleares, Canarias y una dirección "
 "extranjera según las reglas existentes."
-msgstr ""
+msgstr "Testez le paiement pour la péninsule espagnole, les Baléares, les Canaries et une adresse étrangère selon les règles existantes."
 
 #: includes/class-user-guide.php:150
 msgid ""
 "Verificar portes gratuitos, impuestos, productos sin peso y restauración "
 "JSON solo en staging."
-msgstr ""
+msgstr "Vérifiez la livraison gratuite, les taxes, les produits sans poids et la restauration JSON uniquement en préproduction."
 
 #: includes/class-user-guide.php:155
 msgid "11. Diagnóstico y mantenimiento"
@@ -398,7 +398,7 @@ msgid ""
 "Si no aparecen tarifas, comprobar enabled, reglas activas, país y región "
 "detectados, prioridades, límites de peso y dimensiones, only_spain y caché "
 "de WooCommerce. No forzar una tarifa que no coincida con ninguna regla."
-msgstr ""
+msgstr "Si aucun tarif n'apparaît, vérifiez enabled, les règles actives, le pays et la région détectés, les priorités, les limites de poids et dimensions, only_spain et le cache WooCommerce. Ne forcez pas un tarif sans règle correspondante."
 
 #: includes/class-user-guide.php:158
 msgid ""
@@ -406,7 +406,7 @@ msgid ""
 "producto y repetir el cálculo de prueba. Si cambia la fiscalidad, revisar la"
 " configuración WooCommerce/Facturación; Logistics no fija tipos impositivos "
 "por su cuenta."
-msgstr ""
+msgstr "Si l'audit signale des produits sans poids, corrigez d'abord leurs fiches puis relancez le calcul test. Si la fiscalité change, vérifiez WooCommerce/Facturation ; Logistics ne définit pas lui-même les taux de taxe."
 
 #: includes/class-user-guide.php:159
 msgid ""
@@ -414,7 +414,7 @@ msgid ""
 "sustituir el plugin, comprobar quién consume la opción histórica y exportar "
 "JSON. No borrar configuración compartida ni cambiar el checkout sin una "
 "migración verificada."
-msgstr ""
+msgstr "La désactivation conserve les options enregistrées. Avant de supprimer ou remplacer l'extension, vérifiez qui utilise l'ancienne option et exportez le JSON. Ne supprimez aucune configuration partagée et ne modifiez pas le paiement sans migration vérifiée."
 
 #: includes/class-user-guide.php:167
 msgid "1. ¿Para qué sirve Logistics?"
@@ -425,14 +425,14 @@ msgid ""
 "TaxoCommerce Logistics permite configurar cuánto se cobra por enviar un "
 "pedido de WooCommerce. Puedes crear tarifas por destino, importe de compra, "
 "peso, medidas y número de unidades."
-msgstr ""
+msgstr "TaxoCommerce Logistics permet de configurer les frais de livraison des commandes WooCommerce. Vous pouvez créer des tarifs selon la destination, le montant, le poids, les dimensions et le nombre d'articles."
 
 #: includes/class-user-guide.php:170
 msgid ""
 "También permite consultar el peso y los costes de envío de los pedidos "
 "activos. No compra productos a proveedores ni gestiona aprovisionamiento: "
 "esa tarea corresponde a TaxoCommerce Suppliers."
-msgstr ""
+msgstr "Il permet aussi de consulter le poids et les frais de livraison des commandes actives. Il ne gère ni les achats auprès des fournisseurs ni l'approvisionnement : cela relève de TaxoCommerce Suppliers."
 
 #: includes/class-user-guide.php:174
 msgid "2. Primeros pasos"
@@ -442,30 +442,30 @@ msgstr "2. Premiers pas"
 msgid ""
 "Accede a TaxoCommerce Logistics desde su menú independiente de WordPress, "
 "también si Core está activo."
-msgstr ""
+msgstr "Ouvrez TaxoCommerce Logistics depuis son propre menu WordPress, même lorsque Core est actif."
 
 #: includes/class-user-guide.php:178
 msgid ""
 "En Shipping Rules, comprueba la configuración general y las reglas "
 "existentes antes de tocar nada."
-msgstr ""
+msgstr "Dans Shipping Rules, vérifiez les paramètres généraux et les règles existantes avant toute modification."
 
 #: includes/class-user-guide.php:179
 msgid ""
 "Exporta una copia JSON de la configuración actual antes de introducir "
 "cambios."
-msgstr ""
+msgstr "Exportez une sauvegarde JSON de la configuration actuelle avant toute modification."
 
 #: includes/class-user-guide.php:180
 msgid ""
 "Prueba una regla en staging con productos y direcciones representativas."
-msgstr ""
+msgstr "Testez une règle en préproduction avec des produits et des adresses de livraison représentatifs."
 
 #: includes/class-user-guide.php:181
 msgid ""
 "Activa el gestor solo cuando hayas definido al menos una regla activa y "
 "probado el checkout."
-msgstr ""
+msgstr "N'activez le gestionnaire qu'après avoir défini au moins une règle active et testé le paiement."
 
 #: includes/class-user-guide.php:186
 msgid "3. Configuración general"
@@ -475,42 +475,42 @@ msgstr "3. Paramètres généraux"
 msgid ""
 "Activar gestor propio: sustituye las tarifas de WooCommerce por la tarifa "
 "que coincida con una de tus reglas."
-msgstr ""
+msgstr "Activer le gestionnaire personnalisé : remplace les tarifs WooCommerce par celui correspondant à l'une de vos règles."
 
 #: includes/class-user-guide.php:190
 msgid ""
 "Solo España: no ofrecer tarifas a direcciones situadas fuera de España."
-msgstr ""
+msgstr "Espagne uniquement : ne pas proposer de livraison aux adresses hors d'Espagne."
 
 #: includes/class-user-guide.php:191
 msgid ""
 "Transporte sujeto a impuestos: utiliza los impuestos de envío configurados "
 "en WooCommerce."
-msgstr ""
+msgstr "Livraison soumise à la taxe : utilise les taxes d'expédition définies dans WooCommerce."
 
 #: includes/class-user-guide.php:192
 msgid ""
 "No usar reglas avanzadas si faltan peso o medidas: evita aplicar reglas que "
 "necesitan esos datos cuando las fichas de producto están incompletas."
-msgstr ""
+msgstr "Ne pas utiliser les règles avancées si le poids ou les dimensions manquent : évite les règles nécessitant des données produit absentes."
 
 #: includes/class-user-guide.php:193
 msgid ""
 "Nombre visible al cliente: etiqueta general de la tarifa, si la regla "
 "seleccionada no tiene nombre."
-msgstr ""
+msgstr "Nom affiché au client : libellé général du tarif si la règle choisie n'a pas de nom."
 
 #: includes/class-user-guide.php:194
 msgid ""
 "Zona provisional: región que se utilizará hasta que el comprador indique "
 "provincia o código postal."
-msgstr ""
+msgstr "Zone provisoire : région utilisée tant que le client n'a pas indiqué de province ou de code postal."
 
 #: includes/class-user-guide.php:196
 msgid ""
 "Si intentas activar el gestor sin reglas activas, se desactiva para proteger"
 " el checkout."
-msgstr ""
+msgstr "Si vous activez le gestionnaire sans règle active, il est désactivé afin de protéger le paiement."
 
 #: includes/class-user-guide.php:200
 msgid "4. Destinos de envío"
@@ -521,13 +521,13 @@ msgid ""
 "Cada regla puede aplicarse a Península, Baleares, Canarias, Ceuta, Melilla, "
 "toda España, destinos extranjeros o cualquier destino. Logistics utiliza los"
 " datos del comprador para identificar la zona."
-msgstr ""
+msgstr "Chaque règle peut s'appliquer à la péninsule, aux Baléares, aux Canaries, à Ceuta, à Melilla, à toute l'Espagne, aux destinations étrangères ou partout. Logistics identifie la zone à partir des données du client."
 
 #: includes/class-user-guide.php:203
 msgid ""
 "Comprueba especialmente Baleares, Canarias y los destinos internacionales: "
 "una regla para Península no sirve automáticamente para todas las zonas."
-msgstr ""
+msgstr "Vérifiez particulièrement les Baléares, les Canaries et les destinations internationales : une règle pour la péninsule ne s'applique pas automatiquement ailleurs."
 
 #: includes/class-user-guide.php:207
 msgid "5. Crear y ordenar reglas de transporte"
@@ -535,34 +535,34 @@ msgstr "5. Créer et classer les règles de livraison"
 
 #: includes/class-user-guide.php:210
 msgid "En Shipping Rules, pulsa Añadir regla."
-msgstr ""
+msgstr "Dans Shipping Rules, cliquez sur Ajouter une règle."
 
 #: includes/class-user-guide.php:211
 msgid "Activa la regla, asigna un nombre y selecciona la zona de envío."
-msgstr ""
+msgstr "Activez la règle, nommez-la et choisissez la zone de livraison."
 
 #: includes/class-user-guide.php:212
 msgid ""
 "Indica su prioridad: 10 se comprueba antes que 20. Se utiliza la PRIMERA "
 "regla activa que encaje."
-msgstr ""
+msgstr "Définissez sa priorité : 10 est évalué avant 20. La PREMIÈRE règle active correspondante est utilisée."
 
 #: includes/class-user-guide.php:213
 msgid ""
 "Establece, si procede, subtotal mínimo/máximo, peso mínimo/máximo, medidas "
 "máximas y volumen."
-msgstr ""
+msgstr "Si nécessaire, fixez les seuils de sous-total et de poids, les dimensions maximales et le volume."
 
 #: includes/class-user-guide.php:214
 msgid ""
 "Introduce coste fijo, coste por kg, coste por unidad o el umbral de portes "
 "gratuitos."
-msgstr ""
+msgstr "Indiquez un coût fixe, un coût au kg, un coût par article ou le seuil de livraison gratuite."
 
 #: includes/class-user-guide.php:215
 msgid ""
 "Pulsa Guardar transporte y comprueba el resultado en el checkout de staging."
-msgstr ""
+msgstr "Cliquez sur Enregistrer le transport et vérifiez le résultat au paiement sur la préproduction."
 
 #: includes/class-user-guide.php:217
 msgid "Cuidado con las prioridades"
@@ -572,7 +572,7 @@ msgstr "Attention aux priorités"
 msgid ""
 "Una regla general de prioridad 10 podría aplicarse antes que otra más "
 "específica de prioridad 20. Coloca primero las excepciones que deban ganar."
-msgstr ""
+msgstr "Une règle générale de priorité 10 peut s'appliquer avant une règle plus précise de priorité 20. Placez d'abord les exceptions prioritaires."
 
 #: includes/class-user-guide.php:222
 msgid "6. Cómo se calcula el coste"
@@ -583,7 +583,7 @@ msgid ""
 "La fórmula es: coste fijo + (peso total en kg × coste por kg) + (unidades × "
 "coste por unidad). Solo se aplica la primera regla válida. Si se alcanza el "
 "subtotal indicado en Gratis desde, el transporte cuesta cero."
-msgstr ""
+msgstr "Formule : coût fixe + (poids total en kg × coût par kg) + (quantité × coût par article). Seule la première règle valide s'applique. La livraison devient gratuite au seuil « Gratuit à partir de »."
 
 #: includes/class-user-guide.php:225
 msgid "Ejemplo de cálculo"
@@ -594,14 +594,14 @@ msgid ""
 "En una regla hipotética de 5 € fijos, 2 € por kg y 1 € por unidad, un pedido"
 " de 3 kg y 2 unidades costaría 13 € de transporte antes de los impuestos "
 "aplicables. Es un ejemplo, no la tarifa actual de tu tienda."
-msgstr ""
+msgstr "Par exemple, avec 5 € fixes, 2 € par kg et 1 € par article, une commande de 3 kg et 2 articles coûte 13 € de livraison avant taxes. Ce n'est qu'un exemple, pas le tarif réel de votre boutique."
 
 #: includes/class-user-guide.php:227
 msgid ""
 "Si ninguna regla coincide, no se ofrece una tarifa de este gestor. Por eso "
 "conviene definir cuidadosamente una regla general compatible con las zonas "
 "que atiendes."
-msgstr ""
+msgstr "Si aucune règle ne correspond, le gestionnaire ne propose aucun tarif. Prévoyez une règle générale adaptée aux destinations desservies."
 
 #: includes/class-user-guide.php:231
 msgid "7. Consultar el peso y coste de pedidos"
@@ -613,14 +613,14 @@ msgid ""
 "pedidos recientes pendientes, en espera o procesando. Muestra las unidades, "
 "peso total, artículos sin peso, método de envío, coste e impuestos "
 "registrados."
-msgstr ""
+msgstr "En haut de Shipping Rules, un audit liste jusqu'à 100 commandes récentes en attente, en suspens ou en cours. Il présente les quantités, le poids, les articles sans poids, la méthode, les coûts et les taxes enregistrés."
 
 #: includes/class-user-guide.php:234
 msgid ""
 "Si un pedido contiene productos sin peso, corrige la información logística "
 "de los productos. La tabla es de consulta: no recalcula ni modifica pedidos "
 "históricos."
-msgstr ""
+msgstr "Si une commande contient des produits sans poids, corrigez les données logistiques des produits. Le tableau est en lecture seule et ne recalcule ni ne modifie les anciennes commandes."
 
 #: includes/class-user-guide.php:238
 msgid "8. Exportar y restaurar reglas JSON"
@@ -635,7 +635,7 @@ msgid ""
 "En Importar / exportar reglas pulsa Exportar reglas (JSON). El archivo "
 "incluye opciones generales y todas las reglas de coste. Guárdalo antes de "
 "hacer cambios importantes."
-msgstr ""
+msgstr "Dans Importer / exporter les règles, cliquez sur Exporter les règles (JSON). Le fichier comprend les paramètres généraux et toutes les règles tarifaires. Conservez-le avant toute modification importante."
 
 #: includes/class-user-guide.php:242
 msgid "Importar copia"
@@ -647,7 +647,7 @@ msgid ""
 "ATENCIÓN: la importación REEMPLAZA TODA la configuración actual; no añade ni"
 " fusiona reglas. Haz antes una copia de seguridad y comprueba el resultado "
 "en staging."
-msgstr ""
+msgstr "Sélectionnez un fichier JSON compatible de 2 Mio au maximum et cliquez sur Importer les règles. ATTENTION : l'importation REMPLACE TOUTE la configuration ; elle n'ajoute ni ne fusionne les règles. Sauvegardez d'abord, puis vérifiez en préproduction."
 
 #: includes/class-user-guide.php:247
 msgid "9. Auto Test antes y después de actualizar"
@@ -655,32 +655,32 @@ msgstr "9. Auto Test avant et après mise à jour"
 
 #: includes/class-user-guide.php:250
 msgid "Antes de actualizar, abre Auto Test y pulsa Guardar estado ANTES."
-msgstr ""
+msgstr "Avant la mise à jour, ouvrez Auto Test et cliquez sur Enregistrer l'état AVANT."
 
 #: includes/class-user-guide.php:251
 msgid ""
 "Descarga el JSON de referencia y actualiza el plugin siguiendo el "
 "procedimiento autorizado."
-msgstr ""
+msgstr "Téléchargez le JSON de référence et mettez à jour l'extension selon la procédure autorisée."
 
 #: includes/class-user-guide.php:252
 msgid ""
 "Después, en el mismo sitio y con el mismo administrador, pulsa Comprobar "
 "DESPUÉS."
-msgstr ""
+msgstr "Ensuite, sur le même site avec le même administrateur, cliquez sur Vérifier APRÈS."
 
 #: includes/class-user-guide.php:253
 msgid ""
 "Revisa errores nuevos, resueltos y pruebas que han dejado de comprobarse; "
 "guarda el segundo JSON."
-msgstr ""
+msgstr "Examinez les nouvelles erreurs, les erreurs résolues et les contrôles qui ne s'exécutent plus ; conservez le second JSON."
 
 #: includes/class-user-guide.php:255
 msgid ""
 "Auto Test agrupa 35 comprobaciones, pero NO realiza pedidos ni cambia "
 "tarifas reales. Los casos que exigen pruebas de checkout o importación se "
 "muestran como no verificados."
-msgstr ""
+msgstr "Auto Test exécute 35 contrôles, mais NE crée PAS de commandes et ne modifie PAS les tarifs réels. Les cas nécessitant un paiement ou une importation sont indiqués comme non vérifiés."
 
 #: includes/class-user-guide.php:259
 msgid "10. Problemas frecuentes"
@@ -696,7 +696,7 @@ msgid ""
 "la zona, que los límites de peso e importe encajen y que la opción Solo "
 "España no esté excluyendo ese destino. Verifica también productos sin peso o"
 " dimensiones."
-msgstr ""
+msgstr "Vérifiez que le gestionnaire est actif, qu'une règle couvre la zone, que les limites de poids et de montant conviennent et que l'option Espagne uniquement n'exclut pas la destination. Vérifiez aussi les poids et dimensions manquants."
 
 #: includes/class-user-guide.php:263
 msgid "El precio de envío no es el esperado"
@@ -708,7 +708,7 @@ msgid ""
 "Comprueba el subtotal después de descuentos y antes de impuestos, el peso, "
 "las unidades, el umbral Gratis desde y la configuración fiscal de "
 "WooCommerce."
-msgstr ""
+msgstr "Vérifiez l'ordre des priorités et la présence éventuelle d'une règle générale en premier. Contrôlez le sous-total après remises et avant taxes, le poids, les quantités, le seuil Gratuit à partir de et les paramètres fiscaux WooCommerce."
 
 #: includes/class-user-guide.php:265
 msgid "¿Por qué no se actualiza un pedido anterior?"
@@ -719,7 +719,7 @@ msgid ""
 "Las reglas se aplican al cálculo del carrito y checkout; el panel de pedidos"
 " muestra los importes ya guardados. Modificar una regla no reescribe los "
 "pedidos antiguos."
-msgstr ""
+msgstr "Les règles s'appliquent au calcul du panier et du paiement ; l'écran des commandes affiche les montants enregistrés. Modifier une règle ne réécrit pas les anciennes commandes."
 
 #: includes/class-user-guide.php:298
 msgid "No tienes permiso para ver el manual."
@@ -733,7 +733,7 @@ msgstr "Manuel"
 msgid ""
 "User Manual and Technical Manual for TaxoCommerce Logistics, available "
 "within this plugin."
-msgstr ""
+msgstr "Manuel utilisateur et manuel technique de TaxoCommerce Logistics, disponibles dans cette extension."
 
 #: includes/class-user-guide.php:313
 msgid "Tipo de manual"
@@ -770,19 +770,19 @@ msgstr "Logistique"
 
 #: includes/seo-transporte.php:286
 msgid "No tienes permisos para exportar la configuración de transporte."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'exporter la configuration du transport."
 
 #: includes/seo-transporte.php:313
 msgid "No tienes permisos para importar la configuración de transporte."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'importer la configuration du transport."
 
 #: includes/seo-transporte.php:396
 msgid "No tienes permisos para modificar el transporte."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation de modifier les paramètres de transport."
 
 #: includes/seo-transporte.php:638
 msgid "No tienes permisos para acceder a esta página."
-msgstr ""
+msgstr "Vous n'avez pas l'autorisation d'accéder à cette page."
 
 #: includes/seo-transporte.php:646
 msgid "Logistics — Shipping Weight & Costs"
