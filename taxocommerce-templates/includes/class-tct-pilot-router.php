@@ -96,6 +96,27 @@ final class TCT_Pilot_Router {
         if (!is_tax('product_cat') && !is_singular('product') && !is_singular('page')) {
             return '';
         }
+        // Legal pages are ordinary WordPress pages. Route only the five known,
+        // published, country-tagged policies to their matching page shells.
+        if ( is_singular( 'page' ) ) {
+            $page_id = absint( get_queried_object_id() );
+            $market_tag = strtoupper( trim( (string) get_post_meta( $page_id, '_seo_pais_origen', true ) ) );
+            $cookie_helper = TCT_Router::path( 'template-cookie-footer.php' );
+            if ( $cookie_helper ) {
+                require_once $cookie_helper;
+                $markets = dht_template_cookie_footer_markets();
+                if ( isset( $markets[ $market_tag ] )
+                    && (string) get_post_field( 'post_name', $page_id ) === $markets[ $market_tag ]['slug']
+                    && 'publish' === get_post_status( $page_id ) ) {
+                    if ( 'ES' === $market_tag ) {
+                        return TCT_Router::path( 'template-corp_page.php' );
+                    }
+                    $GLOBALS['dht_cookie_policy_market'] = $market_tag;
+                    return TCT_Router::path( 'template-cookie-policy-international.php' );
+                }
+            }
+        }
+
         $market = self::market_for_request();
         if (!in_array($market,array('US','DE','NL','FR'),true)) {
             return '';
