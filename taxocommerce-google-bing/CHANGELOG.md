@@ -1,3 +1,7 @@
+## [1.1.29] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
+
 ## [1.1.28] — 2026-11-08 — Limpieza de opciones de consentimiento al desinstalar (#2395)
 
 - La desinstalación elimina la opción `taxocommerce_insights_consent_settings` (texto legal editable y configuración) del sitio, también en cada sitio de WordPress Multisite.
