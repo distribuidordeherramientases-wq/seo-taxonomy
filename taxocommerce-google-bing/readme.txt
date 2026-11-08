@@ -54,6 +54,10 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
+= 1.1.29 =
+* Escaped plugin-owned consent ledger table identifiers (compatible with WordPress 5.8), prepared all filter values, sanitized consent form inputs and retained uncached legal records. Simplified the streamed CSV response without changing recorded decisions or the schema.
+
+
 = 1.1.28 =
 * Remove plugin-owned editable consent settings and legal text on actual uninstall for each site in multisite, while retaining an independent immutable consent evidence ledger for legal accountability. No removal on deactivation.
 

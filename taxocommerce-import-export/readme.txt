@@ -51,6 +51,11 @@ The package transports original image files plus title, ALT, caption, descriptio
 
 == Changelog ==
 
+= 0.4.20 =
+* Rebuild ES/EN/FR/DE/NL MO catalogs excluding empty translations, restoring readable export type, filters and action buttons. Preserve real translations and Pages CSV export behavior.
+* Add CI check for non-empty MO entries and Pages selector. No catalog data or WordPress content is changed.
+
+
 = 0.4.19 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
 

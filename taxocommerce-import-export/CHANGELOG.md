@@ -1,6 +1,11 @@
 ## [0.4.20] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
+## [0.4.20] — 2026-11-08 — Corregir interfaz de exportación vacía por catálogos MO incompletos (#2404)
+
+- Regenerados cinco MO válidos excluyendo las traducciones vacías que WordPress mostraba como botones y selectores sin texto.
+- WordPress recupera el texto fuente cuando no hay traducción; se mantienen las traducciones existentes y el selector de Páginas para descargar sus contenidos en CSV.
+- Test de regresión incorporado al workflow de STAGING. Los PO incompletos se conservan para el trabajo de traducción independiente; no se alteran páginas, productos ni pedidos.
 
 ## [0.4.19] — 2026-11-08 — Historial plegable en cabecera (#2382)
 

@@ -1,6 +1,12 @@
 ## [0.2.11] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
+## [0.2.11] — 2026-11-08 — Traducciones de compras a proveedores en Logistics (#2062)
+
+- Incorporadas al POT y a los PO/MO de ES/EN/FR/DE/NL las 23 cadenas de la pestaña Supplier purchases añadida por #2380, que no figuraban en los catálogos de la versión 0.2.10.
+- Cada catálogo tiene 262 mensajes traducibles y cabecera gettext; revisión de 0 vacíos, 0 claves ausentes y 0 discrepancias printf.
+- Prueba CLI ampliada para comprobar traducciones compiladas de la pestaña. No se modifican el código de compras, las reglas de envío, los pedidos, los datos ni los parámetros de WooCommerce. Integración con Suppliers opcional.
+- Versión 0.2.11 y `readme.txt` actualizados, conservando `changelog.txt` y el historial anterior. Pendiente validación real por idioma en STAGING y Focazul y auditoría de otras cadenas fuera de gettext.
 
 ## [0.2.10] — 2026-11-08 — Internacionalización completa de formularios y controles Logistics (#2062)
 

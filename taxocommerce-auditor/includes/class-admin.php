@@ -157,6 +157,23 @@ final class Admin {
         }
         echo '</div>';
 
+        // Each audit scope has its own persisted workload setting. The form
+        // neither resets the active run nor changes other scopes.
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="taxocommerce-auditor-workload">';
+        echo '<input type="hidden" name="action" value="taxocommerce_auditor_action">';
+        echo '<input type="hidden" name="scope" value="' . esc_attr( $scope ) . '">';
+        echo '<input type="hidden" name="task" value="speed">';
+        wp_nonce_field( 'taxocommerce_auditor_action_' . $scope );
+        echo '<label for="taxocommerce-auditor-speed"><strong>' . esc_html__( 'Velocidad de auditoría', 'taxocommerce-auditor' ) . '</strong></label> ';
+        echo '<select id="taxocommerce-auditor-speed" name="speed">';
+        for ( $speed = 1; $speed <= 5; $speed++ ) {
+            echo '<option value="' . esc_attr( (string) $speed ) . '" ' . selected( Workload::speed( $scope ), $speed, false ) . '>'
+                . esc_html( (string) $speed . ' · ' . Workload::label( $speed ) ) . '</option>';
+        }
+        echo '</select> <button type="submit" class="button">' . esc_html__( 'Guardar velocidad', 'taxocommerce-auditor' ) . '</button>';
+        echo '<p class="description">' . esc_html__( 'Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor.', 'taxocommerce-auditor' ) . '</p>';
+        echo '</form>';
+
         echo '<div class="taxocommerce-auditor-run-modes">';
         echo '<div class="taxocommerce-auditor-full">' . '<p>' . '<strong>' . esc_html__( 'Auditoría completa', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( '· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.', 'taxocommerce-auditor' ) . '</p>';
         self::action_form( $scope, 'start_full', $report ? __( 'Repetir auditoría completa', 'taxocommerce-auditor' ) : __( 'Auditar todo', 'taxocommerce-auditor' ), true );
@@ -641,7 +658,14 @@ final class Admin {
             wp_die( esc_html__( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
         }
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
-        if ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
+        if ( 'speed' === $task ) {
+            $raw_speed = isset( $_POST['speed'] ) && is_scalar( $_POST['speed'] )
+                ? wp_unslash( (string) $_POST['speed'] ) : '';
+            if ( ! Workload::set_speed( $scope, $raw_speed ) ) {
+                wp_die( esc_html__( 'Velocidad no válida.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
+            }
+            Runner::reschedule( $scope );
+        } elseif ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
             $filters = Runner::sanitize_filters( $scope, array(
                 'mode'        => 'start_full' === $task ? 'full' : 'filtered',
                 'search'      => isset( $_POST['search'] ) && is_string( $_POST['search'] )

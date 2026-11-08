@@ -3,6 +3,13 @@
 - Autotest mantiene sus pruebas funcionales y su JSON; incorpora una subpestana Code Check propia e independiente.
 - PHP, WordPress y seguridad con lotes, 5 limites de CPU, detener/reanudar y exportacion JSON privada. PCP no obligatorio.
 - El analizador procede de una plantilla comun vendorizada y solo lee archivos del propio plugin.
+## [0.3.10] — 2026-11-08 — Cinco velocidades de auditoría por ámbito (#2405)
+
+- Control de carga propio e independiente en productos, categorías, entradas, páginas y FAQ, con niveles 1–5 por pestaña. No necesita Core, Images ni otros plugins.
+- El control ajusta los elementos por lote (5/10/20/30/40), separación WP-Cron (90/60/35/20/12 segundos) y presupuesto máximo para análisis por lote (2/3/5/8/12 segundos); no pretende medir ni reservar un porcentaje de la CPU del alojamiento.
+- Configuración protegida con manage_options y nonce, sin reiniciar cursor, muestras o fichero JSONL. Se conserva la reanudación, el modo completo y filtrado y el paso manual.
+- Cursor de categorías avanza únicamente por elementos procesados cuando un lote se corta por tiempo; el fin de cola se calcula con el límite vigente al abrir la consulta, evitando falsos finales al cambiar la velocidad.
+- Contratos Autocheck y prueba de regresión ampliados, sin tareas programadas durante Autocheck.
 
 ## [0.3.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
 

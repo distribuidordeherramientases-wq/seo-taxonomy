@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Auditor 0.3.6\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.10\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2518,3 +2518,35 @@ msgid ""
 msgstr ""
 "There is already an audit of this block being processed. Wait for the batch "
 "to finish before restarting it."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Suave"
+msgstr "Gentle"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Baja"
+msgstr "Low"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Normal"
+msgstr "Normal"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Máxima"
+msgstr "Maximum"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad de auditoría"
+msgstr "Audit speed"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Guardar velocidad"
+msgstr "Save speed"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad no válida."
+msgstr "Invalid speed."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor."
+msgstr "Controls the batch size and frequency for this scope (full, filtered and manual audits). Changes do not reset progress. This is not a percentage of server CPU usage."

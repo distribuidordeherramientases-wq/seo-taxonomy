@@ -190,6 +190,8 @@ jobs:
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-exporter.php
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-batch.php
           php -l taxocommerce-import-export/includes/class-taxocommerce-import-export-auto-test.php
+          php -l taxocommerce-import-export/tests/i18n-empty-mo-smoke.php
+          php taxocommerce-import-export/tests/i18n-empty-mo-smoke.php
           php taxocommerce-import-export/tests/native-category-csv-smoke.php
           php taxocommerce-import-export/tests/country-csv-smoke.php
           php taxocommerce-import-export/tests/batch-queue-smoke.php
