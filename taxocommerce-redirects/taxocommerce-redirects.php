@@ -31,7 +31,7 @@ require_once __DIR__ . '/includes/class-user-guide.php';
 require_once __DIR__ . '/includes/class-assisted-delete.php';
 
 final class Plugin {
-    const VERSION = '0.1.11';
+    const VERSION = '0.1.14';
     const SLUG = 'taxocommerce-redirects';
     const CONFIRM_SLUG = 'taxocommerce-redirects-confirm';
 
