@@ -506,7 +506,7 @@ msgid ""
 ". Ingeniero prueba primero SerpApi y, cuando la cuota real está agotada o la"
 " conexión falla, continúa automáticamente con ScraperAPI. Las dos API keys "
 "se gestionan en"
-msgstr ""
+msgstr ". Ingeniero interroge d’abord SerpApi puis, si le quota réel est épuisé ou si la connexion échoue, bascule automatiquement vers ScraperAPI. Les deux clés API sont gérées dans"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid "Herramientas → Conexiones con proveedores"
@@ -523,7 +523,7 @@ msgstr "informatif"
 #: includes/ingeniero/class-seo-ingeniero-admin.php:488
 msgid ""
 "y ya no bloquea la investigación ni impide el fallback entre proveedores."
-msgstr ""
+msgstr "et ne bloque plus la recherche ni le basculement vers un autre fournisseur."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:507
 msgid "Capas de conocimiento activas"
@@ -545,7 +545,7 @@ msgstr "L2 · Pratique :"
 msgid ""
 "foros, Reddit, comunidades, dudas, problemas, comparaciones y casos de uso. "
 "Sus señales no se convierten automáticamente en hechos técnicos."
-msgstr ""
+msgstr "forums, Reddit, communautés, questions, problèmes, comparaisons et cas d’usage. Ces indications ne deviennent pas automatiquement des faits techniques."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:510
 msgid "L3 · Actualidad:"
@@ -556,7 +556,7 @@ msgid ""
 "noticias, lanzamientos, nuevas gamas, cambios tecnológicos, ferias y "
 "actualizaciones de fabricante. Se conserva fecha y fuente para revisar "
 "vigencia."
-msgstr ""
+msgstr "actualités, lancements, nouvelles gammes, évolutions technologiques, salons et mises à jour des fabricants. La date et la source sont conservées pour vérifier leur actualité."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:546
 msgid "Editorial por temas"
@@ -564,7 +564,7 @@ msgstr "Éditorial par thèmes"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:547
 msgid "Ingeniero agrupa la investigación L1/L2/L3 por"
-msgstr ""
+msgstr "Ingeniero regroupe les recherches L1/L2/L3 par"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:547
 msgid "tema editorial"
@@ -574,7 +574,7 @@ msgstr "sujet éditorial"
 msgid ""
 ". Una categoría puede producir cero, una o varias propuestas cuando exista "
 "masa suficiente y no haya contenido equivalente."
-msgstr ""
+msgstr ". Une catégorie peut produire zéro, une ou plusieurs propositions si les éléments recueillis sont suffisants et qu’aucun contenu équivalent n’existe."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:549
 msgid "Regla 0.5.0:"
@@ -585,7 +585,7 @@ msgid ""
 "la unidad editorial es el tema, no la categoría. Los temas técnicos y "
 "prácticos relacionados pueden fusionarse en un dossier mixto para evitar "
 "posts duplicados."
-msgstr ""
+msgstr "l’unité éditoriale est le sujet, pas la catégorie. Les sujets techniques et pratiques liés peuvent être fusionnés en un dossier mixte afin d’éviter les articles en double."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:581
 msgid "Descargar JSON"
@@ -642,7 +642,7 @@ msgid ""
 "Se muestran todos los knowledge activos incluidos en el dossier. La pregunta"
 " es una formulación editorial del tipo de conocimiento; la respuesta es la "
 "síntesis técnica almacenada por Ingeniero."
-msgstr ""
+msgstr "Tous les éléments de connaissance actifs du dossier sont affichés. La question est une formulation éditoriale du type de connaissance ; la réponse est la synthèse technique enregistrée par Ingeniero."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:708
 msgid "No hay preguntas-respuestas técnicas en este dossier."
@@ -702,7 +702,7 @@ msgstr "Liens internes suggérés"
 msgid ""
 "Referencias propias para contexto editorial; no convierten la pieza técnica "
 "en publicidad."
-msgstr ""
+msgstr "Références internes servant de contexte éditorial ; elles ne transforment pas l’article technique en publicité."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:737
 msgid "Categorías:"
@@ -729,7 +729,7 @@ msgid ""
 "Comprobaciones deterministas de agrupación, hash, cobertura, aprobación "
 "humana, unicidad y rol público. No crean posts ni llaman a servicios "
 "externos."
-msgstr ""
+msgstr "Contrôles déterministes du regroupement, des empreintes, de la couverture, de l’approbation humaine, de l’unicité et du rôle public. Ils ne créent aucun article et n’appellent aucun service externe."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:817
 msgid "No está disponible la batería de pruebas."
@@ -792,7 +792,7 @@ msgstr "Aucune catégorie de produits."
 msgid ""
 "Filtra la evidencia por capa para distinguir datos técnicos, señales "
 "prácticas y actualidad antes de decidir su uso editorial."
-msgstr ""
+msgstr "Filtrez les preuves par niveau afin de distinguer données techniques, retours pratiques et actualités avant de décider de leur utilisation éditoriale."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:981
 msgid "Conocimiento consolidado"
@@ -856,7 +856,7 @@ msgid ""
 "Formato canónico: JSON. CSV sirve para trabajo manual o investigación "
 "externa por filas. La importación no publica contenido ni modifica el índice"
 " comercial de Dependiente."
-msgstr ""
+msgstr "Format de référence : JSON. Le CSV sert au travail manuel ou à la recherche externe par ligne. L’importation ne publie aucun contenu et ne modifie pas l’index commercial de Dependiente."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:87
 msgid "Archivo"
@@ -882,13 +882,13 @@ msgstr "Mettre à jour l'existant et soumettre à révision"
 msgid ""
 "El modo seguro es “Añadir solo”. Nunca activa automáticamente conocimiento "
 "importado."
-msgstr ""
+msgstr "Le mode sûr est « Ajouter uniquement ». Les connaissances importées ne sont jamais activées automatiquement."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:97
 msgid ""
 "Exigir que cada fila/objeto pueda resolverse a una categoría WooCommerce "
 "existente"
-msgstr ""
+msgstr "Exiger que chaque ligne ou objet corresponde à une catégorie WooCommerce existante"
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:98
 msgid "Se intenta resolver por term_id y, si no coincide, por slug y nombre."
@@ -903,7 +903,7 @@ msgid ""
 "Una fila representa una relación conocimiento ↔ fuente. Para aportar varias "
 "fuentes al mismo conocimiento, repite term_id + lesson + knowledge_type con "
 "otra source_url."
-msgstr ""
+msgstr "Une ligne représente une relation connaissance ↔ source. Pour associer plusieurs sources à la même connaissance, répétez term_id + lesson + knowledge_type avec une autre source_url."
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:400
 msgid "Ingeniero · novedades técnicas"
@@ -921,7 +921,7 @@ msgstr "Marquer les nouveautés comme examinées"
 msgid ""
 "Este bloque ya no está activo en la fuente. El contenido del post no se "
 "modifica automáticamente."
-msgstr ""
+msgstr "Ce bloc n’est plus actif dans la source. Le contenu de l’article n’est pas modifié automatiquement."
 
 #: includes/ingeniero/class-seo-ingeniero-posts.php:456
 msgid "No hay novedades técnicas pendientes."
@@ -935,7 +935,7 @@ msgstr "Analyser à nouveau les nouveautés"
 msgid ""
 "Incorporar sólo modifica el editor abierto; guarda el post únicamente cuando"
 " la Editora termine la revisión."
-msgstr ""
+msgstr "Incorporer ne modifie que l’éditeur actuellement ouvert ; l’article n’est enregistré qu’une fois la révision terminée par la personne chargée de l’édition."
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:127
 msgid "Radar externo · novedades, tendencias y nuevos ámbitos"
@@ -947,20 +947,20 @@ msgid ""
 "familias del catálogo. El hallazgo es una pista de investigación, nunca un "
 "hecho técnico verificado ni contenido listo para publicar. Solucionador no "
 "consulta internet."
-msgstr ""
+msgstr "Ingeniero consulte les actualités externes liées aux demandes d’Analista et aux familles du catalogue. Une découverte est une piste de recherche, jamais un fait technique vérifié ni un contenu prêt à publier. Solucionador ne consulte pas Internet."
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:133
 msgid ""
 "Noticias, ideas de posts, posibles landings y categorías nuevas quedan "
 "separadas como recomendaciones. Solo los editores decidirán qué desarrollar;"
 " no se crean objetos WordPress automáticamente."
-msgstr ""
+msgstr "Actualités, idées d’articles, pages de destination potentielles et nouvelles catégories restent des recommandations distinctes. Seuls les éditeurs décident quoi développer ; aucun objet WordPress n’est créé automatiquement."
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:135
 msgid ""
 "Sin hallazgos todavía. Ejecuta una exploración cuando haya crédito de "
 "proveedores."
-msgstr ""
+msgstr "Aucune découverte pour le moment. Lancez une exploration lorsque les crédits des fournisseurs sont disponibles."
 
 #: includes/ingeniero/class-seo-ingeniero-radar.php:143
 msgid "Destino editorial"
@@ -979,7 +979,7 @@ msgstr "Non autorisé."
 msgid ""
 "Operación Merchant guardada. Revisa los recuentos y el estado de "
 "sincronización."
-msgstr ""
+msgstr "Opération Merchant enregistrée. Vérifiez les décomptes et l’état de synchronisation."
 
 #: includes/ojeador/class-ojeador-merchant.php:311
 msgid "Merchant primero · auditoría sin SerpApi/ScraperAPI"
@@ -990,7 +990,7 @@ msgid ""
 "Los benchmarks son referencias agregadas de Google, NO precios de comercios "
 "individuales. Los resultados antiguos de Shopping siguen disponibles como "
 "fotografía histórica y nunca se sobrescriben con benchmarks."
-msgstr ""
+msgstr "Les benchmarks sont des références agrégées de Google, PAS les prix de marchands individuels. Les anciens résultats Shopping restent accessibles comme instantané historique et ne sont jamais remplacés par des benchmarks."
 
 #: includes/ojeador/class-ojeador-merchant.php:317
 msgid "Fuente de mercado"
@@ -1002,7 +1002,7 @@ msgid ""
 "Trends/Search; no se borran resultados. La opción tradicional exige una "
 "elección explícita. Ingeniero y otros servicios utilizan sus propias "
 "políticas de API."
-msgstr ""
+msgstr "Par défaut, les nouvelles analyses Shopping d’Ojeador et son radar Trends/Search sont bloqués ; les résultats existants sont conservés. L’option traditionnelle nécessite un choix explicite. Ingeniero et les autres services appliquent leurs propres politiques d’API."
 
 #: includes/ojeador/class-ojeador-merchant.php:322
 msgid ""
@@ -1010,7 +1010,7 @@ msgid ""
 "autorizada como usuario de Merchant Center. Merchant Reports API debe estar "
 "habilitada y Market Insights disponible para la cuenta. No se envían claves "
 "a SerpApi."
-msgstr ""
+msgstr "Nécessite un compte de service Google configuré dans l’extension et autorisé comme utilisateur Merchant Center. L’API Merchant Reports doit être activée et Market Insights disponible pour le compte. Aucune clé n’est envoyée à SerpApi."
 
 #: includes/ojeador/class-ojeador-merchant.php:331
 msgid "Reiniciar lectura desde primera página"
@@ -1025,13 +1025,13 @@ msgid ""
 "Exportación reducida de los productos estrella de PRO: no contiene las "
 "27.075 ofertas individuales. También se pueden usar datos locales si no se "
 "importa."
-msgstr ""
+msgstr "Export réduit des produits phares de PRO : il ne contient pas les 27 075 offres individuelles. Des données locales peuvent également être utilisées en l’absence d’importation."
 
 #: includes/ojeador/class-ojeador-merchant.php:342
 msgid ""
 "Sin benchmarks reales Merchant no es posible medir ahorro ni diferencias. "
 "Las métricas anteriores no son equivalentes estadísticamente."
-msgstr ""
+msgstr "Sans benchmarks Merchant réels, il est impossible de mesurer les économies ou les écarts. Les métriques précédentes ne sont pas statistiquement équivalentes."
 
 #: includes/ojeador/class-ojeador-merchant.php:343
 msgid "Producto"
@@ -1061,7 +1061,7 @@ msgstr "Produits populaires hors inventaire"
 msgid ""
 "Son candidatos de Merchant, no compras ni nuevas categorías autorizadas. No "
 "equivalen a un catálogo completo de precios de competidores."
-msgstr ""
+msgstr "Ce sont des candidats Merchant, pas des achats ni de nouvelles catégories approuvées. Ils ne constituent pas un catalogue complet des prix des concurrents."
 
 #: includes/ojeador/class-ojeador-merchant.php:355
 msgid "Producto / marca"
@@ -1091,7 +1091,7 @@ msgstr "Extracteurs"
 msgid ""
 "SerpApi/ScraperAPI connections, market price intelligence with Ojeador, and "
 "technical research with Ingeniero."
-msgstr ""
+msgstr "Connexions SerpApi/ScraperAPI, analyse des prix du marché avec Ojeador et recherche technique avec Ingeniero."
 
 #: taxocommerce-scrappers.php:129
 msgid "You do not have permission to manage TaxoCommerce Scrappers."
@@ -1101,7 +1101,7 @@ msgstr "Vous n’avez pas l’autorisation de gérer TaxoCommerce Scrappers."
 msgid ""
 "External research layer. Ojeador and Ingeniero reuse the proven legacy "
 "engines while SerpApi and ScraperAPI are configured once for both services."
-msgstr ""
+msgstr "Module de recherche externe. Ojeador et Ingeniero réutilisent les moteurs historiques éprouvés, tandis que SerpApi et ScraperAPI sont configurés une seule fois pour les deux services."
 
 #: taxocommerce-scrappers.php:139
 msgid "Connections"
