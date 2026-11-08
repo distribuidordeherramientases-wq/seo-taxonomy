@@ -248,6 +248,7 @@ function taxocommerce_distribution_autocheck_run() {
 }
 
 function taxocommerce_distribution_render_autocheck() {
+    if ( \TaxoCommerce_Distribution_Autotest_Code::render_subtabs() ) { return; }
     taxocommerce_distribution_guard();
     ?>
     <section class="tcdist-autocheck" style="max-width:1100px;">
