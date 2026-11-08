@@ -60,3 +60,10 @@ foreach ( $patterns as $pattern ) {
         delete_option( $name );
     }
 }
+
+// Remove the consent ledger and legal text versions only on actual uninstall.
+$consent_table = $wpdb->prefix . 'taxocommerce_consent_events';
+$wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $consent_table ) . '`' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.NotPrepared
+delete_option( 'taxocommerce_insights_consent_text' );
+delete_option( 'taxocommerce_insights_consent_legal_versions' );
+delete_option( 'taxocommerce_insights_consent_schema' );
