@@ -11,19 +11,19 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-core.php
 msgid "TaxoCommerce Core - Catalog & Content Management for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Core - Catalog & Content Management for WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-core.php
 msgid ""
 "Modular core for catalog hierarchy, unified content editing, logs, and "
 "extensions in WooCommerce stores."
-msgstr ""
+msgstr "Modular core for catalog hierarchy, unified content editing, logs, and extensions in WooCommerce stores."
 
 #. Author of the plugin
 #: taxocommerce-core.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:321
 msgid "No tienes permisos para exportar contenidos de anomalías."
@@ -3802,7 +3802,7 @@ msgstr "Use existing canonical Vocabulary terms. Automatically assigned tags are
 
 #: includes/class-taxocommerce-core.php:152
 msgid "Open Core"
-msgstr ""
+msgstr "Open Core"
 
 #: includes/class-taxocommerce-core.php:247
 msgid "Vocabulary"
@@ -3810,27 +3810,27 @@ msgstr "Vocabulary"
 
 #: includes/class-taxocommerce-core.php:248
 msgid "Sales Assistant"
-msgstr ""
+msgstr "Sales Assistant"
 
 #: includes/class-taxocommerce-core.php:249
 msgid "Import / Export"
-msgstr ""
+msgstr "Import / Export"
 
 #: includes/class-taxocommerce-core.php:250
 msgid "Suppliers"
-msgstr ""
+msgstr "Suppliers"
 
 #: includes/class-taxocommerce-core.php:251
 msgid "Redirects"
-msgstr ""
+msgstr "Redirects"
 
 #: includes/class-taxocommerce-core.php:252
 msgid "Distribution"
-msgstr ""
+msgstr "Distribution"
 
 #: includes/class-taxocommerce-core.php:253
 msgid "Images"
-msgstr ""
+msgstr "Images"
 
 #: includes/class-taxocommerce-core.php:255
 msgid "Database"
@@ -3838,19 +3838,19 @@ msgstr "Database"
 
 #: includes/class-taxocommerce-core.php:256
 msgid "System Check"
-msgstr ""
+msgstr "System Check"
 
 #: includes/class-taxocommerce-core.php:257
 msgid "Templates"
-msgstr ""
+msgstr "Templates"
 
 #: includes/class-taxocommerce-core.php:258
 msgid "Insights"
-msgstr ""
+msgstr "Insights"
 
 #: includes/class-taxocommerce-core.php:259
 msgid "Scrappers"
-msgstr ""
+msgstr "Scrappers"
 
 #: includes/class-taxocommerce-core.php:260
 msgid "Auditor"
@@ -3866,94 +3866,94 @@ msgstr "Billing"
 
 #: includes/class-taxocommerce-core.php:263
 msgid "Logistics"
-msgstr ""
+msgstr "Logistics"
 
 #: includes/class-taxocommerce-core.php:390
 msgid "Catalog, content, and Media import/export."
-msgstr ""
+msgstr "Catalog, content, and media import/export."
 
 #: includes/class-taxocommerce-core.php:400
 msgid "Supplier catalogue, purchasing, prices, and external images."
-msgstr ""
+msgstr "Supplier catalogs, purchasing, prices and external images."
 
 #: includes/class-taxocommerce-core.php:410
 msgid ""
 "MySQL diagnostics, tables, backups, and controlled maintenance in an "
 "independent plugin."
-msgstr ""
+msgstr "MySQL diagnostics, tables, backups and controlled maintenance in an independent plugin."
 
 #: includes/class-taxocommerce-core.php:419
 msgid "Image management, auditing, thumbnails, metadata, and optimization."
-msgstr ""
+msgstr "Image management, auditing, thumbnails, metadata and optimization."
 
 #: includes/class-taxocommerce-core.php:428
 msgid ""
 "Server, WordPress, and plugin validation diagnostics with reports and "
 "optional email notifications."
-msgstr ""
+msgstr "Server, WordPress and plugin diagnostics with reports and optional email notifications."
 
 #: includes/class-taxocommerce-core.php:437
 msgid "Editorial roles, automatic assignment, and template management."
-msgstr ""
+msgstr "Editorial roles, automatic assignment and template management."
 
 #: includes/class-taxocommerce-core.php:446
 msgid ""
 "Independent ten-lesson academy and catalog assistant, without automatic "
 "recycling."
-msgstr ""
+msgstr "Independent ten-lesson academy and catalog assistant, without automatic recycling."
 
 #: includes/class-taxocommerce-core.php:455
 msgid "FAQs, manual editing, CSV, indicators, and Vocabulary integration."
-msgstr ""
+msgstr "FAQs, manual editing, CSV, metrics and Vocabulary integration."
 
 #: includes/class-taxocommerce-core.php:465
 msgid ""
 "Cross-catalog tag and attribute inventory with automatic classification and "
 "local execution."
-msgstr ""
+msgstr "Cross-catalog tag and attribute inventory with automatic classification and local processing."
 
 #: includes/class-taxocommerce-core.php:475
 msgid "Commercial feeds and XML sitemaps with bounded block-based publishing."
-msgstr ""
+msgstr "Commercial feeds and XML sitemaps with controlled batch publishing."
 
 #: includes/class-taxocommerce-core.php:485
 msgid ""
 "Social network connections, publishing templates, queue, history, and "
 "standalone publication calendar."
-msgstr ""
+msgstr "Social network connections, publishing templates, queue, history and standalone publishing calendar."
 
 #: includes/class-taxocommerce-core.php:495
 msgid ""
 "Offer campaigns, promotional prices, banners, social offer publication, and "
 "a standalone commercial calendar."
-msgstr ""
+msgstr "Offer campaigns, promotional prices, banners, social offer publication and a standalone commercial calendar."
 
 #: includes/class-taxocommerce-core.php:504
 msgid ""
 "Search, Analytics, Bing, Trends, market, opportunity, and executive reports."
-msgstr ""
+msgstr "Search, Analytics, Bing, Trends, market, opportunity and executive reporting."
 
 #: includes/class-taxocommerce-core.php:514
 msgid ""
 "SerpApi/ScraperAPI connections with Ojeador market intelligence and "
 "Ingeniero technical research."
-msgstr ""
+msgstr "SerpApi/ScraperAPI connections for market intelligence and technical research."
 
 #: includes/class-taxocommerce-core.php:524
 msgid "WooCommerce order weights, dimensions, and shipping-cost rules."
-msgstr ""
+msgstr "WooCommerce order weights, dimensions and shipping-cost rules."
 
 #: includes/class-taxocommerce-core.php:534
 msgid "Invoices, proformas, and PDF quotations connected to WooCommerce."
-msgstr ""
+msgstr "Invoices, proformas and PDF quotations integrated with WooCommerce."
 
 #: includes/class-taxocommerce-core.php:544
 msgid "301/302 redirects and assisted content deletion."
-msgstr ""
+msgstr "301/302 redirects and assisted content deletion."
 
 #: includes/class-taxocommerce-core.php:553
 msgid "Independent editorial and content quality auditing."
-msgstr ""
+msgstr "Independent editorial and content quality auditing."
 
 #: includes/class-taxocommerce-core.php:618
 #: includes/class-taxocommerce-core.php:683
@@ -3965,71 +3965,71 @@ msgstr "You do not have permission to install plugins."
 #: includes/class-taxocommerce-core.php:838
 #: includes/class-taxocommerce-core.php:876
 msgid "Unknown TaxoCommerce extension."
-msgstr ""
+msgstr "Unknown TaxoCommerce extension."
 
 #: includes/class-taxocommerce-core.php:633
 #: includes/class-taxocommerce-core.php:699
 msgid "The extension is already installed."
-msgstr ""
+msgstr "The extension is already installed."
 
 #: includes/class-taxocommerce-core.php:640
 msgid ""
 "The local ZIP for this extension was not found in uploads/taxocommerce-"
 "core/plugins."
-msgstr ""
+msgstr "The local ZIP for this extension was not found in uploads/taxocommerce-core/plugins."
 
 #: includes/class-taxocommerce-core.php:656
 msgid "WordPress could not install the local ZIP."
-msgstr ""
+msgstr "WordPress could not install the local ZIP."
 
 #: includes/class-taxocommerce-core.php:663
 msgid ""
 "The ZIP was processed, but it does not contain the expected structure for "
 "this extension."
-msgstr ""
+msgstr "The ZIP was processed, but it does not contain the expected structure for this extension."
 
 #: includes/class-taxocommerce-core.php:667
 msgid "Extension installed from the local ZIP. You can activate it now."
-msgstr ""
+msgstr "Extension installed from the local ZIP. You can activate it now."
 
 #: includes/class-taxocommerce-core.php:707
 msgid "A valid ZIP was not received."
-msgstr ""
+msgstr "A valid ZIP was not received."
 
 #: includes/class-taxocommerce-core.php:715
 msgid "The file must be a correctly uploaded ZIP."
-msgstr ""
+msgstr "The file must be a correctly uploaded ZIP."
 
 #: includes/class-taxocommerce-core.php:720
 msgid "The ZIP exceeds the maximum upload size allowed by WordPress."
-msgstr ""
+msgstr "The ZIP exceeds the maximum upload size allowed by WordPress."
 
 #: includes/class-taxocommerce-core.php:724
 msgid "ZipArchive is not available on the server to validate the package."
-msgstr ""
+msgstr "ZipArchive is not available on the server to validate the package."
 
 #: includes/class-taxocommerce-core.php:737
 msgid "WordPress could not prepare the ZIP temporarily."
-msgstr ""
+msgstr "WordPress could not prepare the ZIP temporarily."
 
 #. translators: %s: expected plugin basename.
 #: includes/class-taxocommerce-core.php:760
 msgid "The ZIP does not match this extension. It must contain %s."
-msgstr ""
+msgstr "The ZIP does not match this extension. It must contain %s."
 
 #: includes/class-taxocommerce-core.php:775
 msgid "WordPress could not install the uploaded ZIP."
-msgstr ""
+msgstr "WordPress could not install the uploaded ZIP."
 
 #: includes/class-taxocommerce-core.php:782
 msgid ""
 "The ZIP was processed, but the extension was not installed at the expected "
 "path."
-msgstr ""
+msgstr "The ZIP was processed, but the extension was not installed at the expected path."
 
 #: includes/class-taxocommerce-core.php:786
 msgid "Extension installed from ZIP. You can activate it now."
-msgstr ""
+msgstr "Extension installed from ZIP. You can activate it now."
 
 #: includes/class-taxocommerce-core.php:829
 msgid "No tienes permisos para activar plugins."
@@ -4037,11 +4037,11 @@ msgstr "You do not have permission to activate plugins."
 
 #: includes/class-taxocommerce-core.php:843
 msgid "The extension is not installed yet."
-msgstr ""
+msgstr "The extension is not installed yet."
 
 #: includes/class-taxocommerce-core.php:855
 msgid "Extension activated."
-msgstr ""
+msgstr "Extension activated."
 
 #: includes/class-taxocommerce-core.php:867
 msgid "No tienes permisos para desactivar plugins."
@@ -4049,7 +4049,7 @@ msgstr "You do not have permission to deactivate plugins."
 
 #: includes/class-taxocommerce-core.php:885
 msgid "Extension deactivated."
-msgstr ""
+msgstr "Extension deactivated."
 
 #: includes/class-taxocommerce-core.php:1056
 msgid "Informes"
@@ -4065,7 +4065,7 @@ msgstr "You do not have permission to manage extensions."
 
 #: includes/class-taxocommerce-core.php:1217
 msgid "Extensions"
-msgstr ""
+msgstr "Extensions"
 
 #: includes/class-taxocommerce-core.php:1218
 msgid "Gestiona cada plugin independiente desde su tarjeta."

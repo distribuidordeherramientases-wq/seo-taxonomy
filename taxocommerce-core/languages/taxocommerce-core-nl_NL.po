@@ -11,19 +11,19 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-core.php
 msgid "TaxoCommerce Core - Catalog & Content Management for WooCommerce"
-msgstr ""
+msgstr "TaxoCommerce Core — Catalogus- en inhoudsbeheer voor WooCommerce"
 
 #. Description of the plugin
 #: taxocommerce-core.php
 msgid ""
 "Modular core for catalog hierarchy, unified content editing, logs, and "
 "extensions in WooCommerce stores."
-msgstr ""
+msgstr "Modulaire kern voor catalogushiërarchie, centraal inhoudsbeheer, logboeken en uitbreidingen in WooCommerce-webwinkels."
 
 #. Author of the plugin
 #: taxocommerce-core.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-core-anomalies-json.php:321
 msgid "No tienes permisos para exportar contenidos de anomalías."
@@ -3496,7 +3496,7 @@ msgstr "Gebruik bestaande termen uit het canonieke Vocabulary. Automatisch toege
 
 #: includes/class-taxocommerce-core.php:152
 msgid "Open Core"
-msgstr ""
+msgstr "Core openen"
 
 #: includes/class-taxocommerce-core.php:247
 msgid "Vocabulary"
@@ -3677,71 +3677,71 @@ msgstr ""
 #: includes/class-taxocommerce-core.php:838
 #: includes/class-taxocommerce-core.php:876
 msgid "Unknown TaxoCommerce extension."
-msgstr ""
+msgstr "Onbekende TaxoCommerce-uitbreiding."
 
 #: includes/class-taxocommerce-core.php:633
 #: includes/class-taxocommerce-core.php:699
 msgid "The extension is already installed."
-msgstr ""
+msgstr "De uitbreiding is al geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:640
 msgid ""
 "The local ZIP for this extension was not found in uploads/taxocommerce-"
 "core/plugins."
-msgstr ""
+msgstr "Het lokale ZIP-bestand van deze uitbreiding is niet gevonden in uploads/taxocommerce-core/plugins."
 
 #: includes/class-taxocommerce-core.php:656
 msgid "WordPress could not install the local ZIP."
-msgstr ""
+msgstr "WordPress kon het lokale ZIP-bestand niet installeren."
 
 #: includes/class-taxocommerce-core.php:663
 msgid ""
 "The ZIP was processed, but it does not contain the expected structure for "
 "this extension."
-msgstr ""
+msgstr "Het ZIP-bestand is verwerkt, maar bevat niet de verwachte structuur voor deze uitbreiding."
 
 #: includes/class-taxocommerce-core.php:667
 msgid "Extension installed from the local ZIP. You can activate it now."
-msgstr ""
+msgstr "De uitbreiding is geïnstalleerd vanuit het lokale ZIP-bestand. Je kunt deze nu activeren."
 
 #: includes/class-taxocommerce-core.php:707
 msgid "A valid ZIP was not received."
-msgstr ""
+msgstr "Er is geen geldig ZIP-bestand ontvangen."
 
 #: includes/class-taxocommerce-core.php:715
 msgid "The file must be a correctly uploaded ZIP."
-msgstr ""
+msgstr "Het bestand moet een correct geüpload ZIP-bestand zijn."
 
 #: includes/class-taxocommerce-core.php:720
 msgid "The ZIP exceeds the maximum upload size allowed by WordPress."
-msgstr ""
+msgstr "Het ZIP-bestand overschrijdt de maximale uploadgrootte van WordPress."
 
 #: includes/class-taxocommerce-core.php:724
 msgid "ZipArchive is not available on the server to validate the package."
-msgstr ""
+msgstr "ZipArchive is niet beschikbaar op de server om het pakket te controleren."
 
 #: includes/class-taxocommerce-core.php:737
 msgid "WordPress could not prepare the ZIP temporarily."
-msgstr ""
+msgstr "WordPress kon het ZIP-bestand niet tijdelijk voorbereiden."
 
 #. translators: %s: expected plugin basename.
 #: includes/class-taxocommerce-core.php:760
 msgid "The ZIP does not match this extension. It must contain %s."
-msgstr ""
+msgstr "Het ZIP-bestand hoort niet bij deze uitbreiding. Het moet %s bevatten."
 
 #: includes/class-taxocommerce-core.php:775
 msgid "WordPress could not install the uploaded ZIP."
-msgstr ""
+msgstr "WordPress kon het geüploade ZIP-bestand niet installeren."
 
 #: includes/class-taxocommerce-core.php:782
 msgid ""
 "The ZIP was processed, but the extension was not installed at the expected "
 "path."
-msgstr ""
+msgstr "Het ZIP-bestand is verwerkt, maar de uitbreiding is niet op de verwachte locatie geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:786
 msgid "Extension installed from ZIP. You can activate it now."
-msgstr ""
+msgstr "De uitbreiding is geïnstalleerd vanuit het ZIP-bestand. Je kunt deze nu activeren."
 
 #: includes/class-taxocommerce-core.php:829
 msgid "No tienes permisos para activar plugins."
@@ -3749,11 +3749,11 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:843
 msgid "The extension is not installed yet."
-msgstr ""
+msgstr "De uitbreiding is nog niet geïnstalleerd."
 
 #: includes/class-taxocommerce-core.php:855
 msgid "Extension activated."
-msgstr ""
+msgstr "Uitbreiding geactiveerd."
 
 #: includes/class-taxocommerce-core.php:867
 msgid "No tienes permisos para desactivar plugins."
@@ -3761,7 +3761,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-core.php:885
 msgid "Extension deactivated."
-msgstr ""
+msgstr "Uitbreiding gedeactiveerd."
 
 #: includes/class-taxocommerce-core.php:1056
 msgid "Informes"

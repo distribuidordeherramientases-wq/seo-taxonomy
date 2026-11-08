@@ -1,3 +1,9 @@
+## [Unreleased] — Interfaz de extensiones Core multidioma (#2062)
+
+- Añadidas 139 traducciones adicionales de 52 mensajes en cinco idiomas para el catálogo de extensiones, menús, descripciones, instalación ZIP, seguridad de carga, activación y desactivación, sin sobrescribir traducciones previas.
+- Sin modificaciones de los servicios ni archivos PHP/JS del plugin. Sin cambios en contenidos editoriales, productos o configuración de sitios.
+- Actualizados 5 PO y regenerados 5 MO (793 entradas cada uno). Pendiente continuar con cadenas restantes, pruebas Plugin Check e inspección real por idioma.
+
 ## [Unreleased] — Traducción de administración y menús Core (Issue #2062)
 
 - Completadas 332 traducciones nuevas de 72 mensajes originales en ES/EN/FR/DE/NL, sin sobrescribir traducciones existentes. Incluye Anomalías, avisos de integridad, navegación de bloques, gestión de menús nativos, seguridad de borrado, atributos de WooCommerce y documentación de usuario y técnica.
