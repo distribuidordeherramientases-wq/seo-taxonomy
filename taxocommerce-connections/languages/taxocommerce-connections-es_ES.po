@@ -11,262 +11,262 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-connections.php
 msgid "TaxoCommerce Connections (Compatibility Bridge)"
-msgstr ""
+msgstr "TaxoCommerce Connections (puente de compatibilidad)"
 
 #. Description of the plugin
 #: taxocommerce-connections.php
 msgid ""
 "Temporary compatibility bridge. External connections now live inside "
 "TaxoCommerce Insights."
-msgstr ""
+msgstr "Puente temporal de compatibilidad. Las conexiones externas ahora están integradas en TaxoCommerce Insights."
 
 #. Author of the plugin
 #: taxocommerce-connections.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-connections-admin.php:31
 #: includes/class-taxocommerce-connections-admin.php:32
 #: includes/class-taxocommerce-connections-admin.php:42
 #: taxocommerce-connections.php:60 taxocommerce-connections.php:61
 msgid "Connections"
-msgstr ""
+msgstr "Conexiones"
 
 #: includes/class-taxocommerce-connections-admin.php:41
 #: includes/class-taxocommerce-connections-admin.php:216
 msgid "TaxoCommerce Connections"
-msgstr ""
+msgstr "Conexiones de TaxoCommerce"
 
 #: includes/class-taxocommerce-connections-admin.php:53
 #: includes/class-taxocommerce-connections-google-bing.php:256
 msgid "You do not have permission to manage connections."
-msgstr ""
+msgstr "No tienes permisos para gestionar las conexiones."
 
 #: includes/class-taxocommerce-connections-admin.php:75
 msgid "Amazon Creators API responded successfully."
-msgstr ""
+msgstr "La API Creators de Amazon ha respondido correctamente."
 
 #: includes/class-taxocommerce-connections-admin.php:100
 msgid "Pinterest responded successfully and the selected board is accessible."
-msgstr ""
+msgstr "Pinterest ha respondido correctamente y se puede acceder al tablero seleccionado."
 
 #: includes/class-taxocommerce-connections-admin.php:123
 msgid "Google settings saved."
-msgstr ""
+msgstr "Ajustes de Google guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:124
 msgid "The Google Measurement ID format is invalid."
-msgstr ""
+msgstr "El formato del ID de medición de Google no es válido."
 
 #: includes/class-taxocommerce-connections-admin.php:125
 msgid "The Google service account JSON is invalid."
-msgstr ""
+msgstr "El JSON de la cuenta de servicio de Google no es válido."
 
 #: includes/class-taxocommerce-connections-admin.php:126
 msgid "Google Merchant Center settings saved."
-msgstr ""
+msgstr "Ajustes de Google Merchant Center guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:127
 msgid "The Google Merchant Center ID is invalid."
-msgstr ""
+msgstr "El ID de Google Merchant Center no es válido."
 
 #: includes/class-taxocommerce-connections-admin.php:128
 msgid "Bing Webmaster settings saved."
-msgstr ""
+msgstr "Ajustes de Bing Webmaster guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:129
 msgid "Amazon settings saved."
-msgstr ""
+msgstr "Ajustes de Amazon guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:130
 msgid "Amazon settings could not be saved."
-msgstr ""
+msgstr "No se han podido guardar los ajustes de Amazon."
 
 #: includes/class-taxocommerce-connections-admin.php:131
 msgid "Pinterest settings saved."
-msgstr ""
+msgstr "Ajustes de Pinterest guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:132
 msgid "Pinterest settings could not be saved."
-msgstr ""
+msgstr "No se han podido guardar los ajustes de Pinterest."
 
 #: includes/class-taxocommerce-connections-admin.php:133
 msgid "Pinterest authorized through OAuth."
-msgstr ""
+msgstr "Pinterest autorizado mediante OAuth."
 
 #: includes/class-taxocommerce-connections-admin.php:134
 msgid "Save the Pinterest App ID and App Secret first."
-msgstr ""
+msgstr "Primero guarda el App ID y el App Secret de Pinterest."
 
 #: includes/class-taxocommerce-connections-admin.php:135
 msgid "Pinterest Merchant settings saved."
-msgstr ""
+msgstr "Ajustes de Pinterest Merchant guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:136
 msgid "Pinterest Merchant verification is invalid."
-msgstr ""
+msgstr "La verificación de Pinterest Merchant no es válida."
 
 #: includes/class-taxocommerce-connections-admin.php:142
 msgid "Google OAuth settings saved."
-msgstr ""
+msgstr "Ajustes de Google OAuth guardados."
 
 #: includes/class-taxocommerce-connections-admin.php:143
 msgid "Google Search Console authorized successfully."
-msgstr ""
+msgstr "Google Search Console autorizado correctamente."
 
 #: includes/class-taxocommerce-connections-admin.php:144
 msgid "Google OAuth authorization removed."
-msgstr ""
+msgstr "Autorización de Google OAuth eliminada."
 
 #: includes/class-taxocommerce-connections-admin.php:145
 msgid "Google OAuth connection verified."
-msgstr ""
+msgstr "Conexión de Google OAuth verificada."
 
 #: includes/class-taxocommerce-connections-admin.php:146
 msgid "Google OAuth Client ID or Client Secret is missing."
-msgstr ""
+msgstr "Falta el Client ID o el Client Secret de Google OAuth."
 
 #: includes/class-taxocommerce-connections-admin.php:147
 msgid "Google OAuth state validation failed."
-msgstr ""
+msgstr "Ha fallado la validación del estado de Google OAuth."
 
 #: includes/class-taxocommerce-connections-admin.php:148
 msgid "Google did not return an authorization code."
-msgstr ""
+msgstr "Google no ha devuelto un código de autorización."
 
 #: includes/class-taxocommerce-connections-admin.php:149
 msgid "Google OAuth authorization could not be completed."
-msgstr ""
+msgstr "No se ha podido completar la autorización de Google OAuth."
 
 #: includes/class-taxocommerce-connections-admin.php:150
 msgid "Google OAuth test failed."
-msgstr ""
+msgstr "Ha fallado la prueba de Google OAuth."
 
 #: includes/class-taxocommerce-connections-admin.php:151
 msgid "Google denied authorization."
-msgstr ""
+msgstr "Google ha denegado la autorización."
 
 #. translators: %d: number of accessible Google Search Console properties.
 #: includes/class-taxocommerce-connections-admin.php:165
 msgid "Accessible properties: %d."
-msgstr ""
+msgstr "Propiedades accesibles: %d."
 
 #: includes/class-taxocommerce-connections-admin.php:217
 msgid ""
 "Shared connections used by multiple modules. Credentials and OAuth live "
 "here; reports, feeds, and publishing remain owned by their functional "
 "plugins."
-msgstr ""
+msgstr "Conexiones compartidas por varios módulos. Las credenciales y OAuth se gestionan aquí; los informes, feeds y publicaciones siguen gestionados por sus respectivos plugins."
 
 #: includes/class-taxocommerce-connections-admin.php:243
 msgid "Save Google"
-msgstr ""
+msgstr "Guardar Google"
 
 #: includes/class-taxocommerce-connections-admin.php:248
 msgid "Test Google"
-msgstr ""
+msgstr "Probar Google"
 
 #: includes/class-taxocommerce-connections-admin.php:256
 msgid "Save Merchant"
-msgstr ""
+msgstr "Guardar Merchant"
 
 #: includes/class-taxocommerce-connections-admin.php:261
 msgid "Test Merchant"
-msgstr ""
+msgstr "Probar Merchant"
 
 #: includes/class-taxocommerce-connections-admin.php:281
 msgid "Save Bing"
-msgstr ""
+msgstr "Guardar Bing"
 
 #: includes/class-taxocommerce-connections-admin.php:286
 msgid "Test Bing"
-msgstr ""
+msgstr "Probar Bing"
 
 #: includes/class-taxocommerce-connections-admin.php:304
 msgid "Save Amazon"
-msgstr ""
+msgstr "Guardar Amazon"
 
 #: includes/class-taxocommerce-connections-admin.php:309
 msgid "Test Creators API"
-msgstr ""
+msgstr "Probar la API Creators"
 
 #: includes/class-taxocommerce-connections-admin.php:332
 msgid "Save Pinterest"
-msgstr ""
+msgstr "Guardar Pinterest"
 
 #: includes/class-taxocommerce-connections-admin.php:341
 msgid "Test Pinterest"
-msgstr ""
+msgstr "Probar Pinterest"
 
 #: includes/class-taxocommerce-connections-admin.php:352
 msgid "Save Pinterest Merchant"
-msgstr ""
+msgstr "Guardar Pinterest Merchant"
 
 #: includes/class-taxocommerce-connections-amazon.php:163
 msgid ""
 "Creators API is not configured. Affiliate links can still work with only a "
 "Partner Tag."
-msgstr ""
+msgstr "La API Creators no está configurada. Los enlaces de afiliado pueden seguir funcionando únicamente con un Partner Tag."
 
 #: includes/class-taxocommerce-connections-amazon.php:198
 msgid "Amazon did not return an access_token."
-msgstr ""
+msgstr "Amazon no ha devuelto un access_token."
 
 #: includes/class-taxocommerce-connections-amazon.php:210
 msgid "Falta el Partner Tag de Amazon Associates."
-msgstr ""
+msgstr "Falta el Partner Tag de Amazon Associates."
 
 #: includes/class-taxocommerce-connections-amazon.php:242
 msgid "Error de Creators API."
-msgstr ""
+msgstr "Error de la API Creators."
 
 #: includes/class-taxocommerce-connections-amazon.php:263
 msgid "Enter a search query for Amazon."
-msgstr ""
+msgstr "Introduce una consulta de búsqueda para Amazon."
 
 #: includes/class-taxocommerce-connections-google-bing.php:70
 msgid ""
 "Google OAuth will be migrated in the next phase. Service account, Search "
 "Console, GA4, Merchant, and Bing settings are already managed by "
 "Connections."
-msgstr ""
+msgstr "Google OAuth se migrará en una fase posterior. La cuenta de servicio, Search Console, GA4, Merchant y Bing ya se gestionan desde Connections."
 
 #: includes/class-taxocommerce-connections-pinterest.php:147
 msgid "OpenSSL is not available."
-msgstr ""
+msgstr "OpenSSL no está disponible."
 
 #: includes/class-taxocommerce-connections-pinterest.php:155
 msgid "The secret could not be encrypted."
-msgstr ""
+msgstr "No se ha podido cifrar el secreto."
 
 #: includes/class-taxocommerce-connections-pinterest.php:213
 msgid "Pinterest did not return an Access Token."
-msgstr ""
+msgstr "Pinterest no ha devuelto un Access Token."
 
 #: includes/class-taxocommerce-connections-pinterest.php:241
 msgid "Pinterest no tiene Access Token guardado."
-msgstr ""
+msgstr "Pinterest no tiene ningún Access Token guardado."
 
 #: includes/class-taxocommerce-connections-pinterest.php:252
 msgid "The Pinterest token has expired; authorize the account again."
-msgstr ""
+msgstr "El token de Pinterest ha caducado; vuelve a autorizar la cuenta."
 
 #: includes/class-taxocommerce-connections-pinterest.php:325
 msgid "Select a board before testing Pinterest."
-msgstr ""
+msgstr "Selecciona un tablero antes de probar Pinterest."
 
 #: includes/class-taxocommerce-connections-pinterest.php:341
 msgid "You do not have permission to connect Pinterest."
-msgstr ""
+msgstr "No tienes permisos para conectar Pinterest."
 
 #: includes/class-taxocommerce-connections-pinterest.php:395
 msgid "The OAuth state is invalid or expired."
-msgstr ""
+msgstr "El estado OAuth no es válido o ha caducado."
 
 #: includes/class-taxocommerce-connections-pinterest.php:398
 msgid "The OAuth user does not have permission."
-msgstr ""
+msgstr "El usuario de OAuth no tiene permisos."
 
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
-msgstr "Código de verificación de dominio no válido."
+msgstr "El código de verificación del dominio no es válido."
