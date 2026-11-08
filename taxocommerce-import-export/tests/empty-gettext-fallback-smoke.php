@@ -31,5 +31,8 @@ ie_check( 'Páginas' === $class::plural_with_context( '', 'Página', 'Páginas',
 ie_check( '' === $class::plural( '', 'Página', 'Páginas', 2, 'other-domain' ), 'Do not affect other domains' );
 $plugin = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-import-export.php' );
 ie_check( false !== strpos( $plugin, 'TaxoCommerce_IE_Gettext_Fallback::register();' ), 'Bootstrap should install guard' );
-ie_check( false !== strpos( $plugin, "Version: 0.4.21" ), 'Plugin version' );
+$readme = file_get_contents( dirname( __DIR__ ) . '/readme.txt' );
+ie_check( 1 === preg_match( '/^ \\* Version:\\s*([0-9.]+)$/m', $plugin, $plugin_version )
+    && 1 === preg_match( '/^Stable tag:\\s*([0-9.]+)$/m', $readme, $stable_version )
+    && $plugin_version[1] === $stable_version[1], 'Plugin version matches stable tag' );
 echo "Import-Export gettext fallback: PASS" . PHP_EOL;
