@@ -33,6 +33,8 @@ $checks = array(
     strpos( $autocheck, 'admin_post_' ) !== false,
     strpos( $autocheck, 'wp_json_encode' ) !== false,
     strpos( $autocheck, 'check_admin_referer' ) !== false,
+    strpos( $autocheck, 'TaxoCommerce_Connections_Autotest_Code::render_subtabs()' ) !== false,
+    strpos( $main, 'TaxoCommerce_Connections_Autotest_Code::boot()' ) !== false,
 );
 
 foreach ( $checks as $i => $ok ) {
