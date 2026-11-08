@@ -32,6 +32,7 @@ function is_multisite() { return false; }
 function is_admin() { return false; }
 function is_feed() { return false; }
 function wp_unslash( $value ) { return $value; }
+function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_js( $value ) { return addslashes( $value ); }
