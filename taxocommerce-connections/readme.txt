@@ -4,7 +4,7 @@ Tags: integrations, compatibility, insights
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,9 @@ Existing option names are unchanged. The consolidation does not require reconnec
 Once the consolidated Insights installation is verified operationally, this compatibility plugin can be deactivated.
 
 == Changelog ==
+
+= 0.3.2 =
+* Complete ES, EN, FR, DE and NL translations for Connections administration and connection diagnostics; compiled MO language packs.
 
 = 0.3.1 =
 * Nuevo Autocheck independiente del puente de compatibilidad y del modo de respaldo, con JSON descargable protegido; no expone credenciales.
