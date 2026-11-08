@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.19
+Stable tag: 0.4.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,11 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.20 =
+* Rebuild ES/EN/FR/DE/NL MO catalogs excluding empty translations, restoring readable export type, filters and action buttons. Preserve real translations and Pages CSV export behavior.
+* Add CI check for non-empty MO entries and Pages selector. No catalog data or WordPress content is changed.
+
 
 = 0.4.19 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
