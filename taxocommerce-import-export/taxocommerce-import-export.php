@@ -2,8 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce Import-Export - Import & Export for WooCommerce
  * Description: Importa y exporta productos, categorías de producto, categorías WordPress, entradas, páginas y Media, con integración opcional con TaxoCommerce Core.
- * Version: 0.4.18
- * Release Date: 2026-11-07
+ * Version: 0.4.19
+ * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.18' );
+define( 'TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.19' );
 define( 'TAXOCOMMERCE_IMPORT_EXPORT_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_IMPORT_EXPORT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_IMPORT_EXPORT_BASENAME', plugin_basename( __FILE__ ) );
