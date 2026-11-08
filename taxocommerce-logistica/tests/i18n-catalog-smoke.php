@@ -6,6 +6,13 @@
  * @package TaxoCommerce_Logistica
  */
 $tc_logistica_dir = dirname( __DIR__ ) . '/languages/';
+$tc_logistica_purchasing = array(
+    'es_ES' => 'Compras a proveedores',
+    'en_US' => 'Supplier purchases',
+    'fr_FR' => 'Achats fournisseurs',
+    'de_DE' => 'Lieferanteneinkäufe',
+    'nl_NL' => 'Leveranciersinkopen',
+);
 $tc_logistica_examples = array(
     'es_ES' => 'No tienes permisos para acceder a esta página.',
     'en_US' => 'You do not have permission to access this page.',
@@ -21,7 +28,7 @@ foreach ( $tc_logistica_examples as $tc_locale => $tc_expected ) {
     }
     $tc_magic = unpack( 'V', substr( $tc_mo, 0, 4 ) )[1];
     $tc_meta = unpack( 'Vrevision/Vcount/Voriginal/Vtranslation', substr( $tc_mo, 4, 16 ) );
-    if ( 0x950412de !== $tc_magic || 240 !== $tc_meta['count'] ) {
+    if ( 0x950412de !== $tc_magic || 263 !== $tc_meta['count'] ) {
         throw new RuntimeException( 'Invalid Logistics GNU MO header: ' . $tc_locale );
     }
     $tc_found = false;
@@ -39,6 +46,9 @@ foreach ( $tc_logistica_examples as $tc_locale => $tc_expected ) {
         }
         if ( 'No tienes permisos para acceder a esta página.' === $tc_key ) {
             $tc_found = $tc_expected === $tc_value;
+        }
+        if ( 'Supplier purchases' === $tc_key && $tc_value !== $tc_logistica_purchasing[ $tc_locale ] ) {
+            throw new RuntimeException( 'Supplier purchases label not translated in ' . $tc_locale );
         }
         if ( 'Regla activa' === $tc_key ) {
             $tc_labels = array( 'es_ES' => 'Regla activa', 'en_US' => 'Active rule', 'fr_FR' => 'Règle active', 'de_DE' => 'Aktive Regel', 'nl_NL' => 'Actieve regel' );

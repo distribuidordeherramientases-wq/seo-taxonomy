@@ -2,7 +2,7 @@
 # This file is distributed under the MIT.
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Logistics 0.2.9\n"
+"Project-Id-Version: TaxoCommerce Logistics 0.2.11\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/taxocommerce-logistica\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -977,3 +977,96 @@ msgstr ""
 #: includes/class-auto-test.php
 msgid " · %d errores"
 msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "You are not allowed to view purchases."
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Activate TaxoCommerce Suppliers to see supplier references and purchase links. Shipping works independently."
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce must be active."
+msgstr ""
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases for WooCommerce orders"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Open Purchase to visit the exact supplier product page. Supplier selection and purchase execution remain outside Logistics."
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "All active orders"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Order"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce product"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Qty."
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier ID"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier SKU"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier product"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier price"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Purchase"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier source inherited from parent product"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier source linked to this product."
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier purchase link"
+msgstr ""
+
+#: includes/class-supplier-purchasing.php
+msgid "No active order lines found."
+msgstr ""
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases"
+msgstr ""
+
+#: includes/seo-transporte.php
+msgid "Supplier purchase"
+msgstr ""
+
+#: includes/seo-transporte.php
+msgid "View supplier purchases"
+msgstr ""
+
+#: includes/seo-transporte.php
+msgid "Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page."
+msgstr ""
+

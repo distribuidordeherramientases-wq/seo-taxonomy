@@ -4,7 +4,7 @@ Tags: woocommerce, logistics, shipping, weight, orders
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.10
+Stable tag: 0.2.11
 License: MIT
 
 Manage shipping costs, package weight and dimensions in WooCommerce with manual rules and shipment audits.
@@ -25,13 +25,19 @@ Features:
 * Optional integration with TaxoCommerce Core.
 
 The plugin reuses the historical seo_transporte_costes_settings option, so existing shipping rules remain intact.
-It does not contain supplier matching, purchasing, or supplier-catalog logic.
+It retains shipping as its core function. Its optional Supplier purchases screen displays read-only supplier references and external purchase links supplied by TaxoCommerce Suppliers; purchasing itself remains outside Logistics.
 
 == Languages ==
 
 The WordPress administration locale automatically selects the gettext language. Bundled Spanish (es_ES), English (en_US), French (fr_FR), German (de_DE) and Dutch (nl_NL) PO/MO files cover every string in the current translation template. This does not translate store products, orders or editorial content.
 
 == Changelog ==
+
+= 0.2.11 =
+* Translate the 23 newly introduced supplier purchasing UI labels, notices and hints in all five bundled languages.
+* Preserve independent shipping operation, optional Suppliers integration, order data and existing checkout behavior.
+* Regenerate gettext MO files and extend the CLI regression test for compiled catalogs. Issue #2062.
+
 
 = 0.2.10 =
 * Internationalize shipping-rule forms and diagnostics in ES/EN/FR/DE/NL without altering supplier purchases.

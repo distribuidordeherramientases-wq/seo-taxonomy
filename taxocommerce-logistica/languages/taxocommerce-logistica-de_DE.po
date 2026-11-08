@@ -1179,3 +1179,96 @@ msgstr "%1$s · %2$d Prüfungen%3$s"
 #: includes/class-auto-test.php
 msgid " · %d errores"
 msgstr " · %d Fehler"
+
+#: includes/class-supplier-purchasing.php
+msgid "You are not allowed to view purchases."
+msgstr "Du hast keine Berechtigung, Einkäufe anzusehen."
+
+#: includes/class-supplier-purchasing.php
+msgid "Activate TaxoCommerce Suppliers to see supplier references and purchase links. Shipping works independently."
+msgstr "Aktiviere TaxoCommerce Suppliers, um Lieferantenreferenzen und Einkaufslinks zu sehen. Der Versand funktioniert unabhängig."
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce must be active."
+msgstr "WooCommerce muss aktiv sein."
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases for WooCommerce orders"
+msgstr "Lieferanteneinkäufe für WooCommerce-Bestellungen"
+
+#: includes/class-supplier-purchasing.php
+msgid "Open Purchase to visit the exact supplier product page. Supplier selection and purchase execution remain outside Logistics."
+msgstr "Klicke auf Kaufen, um die genaue Lieferantenproduktseite zu öffnen. Lieferantenauswahl und Kaufabwicklung erfolgen außerhalb von Logistics."
+
+#: includes/class-supplier-purchasing.php
+msgid "All active orders"
+msgstr "Alle aktiven Bestellungen"
+
+#: includes/class-supplier-purchasing.php
+msgid "Order"
+msgstr "Bestellung"
+
+#: includes/class-supplier-purchasing.php
+msgid "WooCommerce product"
+msgstr "WooCommerce-Produkt"
+
+#: includes/class-supplier-purchasing.php
+msgid "Qty."
+msgstr "Menge"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier"
+msgstr "Lieferant"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier ID"
+msgstr "Lieferanten-ID"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier SKU"
+msgstr "Lieferanten-SKU"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier product"
+msgstr "Lieferantenprodukt"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier price"
+msgstr "Lieferantenpreis"
+
+#: includes/class-supplier-purchasing.php
+msgid "Purchase"
+msgstr "Kaufen"
+
+#: includes/class-supplier-purchasing.php
+msgid "Supplier source inherited from parent product"
+msgstr "Lieferantenquelle vom übergeordneten Produkt übernommen"
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier source linked to this product."
+msgstr "Diesem Produkt ist keine Lieferantenquelle zugeordnet."
+
+#: includes/class-supplier-purchasing.php
+msgid "No supplier purchase link"
+msgstr "Kein Lieferanten-Einkaufslink"
+
+#: includes/class-supplier-purchasing.php
+msgid "No active order lines found."
+msgstr "Keine aktiven Bestellpositionen gefunden."
+
+#: includes/seo-transporte.php
+msgid "Supplier purchases"
+msgstr "Lieferanteneinkäufe"
+
+#: includes/seo-transporte.php
+msgid "Supplier purchase"
+msgstr "Lieferanteneinkauf"
+
+#: includes/seo-transporte.php
+msgid "View supplier purchases"
+msgstr "Lieferanteneinkäufe anzeigen"
+
+#: includes/seo-transporte.php
+msgid "Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page."
+msgstr "Aktive Bestellungen, Gewichte und Versandkosten. Über Lieferanteneinkäufe kannst du jeden verkauften Artikel ermitteln und seine Lieferanten-Kaufseite öffnen."
+
