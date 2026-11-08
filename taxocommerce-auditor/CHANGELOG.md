@@ -1,3 +1,12 @@
+## [0.3.11] — 2026-11-08 — Recuperación de auditorías detenidas y diagnóstico WP-Cron (#2444)
+
+- Mantiene WP-Cron como motor de fondo y añade una recuperación por AJAX autenticado mientras la pestaña de Auditor esté abierta; cubre los cinco ámbitos, con las cinco velocidades configurables.
+- Las auditorías largas muestran progreso actualizado, hora del último lote, próximo evento WP-Cron y avisos si el programador está retrasado o deshabilitado.
+- Recupera lotes vencidos sin reiniciar el cursor ni el archivo JSONL; el bloqueo atómico por ámbito evita que el mismo lote sea procesado por WP-Cron y AJAX simultáneamente.
+- El monitor respeta la velocidad de cada ámbito, ejecuta un solo lote por petición y aplica espera progresiva cuando la conexión falla. Se conserva el botón manual, pausa, reanudación, filtros y exportaciones.
+- No depende de Action Scheduler, otros plugins ni servicios externos. La ejecución con el navegador cerrado sigue requiriendo WP-Cron o una tarea cron real del alojamiento.
+- Autocheck, pruebas de regresión, documentación y catálogos de idioma actualizados; el Issue #2444 se cierra únicamente después de validación funcional en STAGING y Focazul.
+
 ## [0.3.10] - 2026-11-08 - Autotest de funcionalidad y codigo (#2401)
 
 - Autotest mantiene sus pruebas funcionales y su JSON; incorpora una subpestana Code Check propia e independiente.

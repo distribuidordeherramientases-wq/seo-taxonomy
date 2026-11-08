@@ -6,6 +6,7 @@
 defined('ABSPATH') || exit;
 
 require_once __DIR__ . '/template-helpers.php';
+require_once __DIR__ . '/template-cookie-footer.php';
 
 $site_name    = get_bloginfo('name');
 $shop_url     = dht_template_shop_url();
@@ -111,6 +112,7 @@ $service_links = array(
         <div class="footer-meta">
             <span>© <?php echo esc_html(wp_date('Y')); ?> <?php echo esc_html($site_name); ?></span>
             <span>Distribución y atención especializada en España, Baleares y Canarias.</span>
+            <?php dht_template_render_cookie_footer_links( 'ES' ); ?>
         </div>
     </div>
 </footer>

@@ -61,11 +61,13 @@ jobs:
       - name: Validate independent Autotest Code Check for the entire new family
         run: |
           set -euo pipefail
-          for plugin in auditor campaigns core database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
+          for plugin in auditor campaigns connections core database dependiente distribution facturacion faqs google-bing images import-export logistica redirects scrappers social suppliers tasks templates vocabulary; do
             php -l "taxocommerce-${plugin}/includes/class-taxocommerce-autotest-code.php"
             php .github/tests/autotest-code-vendor-smoke.php "${plugin}"
             node --check "taxocommerce-${plugin}/assets/autotest-code.js"
           done
+          php -l .github/tests/autotest-family-tabs-smoke.php
+          php .github/tests/autotest-family-tabs-smoke.php
           php -l taxocommerce-system-check/taxocommerce-system-check.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-auto-test.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
@@ -167,6 +169,9 @@ jobs:
           php taxocommerce-suppliers/tests/template-creation-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           php taxocommerce-templates/tests/smoke.php
+          php -l taxocommerce-templates/tests/cookie-footer-smoke.php
+          php taxocommerce-templates/tests/cookie-footer-smoke.php
+          node --check taxocommerce-templates/assets/footer-cookie-preferences.js
           php taxocommerce-templates/tests/bing-meta-head-smoke.php
           php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
           php taxocommerce-templates/tests/bing-title-home-alt-smoke.php

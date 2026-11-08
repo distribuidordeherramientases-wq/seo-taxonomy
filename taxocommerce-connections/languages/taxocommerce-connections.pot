@@ -268,3 +268,67 @@ msgstr ""
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
 msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Access denied."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check first."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Unable to create JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Autotest sections"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Functionality Check"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Code Check"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "CPU usage"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Progress"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Stop"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Continue batch"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Resume"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Download JSON"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "File"
+msgstr ""
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Security"
+msgstr ""

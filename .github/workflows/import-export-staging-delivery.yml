@@ -1,34 +1,99 @@
-name: Import-Export / tested delivery to STAGING and Focazul
+name: TaxoCommerce / scoped delivery to STAGING and Focazul
 
 on:
   push:
     branches: [staging]
     paths:
       - 'taxocommerce-import-export/**'
+      - 'taxocommerce-templates/**'
       - '.github/workflows/import-export-staging-delivery.yml'
   workflow_dispatch:
+    inputs:
+      plugin:
+        description: 'Only one installed plugin to reconcile on both sites'
+        required: true
+        type: choice
+        options:
+          - taxocommerce-import-export
+          - taxocommerce-templates
 
 permissions:
   contents: read
 
-# Share the FTPS mutex with the main deployment workflow.
+# One sequential FTPS service, shared by all scoped deliveries.
 concurrency:
   group: taxocommerce-staging-focazul-deploy
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validate Import-Export independently
+  select:
+    name: Select only the affected plugin(s)
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
+    outputs:
+      slugs: ${{ steps.pick.outputs.slugs }}
     steps:
       - uses: actions/checkout@v4
-      - name: Validate all installable PHP and regression contracts
+        with:
+          fetch-depth: 0
+      - name: Select exact module list; no unrelated plugins
+        id: pick
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_PLUGIN: ${{ inputs.plugin || '' }}
+          BEFORE_SHA: ${{ github.event.before }}
         shell: bash
         run: |
           set -euo pipefail
-          find taxocommerce-import-export -type f -name '*.php' -print0 |
-            xargs -0 -r -n1 php -l >/dev/null
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          valid = {'taxocommerce-import-export', 'taxocommerce-templates'}
+          if os.environ.get('EVENT_NAME') == 'workflow_dispatch':
+              selected = {os.environ.get('REQUESTED_PLUGIN', '')}
+          else:
+              before = os.environ.get('BEFORE_SHA', '')
+              if not re.fullmatch(r'[0-9a-f]{40}', before) or before == '0' * 40:
+                  changed = ['.github/workflows/import-export-staging-delivery.yml']
+              else:
+                  changed = subprocess.check_output(['git', 'diff', '--name-only', before, 'HEAD'], text=True).splitlines()
+              selected = {path.split('/', 1)[0] for path in changed if path.startswith('taxocommerce-') and '/' in path}
+              selected &= valid
+              if '.github/workflows/import-export-staging-delivery.yml' in changed:
+                  selected |= valid
+          if not selected or not selected.issubset(valid):
+              raise SystemExit('Unexpected scoped target selection: ' + repr(selected))
+          value = json.dumps(sorted(selected), separators=(',', ':'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('slugs=' + value + '\n')
+          print('Scoped delivery modules: ' + value)
+          PY
+
+  validate:
+    name: Validate / ${{ matrix.slug }}
+    needs: select
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        slug: ${{ fromJSON(needs.select.outputs.slugs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax-check only selected module files
+        env:
+          SLUG: ${{ matrix.slug }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$SLUG" -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l >/dev/null
+      - name: Import-Export focused tests
+        if: matrix.slug == 'taxocommerce-import-export'
+        shell: bash
+        run: |
+          set -euo pipefail
           php taxocommerce-import-export/tests/i18n-empty-mo-smoke.php
           php taxocommerce-import-export/tests/empty-gettext-fallback-smoke.php
           php taxocommerce-import-export/tests/background-export-smoke.php
@@ -37,69 +102,108 @@ jobs:
           php taxocommerce-import-export/tests/country-csv-smoke.php
           php taxocommerce-import-export/tests/batch-queue-smoke.php
           node --check taxocommerce-import-export/assets/exporter.js
-          echo 'Import-Export runtime, CSV, gettext, and Pages export checks: PASS'
+      - name: Templates country and routing tests
+        if: matrix.slug == 'taxocommerce-templates'
+        shell: bash
+        run: |
+          set -euo pipefail
+          php taxocommerce-templates/tests/cookie-footer-smoke.php
+          php taxocommerce-templates/tests/smoke.php
+          php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
+          node --check taxocommerce-templates/assets/footer-cookie-preferences.js
+          echo 'Templates 0.4.25: five country policy footers and consent reopen tested'
 
   staging:
-    name: Deliver only Import-Export to STAGING
-    needs: validate
+    name: STAGING / ${{ matrix.slug }}
+    needs: [select, validate]
     if: needs.validate.result == 'success'
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        slug: ${{ fromJSON(needs.select.outputs.slugs) }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reconcile tracked Import-Export files using atomic FTPS + SHA256 readback
+      - name: Full SHA256 reconciliation of selected installed plugin
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          SLUG: ${{ matrix.slug }}
         shell: bash
         run: |
           set -euo pipefail
           python3 -u .github/scripts/deploy_staging_delta.py deploy \
-            --base "$(git rev-parse HEAD)" \
-            --target staging \
-            --slug taxocommerce-import-export \
-            --full true
+            --base "$(git rev-parse HEAD)" --target staging --slug "$SLUG" --full true
 
   focazul:
-    name: Deliver only Import-Export to Focazul
-    needs: [validate, staging]
+    name: Focazul / ${{ matrix.slug }}
+    needs: [select, validate, staging]
     if: ${{ always() && needs.validate.result == 'success' }}
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        slug: ${{ fromJSON(needs.select.outputs.slugs) }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reconcile Focazul independently even if STAGING failed
+      - name: Independently reconcile Focazul even if STAGING fails
         env:
           STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
           STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+          SLUG: ${{ matrix.slug }}
         shell: bash
         run: |
           set -euo pipefail
           python3 -u .github/scripts/deploy_staging_delta.py deploy \
-            --base "$(git rev-parse HEAD)" \
-            --target focazul \
-            --slug taxocommerce-import-export \
-            --full true
+            --base "$(git rev-parse HEAD)" --target focazul --slug "$SLUG" --full true
 
   report:
-    name: Assert scoped delivery status for both sites
+    name: Verify both delivery outcomes
     if: always()
-    needs: [validate, staging, focazul]
+    needs: [select, validate, staging, focazul]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
-      - name: Report both independent outcomes
+      - name: Publish per-site verdict; never call a partial delivery successful
         env:
+          SELECTED: ${{ needs.select.outputs.slugs }}
+          SELECT: ${{ needs.select.result }}
           VALIDATE: ${{ needs.validate.result }}
           STAGING: ${{ needs.staging.result }}
           FOCAZUL: ${{ needs.focazul.result }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
-          echo "Validation: $VALIDATE; STAGING: $STAGING; Focazul: $FOCAZUL"
-          echo "Production is not part of this workflow."
-          test "$VALIDATE" = "success"
-          test "$STAGING" = "success"
-          test "$FOCAZUL" = "success"
+          {
+            echo '## Scoped STAGING + Focazul plugin delivery'
+            echo "- Plugins: $SELECTED"
+            echo "- Revision: $GITHUB_SHA"
+            echo "- Selection: $SELECT"
+            echo "- Validation: $VALIDATE"
+            echo "- STAGING: $STAGING"
+            echo "- Focazul: $FOCAZUL"
+            echo '- Production: not touched'
+            echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > /tmp/scoped-delivery.md
+          cat /tmp/scoped-delivery.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$SELECTED" == *'taxocommerce-templates'* ]]; then
+            gh issue comment 2437 --body-file /tmp/scoped-delivery.md || echo '::warning::Could not comment on Templates delivery issue'
+          fi
+          if [[ "$SELECTED" == *'taxocommerce-import-export'* ]]; then
+            gh issue comment 2428 --body-file /tmp/scoped-delivery.md || echo '::warning::Could not comment on Import-Export delivery issue'
+          fi
+          test "$SELECT" = 'success'
+          test "$VALIDATE" = 'success'
+          test "$STAGING" = 'success'
+          test "$FOCAZUL" = 'success'

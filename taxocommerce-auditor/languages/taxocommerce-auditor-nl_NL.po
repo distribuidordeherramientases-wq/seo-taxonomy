@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Auditor 0.3.10\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.11\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2602,3 +2602,39 @@ msgstr "Ongeldige snelheid."
 #: includes/class-admin.php includes/class-workload.php
 msgid "Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor."
 msgstr "Regelt de grootte en frequentie van batches voor dit onderdeel (volledige, gefilterde en handmatige audits). Wijzigingen zetten de voortgang niet terug. Dit is geen percentage van het CPU-gebruik van de server."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Último lote"
+msgstr "Laatste batch"
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Próximo evento WP-Cron"
+msgstr "Volgende WP-Cron-taak"
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Sin datos"
+msgstr "Geen gegevens"
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "WP-Cron está retrasado; este monitor recupera los lotes mientras permanezca abierto."
+msgstr "WP-Cron loopt achter; deze monitor haalt batches in zolang hij open blijft."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "WP-Cron automático está desactivado; para continuar con la pantalla cerrada configura el cron del servidor."
+msgstr "Automatische WP-Cron is uitgeschakeld; stel een cron-taak op de server in om door te gaan als deze pagina is gesloten."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "No se pudo consultar el progreso. Comprueba la conexión y vuelve a cargar la pantalla."
+msgstr "Kan de voortgang niet ophalen. Controleer de verbinding en laad deze pagina opnieuw."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Monitor activo: la pantalla recupera los lotes que WP-Cron no ejecute. Para continuar con la pantalla cerrada, WP-Cron debe funcionar."
+msgstr "Monitor actief: deze pagina haalt batches in die WP-Cron niet uitvoert. WP-Cron moet werken om door te gaan als deze pagina is gesloten."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Si WP-Cron no procesa los eventos a tiempo, mantén abierta la pestaña de la auditoría: su monitor autenticado recupera automáticamente cada lote vencido respetando la velocidad configurada. Si cierras la pestaña, la continuidad depende de WP-Cron o del cron real configurado en el alojamiento. El aviso de Action Scheduler de WooCommerce corresponde a otro sistema y no identifica por sí solo un fallo de Auditor."
+msgstr "Als WP-Cron taken niet op tijd verwerkt, laat dan het audittabblad open: de aangemelde monitor haalt achterstallige batches automatisch in op de ingestelde snelheid. Zodra het tabblad is gesloten, hangt de verwerking af van WP-Cron of een echte cron-taak op de server. Waarschuwingen van WooCommerce Action Scheduler betreffen een ander systeem en bewijzen op zichzelf geen fout in Auditor."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "La recuperación alternativa registra wp_ajax_taxocommerce_auditor_watch, exige manage_options y un nonce, verifica el cursor y la demora del ámbito, y procesa como máximo un lote por petición AJAX. WP-Cron mantiene el trabajo de fondo. La opción de bloqueo atómico taxocommerce_auditor_worker_{scope} evita ejecución concurrente con el cron; el monitor retrocede ante errores de red y muestra el último lote y siguiente evento. No ejecuta peticiones externas."
+msgstr "De terugvalmethode registreert wp_ajax_taxocommerce_auditor_watch, vereist manage_options en een nonce, controleert de cursor en wachttijd per onderdeel en verwerkt maximaal één batch per AJAX-verzoek. WP-Cron blijft de achtergrondverwerker. De atomische vergrendeling taxocommerce_auditor_worker_{scope} voorkomt gelijktijdige cron-uitvoering; de monitor wacht langer bij netwerkfouten en toont de laatste batch en volgende taak. Er worden geen externe verzoeken gedaan."

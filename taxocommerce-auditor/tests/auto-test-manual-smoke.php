@@ -27,6 +27,7 @@ function update_option( $name, $value ) {
 }
 function current_time( $format, $gmt = false ) { return '2026-10-31 22:30:00'; }
 function get_transient( $name ) { return false; }
+function wp_next_scheduled( $hook, $args = array() ) { return false; }
 function get_current_user_id() { return 1; }
 function admin_url( $path ) { return '/wp-admin/' . $path; }
 // Autotest's new read-only sub-tabs use standard WordPress URL helpers.
@@ -59,6 +60,7 @@ verify( preg_match( '/^\\d+\\.\\d+\\.\\d+$/', Plugin::VERSION ) === 1, 'Plugin r
 verify( false !== strpos( file_get_contents( dirname( __DIR__ ) . '/taxocommerce-auditor.php' ), 'Version: ' . Plugin::VERSION ), 'Version constant matches installed plugin header' );
 verify( has_action( 'admin_post_' . Auto_Test::ACTION ), 'Auto Test action registered' );
 verify( has_action( \TaxoCommerce\Auditor\Runner::HOOK ), 'Existing cron hook remains registered' );
+verify( has_action( 'wp_ajax_taxocommerce_auditor_watch' ), 'Browser recovery AJAX hook registered' );
 verify( count( Auto_Test::cases() ) === 16, '16 functional checks' );
 
 $report = Auto_Test::run_suite();
@@ -119,6 +121,38 @@ verify( strpos( $runner_source, '$processed_batch' ) !== false, 'Category offset
 verify( strpos( $runner_source, '$requested_batch' ) !== false, 'Completion compares the batch limit captured before fetching' );
 verify( strpos( $admin, "wp_nonce_field( 'taxocommerce_auditor_action_' . \$scope )" ) !== false, 'Workload uses existing scope-specific nonce' );
 verify( strpos( $admin, 'Workload::set_speed( $scope, $raw_speed )' ) !== false, 'Workload update routes through validated controls' );
+
+// Cron recovery must respect per-scope speed, preserve cursor and never run paused scopes.
+$runner = '\\TaxoCommerce\\Auditor\\Runner';
+$now = time();
+$GLOBALS['tca_options']['taxocommerce_auditor_state_products'] = array(
+    'status' => 'running', 'processed' => 200, 'total' => 28426,
+    'cursor' => 200, 'started_timestamp' => $now - 300,
+    'last_batch_timestamp' => $now - 120,
+);
+$GLOBALS['tca_options']['taxocommerce_auditor_state_categories'] = array(
+    'status' => 'queued', 'processed' => 0, 'total' => 450,
+    'cursor' => 0, 'started_timestamp' => $now - 300,
+);
+verify( $runner::browser_batch_due( 'products' ), 'Stalled product audit can be rescued' );
+verify( $runner::browser_batch_due( 'categories' ), 'Stalled category audit can be rescued independently' );
+$progress = $runner::progress( 'products' );
+verify( 200 === $progress['processed'] && 28426 === $progress['total'], 'Progress preserves the live 200/28426 state' );
+verify( 0 === $runner::progress( 'categories' )['processed'], 'Category scope starts at its own cursor' );
+verify( 60 === $progress['speed_delay_seconds'], 'Recovery uses the configured product speed' );
+verify( 0 === $progress['next_event_timestamp'], 'Missing WP-Cron event is diagnosed without a fatal error' );
+verify( false === $runner::browser_batch_due( 'unknown' ), 'Unknown scope cannot execute work' );
+$GLOBALS['tca_options']['taxocommerce_auditor_state_products']['last_batch_timestamp'] = $now;
+verify( ! $runner::browser_batch_due( 'products' ), 'Browser cannot bypass the minimum inter-batch delay' );
+$GLOBALS['tca_options']['taxocommerce_auditor_state_products']['status'] = 'paused';
+verify( ! $runner::browser_batch_due( 'products' ), 'Pausing prevents browser-triggered work' );
+verify( false !== strpos( $runner_source, 'add_option( $worker_option' ), 'Cron and browser share an atomic worker lock' );
+verify( false !== strpos( $runner_source, 'delete_option( $worker_option )' ), 'Worker lock is released on exit' );
+verify( false !== strpos( $admin, "check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' )" ), 'Browser recovery verifies nonce' );
+verify( false !== strpos( $admin, "self::guard();" ), 'Browser recovery checks administrator capabilities' );
+$browser = file_get_contents( dirname( __DIR__ ) . '/assets/admin-watch.js' );
+verify( false !== strpos( $browser, 'schedule(Math.min(60000,' ), 'Failed AJAX requests back off' );
+verify( false !== strpos( $browser, "data.status === 'completed'" ), 'Completed audits automatically refresh the report' );
 
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
 

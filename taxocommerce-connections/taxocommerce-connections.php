@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Connections (Compatibility Bridge)
  * Description: Temporary compatibility bridge. External connections now live inside TaxoCommerce Insights.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_VERSION' ) ) {
-	define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.3.2' );
+	define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '0.3.3' );
 }
 if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_FILE' ) ) {
 	define( 'TAXOCOMMERCE_CONNECTIONS_FILE', __FILE__ );
@@ -25,7 +25,9 @@ if ( ! defined( 'TAXOCOMMERCE_CONNECTIONS_PATH' ) ) {
 }
 
 require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-connections-autocheck.php';
+require_once TAXOCOMMERCE_CONNECTIONS_PATH . 'includes/class-taxocommerce-autotest-code.php';
 TaxoCommerce_Connections_Autocheck::boot();
+TaxoCommerce_Connections_Autotest_Code::boot();
 
 /**
  * Returns the new canonical Connections screen.
@@ -79,20 +81,21 @@ function taxocommerce_connections_register_bridge() {
 			if ( ! current_user_can( 'manage_options' ) ) {
 				return;
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy-route redirect.
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only legacy-route selection; never changes settings.
 			$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 			if ( 'taxocommerce-connections' !== $page ) {
 				return;
 			}
 			$args = array();
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Preserves a display-only notice during redirect.
+
 			if ( isset( $_GET['tc_conn_notice'] ) ) {
 				$args['tc_conn_notice'] = sanitize_key( wp_unslash( $_GET['tc_conn_notice'] ) );
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Preserves a display-only notice during redirect.
+
 			if ( isset( $_GET['tc_conn_type'] ) ) {
 				$args['tc_conn_type'] = sanitize_key( wp_unslash( $_GET['tc_conn_type'] ) );
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 			wp_safe_redirect( taxocommerce_connections_insights_url( $args ) );
 			exit;
 		},

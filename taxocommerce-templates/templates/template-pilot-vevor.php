@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 require_once __DIR__ . '/template-pilot-market.php';
 require_once __DIR__ . '/template-pilot-navigation.php';
 require_once __DIR__ . '/template-pilot-country-switcher.php';
+require_once __DIR__ . '/template-cookie-footer.php';
 
 $market = isset($dht_pilot_market) ? strtoupper((string) $dht_pilot_market) : strtoupper((string) ($GLOBALS['dht_pilot_market'] ?? ''));
 $markets = array(
@@ -641,6 +642,7 @@ body.dht-pilot-body{margin:0;background:#f6f8fb;color:#172336;font-family:system
                 <?php endif; ?></p>
             </section>
         </div>
+        <?php dht_template_render_cookie_footer_links( $market ); ?>
         <div class="dht-pilot-copyright">&copy; <?php echo esc_html(wp_date('Y')); ?> <?php echo esc_html($site_title); ?> · <?php echo esc_html($t['country']); ?></div>
     </div>
 </footer>

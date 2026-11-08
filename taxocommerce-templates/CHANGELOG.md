@@ -1,3 +1,12 @@
+## [0.4.25] — 2026-11-08 — Política de cookies y preferencias en pies de página ES/US/FR/DE/NL (#2434)
+
+- Pie español compartido: enlace a Política de cookies y, cuando Insights esté activo, a Preferencias de cookies.
+- Piloto VEVOR y clústeres internacionales: enlaces del país correspondiente, en el idioma del mercado y sin remitir a la página legal española.
+- Plantilla internacional de contenido legal para páginas US/FR/DE/NL, con pie de página consistente. Página española en plantilla corporativa actual.
+- Enlaces exclusivamente a páginas publicadas cuyo slug y país coincidan; los borradores no originan enlaces rotos.
+- Las preferencias reabren el banner existente de Insights sin otorgar ni cambiar permisos.
+- Prueba de regresión para países, visibilidad de borradores y preferencias. Sin alterar productos, pedidos ni cookies almacenadas.
+
 ## [0.4.24] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.

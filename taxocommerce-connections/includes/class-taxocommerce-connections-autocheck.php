@@ -133,6 +133,10 @@ final class TaxoCommerce_Connections_Autocheck {
         self::guard();
         $report = get_transient( self::key() );
         echo '<div class="wrap"><h1>' . esc_html__( 'Autocheck', 'taxocommerce-connections' ) . '</h1>';
+        if ( TaxoCommerce_Connections_Autotest_Code::render_subtabs() ) {
+            echo '</div>';
+            return;
+        }
         echo '<p>' . esc_html__( 'Comprueba la gestión de conexiones sin modificar cuentas ni exponer credenciales.', 'taxocommerce-connections' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="' . esc_attr( self::RUN ) . '">';

@@ -513,6 +513,7 @@ final class TaxoCommerce_Connections_Pinterest {
 		echo '<meta name="p:domain_verify" content="' . esc_attr( $m['domain_verify_code'] ) . '">' . "\n";
 	}
 
+	// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Retain published compatibility API names to prevent regressions.
 	public static function register_legacy_helpers() {
 		if ( ! function_exists( 'seo_social_pinterest_merchant_settings' ) ) {
 			function seo_social_pinterest_merchant_settings() {
@@ -535,4 +536,5 @@ final class TaxoCommerce_Connections_Pinterest {
 			}
 		}
 	}
+	// phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 }

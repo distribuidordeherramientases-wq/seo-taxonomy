@@ -8,6 +8,7 @@ require_once __DIR__ . '/template-helpers.php';
 require_once __DIR__ . '/template-cluster-market.php';
 require_once __DIR__ . '/template-pilot-country-switcher.php';
 require_once __DIR__ . '/template-pilot-market.php';
+require_once __DIR__ . '/template-cookie-footer.php';
 
 $market = isset( $dht_cluster_country ) ? $dht_cluster_country : dht_cluster_country_for_page( get_queried_object_id() );
 if ( ! in_array( $market, array( 'US', 'DE', 'NL', 'FR' ), true ) ) {
@@ -282,6 +283,7 @@ echo wp_json_encode( $schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON
 <footer class="dht-intl-footer"><div class="dht-intl-wrap"><strong><?php echo esc_html( $site_name ); ?></strong>
 <p><?php echo esc_html( $t['disclosure'] ); ?></p>
 <?php if ( $privacy_url ) : ?><a href="<?php echo esc_url( $privacy_url ); ?>"><?php echo esc_html( $t['privacy'] ); ?></a><?php endif; ?>
+<?php dht_template_render_cookie_footer_links( $market ); ?>
 </div></footer>
 <script>
 (function(){

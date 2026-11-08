@@ -1,3 +1,10 @@
+## [0.3.3] — 2026-11-08 — Dos comprobaciones independientes en Autocheck (#2423)
+
+- Autocheck integra «Chequeo de funcionalidades» y «Chequeo del código» como dos subpestañas de una misma pantalla, conservando los cinco casos funcionales actuales de Connections.
+- La inspección de código se limita a Connections y usa tres categorías: PHP, WordPress y seguridad, sin depender del plugin PCP o de otros módulos TaxoCommerce.
+- Cinco velocidades de CPU con lotes, parar/reanudar y descarga JSON privada para el administrador; sin leer credenciales ni realizar llamadas a proveedores.
+- No se modifica el puente opcional hacia Insights ni la restauración de conexiones existentes. Los resultados estáticos no equivalen a certificación WordPress.org.
+
 ## [0.3.2] — 2026-11-08 · Internacionalización completa del catálogo gettext (#2062)
 
 - Traducciones explícitas de los 61 mensajes gettext de Connections en es_ES, en_US, fr_FR, de_DE y nl_NL: menús, ajustes, OAuth, Google, Bing, Merchant, Amazon, Pinterest y respuestas de comprobación.
