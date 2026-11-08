@@ -139,6 +139,9 @@ jobs:
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
           php taxocommerce-images/tests/auto-test-smoke.php
+          php -l taxocommerce-images/includes/class-taxocommerce-autotest-code.php
+          php taxocommerce-images/tests/code-check-smoke.php
+          node --check taxocommerce-images/assets/autotest-code.js
           php taxocommerce-import-export/tests/auto-test-smoke.php
           php taxocommerce-logistica/tests/auto-test-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
