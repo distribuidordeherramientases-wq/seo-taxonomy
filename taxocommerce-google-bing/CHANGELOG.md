@@ -1,3 +1,7 @@
+## [1.1.27] — 2026-11-08 — Compatibilidad de pruebas de consentimiento (#2392)
+
+- Se añade en la prueba aislada el stub admin_url y nonce para evitar falsos fallos de CI, sin cambiar el consentimiento público.
+
 ## [1.1.27] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
