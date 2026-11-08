@@ -1,3 +1,10 @@
+## [1.1.29] — 2026-11-08 — WordPress Plugin Check sobre evidencias de consentimiento (#2399)
+
+- Consultas SELECT, UPDATE y exportación CSV de la tabla propia de consentimiento: identificadores con `%i` y valores mediante `$wpdb->prepare()`; sin concatenar SQL dinámico.
+- Sanitizadas expresamente las tres selecciones del formulario (estadísticas, marketing, preferencias), con rechazo de tipos complejos; permanece la verificación de nonce.
+- Retirado `fclose()` innecesario de `php://output` y documentadas puntualmente las escrituras y lecturas SQL inmediatas sin caché, necesarias para evidencia legal.
+- Se conservan permisos, funcionalidades, esquema de datos y decisiones ya almacenadas. Sin despliegue a producción.
+
 ## [1.1.28] — 2026-11-08 — Limpieza de opciones de consentimiento al desinstalar (#2395)
 
 - La desinstalación elimina la opción `taxocommerce_insights_consent_settings` (texto legal editable y configuración) del sitio, también en cada sitio de WordPress Multisite.

@@ -93,9 +93,9 @@ KEY purpose_date (purpose,created_at)
         }
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked by check_ajax_referer above.
         $revision = isset( $_POST['revision'] ) ? absint( wp_unslash( $_POST['revision'] ) ) : 0;
-        $stats = isset( $_POST['statistics'] ) && '1' === (string) wp_unslash( $_POST['statistics'] );
-        $marketing = isset( $_POST['marketing'] ) && '1' === (string) wp_unslash( $_POST['marketing'] );
-        $preferences = isset( $_POST['preferences'] ) && '1' === (string) wp_unslash( $_POST['preferences'] );
+        $stats = isset( $_POST['statistics'] ) && is_scalar( $_POST['statistics'] ) && 1 === absint( wp_unslash( $_POST['statistics'] ) );
+        $marketing = isset( $_POST['marketing'] ) && is_scalar( $_POST['marketing'] ) && 1 === absint( wp_unslash( $_POST['marketing'] ) );
+        $preferences = isset( $_POST['preferences'] ) && is_scalar( $_POST['preferences'] ) && 1 === absint( wp_unslash( $_POST['preferences'] ) );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         if ( $revision !== (int) $settings['revision'] ) {
             wp_send_json_error( array( 'message' => 'revision_changed' ), 409 );
@@ -105,6 +105,7 @@ KEY purpose_date (purpose,created_at)
         $hash = self::subject();
         $legal_hash = self::legal_hash( $settings );
         foreach ( array( 'statistics' => $stats, 'marketing' => $marketing, 'preferences' => $preferences ) as $purpose => $accepted ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Append-only, immediately durable evidence in the plugin-owned SQL ledger.
             $saved = $wpdb->insert( self::table(), array(
                 'subject_hash' => $hash,
                 'purpose' => $purpose,
@@ -131,17 +132,6 @@ KEY purpose_date (purpose,created_at)
             'purpose' => in_array( $purpose, array( 'statistics', 'marketing', 'preferences' ), true ) ? $purpose : '',
         );
     }
-    private static function where( $f ) {
-        global $wpdb;
-        $sql = ' WHERE 1=1';
-        if ( $f['decision'] ) {
-            $sql .= $wpdb->prepare( ' AND decision=%s', $f['decision'] );
-        }
-        if ( $f['purpose'] ) {
-            $sql .= $wpdb->prepare( ' AND purpose=%s', $f['purpose'] );
-        }
-        return $sql;
-    }
     public static function render() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
@@ -149,11 +139,18 @@ KEY purpose_date (purpose,created_at)
         global $wpdb;
         self::maybe_install();
         $f = self::filters();
-        $where = self::where( $f );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Filter values already prepared; table identifier is plugin-owned.
-        $total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . self::table() . $where );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- No untrusted SQL; hard-limited results.
-        $rows = $wpdb->get_results( "SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM " . self::table() . $where . " ORDER BY id DESC LIMIT 100", ARRAY_A );
+        // Bind the table identifier using %i (WordPress 6.2+) and bind each filter.
+        // An empty filter matches all decisions/purposes, preserving old behavior.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached live evidence, no stale consent inventory.
+        $total = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s)",
+            self::table(), $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
+        ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicitly bounded, current legal audit results.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM %i WHERE (%s = '' OR decision = %s) AND (%s = '' OR purpose = %s) ORDER BY id DESC LIMIT 100",
+            self::table(), $f['decision'], $f['decision'], $f['purpose'], $f['purpose']
+        ), ARRAY_A );
         echo '<div class="card" style="max-width:1200px;padding:20px;margin-top:18px">';
         echo '<h2>' . esc_html__( 'Inventario de consentimientos', 'taxocommerce-google-bing' ) . '</h2>';
         echo '<p>' . esc_html__( 'Registro histórico de decisiones; no se modifica una decisión pasada. Para rectificar se registra una nueva decisión. La supresión anonimiza el identificador y conserva únicamente evidencia no identificativa.', 'taxocommerce-google-bing' ) . '</p>';
@@ -208,8 +205,10 @@ KEY purpose_date (purpose,created_at)
         }
         global $wpdb;
         // Remove the subject link but preserve a minimal immutable legal evidence record.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immediate anonymization of stored legal evidence.
         $wpdb->query( $wpdb->prepare(
-            'UPDATE ' . self::table() . ' SET subject_hash=%s, erased_at=%s WHERE subject_hash=%s AND erased_at IS NULL',
+            'UPDATE %i SET subject_hash=%s, erased_at=%s WHERE subject_hash=%s AND erased_at IS NULL',
+            self::table(),
             str_repeat( '0', 64 ),
             current_time( 'mysql', true ),
             $hash
@@ -223,8 +222,11 @@ KEY purpose_date (purpose,created_at)
         }
         check_admin_referer( self::NONCE );
         global $wpdb;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed plugin-owned table.
-        $rows = $wpdb->get_results( 'SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM ' . self::table() . ' ORDER BY id DESC LIMIT 10000', ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Administrator-only snapshot, explicitly limited to 10,000 legal evidence rows.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT id,subject_hash,purpose,decision,locale,legal_revision,legal_hash,source,created_at,erased_at FROM %i ORDER BY id DESC LIMIT 10000',
+            self::table()
+        ), ARRAY_A );
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="insights-consent-evidence-' . gmdate( 'Ymd' ) . '.csv"' );
@@ -237,7 +239,7 @@ KEY purpose_date (purpose,created_at)
                 return preg_match( '/\\A[=+@\\-\\t\\r]/', $value ) ? "'" . $value : $value;
             }, array_values( $row ) ) );
         }
-        fclose( $stream );
+        // php://output closes automatically at request shutdown.
         exit;
     }
 }
