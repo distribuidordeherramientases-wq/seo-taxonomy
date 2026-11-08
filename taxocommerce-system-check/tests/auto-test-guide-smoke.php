@@ -39,6 +39,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function __( $value, $domain = '' ) { return $value; }
 function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
 function esc_attr( $value ) { return esc_html( $value ); }
+function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( (string) $value ) ); }
 function wp_unslash( $value ) { return stripslashes( $value ); }
@@ -130,7 +131,7 @@ unset( $_GET['tcs_run'], $_GET['_wpnonce'] );
 ob_start();
 TaxoCommerce_System_Check_Auto_Test::render();
 $initial = ob_get_clean();
-tcs_smoke_expect( strpos( $initial, 'Ejecutar Autocheck' ) !== false && $GLOBALS['tcs_nonce_calls'] === 0, 'Opening tab must not run self-test.' );
+tcs_smoke_expect( strpos( $initial, 'Run Functionality Check' ) !== false && $GLOBALS['tcs_nonce_calls'] === 0, 'Opening tab must not run self-test.' );
 tcs_smoke_expect( strpos( $initial, 'taxocommerce_system_check_autocheck_json' ) === false, 'No JSON download must appear before the first execution.' );
 $_GET['tcs_run'] = '1';
 $_GET['_wpnonce'] = 'test';

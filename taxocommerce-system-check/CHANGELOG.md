@@ -1,3 +1,12 @@
+## [0.2.20] — 2026-11-08 — Autocheck independiente de funcionalidades y código (#2361)
+
+- Dos subpestañas en Autocheck: «Functionality Check» conserva el autocheck existente; «Code Check» inspecciona únicamente los archivos PHP del plugin System Check.
+- Code Check ejecuta tres análisis propios: parser de sintaxis PHP con TOKEN_PARSE, convenciones básicas de WordPress y búsqueda de funciones PHP de riesgo sin ejecutar ningún fragmento inspeccionado.
+- No necesita ni instala PCP, WP-CLI, GitHub ni ningún otro plugin de chequeo. No se afirma equivalencia con las pruebas completas de WordPress.org.
+- Cinco velocidades de CPU con lotes de 1 a 4 archivos, detener/reanudar, resultados separados y descarga JSON privada por usuario/sitio.
+- Controles avanzados de seguridad (nonces, sanitización, escape y vulnerabilidades de dependencias) aparecen como no verificados, nunca como superados.
+- Cambios limitados a System Check y a su CI. Sin cambios en los plugins antiguos o en el resto de la familia.
+
 ## [Unreleased] — Internacionalización de la interfaz de System Check (#2062)
 
 - Traducidas 71 cadenas visibles de administración, validación, permisos, informes y escaneo en es_ES, en_US, fr_FR, de_DE y nl_NL: 355 entradas gettext nuevas.

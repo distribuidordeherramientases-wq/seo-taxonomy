@@ -4,7 +4,7 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.19
+Stable tag: 0.2.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,6 +17,7 @@ TaxoCommerce System Check provides a standalone administration entry for diagnos
 * WordPress, PHP and hosting/system status screens.
 * Processes tab: read and cancel eligible application jobs from Action Scheduler/WP-Cron, with optional cooperative controls for installed workers. Does not kill operating-system or running PHP processes.
 * Plugin validation and local PHP checks.
+* Autocheck contains two independent sections: Functionality Check (existing read-only service tests) and Code Check (PHP native syntax parse, selected WordPress structure conventions, and high-risk function patterns) for System Check's own PHP source only. Code Check runs with five bounded CPU speeds, stop/resume, and private JSON download; it requires no other checker plugin, WP-CLI, GitHub or process-execution functions. Some security and publication rules require a separate manual review or official WordPress.org assessment.
 * Optional HTTP URL audit of site content, when started explicitly by an administrator.
 * On-demand diagnostic reports and optional administrator-configured notification emails.
 * Dedicated bounded processing for longer URL checks. Neither external GitHub runners nor artificial traffic generation are necessary.
@@ -36,6 +37,12 @@ Some historical diagnostic callbacks are reused when the old TaxoCommerce SEO pl
 System diagnostics can include server configuration, URLs and error details. Treat exported results as potentially sensitive. No diagnostic report should be sent to a developer automatically: optional email reports must be explicitly enabled and target an address chosen by the site administrator. HTTP checks make requests to the site's specified URLs and must be used within hosting limits.
 
 == Changelog ==
+
+= 0.2.20 =
+* Split Autocheck into Functionality Check and Code Check subtabs, both only for System Check itself.
+* Add three native, read-only code checks (PHP syntax, WordPress conventions, security patterns) without installing or invoking any other checker.
+* Code Check supports five CPU speeds, stop/resume and a user-scoped JSON report. Complex rule coverage remains explicitly unverified.
+
 
 = 0.2.18 =
 * Add a bounded, administrator-only Processes tab with application-task inventory, protected selective cancellation and cooperative stop controls. Preserve WooCommerce critical jobs and never claim to terminate active PHP or operating-system processes.
