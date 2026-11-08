@@ -36,7 +36,6 @@ function remove_query_arg( $key, $url = '/wp-admin/admin.php?page=taxocommerce-a
 function add_query_arg( $key, $value = null, $url = '' ) {
     return ( $url ?: '/wp-admin/admin.php?page=taxocommerce-auditor' ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
 }
-function esc_attr__( $text, $domain = '' ) { return esc_attr( $text ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
