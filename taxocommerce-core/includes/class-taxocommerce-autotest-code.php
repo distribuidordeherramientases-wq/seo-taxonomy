@@ -22,9 +22,10 @@ final class TaxoCommerce_Core_Autotest_Code {
     }
 
     public static function assets() {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation only; never changes data.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector, not data processing.
         $section = isset( $_GET['tc_autotest_section'] ) && is_scalar( $_GET['tc_autotest_section'] )
             ? sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'code' === $section && current_user_can( 'manage_options' ) ) {
             wp_enqueue_script(
                 'taxocommerce-core-autotest-code',
