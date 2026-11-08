@@ -13,7 +13,7 @@ msgstr ""
 #: taxocommerce-scrappers.php:77 taxocommerce-scrappers.php:95
 #: taxocommerce-scrappers.php:135 taxocommerce-scrappers.php:137
 msgid "TaxoCommerce Scrappers"
-msgstr ""
+msgstr "TaxoCommerce Scrappers"
 
 #. Description of the plugin
 #: taxocommerce-scrappers.php
@@ -25,7 +25,7 @@ msgstr ""
 #. Author of the plugin
 #: taxocommerce-scrappers.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:138
 msgid "No tienes permisos para ejecutar el autotest."
@@ -119,7 +119,7 @@ msgstr "2. Connections: external providers"
 
 #: includes/class-taxocommerce-scrappers-manual.php:34
 msgid "La cadena de búsqueda sigue el orden"
-msgstr ""
+msgstr "The search sequence follows this order"
 
 #: includes/class-taxocommerce-scrappers-manual.php:34
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
@@ -209,7 +209,7 @@ msgstr "Continue / refresh market"
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "inicia un recorrido por categorías aptas y"
-msgstr ""
+msgstr "starts a scan of eligible categories and"
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "Detener"
@@ -285,7 +285,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:53
 msgid "permite consultar la información conservada;"
-msgstr ""
+msgstr "allows you to view retained information;"
 
 #: includes/class-taxocommerce-scrappers-manual.php:53
 msgid ""
@@ -299,7 +299,7 @@ msgstr "5. Self-test and results"
 
 #: includes/class-taxocommerce-scrappers-manual.php:57
 msgid "Una clave API pendiente de configurar aparece como"
-msgstr ""
+msgstr "An API key awaiting configuration appears as"
 
 #: includes/class-taxocommerce-scrappers-manual.php:57
 msgid "Aviso"
@@ -336,7 +336,7 @@ msgstr ""
 
 #: includes/class-taxocommerce-scrappers-manual.php:74
 msgid "no acredita"
-msgstr ""
+msgstr "does not validate"
 
 #: includes/class-taxocommerce-scrappers-manual.php:74
 msgid ""
@@ -437,36 +437,36 @@ msgstr "External and editorial research service."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid "Investiga por categoría y clasifica cada fuente/evidencia como"
-msgstr ""
+msgstr "Research by category and classify each source or item of evidence as"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 #: includes/ingeniero/class-seo-ingeniero-admin.php:444
 msgid "L1 técnica"
-msgstr ""
+msgstr "L1 technical"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid "L2 práctica"
-msgstr ""
+msgstr "L2 practical"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid "L3 actualidad"
-msgstr ""
+msgstr "L3 current developments"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:396
 msgid ", conservando trazabilidad para su uso editorial posterior."
-msgstr ""
+msgstr ", preserving traceability for subsequent editorial use."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:444
 msgid "Ingeniero investiga cada categoría en tres capas:"
-msgstr ""
+msgstr "Ingeniero researches each category across three layers:"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:444
 msgid "L2 práctica/comunidad"
-msgstr ""
+msgstr "L2 practical/community"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:444
 msgid "L3 actualidad sectorial"
-msgstr ""
+msgstr "L3 industry developments"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:444
 msgid ""
@@ -499,7 +499,7 @@ msgstr "Search provider"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid "Proveedores Google compartidos con Ojeador:"
-msgstr ""
+msgstr "Google providers shared with Ojeador:"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:487
 msgid ""
@@ -535,7 +535,7 @@ msgstr "L1 · Technical:"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:508
 msgid "manuales, fichas, fabricantes, organismos y normativa."
-msgstr ""
+msgstr "manuals, datasheets, manufacturers, official bodies and regulations."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:509
 msgid "L2 · Práctica:"
@@ -578,7 +578,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:549
 msgid "Regla 0.5.0:"
-msgstr ""
+msgstr "Rule 0.5.0:"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:549
 msgid ""
@@ -745,7 +745,7 @@ msgstr "Researched"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "significa que Ingeniero ya ha obtenido conocimiento de la categoría."
-msgstr ""
+msgstr "means Ingeniero has already gathered knowledge about the category."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "Aprobadas"
@@ -753,7 +753,7 @@ msgstr "Approved"
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:880
 msgid "son las investigadas que ya no tienen bloques pendientes de revisión."
-msgstr ""
+msgstr "are researched categories with no remaining blocks awaiting review."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:885
 msgid "Categorías"
@@ -892,7 +892,7 @@ msgstr ""
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:98
 msgid "Se intenta resolver por term_id y, si no coincide, por slug y nombre."
-msgstr ""
+msgstr "Resolution is attempted using term_id and, if it does not match, slug and name."
 
 #: includes/ingeniero/class-seo-ingeniero-exchange.php:104
 msgid "Columnas CSV"
@@ -983,7 +983,7 @@ msgstr ""
 
 #: includes/ojeador/class-ojeador-merchant.php:311
 msgid "Merchant primero · auditoría sin SerpApi/ScraperAPI"
-msgstr ""
+msgstr "Merchant first · audit without SerpApi/ScraperAPI"
 
 #: includes/ojeador/class-ojeador-merchant.php:312
 msgid ""
