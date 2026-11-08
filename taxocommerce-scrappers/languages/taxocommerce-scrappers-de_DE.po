@@ -20,7 +20,7 @@ msgstr "TaxoCommerce Scrappers"
 msgid ""
 "External market and product research using the legacy Ojeador and Ingeniero "
 "engines with shared SerpApi and ScraperAPI connections."
-msgstr ""
+msgstr "Externe Markt- und Produktrecherche mit den bewährten Ojeador- und Ingeniero-Modulen und gemeinsamen SerpApi- und ScraperAPI-Verbindungen."
 
 #. Author of the plugin
 #: taxocommerce-scrappers.php
@@ -41,7 +41,7 @@ msgid ""
 "búsquedas, no consume cuotas, no inicia procesos y no modifica datos. Una "
 "credencial sin configurar es un aviso de preparación, no un fallo del "
 "programa."
-msgstr ""
+msgstr "Prüft die Verfügbarkeit von Komponenten, Verbindungen und Tabellen. Es werden keine Suchen ausgeführt, keine Kontingente verbraucht, keine Prozesse gestartet und keine Daten geändert. Nicht konfigurierte Zugangsdaten sind ein Einrichtungshinweis und kein Programmfehler."
 
 #: includes/class-taxocommerce-scrappers-auto-test.php:151
 msgid "El autotest aún no se ha ejecutado en esta visita."
@@ -71,7 +71,7 @@ msgid ""
 "El resultado es puntual, no se guarda. La conexión real de proveedores se "
 "prueba por separado desde Connections y puede consumir recursos del servicio"
 " externo."
-msgstr ""
+msgstr "Das Ergebnis ist eine Momentaufnahme und wird nicht gespeichert. Die tatsächliche Anbieteranbindung wird separat unter Connections getestet und kann Ressourcen des externen Dienstes verbrauchen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:18
 msgid "No tienes permisos para consultar el manual."
@@ -89,7 +89,7 @@ msgstr "Wichtig:"
 msgid ""
 "las búsquedas con SerpApi o ScraperAPI pueden tener costes. El manual y el "
 "autotest no realizan consultas externas."
-msgstr ""
+msgstr "Suchanfragen über SerpApi oder ScraperAPI können Kosten verursachen. Das Handbuch und der Selbsttest stellen keine externen Anfragen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:24
 msgid "Índice:"
@@ -132,7 +132,7 @@ msgid ""
 "de proveedor. Ajusta el límite mensual local de SerpApi según tu contrato. "
 "Las cifras de peticiones locales no sustituyen la facturación oficial de los"
 " proveedores."
-msgstr ""
+msgstr ". Eine gültige Antwort ohne Treffer ist kein Fehler und erfordert keinen Anbieterwechsel. Stellen Sie das lokale monatliche SerpApi-Limit gemäß Ihrem Vertrag ein. Lokale Anfragezahlen ersetzen nicht die offizielle Abrechnung der Anbieter."
 
 #: includes/class-taxocommerce-scrappers-manual.php:35
 msgid "El botón"
@@ -147,7 +147,7 @@ msgid ""
 "es una comprobación real de conexión: SerpApi utiliza su consulta de cuenta;"
 " si necesita pasar a ScraperAPI puede consumir una solicitud externa. No "
 "confundir esta acción con Autotest."
-msgstr ""
+msgstr "ist ein echter Verbindungstest: SerpApi fragt die Kontoinformationen ab; bei einem Wechsel zu ScraperAPI kann eine externe Anfrage verbraucht werden. Verwechseln Sie diese Aktion nicht mit dem Selbsttest."
 
 #: includes/class-taxocommerce-scrappers-manual.php:37
 msgid "3. Ojeador: mercado y precios"
@@ -161,7 +161,7 @@ msgstr "Analyse und Empfehlungen:"
 msgid ""
 "indicadores por categoría, oportunidades comerciales, bloqueo operativo y "
 "comercios representados en la muestra."
-msgstr ""
+msgstr "Kategorieindikatoren, Geschäftschancen, betriebliche Sperren und Händler in der Stichprobe."
 
 #: includes/class-taxocommerce-scrappers-manual.php:41
 msgid "Posición de precio:"
@@ -171,7 +171,7 @@ msgstr "Preisposition:"
 msgid ""
 "compara tu producto con el rango de mercado; permite filtrar por categoría, "
 "proveedor y visibilidad."
-msgstr ""
+msgstr "vergleicht Ihr Produkt mit der Marktpreisspanne; Filter nach Kategorie, Lieferant und Sichtbarkeit."
 
 #: includes/class-taxocommerce-scrappers-manual.php:42
 msgid "Comparador de productos:"
@@ -181,7 +181,7 @@ msgstr "Produktvergleich:"
 msgid ""
 "resultados de Shopping por precio, comercio, marca/modelo, descuento y "
 "valoraciones."
-msgstr ""
+msgstr "Shopping-Ergebnisse nach Preis, Händler, Marke/Modell, Rabatt und Bewertungen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:43
 msgid "Operación y consultas:"
@@ -191,7 +191,7 @@ msgstr "Betrieb und Abfragen:"
 msgid ""
 "categorías aptas, cobertura, estado de cada consulta y registro de "
 "peticiones; aquí se ajusta el ritmo del servicio."
-msgstr ""
+msgstr "geeignete Kategorien, Abdeckung, Abfragestatus und Anfrageprotokoll; hier wird das Diensttempo eingestellt."
 
 #: includes/class-taxocommerce-scrappers-manual.php:44
 msgid "Merchant · Comparación gratuita:"
@@ -201,7 +201,7 @@ msgstr "Merchant · Kostenloser Vergleich:"
 msgid ""
 "consulta los datos Merchant disponibles sin sustituir el histórico de "
 "Shopping."
-msgstr ""
+msgstr "zeigt verfügbare Merchant-Daten an, ohne den Shopping-Verlauf zu ersetzen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:46
 msgid "Continuar / actualizar mercado"
@@ -221,14 +221,14 @@ msgid ""
 "Ajusta las categorías por paso, la frecuencia y la reutilización de "
 "consultas antes de aumentar el ritmo. La lectura de informes no modifica "
 "productos ni precios de venta."
-msgstr ""
+msgstr "ermöglicht das Stoppen des Vorgangs. Die Verarbeitung erfolgt stapelweise über WP-Cron. Passen Sie Kategorien pro Schritt, Häufigkeit und Wiederverwendung von Abfragen an, bevor Sie das Tempo erhöhen. Das Anzeigen von Berichten verändert weder Produkte noch Verkaufspreise."
 
 #: includes/class-taxocommerce-scrappers-manual.php:47
 msgid ""
 "Utiliza las exportaciones JSON existentes para conservar resultados y "
 "trazabilidad. Revisa fecha, cobertura y fuentes antes de tomar decisiones "
 "comerciales."
-msgstr ""
+msgstr "Verwenden Sie die vorhandenen JSON-Exporte, um Ergebnisse und Nachvollziehbarkeit zu sichern. Prüfen Sie Datum, Abdeckung und Quellen, bevor Sie Geschäftsentscheidungen treffen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:49
 msgid "4. Ingeniero: investigación técnica y editorial"
@@ -273,7 +273,7 @@ msgstr "Tests"
 msgid ""
 ". Algunas vistas editoriales dependen de los módulos especializados "
 "disponibles en la instalación."
-msgstr ""
+msgstr ". Einige redaktionelle Ansichten hängen von den installierten Spezialmodulen ab."
 
 #: includes/class-taxocommerce-scrappers-manual.php:52
 msgid ""
@@ -281,7 +281,7 @@ msgid ""
 "por categoría, recopila las fuentes, revisa evidencias y confianza, y "
 "utiliza los controles de revisión y aprobación antes de aceptar propuestas o"
 " generar borradores. La investigación por sí sola no publica contenidos."
-msgstr ""
+msgstr "Vorgehen: Wählen Sie Kategorien und Ebene aus, richten Sie kategoriespezifische Suchen ein, sammeln Sie Quellen, prüfen Sie Belege und Vertrauenswürdigkeit und nutzen Sie Prüf- und Freigabeschritte, bevor Sie Vorschläge übernehmen oder Entwürfe erstellen. Recherchen veröffentlichen keine Inhalte automatisch."
 
 #: includes/class-taxocommerce-scrappers-manual.php:53
 msgid "permite consultar la información conservada;"
@@ -291,7 +291,7 @@ msgstr "ermöglicht die Einsicht in gespeicherte Informationen;"
 msgid ""
 "contiene comprobaciones propias del proceso editorial, distintas del "
 "Autotest general de Scrappers."
-msgstr ""
+msgstr "enthält Prüfungen des redaktionellen Ablaufs, getrennt vom allgemeinen Scrappers-Selbsttest."
 
 #: includes/class-taxocommerce-scrappers-manual.php:55
 msgid "5. Autotest y resultados"
@@ -310,7 +310,7 @@ msgid ""
 "y no como error de programación. Si falta una tabla o un controlador, "
 "consulta el bloque técnico y comprueba la instalación antes de ejecutar "
 "servicios."
-msgstr ""
+msgstr "und nicht als Programmfehler. Fehlt eine Tabelle oder ein Controller, lesen Sie den technischen Abschnitt und prüfen Sie die Installation, bevor Sie Dienste ausführen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:60
 msgid "6. Estructura y ciclo de carga"
@@ -332,7 +332,7 @@ msgstr "9. Validierung, Bereitstellung und Grenzen"
 msgid ""
 "El autotest interno verifica carga, clases, opciones disponibles, hooks y "
 "existencia de tablas, pero"
-msgstr ""
+msgstr "Der interne Selbsttest prüft Laden, Klassen, verfügbare Optionen, Hooks und das Vorhandensein von Tabellen, aber"
 
 #: includes/class-taxocommerce-scrappers-manual.php:74
 msgid "no acredita"
@@ -344,7 +344,7 @@ msgid ""
 "comerciales. Para esto, utiliza el test explícito de Connections, los logs "
 "de Ojeador, las pruebas editoriales de Ingeniero y los controles de tareas "
 "programadas de WordPress."
-msgstr ""
+msgstr "den tatsächlichen HTTP-Zugriff, die Quellenqualität, die Cron-Ausführung oder Geschäftsergebnisse. Verwenden Sie hierfür den ausdrücklichen Connections-Test, die Ojeador-Protokolle, die redaktionellen Ingeniero-Tests und die WordPress-Steuerung geplanter Aufgaben."
 
 #: includes/class-taxocommerce-scrappers-manual.php:77
 msgid "Diagnóstico y resolución de incidencias"
@@ -362,7 +362,7 @@ msgstr "Anbieterschlüssel fehlt:"
 msgid ""
 "revisa Connections; el autotest señalará la configuración ausente sin "
 "mostrar credenciales."
-msgstr ""
+msgstr "prüfen Sie Connections; der Selbsttest meldet fehlende Konfiguration, ohne Zugangsdaten anzuzeigen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:81
 msgid "Sin resultados de Shopping:"
@@ -372,7 +372,7 @@ msgstr "Keine Shopping-Ergebnisse:"
 msgid ""
 "distingue respuesta válida de cero resultados, límite de cuota, problemas de"
 " red y categoría no apta; revisa Operación y consultas."
-msgstr ""
+msgstr "unterscheiden Sie eine gültige Antwort ohne Treffer von Kontingentgrenzen, Netzwerkproblemen oder ungeeigneten Kategorien; prüfen Sie Betrieb und Abfragen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:82
 msgid "Un proceso no avanza:"
@@ -383,7 +383,7 @@ msgid ""
 "comprueba WP-Cron, la cola programada, el estado de bloqueo y la "
 "disponibilidad del proveedor; no fuerces llamadas repetidas sin comprobar "
 "consumo."
-msgstr ""
+msgstr "prüfen Sie WP-Cron, die geplante Warteschlange, Sperrstatus und Anbietererreichbarkeit; erzwingen Sie keine wiederholten Aufrufe, ohne den Verbrauch zu prüfen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:83
 msgid "Faltan tablas:"
@@ -393,7 +393,7 @@ msgstr "Fehlende Tabellen:"
 msgid ""
 "verifica versión y activación, la instalación previa de Ojeador/Ingeniero y "
 "la migración. El Autotest no crea ni modifica tablas."
-msgstr ""
+msgstr "prüfen Sie Version und Aktivierung sowie die frühere Ojeador-/Ingeniero-Installation und Migration. Der Selbsttest erstellt oder verändert keine Tabellen."
 
 #: includes/class-taxocommerce-scrappers-manual.php:84
 msgid "Ingeniero sin propuestas:"
@@ -403,7 +403,7 @@ msgstr "Ingeniero ohne Vorschläge:"
 msgid ""
 "comprueba cobertura de categorías, fuentes, conocimiento aprobado y acciones"
 " editoriales; ausencia de resultados no equivale a error técnico."
-msgstr ""
+msgstr "prüfen Sie Kategorieabdeckung, Quellen, freigegebenes Wissen und redaktionelle Aktionen; fehlende Ergebnisse bedeuten nicht zwangsläufig einen technischen Fehler."
 
 #: includes/class-taxocommerce-scrappers-manual.php:85
 msgid "Coexistencia con monolito:"
@@ -413,7 +413,7 @@ msgstr "Koexistenz mit dem Monolithen:"
 msgid ""
 "comprueba cuál registra los handlers y hooks. Las clases con nombres "
 "heredados se reutilizan para evitar redeclaraciones."
-msgstr ""
+msgstr "prüfen Sie, welche Komponente Handler und Hooks registriert. Bestehende Klassennamen werden wiederverwendet, um Neudeklarationen zu vermeiden."
 
 #: includes/class-taxocommerce-scrappers-manual.php:87
 msgid "Volver al índice"
@@ -472,14 +472,14 @@ msgstr "L3 Branchenneuigkeiten"
 msgid ""
 ". Cada evidencia conserva su capa, subtipo, fuente, confianza y fecha. La "
 "salida editorial se gestiona aparte y nunca autopublica."
-msgstr ""
+msgstr ". Jeder Beleg behält Ebene, Untertyp, Quelle, Vertrauenswürdigkeit und Datum. Redaktionelle Inhalte werden getrennt verwaltet und niemals automatisch veröffentlicht."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:445
 msgid ""
 "Separación deliberada: L1 puede respaldar hechos técnicos; L2 conserva "
 "preguntas/experiencias sin elevarlas automáticamente a hecho; L3 conserva "
 "novedades con fecha y vigencia."
-msgstr ""
+msgstr "Bewusste Trennung: L1 kann technische Fakten belegen; L2 speichert Fragen und Erfahrungen, ohne sie automatisch als Fakten zu werten; L3 speichert datierte Neuigkeiten mit Gültigkeitsbezug."
 
 #: includes/ingeniero/class-seo-ingeniero-admin.php:451
 msgid "Investigación externa L1 / L2 / L3"
