@@ -49,6 +49,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate System Check native code audit independently
+        run: |
+          set -euo pipefail
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php -l taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-smoke.php
+
       - name: Validate Insights consent and editable legal text lifecycle
         run: |
           php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
