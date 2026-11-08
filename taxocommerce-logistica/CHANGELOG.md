@@ -1,3 +1,8 @@
+## [0.2.13] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
+
+- El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
+- Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+
 ## [0.2.12] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
