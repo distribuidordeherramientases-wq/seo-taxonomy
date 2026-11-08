@@ -1,3 +1,8 @@
+## [0.2.10] — 2026-11-08 — Internacionalización completa de formularios y controles Logistics (#2062)
+
+- Traducidos 98 textos PHP de interfaz, pedidos, reglas e informes Autocheck mediante gettext en ES/EN/FR/DE/NL.
+- Mantiene la pestaña de compras a proveedores y el historial plegable previamente integrados.
+
 ## [0.2.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable del historial de este plugin, cerrado por defecto bajo el título; no interfiere con la compra a proveedores ni traducciones.

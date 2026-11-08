@@ -4,7 +4,7 @@ Tags: woocommerce, logistics, shipping, weight, orders
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.9
+Stable tag: 0.2.10
 License: MIT
 
 Manage shipping costs, package weight and dimensions in WooCommerce with manual rules and shipment audits.
@@ -32,6 +32,10 @@ It does not contain supplier matching, purchasing, or supplier-catalog logic.
 The WordPress administration locale automatically selects the gettext language. Bundled Spanish (es_ES), English (en_US), French (fr_FR), German (de_DE) and Dutch (nl_NL) PO/MO files cover every string in the current translation template. This does not translate store products, orders or editorial content.
 
 == Changelog ==
+
+= 0.2.10 =
+* Internationalize shipping-rule forms and diagnostics in ES/EN/FR/DE/NL without altering supplier purchases.
+
 
 = 0.2.9 =
 * Collapsed history directly under the admin title, reading the bundled CHANGELOG.md.

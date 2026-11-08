@@ -787,3 +787,395 @@ msgstr "You do not have permission to access this page."
 #: includes/seo-transporte.php:646
 msgid "Logistics — Shipping Weight & Costs"
 msgstr "Logistics — Shipping Weight & Costs"
+
+#: includes/seo-transporte.php
+msgid "Regla activa"
+msgstr "Active rule"
+
+#: includes/seo-transporte.php
+msgid "Eliminar"
+msgstr "Delete"
+
+#: includes/seo-transporte.php
+msgid "Prioridad"
+msgstr "Priority"
+
+#: includes/seo-transporte.php
+msgid "Nombre de la regla"
+msgstr "Rule name"
+
+#: includes/seo-transporte.php
+msgid "Destino"
+msgstr "Destination"
+
+#: includes/seo-transporte.php
+msgid "Cuándo se aplica"
+msgstr "When it applies"
+
+#: includes/seo-transporte.php
+msgid "Subtotal mínimo (€)"
+msgstr "Minimum subtotal (€)"
+
+#: includes/seo-transporte.php
+msgid "Subtotal máximo (€)"
+msgstr "Maximum subtotal (€)"
+
+#: includes/seo-transporte.php
+msgid "Peso mínimo (kg)"
+msgstr "Minimum weight (kg)"
+
+#: includes/seo-transporte.php
+msgid "Peso máximo (kg)"
+msgstr "Maximum weight (kg)"
+
+#: includes/seo-transporte.php
+msgid "Largo máx. (cm)"
+msgstr "Max. length (cm)"
+
+#: includes/seo-transporte.php
+msgid "Ancho máx. (cm)"
+msgstr "Max. width (cm)"
+
+#: includes/seo-transporte.php
+msgid "Alto máx. (cm)"
+msgstr "Max. height (cm)"
+
+#: includes/seo-transporte.php
+msgid "Volumen total máx. (dm³)"
+msgstr "Max. total volume (dm³)"
+
+#: includes/seo-transporte.php
+msgid "Cómo calcula el coste"
+msgstr "How cost is calculated"
+
+#: includes/seo-transporte.php
+msgid "Coste fijo (€)"
+msgstr "Fixed cost (€)"
+
+#: includes/seo-transporte.php
+msgid "+ coste por kg (€)"
+msgstr "+ cost per kg (€)"
+
+#: includes/seo-transporte.php
+msgid "+ coste por unidad (€)"
+msgstr "+ cost per item (€)"
+
+#: includes/seo-transporte.php
+msgid "Gratis desde subtotal (€)"
+msgstr "Free shipping from subtotal (€)"
+
+#: includes/seo-transporte.php
+msgid "Pedidos: peso y coste de envío"
+msgstr "Orders: weight and shipping cost"
+
+#: includes/seo-transporte.php
+msgid "Pedido"
+msgstr "Order"
+
+#: includes/seo-transporte.php
+msgid "Estado"
+msgstr "Status"
+
+#: includes/seo-transporte.php
+msgid "Unidades"
+msgstr "Units"
+
+#: includes/seo-transporte.php
+msgid "Peso total"
+msgstr "Total weight"
+
+#: includes/seo-transporte.php
+msgid "Productos sin peso"
+msgstr "Products without weight"
+
+#: includes/seo-transporte.php
+msgid "Método de envío"
+msgstr "Shipping method"
+
+#: includes/seo-transporte.php
+msgid "Coste envío"
+msgstr "Shipping cost"
+
+#: includes/seo-transporte.php
+msgid "Impuestos envío"
+msgstr "Shipping taxes"
+
+#: includes/seo-transporte.php
+msgid "Importar / exportar reglas"
+msgstr "Import / export rules"
+
+#: includes/seo-transporte.php
+msgid "Exportar reglas (JSON)"
+msgstr "Export rules (JSON)"
+
+#: includes/seo-transporte.php
+msgid "Importar reglas"
+msgstr "Import rules"
+
+#: includes/seo-transporte.php
+msgid "Configuración general"
+msgstr "General settings"
+
+#: includes/seo-transporte.php
+msgid "Activar gestor propio de transporte"
+msgstr "Enable custom shipping manager"
+
+#: includes/seo-transporte.php
+msgid "Solo España"
+msgstr "Spain only"
+
+#: includes/seo-transporte.php
+msgid "Transporte sujeto a impuestos"
+msgstr "Taxable shipping"
+
+#: includes/seo-transporte.php
+msgid "No usar reglas avanzadas si faltan peso o medidas"
+msgstr "Do not use advanced rules if weight or dimensions are missing"
+
+#: includes/seo-transporte.php
+msgid "Nombre que verá el cliente"
+msgstr "Customer-facing name"
+
+#: includes/seo-transporte.php
+msgid "Zona provisional si aún no indicó provincia"
+msgstr "Provisional zone until province is supplied"
+
+#: includes/seo-transporte.php
+msgid "Reglas de coste"
+msgstr "Cost rules"
+
+#: includes/seo-transporte.php
+msgid "Añadir regla"
+msgstr "Add rule"
+
+#: includes/seo-transporte.php
+msgid "Qué datos utiliza"
+msgstr "Data used"
+
+#: includes/seo-transporte.php
+msgid "Guardar transporte"
+msgstr "Save shipping"
+
+#: includes/seo-transporte.php
+msgid "Opcional"
+msgstr "Optional"
+
+#: includes/seo-transporte.php
+msgid "Ej.: Península estándar"
+msgstr "E.g. standard mainland"
+
+#: includes/seo-transporte.php
+msgid "Shipping Rules"
+msgstr "Shipping Rules"
+
+#: includes/seo-transporte.php
+msgid "Logistics sections"
+msgstr "Logistics sections"
+
+#: includes/seo-transporte.php
+msgid "Coste = fijo + (kg × coste/kg) + (unidades × coste/unidad). Si se alcanza “Gratis desde”, el coste final es 0 €. La primera regla activa que coincida por prioridad es la que se utiliza."
+msgstr "Cost = fixed fee + (kg × cost/kg) + (items × cost/item). If the Free from threshold is reached, the final shipping cost is €0. The first matching active rule by priority is used."
+
+#: includes/seo-transporte.php
+msgid "Vista operativa de los pedidos activos. No contiene ninguna lógica de proveedor o compra: esa relación se gestiona ahora en TaxoCommerce Suppliers → Purchasing."
+msgstr "Operational view of active orders. Supplier purchasing is not handled here; it belongs to TaxoCommerce Suppliers → Purchasing."
+
+#: includes/seo-transporte.php
+msgid "No hay pedidos pendientes, en espera o procesando."
+msgstr "There are no pending, on-hold or processing orders."
+
+#: includes/seo-transporte.php
+msgid "Reglas de transporte guardadas. WooCommerce recalculará las tarifas con esta configuración."
+msgstr "Shipping rules saved. WooCommerce will recalculate rates using these settings."
+
+#: includes/seo-transporte.php
+msgid "El gestor no se ha activado."
+msgstr "The manager was not activated."
+
+#: includes/seo-transporte.php
+msgid "Debe existir al menos una regla activa para evitar bloquear el checkout."
+msgstr "At least one active rule is required to avoid blocking checkout."
+
+#: includes/seo-transporte.php
+msgid "Logistics now manages only shipping weight, dimensions and delivery cost. Supplier purchasing has moved to TaxoCommerce Suppliers → Purchasing. When this manager is active, it returns one WooCommerce shipping rate according to destination, subtotal, weight and dimensions."
+msgstr "Logistics now manages only shipping weight, dimensions and delivery cost. Supplier purchasing has moved to TaxoCommerce Suppliers → Purchasing. When this manager is active, it returns one WooCommerce shipping rate according to destination, subtotal, weight and dimensions."
+
+#: includes/seo-transporte.php
+msgid "Descarga toda la configuración de transporte en JSON para copiarla a otra instalación o conservarla como copia de seguridad."
+msgstr "Download all shipping settings as JSON to copy them to another installation or keep a backup."
+
+#: includes/seo-transporte.php
+msgid "Importar reemplaza la configuración actual"
+msgstr "Import replaces the current configuration"
+
+#: includes/seo-transporte.php
+msgid "por la del archivo: opciones generales y todas las reglas, prioridades, destinos, límites y costes."
+msgstr "with the settings from the file: general options and all rules, priorities, destinations, limits and costs."
+
+#: includes/seo-transporte.php
+msgid "WooCommerce debe estar activo para calcular el transporte."
+msgstr "WooCommerce must be active to calculate shipping."
+
+#: includes/seo-transporte.php
+msgid "Al activarlo, sustituye las tarifas de WooCommerce por las reglas de esta pantalla."
+msgstr "When enabled, WooCommerce shipping rates are replaced by the rules on this screen."
+
+#: includes/seo-transporte.php
+msgid "Fuera de España no se ofrecerá tarifa de envío."
+msgstr "No shipping rate will be offered outside Spain."
+
+#: includes/seo-transporte.php
+msgid "El impuesto se obtiene de la fiscalidad activa de WooCommerce/Facturación; aquí no se define el porcentaje."
+msgstr "Shipping tax is obtained from the active WooCommerce/Billing settings; no tax percentage is set here."
+
+#: includes/seo-transporte.php
+msgid "Evita aplicar por error una tarifa barata a productos sin datos logísticos."
+msgstr "Prevents accidentally applying a low shipping rate to products with missing shipping information."
+
+#: includes/seo-transporte.php
+msgid "Ordena mediante “Prioridad”: 10 se evalúa antes que 20. Puedes crear reglas simples o combinar importe, peso y dimensiones."
+msgstr "Sort by Priority: 10 is evaluated before 20. Rules may be simple or combine order amount, weight and dimensions."
+
+#: includes/seo-transporte.php
+msgid "Las dimensiones se leen de cada producto WooCommerce y se convierten internamente a cm/kg. No es un algoritmo de embalaje: es un motor de reglas predecible para tarifar. Más adelante puede sustituirse la tarifa calculada por una API de transportista sin cambiar carrito, checkout ni documentos."
+msgstr "Dimensions are read from each WooCommerce product and converted internally to cm/kg. This is not a packing algorithm but a predictable rules engine for shipping rates. A carrier API could later replace the calculated rate without changing the cart, checkout or documents."
+
+#: includes/seo-transporte.php
+msgid "España - cualquier zona"
+msgstr "Spain - any area"
+
+#: includes/seo-transporte.php
+msgid "Península"
+msgstr "Mainland Spain"
+
+#: includes/seo-transporte.php
+msgid "Islas Baleares"
+msgstr "Balearic Islands"
+
+#: includes/seo-transporte.php
+msgid "Canarias"
+msgstr "Canary Islands"
+
+#: includes/seo-transporte.php
+msgid "Ceuta"
+msgstr "Ceuta"
+
+#: includes/seo-transporte.php
+msgid "Melilla"
+msgstr "Melilla"
+
+#: includes/seo-transporte.php
+msgid "Fuera de España"
+msgstr "Outside Spain"
+
+#: includes/seo-transporte.php
+msgid "Cualquier destino"
+msgstr "Any destination"
+
+#: includes/seo-transporte.php
+msgid "Baleares"
+msgstr "Balearic Islands"
+
+#: includes/seo-transporte.php
+msgid "No se recibió un archivo JSON válido."
+msgstr "No valid JSON file was received."
+
+#: includes/seo-transporte.php
+msgid "El archivo debe ser JSON y no superar 2 MiB."
+msgstr "The file must be JSON and no larger than 2 MiB."
+
+#: includes/seo-transporte.php
+msgid "El archivo recibido no supera la validación de subida."
+msgstr "The uploaded file failed validation."
+
+#: includes/class-auto-test.php
+msgid "No se pudo inicializar el sistema de archivos de WordPress."
+msgstr "Could not initialize the WordPress filesystem."
+
+#: includes/seo-transporte.php
+msgid "El archivo JSON está vacío o no se pudo leer."
+msgstr "The JSON file is empty or could not be read."
+
+#: includes/seo-transporte.php
+msgid "El archivo no contiene JSON válido."
+msgstr "The file does not contain valid JSON."
+
+#: includes/seo-transporte.php
+msgid "El JSON no corresponde a una exportación compatible del gestor de transporte."
+msgstr "The JSON is not a compatible shipping-manager export."
+
+#: includes/seo-transporte.php
+msgid "Configuración importada con %d reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa."
+msgstr "Configuration imported with %d rules. The manager was disabled because no active rule exists."
+
+#: includes/seo-transporte.php
+msgid "Configuración de transporte importada correctamente: %d reglas restauradas."
+msgstr "Shipping configuration imported successfully: %d rules restored."
+
+#: includes/seo-transporte.php
+msgid "<strong>Destino:</strong> Península, Baleares, Canarias, Ceuta o Melilla a partir de país, provincia y código postal del cliente. <strong>Subtotal:</strong> productos después de descuentos y antes de impuestos. <strong>Peso:</strong> suma de pesos. <strong>Largo/Ancho/Alto:</strong> mayor medida individual encontrada. <strong>Volumen:</strong> suma aproximada del volumen de las unidades."
+msgstr "<strong>Destination:</strong> Mainland Spain, Balearic Islands, Canary Islands, Ceuta or Melilla, based on the customer's country, province and postal code. <strong>Subtotal:</strong> products after discounts and before taxes. <strong>Weight:</strong> sum of weights. <strong>Length/Width/Height:</strong> largest individual measurement. <strong>Volume:</strong> approximate sum of item volumes."
+
+#: includes/class-auto-test.php
+msgid "1. Guardar estado ANTES"
+msgstr "1. Save BEFORE state"
+
+#: includes/class-auto-test.php
+msgid "2. Comprobar DESPUÉS"
+msgstr "2. Check AFTER"
+
+#: includes/class-auto-test.php
+msgid "Chequeo completo"
+msgstr "Full check"
+
+#: includes/class-auto-test.php
+msgid "Descargar ANTES (JSON)"
+msgstr "Download BEFORE (JSON)"
+
+#: includes/class-auto-test.php
+msgid "Descargar último (JSON)"
+msgstr "Download latest (JSON)"
+
+#: includes/class-auto-test.php
+msgid "Comprobar grupo"
+msgstr "Check group"
+
+#: includes/class-auto-test.php
+msgid "Correctas"
+msgstr "Passed"
+
+#: includes/class-auto-test.php
+msgid "Errores"
+msgstr "Errors"
+
+#: includes/class-auto-test.php
+msgid "No verificadas"
+msgstr "Unverified"
+
+#: includes/class-auto-test.php
+msgid "Sin ejecutar"
+msgstr "Not run"
+
+#: includes/class-auto-test.php
+msgid "No ejecutada."
+msgstr "Not run."
+
+#: includes/class-auto-test.php
+msgid "%1$d correctas · %2$d errores"
+msgstr "%1$d passed · %2$d errors"
+
+#: includes/class-auto-test.php
+msgid "Regresiones: %1$d · Corregidas: %2$d · Persistentes: %3$d · Cobertura perdida: %4$d · Pruebas nuevas: %5$d"
+msgstr "Regressions: %1$d · Fixed: %2$d · Persistent: %3$d · Lost coverage: %4$d · New tests: %5$d"
+
+#: includes/class-auto-test.php
+msgid "Revisar: %s"
+msgstr "Review: %s"
+
+#: includes/class-auto-test.php
+msgid "%1$s · %2$d pruebas%3$s"
+msgstr "%1$s · %2$d tests%3$s"
+
+#: includes/class-auto-test.php
+msgid " · %d errores"
+msgstr " · %d errors"
