@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 final class TaxoCommerce_Insights_Consent {
     const OPTION = 'taxocommerce_insights_consent_text';
     const VERSION = 'taxocommerce_insights_consent_schema';
+    const HISTORY = 'taxocommerce_insights_consent_legal_versions';
     const NONCE = 'tci_consent_admin';
 
     public static function table() {
@@ -39,9 +40,26 @@ KEY created_at (created_at)
             'reject' => 'Rechazar',
         ), '', false );
         update_option( self::VERSION, '1', false );
+        self::archive_policy( self::settings() );
+    }
+
+    public static function ensure_installed() {
+        if ( '1' !== get_option( self::VERSION ) ) {
+            self::install();
+        }
+    }
+
+    private static function archive_policy( $settings ) {
+        $hash = hash( 'sha256', wp_json_encode( $settings ) );
+        $history = (array) get_option( self::HISTORY, array() );
+        if ( ! isset( $history[ $hash ] ) ) {
+            $history[ $hash ] = array( 'text' => $settings, 'recorded_at' => current_time( 'mysql', true ) );
+            update_option( self::HISTORY, $history, false );
+        }
     }
 
     public static function register() {
+        add_action( 'admin_init', array( __CLASS__, 'ensure_installed' ) );
         add_action( 'admin_post_tci_consent_settings', array( __CLASS__, 'save' ) );
         add_action( 'admin_post_tci_consent_decision', array( __CLASS__, 'decision' ) );
         add_action( 'admin_post_nopriv_tci_consent_decision', array( __CLASS__, 'decision' ) );
@@ -72,6 +90,7 @@ KEY created_at (created_at)
         if ( '' === trim( wp_strip_all_tags( $value['body'] ) ) || '' === $value['accept'] || '' === $value['reject'] ) {
             wp_die( esc_html__( 'Los textos legales y los botones no pueden estar vacíos.', 'taxocommerce-google-bing' ), '', array( 'response' => 400 ) );
         }
+        self::archive_policy( $value );
         update_option( self::OPTION, $value, false );
         wp_safe_redirect( add_query_arg( array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'consent', 'saved' => '1' ), admin_url( 'admin.php' ) ) );
         exit;
