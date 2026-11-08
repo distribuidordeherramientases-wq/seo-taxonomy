@@ -1,3 +1,8 @@
+## [0.2.24] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Historial propio en un desplegable cerrado bajo el título, sin nuevas pestañas ni cambios en los chequeos de código.
+- Lectura del CHANGELOG.md local y visualización escapada.
+
 ## [0.2.23] — 2026-11-08 — Auditoría propia de código ampliada (#2384)
 
 - Conserva el Autocheck funcional y las tres columnas PHP, WordPress y Seguridad en Code Check, con cinco niveles de limitación de CPU, pausa y JSON.

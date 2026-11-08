@@ -4,7 +4,7 @@ Tags: woocommerce, mysql, database, backup, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.11
+Stable tag: 0.4.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,10 @@ The newer, additional MySQL diagnostics, replacement table explorer, optimizatio
 4. Download an SQL backup before any irreversible cleanup operation.
 
 == Changelog ==
+
+= 0.4.12 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.4.8 =
 * Merge the two admin export tabs into one while retaining full-site SQL, SEO-only SQL, per-table CSV/SQL and bundled SEO CSV/SQL/ZIP downloads.

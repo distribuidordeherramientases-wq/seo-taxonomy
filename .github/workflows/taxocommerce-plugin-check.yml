@@ -114,9 +114,8 @@ jobs:
             "$PLUGIN/" "build/$PLUGIN/"
           test -f "build/$PLUGIN/$PLUGIN.php"
           test -f "build/$PLUGIN/readme.txt"
-          if [ "$PLUGIN" = "taxocommerce-tasks" ]; then
-            test -s "build/$PLUGIN/CHANGELOG.md"
-          fi
+          # All twenty independent plugins use their own bundled changelog.
+          test -s "build/$PLUGIN/CHANGELOG.md"
           if find "build/$PLUGIN" -name '.*' -o -name '.ftp-deploy-sync-state.json' | grep -q .; then
             echo "::error::Hidden or FTP synchronization files found"
             exit 1

@@ -92,12 +92,14 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( 1 === substr_count( $html, 'tc-family-hero__updated' ), 'Exactly one release date on ' . $slug );
     tc_test_assert( strpos( $html, 'tc-family-hero__copy' ) !== false, 'Title and description on ' . $slug );
     tc_test_assert( strpos( $html, 'dashicons-' ) !== false, 'Native WordPress icon on ' . $slug );
-    if ( 'tasks' === $slug ) {
-        tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-history">' ), 'Tasks history expands without an extra tab.' );
-        tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Tasks history label follows Spanish locale.' );
-        tc_test_assert( false !== strpos( $html, '[0.1.8]' ), 'Tasks history includes the latest bundled changelog.' );
-        tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'Tasks history starts collapsed.' );
-    }
+    tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-history">' ), 'Exactly one collapsed version history: ' . $slug );
+    tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Translated history title: ' . $slug );
+    tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'History must be closed by default: ' . $slug );
+    $changelog = $root . '/taxocommerce-' . $slug . '/CHANGELOG.md';
+    tc_test_assert( is_readable( $changelog ), 'Bundled history is required: ' . $slug );
+    $first_line = strtok( file_get_contents( $changelog ), "\n" );
+    tc_test_assert( false !== strpos( $html, esc_html( $first_line ) ), 'Header reads the current plugin history: ' . $slug );
+    tc_test_assert( false === strpos( $html, '__TC_DOMAIN__' ), 'No unresolved gettext placeholder: ' . $slug );
     $version = get_file_data( $root . '/taxocommerce-' . $slug . '/taxocommerce-' . $slug . '.php', array( 'version' => 'Version', 'released' => 'Release Date' ) );
     tc_test_assert( 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $version['released'] ), 'Valid release date on ' . $slug );
     tc_test_assert( false !== strpos( $html, $version['released'] ), 'Visible release date matches plugin header on ' . $slug );
@@ -133,6 +135,23 @@ foreach ( array(
     $header = ob_get_clean();
     tc_test_assert( false !== strpos( $header, $expected ), 'Translated release label for ' . $locale );
 }
+// The history control responds to all five administrator language variants.
+$_GET['page'] = 'taxocommerce-auditor';
+foreach ( array(
+    'es_ES' => 'Historial de versiones y mejoras',
+    'en_US' => 'Version history and improvements',
+    'fr_FR' => 'Historique des versions et améliorations',
+    'de_DE' => 'Versionsverlauf und Verbesserungen',
+    'nl_NL' => 'Versiegeschiedenis en verbeteringen',
+) as $locale => $label ) {
+    $GLOBALS['tc_test_locale'] = $locale;
+    ob_start();
+    foreach ( $tc_test_actions['admin_notices'] as $callback ) {
+        $callback();
+    }
+    $markup = ob_get_clean();
+    tc_test_assert( false !== strpos( $markup, '<summary>' . esc_html( $label ) . '</summary>' ), 'History respects site locale: ' . $locale );
+}
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
@@ -154,9 +173,13 @@ foreach ( array( 'core' ) as $other ) {
 $core_ui = file_get_contents( $root . '/taxocommerce-core/includes/class-taxocommerce-core-dashboard.php' );
 $tasks_ui = file_get_contents( $root . '/taxocommerce-tasks/taxocommerce-tasks.php' );
 tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__metadata' ) && false !== strpos( $core_ui, 'TAXOCOMMERCE_CORE_RELEASE_DATE' ), 'Core hero version and date' );
+tc_test_assert( false !== strpos( $core_ui, '<details class="tcc-hero__history">' ), 'Core has a collapsed history on its own dashboard.' );
+tc_test_assert( false !== strpos( $core_ui, "dirname( __DIR__ ) . '/CHANGELOG.md'" ), 'Core reads its own local changelog.' );
+tc_test_assert( false !== strpos( $core_ui, 'esc_html( $tc_history )' ), 'Core history is HTML-escaped.' );
+tc_test_assert( is_readable( $root . '/taxocommerce-core/CHANGELOG.md' ), 'Core changelog must be included in the release.' );
 tc_test_assert( false !== strpos( $tasks_ui, "require_once __DIR__ . '/includes/admin-branding.php';" ), 'Tasks loads the shared autonomous visual header' );
 tc_test_assert( false === strpos( $tasks_ui, '<div class="wrap"><h1>' ), 'Tasks old duplicate heading removed' );
 tc_test_assert( false !== strpos( $tasks_ui, '<div class="wrap"><nav class="nav-tab-wrapper">' ), 'Tasks keeps its seven-tab navigation below the hero' );
 $tasks_data = get_file_data( $root . '/taxocommerce-tasks/taxocommerce-tasks.php', array( 'version' => 'Version', 'released' => 'Release Date' ) );
 tc_test_assert( false !== strpos( file_get_contents( $root . '/taxocommerce-tasks/readme.txt' ), 'Stable tag: ' . $tasks_data['version'] ), 'Tasks release version matches readme' );
-echo "PASS: 19 independent family heroes (including Tasks) + Core release metadata." . PHP_EOL;
+echo "PASS: all 20 local changelogs in collapsible headers + Core release metadata." . PHP_EOL;
