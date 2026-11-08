@@ -115,6 +115,8 @@ verify( ! $workload::set_speed( 'products', array( 5 ) ), 'Array input rejected'
 verify( ! $workload::set_speed( 'products', '6' ), 'Speed outside range rejected' );
 verify( ! $workload::set_speed( 'unknown', '3' ), 'Unknown scope rejected' );
 verify( $workload::set_speed( 'products', '2' ), 'Valid speed saved through the protected entry point' );
+// The read-only test stub counts writes but does not persist them.
+$GLOBALS['tca_options'][ $workload::OPTION ] = array( 'products' => 2 );
 verify( 3 === $workload::speed( 'pages' ), 'Independent scope keeps its saved speed' );
 $runner_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-runner.php' );
 verify( strpos( $runner_source, '$processed_batch' ) !== false, 'Category offset tracks only processed objects under time budgets' );
@@ -153,6 +155,9 @@ verify( false !== strpos( $admin, "self::guard();" ), 'Browser recovery checks a
 $browser = file_get_contents( dirname( __DIR__ ) . '/assets/admin-watch.js' );
 verify( false !== strpos( $browser, 'schedule(Math.min(60000,' ), 'Failed AJAX requests back off' );
 verify( false !== strpos( $browser, "data.status === 'completed'" ), 'Completed audits automatically refresh the report' );
+$code_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php' );
+$code_assets = explode( 'public static function speeds()', explode( 'public static function assets(', $code_source )[1] )[0];
+verify( false === strpos( $code_assets, '$_GET' ), 'Code Check assets do not inspect GET without nonce' );
 
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
 

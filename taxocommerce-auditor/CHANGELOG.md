@@ -11,6 +11,8 @@
 - El monitor respeta la velocidad de cada ámbito, ejecuta un solo lote por petición y aplica espera progresiva cuando la conexión falla. Se conserva el botón manual, pausa, reanudación, filtros y exportaciones.
 - No depende de Action Scheduler, otros plugins ni servicios externos. La ejecución con el navegador cerrado sigue requiriendo WP-Cron o una tarea cron real del alojamiento.
 - Autocheck, pruebas de regresión, documentación y catálogos de idioma actualizados; el Issue #2444 se cierra únicamente después de validación funcional en STAGING y Focazul.
+- Revisión del preflight: el Code Check encola recursos por el hook del administrador, sin leer parámetros GET en el registro de scripts; corregido el simulador de opciones del test de velocidad de recuperación.
+- La URL de la ficha oficial del plugin se sanitiza antes de validarse; elimina la advertencia del Plugin Check sin modificar el origen remoto ni la política HTTPS.
 
 ## [0.3.10] - 2026-11-08 - Autotest de funcionalidad y codigo (#2401)
 
