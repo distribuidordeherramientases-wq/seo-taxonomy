@@ -1,3 +1,11 @@
+## [0.2.9] — 2026-11-08 — Internacionalización real de formularios y diagnósticos Logistics (#2062)
+
+- Corregidos 98 textos que estaban escritos directamente en PHP y, por tanto, no podían mostrarse en el idioma de WordPress. Se utilizan `esc_html_e()`, `esc_attr__()`, `__()` y `wp_kses_post( __() )` según el contexto.
+- Traducidos menús/pestañas, controles de reglas, avisos de importación, destinos, zona, columnas de pedidos, estados y resúmenes de Autocheck. Identificadores técnicos de zonas, reglas y funciones no se traducen.
+- POT y PO/MO completos para las 239 cadenas del catálogo actual (más cabecera) en ES/EN/FR/DE/NL: 0 vacías, 0 diferencias de claves y 0 discordancias `printf`.
+- Nueva versión 0.2.9 en cabecera, `readme.txt`, `changelog.txt` y documentación. Prueba CLI de MO ampliada. No se modifican tarifas, datos de pedidos, configuración persistente, reglas ni el cálculo de checkout.
+- Queda pendiente auditar otras cadenas no extraídas, especialmente mensajes individuales de los 35 casos del Autocheck, y verificar las pantallas reales en STAGING/Focazul. Producción no autorizada.
+
 ## [0.2.8] — 2026-11-08 — Catálogos Logistics completos en cinco idiomas (#2062)
 
 - Traducidas las 80 cadenas que faltaban en ES, FR, DE y NL, y las 76 pendientes en EN: **396 entradas nuevas**. Textos de administración, resultados de autocheck, gestión de transporte, importación/exportación, permisos y manuales de usuario y técnicos.

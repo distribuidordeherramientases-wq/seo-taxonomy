@@ -4,7 +4,7 @@ Tags: woocommerce, logistics, shipping, weight, orders
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.8
+Stable tag: 0.2.9
 License: MIT
 
 Manage shipping costs, package weight and dimensions in WooCommerce with manual rules and shipment audits.
@@ -29,9 +29,14 @@ It does not contain supplier matching, purchasing, or supplier-catalog logic.
 
 == Languages ==
 
-The WordPress administration locale automatically selects the gettext language. Bundled Spanish (es_ES), English (en_US), French (fr_FR), German (de_DE) and Dutch (nl_NL) PO/MO files cover every string in the current translation template. This does not translate store products, orders or editorial content.
+The WordPress administration locale automatically selects the gettext language. Bundled Spanish (es_ES), English (en_US), French (fr_FR), German (de_DE) and Dutch (nl_NL) PO/MO files cover every string in the current translation template. This does not translate store products, orders or editorial content. Remaining user-facing runtime literals outside gettext are tracked for further review under issue #2062.
 
 == Changelog ==
+
+= 0.2.9 =
+* Internationalize shipping-rule forms, shipping-region labels, order-audit columns, JSON import notices and Autocheck controls using WordPress gettext.
+* Add 98 newly extracted gettext messages, complete their ES/EN/FR/DE/NL translations and recompile local MO catalogs. No changes to stored shipping costs, calculations or checkout.
+
 
 = 0.2.8 =
 * Complete the current Logistics gettext catalog for five languages, including shipping rules, audit guidance, permissions, documentation and status messages.
