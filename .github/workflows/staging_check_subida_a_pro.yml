@@ -31,11 +31,11 @@ permissions:
 
 # Pushes to staging may deploy only to STAGING/Focazul.
 # PRO requires a manual workflow_dispatch with deploy_pro=true.
-# Independent workflows remain available for manual runs and PR validation.
-concurrency:
-  group: taxocommerce-staging-check-pro
-  cancel-in-progress: false
-
+# The shared FTPS delivery is serialized by the called deploy-staging.yml
+# workflow, NOT by this entire pipeline. Holding the global concurrency
+# lock during 20 Plugin Check jobs starved later STAGING/Focazul releases,
+# whose pending runs were replaced on every new merge.
+# Keep the strict Plugin Check and manual PRO gates per release.
 jobs:
   preflight:
     name: Require current staging revision
