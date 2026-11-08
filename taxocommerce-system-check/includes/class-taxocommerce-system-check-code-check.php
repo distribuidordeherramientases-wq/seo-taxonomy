@@ -214,11 +214,91 @@ final class TaxoCommerce_System_Check_Code_Check {
             $skip = self::finding( 'skip', __( 'Unable to read the file.', 'taxocommerce-system-check' ) );
             return array( 'php' => $skip, 'wordpress' => $skip, 'security' => $skip );
         }
+        $php = self::php_check( $source );
+        if ( 'pass' === $php['status'] ) {
+            $compatibility = TaxoCommerce_System_Check_Code_Rules::compatibility( $source );
+            if ( $compatibility ) {
+                $php['status'] = 'warning';
+                $php['message'] = __( 'This code may use features newer than the declared minimum PHP version.', 'taxocommerce-system-check' );
+                $php['evidence']['compatibility'] = $compatibility;
+            }
+        }
+        $wordpress = self::wordpress_check( $source, $relative );
+        $structure = TaxoCommerce_System_Check_Code_Rules::structure( $source, $relative );
+        $wordpress['evidence']['findings'] = $structure['findings'];
+        $wordpress['evidence']['declarations'] = $structure['declarations'];
+        $wordpress['evidence']['unverified_includes'] = $structure['unverified'];
+        $wordpress['evidence']['findings_truncated'] = $structure['findings_truncated'];
+        $wordpress['evidence']['declarations_truncated'] = $structure['declarations_truncated'];
+        if ( $structure['findings'] || $structure['unverified'] || $structure['findings_truncated'] || $structure['declarations_truncated'] ) {
+            $wordpress['status'] = 'warning';
+            $wordpress['message'] = __( 'Code references and declarations require review.', 'taxocommerce-system-check' );
+            foreach ( $structure['findings'] as $finding ) {
+                if ( 'fail' === $finding['severity'] ) {
+                    $wordpress['status'] = 'fail';
+                    break;
+                }
+            }
+        }
+        $security = self::security_check( $source );
+        $security['evidence']['signals'] = TaxoCommerce_System_Check_Code_Rules::security_signals( $source );
+        if ( $security['evidence']['signals'] ) {
+            $security['status'] = 'warning';
+            $security['message'] = __( 'Potential security issues need a manual code-flow review.', 'taxocommerce-system-check' );
+        }
         return array(
-            'php' => self::php_check( $source ),
-            'wordpress' => self::wordpress_check( $source, $relative ),
-            'security' => self::security_check( $source ),
+            'php' => $php,
+            'wordpress' => $wordpress,
+            'security' => $security,
         );
+    }
+
+    /**
+     * Cross-file symbol index, updated one inspected file per step.
+     * Duplicate declarations can collide at runtime if both are loaded.
+     *
+     * @param array  $state Current report.
+     * @param string $file  Inspected relative file.
+     * @return array Updated report.
+     */
+    public static function index_symbols( $state, $file ) {
+        if ( ! isset( $state['symbols'] ) || ! is_array( $state['symbols'] ) ) {
+            $state['symbols'] = array();
+        }
+        $declarations = $state['results'][ $file ]['wordpress']['evidence']['declarations'] ?? array();
+        foreach ( $declarations as $symbol ) {
+            $key = $symbol['type'] . ':' . $symbol['name'];
+            if ( isset( $state['symbols'][ $key ] ) ) {
+                $previous = $state['symbols'][ $key ];
+                $finding = array(
+                    'rule' => 'duplicate_symbol',
+                    'severity' => 'review',
+                    'symbol' => $symbol['display'],
+                    'line' => (int) $symbol['line'],
+                    'other_file' => $previous['file'],
+                    'other_line' => (int) $previous['line'],
+                );
+                $state['results'][ $file ]['wordpress']['evidence']['findings'][] = $finding;
+                $state['results'][ $file ]['wordpress']['status'] = 'warning';
+                $state['results'][ $file ]['wordpress']['message'] = __( 'Possible duplicate PHP symbols need review.', 'taxocommerce-system-check' );
+                if ( isset( $state['results'][ $previous['file'] ] ) ) {
+                    $reverse = $finding;
+                    $reverse['line'] = (int) $previous['line'];
+                    $reverse['other_file'] = $file;
+                    $reverse['other_line'] = (int) $symbol['line'];
+                    $state['results'][ $previous['file'] ]['wordpress']['evidence']['findings'][] = $reverse;
+                    if ( 'fail' !== $state['results'][ $previous['file'] ]['wordpress']['status'] ) {
+                        $state['results'][ $previous['file'] ]['wordpress']['status'] = 'warning';
+                    }
+                }
+            } else {
+                $state['symbols'][ $key ] = array(
+                    'file' => $file,
+                    'line' => (int) $symbol['line'],
+                );
+            }
+        }
+        return $state;
     }
 
     public static function process( $state ) {
@@ -233,6 +313,7 @@ final class TaxoCommerce_System_Check_Code_Check {
             $file = $state['files'][ $state['cursor'] ];
             try {
                 $state['results'][ $file ] = self::check_file( $file );
+                $state = self::index_symbols( $state, $file );
             } catch ( Throwable $error ) {
                 $state['results'][ $file ] = array(
                     'php' => self::finding( 'warning', __( 'Unable to complete the PHP check.', 'taxocommerce-system-check' ) ),
@@ -276,7 +357,15 @@ final class TaxoCommerce_System_Check_Code_Check {
                 'files' => $files,
                 'cursor' => 0,
                 'results' => array(),
-                'checks' => array( 'php_parser', 'wordpress_structure', 'security_patterns' ),
+                'checks' => array( 'php_parser', 'php_minimum_compatibility', 'wordpress_structure', 'literal_include_paths', 'duplicate_symbols', 'security_patterns', 'security_flow_heuristics' ),
+                'symbols' => array(),
+                'limitations' => array(
+                    'official_plugin_check' => 'not_executed',
+                    'runtime_activation' => 'not_executed',
+                    'complete_dataflow_analysis' => 'not_verified',
+                    'older_php_versions' => 'not_tested',
+                    'file_inventory_limit' => count( $files ) >= 300 ? 'potentially_truncated' : 'not_reached',
+                ),
                 'official_plugin_check' => 'not_executed',
             );
         } elseif ( is_array( $state ) && 'stop' === $operation ) {
@@ -341,7 +430,7 @@ final class TaxoCommerce_System_Check_Code_Check {
         echo '<section class="wrap tcs-code-check">';
         echo '<h2>' . esc_html__( 'Code Check · System Check', 'taxocommerce-system-check' ) . '</h2>';
         echo '<p>' . esc_html__( 'Only this plugin is inspected. Three independent checks: PHP syntax, WordPress conventions and security patterns. No other checker plugin is required.', 'taxocommerce-system-check' ) . '</p>';
-        echo '<p class="description">' . esc_html__( 'This is a bounded local code review, not the official WordPress Plugin Check. Complex nonce, sanitization, escaping and compatibility cases still require manual review.', 'taxocommerce-system-check' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Native local checks: PHP, literal include paths, duplicate declarations, WordPress conventions and security patterns. Full data flow, runtime and official Plugin Check remain unverified.', 'taxocommerce-system-check' ) . '</p>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '"><input type="hidden" name="operation" value="start">';
         wp_nonce_field( self::ACTION );
@@ -404,6 +493,23 @@ final class TaxoCommerce_System_Check_Code_Check {
                         // Surface actionable evidence; retain complete detail in the JSON report.
                         if ( 'php' === $category && ! empty( $item['evidence']['line'] ) ) {
                             echo '<p>#' . esc_html( (string) absint( $item['evidence']['line'] ) ) . '</p>';
+                        }
+                        // Bounded actionable details; all evidence remains in JSON.
+                        foreach ( array( 'findings', 'unverified_includes', 'compatibility', 'signals' ) as $group ) {
+                            if ( empty( $item['evidence'][ $group ] ) || ! is_array( $item['evidence'][ $group ] ) ) {
+                                continue;
+                            }
+                            echo '<ul>';
+                            foreach ( array_slice( $item['evidence'][ $group ], 0, 8 ) as $finding ) {
+                                $rule = isset( $finding['rule'] ) ? (string) $finding['rule'] : '';
+                                $line = isset( $finding['line'] ) ? absint( $finding['line'] ) : 0;
+                                $detail = isset( $finding['path'] ) ? ' ' . $finding['path'] : '';
+                                if ( isset( $finding['other_file'] ) ) {
+                                    $detail .= ' ' . $finding['other_file'];
+                                }
+                                echo '<li><code>' . esc_html( $rule ) . '</code> #' . esc_html( (string) $line ) . esc_html( $detail ) . '</li>';
+                            }
+                            echo '</ul>';
                         }
                         if ( 'wordpress' === $category && ! empty( $item['evidence']['missing'] ) ) {
                             echo '<ul>';
