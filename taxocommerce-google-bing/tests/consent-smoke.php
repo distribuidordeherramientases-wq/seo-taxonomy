@@ -52,10 +52,10 @@ TaxoCommerce_Insights_Consent::install();
 $cfg = get_option( TaxoCommerce_Insights_Consent::OPTION );
 consent_test( is_array( $cfg ) && 0 === $cfg['enabled'], 'must be disabled at installation' );
 consent_test( 5 === count( $cfg['texts'] ), 'all five required locales' );
-foreach ( array( 'es', 'en', 'fr', 'de', 'nl' ) as $locale ) {
-    consent_test( ! empty( $cfg['texts'][ $locale ]['legal'] ), 'legal text missing: ' . $locale );
-    consent_test( ! empty( $cfg['texts'][ $locale ]['accept'] ) &&
-        ! empty( $cfg['texts'][ $locale ]['reject'] ), 'accept/reject labels missing' );
+foreach ( array( 'es', 'en', 'fr', 'de', 'nl' ) as $language ) {
+    consent_test( ! empty( $cfg['texts'][ $language ]['legal'] ), 'legal text missing: ' . $language );
+    consent_test( ! empty( $cfg['texts'][ $language ]['accept'] ) &&
+        ! empty( $cfg['texts'][ $language ]['reject'] ), 'accept/reject labels missing' );
 }
 $cfg['texts']['es']['intro'] = 'Texto propio del cliente <script>alert(1)</script>';
 $GLOBALS['opts'][ TaxoCommerce_Insights_Consent::OPTION ] = $cfg;
@@ -80,10 +80,11 @@ consent_test( 'optin' === TaxoCommerce_Insights_Consent::consent_type( false ), 
 consent_test( TaxoCommerce_Insights_Consent::consent_api( false, 'statistics' ), 'WP Consent API integration missing' );
 consent_test( ! TaxoCommerce_Insights_Consent::consent_api( true, 'marketing' ), 'WP Consent API marketing default deny broken' );
 
+$GLOBALS['locale'] = 'es_ES';
 ob_start();
 TaxoCommerce_Insights_Consent::banner();
 $markup = ob_get_clean();
-consent_test( false !== strpos( $markup, '&lt;script&gt;alert(1)&lt;/script&gt;' ), 'legal text HTML not escaped; excerpt=' . substr( $markup, 0, 500 ) );
+consent_test( false !== strpos( $markup, '&lt;script&gt;alert(1)&lt;/script&gt;' ), 'legal text HTML not escaped' );
 consent_test( false === strpos( $markup, '<script>alert(1)</script>' ), 'legal text XSS' );
 consent_test( false !== strpos( $markup, 'data-tci-consent="accept"' ) &&
     false !== strpos( $markup, 'data-tci-consent="reject"' ) &&
