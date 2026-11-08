@@ -289,7 +289,7 @@ final class TaxoCommerce_System_Check_Code_Check {
         if ( is_array( $state ) ) {
             set_transient( self::state_key(), $state, self::TTL );
         }
-        wp_safe_redirect( taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_subtab' => 'code' ) ) );
+        wp_safe_redirect( taxocommerce_system_check_tab_url( 'code-check' ) );
         exit;
     }
 
