@@ -83,7 +83,7 @@ consent_test( ! TaxoCommerce_Insights_Consent::consent_api( true, 'marketing' ),
 ob_start();
 TaxoCommerce_Insights_Consent::banner();
 $markup = ob_get_clean();
-consent_test( false !== strpos( $markup, '&lt;script&gt;alert(1)&lt;/script&gt;' ), 'legal text HTML not escaped' );
+consent_test( false !== strpos( $markup, '&lt;script&gt;alert(1)&lt;/script&gt;' ), 'legal text HTML not escaped; excerpt=' . substr( $markup, 0, 500 ) );
 consent_test( false === strpos( $markup, '<script>alert(1)</script>' ), 'legal text XSS' );
 consent_test( false !== strpos( $markup, 'data-tci-consent="accept"' ) &&
     false !== strpos( $markup, 'data-tci-consent="reject"' ) &&
