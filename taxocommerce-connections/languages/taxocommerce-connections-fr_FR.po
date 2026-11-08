@@ -237,7 +237,7 @@ msgstr "OpenSSL n’est pas disponible."
 
 #: includes/class-taxocommerce-connections-pinterest.php:155
 msgid "The secret could not be encrypted."
-msgstr "Impossible de chiffrer le geheim."
+msgstr "Impossible de chiffrer le secret."
 
 #: includes/class-taxocommerce-connections-pinterest.php:213
 msgid "Pinterest did not return an Access Token."
