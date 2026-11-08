@@ -88,6 +88,7 @@ final class Auto_Test {
         foreach ( array(
             'admin_post_taxocommerce_auditor_action',
             'admin_post_taxocommerce_auditor_export',
+            'wp_ajax_taxocommerce_auditor_watch',
             'admin_post_' . self::ACTION,
             Runner::HOOK,
         ) as $hook ) {
@@ -156,7 +157,7 @@ final class Auto_Test {
     }
 
     private static function test_runner() {
-        foreach ( array( 'start', 'pause', 'resume', 'run_batch', 'ensure_scheduled', 'report' ) as $method ) {
+        foreach ( array( 'start', 'pause', 'resume', 'run_batch', 'ensure_scheduled', 'browser_batch_due', 'progress', 'report' ) as $method ) {
             if ( ! method_exists( __NAMESPACE__ . '\\Runner', $method ) ) {
                 return self::fail( __( 'Falta Runner::', 'taxocommerce-auditor' ) . $method . '.' );
             }
