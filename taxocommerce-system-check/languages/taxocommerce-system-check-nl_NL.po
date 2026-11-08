@@ -1158,7 +1158,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2322
 msgid "PHP"
-msgstr ""
+msgstr "PHP"
 
 #: includes/system-check/seo-system-server-status.php:2323
 msgid ""
@@ -1251,7 +1251,7 @@ msgstr "Engine"
 
 #: includes/system-check/seo-system-server-status.php:2778
 msgid "WordPress"
-msgstr ""
+msgstr "WordPress"
 
 #: includes/system-check/seo-system-server-status.php:2778
 msgid ""
@@ -1512,3 +1512,171 @@ msgstr ""
 #: taxocommerce-system-check.php:401
 msgid "El módulo de auditoría HTTP no se ha cargado."
 msgstr "De HTTP-auditmodule is niet geladen."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Very low"
+msgstr "Zeer laag"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Low"
+msgstr "Laag"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Normal"
+msgstr "Normaal"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "High"
+msgstr "Hoog"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Maximum"
+msgstr "Maximaal"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP parser mode is not available on this server."
+msgstr "De PHP-parser is op deze server niet beschikbaar."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax error detected by the local parser."
+msgstr "De lokale parser heeft een PHP-syntaxisfout gevonden."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax accepted by this server version. Older versions are not tested."
+msgstr "De PHP-syntaxis is geldig voor deze serverversie. Oudere versies zijn niet getest."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Some WordPress structure conventions need review."
+msgstr "Sommige WordPress-structuurconventies moeten worden gecontroleerd."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "The inspected WordPress structure conventions are present."
+msgstr "De gecontroleerde WordPress-structuurconventies zijn aanwezig."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potentially dangerous function calls need manual review."
+msgstr "Mogelijk gevaarlijke functieaanroepen moeten handmatig worden gecontroleerd."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "No blocked function calls found; this does not certify security."
+msgstr "Geen geblokkeerde functieaanroepen gevonden; dit is geen veiligheidscertificering."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File unavailable or outside System Check."
+msgstr "Bestand niet beschikbaar of buiten System Check."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked."
+msgstr "Niet gecontroleerd."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File exceeds the 1 MB read limit."
+msgstr "Het bestand overschrijdt de leeslimiet van 1 MB."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to read the file."
+msgstr "Het bestand kan niet worden gelezen."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to complete the PHP check."
+msgstr "De PHP-controle kon niet worden voltooid."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Access denied."
+msgstr "Toegang geweigerd."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not run"
+msgstr "Niet uitgevoerd"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Passed"
+msgstr "Geslaagd"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Failed"
+msgstr "Mislukt"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Review"
+msgstr "Controleren"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked"
+msgstr "Niet gecontroleerd"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check · System Check"
+msgstr "Code Check · System Check"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Only this plugin is inspected. Three independent checks: PHP syntax, WordPress conventions and security patterns. No other checker plugin is required."
+msgstr "Alleen deze plugin wordt gecontroleerd. Drie onafhankelijke controles: PHP-syntaxis, WordPress-conventies en beveiligingspatronen. Er is geen andere controleplugin vereist."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This is a bounded local code review, not the official WordPress Plugin Check. Complex nonce, sanitization, escaping and compatibility cases still require manual review."
+msgstr "Dit is een beperkte lokale codecontrole, niet de officiële WordPress Plugin Check. Complexe nonce-, validatie-, escaping- en compatibiliteitskwesties vereisen handmatige beoordeling."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "CPU speed"
+msgstr "CPU-snelheid"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check"
+msgstr "Codecontrole uitvoeren"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Progress"
+msgstr "Voortgang"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Stop"
+msgstr "Stoppen"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Continue batch"
+msgstr "Batch voortzetten"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Resume"
+msgstr "Hervatten"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Download JSON report"
+msgstr "JSON-rapport downloaden"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File"
+msgstr "Bestand"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Security"
+msgstr "Beveiliging"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check before downloading results."
+msgstr "Voer Code Check uit voordat je de resultaten downloadt."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to generate JSON."
+msgstr "JSON kon niet worden aangemaakt."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Autocheck sections"
+msgstr "Autocheck-secties"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check"
+msgstr "Functionaliteitscontrole"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check"
+msgstr "Codecontrole"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check · System Check"
+msgstr "Functionaliteitscontrole · System Check"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Functionality Check"
+msgstr "Functionaliteitscontrole uitvoeren"
