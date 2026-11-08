@@ -2,8 +2,8 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.19
- * Release Date: 2026-11-07
+ * Version: 0.2.20
+ * Release Date: 2026-11-08
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: David Perez
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.19' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.20' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -91,6 +91,8 @@ function taxocommerce_system_check_boot() {
     TaxoCommerce_System_Check_Processes::boot();
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-auto-test.php';
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-family.php';
+    TaxoCommerce_System_Check_Family::boot();
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-user-guide.php';
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
@@ -161,12 +163,12 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function taxocommerce_system_check_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
     $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'plugin', 'http', 'processes', 'auto-test', 'manual' ), true ) ? $tab : 'system';
+    return in_array( $tab, array( 'system', 'plugin', 'family', 'http', 'processes', 'auto-test', 'manual' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'family' => __( 'Familia TaxoCommerce', 'taxocommerce-system-check' ), 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -214,6 +216,13 @@ function taxocommerce_system_check_body_class( $classes ) {
 }
 
 function taxocommerce_system_check_enqueue_assets() {
+    if ( 'family' === taxocommerce_system_check_active_tab() ) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin tab is read-only.
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( 'taxocommerce-system-check' === $page ) {
+            wp_enqueue_script( 'taxocommerce-system-check-family', TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/family-check.js', array(), TAXOCOMMERCE_SYSTEM_CHECK_VERSION, true );
+        }
+    }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
     if ( in_array( $page, array( 'tcs-plugin-validation', 'seo-core-system-test' ), true ) || ( 'taxocommerce-system-check' === $page && 'plugin' === taxocommerce_system_check_active_tab() ) ) {
@@ -287,6 +296,8 @@ function taxocommerce_system_check_home() {
         taxocommerce_system_check_url_audit_screen();
     } elseif ( 'processes' === $tab ) {
         TaxoCommerce_System_Check_Processes::render();
+    } elseif ( 'family' === $tab ) {
+        TaxoCommerce_System_Check_Family::render();
     } elseif ( 'auto-test' === $tab ) {
         TaxoCommerce_System_Check_Auto_Test::render();
     } elseif ( 'manual' === $tab ) {

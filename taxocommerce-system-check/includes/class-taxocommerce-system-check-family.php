@@ -192,7 +192,8 @@ final class TaxoCommerce_System_Check_Family {
         if ( 'start' === $operation ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked above.
             $requested = isset( $_POST['speed'] ) ? absint( wp_unslash( $_POST['speed'] ) ) : 3;
-            $speed = isset( self::speeds()[ $requested ] ) ? $requested : 3;
+            $speed_choices = self::speeds();
+            $speed = isset( $speed_choices[ $requested ] ) ? $requested : 3;
             $state = array(
                 'schema' => 1,
                 'started_at' => gmdate( 'c' ),
