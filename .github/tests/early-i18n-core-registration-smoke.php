@@ -45,6 +45,8 @@ function register_deactivation_hook( $file, $callback ) {}
 function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
 function plugin_dir_url( $path ) { return 'https://example.test/wp-content/plugins/' . basename( dirname( $path ) ) . '/'; }
 function admin_url( $path = '' ) { return 'https://example.test/wp-admin/' . $path; }
+// Standalone official-excerpt registration uses this WordPress primitive before init.
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function __( $text, $domain = '' ) {
 	if ( 'taxocommerce-' . $GLOBALS['tc_i18n_test_slug'] === $domain && ! did_action( 'init' ) ) {
 		throw new RuntimeException( 'Premature gettext: ' . $domain . ' / ' . $text );
