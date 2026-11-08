@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Auditor 0.3.6\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.10\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2539,3 +2539,35 @@ msgid ""
 msgstr ""
 "Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote"
 " antes de reiniciarla."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Suave"
+msgstr "Suave"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Baja"
+msgstr "Baja"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Normal"
+msgstr "Normal"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Máxima"
+msgstr "Máxima"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad de auditoría"
+msgstr "Velocidad de auditoría"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Guardar velocidad"
+msgstr "Guardar velocidad"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad no válida."
+msgstr "Velocidad no válida."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor."
+msgstr "Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor."

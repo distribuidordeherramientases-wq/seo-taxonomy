@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Auditor 0.3.6\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.10\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2598,3 +2598,35 @@ msgid ""
 msgstr ""
 "Es gibt bereits eine Prüfung der Verarbeitung dieses Blocks. Warten Sie, bis"
 " der Stapel fertig ist, bevor Sie ihn neu starten."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Suave"
+msgstr "Schonend"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Baja"
+msgstr "Niedrig"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Normal"
+msgstr "Normal"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Máxima"
+msgstr "Maximal"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad de auditoría"
+msgstr "Prüfgeschwindigkeit"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Guardar velocidad"
+msgstr "Geschwindigkeit speichern"
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Velocidad no válida."
+msgstr "Ungültige Geschwindigkeit."
+
+#: includes/class-admin.php includes/class-workload.php
+msgid "Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor."
+msgstr "Regelt die Größe und Häufigkeit der Stapel für diesen Bereich (vollständige, gefilterte und manuelle Prüfungen). Änderungen setzen den Fortschritt nicht zurück. Dies ist kein Prozentsatz der Server-CPU-Auslastung."
