@@ -1,3 +1,7 @@
+## [0.1.15] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
 ## [0.1.15] — 2026-11-08 — Catálogo gettext completo en cinco idiomas (#2062)
 
 - Traducidas las 233 entradas `msgid` actuales de Scrappers en es_ES, en_US, fr_FR, de_DE y nl_NL: Autotest, consultas externas, límites de API, investigación, revisión editorial, importación/exportación y Merchant.

@@ -338,7 +338,9 @@ final class TaxoCommerce_Insights_Consent {
             . esc_html__( 'Confirmo que he revisado los textos y las obligaciones legales de esta instalación en los idiomas publicados.', 'taxocommerce-google-bing' ) . '</label></p>';
         echo '<p class="description">' . esc_html__( 'Los textos se guardan en wp_options y las decisiones en una tabla SQL persistente. Desactivar o desinstalar el plugin no elimina las evidencias. Las preferencias del navegador se guardan durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( __( 'Guardar textos y consentimientos', 'taxocommerce-google-bing' ) );
-        echo '</form></div>';
+        echo '</form>';
+        TaxoCommerce_Insights_Consent_Seed::render_export_link();
+        echo '</div>';
         TaxoCommerce_Insights_Consent_Ledger::render();
     }
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / ".github/templates/tc-family-admin-branding.php.tpl"
+INFO_TEMPLATE = ROOT / ".github/templates/tc-family-official-excerpt.php.tpl"
 PLUGINS = {
     "auditor": ("dashicons-chart-area", "Audita la calidad del contenido, los indicadores y los informes de WooCommerce."),
     "redirects": ("dashicons-randomize", "Gestiona redirecciones y eliminaciones asistidas con controles de seguridad."),
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("--check", action="store_true", help="Only check consistency; never write.")
     args = parser.parse_args()
     template = TEMPLATE.read_text(encoding="utf-8")
+    official_template = INFO_TEMPLATE.read_text(encoding="utf-8")
     errors = []
     for slug, (icon, description) in PLUGINS.items():
         # Every independent plugin exposes its own bundled changelog.
@@ -52,6 +54,14 @@ def main():
                   .replace("__TC_HISTORY_PHP__", history_php)
                   .replace("__TC_HISTORY_HTML__", history_html)
                   .replace("__TC_DOMAIN__", "taxocommerce-" + slug))
+        info_path = ROOT / ("taxocommerce-" + slug) / "includes/official-excerpt.php"
+        info_result = official_template.replace("__TC_DOMAIN__", "taxocommerce-" + slug)
+        if args.check:
+            if not info_path.is_file() or info_path.read_text(encoding="utf-8") != info_result:
+                errors.append(slug + ":official")
+        else:
+            info_path.parent.mkdir(parents=True, exist_ok=True)
+            info_path.write_text(info_result, encoding="utf-8")
         path = ROOT / ("taxocommerce-" + slug) / "includes/admin-branding.php"
         if args.check:
             if not path.is_file() or path.read_text(encoding="utf-8") != result:
@@ -59,6 +69,13 @@ def main():
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(result, encoding="utf-8")
+    core_info_path = ROOT / "taxocommerce-core/includes/official-excerpt.php"
+    core_info = official_template.replace("__TC_DOMAIN__", "taxocommerce-core")
+    if args.check:
+        if not core_info_path.is_file() or core_info_path.read_text(encoding="utf-8") != core_info:
+            errors.append("core:official")
+    else:
+        core_info_path.write_text(core_info, encoding="utf-8")
     if errors:
         raise SystemExit("Branding files differ from canonical template: " + ", ".join(errors))
     print(str(len(PLUGINS)) + " independent TaxoCommerce admin headers " + ("match." if args.check else "regenerated."))

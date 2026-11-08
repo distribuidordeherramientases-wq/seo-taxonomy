@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Insights
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.29
+ * Version: 1.1.31
  * Release Date: 2026-11-08
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -18,7 +18,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.29' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.31' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -56,6 +56,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-head-tags.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-consent.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-consent-ledger.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-consent-seed.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-ecommerce.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/connections/cloudflare.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-cloudflare-ui.php';
@@ -82,6 +83,7 @@ function taxocommerce_google_bing_boot() {
     TaxoCommerce_Insights_Head_Tags::register();
     TaxoCommerce_Insights_Consent::register();
     TaxoCommerce_Insights_Consent_Ledger::register();
+    TaxoCommerce_Insights_Consent_Seed::register();
     TaxoCommerce_Insights_Ecommerce::register();
     TaxoCommerce_Insights_Cloudflare_UI::register();
 

@@ -4,13 +4,16 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.25
+Stable tag: 0.4.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Register WordPress and WooCommerce request templates, maintain SEO role assignments and audit existing PHP template associations.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 Version 0.4.21 adds a guarded, opt-in SEO content reconciliation tab: compare native WooCommerce category descriptions against the optional legacy SEO table and synchronize selected, unchanged rows after an administrator nonce check. It never runs automatically.
 
@@ -119,3 +122,7 @@ Both guides are read-only, administrator-only, and ship inside the standalone pl
 * Follow-up work aligned the United States template with the shared international layout and investigated header menu fallback where raw categories appeared instead of configured menus.
 * WordPress.org preparation addressed translation strings and template/FAQ rendering, while private PHP editing remained a controlled administrator-only capability.
 * Version 0.4.0 is the current standalone series; earlier monolith milestones must not be represented as fabricated 0.x Templates releases.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

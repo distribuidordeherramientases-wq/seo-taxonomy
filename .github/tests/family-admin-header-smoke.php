@@ -23,6 +23,38 @@ function sanitize_key( $value ) {
     return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) );
 }
 function wp_unslash( $value ) { return $value; }
+
+function esc_attr( $value ) { return esc_html( $value ); }
+function esc_url( $value ) { return esc_html( $value ); }
+function esc_url_raw( $value, $protocols = array() ) { return (string) $value; }
+function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function current_user_can( $capability ) { return 'manage_options' === $capability; }
+function wp_nonce_field( $name ) { echo '<input type="hidden" name="_wpnonce" value="test">'; }
+function get_option( $key, $default = '' ) { return $GLOBALS['tc_test_options'][ $key ] ?? $default; }
+function get_transient( $key ) { return $GLOBALS['tc_test_transients'][ $key ] ?? false; }
+function set_transient( $key, $value, $ttl ) { $GLOBALS['tc_test_transients'][ $key ] = $value; return true; }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function sanitize_title( $text ) { return strtolower( preg_replace( '/[^a-z0-9-]/', '-', $text ) ); }
+function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
+function wp_safe_remote_get( $url, $args = array() ) {
+    $GLOBALS['tc_test_remote_calls'][] = $url;
+    return array( 'code' => 200, 'body' => wp_json_encode( array( array(
+        'link' => 'https://example.org/plugins/auditor/',
+        'excerpt' => array( 'rendered' => '<p>Dynamic &amp; safe excerpt</p>' ),
+    ) ) ) );
+}
+function is_wp_error( $value ) { return false; }
+function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
+function wp_remote_retrieve_body( $response ) { return $response['body']; }
+function wp_json_encode( $value ) { return json_encode( $value ); }
+function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
+function wp_html_excerpt( $text, $max, $more = '' ) { return strlen( $text ) > $max ? substr( $text, 0, $max ) . $more : $text; }
+function absint( $value ) { return abs( (int) $value ); }
+define( 'HOUR_IN_SECONDS', 3600 );
+define( 'MINUTE_IN_SECONDS', 60 );
+$GLOBALS['tc_test_remote_calls'] = array();
+$GLOBALS['tc_test_transients'] = array();
+
 function __( $text, $domain = '' ) { return $text; }
 function translate( $text, $domain = 'default' ) { return $text; }
 function determine_locale() { return $GLOBALS['tc_test_locale'] ?? 'es_ES'; }
@@ -95,6 +127,11 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-history">' ), 'Exactly one collapsed version history: ' . $slug );
     tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Translated history title: ' . $slug );
     tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'History must be closed by default: ' . $slug );
+    tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-info">' ), 'One official excerpt panel: ' . $slug );
+    tc_test_assert( strpos( $html, '<details class="tc-family-info">' ) < strpos( $html, '<details class="tc-family-history">' ), 'Official excerpt at left of local history: ' . $slug );
+    tc_test_assert( false !== strpos( $html, '<summary>Información del plugin</summary>' ), 'Official excerpt translated in Spanish: ' . $slug );
+    tc_test_assert( false === strpos( $html, 'tc-family-info" open' ), 'Official excerpt closed by default: ' . $slug );
+    tc_test_assert( is_readable( $root . '/taxocommerce-' . $slug . '/includes/official-excerpt.php' ), 'Independent REST excerpt source: ' . $slug );
     $changelog = $root . '/taxocommerce-' . $slug . '/CHANGELOG.md';
     tc_test_assert( is_readable( $changelog ), 'Bundled history is required: ' . $slug );
     $first_line = strtok( file_get_contents( $changelog ), "\n" );
@@ -152,6 +189,20 @@ foreach ( array(
     $markup = ob_get_clean();
     tc_test_assert( false !== strpos( $markup, '<summary>' . esc_html( $label ) . '</summary>' ), 'History respects site locale: ' . $locale );
 }
+// A configured official URL loads only the public WordPress excerpt, with cache.
+$GLOBALS['tc_test_options']['tc_official_page_taxocommerce-auditor'] = 'https://example.org/plugins/auditor/';
+$_GET['page'] = 'taxocommerce-auditor';
+$GLOBALS['tc_test_locale'] = 'es_ES';
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+$remote_markup = ob_get_clean();
+tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Only a configured URL may trigger one safe WordPress REST request.' );
+tc_test_assert( false !== strpos( $remote_markup, 'Dynamic &amp; safe excerpt' ), 'Excerpt must be escaped and HTML removed.' );
+tc_test_assert( false !== strpos( $remote_markup, 'https://example.org/plugins/auditor/' ), 'Official page backlink must be visible.' );
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+ob_end_clean();
+tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Repeated visits must read from transient cache.' );
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
@@ -182,4 +233,5 @@ tc_test_assert( false === strpos( $tasks_ui, '<div class="wrap"><h1>' ), 'Tasks 
 tc_test_assert( false !== strpos( $tasks_ui, '<div class="wrap"><nav class="nav-tab-wrapper">' ), 'Tasks keeps its seven-tab navigation below the hero' );
 $tasks_data = get_file_data( $root . '/taxocommerce-tasks/taxocommerce-tasks.php', array( 'version' => 'Version', 'released' => 'Release Date' ) );
 tc_test_assert( false !== strpos( file_get_contents( $root . '/taxocommerce-tasks/readme.txt' ), 'Stable tag: ' . $tasks_data['version'] ), 'Tasks release version matches readme' );
-echo "PASS: all 20 local changelogs in collapsible headers + Core release metadata." . PHP_EOL;
+tc_test_assert( false !== strpos( $core_ui, "'/official-excerpt.php'" ), 'Core must load standalone official excerpt.' );
+echo "PASS: 20 local version histories + optional safe REST excerpts (cached) + Core." . PHP_EOL;

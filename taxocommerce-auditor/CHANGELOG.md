@@ -1,3 +1,8 @@
+## [0.3.11] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
+
+- Desplegable izquierdo para obtener el extracto público de una página WordPress oficial, únicamente cuando el administrador configura su URL HTTPS, con enlace a la ficha de origen.
+- Desplegable derecho de historial local, independiente del servicio externo. Validación y escape, límite temporal de petición y caché para evitar demoras.
+- Sin dependencia de otros plugins, sin origen comercial predefinido y sin modificación de funcionalidades existentes.
 ## [0.3.11] — 2026-11-08 — Recuperación de auditorías detenidas y diagnóstico WP-Cron (#2444)
 
 - Mantiene WP-Cron como motor de fondo y añade una recuperación por AJAX autenticado mientras la pestaña de Auditor esté abierta; cubre los cinco ámbitos, con las cinco velocidades configurables.

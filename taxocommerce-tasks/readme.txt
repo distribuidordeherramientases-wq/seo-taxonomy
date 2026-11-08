@@ -4,13 +4,16 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.10
+Stable tag: 0.1.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 A private task agenda with categories, priorities, assignments, calendar and indicators. Independent of WooCommerce.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator. Its administration uses the same self-contained header as the TaxoCommerce family, displaying the plugin title, installed version and publication date without requiring Core. A collapsed version history is available directly beneath the header title.
 
@@ -92,3 +95,7 @@ When TaxoCommerce Core is active, Tasks appears within its administration submen
 = 0.1.0 =
 * Initial private agenda: task and category CRUD, monthly calendar, indicators and read-only Autocheck JSON.
 * Fully standalone storage; no public content or store integrations.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

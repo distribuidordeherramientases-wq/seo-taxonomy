@@ -1,3 +1,8 @@
+## [0.4.26] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [0.4.25] — 2026-11-08 — Política de cookies y preferencias en pies de página ES/US/FR/DE/NL (#2434)
 
 - Pie español compartido: enlace a Política de cookies y, cuando Insights esté activo, a Preferencias de cookies.

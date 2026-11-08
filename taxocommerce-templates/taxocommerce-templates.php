@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Templates
  * Description: Standalone WordPress/WooCommerce request-template routing, SEO role assignments and migration audit.
- * Version: 0.4.25
+ * Version: 0.4.26
  * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4

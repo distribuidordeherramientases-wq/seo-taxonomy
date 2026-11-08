@@ -1,3 +1,8 @@
+## [0.1.8] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [0.1.7] - 2026-11-08 - Autotest: Funcionalidades y Codigo (#2401)
 
 - La pestaña Autotest conserva sus pruebas funcionales y su informe JSON. Nueva subpestana Codigo de solo lectura para este plugin.

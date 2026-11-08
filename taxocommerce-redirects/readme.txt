@@ -4,12 +4,15 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.12
+Stable tag: 0.1.13
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
 
 == Description ==
+
+* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
 
@@ -135,3 +138,7 @@ retired and all native relationships have been verified.
 * Standalone 0.1.0 extracted redirect management, preserving existing redirect data and the original role in WordPress navigation.
 * The independent module introduced an assisted deletion workflow with distinct selection and confirmation phases (4+4) instead of unguarded mass removal.
 * Subsequent fixes removed duplicate staging deployments, kept SEO taxonomy query filters active, addressed Plugin Check and added a dedicated user/technical guide.
+
+== External Services ==
+
+An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.

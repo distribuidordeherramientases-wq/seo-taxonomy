@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.29
+Stable tag: 1.1.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and the restored legacy Analysis dashboard.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
@@ -53,6 +56,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.31 =
+* One-time safe import of 65 consent form strings (ES/EN/FR/DE/NL) from bundled JSON into WordPress wp_options, with backup and a secure JSON export action. Preserves custom edits, does not activate tracking or approve legal review.
+
 
 = 1.1.29 =
 * Escaped plugin-owned consent ledger table identifiers (compatible with WordPress 5.8), prepared all filter values, sanitized consent form inputs and retained uncached legal records. Simplified the streamed CSV response without changing recorded decisions or the schema.
@@ -194,3 +201,7 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 * Connections became a compatibility bridge; Insights consolidated provider screens, manual downloads, status diagnostics and the historical Analysis/Analista reporting engine.
 * The legacy Analysis dashboards were restored after an experimental executive-report replacement proved incomplete; original reporting workflows remained the baseline.
 * Standalone Insights then added country-scoped Trends reports, user/technical manuals, non-destructive Auto Test, before/after comparisons and WordPress.org security/packaging corrections.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

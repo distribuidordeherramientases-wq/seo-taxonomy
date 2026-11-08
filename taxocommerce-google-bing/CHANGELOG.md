@@ -1,3 +1,16 @@
+## [1.1.31] — 2026-11-08 — Precarga segura de los cinco idiomas de Consentimientos en wp_options (#2454)
+
+- Archivo versionado `config/consent-texts-20261108.json` con los 13 campos de cada idioma ES/EN/FR/DE/NL (65 cadenas), incluidos aviso, texto legal, botones y categorías.
+- Migración única, iniciada al entrar un administrador, que guarda la configuración en `taxocommerce_insights_consent_settings` mediante WordPress `update_option()`: conserva campos personalizados y nunca activa el banner, declara revisión legal ni asigna páginas aún en borrador. Se omite si ya hay una configuración activa o revisada.
+- Copia de la opción antigua en `taxocommerce_insights_consent_before_seed_20261108`, historial legal versionado y marcador de migración idempotente.
+- Botón de exportación JSON de la opción realmente almacenada desde Consentimientos, protegido por permiso de administrador y nonce.
+- Prueba CLI de cinco idiomas, seguridad, respaldo y segunda ejecución; incorporada al pipeline.
+
+## [1.1.30] — 2026-11-08 — Extracto público remoto opcional (#2443)
+
+- Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
+- Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+
 ## [1.1.29] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.

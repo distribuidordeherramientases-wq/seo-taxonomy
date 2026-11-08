@@ -5,13 +5,16 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.33
+Stable tag: 0.3.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 An auditable catalog assistant for WooCommerce, with independent learning, semantic interpretation and customer-facing product search.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 Auto Test: 51 independent read-only checks grouped by runtime, schema, L1-L10 sources/quality, M11, search/feedback, M12 and backup. Reports are per-user transients; no new tables or background jobs. Expensive or destructive UAT remains explicitly unexecuted.
 
@@ -203,3 +206,7 @@ A new installation creates the Assistant's learning/lexicon/evidence schemas emp
 * Independent training supports L1–L10 snapshots, quality gates and audit exports; M11 interpreter evaluation and M12 continuous update were evolved as separately monitored functions.
 * Specific later fixes addressed stale quality exams, L9 ranking bias, batch worker speed, runtime availability checks, and safe prepared SQL for WordPress.org, without discarding learned data.
 * The administrator-configurable quality thresholds introduced in 0.3.22 allow an audited acceptance decision; they do not change the actual underlying scores or repair poor source data.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.

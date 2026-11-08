@@ -78,6 +78,9 @@ jobs:
         run: |
           php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
           php taxocommerce-google-bing/tests/consent-smoke.php
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent-seed.php
+          php -l taxocommerce-google-bing/tests/consent-wpoptions-seed-smoke.php
+          php taxocommerce-google-bing/tests/consent-wpoptions-seed-smoke.php
           node --check taxocommerce-google-bing/assets/consent.js
       - name: Validate delta script and regression tests
         run: |

@@ -102,6 +102,7 @@ final class TaxoCommerce_Core_Dashboard {
                 $tc_updated_label = $tc_translations[ $tc_locale ][1];
             }
         }
+        $tc_official_info = require __DIR__ . '/official-excerpt.php';
         // The version history is bundled with this plugin, not fetched from GitHub.
         $tc_history_file = dirname( __DIR__ ) . '/CHANGELOG.md';
         $tc_history = is_readable( $tc_history_file ) ? file_get_contents( $tc_history_file ) : '';
@@ -125,12 +126,15 @@ final class TaxoCommerce_Core_Dashboard {
 						<p class="tcc-eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 						<h1 id="tcc-dashboard-title"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
+                        <div class="tcc-hero__panels">
+                            <?php $tc_official_info->render( 'taxocommerce-core', $tc_locale ); ?>
                         <?php if ( is_string( $tc_history ) && '' !== trim( $tc_history ) ) : ?>
                             <details class="tcc-hero__history">
                                 <summary><?php echo esc_html( $tc_history_label ); ?></summary>
                                 <div class="tcc-hero__history-content"><?php echo esc_html( $tc_history ); ?></div>
                             </details>
                         <?php endif; ?>
+                        </div>
 					</div>
 				</div>
 				<div class="tcc-hero__metadata">
