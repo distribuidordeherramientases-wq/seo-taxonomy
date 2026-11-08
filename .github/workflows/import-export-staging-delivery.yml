@@ -6,6 +6,7 @@ on:
     paths:
       - 'taxocommerce-import-export/**'
       - 'taxocommerce-templates/**'
+      - 'taxocommerce-google-bing/**'
       - '.github/workflows/import-export-staging-delivery.yml'
   workflow_dispatch:
     inputs:
@@ -16,6 +17,7 @@ on:
         options:
           - taxocommerce-import-export
           - taxocommerce-templates
+          - taxocommerce-google-bing
 
 permissions:
   contents: read
@@ -50,7 +52,7 @@ jobs:
           import os
           import re
           import subprocess
-          valid = {'taxocommerce-import-export', 'taxocommerce-templates'}
+          valid = {'taxocommerce-import-export', 'taxocommerce-templates', 'taxocommerce-google-bing'}
           if os.environ.get('EVENT_NAME') == 'workflow_dispatch':
               selected = {os.environ.get('REQUESTED_PLUGIN', '')}
           else:
@@ -61,8 +63,8 @@ jobs:
                   changed = subprocess.check_output(['git', 'diff', '--name-only', before, 'HEAD'], text=True).splitlines()
               selected = {path.split('/', 1)[0] for path in changed if path.startswith('taxocommerce-') and '/' in path}
               selected &= valid
-              if '.github/workflows/import-export-staging-delivery.yml' in changed:
-                  selected |= valid
+              if '.github/workflows/import-export-staging-delivery.yml' in changed and not selected:
+                  selected = valid
           if not selected or not selected.issubset(valid):
               raise SystemExit('Unexpected scoped target selection: ' + repr(selected))
           value = json.dumps(sorted(selected), separators=(',', ':'))
@@ -112,6 +114,17 @@ jobs:
           php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
           node --check taxocommerce-templates/assets/footer-cookie-preferences.js
           echo 'Templates 0.4.25: five country policy footers and consent reopen tested'
+      - name: Insights consent and head-tag focused tests
+        if: matrix.slug == 'taxocommerce-google-bing'
+        shell: bash
+        run: |
+          set -euo pipefail
+          php taxocommerce-google-bing/tests/consent-wpoptions-seed-smoke.php
+          php taxocommerce-google-bing/tests/consent-smoke.php
+          php taxocommerce-google-bing/tests/head-tags-smoke.php
+          php taxocommerce-google-bing/tests/auto-test-smoke.php
+          node --check taxocommerce-google-bing/assets/consent.js
+          echo 'Insights: 65 consent fields, wp_options migration and tracking tests passed'
 
   staging:
     name: STAGING / ${{ matrix.slug }}
@@ -197,6 +210,9 @@ jobs:
             echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           } > /tmp/scoped-delivery.md
           cat /tmp/scoped-delivery.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$SELECTED" == *'taxocommerce-google-bing'* ]]; then
+            gh issue comment 2454 --body-file /tmp/scoped-delivery.md || echo '::warning::Could not comment on Insights consent delivery issue'
+          fi
           if [[ "$SELECTED" == *'taxocommerce-templates'* ]]; then
             gh issue comment 2437 --body-file /tmp/scoped-delivery.md || echo '::warning::Could not comment on Templates delivery issue'
           fi
