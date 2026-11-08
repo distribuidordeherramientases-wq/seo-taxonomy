@@ -3,8 +3,8 @@
  * Plugin Name: TaxoCommerce Redirects - SEO Redirect Manager
  * Plugin URI: https://www.distribuidordeherramientas.es/
  * Description: 301/302 redirect management and assisted deletion for WordPress and WooCommerce content, with optional TaxoCommerce Core integration.
- * Version: 0.1.10
- * Release Date: 2026-11-07
+ * Version: 0.1.11
+ * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: David Perez

@@ -1,3 +1,9 @@
+## [0.1.11] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
+- Textos del título preparados para ES/EN/FR/DE/NL, salida escapada, desplazamiento vertical y mantenimiento de menús y funciones existentes.
+- El paquete instalable y la subida incremental incluyen únicamente el historial raíz necesario. Sin cambios en base de datos ni servicios.
+
 ## [Unreleased] — Finalización de los catálogos de Redirects (#2062)
 
 - Añadidas las 53 traducciones restantes del manual técnico por idioma (265 entradas adicionales). Las 144 cadenas no vacías de cada catálogo PO quedan traducidas en ES/EN/FR/DE/NL; 145 entradas por archivo incluyendo la cabecera.

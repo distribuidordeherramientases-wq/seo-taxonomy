@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.19
+Stable tag: 0.2.20
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,10 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.20 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
 
 = 0.2.17 =
 * Nombre uniforme «Autocheck» y exportación JSON autenticada del último diagnóstico, sin ejecutar operaciones de escritura o procesos comerciales.
