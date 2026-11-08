@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.20
+Stable tag: 0.4.21
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,10 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.21 =
+* Runtime gettext fallback to source labels if a stale or third-party language pack contains empty strings. ES/EN/FR/DE/NL included, no data changes.
+
 
 = 0.4.20 =
 * Rebuild ES/EN/FR/DE/NL MO catalogs excluding empty translations, restoring readable export type, filters and action buttons. Preserve real translations and Pages CSV export behavior.
