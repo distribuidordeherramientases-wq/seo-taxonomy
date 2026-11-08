@@ -107,6 +107,8 @@ jobs:
           php taxocommerce-google-bing/tests/head-tags-inventory-smoke.php
           php taxocommerce-google-bing/tests/ecommerce-smoke.php
           php taxocommerce-google-bing/tests/cloudflare-migration-smoke.php
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
+          php taxocommerce-google-bing/tests/consent-smoke.php
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
