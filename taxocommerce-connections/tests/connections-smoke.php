@@ -7,8 +7,15 @@ $google_bing = file_get_contents( $root . '/includes/class-taxocommerce-connecti
 $admin = file_get_contents( $root . '/includes/class-taxocommerce-connections-admin.php' );
 $autocheck = file_get_contents( $root . '/includes/class-taxocommerce-connections-autocheck.php' );
 
+$header_match = array();
+$has_header_version = preg_match( '/^\s*\*\s*Version:\s*(\d+\.\d+\.\d+)/m', $main, $header_match ) === 1;
+$declared_version = $has_header_version ? $header_match[1] : '';
+$has_matching_constant = $has_header_version && strpos( $main, "define( 'TAXOCOMMERCE_CONNECTIONS_VERSION', '" . $declared_version . "' )" ) !== false;
+$readme = file_get_contents( $root . '/readme.txt' );
+$has_matching_stable_tag = $has_header_version && strpos( $readme, 'Stable tag: ' . $declared_version ) !== false;
+
 $checks = array(
-    preg_match( '/Version:\\s*0\\.3\\.1/', $main ) === 1,
+    $has_header_version && $has_matching_constant && $has_matching_stable_tag,
     strpos( $main, 'Compatibility Bridge' ) !== false,
     strpos( $main, 'taxocommerce_connections_insights_url' ) !== false,
     strpos( $main, "defined( 'TAXOCOMMERCE_GOOGLE_BING_VERSION' )" ) !== false,

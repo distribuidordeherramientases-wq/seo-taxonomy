@@ -3,6 +3,7 @@
 - Traducciones explícitas de los 61 mensajes gettext de Connections en es_ES, en_US, fr_FR, de_DE y nl_NL: menús, ajustes, OAuth, Google, Bing, Merchant, Amazon, Pinterest y respuestas de comprobación.
 - Archivos PO completos y compilaciones MO correspondientes; validados identificadores, formato de catálogo y el marcador `%d`. Se conserva el `changelog.txt` histórico.
 - Sin cambios de comportamiento de OAuth, credenciales, API, migración de ajustes ni puente de compatibilidad; falta validar las interfaces en los WordPress reales y auditar literales no gettext.
+- Corrección del smoke de compatibilidad: verifica coincidencia entre cabecera, constante de versión y etiqueta estable, sin fijar `0.3.1`, para impedir falsos fallos al publicar versiones posteriores.
 
 ## [Unreleased] — Revisión i18n (seguimiento #2062)
 
