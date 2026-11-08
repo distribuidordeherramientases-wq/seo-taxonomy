@@ -1,22 +1,31 @@
-## [Unreleased] — Corregir internacionalización de atributo de navegación (#2062)
+## [0.4.62] — 2026-11-08 — Catálogos gettext completos para Core en cinco idiomas (#2062)
+
+- Completados los catálogos `es_ES`, `en_US`, `fr_FR`, `de_DE` y `nl_NL` con 791 mensajes gettext traducibles y cabecera por idioma, sin claves vacías ni diferencias respecto al POT.
+- 1.032 traducciones nuevas de las 344 cadenas pendientes en francés, alemán y neerlandés; 502 identidades de origen español añadidas al catálogo ES para formalizar la cobertura de textos fuente. Se conservan las traducciones previas, nombres técnicos y parámetros de formato.
+- Regenerados los cinco archivos MO y ampliada la prueba automática de integridad y ejemplos reales de traducción.
+- Se mantiene el atributo HTML `data-tc-search="local"` fuera de gettext, evitando cambios de comportamiento al seleccionar otro idioma.
+- Versión y fecha actualizadas a 0.4.62 / 2026-11-08. Sin modificar datos, productos, posts, taxonomías, opciones, menús publicados ni otros plugins.
+- La cobertura completa de POT/PO no acredita textos PHP/JS no extraídos ni la validación visual. Pendiente Plugin Check final, merge, despliegue homogéneo de Core en STAGING/Focazul y comprobación funcional por idioma. Producción excluida.
+
+### Parte de 0.4.62 — Corregir internacionalización de atributo de navegación (#2062)
 
 - Corregido `class-taxocommerce-core-hierarchy-classic.php`: el atributo técnico `data-tc-search="local"` se imprime como HTML fijo, no mediante gettext. Evita que una traducción pueda romper el buscador de categorías/elementos.
 - Eliminada esta falsa cadena traducible del POT y los cinco PO, y recompilados cinco MO coherentes (792 entradas por idioma). Se conserva el HTML emitido y no se modifica el procesamiento de relaciones ni los datos.
 - Revisar sintaxis PHP, Plugin Check, regresiones y funcionamiento real en STAGING/Focazul antes de fusionar o desplegar. Nunca PRODUCCIÓN.
 
-## [Unreleased] — Cobertura de inventarios y administración Core (#2062)
+### Parte de 0.4.62 — Cobertura de inventarios y administración Core (#2062)
 
 - Traducidas otras 100 cadenas de Core para FR, DE y NL, y explicitadas las correspondientes versiones ES: 400 entradas gettext adicionales. Incluyen etiquetas de navegación, filtros, inventario de contenido, arquitectura SEO, estados de edición, diagnósticos, permisos, campos de producto, WooCommerce y opciones de sistema.
 - Se conservan todas las traducciones EN existentes; los mensajes restantes seguirán comprobándose antes de publicar. Sin cambios en los datos, los menús reales o la lógica PHP/JS.
 - Cinco catálogos GNU MO regenerados. Continuar con el resto de claves y ejecutar CI, Plugin Check y validación del idioma del administrador.
 
-## [Unreleased] — Interfaz de extensiones Core multidioma (#2062)
+### Parte de 0.4.62 — Interfaz de extensiones Core multidioma (#2062)
 
 - Añadidas 139 traducciones adicionales de 52 mensajes en cinco idiomas para el catálogo de extensiones, menús, descripciones, instalación ZIP, seguridad de carga, activación y desactivación, sin sobrescribir traducciones previas.
 - Sin modificaciones de los servicios ni archivos PHP/JS del plugin. Sin cambios en contenidos editoriales, productos o configuración de sitios.
 - Actualizados 5 PO y regenerados 5 MO (793 entradas cada uno). Pendiente continuar con cadenas restantes, pruebas Plugin Check e inspección real por idioma.
 
-## [Unreleased] — Traducción de administración y menús Core (Issue #2062)
+### Parte de 0.4.62 — Traducción de administración y menús Core (Issue #2062)
 
 - Completadas 332 traducciones nuevas de 72 mensajes originales en ES/EN/FR/DE/NL, sin sobrescribir traducciones existentes. Incluye Anomalías, avisos de integridad, navegación de bloques, gestión de menús nativos, seguridad de borrado, atributos de WooCommerce y documentación de usuario y técnica.
 - Catálogos `.po` y `.mo` sincronizados, 793 registros gettext por idioma, con `msgid` y marcadores de formato conservados.
