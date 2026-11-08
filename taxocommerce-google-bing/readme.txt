@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.23
+Stable tag: 1.1.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,11 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.24 =
+* Fix Insights → Analysis to load its own reports and AJAX script after deactivating the old SEO monolith, using local Insights CSS and JS only.
+* Keep the eleven existing report functions and the merged executive/roadmap button. No credential, head-tag, tracking or provider setting changes.
+
 
 = 1.1.23 =
 * Restore Cloudflare API connection and read-only security diagnostics in Insights using the existing encrypted WordPress option and optional wp-config constant. No re-entry of credentials necessary.
