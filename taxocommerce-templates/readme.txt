@@ -4,7 +4,7 @@ Tags: templates, roles, pages, woocommerce
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.24
+Stable tag: 0.4.25
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,11 @@ Open the Manual tab in Templates to read two integrated guides without executing
 Both guides are read-only, administrator-only, and ship inside the standalone plugin. Editing PHP remains a trusted-administrator capability and is not made safer by reading a manual.
 
 == Changelog ==
+
+= 0.4.25 =
+* Country-scoped cookie-policy and consent-preferences links in the Spanish shared footer, VEVOR international footer and international cluster footer.
+* Route the five country-specific WordPress policy pages to a matching legal page shell; show public policy links only after publication. Preserve the Insights consent manager and never modify the visitor's decision.
+
 
 = 0.4.23 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

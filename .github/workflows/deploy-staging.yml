@@ -167,6 +167,9 @@ jobs:
           php taxocommerce-suppliers/tests/template-creation-smoke.php
           php taxocommerce-system-check/tests/auto-test-guide-smoke.php
           php taxocommerce-templates/tests/smoke.php
+          php -l taxocommerce-templates/tests/cookie-footer-smoke.php
+          php taxocommerce-templates/tests/cookie-footer-smoke.php
+          node --check taxocommerce-templates/assets/footer-cookie-preferences.js
           php taxocommerce-templates/tests/bing-meta-head-smoke.php
           php taxocommerce-templates/tests/international-pilot-seo-head-smoke.php
           php taxocommerce-templates/tests/bing-title-home-alt-smoke.php
