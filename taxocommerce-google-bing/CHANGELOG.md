@@ -1,3 +1,11 @@
+## 1.1.25 - 2026-11-08 - Consentimientos: textos legales editables y ciclo de vida (#2366)
+
+- Nueva pestaña Consentimientos de Insights con mensaje público y texto legal ampliado editables en ES/EN/FR/DE/NL, etiquetas de botones y URL de política de cookies.
+- Banner integrado opt-in, botones Aceptar, Rechazar y Configurar, categorías por finalidad, revocación y revisión legal obligatoria antes de habilitarlo.
+- Opción `taxocommerce_insights_consent_settings` en `wp_options`; no se crean tablas para los textos ni se registran datos personales del visitante en el servidor. Instalación añade borradores, desactivación conserva los datos y desinstalación definitiva elimina la opción.
+- Clarity ConsentV2 e integración opcional WP Consent API; protección de caché compartida para no servir etiquetas consentidas a terceros.
+- Las pruebas de navegador y proveedores reales siguen pendientes en STAGING antes de habilitar en PRO.
+
 ## 1.1.23 - 2026-11-07 - Independencia Cloudflare (#2339)
 
 - Migrar la API de Cloudflare (solo lectura) y controles de zona/token a Insights Connections.
