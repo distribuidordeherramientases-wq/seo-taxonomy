@@ -5,7 +5,8 @@
  */
 if ( 'cli' !== PHP_SAPI ) { exit( 1 ); }
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.6' );
+define( 'TAXOCOMMERCE_FAQS_VERSION', '0.1.11' );
+define( 'HOUR_IN_SECONDS', 3600 );
 function tc_faq_at_check( $ok, $name ) {
 	if ( ! $ok ) { fwrite( STDERR, 'FAIL FAQ Auto Test: ' . $name . PHP_EOL ); exit( 1 ); }
 }
@@ -27,7 +28,12 @@ function wp_die( $s ) { throw new RuntimeException( $s ); }
 function get_user_meta( $id, $key, $single ) { return array(); }
 function update_user_meta( $id, $key, $value ) { throw new RuntimeException( 'Auto Test attempted data write on read-only test' ); }
 function admin_url( $s ) { return 'https://example.test/wp-admin/' . $s; }
+function remove_query_arg( $key, $url = 'https://example.test/wp-admin/admin.php?page=taxocommerce-faqs' ) { return $url; }
+function add_query_arg( $key, $value = null, $url = '' ) { return ( $url ?: admin_url( 'admin.php?page=taxocommerce-faqs' ) ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
+function wp_unslash( $value ) { return $value; }
 function wp_nonce_field( $action, $name ) { echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="test">'; }
+require dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php';
 require dirname( __DIR__ ) . '/includes/class-taxocommerce-faqs-auto-test.php';
 
 $groups = TaxoCommerce_FAQs_Auto_Test::groups();
