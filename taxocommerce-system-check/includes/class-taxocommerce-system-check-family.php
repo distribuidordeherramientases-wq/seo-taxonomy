@@ -117,10 +117,70 @@ final class TaxoCommerce_System_Check_Family {
         if ( ! in_array( $expected, $included, true ) ) {
             return self::finding( 'warning', __( 'WordPress indica que está activo, pero su archivo principal no figura cargado en esta petición.', 'taxocommerce-system-check' ), array( 'autotest' => 'not_executed' ) );
         }
+        $autotest = self::verified_autotest( dirname( $file ) );
+        if ( 'not_run' !== $autotest['status'] ) {
+            return self::finding(
+                $autotest['status'],
+                $autotest['message'],
+                $autotest['details']
+            );
+        }
         return self::finding(
             'pass',
-            __( 'Archivo principal cargado durante esta petición. No equivale a una prueba funcional completa.', 'taxocommerce-system-check' ),
+            __( 'Archivo principal cargado; su Autotest específico no se ha ejecutado.', 'taxocommerce-system-check' ),
             array( 'autotest' => 'not_executed', 'scope' => 'loaded_entrypoint_only' )
+        );
+    }
+
+    /**
+     * Reuse only reviewed, explicitly read-only existing Autotest contracts.
+     * Do not invoke arbitrary plugin actions or the third-party plugin APIs.
+     */
+    public static function verified_autotest( $slug ) {
+        $safe = array(
+            'taxocommerce-system-check' => 'TaxoCommerce_System_Check_Auto_Test',
+            'taxocommerce-scrappers' => 'TaxoCommerce_Scrappers_Auto_Test',
+        );
+        if ( ! isset( $safe[ $slug ] ) || ! is_callable( array( $safe[ $slug ], 'run' ) ) ) {
+            return self::finding( 'not_run', __( 'Autotest de lectura aún no integrado.', 'taxocommerce-system-check' ), array( 'autotest' => 'not_executed' ) );
+        }
+        try {
+            $rows = $safe[ $slug ]::run();
+        } catch ( Throwable $error ) {
+            return self::finding( 'warning', __( 'El Autotest no pudo completarse.', 'taxocommerce-system-check' ), array( 'autotest' => 'failed', 'error_type' => get_class( $error ) ) );
+        }
+        if ( 'taxocommerce-system-check' === $slug ) {
+            if ( ! is_array( $rows ) || ! isset( $rows['totals']['pass'], $rows['totals']['fail'], $rows['totals']['skip'] ) ) {
+                return self::finding( 'warning', __( 'El Autotest devolvió un informe no válido.', 'taxocommerce-system-check' ), array( 'autotest' => 'invalid' ) );
+            }
+            $totals = array(
+                'pass' => absint( $rows['totals']['pass'] ),
+                'fail' => absint( $rows['totals']['fail'] ),
+                'skip' => absint( $rows['totals']['skip'] ),
+            );
+            $total = array_sum( $totals );
+            return self::finding(
+                $totals['fail'] > 0 || $total < 1 ? 'warning' : 'pass',
+                __( 'Autotest de System Check ejecutado en lectura; consulta sus resultados agrupados.', 'taxocommerce-system-check' ),
+                array( 'autotest' => 'executed', 'totals' => $totals )
+            );
+        }
+        // Scrappers::run() provides flat read-only rows (status: ok|warning|error).
+        if ( ! is_array( $rows ) || ! $rows ) {
+            return self::finding( 'warning', __( 'El Autotest devolvió un informe vacío.', 'taxocommerce-system-check' ), array( 'autotest' => 'invalid' ) );
+        }
+        $totals = array( 'ok' => 0, 'warning' => 0, 'error' => 0, 'skip' => 0 );
+        foreach ( $rows as $row ) {
+            $status = is_array( $row ) ? ( $row['status'] ?? '' ) : '';
+            if ( ! isset( $totals[ $status ] ) ) {
+                return self::finding( 'warning', __( 'El Autotest devolvió un estado desconocido.', 'taxocommerce-system-check' ), array( 'autotest' => 'invalid' ) );
+            }
+            ++$totals[ $status ];
+        }
+        return self::finding(
+            $totals['warning'] > 0 || $totals['error'] > 0 ? 'warning' : 'pass',
+            __( 'Autotest de Scrappers ejecutado en lectura; consulta sus resultados agrupados.', 'taxocommerce-system-check' ),
+            array( 'autotest' => 'executed', 'totals' => $totals )
         );
     }
 
