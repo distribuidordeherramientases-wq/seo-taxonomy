@@ -1,3 +1,9 @@
+## [0.4.63] — 2026-11-08 — Historial plegable de Core (#2382)
+
+- La cabecera del panel principal de Core muestra «Historial de versiones y mejoras» cerrado por defecto y obtenido de su propio `CHANGELOG.md`.
+- Traducción ES/EN/FR/DE/NL mediante gettext y respaldo por idioma, contenido escapado y altura limitada.
+- Conserva indicadores, navegación y funcionalidades anteriores; no crea tablas ni depende del historial de otra instalación.
+
 ## [0.4.62] — 2026-11-08 — Catálogos gettext completos para Core en cinco idiomas (#2062)
 
 - Completados los catálogos `es_ES`, `en_US`, `fr_FR`, `de_DE` y `nl_NL` con 791 mensajes gettext traducibles y cabecera por idioma, sin claves vacías ni diferencias respecto al POT.

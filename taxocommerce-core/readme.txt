@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.62
+Stable tag: 0.4.63
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,6 +57,10 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.63 =
+* Added an optional collapsed version history in the Core dashboard header, reading only Core's own bundled CHANGELOG.md without creating tabs or changing data or module dependencies.
+
 
 = 0.4.62 =
 * Complete the existing Core gettext catalogs in Spanish, English, French, German and Dutch, covering administrative actions, native menus, extension management, diagnostics and both manuals.
