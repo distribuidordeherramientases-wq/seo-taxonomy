@@ -23,6 +23,8 @@ define( 'TAXOCOMMERCE_CORE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_CORE_BASENAME', plugin_basename( __FILE__ ) );
 
+$tc_core_official_page = require TAXOCOMMERCE_CORE_PATH . 'includes/official-excerpt.php';
+$tc_core_official_page->register( 'taxocommerce-core' );
 require_once TAXOCOMMERCE_CORE_PATH . 'includes/class-taxocommerce-core-logger.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Core_Autotest_Code::boot();
