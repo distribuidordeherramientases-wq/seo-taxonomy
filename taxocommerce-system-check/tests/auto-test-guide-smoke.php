@@ -39,6 +39,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function __( $value, $domain = '' ) { return $value; }
 function esc_html__( $value, $domain = '' ) { return esc_html( $value ); }
 function esc_attr( $value ) { return esc_html( $value ); }
+function esc_attr__( $value, $domain = '' ) { return esc_attr( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( (string) $value ) ); }
 function wp_unslash( $value ) { return stripslashes( $value ); }
