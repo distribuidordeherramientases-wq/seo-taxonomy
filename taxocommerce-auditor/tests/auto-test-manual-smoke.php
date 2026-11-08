@@ -110,8 +110,8 @@ verify( 3 === $workload::speed( 'pages' ), 'Independent scope keeps its saved sp
 $runner_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-runner.php' );
 verify( strpos( $runner_source, '$processed_batch' ) !== false, 'Category offset tracks only processed objects under time budgets' );
 verify( strpos( $runner_source, '$requested_batch' ) !== false, 'Completion compares the batch limit captured before fetching' );
-verify( strpos( $admin, "wp_nonce_field( 'taxocommerce_auditor_action_' . $scope )" ) !== false, 'Workload uses existing scope-specific nonce' );
-verify( strpos( $admin, "Workload::set_speed( $scope, $raw_speed )" ) !== false, 'Workload update routes through validated controls' );
+verify( strpos( $admin, "wp_nonce_field( 'taxocommerce_auditor_action_' . \$scope )" ) !== false, 'Workload uses existing scope-specific nonce' );
+verify( strpos( $admin, 'Workload::set_speed( $scope, $raw_speed )' ) !== false, 'Workload update routes through validated controls' );
 
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
 
