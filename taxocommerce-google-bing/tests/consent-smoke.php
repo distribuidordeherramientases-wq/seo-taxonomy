@@ -38,6 +38,7 @@ function esc_attr( $value ) { return esc_html( $value ); }
 function esc_js( $value ) { return addslashes( $value ); }
 function esc_url( $value ) { return esc_attr( $value ); }
 function admin_url( $path = '' ) { return 'https://shop.test/wp-admin/' . ltrim( $path, '/' ); }
+function wp_create_nonce( $action ) { return 'fixture-nonce-' . (string) $action; }
 function wp_json_encode( $value, $flags = 0 ) { return json_encode( $value, $flags ); }
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { return true; }
 function add_filter( $name, $callback, $priority = 10, $args = 1 ) { return true; }
