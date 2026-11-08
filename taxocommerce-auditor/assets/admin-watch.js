@@ -59,6 +59,14 @@
             }
             var data = result.data;
             failures = 0;
+            var statusLabel = document.querySelector('[data-tca-status-label]');
+            var counter = document.querySelector('[data-tca-counter]');
+            if (statusLabel) {
+                statusLabel.textContent = data.status_label;
+            }
+            if (counter) {
+                counter.textContent = data.processed + ' / ' + (data.total === null ? '—' : data.total);
+            }
             progress.textContent = data.status_label + ' · ' + data.processed +
                 ' / ' + (data.total === null ? '—' : data.total) +
                 ' · ' + config.latest + ': ' + readableTime(data.last_batch_timestamp) +
