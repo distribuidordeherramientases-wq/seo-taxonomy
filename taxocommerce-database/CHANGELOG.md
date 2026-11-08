@@ -1,3 +1,8 @@
+## [0.4.15] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
+
+- El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
+- Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+
 ## [0.4.14] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
 
 - Desplegable izquierdo para obtener el extracto público de una página WordPress oficial, únicamente cuando el administrador configura su URL HTTPS, con enlace a la ficha de origen.
