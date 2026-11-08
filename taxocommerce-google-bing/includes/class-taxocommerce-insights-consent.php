@@ -198,8 +198,10 @@ final class TaxoCommerce_Insights_Consent {
         if ( ! self::active() ) {
             return $allowed;
         }
-        $category = is_array( $entry ) && 'google_tag_manager' === ( $entry['provider'] ?? '' )
-            ? 'marketing' : 'statistics';
+        $category = is_array( $entry ) && (
+            'google_tag_manager' === ( $entry['provider'] ?? '' ) ||
+            false !== strpos( (string) ( $entry['code'] ?? '' ), 'googletagmanager.com/gtm.js' )
+        ) ? 'marketing' : 'statistics';
         return self::has_consent( $category );
     }
 
@@ -371,8 +373,10 @@ final class TaxoCommerce_Insights_Consent {
         $entries = get_option( 'taxocommerce_insights_head_tags', array() );
         $enabled = false;
         foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
-            if ( is_array( $entry ) && ! empty( $entry['enabled'] ) && 'clarity' === ( $entry['provider'] ?? '' )
-                && 'tracking' === ( $entry['kind'] ?? '' ) ) {
+            if ( is_array( $entry ) && ! empty( $entry['enabled'] )
+                && 'tracking' === ( $entry['kind'] ?? '' )
+                && ( 'clarity' === ( $entry['provider'] ?? '' )
+                    || false !== strpos( (string) ( $entry['code'] ?? '' ), 'clarity.ms/tag' ) ) ) {
                 $enabled = true;
                 break;
             }
