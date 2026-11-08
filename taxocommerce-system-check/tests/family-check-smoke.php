@@ -59,4 +59,27 @@ $partial = TaxoCommerce_System_Check_Family::process( $state, $changed );
 tcs_expect( $partial['status'] === 'completed'
     && $partial['results']['taxocommerce-system-check/taxocommerce-system-check.php']['static']['status'] === 'skip',
     'Missing plugins during a scan must be reported as skipped, never falsely passed.' );
+
+// Reuse only proven read-only Autotests; never execute unrelated plugins.
+class TaxoCommerce_System_Check_Auto_Test {
+    public static $calls = 0;
+    public static function run() {
+        ++self::$calls;
+        return array( 'totals' => array( 'pass' => 3, 'fail' => 0, 'skip' => 1 ) );
+    }
+}
+class TaxoCommerce_Scrappers_Auto_Test {
+    public static $calls = 0;
+    public static function run() {
+        ++self::$calls;
+        return array( array( 'status' => 'ok' ), array( 'status' => 'warning' ) );
+    }
+}
+$own = TaxoCommerce_System_Check_Family::verified_autotest( 'taxocommerce-system-check' );
+$scrappers = TaxoCommerce_System_Check_Family::verified_autotest( 'taxocommerce-scrappers' );
+$unknown = TaxoCommerce_System_Check_Family::verified_autotest( 'taxocommerce-unreviewed' );
+tcs_expect( 'pass' === $own['status'] && 1 === TaxoCommerce_System_Check_Auto_Test::$calls, 'System Check own safe Autotest must run exactly once.' );
+tcs_expect( 'warning' === $scrappers['status'] && 1 === TaxoCommerce_Scrappers_Auto_Test::$calls, 'Scrappers safe Autotest warnings must be reported.' );
+tcs_expect( 'not_run' === $unknown['status'], 'An unreviewed plugin Autotest must never run implicitly.' );
+
 echo "TaxoCommerce System Check family audit: PASS\n";

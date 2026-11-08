@@ -2,7 +2,7 @@
 
 - Nueva pestaña «Familia TaxoCommerce» para inspeccionar todos los plugins TaxoCommerce realmente instalados, activos o inactivos, sin dependencia de Core ni acceso al monolito.
 - Cinco niveles de limitación de CPU (lotes de 1 a 4 plugins y pausas de 800 a 5000 ms), ejecución por solicitudes independientes, detener y reanudar y exportación JSON por usuario y sitio.
-- Tres columnas de evidencias: inspección local acotada de archivos y cabeceras; estado del Plugin Check oficial (siempre «No ejecutado» hasta lanzarlo en su herramienta); y comprobación no intrusiva de carga WordPress (sin iniciar Autotest de terceros).
+- Tres columnas de evidencias: inspección local acotada de archivos y cabeceras; estado del Plugin Check oficial (siempre «No ejecutado» hasta lanzarlo en su herramienta); y comprobación no intrusiva de carga WordPress. Se reutilizan únicamente los Autotest de solo lectura previamente revisados de Scrappers y System Check; otros Autotest permanecen no ejecutados.
 - Solo lecturas sobre plugins instalados; no ejecuta PHP Lint por shell, no llama a GitHub, no activa/desactiva plugins ni modifica WooCommerce.
 - Incluidas pruebas PHP de inventario, exclusión del monolito, resultados no ejecutados, lotes y pausa; la prueba profunda del Plugin Check oficial continúa en CI.
 

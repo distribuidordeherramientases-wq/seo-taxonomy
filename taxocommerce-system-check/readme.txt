@@ -17,7 +17,7 @@ TaxoCommerce System Check provides a standalone administration entry for diagnos
 * WordPress, PHP and hosting/system status screens.
 * Processes tab: read and cancel eligible application jobs from Action Scheduler/WP-Cron, with optional cooperative controls for installed workers. Does not kill operating-system or running PHP processes.
 * Plugin validation and local PHP checks.
-* Family-wide checks tab: inventory installed TaxoCommerce plugins (including inactive ones), inspect bounded local entrypoint metadata, identify the runtime-loaded entrypoint, and open the official WordPress Plugin Check tool. Runs in bounded batches at five CPU speeds with pause/resume and private JSON export. An official Plugin Check result and each plugin's self-test are never reported as passed unless actually executed.
+* Family-wide checks tab: inventory installed TaxoCommerce plugins (including inactive ones), inspect bounded local entrypoint metadata, identify the runtime-loaded entrypoint and reviewed read-only Autotests (System Check and Scrappers), and open the official WordPress Plugin Check tool. Runs in bounded batches at five CPU speeds with pause/resume and private JSON export. An official Plugin Check result and each plugin's self-test are never reported as passed unless actually executed.
 * Optional HTTP URL audit of site content, when started explicitly by an administrator.
 * On-demand diagnostic reports and optional administrator-configured notification emails.
 * Dedicated bounded processing for longer URL checks. Neither external GitHub runners nor artificial traffic generation are necessary.
