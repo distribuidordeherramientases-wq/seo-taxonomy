@@ -1,3 +1,10 @@
+## [0.1.8] — 2026-11-08 — Historial visible en instalaciones de prueba (#2367)
+
+- Corregida la distribución del archivo raíz `CHANGELOG.md`, que anteriormente estaba excluido y ocultaba el desplegable incorporado en 0.1.7.
+- El despliegue incremental y el ZIP de Plugin Check incluyen ahora este archivo, pero siguen excluyendo el resto de documentación Markdown interna.
+- Nuevas pruebas verifican el manifiesto distribuible, la presencia del historial en la cabecera y su estado inicial plegado.
+- No se modifican tablas, tareas, permisos ni interfaces públicas; sin dependencia de Core.
+
 ## [0.1.7] — 2026-11-08 — Historial plegado en cabecera (#2363)
 
 - Añadido un desplegable `<details>` cerrado por defecto dentro de la cabecera y debajo del título, sin nueva pestaña.

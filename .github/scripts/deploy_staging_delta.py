@@ -49,7 +49,9 @@ def distributable(path):
     relative = parts[1:]
     if any(part.startswith(".") or part in EXCLUDE_PARTS for part in relative):
         return None
-    if relative[-1].lower().endswith(EXCLUDE_SUFFIXES):
+    # Ship the root changelog used by the Tasks admin header.
+    # Other Markdown/development documentation remains excluded.
+    if relative[-1].lower().endswith(EXCLUDE_SUFFIXES) and relative != ("CHANGELOG.md",):
         return None
     return parts[0], "/".join(relative)
 

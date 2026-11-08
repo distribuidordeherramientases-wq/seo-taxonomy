@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,10 @@ No. It is standalone.
 When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
 
 == Changelog ==
+
+= 0.1.8 =
+* Fixed missing version history in deployed installations by including the bundled root CHANGELOG.md in the distribution and Plugin Check ZIP. No schema or task data changes.
+
 
 = 0.1.7 =
 * Added a collapsed version history within the administration header, reading the bundled CHANGELOG.md with escaped output and localized label; no extra tab or database changes.
