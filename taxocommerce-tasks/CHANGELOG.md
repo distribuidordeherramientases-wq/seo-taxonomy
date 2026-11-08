@@ -1,3 +1,10 @@
+## [0.1.7] — 2026-11-08 — Historial plegado en cabecera (#2363)
+
+- Añadido un desplegable `<details>` cerrado por defecto dentro de la cabecera y debajo del título, sin nueva pestaña.
+- Se muestra `CHANGELOG.md` local con salida escapada, límite de altura y desplazamiento para no alterar la navegación.
+- Etiqueta localizada ES/EN/FR/DE/NL, compatible con gettext y funcionamiento autónomo sin Core.
+- Sin modificación de tareas, calendario, base de datos, permisos ni endpoints.
+
 ## [0.1.6] — 2026-11-07 — Cabecera visual uniforme para Tasks (#2336)
 
 - Tasks utiliza la misma cabecera visual autónoma que el resto de plugins TaxoCommerce (título, versión y fecha de actualización).
