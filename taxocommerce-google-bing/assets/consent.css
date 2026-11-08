@@ -1,0 +1,16 @@
+/* Scoped consent UI. Banner appears only after site owner enables reviewed legal texts. */
+#tci-consent-banner[hidden],#tci-consent-details[hidden]{display:none!important}
+.tci-consent-banner{position:fixed;z-index:2147483000;inset:auto 14px 15px;max-width:790px;margin:auto;padding:19px 24px;color:#1d2327;background:#fff;border:2px solid #2271b1;border-radius:10px;box-shadow:0 14px 42px rgba(0,0,0,.22);font:inherit;line-height:1.5}
+.tci-consent-banner h2{color:#1d2327;font-size:1.25rem;margin:0 0 9px}
+.tci-consent-banner p{margin:9px 0;color:#1d2327}
+.tci-consent-actions{display:flex;flex-wrap:wrap;gap:9px;margin:15px 0}
+.tci-consent-btn{appearance:none;display:inline-block;min-height:44px;padding:9px 17px;border:2px solid #2271b1;border-radius:5px;background:#fff;color:#154e7b;font:inherit;font-weight:600;cursor:pointer}
+.tci-consent-btn:hover,.tci-consent-btn:focus-visible{background:#edf5fd;outline-offset:3px}
+.tci-consent-btn:focus-visible,.tci-consent-reopen:focus-visible{outline:3px solid #f0a000}
+#tci-consent-details{max-height:44vh;overflow:auto;border-top:1px solid #ddd;margin-top:12px;padding-top:12px}
+#tci-consent-details label{cursor:pointer}
+#tci-consent-details input{margin-right:8px}
+.tci-consent-banner a{color:#135e96;text-decoration:underline}
+.tci-consent-reopen{position:fixed;z-index:2147482999;bottom:0;left:0;border:1px solid #888;border-radius:0 6px 0 0;padding:5px 10px;background:#fff;color:#1d2327;font:inherit;font-size:12px;cursor:pointer;max-width:220px}
+@media(min-width:880px){.tci-consent-banner{left:calc(50% - 395px);right:auto;width:790px;box-sizing:border-box}}
+@media(max-width:560px){.tci-consent-banner{inset:auto 8px 8px;padding:14px;max-height:80vh;overflow:auto}.tci-consent-actions{display:grid;grid-template-columns:1fr}.tci-consent-btn{width:100%;text-align:center}}

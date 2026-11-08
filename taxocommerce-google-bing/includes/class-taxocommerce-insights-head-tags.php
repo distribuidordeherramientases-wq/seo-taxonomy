@@ -335,7 +335,9 @@ final class TaxoCommerce_Insights_Head_Tags {
                 // Default deny. Consent plugins can implement WP Consent API's
                 // wp_has_consent('statistics') or integrate with this filter.
                 // GTM can load marketing pixels: require marketing consent, not just analytics.
-                $category = 'google_tag_manager' === ( $entry['provider'] ?? '' ) ? 'marketing' : 'statistics';
+                $category = 'google_tag_manager' === ( $entry['provider'] ?? '' )
+                    || false !== strpos( $code, 'googletagmanager.com/gtm.js' )
+                    ? 'marketing' : 'statistics';
                 $consented = function_exists( 'wp_has_consent' ) && wp_has_consent( $category );
                 $consented = (bool) apply_filters( 'taxocommerce_insights_head_tracking_allowed', $consented, $entry );
                 if ( ! $consented ) {

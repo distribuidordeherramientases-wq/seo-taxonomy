@@ -1,4 +1,28 @@
-## [Unreleased] — Traducciones administrativas y manuales Logistics (#2062)
+## [0.2.10] — 2026-11-08 — Internacionalización completa de formularios y controles Logistics (#2062)
+
+- Traducidos 98 textos PHP de interfaz, pedidos, reglas e informes Autocheck mediante gettext en ES/EN/FR/DE/NL.
+- Mantiene la pestaña de compras a proveedores y el historial plegable previamente integrados.
+
+## [0.2.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable del historial de este plugin, cerrado por defecto bajo el título; no interfiere con la compra a proveedores ni traducciones.
+
+## [Unreleased] — Acceso directo a compra de productos del proveedor desde Logistics (#2379)
+
+- Nueva pestaña «Supplier purchases» con relación entre cada línea del pedido WooCommerce y las fuentes del catálogo de Suppliers, incluidas variaciones, fuentes alternativas, referencias, SKU, coste y enlaces externos «Comprar».
+- Acceso a la compra desde la tabla de pedidos; el pedido # seleccionado abre solamente las líneas correspondientes.
+- Dependencia opcional: si Suppliers está inactivo, Logistics conserva sus funciones de transporte y presenta un aviso informativo. No se crean tablas ni se altera el checkout.
+- Pendiente validar la coincidencia de pedidos reales y enlaces en STAGING/Focazul, además de Plugin Check.
+
+## [0.2.8] — 2026-11-08 — Catálogos Logistics completos en cinco idiomas (#2062)
+
+- Traducidas las 80 cadenas que faltaban en ES, FR, DE y NL, y las 76 pendientes en EN: **396 entradas nuevas**. Textos de administración, resultados de autocheck, gestión de transporte, importación/exportación, permisos y manuales de usuario y técnicos.
+- Cinco catálogos PO con 141 mensajes traducibles y cabecera; 0 vacíos, 0 claves ausentes respecto al POT, 0 marcadores printf diferentes. Regenerados los cinco catálogos MO.
+- Añadida comprobación de regresión de las traducciones MO desde el autotest CLI existente. Versión 0.2.8 y fecha de publicación 2026-11-08 actualizadas en cabecera y `readme.txt`; historial `changelog.txt` conservado.
+- Sin cambios de reglas, tarifas, pedidos, productos, costes, SQL, ajustes ni flujos de checkout. Independencia respecto a Core preservada.
+- Queda pendiente revisar literales no extraídos por gettext y validar visualmente el idioma del administrador en STAGING/Focazul. Nunca producción sin autorización.
+
+## [Pre-0.2.8] — Traducciones administrativas y manuales Logistics (#2062)
 
 - Incorporadas 270 traducciones de interfaz, diagnósticos, documentación y ayudas de envíos en es_ES, en_US, fr_FR, de_DE y nl_NL (49 EN, 56 FR, 55 DE, 55 NL y 55 ES), sin sobrescribir traducciones existentes.
 - Los catálogos PO conservan 142 entradas por idioma y se han regenerado los cinco MO correspondientes. Se mantienen intactos los datos, el motor de transporte, el checkout, las opciones y los identificadores gettext.

@@ -1,3 +1,11 @@
+= 0.2.9 (2026-11-08) =
+* Internationalize 98 additional Logistics user-facing PHP interface messages with WordPress gettext in ES/EN/FR/DE/NL and recompile MO catalogs.
+* Keep shipping rate logic and stored data unchanged. Expand compiled-catalog regression checks. Issue #2062.
+
+= 0.2.8 (2026-11-08) =
+* Complete ES/EN/FR/DE/NL gettext PO/MO catalogs for current Logistics strings, including shipping rules, diagnostics, permissions and manuals. Issue #2062.
+* Add read-only compiled-catalog regression test; preserve WooCommerce rates, settings, product data and checkout behavior.
+
 = 0.2.7 (2026-11-07) =
 * Cabecera administrativa con título, versión y fecha de publicación de esta versión, independiente de otras extensiones. Issue #2336.
 

@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.6
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ A private task agenda with categories, priorities, assignments, calendar and ind
 
 == Description ==
 
-TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator. Its administration uses the same self-contained header as the TaxoCommerce family, displaying the plugin title, installed version and publication date without requiring Core.
+TaxoCommerce Tasks provides a standalone task management area in the WordPress administrator. Its administration uses the same self-contained header as the TaxoCommerce family, displaying the plugin title, installed version and publication date without requiring Core. A collapsed version history is available directly beneath the header title.
 
 * Create, edit and delete tasks and private task categories.
 * Prioritize tasks as Low, Normal, High or Urgent.
@@ -56,6 +56,18 @@ No. It is standalone.
 When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
 
 == Changelog ==
+
+= 0.1.9 =
+* Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
+
+
+= 0.1.8 =
+* Fixed missing version history in deployed installations by including the bundled root CHANGELOG.md in the distribution and Plugin Check ZIP. No schema or task data changes.
+
+
+= 0.1.7 =
+* Added a collapsed version history within the administration header, reading the bundled CHANGELOG.md with escaped output and localized label; no extra tab or database changes.
+
 
 = 0.1.4 =
 * Replaced point events with inclusive duration bars, separate lanes for overlapping tasks, and clear priority/status legends.

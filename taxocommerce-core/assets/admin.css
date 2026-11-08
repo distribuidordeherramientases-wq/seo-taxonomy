@@ -33,6 +33,10 @@ body.tcc-family-admin #adminmenu .wp-has-current-submenu>a.wp-has-current-submen
 .tcc-dashboard .tcc-hero h1{font-size:32px;line-height:1.2;margin:0 0 9px;font-weight:760;letter-spacing:-.04em;color:#122038}
 .tcc-hero__copy>p{max-width:780px;margin:0 0 6px;color:#47576f;line-height:1.55}
 .tcc-hero__sub{color:#697b96!important}
+.tcc-hero__history{margin-top:11px;max-width:680px;border:1px solid #dfe6ef;border-radius:7px;background:#fff;color:#26354c}
+.tcc-hero__history summary{padding:9px 12px;cursor:pointer;font-size:13px;font-weight:600}
+.tcc-hero__history summary:focus-visible{outline:2px solid #1769de;outline-offset:2px}
+.tcc-hero__history-content{max-height:290px;overflow:auto;padding:12px;border-top:1px solid #e4e9f0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 monospace}
 .tcc-hero__art{position:absolute;right:55px;top:20px;width:230px;height:150px;transform:rotate(-30deg) skew(15deg);opacity:.7;pointer-events:none}
 .tcc-hero__art span{position:absolute;width:75px;height:75px;border:2px solid #bbd5fc;background:#dae8ff;box-shadow:10px 13px 0 #e2ecff}
 .tcc-hero__art span:nth-child(1){left:105px;top:5px;background:#347ef0}

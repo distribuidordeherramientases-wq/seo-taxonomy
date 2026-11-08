@@ -61,9 +61,23 @@ foreach ( $patterns as $pattern ) {
     }
 }
 
-// Remove the consent ledger and legal text versions only on actual uninstall.
-$consent_table = $wpdb->prefix . 'taxocommerce_consent_events';
-$wpdb->query( 'DROP TABLE IF EXISTS `' . esc_sql( $consent_table ) . '`' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.NotPrepared
-delete_option( 'taxocommerce_insights_consent_text' );
-delete_option( 'taxocommerce_insights_consent_legal_versions' );
-delete_option( 'taxocommerce_insights_consent_schema' );
+/**
+ * Consent evidence is retained on uninstall for legal accountability.
+ * The ledger, key, legal versions, and consent settings survive plugin removal.
+ */
+(static function () {
+    if ( is_multisite() ) {
+        $offset = 0;
+        do {
+            $sites = get_sites( array( 'number' => 100, 'offset' => $offset, 'fields' => 'ids' ) );
+            foreach ( $sites as $site_id ) {
+                switch_to_blog( (int) $site_id );
+                // Consent settings and evidence retained by design.
+                restore_current_blog();
+            }
+            $offset += count( $sites );
+        } while ( count( $sites ) === 100 );
+    } else {
+        // Consent settings and evidence retained by design.
+    }
+})();

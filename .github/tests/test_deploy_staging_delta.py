@@ -14,7 +14,16 @@ spec.loader.exec_module(module)
 class DeltaTests(unittest.TestCase):
     def test_distributable_whitelist(self):
         self.assertEqual(module.distributable("taxocommerce-core/includes/example.php"), ("taxocommerce-core", "includes/example.php"))
-        for path in ("taxocommerce-core/tests/smoke.php", "taxocommerce-core/CHANGELOG.md",
+        self.assertEqual(
+            module.distributable("taxocommerce-tasks/CHANGELOG.md"),
+            ("taxocommerce-tasks", "CHANGELOG.md"),
+        )
+        self.assertEqual(
+            module.distributable("taxocommerce-core/CHANGELOG.md"),
+            ("taxocommerce-core", "CHANGELOG.md"),
+        )
+        for path in ("taxocommerce-core/tests/smoke.php", "taxocommerce-core/docs/CHANGELOG.md",
+                     "taxocommerce-core/README.md", "taxocommerce-tasks/docs/internal.md",
                      "taxocommerce-core/.secrets", "taxocommerce-core/languages/.hidden.po",
                      "taxocommerce-core/uploads/payload.txt", "random/file.php"):
             self.assertIsNone(module.distributable(path), path)
@@ -122,7 +131,7 @@ class DeltaTests(unittest.TestCase):
                     b"taxocommerce-core/CHANGELOG.md\\0"
                 ).replace(b"\\0", b"\x00")):
                     self.assertEqual(module.core_source_files(), [
-                        "includes/menu.php", "taxocommerce-core.php"
+                        "CHANGELOG.md", "includes/menu.php", "taxocommerce-core.php"
                     ])
             finally:
                 os.chdir(old)

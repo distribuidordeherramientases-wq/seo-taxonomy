@@ -316,7 +316,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
 
             $file = $_FILES['seo_transporte_json'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Metadatos de subida validados a continuación.
             if (!is_array($file) || empty($file['tmp_name']) || !isset($file['error']) || UPLOAD_ERR_OK !== (int) $file['error']) {
-                self::set_import_notice('error', 'No se recibió un archivo JSON válido.');
+                self::set_import_notice('error', __( 'No se recibió un archivo JSON válido.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
@@ -324,14 +324,14 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             $size = absint($file['size'] ?? 0);
             $name = sanitize_file_name((string) ($file['name'] ?? ''));
             if ($size < 1 || $size > 2 * MB_IN_BYTES || strtolower((string) pathinfo($name, PATHINFO_EXTENSION)) !== 'json') {
-                self::set_import_notice('error', 'El archivo debe ser JSON y no superar 2 MiB.');
+                self::set_import_notice('error', __( 'El archivo debe ser JSON y no superar 2 MiB.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
 
             $tmp_name = (string) $file['tmp_name'];
             if (!is_uploaded_file($tmp_name)) {
-                self::set_import_notice('error', 'El archivo recibido no supera la validación de subida.');
+                self::set_import_notice('error', __( 'El archivo recibido no supera la validación de subida.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
@@ -341,28 +341,28 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             global $wp_filesystem;
 
             if (!$wp_filesystem) {
-                self::set_import_notice('error', 'No se pudo inicializar el sistema de archivos de WordPress.');
+                self::set_import_notice('error', __( 'No se pudo inicializar el sistema de archivos de WordPress.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
 
             $raw = $wp_filesystem->get_contents($tmp_name);
             if (!is_string($raw) || trim($raw) === '') {
-                self::set_import_notice('error', 'El archivo JSON está vacío o no se pudo leer.');
+                self::set_import_notice('error', __( 'El archivo JSON está vacío o no se pudo leer.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
 
             $payload = json_decode($raw, true);
             if (!is_array($payload) || JSON_ERROR_NONE !== json_last_error()) {
-                self::set_import_notice('error', 'El archivo no contiene JSON válido.');
+                self::set_import_notice('error', __( 'El archivo no contiene JSON válido.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
 
             $schema = (array) ($payload['schema'] ?? array());
             if (($schema['name'] ?? '') !== 'seo-transporte-costes' || absint($schema['version'] ?? 0) !== 1) {
-                self::set_import_notice('error', 'El JSON no corresponde a una exportación compatible del gestor de transporte.');
+                self::set_import_notice('error', __( 'El JSON no corresponde a una exportación compatible del gestor de transporte.', 'taxocommerce-logistica' ));
                 wp_safe_redirect(admin_url('admin.php?page=' . self::PAGE));
                 exit;
             }
@@ -378,12 +378,12 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             if ('no_rules' === $status) {
                 self::set_import_notice(
                     'warning',
-                    'Configuración importada con ' . $rule_count . ' reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa.'
+                    sprintf( __( 'Configuración importada con %d reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa.', 'taxocommerce-logistica' ), $rule_count )
                 );
             } else {
                 self::set_import_notice(
                     'success',
-                    'Configuración de transporte importada correctamente: ' . $rule_count . ' reglas restauradas.'
+                    sprintf( __( 'Configuración de transporte importada correctamente: %d reglas restauradas.', 'taxocommerce-logistica' ), $rule_count )
                 );
             }
 
@@ -416,14 +416,14 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
 
         private static function region_labels() {
             return array(
-                'spain'     => 'España - cualquier zona',
-                'peninsula' => 'Península',
-                'baleares'  => 'Islas Baleares',
-                'canarias'  => 'Canarias',
-                'ceuta'     => 'Ceuta',
-                'melilla'   => 'Melilla',
-                'foreign'   => 'Fuera de España',
-                'all'       => 'Cualquier destino',
+                'spain'     => __( 'España - cualquier zona', 'taxocommerce-logistica' ),
+                'peninsula' => __( 'Península', 'taxocommerce-logistica' ),
+                'baleares'  => __( 'Islas Baleares', 'taxocommerce-logistica' ),
+                'canarias'  => __( 'Canarias', 'taxocommerce-logistica' ),
+                'ceuta'     => __( 'Ceuta', 'taxocommerce-logistica' ),
+                'melilla'   => __( 'Melilla', 'taxocommerce-logistica' ),
+                'foreign'   => __( 'Fuera de España', 'taxocommerce-logistica' ),
+                'all'       => __( 'Cualquier destino', 'taxocommerce-logistica' ),
             );
         }
 
@@ -454,39 +454,39 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             <section class="seo-transport-rule" data-rule-index="<?php echo esc_attr($safe_index); ?>">
                 <input type="hidden" name="<?php echo esc_attr($base . '[id]'); ?>" value="<?php echo esc_attr((string) $rule['id']); ?>" />
                 <div class="seo-transport-rule-head">
-                    <label><input type="checkbox" name="<?php echo esc_attr($base . '[enabled]'); ?>" value="1" <?php checked(!empty($rule['enabled'])); ?> /> <strong>Regla activa</strong></label>
-                    <button type="button" class="button-link-delete seo-transport-remove">Eliminar</button>
+                    <label><input type="checkbox" name="<?php echo esc_attr($base . '[enabled]'); ?>" value="1" <?php checked(!empty($rule['enabled'])); ?> /> <strong><?php esc_html_e( 'Regla activa', 'taxocommerce-logistica' ); ?></strong></label>
+                    <button type="button" class="button-link-delete seo-transport-remove"><?php esc_html_e( 'Eliminar', 'taxocommerce-logistica' ); ?></button>
                 </div>
                 <div class="seo-transport-grid seo-transport-grid--identity">
-                    <label><span>Prioridad</span><input type="number" min="1" step="1" name="<?php echo esc_attr($base . '[priority]'); ?>" value="<?php echo esc_attr((string) $rule['priority']); ?>" /></label>
-                    <label><span>Nombre de la regla</span><input type="text" name="<?php echo esc_attr($base . '[name]'); ?>" value="<?php echo esc_attr((string) $rule['name']); ?>" placeholder="Ej.: Península estándar" /></label>
-                    <label><span>Destino</span><select name="<?php echo esc_attr($base . '[zone]'); ?>">
+                    <label><span><?php esc_html_e( 'Prioridad', 'taxocommerce-logistica' ); ?></span><input type="number" min="1" step="1" name="<?php echo esc_attr($base . '[priority]'); ?>" value="<?php echo esc_attr((string) $rule['priority']); ?>" /></label>
+                    <label><span><?php esc_html_e( 'Nombre de la regla', 'taxocommerce-logistica' ); ?></span><input type="text" name="<?php echo esc_attr($base . '[name]'); ?>" value="<?php echo esc_attr((string) $rule['name']); ?>" placeholder="<?php echo esc_attr__( 'Ej.: Península estándar', 'taxocommerce-logistica' ); ?>" /></label>
+                    <label><span><?php esc_html_e( 'Destino', 'taxocommerce-logistica' ); ?></span><select name="<?php echo esc_attr($base . '[zone]'); ?>">
                         <?php foreach ($zones as $key => $label) : ?>
                             <option value="<?php echo esc_attr($key); ?>" <?php selected($rule['zone'], $key); ?>><?php echo esc_html($label); ?></option>
                         <?php endforeach; ?>
                     </select></label>
                 </div>
 
-                <h3>Cuándo se aplica</h3>
+                <h3><?php esc_html_e( 'Cuándo se aplica', 'taxocommerce-logistica' ); ?></h3>
                 <div class="seo-transport-grid">
-                    <label><span>Subtotal mínimo (€)</span><?php self::render_decimal_input($base . '[min_subtotal]', $rule['min_subtotal']); ?></label>
-                    <label><span>Subtotal máximo (€)</span><?php self::render_decimal_input($base . '[max_subtotal]', $rule['max_subtotal']); ?></label>
-                    <label><span>Peso mínimo (kg)</span><?php self::render_decimal_input($base . '[min_weight]', $rule['min_weight']); ?></label>
-                    <label><span>Peso máximo (kg)</span><?php self::render_decimal_input($base . '[max_weight]', $rule['max_weight']); ?></label>
-                    <label><span>Largo máx. (cm)</span><?php self::render_decimal_input($base . '[max_length]', $rule['max_length']); ?></label>
-                    <label><span>Ancho máx. (cm)</span><?php self::render_decimal_input($base . '[max_width]', $rule['max_width']); ?></label>
-                    <label><span>Alto máx. (cm)</span><?php self::render_decimal_input($base . '[max_height]', $rule['max_height']); ?></label>
-                    <label><span>Volumen total máx. (dm³)</span><?php self::render_decimal_input($base . '[max_volume]', $rule['max_volume']); ?></label>
+                    <label><span><?php esc_html_e( 'Subtotal mínimo (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[min_subtotal]', $rule['min_subtotal']); ?></label>
+                    <label><span><?php esc_html_e( 'Subtotal máximo (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_subtotal]', $rule['max_subtotal']); ?></label>
+                    <label><span><?php esc_html_e( 'Peso mínimo (kg)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[min_weight]', $rule['min_weight']); ?></label>
+                    <label><span><?php esc_html_e( 'Peso máximo (kg)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_weight]', $rule['max_weight']); ?></label>
+                    <label><span><?php esc_html_e( 'Largo máx. (cm)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_length]', $rule['max_length']); ?></label>
+                    <label><span><?php esc_html_e( 'Ancho máx. (cm)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_width]', $rule['max_width']); ?></label>
+                    <label><span><?php esc_html_e( 'Alto máx. (cm)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_height]', $rule['max_height']); ?></label>
+                    <label><span><?php esc_html_e( 'Volumen total máx. (dm³)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[max_volume]', $rule['max_volume']); ?></label>
                 </div>
 
-                <h3>Cómo calcula el coste</h3>
+                <h3><?php esc_html_e( 'Cómo calcula el coste', 'taxocommerce-logistica' ); ?></h3>
                 <div class="seo-transport-grid">
-                    <label><span>Coste fijo (€)</span><?php self::render_decimal_input($base . '[fixed_cost]', $rule['fixed_cost'], '0'); ?></label>
-                    <label><span>+ coste por kg (€)</span><?php self::render_decimal_input($base . '[per_kg_cost]', $rule['per_kg_cost'], '0'); ?></label>
-                    <label><span>+ coste por unidad (€)</span><?php self::render_decimal_input($base . '[per_unit_cost]', $rule['per_unit_cost'], '0'); ?></label>
-                    <label><span>Gratis desde subtotal (€)</span><?php self::render_decimal_input($base . '[free_from]', $rule['free_from'], 'Opcional'); ?></label>
+                    <label><span><?php esc_html_e( 'Coste fijo (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[fixed_cost]', $rule['fixed_cost'], '0'); ?></label>
+                    <label><span><?php esc_html_e( '+ coste por kg (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[per_kg_cost]', $rule['per_kg_cost'], '0'); ?></label>
+                    <label><span><?php esc_html_e( '+ coste por unidad (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[per_unit_cost]', $rule['per_unit_cost'], '0'); ?></label>
+                    <label><span><?php esc_html_e( 'Gratis desde subtotal (€)', 'taxocommerce-logistica' ); ?></span><?php self::render_decimal_input($base . '[free_from]', $rule['free_from'], __( 'Opcional', 'taxocommerce-logistica' )); ?></label>
                 </div>
-                <p class="description">Coste = fijo + (kg × coste/kg) + (unidades × coste/unidad). Si se alcanza “Gratis desde”, el coste final es 0 €. La primera regla activa que coincida por prioridad es la que se utiliza.</p>
+                <p class="description"><?php esc_html_e( 'Coste = fijo + (kg × coste/kg) + (unidades × coste/unidad). Si se alcanza “Gratis desde”, el coste final es 0 €. La primera regla activa que coincida por prioridad es la que se utiliza.', 'taxocommerce-logistica' ); ?></p>
             </section>
             <?php
         }
@@ -567,26 +567,27 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             <div class="seo-transport-panel">
                 <div class="seo-transport-title-row">
                     <div>
-                        <h2>Pedidos: peso y coste de envío</h2>
-                        <p>Vista operativa de los pedidos activos. No contiene ninguna lógica de proveedor o compra: esa relación se gestiona ahora en TaxoCommerce Suppliers → Purchasing.</p>
+                        <h2><?php esc_html_e( 'Pedidos: peso y coste de envío', 'taxocommerce-logistica' ); ?></h2>
+                        <p><?php esc_html_e( 'Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page.', 'taxocommerce-logistica' ); ?></p>
                     </div>
                 </div>
 
                 <?php if (!$orders) : ?>
-                    <div class="notice notice-info inline"><p>No hay pedidos pendientes, en espera o procesando.</p></div>
+                    <div class="notice notice-info inline"><p><?php esc_html_e( 'No hay pedidos pendientes, en espera o procesando.', 'taxocommerce-logistica' ); ?></p></div>
                 <?php else : ?>
                     <div style="overflow:auto">
                         <table class="widefat striped">
                             <thead>
                                 <tr>
-                                    <th>Pedido</th>
-                                    <th>Estado</th>
-                                    <th>Unidades</th>
-                                    <th>Peso total</th>
-                                    <th>Productos sin peso</th>
-                                    <th>Método de envío</th>
-                                    <th>Coste envío</th>
-                                    <th>Impuestos envío</th>
+                                    <th><?php esc_html_e( 'Pedido', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Estado', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Unidades', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Peso total', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Productos sin peso', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Método de envío', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Coste envío', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Impuestos envío', 'taxocommerce-logistica' ); ?></th>
+                                    <th><?php esc_html_e( 'Supplier purchase', 'taxocommerce-logistica' ); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -612,6 +613,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                                     <td><?php echo esc_html(self::order_shipping_method_label($order)); ?></td>
                                     <td><?php echo wp_kses_post(wc_price($shipping_total)); ?></td>
                                     <td><?php echo wp_kses_post(wc_price($shipping_tax)); ?></td>
+                                    <td><a class="button button-small" href="<?php echo esc_url( add_query_arg( array( 'page' => self::PAGE, 'tc_logistica_tab' => 'purchasing', 'order_id' => $order_id ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'View supplier purchases', 'taxocommerce-logistica' ); ?></a></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
@@ -623,8 +625,8 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
         }
 
         private static function render_tabs($current) {
-            echo '<nav class="nav-tab-wrapper" aria-label="Logistics sections">';
-            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => __( 'Autocheck', 'taxocommerce-logistica' ), 'user-guide' => 'Manual') as $tab => $label) {
+            echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Logistics sections', 'taxocommerce-logistica' ) . '">';
+            foreach (array('shipping' => __( 'Shipping Rules', 'taxocommerce-logistica' ), 'purchasing' => __( 'Supplier purchases', 'taxocommerce-logistica' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-logistica' ), 'user-guide' => __( 'Manual', 'taxocommerce-logistica' )) as $tab => $label) {
                 $args = array('page' => self::PAGE);
                 if ('shipping' !== $tab) { $args['tc_logistica_tab'] = $tab; }
                 $url = add_query_arg($args, admin_url('admin.php'));
@@ -642,11 +644,13 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             $tab = isset($_GET['tc_logistica_tab']) && is_string($_GET['tc_logistica_tab'])
                 ? sanitize_key(wp_unslash($_GET['tc_logistica_tab'])) : 'shipping';
             // phpcs:enable WordPress.Security.NonceVerification.Recommended
-            if ('auto-test' === $tab || 'user-guide' === $tab) {
+            if (in_array($tab, array('auto-test', 'user-guide', 'purchasing'), true)) {
                 echo '<div class="wrap seo-transporte-wrap">' . '<h1>' . esc_html__( 'Logistics — Shipping Weight & Costs', 'taxocommerce-logistica' ) . '</h1>';
                 self::render_tabs($tab);
                 if ('auto-test' === $tab) {
                     TaxoCommerce_Logistica_Auto_Test::render();
+                } elseif ('purchasing' === $tab) {
+                    TaxoCommerce_Logistica_Purchasing::render();
                 } else {
                     TaxoCommerce_Logistica_User_Guide::render();
                 }
@@ -668,22 +672,22 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                 <?php self::render_tabs('shipping'); ?>
 
                 <?php if ('saved' === $status) : ?>
-                    <div class="notice notice-success is-dismissible"><p>Reglas de transporte guardadas. WooCommerce recalculará las tarifas con esta configuración.</p></div>
+                    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Reglas de transporte guardadas. WooCommerce recalculará las tarifas con esta configuración.', 'taxocommerce-logistica' ); ?></p></div>
                 <?php elseif ('no_rules' === $status) : ?>
-                    <div class="notice notice-warning"><p><strong>El gestor no se ha activado.</strong> Debe existir al menos una regla activa para evitar bloquear el checkout.</p></div>
+                    <div class="notice notice-warning"><p><strong><?php esc_html_e( 'El gestor no se ha activado.', 'taxocommerce-logistica' ); ?></strong> <?php esc_html_e( 'Debe existir al menos una regla activa para evitar bloquear el checkout.', 'taxocommerce-logistica' ); ?></p></div>
                 <?php endif; ?>
 
                 <?php self::render_import_notice(); ?>
 
-                <p class="seo-transport-intro">Logistics now manages only shipping weight, dimensions and delivery cost. Supplier purchasing has moved to TaxoCommerce Suppliers → Purchasing. When this manager is active, it returns one WooCommerce shipping rate according to destination, subtotal, weight and dimensions.</p>
+                <p class="seo-transport-intro"><?php esc_html_e( 'Logistics now manages only shipping weight, dimensions and delivery cost. Supplier purchasing has moved to TaxoCommerce Suppliers → Purchasing. When this manager is active, it returns one WooCommerce shipping rate according to destination, subtotal, weight and dimensions.', 'taxocommerce-logistica' ); ?></p>
 
                 <?php self::render_order_shipping_audit(); ?>
 
                 <div class="seo-transport-panel seo-transport-transfer">
                     <div>
-                        <h2>Importar / exportar reglas</h2>
-                        <p>Descarga toda la configuración de transporte en JSON para copiarla a otra instalación o conservarla como copia de seguridad.</p>
-                        <p class="description"><strong>Importar reemplaza la configuración actual</strong> por la del archivo: opciones generales y todas las reglas, prioridades, destinos, límites y costes.</p>
+                        <h2><?php esc_html_e( 'Importar / exportar reglas', 'taxocommerce-logistica' ); ?></h2>
+                        <p><?php esc_html_e( 'Descarga toda la configuración de transporte en JSON para copiarla a otra instalación o conservarla como copia de seguridad.', 'taxocommerce-logistica' ); ?></p>
+                        <p class="description"><strong><?php esc_html_e( 'Importar reemplaza la configuración actual', 'taxocommerce-logistica' ); ?></strong> <?php esc_html_e( 'por la del archivo: opciones generales y todas las reglas, prioridades, destinos, límites y costes.', 'taxocommerce-logistica' ); ?></p>
                     </div>
                     <div class="seo-transport-transfer__actions">
                         <?php
@@ -692,18 +696,18 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                             'seo_transporte_export'
                         );
                         ?>
-                        <a class="button button-secondary" href="<?php echo esc_url($export_url); ?>">Exportar reglas (JSON)</a>
+                        <a class="button button-secondary" href="<?php echo esc_url($export_url); ?>"><?php esc_html_e( 'Exportar reglas (JSON)', 'taxocommerce-logistica' ); ?></a>
                         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="taxocommerce_logistica_import" />
                             <?php wp_nonce_field('seo_transporte_import'); ?>
                             <input type="file" name="seo_transporte_json" accept=".json,application/json" required />
-                            <button type="submit" class="button button-primary">Importar reglas</button>
+                            <button type="submit" class="button button-primary"><?php esc_html_e( 'Importar reglas', 'taxocommerce-logistica' ); ?></button>
                         </form>
                     </div>
                 </div>
 
                 <?php if (!class_exists('WooCommerce')) : ?>
-                    <div class="notice notice-error inline"><p>WooCommerce debe estar activo para calcular el transporte.</p></div>
+                    <div class="notice notice-error inline"><p><?php esc_html_e( 'WooCommerce debe estar activo para calcular el transporte.', 'taxocommerce-logistica' ); ?></p></div>
                 <?php endif; ?>
 
                 <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -711,17 +715,17 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                     <?php wp_nonce_field('seo_transporte_save'); ?>
 
                     <div class="seo-transport-panel">
-                        <h2>Configuración general</h2>
+                        <h2><?php esc_html_e( 'Configuración general', 'taxocommerce-logistica' ); ?></h2>
                         <div class="seo-transport-settings-grid">
-                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?> /> <span><strong>Activar gestor propio de transporte</strong><small>Al activarlo, sustituye las tarifas de WooCommerce por las reglas de esta pantalla.</small></span></label>
-                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[only_spain]" value="1" <?php checked(!empty($settings['only_spain'])); ?> /> <span><strong>Solo España</strong><small>Fuera de España no se ofrecerá tarifa de envío.</small></span></label>
-                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[shipping_taxable]" value="1" <?php checked(!empty($settings['shipping_taxable'])); ?> /> <span><strong>Transporte sujeto a impuestos</strong><small>El impuesto se obtiene de la fiscalidad activa de WooCommerce/Facturación; aquí no se define el porcentaje.</small></span></label>
-                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[require_known_metrics]" value="1" <?php checked(!empty($settings['require_known_metrics'])); ?> /> <span><strong>No usar reglas avanzadas si faltan peso o medidas</strong><small>Evita aplicar por error una tarifa barata a productos sin datos logísticos.</small></span></label>
+                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[enabled]" value="1" <?php checked(!empty($settings['enabled'])); ?> /> <span><strong><?php esc_html_e( 'Activar gestor propio de transporte', 'taxocommerce-logistica' ); ?></strong><small><?php esc_html_e( 'Al activarlo, sustituye las tarifas de WooCommerce por las reglas de esta pantalla.', 'taxocommerce-logistica' ); ?></small></span></label>
+                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[only_spain]" value="1" <?php checked(!empty($settings['only_spain'])); ?> /> <span><strong><?php esc_html_e( 'Solo España', 'taxocommerce-logistica' ); ?></strong><small><?php esc_html_e( 'Fuera de España no se ofrecerá tarifa de envío.', 'taxocommerce-logistica' ); ?></small></span></label>
+                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[shipping_taxable]" value="1" <?php checked(!empty($settings['shipping_taxable'])); ?> /> <span><strong><?php esc_html_e( 'Transporte sujeto a impuestos', 'taxocommerce-logistica' ); ?></strong><small><?php esc_html_e( 'El impuesto se obtiene de la fiscalidad activa de WooCommerce/Facturación; aquí no se define el porcentaje.', 'taxocommerce-logistica' ); ?></small></span></label>
+                            <label class="seo-transport-toggle"><input type="checkbox" name="seo_transporte[require_known_metrics]" value="1" <?php checked(!empty($settings['require_known_metrics'])); ?> /> <span><strong><?php esc_html_e( 'No usar reglas avanzadas si faltan peso o medidas', 'taxocommerce-logistica' ); ?></strong><small><?php esc_html_e( 'Evita aplicar por error una tarifa barata a productos sin datos logísticos.', 'taxocommerce-logistica' ); ?></small></span></label>
                         </div>
                         <div class="seo-transport-grid seo-transport-grid--general">
-                            <label><span>Nombre que verá el cliente</span><input type="text" name="seo_transporte[rate_label]" value="<?php echo esc_attr((string) $settings['rate_label']); ?>" /></label>
-                            <label><span>Zona provisional si aún no indicó provincia</span><select name="seo_transporte[default_region]">
-                                <?php foreach (array('peninsula' => 'Península', 'baleares' => 'Baleares', 'canarias' => 'Canarias', 'ceuta' => 'Ceuta', 'melilla' => 'Melilla') as $key => $label) : ?>
+                            <label><span><?php esc_html_e( 'Nombre que verá el cliente', 'taxocommerce-logistica' ); ?></span><input type="text" name="seo_transporte[rate_label]" value="<?php echo esc_attr((string) $settings['rate_label']); ?>" /></label>
+                            <label><span><?php esc_html_e( 'Zona provisional si aún no indicó provincia', 'taxocommerce-logistica' ); ?></span><select name="seo_transporte[default_region]">
+                                <?php foreach (array('peninsula' => __( 'Península', 'taxocommerce-logistica' ), 'baleares' => __( 'Baleares', 'taxocommerce-logistica' ), 'canarias' => __( 'Canarias', 'taxocommerce-logistica' ), 'ceuta' => __( 'Ceuta', 'taxocommerce-logistica' ), 'melilla' => __( 'Melilla', 'taxocommerce-logistica' )) as $key => $label) : ?>
                                     <option value="<?php echo esc_attr($key); ?>" <?php selected($settings['default_region'], $key); ?>><?php echo esc_html($label); ?></option>
                                 <?php endforeach; ?>
                             </select></label>
@@ -730,8 +734,8 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
 
                     <div class="seo-transport-panel">
                         <div class="seo-transport-title-row">
-                            <div><h2>Reglas de coste</h2><p>Ordena mediante “Prioridad”: 10 se evalúa antes que 20. Puedes crear reglas simples o combinar importe, peso y dimensiones.</p></div>
-                            <button type="button" class="button button-secondary" id="seo-transport-add-rule">Añadir regla</button>
+                            <div><h2><?php esc_html_e( 'Reglas de coste', 'taxocommerce-logistica' ); ?></h2><p><?php esc_html_e( 'Ordena mediante “Prioridad”: 10 se evalúa antes que 20. Puedes crear reglas simples o combinar importe, peso y dimensiones.', 'taxocommerce-logistica' ); ?></p></div>
+                            <button type="button" class="button button-secondary" id="seo-transport-add-rule"><?php esc_html_e( 'Añadir regla', 'taxocommerce-logistica' ); ?></button>
                         </div>
                         <div id="seo-transport-rules">
                             <?php foreach ($rules as $index => $rule) { self::render_rule($rule, $index); } ?>
@@ -742,12 +746,12 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                     </div>
 
                     <div class="seo-transport-panel seo-transport-help">
-                        <h2>Qué datos utiliza</h2>
-                        <p><strong>Destino:</strong> Península, Baleares, Canarias, Ceuta o Melilla a partir de país, provincia y código postal del cliente. <strong>Subtotal:</strong> productos después de descuentos y antes de impuestos. <strong>Peso:</strong> suma de pesos. <strong>Largo/Ancho/Alto:</strong> mayor medida individual encontrada. <strong>Volumen:</strong> suma aproximada del volumen de las unidades.</p>
-                        <p class="description">Las dimensiones se leen de cada producto WooCommerce y se convierten internamente a cm/kg. No es un algoritmo de embalaje: es un motor de reglas predecible para tarifar. Más adelante puede sustituirse la tarifa calculada por una API de transportista sin cambiar carrito, checkout ni documentos.</p>
+                        <h2><?php esc_html_e( 'Qué datos utiliza', 'taxocommerce-logistica' ); ?></h2>
+                        <p><?php echo wp_kses_post( __( '<strong>Destino:</strong> Península, Baleares, Canarias, Ceuta o Melilla a partir de país, provincia y código postal del cliente. <strong>Subtotal:</strong> productos después de descuentos y antes de impuestos. <strong>Peso:</strong> suma de pesos. <strong>Largo/Ancho/Alto:</strong> mayor medida individual encontrada. <strong>Volumen:</strong> suma aproximada del volumen de las unidades.', 'taxocommerce-logistica' ) ); ?></p>
+                        <p class="description"><?php esc_html_e( 'Las dimensiones se leen de cada producto WooCommerce y se convierten internamente a cm/kg. No es un algoritmo de embalaje: es un motor de reglas predecible para tarifar. Más adelante puede sustituirse la tarifa calculada por una API de transportista sin cambiar carrito, checkout ni documentos.', 'taxocommerce-logistica' ); ?></p>
                     </div>
 
-                    <?php submit_button('Guardar transporte'); ?>
+                    <?php submit_button( __( 'Guardar transporte', 'taxocommerce-logistica' ) ); ?>
                 </form>
             </div>
             <?php

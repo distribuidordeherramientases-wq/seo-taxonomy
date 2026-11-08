@@ -24,8 +24,10 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         self.assertIn("TaxoCommerce_Insights_Head_Tags::register();", self.main)
 
     def test_head_tags_tab_is_routed_and_rendered(self):
-        self.assertIn("'head_tags', 'ecommerce', 'user_guide'", self.main)
+        self.assertIn("'head_tags', 'ecommerce', 'consent', 'user_guide'", self.main)
         self.assertIn("TaxoCommerce_Insights_Ecommerce::register();", self.main)
+        self.assertIn("TaxoCommerce_Insights_Consent::register();", self.main)
+        self.assertIn("TaxoCommerce_Insights_Consent::render();", self.main)
         self.assertIn("TaxoCommerce_Insights_Ecommerce::render();", self.main)
         self.assertIn("'head_tags'        =>", self.main)
         self.assertIn("if ( 'head_tags' === $tab )", self.main)
@@ -41,7 +43,7 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         version = header.group(1)
         self.assertIn(f"Stable tag: {version}", README.read_text(encoding="utf-8"))
         self.assertIn(f"define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '{version}' );", self.main)
-        self.assertIn("* Release Date: 2026-11-07", self.main)
+        self.assertIn("* Release Date: 2026-11-08", self.main)
 
 
 if __name__ == "__main__":

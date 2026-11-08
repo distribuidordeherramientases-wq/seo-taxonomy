@@ -1,3 +1,16 @@
+## [0.1.13] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
+- Textos del título preparados para ES/EN/FR/DE/NL, salida escapada, desplazamiento vertical y mantenimiento de menús y funciones existentes.
+- El paquete instalable y la subida incremental incluyen únicamente el historial raíz necesario. Sin cambios en base de datos ni servicios.
+
+## [0.1.12] — 2026-11-08 — Limpieza del ciclo de vida (#2359)
+
+- Al desactivar Scrappers se cancelan sus cinco hooks WP-Cron y la única acción Action Scheduler del grupo Ingeniero.
+- No se borran tablas, configuraciones, productos ni evidencia; los datos siguen disponibles al reactivar el plugin.
+- Se preservan las tareas de cualquier instalación temporal que todavía comparta los hooks históricos; no se instala ni se modifica el plugin antiguo.
+- Añadida prueba regresiva PHP aislada de desactivación, alcance de limpieza y conservación de datos. No se modifican los motores de análisis ni las conexiones.
+
 ## [0.1.11] — 2026-11-07 — Cabecera administrativa de versión y fecha (#2336)
 
 - Muestra título, versión activa y fecha de publicación en el administrador mediante Release Date.

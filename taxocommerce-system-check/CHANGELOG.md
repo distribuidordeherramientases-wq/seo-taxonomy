@@ -1,3 +1,41 @@
+## [0.2.24] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Historial propio en un desplegable cerrado bajo el título, sin nuevas pestañas ni cambios en los chequeos de código.
+- Lectura del CHANGELOG.md local y visualización escapada.
+
+## [0.2.23] — 2026-11-08 — Auditoría propia de código ampliada (#2384)
+
+- Conserva el Autocheck funcional y las tres columnas PHP, WordPress y Seguridad en Code Check, con cinco niveles de limitación de CPU, pausa y JSON.
+- Comprueba rutas locales resolubles de include/require sin ejecutar archivos: destino ausente (fallo), referencia exterior (revisión) e inclusión dinámica (no verificado).
+- Detecta nombres declarados de clases y funciones globales y avisa de duplicidades posibles entre archivos; no asume que ambos se cargan simultáneamente.
+- Detecta construcciones y funciones de PHP 8 que podrían superar el mínimo declarado PHP 7.4. El parser nativo sigue validando solo la versión de PHP actualmente instalada.
+- Añade indicios de revisión sobre entrada sin sanitización evidente, salida sin escape evidente, consultas SQL sin prepare, REST sin permission_callback y endpoints AJAX/admin sin verificación identificable de nonce/capacidades.
+- Los resultados registran códigos de regla y líneas, sin atribuir una auditoría completa de seguridad o equivalencia con PCP. No ejecuta código externo ni requiere Plugin Check, WP-CLI o otros módulos.
+- Solo plugin nuevo System Check, sin modificaciones en monolito ni en el resto de la familia.
+
+## [0.2.22] — 2026-11-08 — Separar Autocheck funcional y Chequeo del código (#2372)
+
+- Se mantienen los chequeos funcionales existentes de Autocheck, sin subpestañas. Chequeo del código pasa a pestaña principal independiente, junto a Sistema, Plugin Validation, HTTP y Procesos.
+- Los enlaces antiguos `tcs_subtab=code` siguen funcionando y las acciones del proceso vuelven a la pestaña nueva.
+- La pestaña de código muestra los resultados reales del motor autónomo por archivo (PHP, estructura WordPress y patrones de seguridad), con conteos por estado, archivos y líneas de hallazgos.
+- Se conservan velocidades, pausa/reanudación, permisos, nonce, informes JSON y alcance exclusivo del propio plugin; no requiere Plugin Check ni otros plugins.
+- Las reglas no ejecutadas y el chequeo oficial de WordPress.org siguen identificados como no verificados. Sin cambios en datos ni despliegue a producción.
+
+## [0.2.21] — 2026-11-08 — Corregir avisos PCP y facilitar despliegue en Focazul (#2361)
+
+- Elimina la lectura duplicada de parámetros GET en el registro de recursos de Autocheck. Limita la excepción PHPCS de nonce a la selección de pestañas de solo lectura.
+- Mantiene los dos chequeos autónomos «Funcionalidades» y «Code Check», sus tres categorías (PHP, normas WordPress y seguridad), limitación CPU y exportación JSON.
+- Versiona 0.2.21 para una actualización verificable del plugin independiente. Sin dependencias obligatorias de WordPress Plugin Check ni cambios del monolito.
+
+## [0.2.20] — 2026-11-08 — Autocheck independiente de funcionalidades y código (#2361)
+
+- Dos subpestañas en Autocheck: «Functionality Check» conserva el autocheck existente; «Code Check» inspecciona únicamente los archivos PHP del plugin System Check.
+- Code Check ejecuta tres análisis propios: parser de sintaxis PHP con TOKEN_PARSE, convenciones básicas de WordPress y búsqueda de funciones PHP de riesgo sin ejecutar ningún fragmento inspeccionado.
+- No necesita ni instala PCP, WP-CLI, GitHub ni ningún otro plugin de chequeo. No se afirma equivalencia con las pruebas completas de WordPress.org.
+- Cinco velocidades de CPU con lotes de 1 a 4 archivos, detener/reanudar, resultados separados y descarga JSON privada por usuario/sitio.
+- Controles avanzados de seguridad (nonces, sanitización, escape y vulnerabilidades de dependencias) aparecen como no verificados, nunca como superados.
+- Cambios limitados a System Check y a su CI. Sin cambios en los plugins antiguos o en el resto de la familia.
+
 ## [Unreleased] — Internacionalización de la interfaz de System Check (#2062)
 
 - Traducidas 71 cadenas visibles de administración, validación, permisos, informes y escaneo en es_ES, en_US, fr_FR, de_DE y nl_NL: 355 entradas gettext nuevas.

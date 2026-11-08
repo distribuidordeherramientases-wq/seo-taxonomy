@@ -1,3 +1,23 @@
+## [0.1.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
+- Textos del título preparados para ES/EN/FR/DE/NL, salida escapada, desplazamiento vertical y mantenimiento de menús y funciones existentes.
+- El paquete instalable y la subida incremental incluyen únicamente el historial raíz necesario. Sin cambios en base de datos ni servicios.
+
+## [0.1.8] — 2026-11-08 — Historial visible en instalaciones de prueba (#2367)
+
+- Corregida la distribución del archivo raíz `CHANGELOG.md`, que anteriormente estaba excluido y ocultaba el desplegable incorporado en 0.1.7.
+- El despliegue incremental y el ZIP de Plugin Check incluyen ahora este archivo, pero siguen excluyendo el resto de documentación Markdown interna.
+- Nuevas pruebas verifican el manifiesto distribuible, la presencia del historial en la cabecera y su estado inicial plegado.
+- No se modifican tablas, tareas, permisos ni interfaces públicas; sin dependencia de Core.
+
+## [0.1.7] — 2026-11-08 — Historial plegado en cabecera (#2363)
+
+- Añadido un desplegable `<details>` cerrado por defecto dentro de la cabecera y debajo del título, sin nueva pestaña.
+- Se muestra `CHANGELOG.md` local con salida escapada, límite de altura y desplazamiento para no alterar la navegación.
+- Etiqueta localizada ES/EN/FR/DE/NL, compatible con gettext y funcionamiento autónomo sin Core.
+- Sin modificación de tareas, calendario, base de datos, permisos ni endpoints.
+
 ## [0.1.6] — 2026-11-07 — Cabecera visual uniforme para Tasks (#2336)
 
 - Tasks utiliza la misma cabecera visual autónoma que el resto de plugins TaxoCommerce (título, versión y fecha de actualización).

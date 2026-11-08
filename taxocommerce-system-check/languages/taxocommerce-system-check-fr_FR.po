@@ -1158,7 +1158,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2322
 msgid "PHP"
-msgstr ""
+msgstr "PHP"
 
 #: includes/system-check/seo-system-server-status.php:2323
 msgid ""
@@ -1251,7 +1251,7 @@ msgstr "Moteur"
 
 #: includes/system-check/seo-system-server-status.php:2778
 msgid "WordPress"
-msgstr ""
+msgstr "WordPress"
 
 #: includes/system-check/seo-system-server-status.php:2778
 msgid ""
@@ -1512,3 +1512,191 @@ msgstr ""
 #: taxocommerce-system-check.php:401
 msgid "El módulo de auditoría HTTP no se ha cargado."
 msgstr "Le module d’audit HTTP n’a pas été chargé."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Very low"
+msgstr "Très faible"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Low"
+msgstr "Faible"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Normal"
+msgstr "Normale"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "High"
+msgstr "Élevée"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Maximum"
+msgstr "Maximale"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP parser mode is not available on this server."
+msgstr "L’analyseur PHP n’est pas disponible sur ce serveur."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax error detected by the local parser."
+msgstr "L’analyseur local a détecté une erreur de syntaxe PHP."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax accepted by this server version. Older versions are not tested."
+msgstr "Syntaxe PHP valide pour la version du serveur. Les versions antérieures ne sont pas testées."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Some WordPress structure conventions need review."
+msgstr "Certaines conventions de structure de WordPress nécessitent une vérification."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "The inspected WordPress structure conventions are present."
+msgstr "Les conventions de structure WordPress examinées sont présentes."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potentially dangerous function calls need manual review."
+msgstr "Des appels à des fonctions potentiellement dangereuses nécessitent une vérification manuelle."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "No blocked function calls found; this does not certify security."
+msgstr "Aucun appel à une fonction bloquée détecté ; cela ne certifie pas la sécurité."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File unavailable or outside System Check."
+msgstr "Fichier indisponible ou situé hors de System Check."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked."
+msgstr "Non vérifié."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File exceeds the 1 MB read limit."
+msgstr "Le fichier dépasse la limite de lecture de 1 Mo."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to read the file."
+msgstr "Impossible de lire le fichier."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to complete the PHP check."
+msgstr "Impossible de terminer le contrôle PHP."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Access denied."
+msgstr "Accès refusé."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not run"
+msgstr "Non exécuté"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Passed"
+msgstr "Réussi"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Failed"
+msgstr "Échec"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Review"
+msgstr "À vérifier"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked"
+msgstr "Non vérifié"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check · System Check"
+msgstr "Code Check · System Check"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Only this plugin is inspected. Three independent checks: PHP syntax, WordPress conventions and security patterns. No other checker plugin is required."
+msgstr "Seule cette extension est analysée. Trois contrôles indépendants : syntaxe PHP, conventions WordPress et motifs de sécurité. Aucun autre outil de contrôle n’est requis."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This is a bounded local code review, not the official WordPress Plugin Check. Complex nonce, sanitization, escaping and compatibility cases still require manual review."
+msgstr "Cette vérification locale du code est limitée ; ce n’est pas le Plugin Check officiel de WordPress. Les nonces, l’assainissement, l’échappement et la compatibilité nécessitent parfois une vérification manuelle."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "CPU speed"
+msgstr "Vitesse du processeur"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check"
+msgstr "Lancer le contrôle du code"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Progress"
+msgstr "Progression"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Stop"
+msgstr "Arrêter"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Continue batch"
+msgstr "Continuer le lot"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Resume"
+msgstr "Reprendre"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Download JSON report"
+msgstr "Télécharger le rapport JSON"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File"
+msgstr "Fichier"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Security"
+msgstr "Sécurité"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check before downloading results."
+msgstr "Exécutez Code Check avant de télécharger les résultats."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to generate JSON."
+msgstr "Impossible de générer le JSON."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Autocheck sections"
+msgstr "Sections d’Autocheck"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check"
+msgstr "Contrôle des fonctionnalités"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check"
+msgstr "Contrôle du code"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check · System Check"
+msgstr "Contrôle des fonctionnalités · System Check"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Functionality Check"
+msgstr "Lancer le contrôle des fonctionnalités"
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This code may use features newer than the declared minimum PHP version."
+msgstr "Ce code peut utiliser des fonctionnalités postérieures à la version minimale de PHP déclarée."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code references and declarations require review."
+msgstr "Les références et déclarations du code nécessitent une vérification."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potential security issues need a manual code-flow review."
+msgstr "Les risques potentiels de sécurité nécessitent une analyse manuelle du flux du code."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Possible duplicate PHP symbols need review."
+msgstr "Les déclarations PHP potentiellement dupliquées nécessitent une vérification."
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Native local checks: PHP, literal include paths, duplicate declarations, WordPress conventions and security patterns. Full data flow, runtime and official Plugin Check remain unverified."
+msgstr "Contrôles locaux natifs : PHP, chemins d’inclusion littéraux, déclarations dupliquées, conventions WordPress et motifs de sécurité. Les flux de données complets, l’exécution et le Plugin Check officiel ne sont pas vérifiés."

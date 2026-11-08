@@ -1,3 +1,28 @@
+## [1.1.27] — 2026-11-08 — Compatibilidad de pruebas de consentimiento (#2392)
+
+- Se añade en la prueba aislada el stub admin_url y nonce para evitar falsos fallos de CI, sin cambiar el consentimiento público.
+
+## [1.1.27] — 2026-11-08 — Historial plegable en cabecera (#2382)
+
+- Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
+- Textos del título preparados para ES/EN/FR/DE/NL, salida escapada, desplazamiento vertical y mantenimiento de menús y funciones existentes.
+- El paquete instalable y la subida incremental incluyen únicamente el historial raíz necesario. Sin cambios en base de datos ni servicios.
+
+## 1.1.25 - 2026-11-08 - Consentimientos: textos legales editables y ciclo de vida (#2366)
+
+- Nueva pestaña Consentimientos de Insights con mensaje público y texto legal ampliado editables en ES/EN/FR/DE/NL, etiquetas de botones y URL de política de cookies.
+- Banner integrado opt-in, botones Aceptar, Rechazar y Configurar, categorías por finalidad, revocación y revisión legal obligatoria antes de habilitarlo.
+- Opción `taxocommerce_insights_consent_settings` en `wp_options`; no se crean tablas para los textos ni se registran datos personales del visitante en el servidor. Instalación añade borradores, desactivación conserva los datos y desinstalación definitiva elimina la opción.
+- Clarity ConsentV2 e integración opcional WP Consent API; protección de caché compartida para no servir etiquetas consentidas a terceros.
+- Las pruebas de navegador y proveedores reales siguen pendientes en STAGING antes de habilitar en PRO.
+
+## 1.1.24 - 2026-11-08 - Analysis independiente (#2345)
+
+- Eliminar condiciones basadas en `SEO_SYSTEM_URL` y `SEO_SYSTEM_VERSION` de la pestaña Analysis.
+- Cargar JavaScript desde Insights y estilos desde su propio `analista-informe.php`, incluso con TaxoCommerce SEO desactivado.
+- Usar el motor `seo_analista_*` ya incluido en `includes/analysis`, sin cambiar once informes, AJAX, datos ni configuraciones.
+- Añadir prueba de regresión específica para asegurar la independencia de ficheros. Validación remota en STAGING con SEO apagado todavía necesaria.
+
 ## 1.1.23 - 2026-11-07 - Independencia Cloudflare (#2339)
 
 - Migrar la API de Cloudflare (solo lectura) y controles de zona/token a Insights Connections.

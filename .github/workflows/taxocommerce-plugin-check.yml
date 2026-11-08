@@ -110,10 +110,12 @@ jobs:
           mkdir -p "build/$PLUGIN"
           rsync -a --exclude='tests/' --exclude='.*' --exclude='node_modules/' \
             --exclude='uploads/' --exclude='*.bak' --exclude='*.log' \
-            --exclude='*.pyc' --exclude='*.pot' --exclude='*.md' \
+            --exclude='*.pyc' --exclude='*.pot' --include='/CHANGELOG.md' --exclude='*.md' \
             "$PLUGIN/" "build/$PLUGIN/"
           test -f "build/$PLUGIN/$PLUGIN.php"
           test -f "build/$PLUGIN/readme.txt"
+          # All twenty independent plugins use their own bundled changelog.
+          test -s "build/$PLUGIN/CHANGELOG.md"
           if find "build/$PLUGIN" -name '.*' -o -name '.ftp-deploy-sync-state.json' | grep -q .; then
             echo "::error::Hidden or FTP synchronization files found"
             exit 1

@@ -31,7 +31,9 @@ on:
       - '.github/tests/test_deploy_staging_delta.py'
       - '.github/scripts/audit_core_dual_sites.py'
       - '.github/tests/test_audit_core_dual_sites.py'
+      - '.github/tests/test_staging_check_subida_a_pro.py'
       - '.github/workflows/deploy-staging.yml'
+      - '.github/workflows/staging_check_subida_a_pro.yml'
 
 permissions:
   contents: read
@@ -47,6 +49,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate System Check native code audit independently
+        run: |
+          set -euo pipefail
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php -l taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-smoke.php
+
+      - name: Validate Insights consent and editable legal text lifecycle
+        run: |
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
+          php taxocommerce-google-bing/tests/consent-smoke.php
+          node --check taxocommerce-google-bing/assets/consent.js
       - name: Validate delta script and regression tests
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
@@ -86,6 +102,13 @@ jobs:
           php -l taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
+          php -l taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php -l taxocommerce-system-check/tests/code-check-smoke.php
+          php taxocommerce-system-check/tests/code-check-smoke.php
+          node --check taxocommerce-system-check/assets/code-check.js
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
           php taxocommerce-dependiente/tests/clean-install-smoke.php
@@ -107,6 +130,11 @@ jobs:
           php taxocommerce-google-bing/tests/head-tags-inventory-smoke.php
           php taxocommerce-google-bing/tests/ecommerce-smoke.php
           php taxocommerce-google-bing/tests/cloudflare-migration-smoke.php
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
+          php taxocommerce-google-bing/tests/consent-smoke.php
+          php taxocommerce-google-bing/tests/analysis-standalone-smoke.php
+          php taxocommerce-google-bing/tests/analysis-unified-smoke.php
+          php taxocommerce-google-bing/tests/geo-bridge-smoke.php
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
           php taxocommerce-google-bing/tests/indexnow-smoke.php
           php taxocommerce-google-bing/tests/indexnow-i18n-smoke.php
@@ -115,6 +143,8 @@ jobs:
           php taxocommerce-logistica/tests/auto-test-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
           php taxocommerce-scrappers/tests/manual-autotest-smoke.php
+          php -l taxocommerce-scrappers/tests/lifecycle-smoke.php
+          php taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-social/tests/auto-test-manual-smoke.php
           php taxocommerce-suppliers/tests/smoke.php
           php taxocommerce-suppliers/tests/template-creation-smoke.php

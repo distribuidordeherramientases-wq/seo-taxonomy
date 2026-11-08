@@ -27,6 +27,7 @@ function wp_unslash( $value ) { return $value; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_text_field( $value ) { return strip_tags( (string) $value ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
+function esc_html__( $value, $domain ) { return esc_html( $value ); }
 function number_format_i18n( $value ) { return number_format( (float) $value ); }
 function wp_send_json_success( $payload ) {
     $GLOBALS['last_response'] = array( 'success' => true, 'data' => $payload );
