@@ -58,6 +58,15 @@ function verify( $v, $label ) {
     if ( ! $v ) { fwrite( STDERR, 'FAIL: ' . $label . "\n" ); exit( 1 ); }
 }
 $GLOBALS['wpdb'] = new CountrySchemaFakeDb();
+$hierarchy_source = file_get_contents( dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-hierarchy-classic.php' );
+verify(
+    1 === substr_count( $hierarchy_source, "echo ' data-tc-search=\"local\"';" ),
+    'local search HTML attribute is rendered as a fixed, non-translatable attribute'
+);
+verify(
+    false === strpos( $hierarchy_source, "esc_html__( 'data-tc-search" ),
+    'local search HTML attribute must not pass through gettext'
+);
 require ( dirname( __DIR__, 3 ) . '/taxocommerce-core' ) . '/includes/class-taxocommerce-core-hierarchy-classic.php';
 TaxoCommerce_Core_Hierarchy_Classic::ensure_country_schema();
 verify( count( $wpdb->alterations ) === 2, 'migrate both pre-existing tables' );
