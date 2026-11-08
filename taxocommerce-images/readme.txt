@@ -4,7 +4,7 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.22
+Stable tag: 0.2.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -179,3 +179,7 @@ Current functionality includes:
 == External Services ==
 
 An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.
+
+== Official excerpt ==
+
+The optional admin information panel defaults to this plugin's own `Plugin URI` (public project documentation). It requests the published WordPress page excerpt by safe HTTPS REST with local caching; administrators may override or explicitly clear the URL. No external response is required for the plugin to function.
