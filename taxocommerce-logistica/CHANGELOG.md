@@ -1,3 +1,7 @@
+## [0.2.11] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
+
 ## [0.2.10] — 2026-11-08 — Internacionalización completa de formularios y controles Logistics (#2062)
 
 - Traducidos 98 textos PHP de interfaz, pedidos, reglas e informes Autocheck mediante gettext en ES/EN/FR/DE/NL.

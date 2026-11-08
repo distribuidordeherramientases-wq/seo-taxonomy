@@ -588,6 +588,7 @@ final class TaxoCommerce_Logistica_Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Logistica_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-logistica' ) ); }
         $before = self::stored( 'before' );
         $latest = self::stored( 'latest' );
