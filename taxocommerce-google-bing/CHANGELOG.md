@@ -1,3 +1,8 @@
+## [1.1.32] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
+
+- El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
+- Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+
 ## [1.1.31] — 2026-11-08 — Precarga segura de los cinco idiomas de Consentimientos en wp_options (#2454)
 
 - Archivo versionado `config/consent-texts-20261108.json` con los 13 campos de cada idioma ES/EN/FR/DE/NL (65 cadenas), incluidos aviso, texto legal, botones y categorías.
