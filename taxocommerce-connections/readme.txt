@@ -4,7 +4,7 @@ Tags: integrations, compatibility, insights
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,6 +32,11 @@ Existing option names are unchanged. The consolidation does not require reconnec
 Once the consolidated Insights installation is verified operationally, this compatibility plugin can be deactivated.
 
 == Changelog ==
+
+= 0.3.3 =
+* The existing Autocheck includes independent Functionality Check and Code Check subtabs. Code Check scans PHP, WordPress conventions and security indicators in the Connections plugin only, without requiring PCP or other TaxoCommerce plugins.
+* Five bounded CPU speeds, pause/resume and a per-administrator downloadable JSON report. The functional diagnostics and connection credentials are unchanged.
+
 
 = 0.3.2 =
 * Complete ES, EN, FR, DE and NL translations for Connections administration and connection diagnostics; compiled MO language packs.
