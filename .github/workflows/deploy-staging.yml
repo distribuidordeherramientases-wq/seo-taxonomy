@@ -47,6 +47,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Insights consent and editable legal text lifecycle
+        run: |
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
+          php taxocommerce-google-bing/tests/consent-smoke.php
+          node --check taxocommerce-google-bing/assets/consent.js
       - name: Validate delta script and regression tests
         run: |
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
