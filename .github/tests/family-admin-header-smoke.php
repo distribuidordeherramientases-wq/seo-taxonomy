@@ -38,8 +38,12 @@ function sanitize_title( $text ) { return strtolower( preg_replace( '/[^a-z0-9-]
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
 function wp_safe_remote_get( $url, $args = array() ) {
     $GLOBALS['tc_test_remote_calls'][] = $url;
+    $url_parts = parse_url( $url );
+    parse_str( $url_parts['query'] ?? '', $query_parts );
+    $slug = $query_parts['slug'] ?? '';
+    $source_link = $url_parts['scheme'] . '://' . $url_parts['host'] . '/' . $slug . '/';
     return array( 'code' => 200, 'body' => wp_json_encode( array( array(
-        'link' => 'https://example.org/plugins/auditor/',
+        'link' => $source_link,
         'excerpt' => array( 'rendered' => '<p>Dynamic &amp; safe excerpt</p>' ),
     ) ) ) );
 }
@@ -128,6 +132,7 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Translated history title: ' . $slug );
     tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'History must be closed by default: ' . $slug );
     tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-info">' ), 'One official excerpt panel: ' . $slug );
+    tc_test_assert( false !== strpos( $html, 'Dynamic &amp; safe excerpt' ), 'Default official Plugin URI must load dynamic excerpt: ' . $slug );
     tc_test_assert( strpos( $html, '<details class="tc-family-info">' ) < strpos( $html, '<details class="tc-family-history">' ), 'Official excerpt at left of local history: ' . $slug );
     tc_test_assert( false !== strpos( $html, '<summary>Información del plugin</summary>' ), 'Official excerpt translated in Spanish: ' . $slug );
     tc_test_assert( false === strpos( $html, 'tc-family-info" open' ), 'Official excerpt closed by default: ' . $slug );
@@ -189,6 +194,7 @@ foreach ( array(
     $markup = ob_get_clean();
     tc_test_assert( false !== strpos( $markup, '<summary>' . esc_html( $label ) . '</summary>' ), 'History respects site locale: ' . $locale );
 }
+$GLOBALS['tc_test_remote_calls'] = array();
 // A configured official URL loads only the public WordPress excerpt, with cache.
 $GLOBALS['tc_test_options']['tc_official_page_taxocommerce-auditor'] = 'https://example.org/plugins/auditor/';
 $_GET['page'] = 'taxocommerce-auditor';
