@@ -452,6 +452,7 @@ final class Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Redirects_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Sin permiso para abrir Autocheck.', 'taxocommerce-redirects' ) ); }
         $before = self::stored( true );
         $last = self::stored( false );
