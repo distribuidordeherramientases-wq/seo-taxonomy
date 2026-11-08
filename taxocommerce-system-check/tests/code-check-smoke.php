@@ -9,7 +9,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 define( 'ABSPATH', '/' );
 define( 'HOUR_IN_SECONDS', 3600 );
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.20' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.21' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', dirname( __DIR__ ) . '/' );
 
 function __( $value, $domain = '' ) { return $value; }

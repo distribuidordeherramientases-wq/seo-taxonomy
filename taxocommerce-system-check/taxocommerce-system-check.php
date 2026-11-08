@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.20
+ * Version: 0.2.21
  * Release Date: 2026-11-08
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.20' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.21' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -216,14 +216,14 @@ function taxocommerce_system_check_body_class( $classes ) {
 }
 
 function taxocommerce_system_check_enqueue_assets() {
-    // Code Check is the second Autocheck subtab, not a new top-level page.
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+    // Read-only admin tab selectors affect only which local assets are loaded.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- GET is used solely to select admin assets, not to change data.
     $subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
         ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
-    $screen_page = isset( $_GET['page'] ) && is_scalar( $_GET['page'] )
+    $page = isset( $_GET['page'] ) && is_scalar( $_GET['page'] )
         ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    if ( 'code' === $subtab && 'taxocommerce-system-check' === $screen_page
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+    if ( 'code' === $subtab && 'taxocommerce-system-check' === $page
         && 'auto-test' === taxocommerce_system_check_active_tab() ) {
         wp_enqueue_script(
             'taxocommerce-system-check-code-check',
@@ -231,8 +231,6 @@ function taxocommerce_system_check_enqueue_assets() {
             array(), TAXOCOMMERCE_SYSTEM_CHECK_VERSION, true
         );
     }
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
-    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
     if ( in_array( $page, array( 'tcs-plugin-validation', 'seo-core-system-test' ), true ) || ( 'taxocommerce-system-check' === $page && 'plugin' === taxocommerce_system_check_active_tab() ) ) {
         wp_enqueue_style(
             'taxocommerce-system-check-validation',

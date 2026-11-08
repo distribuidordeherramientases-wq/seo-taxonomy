@@ -1,3 +1,9 @@
+## [0.2.21] — 2026-11-08 — Corregir avisos PCP y facilitar despliegue en Focazul (#2361)
+
+- Elimina la lectura duplicada de parámetros GET en el registro de recursos de Autocheck. Limita la excepción PHPCS de nonce a la selección de pestañas de solo lectura.
+- Mantiene los dos chequeos autónomos «Funcionalidades» y «Code Check», sus tres categorías (PHP, normas WordPress y seguridad), limitación CPU y exportación JSON.
+- Versiona 0.2.21 para una actualización verificable del plugin independiente. Sin dependencias obligatorias de WordPress Plugin Check ni cambios del monolito.
+
 ## [0.2.20] — 2026-11-08 — Autocheck independiente de funcionalidades y código (#2361)
 
 - Dos subpestañas en Autocheck: «Functionality Check» conserva el autocheck existente; «Code Check» inspecciona únicamente los archivos PHP del plugin System Check.
