@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.31
+Stable tag: 1.1.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -205,3 +205,7 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 == External Services ==
 
 Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.
+
+== Official excerpt ==
+
+The optional admin information panel defaults to this plugin's `Plugin URI`, a public project page. Only its published excerpt is retrieved via safe WordPress REST HTTPS and cached locally. Administrators may override or explicitly clear the URL to disable requests. No network dependency for core functionality.
