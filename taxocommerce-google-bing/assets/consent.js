@@ -61,19 +61,42 @@
     }
 
     function store(choices) {
-        var old = read();
         var payload = ["1", String(config.revision), choices.statistics ? "1" : "0",
             choices.marketing ? "1" : "0", choices.preferences ? "1" : "0"].join("|");
-        var secure = location.protocol === "https:" ? "; Secure" : "";
-        document.cookie = config.cookie + "=" + encodeURIComponent(payload) +
-            "; Max-Age=" + (Number(config.days) || 180) * 86400 +
-            "; Path=/; SameSite=Lax" + secure;
-        updateConsentAPI(choices);
-        if (old && ((old.statistics && !choices.statistics) || (old.marketing && !choices.marketing))) {
-            deleteVendorCookies();
-        }
-        // Refresh so PHP and all integrations agree before loading vendor scripts.
-        location.reload();
+        var request = new XMLHttpRequest();
+        request.open("POST", config.endpoint, true);
+        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        request.onreadystatechange = function () {
+            if (request.readyState !== 4) { return; }
+            if (request.status < 200 || request.status >= 300) {
+                window.alert("No se pudo registrar la decisión. Inténtalo de nuevo.");
+                return;
+            }
+            var result;
+            try { result = JSON.parse(request.responseText); } catch (error) { return; }
+            if (!result || !result.success) {
+                window.alert("No se pudo registrar la decisión. Inténtalo de nuevo.");
+                return;
+            }
+            var old = read();
+            var secure = location.protocol === "https:" ? "; Secure" : "";
+            document.cookie = config.cookie + "=" + encodeURIComponent(payload) +
+                "; Max-Age=" + (Number(config.days) || 180) * 86400 +
+                "; Path=/; SameSite=Lax" + secure;
+            updateConsentAPI(choices);
+            if (old && ((old.statistics && !choices.statistics) || (old.marketing && !choices.marketing))) {
+                deleteVendorCookies();
+            }
+            location.reload();
+        };
+        request.send([
+            "action=tci_consent_record",
+            "nonce=" + encodeURIComponent(config.nonce),
+            "revision=" + encodeURIComponent(config.revision),
+            "statistics=" + (choices.statistics ? "1" : "0"),
+            "marketing=" + (choices.marketing ? "1" : "0"),
+            "preferences=" + (choices.preferences ? "1" : "0")
+        ].join("&"));
     }
 
     function init() {
