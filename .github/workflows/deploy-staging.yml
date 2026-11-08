@@ -31,7 +31,9 @@ on:
       - '.github/tests/test_deploy_staging_delta.py'
       - '.github/scripts/audit_core_dual_sites.py'
       - '.github/tests/test_audit_core_dual_sites.py'
+      - '.github/tests/test_staging_check_subida_a_pro.py'
       - '.github/workflows/deploy-staging.yml'
+      - '.github/workflows/staging_check_subida_a_pro.yml'
 
 permissions:
   contents: read
