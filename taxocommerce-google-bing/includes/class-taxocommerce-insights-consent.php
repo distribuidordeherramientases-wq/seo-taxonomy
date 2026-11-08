@@ -160,9 +160,12 @@ final class TaxoCommerce_Insights_Consent {
 
     /** v1|revision|statistics|marketing|preferences, strictly parsed. */
     public static function choices() {
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict grammar and a non-mutating sanitization check below reject every malformed value before use.
         $raw = isset( $_COOKIE[ self::COOKIE ] ) && is_string( $_COOKIE[ self::COOKIE ] )
-            ? sanitize_text_field( rawurldecode( wp_unslash( $_COOKIE[ self::COOKIE ] ) ) ) : '';
-        if ( ! preg_match( '/\A1\|([0-9]{1,10})\|([01])\|([01])\|([01])\z/D', $raw, $matches ) ) {
+            ? rawurldecode( wp_unslash( $_COOKIE[ self::COOKIE ] ) ) : '';
+        // Sanitizing a malformed cookie must NEVER turn it into a valid opt-in.
+        if ( strlen( $raw ) > 64 || $raw !== sanitize_text_field( $raw )
+            || ! preg_match( '/\A1\|([0-9]{1,10})\|([01])\|([01])\|([01])\z/D', $raw, $matches ) ) {
             return null;
         }
         $settings = self::settings();
