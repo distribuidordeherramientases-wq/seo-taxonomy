@@ -55,6 +55,37 @@ foreach ( $locales as $locale => $sample ) {
     if ( ( $messages[ $sample[0] ] ?? null ) !== $sample[1] ) {
         throw new RuntimeException( 'Translation not compiled for ' . $locale . ': ' . $sample[0] );
     }
+    // Complete catalogs are mandatory for each of the five supported administration locales.
+    if ( 792 !== count( $messages ) ) {
+        throw new RuntimeException( 'Unexpected Core MO key count for ' . $locale );
+    }
+    foreach ( $messages as $original => $translated ) {
+        if ( '' !== $original && '' === $translated ) {
+            throw new RuntimeException( 'Empty compiled translation in ' . $locale . ': ' . $original );
+        }
+    }
+    $required_labels = array(
+        'fr_FR' => array(
+            'Seleccionar menú' => 'Sélectionner un menu',
+            'Instalar ZIP' => 'Installer le ZIP',
+            'Políticas de spam y contenido masivo' => 'Politiques de lutte contre le spam et le contenu massif',
+        ),
+        'de_DE' => array(
+            'Seleccionar menú' => 'Menü auswählen',
+            'Instalar ZIP' => 'ZIP installieren',
+            'Políticas de spam y contenido masivo' => 'Richtlinien zu Spam und massenhaft erstellten Inhalten',
+        ),
+        'nl_NL' => array(
+            'Seleccionar menú' => 'Menu selecteren',
+            'Instalar ZIP' => 'ZIP installeren',
+            'Políticas de spam y contenido masivo' => 'Beleid voor spam en massaal geproduceerde inhoud',
+        ),
+    );
+    foreach ( ( $required_labels[ $locale ] ?? array() ) as $original => $translated ) {
+        if ( ( $messages[ $original ] ?? null ) !== $translated ) {
+            throw new RuntimeException( 'Missing required interface translation in ' . $locale . ': ' . $original );
+        }
+    }
     echo $locale . ': ' . count( $messages ) . " entries OK\n";
 }
 echo "TaxoCommerce Core gettext QA passed.\n";

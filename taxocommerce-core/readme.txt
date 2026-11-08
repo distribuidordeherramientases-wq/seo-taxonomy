@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.61
+Stable tag: 0.4.62
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Editorial guidance does not create or modify content automatically. Only authori
 
 == Languages ==
 
-TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with translation coverage under active expansion; technical names and catalog content remain unchanged. WordPress.org language packs will be supported once translations are approved.
+TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with full coverage of the strings currently extracted in each gettext template; technical names and catalog content remain unchanged. The untranslated PHP/JavaScript surface and locale-specific administration display still require functional verification. WordPress.org language packs will be supported once translations are approved.
 
 == Installation ==
 
@@ -57,6 +57,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.62 =
+* Complete the existing Core gettext catalogs in Spanish, English, French, German and Dutch, covering administrative actions, native menus, extension management, diagnostics and both manuals.
+* Ensure local search HTML data attributes are never translated; keep the generated markup and native menu logic unchanged.
+* Add regression checks for compiled MO catalogs, required interface messages and source-key integrity; release 2026-11-08. Linked to issue #2062.
 
 = 0.4.60 =
 * List TaxoCommerce Tasks in the built-in extension catalog, including when the Tasks plugin is not installed or active.
