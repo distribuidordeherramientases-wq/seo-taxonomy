@@ -100,6 +100,54 @@ final class Runner {
     }
 
     /**
+     * Browser-assisted worker eligibility. WP-Cron remains the default worker;
+     * the admin monitor may recover a due batch if hosting loopback is broken.
+     *
+     * @param string $scope Audit scope.
+     * @return bool
+     */
+    public static function browser_batch_due( $scope ) {
+        if ( ! self::valid_scope( $scope ) ) {
+            return false;
+        }
+        $state = self::state( $scope );
+        if ( ! in_array( (string) ( $state['status'] ?? '' ), array( 'queued', 'running' ), true ) ) {
+            return false;
+        }
+        $last = absint( $state['last_batch_timestamp'] ?? 0 );
+        $start = absint( $state['started_timestamp'] ?? 0 );
+        $anchor = $last > 0 ? $last : $start;
+        return $anchor > 0 && time() >= $anchor + Workload::delay_seconds( $scope );
+    }
+
+    /**
+     * Read-only health snapshot for the admin progress monitor.
+     *
+     * @param string $scope Audit scope.
+     * @return array
+     */
+    public static function progress( $scope ) {
+        if ( ! self::valid_scope( $scope ) ) {
+            return array();
+        }
+        $state = self::state( $scope );
+        $next = wp_next_scheduled( self::HOOK, array( $scope ) );
+        $next = false === $next ? 0 : absint( $next );
+        $running = in_array( (string) ( $state['status'] ?? '' ), array( 'queued', 'running' ), true );
+        return array(
+            'status'              => sanitize_key( (string) ( $state['status'] ?? '' ) ),
+            'processed'           => absint( $state['processed'] ?? 0 ),
+            'total'               => isset( $state['total'] ) ? absint( $state['total'] ) : null,
+            'last_batch_timestamp'=> absint( $state['last_batch_timestamp'] ?? 0 ),
+            'next_event_timestamp'=> $next,
+            'speed_delay_seconds' => Workload::delay_seconds( $scope ),
+            'cron_disabled'       => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
+            'cron_overdue'        => $running && $next > 0 && $next < time() - 60,
+            'reason'              => sanitize_text_field( (string) ( $state['reason'] ?? '' ) ),
+        );
+    }
+
+    /**
      * Repair a lost WP-Cron pulse without resetting a partially completed run.
      */
     public static function ensure_scheduled() {
@@ -162,8 +210,10 @@ final class Runner {
         if ( ! self::valid_scope( $scope ) ) {
             return false;
         }
-        // Do not reset a run while a worker still owns this scope.
-        if ( get_transient( 'taxocommerce_auditor_lock_' . $scope ) ) {
+        // Never reset a queued/running audit or discard its cursor/JSONL.
+        $existing = self::state( $scope );
+        if ( in_array( (string) ( $existing['status'] ?? '' ), array( 'queued', 'running' ), true )
+            || get_transient( 'taxocommerce_auditor_lock_' . $scope ) ) {
             return false;
         }
         wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
@@ -181,6 +231,7 @@ final class Runner {
             'reason'           => $unavailable,
             'started_gmt'      => current_time( 'mysql', true ),
             'started_timestamp' => time(),
+            'last_batch_timestamp' => 0,
             'completed_gmt'    => null,
             'processed'        => 0,
             'excluded'         => 0,
@@ -725,13 +776,29 @@ final class Runner {
             return;
         }
         $lock = 'taxocommerce_auditor_lock_' . $scope;
+        $worker_option = 'taxocommerce_auditor_worker_' . $scope;
         if ( get_transient( $lock ) ) {
-            // The current cron event has been consumed; do not lose the next pulse.
+            // Another worker is busy; leave its scheduled next pulse intact.
             self::enqueue( $scope );
             return;
         }
+        // add_option() is an atomic database insert: prevent a cron + AJAX
+        // race from processing the same cursor twice.
+        if ( ! add_option( $worker_option, time(), '', false ) ) {
+            $occupied_since = absint( get_option( $worker_option, 0 ) );
+            if ( $occupied_since > 0 && $occupied_since < time() - 180 ) {
+                delete_option( $worker_option );
+            }
+            if ( ! add_option( $worker_option, time(), '', false ) ) {
+                self::enqueue( $scope );
+                return;
+            }
+        }
         set_transient( $lock, 1, 120 );
         try {
+            // A browser-assisted batch consumes its due cron event explicitly.
+            // Cron callbacks have already consumed the event by this point.
+            wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
             self::load_indexes( $state );
             $state['status'] = 'running';
             $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
@@ -939,6 +1006,7 @@ final class Runner {
                 return;
             }
 
+            $state['last_batch_timestamp'] = time();
             self::trim_samples( $state );
             $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
             $limit_reached = ! $full && absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
@@ -961,6 +1029,7 @@ final class Runner {
             wp_clear_scheduled_hook( self::HOOK, array( $scope ) );
         } finally {
             delete_transient( $lock );
+            delete_option( $worker_option );
         }
     }
 }

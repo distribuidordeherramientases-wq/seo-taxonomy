@@ -13,6 +13,7 @@ final class Admin {
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
         add_action( 'admin_post_taxocommerce_auditor_action', array( __CLASS__, 'handle_action' ) );
         add_action( 'admin_post_taxocommerce_auditor_export', array( __CLASS__, 'handle_export' ) );
+        add_action( 'wp_ajax_taxocommerce_auditor_watch', array( __CLASS__, 'handle_watch' ) );
     }
 
     public static function enqueue( $hook ) {
@@ -24,6 +25,27 @@ final class Admin {
             plugins_url( 'assets/admin.css', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
             array(),
             Plugin::VERSION
+        );
+        wp_enqueue_script(
+            'taxocommerce-auditor-watch',
+            plugins_url( 'assets/admin-watch.js', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
+            array(),
+            Plugin::VERSION,
+            true
+        );
+        wp_localize_script(
+            'taxocommerce-auditor-watch',
+            'taxocommerceAuditorWatch',
+            array(
+                'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'taxocommerce_auditor_watch' ),
+                'latest'   => __( 'Último lote', 'taxocommerce-auditor' ),
+                'next'     => __( 'Próximo evento WP-Cron', 'taxocommerce-auditor' ),
+                'none'     => __( 'Sin datos', 'taxocommerce-auditor' ),
+                'overdue'  => __( 'WP-Cron está retrasado; este monitor recupera los lotes mientras permanezca abierto.', 'taxocommerce-auditor' ),
+                'disabled' => __( 'WP-Cron automático está desactivado; para continuar con la pantalla cerrada configura el cron del servidor.', 'taxocommerce-auditor' ),
+                'failure'  => __( 'No se pudo consultar el progreso. Comprueba la conexión y vuelve a cargar la pantalla.', 'taxocommerce-auditor' ),
+            )
         );
     }
 
@@ -132,11 +154,17 @@ final class Admin {
         echo '<section class="card taxocommerce-auditor-scope-controls">';
         echo '<div class="taxocommerce-auditor-scope-status"><div>';
         echo '<h2> ' . esc_html__( 'Auditoría de', 'taxocommerce-auditor' ) . ' ' . esc_html( Runner::scopes()[ $scope ] ) . '</h2>';
-        echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  ' . esc_html( self::state_label( $status ) );
+        echo '<p><strong> ' . esc_html__( 'Estado:', 'taxocommerce-auditor' ) . '  <span data-tca-status-label>' . esc_html( self::state_label( $status ) ) . '</span>';
         if ( in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
-            echo ' · ' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected );
+            echo ' · <span data-tca-counter>' . esc_html( (string) $count ) . ' / ' . esc_html( null === $expected ? __( 'sin recuento disponible', 'taxocommerce-auditor' ) : (string) $expected ) . '</span>';
         }
         echo '</p>';
+        if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
+            echo '<div class="taxocommerce-auditor-live" data-tca-live data-scope="' . esc_attr( $scope ) . '">';
+            echo '<p class="description" data-tca-progress>' . esc_html__( 'Monitor activo: la pantalla recupera los lotes que WP-Cron no ejecute. Para continuar con la pantalla cerrada, WP-Cron debe funcionar.', 'taxocommerce-auditor' ) . '</p>';
+            echo '<p class="notice-inline" data-tca-warning hidden></p>';
+            echo '</div>';
+        }
         if ( ! empty( $state['reason'] ) ) {
             echo '<p>' . esc_html( (string) $state['reason'] ) . '</p>';
         }
@@ -646,6 +674,27 @@ final class Admin {
             echo '<td>' . esc_html( implode( ' · ', $priorities ) ) . '</td></tr>';
         }
         echo '</tbody></table></div>';
+    }
+
+    /**
+     * Browser monitor: runs at most one due batch per authenticated AJAX call.
+     * Native WP-Cron continues to run independently when it is healthy.
+     */
+    public static function handle_watch() {
+        self::guard();
+        $scope = isset( $_POST['scope'] ) && is_string( $_POST['scope'] )
+            ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+        if ( ! Runner::valid_scope( $scope ) ) {
+            wp_send_json_error( array( 'message' => __( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ) ), 400 );
+        }
+        check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' );
+
+        if ( Runner::browser_batch_due( $scope ) ) {
+            Runner::run_batch( $scope );
+        }
+        $progress = Runner::progress( $scope );
+        $progress['status_label'] = self::state_label( $progress['status'] );
+        wp_send_json_success( $progress );
     }
 
     public static function handle_action() {

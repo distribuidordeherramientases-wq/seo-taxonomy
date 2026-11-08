@@ -23,7 +23,7 @@ TaxoCommerce Auditor provides independent read-only content reviews across five 
 * Pages and landings: content structure, WordPress-native SEO roles, hierarchy and potentially overlapping pages.
 * FAQs: ownership, questions, answers, target product categories and semantic consistency. The TaxoCommerce FAQs module is optional.
 
-Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits use bounded scheduled batches and may be paused or resumed. Each of the five scopes independently offers five workload speeds for full and filtered scans, adapting batch sizes, WP-Cron spacing, and request time budgets. These settings control workload throughput, not a server-wide CPU percentage.
+Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits use bounded scheduled batches and may be paused or resumed. Each of the five scopes independently offers five workload speeds for full and filtered scans, adapting batch sizes, WP-Cron spacing, and request time budgets. These settings control workload throughput, not a server-wide CPU percentage. A protected browser-assisted progress monitor recovers overdue batches while the audit admin screen remains open if WP-Cron is not firing. When the browser is closed, background processing still requires working WP-Cron or a hosting cron job.
 
 Complete audit results are streamed as JSON Lines files in WordPress uploads. Only a bounded sample is kept in WordPress options. Large exports stream the full results instead of loading the catalogue into memory.
 
@@ -56,6 +56,10 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.11 =
+* Recover overdue audit batches from the authenticated admin screen without restarting cursors; atomic per-scope worker locks, live cron diagnostics, and safe retry pacing.
+
 
 = 0.3.10 =
 * Independent five-level workload controller for products, categories, posts, pages and FAQs, including full/filtered audits; safe cursor and cron rescheduling.

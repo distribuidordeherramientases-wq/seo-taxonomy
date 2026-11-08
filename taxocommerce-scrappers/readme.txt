@@ -53,6 +53,10 @@ The administrator supplies and controls all API credentials. Provider usage can 
 
 == Changelog ==
 
+= 0.1.15 (2026-11-08) =
+* Completed Scrappers gettext messages for five locales and regenerated the matching MO catalogues. No changes to provider requests, editorial processes or customer content.
+
+
 = 0.1.13 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
 

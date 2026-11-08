@@ -2,6 +2,12 @@
 
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
 - Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
+## [0.1.15] — 2026-11-08 — Catálogo gettext completo en cinco idiomas (#2062)
+
+- Traducidas las 233 entradas `msgid` actuales de Scrappers en es_ES, en_US, fr_FR, de_DE y nl_NL: Autotest, consultas externas, límites de API, investigación, revisión editorial, importación/exportación y Merchant.
+- Catálogos PO sincronizados con POT sin entradas vacías ni diferencias en marcadores `printf`. Compilados cinco MO y comprobada la lectura binaria inversa de los 234 registros por idioma (incluida la cabecera gettext).
+- Metadatos y `readme.txt` actualizados a 0.1.15, conservando `changelog.txt`. No se modifican cron, credenciales, consultas a proveedores, datos de WooCommerce ni comportamiento funcional.
+- Pendientes la revisión de literales visibles PHP/JS no extraídos por gettext, Plugin Check, regresiones y validación del idioma real en los WordPress de prueba. Los recuentos parciales de notas históricas inferiores no describen el estado actual.
 
 ## [0.1.14] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 

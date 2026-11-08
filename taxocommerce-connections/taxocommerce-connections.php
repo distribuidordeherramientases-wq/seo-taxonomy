@@ -81,20 +81,21 @@ function taxocommerce_connections_register_bridge() {
 			if ( ! current_user_can( 'manage_options' ) ) {
 				return;
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only legacy-route redirect.
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only legacy-route selection; never changes settings.
 			$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 			if ( 'taxocommerce-connections' !== $page ) {
 				return;
 			}
 			$args = array();
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Preserves a display-only notice during redirect.
+
 			if ( isset( $_GET['tc_conn_notice'] ) ) {
 				$args['tc_conn_notice'] = sanitize_key( wp_unslash( $_GET['tc_conn_notice'] ) );
 			}
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Preserves a display-only notice during redirect.
+
 			if ( isset( $_GET['tc_conn_type'] ) ) {
 				$args['tc_conn_type'] = sanitize_key( wp_unslash( $_GET['tc_conn_type'] ) );
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 			wp_safe_redirect( taxocommerce_connections_insights_url( $args ) );
 			exit;
 		},

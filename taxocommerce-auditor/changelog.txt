@@ -1,3 +1,6 @@
+== 0.3.11 ==
+* Recover overdue audit batches from the authenticated admin page; keep WP-Cron background execution, concurrency locking, original progress and JSONL exports. Issue #2444.
+
 == 0.3.10 ==
 * Five independent workload levels for each audit scope, safe background batch pacing and progress preservation.
 

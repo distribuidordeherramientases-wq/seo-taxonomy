@@ -270,3 +270,67 @@ msgstr "The OAuth user does not have permission."
 #: includes/class-taxocommerce-connections-pinterest.php:481
 msgid "Invalid domain verification code."
 msgstr "Invalid domain verification code."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Access denied."
+msgstr "Access denied."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check first."
+msgstr "Run Code Check first."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Unable to create JSON."
+msgstr "Unable to create JSON."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Autotest sections"
+msgstr "Autotest sections"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Functionality Check"
+msgstr "Functionality Check"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Code Check"
+msgstr "Code Check"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "CPU usage"
+msgstr "CPU usage"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Run Code Check"
+msgstr "Run Code Check"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Progress"
+msgstr "Progress"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Stop"
+msgstr "Stop"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Continue batch"
+msgstr "Continue batch"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Resume"
+msgstr "Resume"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Download JSON"
+msgstr "Download JSON"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "File"
+msgstr "File"
+
+#: includes/class-taxocommerce-autotest-code.php
+msgid "Security"
+msgstr "Security"
