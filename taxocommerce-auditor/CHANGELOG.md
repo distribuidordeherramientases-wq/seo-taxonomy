@@ -1,3 +1,9 @@
+## [0.3.10] - 2026-11-08 - Autotest de funcionalidad y codigo (#2401)
+
+- Autotest mantiene sus pruebas funcionales y su JSON; incorpora una subpestana Code Check propia e independiente.
+- PHP, WordPress y seguridad con lotes, 5 limites de CPU, detener/reanudar y exportacion JSON privada. PCP no obligatorio.
+- El analizador procede de una plantilla comun vendorizada y solo lee archivos del propio plugin.
+
 ## [0.3.9] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
