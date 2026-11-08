@@ -31,6 +31,9 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
 function admin_url( $path = '' ) { return '/wp-admin/' . $path; }
+function remove_query_arg( $key, $url = '/wp-admin/admin.php?page=taxocommerce-social' ) { return $url; }
+function add_query_arg( $key, $value = null, $url = '' ) { return ( $url ?: admin_url( 'admin.php?page=taxocommerce-social' ) ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
+function esc_attr__( $message, $domain = '' ) { return esc_attr( $message ); }
 function wp_nonce_field( $action, $name = '_wpnonce' ) { echo '<input type="hidden" name="' . esc_html( $name ) . '" value="test">'; }
 function submit_button( $label, $type = 'primary', $name = 'submit', $wrap = true ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function sanitize_key( $s ) { return strtolower( preg_replace( '/[^a-z0-9_-]/i', '', (string) $s ) ); }

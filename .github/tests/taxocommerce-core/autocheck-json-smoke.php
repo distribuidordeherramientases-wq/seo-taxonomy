@@ -2,6 +2,7 @@
 /** Standalone Core Autocheck JSON export regression: no WordPress or network. */
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'TAXOCOMMERCE_CORE_VERSION', '0.4.53' );
+define( 'HOUR_IN_SECONDS', 3600 );
 
 class TaxoCommerce_Core_User_Guide {
     const PAGE_SLUG = 'taxocommerce-core-user-guide';
@@ -61,9 +62,14 @@ function esc_attr_e( $value, $domain = '' ) { echo esc_attr( $value ); }
 function wp_nonce_field( $nonce, $field ) { echo '<input name="' . esc_attr( $field ) . '" value="valid">'; }
 function submit_button( $label, $style = '', $name = '', $wrap = false ) { echo '<button type="submit">' . esc_html( $label ) . '</button>'; }
 function admin_url( $path = '' ) { return 'https://asociacionfocazul.example/wp-admin/' . $path; }
-function add_query_arg( $query, $url ) { return $url . '?' . http_build_query( $query ); }
+function add_query_arg( $query, $value, $url = '' ) { return is_array( $query ) ? $value . '?' . http_build_query( $query ) : ( $url ?: admin_url( 'admin.php?page=taxocommerce-core' ) ) . '&' . rawurlencode( $query ) . '=' . rawurlencode( (string) $value ); }
+function remove_query_arg( $key, $url = 'https://asociacionfocazul.example/wp-admin/admin.php?page=taxocommerce-core' ) { return $url; }
+function esc_attr__( $text, $domain = '' ) { return esc_attr( $text ); }
+function sanitize_key( $text ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $text ) ); }
+function wp_unslash( $text ) { return $text; }
 function absint( $value ) { return abs( (int) $value ); }
 
+require_once dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-autotest-code.php';
 require_once dirname( __DIR__, 3 ) . '/taxocommerce-core/includes/class-taxocommerce-core-auto-test.php';
 
 $mode = $argv[1] ?? 'assert';

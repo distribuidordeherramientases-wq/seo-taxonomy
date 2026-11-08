@@ -1,0 +1,105 @@
+name: Import-Export / tested delivery to STAGING and Focazul
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-import-export/**'
+      - '.github/workflows/import-export-staging-delivery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Share the FTPS mutex with the main deployment workflow.
+concurrency:
+  group: taxocommerce-staging-focazul-deploy
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Import-Export independently
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all installable PHP and regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          find taxocommerce-import-export -type f -name '*.php' -print0 |
+            xargs -0 -r -n1 php -l >/dev/null
+          php taxocommerce-import-export/tests/i18n-empty-mo-smoke.php
+          php taxocommerce-import-export/tests/empty-gettext-fallback-smoke.php
+          php taxocommerce-import-export/tests/background-export-smoke.php
+          php taxocommerce-import-export/tests/auto-test-smoke.php
+          php taxocommerce-import-export/tests/native-category-csv-smoke.php
+          php taxocommerce-import-export/tests/country-csv-smoke.php
+          php taxocommerce-import-export/tests/batch-queue-smoke.php
+          node --check taxocommerce-import-export/assets/exporter.js
+          echo 'Import-Export runtime, CSV, gettext, and Pages export checks: PASS'
+
+  staging:
+    name: Deliver only Import-Export to STAGING
+    needs: validate
+    if: needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconcile tracked Import-Export files using atomic FTPS + SHA256 readback
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u .github/scripts/deploy_staging_delta.py deploy \
+            --base "$(git rev-parse HEAD)" \
+            --target staging \
+            --slug taxocommerce-import-export \
+            --full true
+
+  focazul:
+    name: Deliver only Import-Export to Focazul
+    needs: [validate, staging]
+    if: ${{ always() && needs.validate.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconcile Focazul independently even if STAGING failed
+        env:
+          STAGING_FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
+          STAGING_FTP_USERNAME: ${{ secrets.STAGING_FTP_USERNAME }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u .github/scripts/deploy_staging_delta.py deploy \
+            --base "$(git rev-parse HEAD)" \
+            --target focazul \
+            --slug taxocommerce-import-export \
+            --full true
+
+  report:
+    name: Assert scoped delivery status for both sites
+    if: always()
+    needs: [validate, staging, focazul]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report both independent outcomes
+        env:
+          VALIDATE: ${{ needs.validate.result }}
+          STAGING: ${{ needs.staging.result }}
+          FOCAZUL: ${{ needs.focazul.result }}
+        run: |
+          set -euo pipefail
+          echo "Validation: $VALIDATE; STAGING: $STAGING; Focazul: $FOCAZUL"
+          echo "Production is not part of this workflow."
+          test "$VALIDATE" = "success"
+          test "$STAGING" = "success"
+          test "$FOCAZUL" = "success"

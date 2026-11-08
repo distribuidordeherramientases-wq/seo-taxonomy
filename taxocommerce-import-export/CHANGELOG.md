@@ -1,3 +1,10 @@
+## [0.4.21] — 2026-11-08 — Protección contra textos vacíos en Import-Export (#2412)
+
+- Recupera el texto original de botones, opciones y leyendas cuando un catálogo MO externo, antiguo o cacheado devuelve una traducción vacía.
+- Protege exclusivamente el dominio taxocommerce-import-export, también traducciones de contexto y plurales; no altera datos, consultas ni tareas de exportación.
+- Se mantienen los cinco catálogos MO reparados en 0.4.20 y se añade prueba CLI al pipeline.
+- Pendiente validación de despliegue en STAGING, Focazul y PRO (esta última solo con autorización del workflow).
+
 ## [0.4.20] - 2026-11-08 - Autotest funcional y de codigo (#2401)
 
 - Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.

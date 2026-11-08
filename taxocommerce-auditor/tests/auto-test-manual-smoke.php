@@ -29,6 +29,13 @@ function current_time( $format, $gmt = false ) { return '2026-10-31 22:30:00'; }
 function get_transient( $name ) { return false; }
 function get_current_user_id() { return 1; }
 function admin_url( $path ) { return '/wp-admin/' . $path; }
+// Autotest's new read-only sub-tabs use standard WordPress URL helpers.
+function remove_query_arg( $key, $url = '/wp-admin/admin.php?page=taxocommerce-auditor' ) {
+    return $url;
+}
+function add_query_arg( $key, $value = null, $url = '' ) {
+    return ( $url ?: '/wp-admin/admin.php?page=taxocommerce-auditor' ) . '&' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value );
+}
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_url( $value ) { return esc_html( $value ); }
