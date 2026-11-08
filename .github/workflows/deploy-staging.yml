@@ -86,10 +86,10 @@ jobs:
           php -l taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
-          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-family.php
-          php -l taxocommerce-system-check/tests/family-check-smoke.php
-          php taxocommerce-system-check/tests/family-check-smoke.php
-          node --check taxocommerce-system-check/assets/family-check.js
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php -l taxocommerce-system-check/tests/code-check-smoke.php
+          php taxocommerce-system-check/tests/code-check-smoke.php
+          node --check taxocommerce-system-check/assets/code-check.js
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
           php taxocommerce-dependiente/tests/clean-install-smoke.php

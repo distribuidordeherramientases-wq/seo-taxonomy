@@ -91,8 +91,8 @@ function taxocommerce_system_check_boot() {
     TaxoCommerce_System_Check_Processes::boot();
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-php.php';
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-auto-test.php';
-    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-family.php';
-    TaxoCommerce_System_Check_Family::boot();
+    require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-code-check.php';
+    TaxoCommerce_System_Check_Code_Check::boot();
     require_once TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-user-guide.php';
     $url_audit_module = TAXOCOMMERCE_SYSTEM_CHECK_PATH . 'includes/class-taxocommerce-system-check-url-audit.php';
     if ( is_readable( $url_audit_module ) ) {
@@ -163,12 +163,12 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 function taxocommerce_system_check_active_tab() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
     $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'plugin', 'family', 'http', 'processes', 'auto-test', 'manual' ), true ) ? $tab : 'system';
+    return in_array( $tab, array( 'system', 'plugin', 'http', 'processes', 'auto-test', 'manual' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'family' => __( 'Familia TaxoCommerce', 'taxocommerce-system-check' ), 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -216,12 +216,20 @@ function taxocommerce_system_check_body_class( $classes ) {
 }
 
 function taxocommerce_system_check_enqueue_assets() {
-    if ( 'family' === taxocommerce_system_check_active_tab() ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin tab is read-only.
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( 'taxocommerce-system-check' === $page ) {
-            wp_enqueue_script( 'taxocommerce-system-check-family', TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/family-check.js', array(), TAXOCOMMERCE_SYSTEM_CHECK_VERSION, true );
-        }
+    // Code Check is the second Autocheck subtab, not a new top-level page.
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+    $subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
+        ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin navigation.
+    $screen_page = isset( $_GET['page'] ) && is_scalar( $_GET['page'] )
+        ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    if ( 'code' === $subtab && 'taxocommerce-system-check' === $screen_page
+        && 'auto-test' === taxocommerce_system_check_active_tab() ) {
+        wp_enqueue_script(
+            'taxocommerce-system-check-code-check',
+            TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/code-check.js',
+            array(), TAXOCOMMERCE_SYSTEM_CHECK_VERSION, true
+        );
     }
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin page routing.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
@@ -296,8 +304,6 @@ function taxocommerce_system_check_home() {
         taxocommerce_system_check_url_audit_screen();
     } elseif ( 'processes' === $tab ) {
         TaxoCommerce_System_Check_Processes::render();
-    } elseif ( 'family' === $tab ) {
-        TaxoCommerce_System_Check_Family::render();
     } elseif ( 'auto-test' === $tab ) {
         TaxoCommerce_System_Check_Auto_Test::render();
     } elseif ( 'manual' === $tab ) {

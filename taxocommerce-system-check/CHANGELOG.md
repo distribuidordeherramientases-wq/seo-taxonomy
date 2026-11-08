@@ -1,10 +1,11 @@
-## [0.2.20] — 2026-11-08 — Chequeo unificado de plugins instalados (#2361)
+## [0.2.20] — 2026-11-08 — Autocheck independiente de funcionalidades y código (#2361)
 
-- Nueva pestaña «Familia TaxoCommerce» para inspeccionar todos los plugins TaxoCommerce realmente instalados, activos o inactivos, sin dependencia de Core ni acceso al monolito.
-- Cinco niveles de limitación de CPU (lotes de 1 a 4 plugins y pausas de 800 a 5000 ms), ejecución por solicitudes independientes, detener y reanudar y exportación JSON por usuario y sitio.
-- Tres columnas de evidencias: inspección local acotada de archivos y cabeceras; estado del Plugin Check oficial (siempre «No ejecutado» hasta lanzarlo en su herramienta); y comprobación no intrusiva de carga WordPress. Se reutilizan únicamente los Autotest de solo lectura previamente revisados de Scrappers y System Check; otros Autotest permanecen no ejecutados.
-- Solo lecturas sobre plugins instalados; no ejecuta PHP Lint por shell, no llama a GitHub, no activa/desactiva plugins ni modifica WooCommerce.
-- Incluidas pruebas PHP de inventario, exclusión del monolito, resultados no ejecutados, lotes y pausa; la prueba profunda del Plugin Check oficial continúa en CI.
+- Dos subpestañas en Autocheck: «Functionality Check» conserva el autocheck existente; «Code Check» inspecciona únicamente los archivos PHP del plugin System Check.
+- Code Check ejecuta tres análisis propios: parser de sintaxis PHP con TOKEN_PARSE, convenciones básicas de WordPress y búsqueda de funciones PHP de riesgo sin ejecutar ningún fragmento inspeccionado.
+- No necesita ni instala PCP, WP-CLI, GitHub ni ningún otro plugin de chequeo. No se afirma equivalencia con las pruebas completas de WordPress.org.
+- Cinco velocidades de CPU con lotes de 1 a 4 archivos, detener/reanudar, resultados separados y descarga JSON privada por usuario/sitio.
+- Controles avanzados de seguridad (nonces, sanitización, escape y vulnerabilidades de dependencias) aparecen como no verificados, nunca como superados.
+- Cambios limitados a System Check y a su CI. Sin cambios en los plugins antiguos o en el resto de la familia.
 
 ## [Unreleased] — Internacionalización de la interfaz de System Check (#2062)
 

@@ -130,7 +130,7 @@ unset( $_GET['tcs_run'], $_GET['_wpnonce'] );
 ob_start();
 TaxoCommerce_System_Check_Auto_Test::render();
 $initial = ob_get_clean();
-tcs_smoke_expect( strpos( $initial, 'Ejecutar Autocheck' ) !== false && $GLOBALS['tcs_nonce_calls'] === 0, 'Opening tab must not run self-test.' );
+tcs_smoke_expect( strpos( $initial, 'Run Functionality Check' ) !== false && $GLOBALS['tcs_nonce_calls'] === 0, 'Opening tab must not run self-test.' );
 tcs_smoke_expect( strpos( $initial, 'taxocommerce_system_check_autocheck_json' ) === false, 'No JSON download must appear before the first execution.' );
 $_GET['tcs_run'] = '1';
 $_GET['_wpnonce'] = 'test';

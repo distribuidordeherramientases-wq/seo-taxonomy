@@ -334,13 +334,30 @@ final class TaxoCommerce_System_Check_Auto_Test {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
         }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only subtab selection.
+        $subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
+        $code_selected = 'code' === $subtab;
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autocheck sections', 'taxocommerce-system-check' ) . '">';
+        echo '<a class="nav-tab' . ( $code_selected ? '' : ' nav-tab-active' ) . '" href="'
+            . esc_url( taxocommerce_system_check_tab_url( 'auto-test' ) ) . '">'
+            . esc_html__( 'Functionality Check', 'taxocommerce-system-check' ) . '</a>';
+        echo '<a class="nav-tab' . ( $code_selected ? ' nav-tab-active' : '' ) . '" href="'
+            . esc_url( taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_subtab' => 'code' ) ) ) . '">'
+            . esc_html__( 'Code Check', 'taxocommerce-system-check' ) . '</a>';
+        echo '</nav>';
+        if ( $code_selected ) {
+            TaxoCommerce_System_Check_Code_Check::render();
+            return;
+        }
+
         $url = wp_nonce_url(
             taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_run' => '1' ) ),
             'tcs_auto_test_run'
         );
-        echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Autocheck · System Check', 'taxocommerce-system-check' ) . '</h2>';
+        echo '<section class="wrap tcs-auto-test">' . '<h2>' . esc_html__( 'Functionality Check · System Check', 'taxocommerce-system-check' ) . '</h2>';
         echo '<p>' . esc_html__( 'Comprueba las rutas, servicios y contratos del propio plugin. Es una ejecución local, de solo lectura y sin sondas HTTP, escrituras ni correos.', 'taxocommerce-system-check' ) . '</p>';
-        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">Ejecutar Autocheck</a></p>';
+        echo '<p><a class="button button-primary" href="' . esc_url( $url ) . '">' . esc_html__( 'Run Functionality Check', 'taxocommerce-system-check' ) . '</a></p>';
         $latest_report = self::latest_report();
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only selection; the nonce is verified before running any checks.
         $requested = isset( $_GET['tcs_run'] ) && is_scalar( $_GET['tcs_run'] )

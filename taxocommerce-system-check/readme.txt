@@ -17,7 +17,7 @@ TaxoCommerce System Check provides a standalone administration entry for diagnos
 * WordPress, PHP and hosting/system status screens.
 * Processes tab: read and cancel eligible application jobs from Action Scheduler/WP-Cron, with optional cooperative controls for installed workers. Does not kill operating-system or running PHP processes.
 * Plugin validation and local PHP checks.
-* Family-wide checks tab: inventory installed TaxoCommerce plugins (including inactive ones), inspect bounded local entrypoint metadata, identify the runtime-loaded entrypoint and reviewed read-only Autotests (System Check and Scrappers), and open the official WordPress Plugin Check tool. Runs in bounded batches at five CPU speeds with pause/resume and private JSON export. An official Plugin Check result and each plugin's self-test are never reported as passed unless actually executed.
+* Autocheck contains two independent sections: Functionality Check (existing read-only service tests) and Code Check (PHP native syntax parse, selected WordPress structure conventions, and high-risk function patterns) for System Check's own PHP source only. Code Check runs with five bounded CPU speeds, stop/resume, and private JSON download; it requires no other checker plugin, WP-CLI, GitHub or process-execution functions. Some security and publication rules require a separate manual review or official WordPress.org assessment.
 * Optional HTTP URL audit of site content, when started explicitly by an administrator.
 * On-demand diagnostic reports and optional administrator-configured notification emails.
 * Dedicated bounded processing for longer URL checks. Neither external GitHub runners nor artificial traffic generation are necessary.
@@ -39,8 +39,9 @@ System diagnostics can include server configuration, URLs and error details. Tre
 == Changelog ==
 
 = 0.2.20 =
-* Add an independent family-wide diagnostic tab with five CPU pacing levels, start/stop/resume, per-plugin results and user-scoped JSON.
-* Do not execute external services, WP-CLI or Plugin Check internals; distinguish local structural/runtime load checks from official checks not executed.
+* Split Autocheck into Functionality Check and Code Check subtabs, both only for System Check itself.
+* Add three native, read-only code checks (PHP syntax, WordPress conventions, security patterns) without installing or invoking any other checker.
+* Code Check supports five CPU speeds, stop/resume and a user-scoped JSON report. Complex rule coverage remains explicitly unverified.
 
 
 = 0.2.18 =
