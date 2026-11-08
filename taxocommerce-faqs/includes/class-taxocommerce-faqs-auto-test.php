@@ -424,6 +424,7 @@ final class TaxoCommerce_FAQs_Auto_Test {
 	 * Same workflow and labels as the Autocheck tab in other TaxoCommerce plugins.
 	 */
 	public static function render() {
+        if ( \TaxoCommerce_FAQs_Autotest_Code::render_subtabs() ) { return; }
 		if ( ! self::allowed() ) { wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-faqs' ) ); }
 		$before = self::get_saved( 'before' );
 		$last = self::get_saved( 'latest' );

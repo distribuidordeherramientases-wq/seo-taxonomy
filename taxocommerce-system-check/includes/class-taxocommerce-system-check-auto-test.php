@@ -334,6 +334,25 @@ final class TaxoCommerce_System_Check_Auto_Test {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Acceso no autorizado.', 'taxocommerce-system-check' ) );
         }
+        // Both self-checks belong to this ONE Autocheck section.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- GET only selects a visible subtab.
+        $section = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
+        $legacy_tab = isset( $_GET['tcs_tab'] ) && is_scalar( $_GET['tcs_tab'] )
+            ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        $code_selected = 'code' === $section || 'code-check' === $legacy_tab;
+        echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__( 'Autocheck sections', 'taxocommerce-system-check' ) . '">';
+        echo '<a class="nav-tab' . ( $code_selected ? '' : ' nav-tab-active' ) . '" href="'
+            . esc_url( taxocommerce_system_check_tab_url( 'auto-test' ) ) . '">'
+            . esc_html__( 'Functionality Check', 'taxocommerce-system-check' ) . '</a>';
+        echo '<a class="nav-tab' . ( $code_selected ? ' nav-tab-active' : '' ) . '" href="'
+            . esc_url( taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_subtab' => 'code' ) ) ) . '">'
+            . esc_html__( 'Code Check', 'taxocommerce-system-check' ) . '</a></nav>';
+        if ( $code_selected ) {
+            TaxoCommerce_System_Check_Code_Check::render();
+            return;
+        }
         $url = wp_nonce_url(
             taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_run' => '1' ) ),
             'tcs_auto_test_run'

@@ -1,3 +1,6 @@
+## [1.1.29] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
 ## [1.1.29] — 2026-11-08 — WordPress Plugin Check sobre evidencias de consentimiento (#2399)
 
 - Consultas SELECT, UPDATE y exportación CSV de la tabla propia de consentimiento: identificadores con `esc_sql()` y valores mediante `$wpdb->prepare()`; sin SQL derivado del usuario y manteniendo compatibilidad con WordPress 5.8.

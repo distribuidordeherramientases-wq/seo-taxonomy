@@ -16,6 +16,8 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Logistica_Autotest_Code::boot();
 
 
 define( 'TAXOCOMMERCE_LOGISTICA_VERSION', '0.2.11' );

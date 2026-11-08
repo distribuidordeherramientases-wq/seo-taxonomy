@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Import_Export_Autotest_Code::boot();
 
 define( 'TAXOCOMMERCE_IMPORT_EXPORT_VERSION', '0.4.20' );
 define( 'TAXOCOMMERCE_IMPORT_EXPORT_FILE', __FILE__ );

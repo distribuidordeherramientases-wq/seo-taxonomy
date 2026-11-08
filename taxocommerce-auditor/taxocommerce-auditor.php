@@ -18,6 +18,8 @@ namespace TaxoCommerce\Auditor;
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Auditor_Autotest_Code::boot();
 
 require_once __DIR__ . '/includes/class-rules.php';
 require_once __DIR__ . '/includes/class-editorial-specialist.php';

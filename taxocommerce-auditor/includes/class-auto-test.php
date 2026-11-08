@@ -260,6 +260,7 @@ final class Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Auditor_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-auditor' ) );
         }

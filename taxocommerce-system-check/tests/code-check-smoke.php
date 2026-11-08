@@ -56,15 +56,15 @@ tcs_code_expect( 2 === $next['cursor'], 'Resume must continue from the prior cur
 $outside = TaxoCommerce_System_Check_Code_Check::check_file( '../../seo-taxonomy/bootstrap.php' );
 tcs_code_expect( 'skip' === $outside['php']['status'], 'Never read outside System Check.' );
 
-// The two checks are separate top-level tabs, not nested inside Autocheck.
+// System Check retains one main Autocheck tab containing two independent subtabs.
 $main_source = file_get_contents( dirname( __DIR__ ) . '/taxocommerce-system-check.php' );
 $auto_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-auto-test.php' );
 $code_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-system-check-code-check.php' );
-tcs_code_expect( false !== strpos( $main_source, "'code-check' => __( 'Code Check', 'taxocommerce-system-check' )" ), 'Code Check must have its own primary tab.' );
-tcs_code_expect( false !== strpos( $main_source, "'code-check' === " . '$tab' ), 'Primary Code Check must render without Autocheck.' );
-tcs_code_expect( false === strpos( $auto_source, 'tcs_subtab' ), 'Autocheck must not include a second nested code navigation.' );
+tcs_code_expect( false === strpos( $main_source, "'code-check' => __( 'Code Check', 'taxocommerce-system-check' )" ), 'Code Check must not have a second primary tab.' );
+tcs_code_expect( false !== strpos( $main_source, "if ( 'code-check' === " . '$tab' ), 'Old Code Check links must resolve to the main Autocheck tab.' );
+tcs_code_expect( false !== strpos( $auto_source, 'tcs_subtab' ) && false !== strpos( $auto_source, 'TaxoCommerce_System_Check_Code_Check::render()' ), 'Autocheck must show its second, independent Code Check subtab.' );
 tcs_code_expect( false !== strpos( $auto_source, "Run Functionality Check" ), 'Existing functionality check must stay intact.' );
-tcs_code_expect( false !== strpos( $code_source, "taxocommerce_system_check_tab_url( 'code-check' )" ), 'Postback must return to primary Code Check tab.' );
+tcs_code_expect( false !== strpos( $code_source, "taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_subtab' => 'code' ) )" ), 'Code Check postback must return to its Autocheck subtab.' );
 
 $counts = TaxoCommerce_System_Check_Code_Check::summary( array(
     'first.php' => array(
@@ -112,6 +112,6 @@ TaxoCommerce_System_Check_Code_Check::render();
 $html = ob_get_clean();
 tcs_code_expect( false !== strpos( $html, 'Run Code Check' ) && false !== strpos( $html, 'includes/sample.php' ), 'Code Check must expose the real scan and files.' );
 tcs_code_expect( false !== strpos( $html, 'ABSPATH guard' ) && false !== strpos( $html, 'exec #23' ), 'Code Check must present actionable evidence in its table.' );
-tcs_code_expect( false !== strpos( $html, 'Download JSON report' ) && false === strpos( $html, 'tcs_subtab' ), 'Code Check must export JSON without old nested navigation.' );
+tcs_code_expect( false !== strpos( $html, 'Download JSON report' ), 'Code Check must export JSON without old nested navigation.' );
 
 echo "TaxoCommerce System Check Code Check: PASS\n";

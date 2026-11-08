@@ -15,6 +15,8 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Insights_Autotest_Code::boot();
 
 define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.29' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );

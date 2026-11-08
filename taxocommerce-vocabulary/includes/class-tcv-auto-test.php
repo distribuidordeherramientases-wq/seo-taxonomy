@@ -256,6 +256,7 @@ final class TCV_Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Vocabulary_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) wp_die( esc_html__( 'No tienes permisos para Autocheck.', 'taxocommerce-vocabulary' ) );
         $history = get_transient( self::PREFIX . get_current_user_id() );
         $current = is_array( $history ) && isset( $history[0]['rows'] ) ? $history[0] : null;

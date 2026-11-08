@@ -1,3 +1,6 @@
+## [0.1.14] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
 ## [Unreleased] — Ampliación del panel de Ingeniero y Ojeador en cinco idiomas (#2062)
 
 - Segunda tanda: 366 traducciones adicionales sobre 74 cadenas de interfaz y paneles (ES 73, EN 74, FR 73, DE 73, NL 73): fuentes, conocimiento, evaluación editorial, aprobación humana, importación/exportación, investigación, Merchant, estados y acciones.

@@ -1,3 +1,8 @@
+## [0.3.10] - 2026-11-08 - Autotest de funcionalidad y codigo (#2401)
+
+- Autotest mantiene sus pruebas funcionales y su JSON; incorpora una subpestana Code Check propia e independiente.
+- PHP, WordPress y seguridad con lotes, 5 limites de CPU, detener/reanudar y exportacion JSON privada. PCP no obligatorio.
+- El analizador procede de una plantilla comun vendorizada y solo lee archivos del propio plugin.
 ## [0.3.10] — 2026-11-08 — Cinco velocidades de auditoría por ámbito (#2405)
 
 - Control de carga propio e independiente en productos, categorías, entradas, páginas y FAQ, con niveles 1–5 por pestaña. No necesita Core, Images ni otros plugins.

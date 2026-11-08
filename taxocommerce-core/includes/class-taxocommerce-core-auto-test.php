@@ -876,6 +876,7 @@ final class TaxoCommerce_Core_Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Core_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-core' ) );
         }

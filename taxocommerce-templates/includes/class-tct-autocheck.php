@@ -113,6 +113,7 @@ final class TCT_Autocheck {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Templates_Autotest_Code::render_subtabs() ) { return; }
         self::guard();
         $report = get_transient( self::key() );
         echo '<section class="wrap"><h2>' . esc_html__( 'Autocheck', 'taxocommerce-templates' ) . '</h2>';

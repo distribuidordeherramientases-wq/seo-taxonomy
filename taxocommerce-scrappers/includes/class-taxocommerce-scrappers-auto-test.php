@@ -134,6 +134,7 @@ final class TaxoCommerce_Scrappers_Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Scrappers_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'No tienes permisos para ejecutar el autotest.', 'taxocommerce-scrappers' ) );
         }

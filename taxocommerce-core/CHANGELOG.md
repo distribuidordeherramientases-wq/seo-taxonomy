@@ -1,3 +1,8 @@
+## [0.4.64] - 2026-11-08 - Autotest en dos subpestanas (#2401)
+
+- Mantiene el Autotest funcional de Core. Incorpora Code Check autonomo (PHP, WordPress, seguridad), por lotes y JSON.
+- Analizador vendorizado sin depender de otros plugins o PCP; diagnostico de solo lectura y permisos verificados.
+
 ## [0.4.63] — 2026-11-08 — Historial plegable de Core (#2382)
 
 - La cabecera del panel principal de Core muestra «Historial de versiones y mejoras» cerrado por defecto y obtenido de su propio `CHANGELOG.md`.

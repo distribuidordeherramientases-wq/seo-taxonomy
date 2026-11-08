@@ -1,3 +1,6 @@
+## [0.4.20] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
 ## [0.4.20] — 2026-11-08 — Corregir interfaz de exportación vacía por catálogos MO incompletos (#2404)
 
 - Regenerados cinco MO válidos excluyendo las traducciones vacías que WordPress mostraba como botones y selectores sin texto.

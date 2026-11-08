@@ -346,6 +346,9 @@ final class TaxoCommerce_Images_Auto_Test {
 		if ( ! self::allowed() ) {
 			wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-images' ) );
 		}
+		if ( TaxoCommerce_Images_Autotest_Code::render_subtabs() ) {
+            return;
+        }
 		$report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
 		$totals = is_array( $report ) && isset( $report['totals'], $report['rows'] ) ? $report['totals'] : null;
 		?>

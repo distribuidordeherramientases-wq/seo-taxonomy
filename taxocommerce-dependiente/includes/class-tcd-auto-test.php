@@ -636,6 +636,7 @@ final class TCD_Auto_Test {
     }
 
 	public static function render() {
+        if ( \TaxoCommerce_Dependiente_Autotest_Code::render_subtabs() ) { return; }
 		if ( ! self::allowed() ) {
 			wp_die( esc_html__( 'No tienes permisos para abrir Autocheck.', 'taxocommerce-dependiente' ) );
 		}

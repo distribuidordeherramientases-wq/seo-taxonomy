@@ -1,3 +1,6 @@
+## [0.2.11] - 2026-11-08 - Autotest funcional y de codigo (#2401)
+
+- Conserva autotest funcional y JSON; nuevo Code Check independiente del propio plugin: PHP, WordPress, seguridad. Cinco velocidades, lotes y JSON separado. Sin PCP ni Core obligatorio.
 ## [0.2.11] — 2026-11-08 — Traducciones de compras a proveedores en Logistics (#2062)
 
 - Incorporadas al POT y a los PO/MO de ES/EN/FR/DE/NL las 23 cadenas de la pestaña Supplier purchases añadida por #2380, que no figuraban en los catálogos de la versión 0.2.10.

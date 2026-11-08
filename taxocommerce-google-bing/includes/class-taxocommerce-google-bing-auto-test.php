@@ -677,6 +677,7 @@ final class TaxoCommerce_Google_Bing_Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Insights_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'No tienes permiso para abrir Autocheck.', 'taxocommerce-google-bing' ) );
         }

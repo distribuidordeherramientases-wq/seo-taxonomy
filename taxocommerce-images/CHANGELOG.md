@@ -1,3 +1,10 @@
+## [0.2.21] — 2026-11-08 — Autotest con funcionalidad y código (#2401)
+
+- Autotest conserva sus pruebas funcionales existentes y añade una segunda subpestaña «Código», que revisa solo Images.
+- Tres análisis propios de solo lectura: PHP, WordPress y seguridad; comprueba sintaxis, estructura, rutas locales literales, símbolos duplicados y riesgos que precisan revisión.
+- Limitación CPU con cinco niveles, detener/reanudar, JSON privado, sin dependencia de Plugin Check, Core u otros plugins TaxoCommerce.
+- Motor independiente vendorizado desde plantilla versionada, para evitar dependencias comerciales y de instalación. Prueba aislada de regresión añadida.
+
 ## [0.2.20] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.
