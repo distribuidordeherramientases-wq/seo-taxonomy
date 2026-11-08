@@ -741,6 +741,7 @@ final class Runner {
                 self::complete( $scope, $state );
                 return;
             }
+            $requested_batch = min( Workload::batch_size( $scope ), null === $remaining ? Workload::batch_size( $scope ) : max( 1, $remaining ) );
             $objects = self::batch( $scope, absint( $state['cursor'] ), (array) ( $state['filters'] ?? array() ), $remaining );
             $batch_started = microtime( true );
             $processed_batch = 0;
@@ -941,10 +942,9 @@ final class Runner {
             self::trim_samples( $state );
             $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );
             $limit_reached = ! $full && absint( $state['processed'] ) >= absint( $state['filters']['rows'] ?? 25 );
-            $speed_batch = Workload::batch_size( $scope );
-            $effective_batch = $full
-                ? $speed_batch
-                : min( $speed_batch, max( 1, absint( $state['filters']['rows'] ?? 25 ) - ( absint( $state['processed'] ) - $processed_batch ) ) );
+            // The threshold is captured at query time, even if another admin
+            // changes speed during the worker request.
+            $effective_batch = $requested_batch;
             // A time-budgeted loop may have fetched more rows than it processed.
             // Do not mark such a run complete or skip category offsets.
             if ( $limit_reached || ( $processed_batch === $fetched_batch && $fetched_batch < $effective_batch ) ) {
