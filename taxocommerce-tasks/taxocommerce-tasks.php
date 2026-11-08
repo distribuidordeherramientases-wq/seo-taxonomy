@@ -1,8 +1,9 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Tasks
+ * Plugin URI: https://asociacionfocazul.com/taxocommerce-tasks/
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.11
+ * Version: 0.1.12
  * Release Date: 2026-11-08
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -14,7 +15,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.11' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.12' );
 define( 'TAXOCOMMERCE_TASKS_RELEASE_DATE', '2026-11-08' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
