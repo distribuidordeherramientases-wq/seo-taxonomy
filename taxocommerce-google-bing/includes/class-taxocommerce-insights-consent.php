@@ -160,9 +160,10 @@ final class TaxoCommerce_Insights_Consent {
 
     /** v1|revision|statistics|marketing|preferences, strictly parsed. */
     public static function choices() {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict grammar and a non-mutating sanitization check below reject every malformed value before use.
+        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict grammar and a non-mutating sanitization check below reject every malformed value before use.
         $raw = isset( $_COOKIE[ self::COOKIE ] ) && is_string( $_COOKIE[ self::COOKIE ] )
             ? rawurldecode( wp_unslash( $_COOKIE[ self::COOKIE ] ) ) : '';
+        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         // Sanitizing a malformed cookie must NEVER turn it into a valid opt-in.
         if ( strlen( $raw ) > 64 || $raw !== sanitize_text_field( $raw )
             || ! preg_match( '/\A1\|([0-9]{1,10})\|([01])\|([01])\|([01])\z/D', $raw, $matches ) ) {
@@ -244,9 +245,10 @@ final class TaxoCommerce_Insights_Consent {
         // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Verified by check_admin_referer above.
 
         $old = self::settings();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nested text values are sanitized individually in the allowlisted language/field loop below.
+        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nested text values are sanitized individually in the allowlisted language/field loop below.
         $raw_texts = isset( $_POST['texts'] ) && is_array( $_POST['texts'] )
             ? wp_unslash( $_POST['texts'] ) : array();
+        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $texts = array();
         foreach ( array_keys( self::languages() ) as $lang ) {
             $texts[ $lang ] = array();
@@ -283,8 +285,10 @@ final class TaxoCommerce_Insights_Consent {
 
     public static function render() {
         $cfg = self::settings();
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only notice from a previous, nonce-protected admin action.
         $notice = isset( $_GET['tci_consent_notice'] )
             ? sanitize_key( wp_unslash( $_GET['tci_consent_notice'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         echo '<div class="card" style="max-width:1200px;padding:20px;margin-top:18px">';
         echo '<h2>' . esc_html__( 'Consentimientos · textos legales y banner', 'taxocommerce-google-bing' ) . '</h2>';
         echo '<p>' . esc_html__( 'Configuración compartida para las etiquetas de Insights y otros módulos. Desactivada hasta revisar los textos legales y la política de cookies. Los proveedores API de servidor no requieren estas cookies.', 'taxocommerce-google-bing' ) . '</p>';
