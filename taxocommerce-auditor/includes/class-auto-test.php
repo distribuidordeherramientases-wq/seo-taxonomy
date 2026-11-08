@@ -76,7 +76,7 @@ final class Auto_Test {
     }
 
     private static function test_runtime() {
-        foreach ( array( 'Plugin', 'Admin', 'Runner', 'Rules', 'Priority', 'Editorial_Specialist', 'Category_Review', 'FAQ_Source', 'Export_Store', 'Decision_Context', 'Manual' ) as $class ) {
+        foreach ( array( 'Plugin', 'Admin', 'Runner', 'Rules', 'Priority', 'Editorial_Specialist', 'Category_Review', 'FAQ_Source', 'Export_Store', 'Decision_Context', 'Workload', 'Manual' ) as $class ) {
             if ( ! class_exists( __NAMESPACE__ . '\\' . $class ) ) {
                 return self::fail( __( 'Falta la clase', 'taxocommerce-auditor' ) . ' ' . $class . '.' );
             }
@@ -161,7 +161,16 @@ final class Auto_Test {
                 return self::fail( __( 'Falta Runner::', 'taxocommerce-auditor' ) . $method . '.' );
             }
         }
-        return Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 100
+        $valid = Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 100;
+        foreach ( array_keys( Runner::scopes() ) as $scope ) {
+            $speed = Workload::speed( $scope );
+            $valid = $valid && $speed >= 1 && $speed <= 5
+                && Workload::batch_size( $scope ) >= 1
+                && Workload::batch_size( $scope ) <= Runner::BATCH_SIZE
+                && Workload::delay_seconds( $scope ) >= 12
+                && Workload::budget_seconds( $scope ) >= 1;
+        }
+        return $valid
             ? self::pass( __( 'Ejecución por lotes y controles disponibles; ningún cron se dispara.', 'taxocommerce-auditor' ) )
             : self::fail( __( 'Tamaño de lote fuera del contrato esperado.', 'taxocommerce-auditor' ) );
     }
@@ -251,6 +260,7 @@ final class Auto_Test {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Auditor_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Sin permisos para Autocheck.', 'taxocommerce-auditor' ) );
         }

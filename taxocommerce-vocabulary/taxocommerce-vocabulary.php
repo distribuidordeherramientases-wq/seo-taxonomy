@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Vocabulary
  * Description: Vocabulario semántico, atributos técnicos, clasificación asistida e importación/exportación para TaxoCommerce.
- * Version: 0.3.13
+ * Version: 0.3.14
  * Release Date: 2026-11-08
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -16,8 +16,10 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Vocabulary_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.13' );
+define( 'TAXOCOMMERCE_VOCABULARY_VERSION', '0.3.14' );
 define( 'TAXOCOMMERCE_VOCABULARY_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_VOCABULARY_URL', plugin_dir_url( __FILE__ ) );
 

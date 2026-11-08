@@ -1,3 +1,7 @@
+= 0.2.11 (2026-11-08) =
+* Translate 23 new Supplier purchases gettext messages in the five supported language catalogs and recompile GNU MO files. Issue #2062.
+* Preserve shipping calculations and independent, optional supplier purchasing UI; include compiled-catalog regression check.
+
 = 0.2.9 (2026-11-08) =
 * Internationalize 98 additional Logistics user-facing PHP interface messages with WordPress gettext in ES/EN/FR/DE/NL and recompile MO catalogs.
 * Keep shipping rate logic and stored data unchanged. Expand compiled-catalog regression checks. Issue #2062.

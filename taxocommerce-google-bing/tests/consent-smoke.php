@@ -128,6 +128,18 @@ $GLOBALS['locale'] = 'xx_XX';
 consent_test( 'es' === TaxoCommerce_Insights_Consent::language(), 'unknown locale fallback wrong' );
 $uninstall = file_get_contents( dirname( __DIR__ ) . '/uninstall.php' );
 consent_test( false !== strpos( $uninstall, "delete_option( 'taxocommerce_insights_consent_settings' )" ), 'uninstall does not remove owned texts' );
+$ledger_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-insights-consent-ledger.php' );
+consent_test(
+    false !== strpos( $ledger_source, 'esc_sql( self::table() )' )
+    && false === strpos( $ledger_source, 'FROM %i' )
+    && false !== strpos( $ledger_source, 'WHERE (%s' )
+    && false !== strpos( $ledger_source, 'UPDATE {$table} SET' ),
+    'ledger must escape its static table identifier and prepare user-supplied filters on WordPress 5.8+'
+);
+consent_test(
+    false === strpos( $ledger_source, 'fclose( $stream )' ),
+    'CSV output should close without a filesystem operation'
+);
 $client = file_get_contents( dirname( __DIR__ ) . '/assets/consent.js' );
 consent_test( false !== strpos( $client, 'window.wp_set_consent' ) &&
     false !== strpos( $client, 'location.reload()' ) &&

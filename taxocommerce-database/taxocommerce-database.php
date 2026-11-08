@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Database
  * Description: Original Clean Database and SEO Data Table migrated into one independent plugin, without Data Layer.
- * Version: 0.4.12
+ * Version: 0.4.13
  * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -15,9 +15,11 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Database_Autotest_Code::boot();
 
 
-define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.12' );
+define( 'TAXOCOMMERCE_DATABASE_VERSION', '0.4.13' );
 define( 'TAXOCOMMERCE_DATABASE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DATABASE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_DATABASE_URL', plugin_dir_url( __FILE__ ) );

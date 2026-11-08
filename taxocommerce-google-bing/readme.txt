@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.27
+Stable tag: 1.1.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,14 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.29 =
+* Escaped plugin-owned consent ledger table identifiers (compatible with WordPress 5.8), prepared all filter values, sanitized consent form inputs and retained uncached legal records. Simplified the streamed CSV response without changing recorded decisions or the schema.
+
+
+= 1.1.28 =
+* Remove plugin-owned editable consent settings and legal text on actual uninstall for each site in multisite, while retaining an independent immutable consent evidence ledger for legal accountability. No removal on deactivation.
+
 
 = 1.1.27 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

@@ -1,3 +1,8 @@
+## [0.1.7] - 2026-11-08 - Autotest: Funcionalidades y Codigo (#2401)
+
+- La pestaña Autotest conserva sus pruebas funcionales y su informe JSON. Nueva subpestana Codigo de solo lectura para este plugin.
+- Tres categorias PHP, WordPress y seguridad, cinco niveles de CPU, pausa/reanudar y descarga JSON independiente. Sin PCP ni Core obligatorio.
+
 ## [0.1.6] — 2026-11-08 — Historial plegable en cabecera (#2382)
 
 - Desplegable cerrado por defecto inmediatamente debajo del título, con el historial propio de `CHANGELOG.md`; sin nueva pestaña ni dependencia de otros plugins.

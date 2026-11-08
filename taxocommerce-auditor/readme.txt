@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.9
+Stable tag: 0.3.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,7 @@ TaxoCommerce Auditor provides independent read-only content reviews across five 
 * Pages and landings: content structure, WordPress-native SEO roles, hierarchy and potentially overlapping pages.
 * FAQs: ownership, questions, answers, target product categories and semantic consistency. The TaxoCommerce FAQs module is optional.
 
-Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits use bounded scheduled batches and may be paused or resumed.
+Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits use bounded scheduled batches and may be paused or resumed. Each of the five scopes independently offers five workload speeds for full and filtered scans, adapting batch sizes, WP-Cron spacing, and request time budgets. These settings control workload throughput, not a server-wide CPU percentage.
 
 Complete audit results are streamed as JSON Lines files in WordPress uploads. Only a bounded sample is kept in WordPress options. Large exports stream the full results instead of loading the catalogue into memory.
 
@@ -53,6 +53,10 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.10 =
+* Independent five-level workload controller for products, categories, posts, pages and FAQs, including full/filtered audits; safe cursor and cron rescheduling.
+
 
 = 0.3.9 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

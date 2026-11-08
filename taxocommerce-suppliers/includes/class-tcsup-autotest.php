@@ -85,6 +85,7 @@ final class TCSUP_Autotest {
 	}
 
 	public static function render() {
+        if ( \TaxoCommerce_Suppliers_Autotest_Code::render_subtabs() ) { return; }
 		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'No tienes permisos para ejecutar el autotest.', 'taxocommerce-suppliers' ) );
 		}

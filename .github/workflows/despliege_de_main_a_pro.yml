@@ -1,4 +1,4 @@
-name: STAGING a PRODUCCION - plugins TaxoCommerce (ZIP REST verificado)
+name: STAGING a PRODUCCION
 
 on:
   workflow_call:

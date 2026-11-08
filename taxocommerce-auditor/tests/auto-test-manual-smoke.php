@@ -83,6 +83,36 @@ verify( strpos( $admin, "'manual' => __( 'Manual', 'taxocommerce-auditor' )" ) !
 verify( strpos( $admin, 'self::render_scope_controls( $selected )' ) !== false, 'Five legacy scope controls unchanged' );
 verify( strpos( $admin, "'categories' === \$scope" ) !== false, 'Category-only report view still available' );
 
+// All five scopes must have independent speeds and preserve existing batches.
+$scopes = array_keys( \TaxoCommerce\Auditor\Runner::scopes() );
+$workload = '\\TaxoCommerce\\Auditor\\Workload';
+foreach ( $scopes as $scope ) {
+    verify( 3 === $workload::speed( $scope ), 'Every scope defaults to normal speed' );
+}
+$size_previous = 0;
+$delay_previous = PHP_INT_MAX;
+foreach ( array( 1, 2, 3, 4, 5 ) as $speed ) {
+    $GLOBALS['tca_options'][ $workload::OPTION ] = array( 'products' => $speed );
+    $size = $workload::batch_size( 'products' );
+    $delay = $workload::delay_seconds( 'products' );
+    verify( $size > $size_previous && $size <= \TaxoCommerce\Auditor\Runner::BATCH_SIZE, 'Increasing speed raises bounded batch size' );
+    verify( $delay < $delay_previous && $delay >= 12, 'Increasing speed lowers cron spacing' );
+    verify( $workload::budget_seconds( 'products' ) >= 1, 'Request budget remains bounded' );
+    verify( 3 === $workload::speed( 'pages' ), 'Changing products never changes pages' );
+    $size_previous = $size;
+    $delay_previous = $delay;
+}
+verify( ! $workload::set_speed( 'products', array( 5 ) ), 'Array input rejected' );
+verify( ! $workload::set_speed( 'products', '6' ), 'Speed outside range rejected' );
+verify( ! $workload::set_speed( 'unknown', '3' ), 'Unknown scope rejected' );
+verify( $workload::set_speed( 'products', '2' ), 'Valid speed saved through the protected entry point' );
+verify( 3 === $workload::speed( 'pages' ), 'Independent scope keeps its saved speed' );
+$runner_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-runner.php' );
+verify( strpos( $runner_source, '$processed_batch' ) !== false, 'Category offset tracks only processed objects under time budgets' );
+verify( strpos( $runner_source, '$requested_batch' ) !== false, 'Completion compares the batch limit captured before fetching' );
+verify( strpos( $admin, "wp_nonce_field( 'taxocommerce_auditor_action_' . \$scope )" ) !== false, 'Workload uses existing scope-specific nonce' );
+verify( strpos( $admin, 'Workload::set_speed( $scope, $raw_speed )' ) !== false, 'Workload update routes through validated controls' );
+
 echo "Auditor Auto Test and Manual offline smoke passed.\n";
 
 require __DIR__ . '/i18n-catalog-smoke.php';

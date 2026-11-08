@@ -517,6 +517,7 @@ final class TaxoCommerce_Import_Export_Auto_Test {
     private static function check_real_queue() { return self::skip( 'No se inicia la cola. Comprobar reanudación real y cron en staging.' ); }
 
     public static function render() {
+        if ( \TaxoCommerce_Import_Export_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) {
             wp_die( esc_html__( 'Sin permisos para consultar Autocheck.', 'taxocommerce-import-export' ) );
         }

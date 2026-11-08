@@ -138,6 +138,7 @@ final class TaxoCommerce_Billing_Autotest {
     }
 
     public static function render() {
+        if ( \TaxoCommerce_Facturacion_Autotest_Code::render_subtabs() ) { return; }
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'Sin permisos para el Autocheck.', 'taxocommerce-facturacion' ) );
         }

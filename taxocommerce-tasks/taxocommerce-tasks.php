@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce Tasks
  * Description: Private, standalone WordPress task agenda with calendar and dashboard.
- * Version: 0.1.9
+ * Version: 0.1.10
  * Release Date: 2026-11-08
  * Requires at least: 6.7
  * Requires PHP: 7.4
@@ -14,13 +14,15 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.9' );
+define( 'TAXOCOMMERCE_TASKS_VERSION', '0.1.10' );
 define( 'TAXOCOMMERCE_TASKS_RELEASE_DATE', '2026-11-08' );
 
 require_once __DIR__ . '/includes/class-tctasks-manuals.php';
 require_once __DIR__ . '/includes/class-tctasks-calendar.php';
 // Standalone family-wide visual header; no dependency on TaxoCommerce Core.
 require_once __DIR__ . '/includes/admin-branding.php';
+require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
+\TaxoCommerce_Tasks_Autotest_Code::boot();
 add_action( 'admin_enqueue_scripts', array( 'TCTasks_Calendar', 'enqueue_assets' ) );
 
 /** Translate admin labels using WordPress gettext; native language packs override the defaults. */
@@ -762,6 +764,7 @@ function tctasks_autocheck_download() {
 }
 add_action('admin_post_tctasks_autocheck_download','tctasks_autocheck_download');
 function tctasks_view_autocheck() {
+    if ( \TaxoCommerce_Tasks_Autotest_Code::render_subtabs() ) { return; }
     $report=get_option('tctasks_autocheck_last');
     echo '<h2>' . esc_html(tctasks_label('Autocheck')) . '</h2>';
     echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="tctasks_autocheck_run">';
