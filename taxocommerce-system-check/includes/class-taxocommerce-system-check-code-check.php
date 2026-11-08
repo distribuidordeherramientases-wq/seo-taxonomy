@@ -289,8 +289,26 @@ final class TaxoCommerce_System_Check_Code_Check {
         if ( is_array( $state ) ) {
             set_transient( self::state_key(), $state, self::TTL );
         }
-        wp_safe_redirect( taxocommerce_system_check_tab_url( 'auto-test', array( 'tcs_subtab' => 'code' ) ) );
+        wp_safe_redirect( taxocommerce_system_check_tab_url( 'code-check' ) );
         exit;
+    }
+
+    /** Count actual inspected results; skipped and review are never counted as passed. */
+    public static function summary( $results ) {
+        $counts = array();
+        foreach ( array( 'php', 'wordpress', 'security' ) as $category ) {
+            $counts[ $category ] = array( 'pass' => 0, 'fail' => 0, 'warning' => 0, 'skip' => 0 );
+        }
+        foreach ( $results as $result ) {
+            foreach ( $counts as $category => $statuses ) {
+                $status = isset( $result[ $category ]['status'] ) ? $result[ $category ]['status'] : 'skip';
+                if ( ! isset( $counts[ $category ][ $status ] ) ) {
+                    $status = 'skip';
+                }
+                ++$counts[ $category ][ $status ];
+            }
+        }
+        return $counts;
     }
 
     private static function status( $item ) {
@@ -356,6 +374,22 @@ final class TaxoCommerce_System_Check_Code_Check {
                 submit_button( __( 'Download JSON report', 'taxocommerce-system-check' ), 'secondary', 'submit', false );
                 echo '</form>';
             }
+            if ( $state['results'] ) {
+                $summary = self::summary( $state['results'] );
+                echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'taxocommerce-system-check' ) . '</th><th>'
+                    . esc_html__( 'Passed', 'taxocommerce-system-check' ) . '</th><th>'
+                    . esc_html__( 'Failed', 'taxocommerce-system-check' ) . '</th><th>'
+                    . esc_html__( 'Review', 'taxocommerce-system-check' ) . '</th><th>'
+                    . esc_html__( 'Not checked', 'taxocommerce-system-check' ) . '</th></tr></thead><tbody>';
+                foreach ( array( 'php' => 'PHP', 'wordpress' => 'WordPress', 'security' => 'Security' ) as $category => $label ) {
+                    echo '<tr><th scope="row">' . esc_html( $label ) . '</th>';
+                    foreach ( array( 'pass', 'fail', 'warning', 'skip' ) as $status ) {
+                        echo '<td>' . esc_html( (string) $summary[ $category ][ $status ] ) . '</td>';
+                    }
+                    echo '</tr>';
+                }
+                echo '</tbody></table>';
+            }
             echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'taxocommerce-system-check' ) . '</th><th>'
                 . esc_html__( 'PHP', 'taxocommerce-system-check' ) . '</th><th>'
                 . esc_html__( 'WordPress', 'taxocommerce-system-check' ) . '</th><th>'
@@ -367,6 +401,24 @@ final class TaxoCommerce_System_Check_Code_Check {
                     echo '<td><strong>' . esc_html( self::status( $item ) ) . '</strong>';
                     if ( is_array( $item ) ) {
                         echo '<p>' . esc_html( $item['message'] ) . '</p>';
+                        // Surface actionable evidence; retain complete detail in the JSON report.
+                        if ( 'php' === $category && ! empty( $item['evidence']['line'] ) ) {
+                            echo '<p>#' . esc_html( (string) absint( $item['evidence']['line'] ) ) . '</p>';
+                        }
+                        if ( 'wordpress' === $category && ! empty( $item['evidence']['missing'] ) ) {
+                            echo '<ul>';
+                            foreach ( array_slice( $item['evidence']['missing'], 0, 10 ) as $missing ) {
+                                echo '<li>' . esc_html( $missing ) . '</li>';
+                            }
+                            echo '</ul>';
+                        }
+                        if ( 'security' === $category && ! empty( $item['evidence']['calls'] ) ) {
+                            echo '<ul>';
+                            foreach ( array_slice( $item['evidence']['calls'], 0, 10 ) as $call ) {
+                                echo '<li>' . esc_html( (string) $call['function'] . ' #' . absint( $call['line'] ) ) . '</li>';
+                            }
+                            echo '</ul>';
+                        }
                     }
                     echo '</td>';
                 }

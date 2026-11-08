@@ -1,3 +1,11 @@
+## [0.2.22] — 2026-11-08 — Separar Autocheck funcional y Chequeo del código (#2372)
+
+- Se mantienen los chequeos funcionales existentes de Autocheck, sin subpestañas. Chequeo del código pasa a pestaña principal independiente, junto a Sistema, Plugin Validation, HTTP y Procesos.
+- Los enlaces antiguos `tcs_subtab=code` siguen funcionando y las acciones del proceso vuelven a la pestaña nueva.
+- La pestaña de código muestra los resultados reales del motor autónomo por archivo (PHP, estructura WordPress y patrones de seguridad), con conteos por estado, archivos y líneas de hallazgos.
+- Se conservan velocidades, pausa/reanudación, permisos, nonce, informes JSON y alcance exclusivo del propio plugin; no requiere Plugin Check ni otros plugins.
+- Las reglas no ejecutadas y el chequeo oficial de WordPress.org siguen identificados como no verificados. Sin cambios en datos ni despliegue a producción.
+
 ## [0.2.21] — 2026-11-08 — Corregir avisos PCP y facilitar despliegue en Focazul (#2361)
 
 - Elimina la lectura duplicada de parámetros GET en el registro de recursos de Autocheck. Limita la excepción PHPCS de nonce a la selección de pestañas de solo lectura.

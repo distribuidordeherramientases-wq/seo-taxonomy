@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TaxoCommerce System Check
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.21
+ * Version: 0.2.22
  * Release Date: 2026-11-08
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.21' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.22' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -161,14 +161,23 @@ function taxocommerce_system_check_tab_url( $tab, $args = array() ) {
 }
 
 function taxocommerce_system_check_active_tab() {
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
-    $tab = isset( $_GET['tcs_tab'] ) ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
-    return in_array( $tab, array( 'system', 'plugin', 'http', 'processes', 'auto-test', 'manual' ), true ) ? $tab : 'system';
+    // GET affects navigation only; all state-changing actions verify nonces separately.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Both selectors are read-only.
+    $tab = isset( $_GET['tcs_tab'] ) && is_scalar( $_GET['tcs_tab'] )
+        ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : 'system';
+    // Preserve links published by v0.2.20/0.2.21 without keeping a second code checker.
+    $legacy_subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
+        ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+    if ( 'auto-test' === $tab && 'code' === $legacy_subtab ) {
+        return 'code-check';
+    }
+    return in_array( $tab, array( 'system', 'plugin', 'http', 'processes', 'auto-test', 'code-check', 'manual' ), true ) ? $tab : 'system';
 }
 
 function taxocommerce_system_check_render_tabs( $active ) {
     echo '<nav class="nav-tab-wrapper" aria-label="Chequeos de System Check">';
-    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
+    foreach ( array( 'system' => 'Sistema', 'plugin' => 'Plugin Validation', 'http' => 'HTTP', 'processes' => __( 'Procesos', 'taxocommerce-system-check' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-system-check' ), 'code-check' => __( 'Code Check', 'taxocommerce-system-check' ), 'manual' => 'Manual' ) as $tab => $label ) {
         echo '<a class="nav-tab' . ( $active === $tab ? ' nav-tab-active' : '' ) . '" href="'
             . esc_url( taxocommerce_system_check_tab_url( $tab ) ) . '">'
             . esc_html( $label ) . '</a>';
@@ -218,13 +227,11 @@ function taxocommerce_system_check_body_class( $classes ) {
 function taxocommerce_system_check_enqueue_assets() {
     // Read-only admin tab selectors affect only which local assets are loaded.
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- GET is used solely to select admin assets, not to change data.
-    $subtab = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
-        ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
     $page = isset( $_GET['page'] ) && is_scalar( $_GET['page'] )
         ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
-    if ( 'code' === $subtab && 'taxocommerce-system-check' === $page
-        && 'auto-test' === taxocommerce_system_check_active_tab() ) {
+    if ( 'taxocommerce-system-check' === $page
+        && 'code-check' === taxocommerce_system_check_active_tab() ) {
         wp_enqueue_script(
             'taxocommerce-system-check-code-check',
             TAXOCOMMERCE_SYSTEM_CHECK_URL . 'assets/code-check.js',
@@ -304,6 +311,8 @@ function taxocommerce_system_check_home() {
         TaxoCommerce_System_Check_Processes::render();
     } elseif ( 'auto-test' === $tab ) {
         TaxoCommerce_System_Check_Auto_Test::render();
+    } elseif ( 'code-check' === $tab ) {
+        TaxoCommerce_System_Check_Code_Check::render();
     } elseif ( 'manual' === $tab ) {
         TaxoCommerce_System_Check_User_Guide::render();
     } else {
