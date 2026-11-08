@@ -94,6 +94,9 @@ jobs:
           php taxocommerce-tasks/tests/calendar-duration-smoke.php
           php taxocommerce-system-check/tests/processes-smoke.php
           php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-check.php
+          php -l taxocommerce-system-check/includes/class-taxocommerce-system-check-code-rules.php
+          php -l taxocommerce-system-check/tests/code-check-deep-smoke.php
+          php taxocommerce-system-check/tests/code-check-deep-smoke.php
           php -l taxocommerce-system-check/tests/code-check-smoke.php
           php taxocommerce-system-check/tests/code-check-smoke.php
           node --check taxocommerce-system-check/assets/code-check.js
