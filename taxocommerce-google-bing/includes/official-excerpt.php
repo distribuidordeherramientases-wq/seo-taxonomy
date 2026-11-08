@@ -35,7 +35,7 @@ return new class() {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
         $submitted = isset( $_POST['tc_official_url'] ) && is_string( $_POST['tc_official_url'] )
-            ? trim( wp_unslash( $_POST['tc_official_url'] ) ) : '';
+            ? trim( sanitize_text_field( wp_unslash( $_POST['tc_official_url'] ) ) ) : '';
         $url = $submitted ? esc_url_raw( $submitted, array( 'https' ) ) : '';
         $parts = $url ? wp_parse_url( $url ) : array();
         if ( $submitted && ( ! is_array( $parts )
