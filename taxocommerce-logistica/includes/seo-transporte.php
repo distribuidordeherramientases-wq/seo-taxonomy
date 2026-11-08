@@ -568,7 +568,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                 <div class="seo-transport-title-row">
                     <div>
                         <h2>Pedidos: peso y coste de envío</h2>
-                        <p>Vista operativa de los pedidos activos. No contiene ninguna lógica de proveedor o compra: esa relación se gestiona ahora en TaxoCommerce Suppliers → Purchasing.</p>
+                        <p><?php esc_html_e( 'Active orders, weights and shipping costs. Use Supplier purchases to identify each sold item and open its supplier purchase page.', 'taxocommerce-logistica' ); ?></p>
                     </div>
                 </div>
 
@@ -587,6 +587,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                                     <th>Método de envío</th>
                                     <th>Coste envío</th>
                                     <th>Impuestos envío</th>
+                                    <th><?php esc_html_e( 'Supplier purchase', 'taxocommerce-logistica' ); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -612,6 +613,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
                                     <td><?php echo esc_html(self::order_shipping_method_label($order)); ?></td>
                                     <td><?php echo wp_kses_post(wc_price($shipping_total)); ?></td>
                                     <td><?php echo wp_kses_post(wc_price($shipping_tax)); ?></td>
+                                    <td><a class="button button-small" href="<?php echo esc_url( add_query_arg( array( 'page' => self::PAGE, 'tc_logistica_tab' => 'purchasing', 'order_id' => $order_id ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'View supplier purchases', 'taxocommerce-logistica' ); ?></a></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
@@ -624,7 +626,7 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
 
         private static function render_tabs($current) {
             echo '<nav class="nav-tab-wrapper" aria-label="Logistics sections">';
-            foreach (array('shipping' => 'Shipping Rules', 'auto-test' => __( 'Autocheck', 'taxocommerce-logistica' ), 'user-guide' => 'Manual') as $tab => $label) {
+            foreach (array('shipping' => __( 'Shipping Rules', 'taxocommerce-logistica' ), 'purchasing' => __( 'Supplier purchases', 'taxocommerce-logistica' ), 'auto-test' => __( 'Autocheck', 'taxocommerce-logistica' ), 'user-guide' => __( 'Manual', 'taxocommerce-logistica' )) as $tab => $label) {
                 $args = array('page' => self::PAGE);
                 if ('shipping' !== $tab) { $args['tc_logistica_tab'] = $tab; }
                 $url = add_query_arg($args, admin_url('admin.php'));
@@ -642,11 +644,13 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             $tab = isset($_GET['tc_logistica_tab']) && is_string($_GET['tc_logistica_tab'])
                 ? sanitize_key(wp_unslash($_GET['tc_logistica_tab'])) : 'shipping';
             // phpcs:enable WordPress.Security.NonceVerification.Recommended
-            if ('auto-test' === $tab || 'user-guide' === $tab) {
+            if (in_array($tab, array('auto-test', 'user-guide', 'purchasing'), true)) {
                 echo '<div class="wrap seo-transporte-wrap">' . '<h1>' . esc_html__( 'Logistics — Shipping Weight & Costs', 'taxocommerce-logistica' ) . '</h1>';
                 self::render_tabs($tab);
                 if ('auto-test' === $tab) {
                     TaxoCommerce_Logistica_Auto_Test::render();
+                } elseif ('purchasing' === $tab) {
+                    TaxoCommerce_Logistica_Purchasing::render();
                 } else {
                     TaxoCommerce_Logistica_User_Guide::render();
                 }
