@@ -41,7 +41,7 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         version = header.group(1)
         self.assertIn(f"Stable tag: {version}", README.read_text(encoding="utf-8"))
         self.assertIn(f"define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '{version}' );", self.main)
-        self.assertIn("* Release Date: 2026-11-07", self.main)
+        self.assertIn("* Release Date: 2026-11-08", self.main)
 
 
 if __name__ == "__main__":
