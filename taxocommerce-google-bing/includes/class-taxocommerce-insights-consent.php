@@ -120,8 +120,21 @@ final class TaxoCommerce_Insights_Consent {
     }
 
     /** Store initial draft only on first installation; never reset on update. */
-    public static function install() {
-        add_option( self::OPTION, self::defaults(), '', false );
+    public static function install( $network_wide = false ) {
+        if ( $network_wide && is_multisite() ) {
+            $offset = 0;
+            do {
+                $sites = get_sites( array( 'number' => 100, 'offset' => $offset, 'fields' => 'ids' ) );
+                foreach ( $sites as $site_id ) {
+                    switch_to_blog( (int) $site_id );
+                    add_option( self::OPTION, self::defaults(), '', false );
+                    restore_current_blog();
+                }
+                $offset += count( $sites );
+            } while ( count( $sites ) === 100 );
+        } else {
+            add_option( self::OPTION, self::defaults(), '', false );
+        }
     }
 
     public static function settings() {
@@ -141,7 +154,8 @@ final class TaxoCommerce_Insights_Consent {
     public static function language() {
         $locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
         $code = strtolower( substr( (string) $locale, 0, 2 ) );
-        return isset( self::languages()[ $code ] ) ? $code : 'es';
+        $languages = self::languages();
+        return isset( $languages[ $code ] ) ? $code : 'es';
     }
 
     /** v1|revision|statistics|marketing|preferences, strictly parsed. */
@@ -203,6 +217,7 @@ final class TaxoCommerce_Insights_Consent {
         add_filter( 'taxocommerce_insights_head_tracking_allowed', array( __CLASS__, 'tracking_allowed' ), 999, 2 );
         add_filter( 'wp_get_consent_type', array( __CLASS__, 'consent_type' ), 999 );
         add_filter( 'wp_has_consent', array( __CLASS__, 'consent_api' ), 999, 2 );
+        add_action( 'send_headers', array( __CLASS__, 'privacy_cache_headers' ), 1 );
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ), 9 );
         add_action( 'wp_head', array( __CLASS__, 'clarity_consent' ), 95 );
         add_action( 'wp_footer', array( __CLASS__, 'banner' ), 30 );
@@ -310,6 +325,18 @@ final class TaxoCommerce_Insights_Consent {
         echo '<p class="description">' . esc_html__( 'Se guarda en wp_options. No se crea ninguna tabla nueva. Desactivar Insights conserva esta información; desinstalarlo elimina esta opción. Los visitantes guardan su elección en una cookie esencial durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( __( 'Guardar textos y consentimientos', 'taxocommerce-google-bing' ) );
         echo '</form></div>';
+    }
+
+    public static function privacy_cache_headers() {
+        if ( ! self::active() || is_admin() || is_feed() ) {
+            return;
+        }
+        // User-specific PHP head output must never be stored in a shared page
+        // cache and served to a different, non-consenting visitor.
+        if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+            define( 'DONOTCACHEPAGE', true );
+        }
+        nocache_headers();
     }
 
     public static function assets() {
