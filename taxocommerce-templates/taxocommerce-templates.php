@@ -18,7 +18,7 @@ defined('ABSPATH') || exit;
 require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Templates_Autotest_Code::boot();
-define('TCT_VERSION','0.4.25');
+define('TCT_VERSION','0.4.27');
 define('TCT_FILE',__FILE__);
 define('TCT_DIR',plugin_dir_path(__FILE__));
 define('TCT_URL',plugin_dir_url(__FILE__));
