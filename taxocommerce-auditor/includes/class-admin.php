@@ -660,7 +660,7 @@ final class Admin {
         check_admin_referer( 'taxocommerce_auditor_action_' . $scope );
         if ( 'speed' === $task ) {
             $raw_speed = isset( $_POST['speed'] ) && is_scalar( $_POST['speed'] )
-                ? wp_unslash( (string) $_POST['speed'] ) : '';
+                ? sanitize_text_field( wp_unslash( (string) $_POST['speed'] ) ) : '';
             if ( ! Workload::set_speed( $scope, $raw_speed ) ) {
                 wp_die( esc_html__( 'Velocidad no válida.', 'taxocommerce-auditor' ), '', array( 'response' => 400 ) );
             }
