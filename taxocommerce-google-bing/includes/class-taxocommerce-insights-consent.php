@@ -161,7 +161,7 @@ final class TaxoCommerce_Insights_Consent {
     /** v1|revision|statistics|marketing|preferences, strictly parsed. */
     public static function choices() {
         $raw = isset( $_COOKIE[ self::COOKIE ] ) && is_string( $_COOKIE[ self::COOKIE ] )
-            ? rawurldecode( wp_unslash( $_COOKIE[ self::COOKIE ] ) ) : '';
+            ? sanitize_text_field( rawurldecode( wp_unslash( $_COOKIE[ self::COOKIE ] ) ) ) : '';
         if ( ! preg_match( '/\A1\|([0-9]{1,10})\|([01])\|([01])\|([01])\z/D', $raw, $matches ) ) {
             return null;
         }
@@ -238,8 +238,10 @@ final class TaxoCommerce_Insights_Consent {
             wp_die( esc_html__( 'Permisos insuficientes.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( self::NONCE );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended -- Verified by check_admin_referer above.
 
         $old = self::settings();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nested text values are sanitized individually in the allowlisted language/field loop below.
         $raw_texts = isset( $_POST['texts'] ) && is_array( $_POST['texts'] )
             ? wp_unslash( $_POST['texts'] ) : array();
         $texts = array();
@@ -271,6 +273,7 @@ final class TaxoCommerce_Insights_Consent {
             'revision' => max( 1, (int) $old['revision'] + 1 ),
         );
         update_option( self::OPTION, $next, false );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.NonceVerification.Recommended
         wp_safe_redirect( self::url( 'saved' ) );
         exit;
     }
@@ -336,6 +339,7 @@ final class TaxoCommerce_Insights_Consent {
         // User-specific PHP head output must never be stored in a shared page
         // cache and served to a different, non-consenting visitor.
         if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- DONOTCACHEPAGE is WordPress' standard page-cache suppression constant.
             define( 'DONOTCACHEPAGE', true );
         }
         nocache_headers();
