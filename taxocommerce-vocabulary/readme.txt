@@ -4,13 +4,16 @@ Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.14
+Stable tag: 0.3.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Canonical semantic vocabulary, product characteristics and assisted classification for WooCommerce.
 
 == Description ==
+
+* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+
 
 TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
 
@@ -89,3 +92,7 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 * Standalone Vocabulary 0.3.x centralised semantic labels and catalogue relation administration with controlled import/export and integrity checks.
 * Later standalone fixes tightened CSV upload limits and SQL identifier preparation, and resolved WordPress.org Plugin Check issues without inventing or recreating the historical taxonomy data.
 * Vocabulary, Core and Assistant retain separate responsibilities: semantic terms, shared family administration and learning/search respectively.
+
+== External Services ==
+
+Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.
