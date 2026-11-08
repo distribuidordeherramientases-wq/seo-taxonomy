@@ -13,6 +13,7 @@ $GLOBALS['tcs_family_mutations'] = 0;
 function __( $text, $domain = '' ) { return $text; }
 function sanitize_text_field( $text ) { return (string) $text; }
 function sanitize_key( $text ) { return strtolower( (string) $text ); }
+function absint( $value ) { return abs( (int) $value ); }
 function wp_normalize_path( $text ) { return str_replace( '\\', '/', $text ); }
 function is_plugin_active( $entry ) { return false; }
 function get_plugins() {
