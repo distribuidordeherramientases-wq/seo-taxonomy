@@ -99,6 +99,8 @@ jobs:
           php -l .github/tests/legacy-loaders-smoke.php
           php .github/tests/legacy-loaders-smoke.php
           for entry in bootstrap.php seo-marketing.php includes/header.php includes/dependiente/clonador/clonador-bootstrap.php; do php -l "$entry"; done
+          php -l taxocommerce-dependiente/tests/i18n-catalog-smoke.php
+          php taxocommerce-dependiente/tests/i18n-catalog-smoke.php
           php -l .github/tests/i18n-19-locale-smoke.php
           php .github/tests/i18n-19-locale-smoke.php
           python3 .github/scripts/sync_family_admin_branding.py --check
@@ -128,8 +130,6 @@ jobs:
           php -l taxocommerce-system-check/tests/code-check-smoke.php
           php taxocommerce-system-check/tests/code-check-smoke.php
           node --check taxocommerce-system-check/assets/code-check.js
-          php -l taxocommerce-dependiente/tests/i18n-catalog-smoke.php
-          php taxocommerce-dependiente/tests/i18n-catalog-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
           php taxocommerce-dependiente/tests/clean-install-smoke.php
