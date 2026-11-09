@@ -120,6 +120,8 @@ jobs:
         run: |
           set -euo pipefail
           php taxocommerce-google-bing/tests/consent-wpoptions-seed-smoke.php
+          php -l taxocommerce-google-bing/tests/consent-json-import-smoke.php
+          php taxocommerce-google-bing/tests/consent-json-import-smoke.php
           php taxocommerce-google-bing/tests/consent-smoke.php
           php taxocommerce-google-bing/tests/head-tags-smoke.php
           php taxocommerce-google-bing/tests/auto-test-smoke.php

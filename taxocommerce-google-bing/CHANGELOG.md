@@ -1,3 +1,11 @@
+## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
+
+- Botón de exportación del estado actual y descarga independiente de una plantilla JSON con los 65 campos de texto vacíos en ES/EN/FR/DE/NL, más URL de política y valores informativos de estado.
+- Formulario de importación JSON en el mismo apartado, con permisos, nonce, tamaño máximo de 64 KB, estructura estricta y validación HTTPS; se escriben textos y URL en `taxocommerce_insights_consent_settings` de `wp_options` sin accesos externos a MySQL.
+- Valores vacíos de un JSON no borran campos existentes; revisión del consentimiento incrementada solo cuando hay cambios. Historial legal y respaldo previo a la importación.
+- Nunca se activa el banner ni se confirma revisión legal desde JSON; importación bloqueada cuando el banner está activo o la revisión legal ya se ha firmado.
+- Pruebas de regresión para plantilla, validación, idiomas, importación segura y protección de ajustes; workflow de STAGING y Focazul actualizado.
+
 ## [1.1.31] — 2026-11-08 — Precarga segura de los cinco idiomas de Consentimientos en wp_options (#2454)
 
 - Archivo versionado `config/consent-texts-20261108.json` con los 13 campos de cada idioma ES/EN/FR/DE/NL (65 cadenas), incluidos aviso, texto legal, botones y categorías.

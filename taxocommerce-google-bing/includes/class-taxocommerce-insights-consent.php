@@ -298,6 +298,26 @@ final class TaxoCommerce_Insights_Consent {
             echo '<div class="notice notice-success inline"><p>' . esc_html__( 'Configuración guardada. Las decisiones antiguas deberán renovarse.', 'taxocommerce-google-bing' ) . '</p></div>';
         } elseif ( 'review_required' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Antes de activar, revisa el texto legal y añade una URL válida de política de cookies.', 'taxocommerce-google-bing' ) . '</p></div>';
+        } elseif ( 'imported' === $notice ) {
+            echo '<div class="notice notice-success inline"><p>' .
+                esc_html__( 'JSON importado correctamente. Los textos se han guardado en wp_options y ya aparecen en el formulario. El banner continúa desactivado y la revisión legal sigue pendiente.', 'taxocommerce-google-bing' ) .
+                '</p></div>';
+        } elseif ( 'import_unchanged' === $notice ) {
+            echo '<div class="notice notice-info inline"><p>' .
+                esc_html__( 'El JSON es válido, pero no contiene cambios respecto a los valores actuales.', 'taxocommerce-google-bing' ) .
+                '</p></div>';
+        } elseif ( 'import_active' === $notice ) {
+            echo '<div class="notice notice-error inline"><p>' .
+                esc_html__( 'No se puede importar mientras el banner esté activo o los textos consten como revisados. Desactiva el banner y desmarca la revisión legal antes de importar.', 'taxocommerce-google-bing' ) .
+                '</p></div>';
+        } elseif ( 'import_failed' === $notice ) {
+            echo '<div class="notice notice-error inline"><p>' .
+                esc_html__( 'No se pudo escribir la configuración importada en wp_options. Revisa los permisos de la base de datos.', 'taxocommerce-google-bing' ) .
+                '</p></div>';
+        } elseif ( 'import_invalid' === $notice ) {
+            echo '<div class="notice notice-error inline"><p>' .
+                esc_html__( 'JSON no válido: debe ser un archivo .json de hasta 64 KB, con 5 idiomas y los 13 campos de texto de cada idioma. Solo se admite una URL HTTPS.', 'taxocommerce-google-bing' ) .
+                '</p></div>';
         }
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tci_consent_save">';
