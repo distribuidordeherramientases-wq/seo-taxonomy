@@ -92,6 +92,17 @@ verify( strpos( $admin, "'manual' => __( 'Manual', 'taxocommerce-auditor' )" ) !
 verify( strpos( $admin, 'self::render_scope_controls( $selected )' ) !== false, 'Five legacy scope controls unchanged' );
 verify( strpos( $admin, "'categories' === \$scope" ) !== false, 'Category-only report view still available' );
 
+// The five scopes share one UI. They never require a manual next-batch click.
+$controls = explode( 'public static function render()', explode( 'private static function render_scope_controls(', $admin )[1] )[0];
+verify( false === strpos( $controls, "self::action_form( \$scope, 'step'" ), 'No manual next-batch button in any audit scope' );
+verify( false !== strpos( $controls, "self::action_form( \$scope, 'pause'" ), 'Pause remains available to running scopes' );
+verify( false !== strpos( $controls, "self::action_form( \$scope, 'resume'" ), 'Resume remains available to paused scopes' );
+verify( false !== strpos( $controls, "if ( ! in_array( \$status, array( 'queued', 'running', 'paused' ), true ) )" ), 'A running or paused audit cannot offer another start button' );
+verify( false !== strpos( $admin, 'self::enqueue_monitor();' ), 'The footer AJAX worker is enqueued by the admin hook' );
+$render_boot = explode( 'private static function edit_url(', explode( 'public static function render()', $admin )[1] )[0];
+verify( false !== strpos( $render_boot, 'self::enqueue_monitor();' ), 'Audit render re-enqueues the worker for custom Core menu hooks' );
+verify( false !== strpos( $admin, 'private static $monitor_enqueued = false' ), 'The worker cannot be duplicated by two enqueue entry points' );
+
 // All five scopes must have independent speeds and preserve existing batches.
 $scopes = array_keys( \TaxoCommerce\Auditor\Runner::scopes() );
 $workload = '\\TaxoCommerce\\Auditor\\Workload';

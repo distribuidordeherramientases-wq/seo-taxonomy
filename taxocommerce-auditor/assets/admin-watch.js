@@ -4,12 +4,19 @@
 
     var config = window.taxocommerceAuditorWatch;
     var monitor = document.querySelector('[data-tca-live]');
-    if (!config || !monitor || !window.fetch || !window.URLSearchParams) {
+    if (!monitor) {
         return;
     }
-
     var progress = monitor.querySelector('[data-tca-progress]');
     var warning = monitor.querySelector('[data-tca-warning]');
+    if (!progress || !warning) {
+        return;
+    }
+    if (!config || !window.fetch || !window.URLSearchParams) {
+        warning.textContent = config && config.failure ? config.failure : progress.textContent;
+        warning.hidden = false;
+        return;
+    }
     var scope = monitor.getAttribute('data-scope');
     var failures = 0;
     var idleRuns = 0;
@@ -129,9 +136,12 @@
             } else {
                 idleRuns = 0;
             }
-        }).catch(function () {
+        }).catch(function (error) {
             failures += 1;
-            warning.textContent = config.failure;
+            // Keep the exact HTTP failure visible (403, 500, timeout etc.)
+            // instead of silently leaving the user with a stalled counter.
+            var reason = error && typeof error.message === 'string' ? error.message : '';
+            warning.textContent = config.failure + (reason ? ' (' + reason + ')' : '');
             warning.hidden = false;
             // Transport errors back off; the next request can resume safely
             // from the persisted cursor without replaying completed objects.

@@ -1,3 +1,6 @@
+== 0.3.14 ==
+* Remove the manual next-batch button in all audit screens and load the AJAX worker reliably from WordPress custom menus. Automatic batches retain progress, five CPU throughput speeds, pause and resume. Issue #2475.
+
 == 0.3.13 ==
 * Auditoria continua AJAX: procesa el siguiente lote tras cada respuesta, sin esperar al cron de WordPress mientras la pestaña admin permanezca abierta; cinco velocidades, cursor, pausa y JSONL. Issue #2444.
 
