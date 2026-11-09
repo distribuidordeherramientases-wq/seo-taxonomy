@@ -8,6 +8,8 @@ namespace TaxoCommerce\Auditor;
 defined( 'ABSPATH' ) || exit;
 
 final class Admin {
+    private static $monitor_enqueued = false;
+
     public static function register() {
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ), 70 );
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
@@ -26,6 +28,18 @@ final class Admin {
             array(),
             Plugin::VERSION
         );
+        self::enqueue_monitor();
+    }
+
+    /**
+     * Enqueue the footer worker from the admin hook OR the actual Auditor
+     * screen. WordPress custom menu hosts may use a different screen hook.
+     */
+    private static function enqueue_monitor() {
+        if ( self::$monitor_enqueued ) {
+            return;
+        }
+        self::$monitor_enqueued = true;
         wp_enqueue_script(
             'taxocommerce-auditor-watch',
             plugins_url( 'assets/admin-watch.js', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
@@ -203,16 +217,22 @@ final class Admin {
         echo '<p class="description">' . esc_html__( 'Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor.', 'taxocommerce-auditor' ) . '</p>';
         echo '</form>';
 
-        echo '<div class="taxocommerce-auditor-run-modes">';
-        echo '<div class="taxocommerce-auditor-full">' . '<p>' . '<strong>' . esc_html__( 'Auditoría completa', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( '· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.', 'taxocommerce-auditor' ) . '</p>';
-        self::action_form( $scope, 'start_full', $report ? __( 'Repetir auditoría completa', 'taxocommerce-auditor' ) : __( 'Auditar todo', 'taxocommerce-auditor' ), true );
-        echo '</div>';
-        self::filter_form( $scope, $report ? __( 'Repetir filtro', 'taxocommerce-auditor' ) : __( 'Auditar filtro', 'taxocommerce-auditor' ) );
-        echo '</div>';
+        // Do not offer a second start while a scope is already active or
+        // paused: it would reject a valid existing cursor with HTTP 409.
+        if ( ! in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
+            echo '<div class="taxocommerce-auditor-run-modes">';
+            echo '<div class="taxocommerce-auditor-full">' . '<p>' . '<strong>' . esc_html__( 'Auditoría completa', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( '· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.', 'taxocommerce-auditor' ) . '</p>';
+            self::action_form( $scope, 'start_full', $report ? __( 'Repetir auditoría completa', 'taxocommerce-auditor' ) : __( 'Auditar todo', 'taxocommerce-auditor' ), true );
+            echo '</div>';
+            self::filter_form( $scope, $report ? __( 'Repetir filtro', 'taxocommerce-auditor' ) : __( 'Auditar filtro', 'taxocommerce-auditor' ) );
+            echo '</div>';
+        }
 
         if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
+            // Next batch is driven automatically by assets/admin-watch.js.
+            // Keep the previous 'step' handler for API/backwards compatibility,
+            // but remove the manual step button from all five audit screens.
             echo '<div class="taxocommerce-auditor-process-actions">';
-            self::action_form( $scope, 'step', __( 'Procesar siguiente lote', 'taxocommerce-auditor' ) );
             self::action_form( $scope, 'pause', __( 'Pausar', 'taxocommerce-auditor' ) );
             echo '</div>';
         } elseif ( 'paused' === $status ) {
@@ -225,6 +245,10 @@ final class Admin {
 
     public static function render() {
         self::guard();
+        // Reliable fallback when the menu is hosted by another plugin and
+        // admin_enqueue_scripts receives a non-standard page hook. The script
+        // is footer-loaded so registration here remains in time for printing.
+        self::enqueue_monitor();
         $scopes = Runner::scopes();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only scope selection.
@@ -724,6 +748,12 @@ final class Admin {
             }
             Runner::reschedule( $scope );
         } elseif ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
+            $current = Runner::state( $scope );
+            if ( in_array( (string) ( $current['status'] ?? '' ), array( 'queued', 'running', 'paused' ), true ) ) {
+                // Stale tabs must not restart active work or discard progress.
+                wp_safe_redirect( self::scope_link( $scope ) );
+                exit;
+            }
             $filters = Runner::sanitize_filters( $scope, array(
                 'mode'        => 'start_full' === $task ? 'full' : 'filtered',
                 'search'      => isset( $_POST['search'] ) && is_string( $_POST['search'] )
