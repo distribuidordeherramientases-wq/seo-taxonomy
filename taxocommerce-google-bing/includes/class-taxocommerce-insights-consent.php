@@ -353,12 +353,15 @@ final class TaxoCommerce_Insights_Consent {
         }
         $policy_url = isset( $_POST['cookie_policy_url'] ) && is_string( $_POST['cookie_policy_url'] )
             ? esc_url_raw( wp_unslash( $_POST['cookie_policy_url'] ) ) : '';
+        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Array is immediately unslashed and each validated slug is sanitized below.
+        $posted_pages = isset( $_POST['cookie_policy_pages'] ) && is_array( $_POST['cookie_policy_pages'] )
+            ? wp_unslash( $_POST['cookie_policy_pages'] ) : array();
+        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         $pages = array();
         foreach ( self::policy_page_defaults() as $market => $default_slug ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The value is immediately checked as a scalar and passed to sanitize_title().
-            $raw_slug = $_POST['cookie_policy_pages'][ $market ] ?? $default_slug;
+            $raw_slug = $posted_pages[ $market ] ?? $default_slug;
             $pages[ $market ] = is_string( $raw_slug )
-                ? sanitize_title( wp_unslash( $raw_slug ) ) : $default_slug;
+                ? sanitize_title( $raw_slug ) : $default_slug;
         }
         $reviewed = ! empty( $_POST['legal_reviewed'] ) ? 1 : 0;
         $enabled = ! empty( $_POST['enabled'] ) ? 1 : 0;
