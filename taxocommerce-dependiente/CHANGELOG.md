@@ -1,3 +1,10 @@
+## [0.3.35] — 2026-11-09 — Primera ampliación i18n del panel Dependiente (#2062)
+
+- Traducidas 87 cadenas visibles de administración a inglés, francés, alemán y neerlandés; también se completan las entradas en castellano que estaban vacías. Total: 434 entradas gettext nuevas frente al estado de la rama base, correspondientes a aprendizaje L1–L10, M11/M12, autotest, diagnósticos y copia de seguridad.
+- Se normalizan al castellano las etiquetas heredadas «Sales Assistant» y «Auto Test», además de la descripción del plugin. No se modifican msgid, text domain, contratos ni lógica funcional.
+- Cinco archivos MO recompilados desde los PO con lectura binaria inversa y verificación de correspondencia con POT y de marcadores printf; nueva prueba CLI i18n integrada en el pipeline de validación.
+- Se conserva `changelog.txt` y se actualiza `readme.txt`. Pendientes otras cadenas del catálogo y una auditoría de literales PHP/JS fuera de gettext; validar la visualización real en WordPress de STAGING y Focazul antes de considerar completada la tarea.
+
 ## [0.3.34] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.

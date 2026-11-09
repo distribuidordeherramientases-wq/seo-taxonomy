@@ -18,7 +18,7 @@ msgstr "TaxoCommerce Assistant"
 msgid ""
 "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic "
 "interpretation, L9 memory, and continuous updates."
-msgstr "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates."
+msgstr "Asistente inteligente para WooCommerce con lecciones L1–L10 auditables, interpretación semántica, memoria L9 y actualizaciones continuas."
 
 #. Author of the plugin
 #: taxocommerce-dependiente.php
@@ -27,11 +27,11 @@ msgstr "David Perez"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "TaxoCommerce Sales Assistant"
-msgstr "TaxoCommerce Sales Assistant"
+msgstr "Asistente de ventas TaxoCommerce"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "Sales Assistant"
-msgstr "Sales Assistant"
+msgstr "Asistente de ventas"
 
 #: includes/class-tcd-admin.php:73
 msgid ""
@@ -451,7 +451,7 @@ msgstr "No tienes permisos para abrir Auto Test."
 
 #: includes/class-tcd-auto-test.php:626 includes/class-tcd-manual.php:236
 msgid "Auto Test"
-msgstr "Auto Test"
+msgstr "Autotest"
 
 #: includes/class-tcd-auto-test.php:627
 msgid ""

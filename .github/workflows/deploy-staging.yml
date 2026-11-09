@@ -128,6 +128,8 @@ jobs:
           php -l taxocommerce-system-check/tests/code-check-smoke.php
           php taxocommerce-system-check/tests/code-check-smoke.php
           node --check taxocommerce-system-check/assets/code-check.js
+          php -l taxocommerce-dependiente/tests/i18n-catalog-smoke.php
+          php taxocommerce-dependiente/tests/i18n-catalog-smoke.php
           php taxocommerce-dependiente/tests/auto-test-smoke.php
           php -l taxocommerce-dependiente/tests/clean-install-smoke.php
           php taxocommerce-dependiente/tests/clean-install-smoke.php
