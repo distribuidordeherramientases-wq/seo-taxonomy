@@ -81,8 +81,12 @@ final class TaxoCommerce_Insights_Consent {
 
     /** A new opt-in cannot be enabled unless all five legal pages are published. */
     public static function policies_ready( $config ) {
+        // A newly restored banner requires all five real, published pages.
+        // The legacy Spanish global URL must not satisfy this activation gate.
+        $local = is_array( $config ) ? $config : array();
+        $local['cookie_policy_url'] = '';
         foreach ( array_keys( self::policy_page_defaults() ) as $market ) {
-            if ( '' === self::policy_url_for_market( $market, $config ) ) {
+            if ( '' === self::policy_url_for_market( $market, $local ) ) {
                 return false;
             }
         }
