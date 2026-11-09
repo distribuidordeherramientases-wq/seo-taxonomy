@@ -1,7 +1,10 @@
-## [1.1.32] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
+## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
 
-- El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
-- Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+- Botón de exportación del estado actual y descarga independiente de una plantilla JSON con los 65 campos de texto vacíos en ES/EN/FR/DE/NL, más URL de política y valores informativos de estado.
+- Formulario de importación JSON en el mismo apartado, con permisos, nonce, tamaño máximo de 64 KB, estructura estricta y validación HTTPS; se escriben textos y URL en `taxocommerce_insights_consent_settings` de `wp_options` sin accesos externos a MySQL.
+- Valores vacíos de un JSON no borran campos existentes; revisión del consentimiento incrementada solo cuando hay cambios. Historial legal y respaldo previo a la importación.
+- Nunca se activa el banner ni se confirma revisión legal desde JSON; importación bloqueada cuando el banner está activo o la revisión legal ya se ha firmado.
+- Pruebas de regresión para plantilla, validación, idiomas, importación segura y protección de ajustes; workflow de STAGING y Focazul actualizado.
 
 ## [1.1.31] — 2026-11-08 — Precarga segura de los cinco idiomas de Consentimientos en wp_options (#2454)
 
@@ -13,6 +16,7 @@
 
 ## [1.1.30] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
+- La URL de la ficha pública `Plugin URI` actúa también como origen predeterminado del excerpt; la instalación puede sustituirla o desactivarla. Conserva las nuevas herramientas de Consentimientos de la versión 1.1.32.
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
 - Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
 
