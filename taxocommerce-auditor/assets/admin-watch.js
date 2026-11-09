@@ -73,6 +73,9 @@
             }
             var data = result.data;
             failures = 0;
+            if (typeof data.nonce === 'string' && data.nonce !== '') {
+                config.nonce = data.nonce;
+            }
 
             var statusLabel = document.querySelector('[data-tca-status-label]');
             var counter = document.querySelector('[data-tca-counter]');
