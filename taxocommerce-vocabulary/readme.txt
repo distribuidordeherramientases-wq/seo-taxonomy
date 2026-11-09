@@ -4,7 +4,7 @@ Tags: woocommerce, taxonomy, attributes, classification, csv
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.16
+Stable tag: 0.3.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,8 @@ Canonical semantic vocabulary, product characteristics and assisted classificati
 
 == Description ==
 
-* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
+
 
 
 TaxoCommerce Vocabulary helps site administrators maintain canonical labels, technical attributes and assignments to WooCommerce content.
@@ -34,6 +35,9 @@ TaxoCommerce Vocabulary helps site administrators maintain canonical labels, tec
 4. Simulate JSON imports, review unresolved objects and then approve intentional changes.
 
 == Changelog ==
+
+= 0.3.17 =
+* Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
 
 = 0.3.13 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

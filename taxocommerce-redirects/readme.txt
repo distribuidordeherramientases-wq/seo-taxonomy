@@ -4,12 +4,14 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.14
+Stable tag: 0.1.15
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
 
 == Description ==
+
+* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
 
 * Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
 
@@ -83,6 +85,9 @@ retired and all native relationships have been verified.
   requires separate authenticated wp-admin or WP-CLI access.
 
 == Changelog ==
+
+= 0.1.15 =
+* Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
 
 = 0.1.11 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

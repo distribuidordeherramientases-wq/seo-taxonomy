@@ -1,3 +1,9 @@
+## [0.3.37] — 2026-11-09 — Ficha oficial del desarrollador y cabecera centrada en tres zonas (#2476)
+
+- La cabecera distribuye identificación a la izquierda, dos desplegables alineados y centrados (extracto oficial a la izquierda e historial local a la derecha), y versión y fecha a la derecha; distribución adaptable a móvil.
+- El enlace oficial se obtiene exclusivamente de Plugin URI, definido por el autor del plugin. Eliminados el formulario de URL y su acción de guardado; los ajustes antiguos de la tienda no pueden sobrescribirlo.
+- El historial se lee del CHANGELOG.md incluido, plegado de inicio. Sin dependencias obligatorias entre plugins ni cambios en productos, pedidos, datos o funcionalidades existentes.
+
 ## [0.3.36] — 2026-11-09 — Ampliación i18n del panel Dependiente (#2062)
 
 - Completadas 87 cadenas de control en ES/EN/FR/DE/NL para aprendizaje L1–L10, M11/M12, autotest, diagnósticos y copia de seguridad.

@@ -1,3 +1,9 @@
+## [1.1.35] — 2026-11-09 — Ficha oficial del desarrollador y cabecera centrada en tres zonas (#2476)
+
+- La cabecera distribuye identificación a la izquierda, dos desplegables alineados y centrados (extracto oficial a la izquierda e historial local a la derecha), y versión y fecha a la derecha; distribución adaptable a móvil.
+- El enlace oficial se obtiene exclusivamente de Plugin URI, definido por el autor del plugin. Eliminados el formulario de URL y su acción de guardado; los ajustes antiguos de la tienda no pueden sobrescribirlo.
+- El historial se lee del CHANGELOG.md incluido, plegado de inicio. Sin dependencias obligatorias entre plugins ni cambios en productos, pedidos, datos o funcionalidades existentes.
+
 ## [1.1.34] — 2026-11-09 — Restaurar diseño blanco y azul de Análisis/Resumen (#2470)
 
 - Evita la colisión del callback legacy `seo_analista_enqueue_report_assets`: Insights emplea el callback y handle CSS propios `taxocommerce_insights_enqueue_analysis_styles` / `taxocommerce-insights-analysis`.

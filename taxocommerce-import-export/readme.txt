@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.23
+Stable tag: 0.4.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,8 @@ Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
 
-* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
+
 
 
 TaxoCommerce Import-Export is an independent member of the TaxoCommerce family.
@@ -53,6 +54,9 @@ A Media export contains:
 The package transports original image files plus title, ALT, caption, description, post_parent and known image relationships.
 
 == Changelog ==
+
+= 0.4.24 =
+* Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
 
 = 0.4.21 =
 * Runtime gettext fallback to source labels if a stale or third-party language pack contains empty strings. ES/EN/FR/DE/NL included, no data changes.

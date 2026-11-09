@@ -4,13 +4,15 @@ Tags: images, media, thumbnails, optimization, webp
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.23
+Stable tag: 0.2.24
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Image management for WordPress and WooCommerce with Media as the canonical source of truth.
 
 == Description ==
+
+* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
 
 * Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
 
@@ -53,6 +55,9 @@ Current functionality includes:
 * The reported CPU percentage is limited to the PHP request; it is not the server-wide CPU utilization.
 
 == Changelog ==
+
+= 0.2.24 =
+* Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
 
 = 0.2.20 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.

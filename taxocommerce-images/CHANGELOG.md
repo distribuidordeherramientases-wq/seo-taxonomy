@@ -1,3 +1,9 @@
+## [0.2.24] — 2026-11-09 — Ficha oficial del desarrollador y cabecera centrada en tres zonas (#2476)
+
+- La cabecera distribuye identificación a la izquierda, dos desplegables alineados y centrados (extracto oficial a la izquierda e historial local a la derecha), y versión y fecha a la derecha; distribución adaptable a móvil.
+- El enlace oficial se obtiene exclusivamente de Plugin URI, definido por el autor del plugin. Eliminados el formulario de URL y su acción de guardado; los ajustes antiguos de la tienda no pueden sobrescribirlo.
+- El historial se lee del CHANGELOG.md incluido, plegado de inicio. Sin dependencias obligatorias entre plugins ni cambios en productos, pedidos, datos o funcionalidades existentes.
+
 ## [0.2.23] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
 
 - Plugin URI identifica la ficha oficial; el desplegable izquierdo consulta su excerpt de forma segura, con caché y opción de personalizar/desactivar.

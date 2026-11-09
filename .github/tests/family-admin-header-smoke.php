@@ -132,6 +132,8 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( false !== strpos( $html, '<summary>Historial de versiones y mejoras</summary>' ), 'Translated history title: ' . $slug );
     tc_test_assert( false === strpos( $html, '<details class="tc-family-history" open' ), 'History must be closed by default: ' . $slug );
     tc_test_assert( 1 === substr_count( $html, '<details class="tc-family-info">' ), 'One official excerpt panel: ' . $slug );
+    tc_test_assert( 1 === substr_count( $html, '<div class="tc-family-panels">' ), 'One centered header controls zone: ' . $slug );
+    tc_test_assert( false === strpos( $html, 'name="tc_official_url"' ), 'The developer-owned link cannot be changed by a shop administrator: ' . $slug );
     tc_test_assert( false !== strpos( $html, 'Dynamic &amp; safe excerpt' ), 'Default official Plugin URI must load dynamic excerpt: ' . $slug );
     tc_test_assert( strpos( $html, '<details class="tc-family-info">' ) < strpos( $html, '<details class="tc-family-history">' ), 'Official excerpt at left of local history: ' . $slug );
     tc_test_assert( false !== strpos( $html, '<summary>Información del plugin</summary>' ), 'Official excerpt translated in Spanish: ' . $slug );
@@ -159,6 +161,7 @@ foreach ( $slugs as $slug ) {
     $styles = reset( $tc_test_styles );
     tc_test_assert( false !== strpos( $styles['css'], '@media(max-width:600px)' ), 'Responsive header on ' . $slug );
     tc_test_assert( false !== strpos( $styles['css'], '.nav-tab-wrapper' ), 'Existing tabs retained on ' . $slug );
+    tc_test_assert( false !== strpos( $styles['css'], 'grid-template-columns:74px minmax(' ), 'Three-zone centered header: ' . $slug );
 }
 // The same standalone header must respect each WordPress administrator locale.
 $_GET['page'] = 'taxocommerce-auditor';
@@ -195,20 +198,25 @@ foreach ( array(
     tc_test_assert( false !== strpos( $markup, '<summary>' . esc_html( $label ) . '</summary>' ), 'History respects site locale: ' . $locale );
 }
 $GLOBALS['tc_test_remote_calls'] = array();
-// A configured official URL loads only the public WordPress excerpt, with cache.
-$GLOBALS['tc_test_options']['tc_official_page_taxocommerce-auditor'] = 'https://example.org/plugins/auditor/';
+// Developer Plugin URI is authoritative, even if an old shop-specific option exists.
+$GLOBALS['tc_test_transients'] = array();
+$GLOBALS['tc_test_remote_calls'] = array();
+$GLOBALS['tc_test_options']['tc_official_page_taxocommerce-auditor'] = 'https://client.example/override/';
 $_GET['page'] = 'taxocommerce-auditor';
 $GLOBALS['tc_test_locale'] = 'es_ES';
+$official = get_file_data( $root . '/taxocommerce-auditor/taxocommerce-auditor.php', array( 'uri' => 'Plugin URI' ) );
 ob_start();
 foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
 $remote_markup = ob_get_clean();
-tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Only a configured URL may trigger one safe WordPress REST request.' );
+tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'The developer page loads through one safe WordPress REST request.' );
 tc_test_assert( false !== strpos( $remote_markup, 'Dynamic &amp; safe excerpt' ), 'Excerpt must be escaped and HTML removed.' );
-tc_test_assert( false !== strpos( $remote_markup, 'https://example.org/plugins/auditor/' ), 'Official page backlink must be visible.' );
+tc_test_assert( false !== strpos( $remote_markup, esc_html( $official['uri'] ) ), 'The developer Plugin URI link is visible.' );
+tc_test_assert( false === strpos( $remote_markup, 'https://client.example' ), 'Legacy shop option cannot override the official Plugin URI.' );
+tc_test_assert( false === strpos( $remote_markup, 'tc_official_url' ), 'No customer-visible official URL edit field.' );
 ob_start();
 foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
 ob_end_clean();
-tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Repeated visits must read from transient cache.' );
+tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Repeated visits read from transient cache.' );
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
@@ -230,6 +238,7 @@ foreach ( array( 'core' ) as $other ) {
 $core_ui = file_get_contents( $root . '/taxocommerce-core/includes/class-taxocommerce-core-dashboard.php' );
 $tasks_ui = file_get_contents( $root . '/taxocommerce-tasks/taxocommerce-tasks.php' );
 tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__metadata' ) && false !== strpos( $core_ui, 'TAXOCOMMERCE_CORE_RELEASE_DATE' ), 'Core hero version and date' );
+tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__panels' ), 'Core presents the developer information and local changelog in a separate centered zone.' );
 tc_test_assert( false !== strpos( $core_ui, '<details class="tcc-hero__history">' ), 'Core has a collapsed history on its own dashboard.' );
 tc_test_assert( false !== strpos( $core_ui, "dirname( __DIR__ ) . '/CHANGELOG.md'" ), 'Core reads its own local changelog.' );
 tc_test_assert( false !== strpos( $core_ui, 'esc_html( $tc_history )' ), 'Core history is HTML-escaped.' );
