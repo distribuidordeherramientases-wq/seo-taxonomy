@@ -378,12 +378,20 @@ if (!class_exists('TaxoCommerce_Logistica_Transporte_Costes')) {
             if ('no_rules' === $status) {
                 self::set_import_notice(
                     'warning',
-                    sprintf( __( 'Configuración importada con %d reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa.', 'taxocommerce-logistica' ), $rule_count )
+                    sprintf(
+                        /* translators: %d: Number of imported shipping rules. */
+                        __( 'Configuración importada con %d reglas. El gestor ha quedado desactivado porque no hay ninguna regla activa.', 'taxocommerce-logistica' ),
+                        $rule_count
+                    )
                 );
             } else {
                 self::set_import_notice(
                     'success',
-                    sprintf( __( 'Configuración de transporte importada correctamente: %d reglas restauradas.', 'taxocommerce-logistica' ), $rule_count )
+                    sprintf(
+                        /* translators: %d: Number of restored shipping rules. */
+                        __( 'Configuración de transporte importada correctamente: %d reglas restauradas.', 'taxocommerce-logistica' ),
+                        $rule_count
+                    )
                 );
             }
 
@@ -1130,6 +1138,7 @@ if (did_action('admin_print_footer_scripts')) {
                 /**
                  * Permite enriquecer o sustituir la tarifa final sin duplicar el motor.
                  */
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Preserve the legacy documented hook for existing WooCommerce integrations.
                 $rate = apply_filters('seo_transporte_shipping_rate', $rate, $rule, $metrics, $region, $package);
                 return $rate instanceof WC_Shipping_Rate ? array($rate_id => $rate) : array();
             }

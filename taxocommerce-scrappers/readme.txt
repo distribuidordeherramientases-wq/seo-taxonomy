@@ -4,7 +4,7 @@ Tags: ecommerce, market-research, pricing, serpapi, scraperapi
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.15
+Stable tag: 0.1.16
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -134,3 +134,7 @@ The administrator supplies and controls all API credentials. Provider usage can 
 == Scheduled tasks and data ownership ==
 
 Deactivation cancels this plugin's scheduled WordPress and Action Scheduler work when not shared with another active installation. Tables, options and store data are preserved.
+
+== Official excerpt ==
+
+The optional admin information panel defaults to this plugin's `Plugin URI`, a public project page. Only its published excerpt is retrieved via safe WordPress REST HTTPS and cached locally. Administrators may override or explicitly clear the URL to disable requests. No network dependency for core functionality.

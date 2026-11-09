@@ -1,6 +1,7 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Insights
+ * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
  * Version: 1.1.32
  * Release Date: 2026-11-08

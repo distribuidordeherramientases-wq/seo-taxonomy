@@ -16,6 +16,7 @@
 
 ## [1.1.30] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
+- La URL de la ficha pública `Plugin URI` actúa también como origen predeterminado del excerpt; la instalación puede sustituirla o desactivarla. Conserva las nuevas herramientas de Consentimientos de la versión 1.1.32.
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
 - Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
 
