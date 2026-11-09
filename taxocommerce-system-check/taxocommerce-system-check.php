@@ -232,12 +232,12 @@ function taxocommerce_system_check_enqueue_assets() {
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     if ( 'taxocommerce-system-check' === $page
         && 'auto-test' === taxocommerce_system_check_active_tab() ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation-only subtab.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab selectors; mutations require independent nonce checks.
         $section = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Legacy navigation-only tab.
         $legacy_tab = isset( $_GET['tcs_tab'] ) && is_scalar( $_GET['tcs_tab'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'code' === $section || 'code-check' === $legacy_tab ) {
         wp_enqueue_script(
             'taxocommerce-system-check-code-check',
