@@ -892,20 +892,7 @@ final class TaxoCommerce_Core_Auto_Test {
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
                 <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
-            </nav>
-            <style>
-            #tc-core-autotest .tc-at-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}
-            #tc-core-autotest .tc-at-summary{display:flex;gap:12px;flex-wrap:wrap;margin:15px 0}
-            #tc-core-autotest .tc-at-summary span{padding:12px 18px;border:1px solid #dcdcde;background:#fff;border-radius:5px}
-            #tc-core-autotest .tc-at-row{display:flex;gap:12px;align-items:flex-start;padding:12px 15px;border:1px solid #dcdcde;border-bottom:0;background:#fff;max-width:1050px}
-            #tc-core-autotest .tc-at-row:last-child{border-bottom:1px solid #dcdcde}
-            #tc-core-autotest .tc-at-dot{display:inline-block;flex:0 0 13px;width:13px;height:13px;margin-top:4px;border-radius:50%;background:#777}
-            #tc-core-autotest .tc-at-dot--pass{background:#188038}#tc-core-autotest .tc-at-dot--fail{background:#c5221f}
-            #tc-core-autotest .tc-at-row strong{display:block}#tc-core-autotest .tc-at-row p{margin:4px 0;overflow-wrap:anywhere}
-            #tc-core-autotest .tc-at-row--fail p{color:#b32d2e;font-weight:600}
-            #tc-core-autotest .tc-at-small{font-size:12px;color:#50575e}
-            </style>
-            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
+            </nav>            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
                 <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
                 <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>

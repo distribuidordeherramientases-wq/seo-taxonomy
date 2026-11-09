@@ -1,3 +1,6 @@
+= 0.4.68 (2026-11-09) =
+* WordPress.org pre-review changes: enqueue Core admin styles, use native `wp_handle_upload()` for extension ZIPs, preserve manual extension controls; request slug `taxocommerce-core`. Issue #2481.
+
 = 0.4.62 (2026-11-08) =
 * Complete Core gettext catalogs for Spanish, English, French, German and Dutch (791 translatable messages per locale, plus gettext header); no remaining empty translations for currently extracted strings.
 * Preserve native WordPress/WooCommerce contents, role and menu APIs, and fixed HTML search attributes. Add regression checks for translated interface labels.
