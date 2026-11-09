@@ -13,7 +13,7 @@
         return;
     }
     if (!config || !window.fetch || !window.URLSearchParams) {
-        warning.textContent = config && config.failure ? config.failure : 'Automatic audit requires JavaScript and fetch support.';
+        warning.textContent = config && config.failure ? config.failure : progress.textContent;
         warning.hidden = false;
         return;
     }
