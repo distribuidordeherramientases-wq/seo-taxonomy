@@ -57,6 +57,10 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
+= 1.1.32 =
+* Consentimientos: downloadable JSON with current settings, blank template (65 text fields in ES/EN/FR/DE/NL), and secure JSON upload to populate the form and save into wp_options. Strict schema, nonce, administrator permission, HTTPS URL, rollback backup and legal revision. JSON never activates banner or confirms legal review.
+
+
 = 1.1.31 =
 * One-time safe import of 65 consent form strings (ES/EN/FR/DE/NL) from bundled JSON into WordPress wp_options, with backup and a secure JSON export action. Preserves custom edits, does not activate tracking or approve legal review.
 
