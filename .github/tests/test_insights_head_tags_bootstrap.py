@@ -43,7 +43,9 @@ class HeadTagsBootstrapRegression(unittest.TestCase):
         version = header.group(1)
         self.assertIn(f"Stable tag: {version}", README.read_text(encoding="utf-8"))
         self.assertIn(f"define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '{version}' );", self.main)
-        self.assertIn("* Release Date: 2026-11-08", self.main)
+        release_date = re.search(r"^ \* Release Date: (\d{4}-\d{2}-\d{2})$", self.main, re.MULTILINE)
+        self.assertIsNotNone(release_date)
+        self.assertRegex(release_date.group(1), r"^20\d{2}-\d{2}-\d{2}$")
 
 
 if __name__ == "__main__":

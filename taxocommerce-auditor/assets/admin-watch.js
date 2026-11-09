@@ -4,16 +4,25 @@
 
     var config = window.taxocommerceAuditorWatch;
     var monitor = document.querySelector('[data-tca-live]');
-    if (!config || !monitor || !window.fetch || !window.URLSearchParams) {
+    if (!monitor) {
         return;
     }
-
     var progress = monitor.querySelector('[data-tca-progress]');
     var warning = monitor.querySelector('[data-tca-warning]');
+    if (!progress || !warning) {
+        return;
+    }
+    if (!config || !window.fetch || !window.URLSearchParams) {
+        warning.textContent = config && config.failure ? config.failure : progress.textContent;
+        warning.hidden = false;
+        return;
+    }
     var scope = monitor.getAttribute('data-scope');
     var failures = 0;
+    var idleRuns = 0;
     var stopped = false;
     var busy = false;
+    var timer = null;
 
     function readableTime(timestamp) {
         return Number(timestamp) > 0
@@ -22,32 +31,44 @@
     }
 
     function schedule(milliseconds) {
-        if (!stopped) {
-            window.setTimeout(poll, milliseconds);
-        }
-    }
-
-    function poll() {
         if (stopped) {
             return;
         }
-        if (busy) {
-            schedule(1000);
+        if (timer !== null) {
+            window.clearTimeout(timer);
+        }
+        timer = window.setTimeout(function () {
+            timer = null;
+            poll();
+        }, milliseconds);
+    }
+
+    function poll() {
+        if (stopped || busy) {
             return;
         }
 
         busy = true;
+        var nextDelay = 2000;
         var body = new window.URLSearchParams();
         body.set('action', 'taxocommerce_auditor_watch');
         body.set('nonce', config.nonce);
         body.set('scope', scope);
+
+        // A single request executes at most one batch. The following request
+        // is only scheduled AFTER that response, independently of WP-Cron.
+        var controller = window.AbortController ? new window.AbortController() : null;
+        var watchdog = controller ? window.setTimeout(function () {
+            controller.abort();
+        }, 60000) : null;
 
         window.fetch(config.ajaxUrl, {
             method: 'POST',
             credentials: 'same-origin',
             cache: 'no-store',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-            body: body.toString()
+            body: body.toString(),
+            signal: controller ? controller.signal : undefined
         }).then(function (response) {
             if (!response.ok) {
                 throw new Error('HTTP ' + response.status);
@@ -59,18 +80,23 @@
             }
             var data = result.data;
             failures = 0;
+            if (typeof data.nonce === 'string' && data.nonce !== '') {
+                config.nonce = data.nonce;
+            }
+
             var statusLabel = document.querySelector('[data-tca-status-label]');
             var counter = document.querySelector('[data-tca-counter]');
             if (statusLabel) {
                 statusLabel.textContent = data.status_label;
             }
             if (counter) {
-                counter.textContent = data.processed + ' / ' + (data.total === null ? '—' : data.total);
+                counter.textContent = data.processed + ' / ' +
+                    (data.total === null ? '—' : data.total);
             }
             progress.textContent = data.status_label + ' · ' + data.processed +
                 ' / ' + (data.total === null ? '—' : data.total) +
                 ' · ' + config.latest + ': ' + readableTime(data.last_batch_timestamp) +
-                ' · ' + config.next + ': ' + readableTime(data.next_event_timestamp);
+                ' · ' + config.continuous;
 
             warning.hidden = true;
             warning.textContent = '';
@@ -94,19 +120,49 @@
                 stopped = true;
                 return;
             }
-            // This is a status request or one due batch, never a tight worker loop.
-            var seconds = Number(data.speed_delay_seconds) || 12;
-            schedule(Math.min(15000, Math.max(5000, Math.floor(seconds * 500))));
-        }).catch(function () {
+
+            // Speed is persisted per scope. It controls both server batch
+            // limits and the idle time between consecutive AJAX requests.
+            var pauseMs = Number(data.client_delay_ms);
+            if (!Number.isFinite(pauseMs)) {
+                pauseMs = 2000;
+            }
+            nextDelay = Math.min(10000, Math.max(300, pauseMs));
+            if (Number(data.batch_processed) <= 0) {
+                idleRuns += 1;
+                // Another worker may own the atomic lock. Never busy-loop.
+                nextDelay = Math.max(nextDelay,
+                    Math.min(15000, 1000 * Math.pow(2, Math.min(idleRuns, 4))));
+            } else {
+                idleRuns = 0;
+            }
+        }).catch(function (error) {
             failures += 1;
-            warning.textContent = config.failure;
+            // Keep the exact HTTP failure visible (403, 500, timeout etc.)
+            // instead of silently leaving the user with a stalled counter.
+            var reason = error && typeof error.message === 'string' ? error.message : '';
+            warning.textContent = config.failure + (reason ? ' (' + reason + ')' : '');
             warning.hidden = false;
-            // Failed requests back off instead of overloading a struggling host.
-            schedule(Math.min(60000, 5000 * Math.pow(2, Math.min(failures, 4))));
+            // Transport errors back off; the next request can resume safely
+            // from the persisted cursor without replaying completed objects.
+            nextDelay = Math.min(60000, 5000 * Math.pow(2, Math.min(failures, 4)));
         }).finally(function () {
+            if (watchdog !== null) {
+                window.clearTimeout(watchdog);
+            }
             busy = false;
+            if (!stopped) {
+                schedule(nextDelay);
+            }
         });
     }
 
-    schedule(1500);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && !stopped && !busy) {
+            schedule(300);
+        }
+    });
+
+    // Start with the first batch immediately after the admin screen loads.
+    schedule(300);
 }());

@@ -1,3 +1,9 @@
+## [1.1.34] — 2026-11-09 — Restaurar diseño blanco y azul de Análisis/Resumen (#2470)
+
+- Evita la colisión del callback legacy `seo_analista_enqueue_report_assets`: Insights emplea el callback y handle CSS propios `taxocommerce_insights_enqueue_analysis_styles` / `taxocommerce-insights-analysis`.
+- Recupera tarjetas blancas y gráficos SVG azules sin modificar consentimientos, credenciales ni datos analíticos.
+- Incluye regresión autónoma para la convivencia con el antiguo analista.
+
 ## [1.1.33] — 2026-11-09 — Copia y restauración completa de Consentimientos mediante JSON (#2468)
 
 - Exportar JSON del estado real y restaurar todos los valores de configuración en wp_options: 65 cadenas ES/EN/FR/DE/NL, casillas enabled y legal_reviewed, URL heredada y páginas por país (ES/US/FR/DE/NL) identificadas por slug para portabilidad entre WordPress.

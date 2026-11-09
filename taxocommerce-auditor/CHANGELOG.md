@@ -1,3 +1,19 @@
+## [0.3.14] — 2026-11-09 — Auditoría automática sin botón Siguiente lote (#2475)
+
+- Retirado «Procesar siguiente lote» de las cinco pestañas de auditoría; cada respuesta AJAX continúa automáticamente la cola con el control independiente de cinco velocidades, presupuesto por petición y retroceso en caso de error.
+- El monitor AJAX se encola también desde la propia pantalla de Auditor, además del hook habitual de administración. Esto evita que una integración con un menú externo impida cargar el trabajador de navegador.
+- Mientras una auditoría esté en curso, en cola o pausada, no se ofrece iniciar otra del mismo ámbito. Las peticiones de inicio procedentes de pestañas antiguas vuelven al estado vigente sin descartar el cursor ni los archivos JSONL.
+- Se mantienen Pausar/Reanudar, el handler manual legado para compatibilidad, las cinco velocidades, bloqueo atómico, controles de permisos y nonce, exportaciones y WP-Cron auxiliar; no hay dependencia obligatoria entre plugins.
+- Los fallos de AJAX muestran ahora el error HTTP u origen de conexión y se reintentan con espera progresiva. Incluye prueba JavaScript de lotes encadenados, renovaciones de nonce, pausa, reintentos y prueba PHP para verificar ausencia del botón en todos los ámbitos.
+- Con la pantalla cerrada o suspendida, la continuidad requiere un trabajador del servidor: ningún script de navegador puede garantizar ejecución en segundo plano.
+
+## [0.3.13] — 2026-11-09 — Auditoría continua AJAX independiente de WP-Cron (#2444)
+
+- Productos, categorías, entradas, páginas y FAQ: el navegador encadena lotes AJAX autenticados y acotados sin esperar a WP-Cron ni exigir pulsaciones manuales entre lotes.
+- Cinco velocidades independientes con tamaños de 5/10/20/30/40 objetos, presupuestos de 2/3/5/8/12 segundos y pausas de 6000/3500/2000/1000/300 ms; no representan cuotas de CPU garantizadas.
+- Conservadas pausa, reanudación, bloqueos atómicos, cursores de progreso, exportación JSONL y WP-Cron como respaldo opcional; con el navegador cerrado debe existir un trabajador de servidor.
+- Nuevo Autotest y prueba funcional de continuidad, incluida corrección de la prueba de velocidad; mantiene los cambios de 0.3.12 de la ficha oficial.
+
 ## [0.3.12] — 2026-11-08 — Extracto dinámico desde la página oficial (#2443)
 
 - La cabecera obtiene el excerpt de la página oficial definida por Plugin URI, sin copiar textos al plugin ni depender de Core. Puede personalizarse o desactivarse desde cada instalación.

@@ -1,0 +1,43 @@
+name: Auditor AJAX auto-chain regression
+
+on:
+  pull_request:
+    paths:
+      - 'taxocommerce-auditor/**'
+      - '.github/workflows/auditor-ajax-auto-chain.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'taxocommerce-auditor/**'
+      - '.github/workflows/auditor-ajax-auto-chain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auditor-auto-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Auditor PHP and JavaScript regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check PHP syntax
+        run: |
+          find taxocommerce-auditor -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+      - name: Functional and i18n smoke
+        run: php taxocommerce-auditor/tests/auto-test-manual-smoke.php
+      - name: Automatic AJAX chaining smoke
+        run: node taxocommerce-auditor/tests/admin-watch-automation-smoke.js

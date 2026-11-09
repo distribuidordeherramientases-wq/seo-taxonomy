@@ -2,7 +2,7 @@
 /**
  * Independent workload controller for the five Auditor scopes.
  *
- * Speeds control work per request and spacing between WP-Cron batches. They
+ * Speeds control work per request and spacing between chained AJAX or fallback WP-Cron batches. They
  * are not percentages of host CPU usage (unavailable on shared hosting).
  *
  * @package TaxoCommerceAuditor
@@ -49,6 +49,20 @@ final class Workload {
     public static function budget_seconds( $scope ) {
         $budgets = array( 1 => 2, 2 => 3, 3 => 5, 4 => 8, 5 => 12 );
         return $budgets[ self::speed( $scope ) ];
+    }
+
+    /**
+     * Delay between successful browser-driven batches, in milliseconds.
+     *
+     * This is independent of WP-Cron and deliberately never zero. Batches
+     * remain bounded by batch_size() and budget_seconds() on the server.
+     *
+     * @param string $scope Audit scope.
+     * @return int
+     */
+    public static function client_delay_ms( $scope ) {
+        $delays = array( 1 => 6000, 2 => 3500, 3 => 2000, 4 => 1000, 5 => 300 );
+        return $delays[ self::speed( $scope ) ];
     }
 
     public static function label( $speed ) {

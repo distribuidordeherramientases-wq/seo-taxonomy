@@ -8,6 +8,8 @@ namespace TaxoCommerce\Auditor;
 defined( 'ABSPATH' ) || exit;
 
 final class Admin {
+    private static $monitor_enqueued = false;
+
     public static function register() {
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ), 70 );
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
@@ -26,6 +28,18 @@ final class Admin {
             array(),
             Plugin::VERSION
         );
+        self::enqueue_monitor();
+    }
+
+    /**
+     * Enqueue the footer worker from the admin hook OR the actual Auditor
+     * screen. WordPress custom menu hosts may use a different screen hook.
+     */
+    private static function enqueue_monitor() {
+        if ( self::$monitor_enqueued ) {
+            return;
+        }
+        self::$monitor_enqueued = true;
         wp_enqueue_script(
             'taxocommerce-auditor-watch',
             plugins_url( 'assets/admin-watch.js', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
@@ -43,7 +57,8 @@ final class Admin {
                 'next'     => __( 'Próximo evento WP-Cron', 'taxocommerce-auditor' ),
                 'none'     => __( 'Sin datos', 'taxocommerce-auditor' ),
                 'overdue'  => __( 'WP-Cron está retrasado; este monitor recupera los lotes mientras permanezca abierto.', 'taxocommerce-auditor' ),
-                'disabled' => __( 'WP-Cron automático está desactivado; para continuar con la pantalla cerrada configura el cron del servidor.', 'taxocommerce-auditor' ),
+                'disabled' => __( 'WP-Cron está desactivado. La auditoría avanza desde esta pantalla; para continuar con ella cerrada necesitas un proceso programado en el servidor.', 'taxocommerce-auditor' ),
+                'continuous' => __( 'Ejecución encadenada: el siguiente lote se inicia automáticamente sin esperar a WP-Cron.', 'taxocommerce-auditor' ),
                 'failure'  => __( 'No se pudo consultar el progreso. Comprueba la conexión y vuelve a cargar la pantalla.', 'taxocommerce-auditor' ),
             )
         );
@@ -161,7 +176,7 @@ final class Admin {
         echo '</p>';
         if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
             echo '<div class="taxocommerce-auditor-live" data-tca-live data-scope="' . esc_attr( $scope ) . '">';
-            echo '<p class="description" data-tca-progress>' . esc_html__( 'Monitor activo: la pantalla recupera los lotes que WP-Cron no ejecute. Para continuar con la pantalla cerrada, WP-Cron debe funcionar.', 'taxocommerce-auditor' ) . '</p>';
+            echo '<p class="description" data-tca-progress>' . esc_html__( 'Modo automático: cada lote lanza el siguiente desde esta pantalla sin esperar a WP-Cron. Mantén la pestaña abierta.', 'taxocommerce-auditor' ) . '</p>';
             echo '<p class="notice-inline" data-tca-warning hidden></p>';
             echo '</div>';
         }
@@ -202,16 +217,22 @@ final class Admin {
         echo '<p class="description">' . esc_html__( 'Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor.', 'taxocommerce-auditor' ) . '</p>';
         echo '</form>';
 
-        echo '<div class="taxocommerce-auditor-run-modes">';
-        echo '<div class="taxocommerce-auditor-full">' . '<p>' . '<strong>' . esc_html__( 'Auditoría completa', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( '· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.', 'taxocommerce-auditor' ) . '</p>';
-        self::action_form( $scope, 'start_full', $report ? __( 'Repetir auditoría completa', 'taxocommerce-auditor' ) : __( 'Auditar todo', 'taxocommerce-auditor' ), true );
-        echo '</div>';
-        self::filter_form( $scope, $report ? __( 'Repetir filtro', 'taxocommerce-auditor' ) : __( 'Auditar filtro', 'taxocommerce-auditor' ) );
-        echo '</div>';
+        // Do not offer a second start while a scope is already active or
+        // paused: it would reject a valid existing cursor with HTTP 409.
+        if ( ! in_array( $status, array( 'queued', 'running', 'paused' ), true ) ) {
+            echo '<div class="taxocommerce-auditor-run-modes">';
+            echo '<div class="taxocommerce-auditor-full">' . '<p>' . '<strong>' . esc_html__( 'Auditoría completa', 'taxocommerce-auditor' ) . '</strong>' . ' ' . esc_html__( '· recorre todo el bloque publicado por lotes y genera un JSON sin truncar la cola.', 'taxocommerce-auditor' ) . '</p>';
+            self::action_form( $scope, 'start_full', $report ? __( 'Repetir auditoría completa', 'taxocommerce-auditor' ) : __( 'Auditar todo', 'taxocommerce-auditor' ), true );
+            echo '</div>';
+            self::filter_form( $scope, $report ? __( 'Repetir filtro', 'taxocommerce-auditor' ) : __( 'Auditar filtro', 'taxocommerce-auditor' ) );
+            echo '</div>';
+        }
 
         if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
+            // Next batch is driven automatically by assets/admin-watch.js.
+            // Keep the previous 'step' handler for API/backwards compatibility,
+            // but remove the manual step button from all five audit screens.
             echo '<div class="taxocommerce-auditor-process-actions">';
-            self::action_form( $scope, 'step', __( 'Procesar siguiente lote', 'taxocommerce-auditor' ) );
             self::action_form( $scope, 'pause', __( 'Pausar', 'taxocommerce-auditor' ) );
             echo '</div>';
         } elseif ( 'paused' === $status ) {
@@ -224,6 +245,10 @@ final class Admin {
 
     public static function render() {
         self::guard();
+        // Reliable fallback when the menu is hosted by another plugin and
+        // admin_enqueue_scripts receives a non-standard page hook. The script
+        // is footer-loaded so registration here remains in time for printing.
+        self::enqueue_monitor();
         $scopes = Runner::scopes();
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only scope selection.
@@ -677,23 +702,31 @@ final class Admin {
     }
 
     /**
-     * Browser monitor: runs at most one due batch per authenticated AJAX call.
-     * Native WP-Cron continues to run independently when it is healthy.
+     * Authenticated browser worker: execute one bounded batch per request.
+     * The next AJAX request follows the previous response. No WP-Cron
+     * timestamp is consulted before running; WP-Cron remains an optional
+     * background fallback for installations where it is available.
      */
     public static function handle_watch() {
         self::guard();
+        check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' );
         $scope = isset( $_POST['scope'] ) && is_string( $_POST['scope'] )
             ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
         if ( ! Runner::valid_scope( $scope ) ) {
             wp_send_json_error( array( 'message' => __( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ) ), 400 );
         }
-        check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' );
 
-        if ( Runner::browser_batch_due( $scope ) ) {
+        $before = Runner::state( $scope );
+        if ( in_array( (string) ( $before['status'] ?? '' ), array( 'queued', 'running' ), true ) ) {
+            // run_batch() owns the existing per-scope atomic lock, budget,
+            // cursor and JSONL persistence; it also respects pause/error.
             Runner::run_batch( $scope );
         }
         $progress = Runner::progress( $scope );
+        $progress['batch_processed'] = max( 0, absint( $progress['processed'] ) - absint( $before['processed'] ?? 0 ) );
         $progress['status_label'] = self::state_label( $progress['status'] );
+        // Refresh the admin nonce during very long scans without reopening a tab.
+        $progress['nonce'] = wp_create_nonce( 'taxocommerce_auditor_watch' );
         wp_send_json_success( $progress );
     }
 
@@ -715,6 +748,12 @@ final class Admin {
             }
             Runner::reschedule( $scope );
         } elseif ( in_array( $task, array( 'start', 'start_full' ), true ) ) {
+            $current = Runner::state( $scope );
+            if ( in_array( (string) ( $current['status'] ?? '' ), array( 'queued', 'running', 'paused' ), true ) ) {
+                // Stale tabs must not restart active work or discard progress.
+                wp_safe_redirect( self::scope_link( $scope ) );
+                exit;
+            }
             $filters = Runner::sanitize_filters( $scope, array(
                 'mode'        => 'start_full' === $task ? 'full' : 'filtered',
                 'search'      => isset( $_POST['search'] ) && is_string( $_POST['search'] )
@@ -727,7 +766,8 @@ final class Admin {
             if ( ! Runner::start( $scope, $filters ) ) {
                 wp_die( esc_html__( 'Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote antes de reiniciarla.', 'taxocommerce-auditor' ), '', array( 'response' => 409 ) );
             }
-            // WP-Cron ejecutará el primer lote fuera de esta petición.
+            // The admin screen starts a browser-driven batch chain after redirect.
+            // WP-Cron is a secondary fallback only; no event must fire first.
         } elseif ( 'step' === $task ) {
             Runner::run_batch( $scope );
         } elseif ( 'pause' === $task ) {
