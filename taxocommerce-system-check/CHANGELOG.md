@@ -2,6 +2,7 @@
 
 - El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
 - Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+- Corregidos dos avisos de Plugin Check para selectores GET de navegación, conservando las verificaciones de nonce de acciones que modifican datos.
 
 ## [0.2.26] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
