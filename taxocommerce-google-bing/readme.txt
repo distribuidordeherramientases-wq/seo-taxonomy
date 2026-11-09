@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.33
+Stable tag: 1.1.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.34 =
+* Restore the white/blue Analysis dashboard styles independently of the legacy SEO Analista callback; preserve all consent JSON settings of 1.1.33.
+
 
 = 1.1.33 =
 * Complete JSON roundtrip for consent settings: 65 translated fields, five country-specific WordPress legal page slugs, browser banner and legal review flags. Backups are portable between staging and production without changing page IDs; legal review and five published country-matched policy pages are required before enabling tracking.
