@@ -29,8 +29,6 @@ function add_filter( $hook, $callback, $priority = 10 ) {}
 function determine_locale() { return $GLOBALS['tctasks_test_locale'] ?? 'es_ES'; }
 function __( $text, $domain ) { return $text; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
-// The standard family header registers an admin-post action at plugin load.
-function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function add_menu_page( ...$args ) { $GLOBALS['tctasks_menus'][] = $args; }
 function add_submenu_page( ...$args ) { $GLOBALS['tctasks_submenus'][] = $args; }
 

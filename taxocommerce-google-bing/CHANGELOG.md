@@ -1,3 +1,26 @@
+## [1.1.34] — 2026-11-09 — Restaurar diseño blanco y azul de Análisis/Resumen (#2470)
+
+- Evita la colisión del callback legacy `seo_analista_enqueue_report_assets`: Insights emplea el callback y handle CSS propios `taxocommerce_insights_enqueue_analysis_styles` / `taxocommerce-insights-analysis`.
+- Recupera tarjetas blancas y gráficos SVG azules sin modificar consentimientos, credenciales ni datos analíticos.
+- Incluye regresión autónoma para la convivencia con el antiguo analista.
+
+## [1.1.33] — 2026-11-09 — Copia y restauración completa de Consentimientos mediante JSON (#2468)
+
+- Exportar JSON del estado real y restaurar todos los valores de configuración en wp_options: 65 cadenas ES/EN/FR/DE/NL, casillas enabled y legal_reviewed, URL heredada y páginas por país (ES/US/FR/DE/NL) identificadas por slug para portabilidad entre WordPress.
+- Plantilla vacía no destructiva, compatibilidad con JSON anterior (schema 1) y formato completo de copia/restauración (schema 2, mode replace). JSON preparado para importar sin teclear: config/consent-settings-complete-20261109.json (65 cadenas y cinco páginas por slug; banner desactivado mientras siguen en borrador).
+- El banner selecciona el idioma y la política correspondiente al país de la página. No enlaza políticas ajenas, en borrador o de otro país. El administrador puede comprobar el estado publicado de las cinco páginas desde Consentimientos.
+- El estado de activación y revisión legal del JSON puede restaurarse mediante importación del administrador; la revisión legal requiere confirmación expresa de este sitio y el banner no puede activarse sin las cinco políticas publicadas. Nunca se importan elecciones ni evidencias individuales de visitantes.
+- Versión del consentimiento incrementada al cambiar la configuración (no se reutiliza una revisión arbitraria del JSON); copia anterior en wp_options y archivo de versiones legales.
+- La zona Importar/Exportar aparece al inicio del formulario y cuenta con pruebas automáticas de restauración, cinco políticas, validaciones y bloqueo preventivo.
+
+## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
+
+- Botón de exportación del estado actual y descarga independiente de una plantilla JSON con los 65 campos de texto vacíos en ES/EN/FR/DE/NL, más URL de política y valores informativos de estado.
+- Formulario de importación JSON en el mismo apartado, con permisos, nonce, tamaño máximo de 64 KB, estructura estricta y validación HTTPS; se escriben textos y URL en `taxocommerce_insights_consent_settings` de `wp_options` sin accesos externos a MySQL.
+- Valores vacíos de un JSON no borran campos existentes; revisión del consentimiento incrementada solo cuando hay cambios. Historial legal y respaldo previo a la importación.
+- Nunca se activa el banner ni se confirma revisión legal desde JSON; importación bloqueada cuando el banner está activo o la revisión legal ya se ha firmado.
+- Pruebas de regresión para plantilla, validación, idiomas, importación segura y protección de ajustes; workflow de STAGING y Focazul actualizado.
+
 ## [1.1.31] — 2026-11-08 — Precarga segura de los cinco idiomas de Consentimientos en wp_options (#2454)
 
 - Archivo versionado `config/consent-texts-20261108.json` con los 13 campos de cada idioma ES/EN/FR/DE/NL (65 cadenas), incluidos aviso, texto legal, botones y categorías.
@@ -8,6 +31,7 @@
 
 ## [1.1.30] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
+- La URL de la ficha pública `Plugin URI` actúa también como origen predeterminado del excerpt; la instalación puede sustituirla o desactivarla. Conserva las nuevas herramientas de Consentimientos de la versión 1.1.32.
 - Consulta opcional por HTTPS del excerpt REST de una ficha oficial configurada; muestra el enlace a esa página en un panel izquierdo plegado.
 - Mantiene el historial propio en el panel derecho. Caché, permisos y escape de salida; sin servicios obligatorios ni cambios en datos.
 

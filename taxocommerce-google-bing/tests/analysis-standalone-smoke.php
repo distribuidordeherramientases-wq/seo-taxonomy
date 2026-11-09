@@ -74,8 +74,13 @@ tci_analysis_check(
 );
 tci_analysis_check(
     false !== strpos( $css_owner, "TAXOCOMMERCE_GOOGLE_BING_URL . 'includes/analysis/assets/analista-informe.css'" ) &&
-    false !== strpos( $css_owner, "add_action('admin_enqueue_scripts', 'seo_analista_enqueue_report_assets')" ),
+    false !== strpos( $css_owner, "add_action('admin_enqueue_scripts', 'taxocommerce_insights_enqueue_analysis_styles')" ),
     'Insights CSS is not enqueued from the included module'
 );
 
+$stylesheet = tci_analysis_source( $root, 'includes/analysis/assets/analista-informe.css' );
+tci_analysis_check( false !== strpos( $css_owner, "'taxocommerce-insights-analysis'" ), 'Insights stylesheet handle must not collide with legacy Analista' );
+tci_analysis_check( false === strpos( $css_owner, "if (!function_exists('seo_analista_enqueue_report_assets'))" ), 'Legacy callback collision remains' );
+tci_analysis_check( false !== strpos( $stylesheet, '.seo-analista-chart .line{fill:none;stroke:#2271b1' ), 'Blue SVG line style absent' );
+tci_analysis_check( false !== strpos( $stylesheet, '.seo-analista-card,.seo-analista-section,.seo-analista-chart{background:#fff' ), 'White cards style absent' );
 echo "Standalone Insights Analysis: 11 report definitions, own CSS, JS, AJAX, no SEO monolith references: OK\n";

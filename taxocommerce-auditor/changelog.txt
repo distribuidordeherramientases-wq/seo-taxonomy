@@ -1,5 +1,5 @@
-== 0.3.12 ==
-* Authenticated AJAX chain starts the next bounded audit batch after each successful response, independently of WP-Cron, in all five content areas. Retains five speeds, cursor, pause/resume and JSONL. Issue #2444.
+== 0.3.13 ==
+* Auditoria continua AJAX: procesa el siguiente lote tras cada respuesta, sin esperar al cron de WordPress mientras la pestaña admin permanezca abierta; cinco velocidades, cursor, pausa y JSONL. Issue #2444.
 
 == 0.3.11 ==
 * Recover overdue audit batches from the authenticated admin page; keep WP-Cron background execution, concurrency locking, original progress and JSONL exports. Issue #2444.

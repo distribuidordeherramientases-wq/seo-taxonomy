@@ -1,11 +1,14 @@
-## [0.3.12] — 2026-11-09 — Auditoría continua independiente de WP-Cron (#2444)
+## [0.3.13] — 2026-11-09 — Auditoría continua AJAX independiente de WP-Cron (#2444)
 
-- Productos, categorías, entradas, páginas y FAQ: la pantalla encadena peticiones AJAX autenticadas; cada respuesta ejecuta un lote acotado y lanza el siguiente mientras siga la auditoría, sin esperar al vencimiento de WP-Cron ni pulsar manualmente «Procesar siguiente lote».
-- Los cinco niveles de velocidad regulan el tamaño del lote (5/10/20/30/40), presupuesto máximo por petición (2/3/5/8/12 s) y pausa del navegador entre respuestas (6000/3500/2000/1000/300 ms). No representan un porcentaje de CPU reservado.
-- Autenticación mediante nonce y manage_options, ejecución secuencial y bloqueo atómico compartido con el cron auxiliar, evitando solapamientos y reprocesamiento de cursores. Ante peticiones sin progreso o fallos de red, la espera aumenta para proteger el alojamiento.
-- Estado, contador y último lote se actualizan sin refrescar la página; pausa, reanudación, auditorías filtradas/completas, JSONL y exportación se conservan. Un informe se considera completo únicamente cuando la fuente se ha agotado o alcanza el límite solicitado.
-- WP-Cron permanece como mecanismo auxiliar de compatibilidad para quien tenga un trabajador programado; si se cierra la pestaña y no hay otro trabajador, el navegador no puede garantizar la continuidad (especialmente en móvil).
-- Pruebas funcionales, Autocheck, documentación e idiomas actualizados. Seguimiento en #2444 y PR #2452; despliegues y comprobación funcional pendientes hasta los controles de calidad.
+- Productos, categorías, entradas, páginas y FAQ: el navegador encadena lotes AJAX autenticados y acotados sin esperar a WP-Cron ni exigir pulsaciones manuales entre lotes.
+- Cinco velocidades independientes con tamaños de 5/10/20/30/40 objetos, presupuestos de 2/3/5/8/12 segundos y pausas de 6000/3500/2000/1000/300 ms; no representan cuotas de CPU garantizadas.
+- Conservadas pausa, reanudación, bloqueos atómicos, cursores de progreso, exportación JSONL y WP-Cron como respaldo opcional; con el navegador cerrado debe existir un trabajador de servidor.
+- Nuevo Autotest y prueba funcional de continuidad, incluida corrección de la prueba de velocidad; mantiene los cambios de 0.3.12 de la ficha oficial.
+
+## [0.3.12] — 2026-11-08 — Extracto dinámico desde la página oficial (#2443)
+
+- La cabecera obtiene el excerpt de la página oficial definida por Plugin URI, sin copiar textos al plugin ni depender de Core. Puede personalizarse o desactivarse desde cada instalación.
+- Corregida la lectura/sanitización del URL y la compatibilidad de los chequeos estáticos. Caché y fallback cuando la fuente no responde. Historial CHANGELOG.md intacto.
 
 ## [0.3.11] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
 
@@ -20,8 +23,6 @@
 - El monitor respeta la velocidad de cada ámbito, ejecuta un solo lote por petición y aplica espera progresiva cuando la conexión falla. Se conserva el botón manual, pausa, reanudación, filtros y exportaciones.
 - No depende de Action Scheduler, otros plugins ni servicios externos. La ejecución con el navegador cerrado sigue requiriendo WP-Cron o una tarea cron real del alojamiento.
 - Autocheck, pruebas de regresión, documentación y catálogos de idioma actualizados; el Issue #2444 se cierra únicamente después de validación funcional en STAGING y Focazul.
-- Revisión del preflight: el Code Check encola recursos por el hook del administrador, sin leer parámetros GET en el registro de scripts; corregido el simulador de opciones del test de velocidad de recuperación.
-- La URL de la ficha oficial del plugin se sanitiza antes de validarse; elimina la advertencia del Plugin Check sin modificar el origen remoto ni la política HTTPS.
 
 ## [0.3.10] - 2026-11-08 - Autotest de funcionalidad y codigo (#2401)
 

@@ -11,8 +11,6 @@ $GLOBALS['scrappers_legacy_active'] = false;
 $GLOBALS['scrappers_deactivate'] = null;
 
 function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
-// Native WordPress function required by the standalone admin header at load.
-function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function plugin_dir_url( $path ) { return 'https://example.test/wp-content/plugins/' . basename( dirname( $path ) ) . '/'; }
 function add_action() {}
 function add_filter() {}

@@ -1,3 +1,8 @@
+## [0.1.13] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
+
+- Plugin URI identifica la ficha oficial; el desplegable izquierdo consulta su excerpt de forma segura, con caché y opción de personalizar/desactivar.
+- Corregida la sanitización del formulario y la compatibilidad con las comprobaciones; el historial local se conserva sin cambios.
+
 ## [0.1.12] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
 
 - Desplegable izquierdo para obtener el extracto público de una página WordPress oficial, únicamente cuando el administrador configura su URL HTTPS, con enlace a la ficha de origen.

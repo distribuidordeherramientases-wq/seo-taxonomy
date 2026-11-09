@@ -57,14 +57,7 @@ def main():
         info_path = ROOT / ("taxocommerce-" + slug) / "includes/official-excerpt.php"
         info_result = official_template.replace("__TC_DOMAIN__", "taxocommerce-" + slug)
         if args.check:
-            # Allow only the byte-exact pre-sanitization template during the
-            # migration. Newly regenerated plugins always receive the
-            # sanitized canonical version, not the legacy form.
-            legacy_result = info_result.replace(
-                "trim( sanitize_text_field( wp_unslash( $_POST['tc_official_url'] ) ) )",
-                "trim( wp_unslash( $_POST['tc_official_url'] ) )",
-            )
-            if not info_path.is_file() or info_path.read_text(encoding="utf-8") not in (info_result, legacy_result):
+            if not info_path.is_file() or info_path.read_text(encoding="utf-8") != info_result:
                 errors.append(slug + ":official")
         else:
             info_path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,11 +72,7 @@ def main():
     core_info_path = ROOT / "taxocommerce-core/includes/official-excerpt.php"
     core_info = official_template.replace("__TC_DOMAIN__", "taxocommerce-core")
     if args.check:
-        legacy_core = core_info.replace(
-            "trim( sanitize_text_field( wp_unslash( $_POST['tc_official_url'] ) ) )",
-            "trim( wp_unslash( $_POST['tc_official_url'] ) )",
-        )
-        if not core_info_path.is_file() or core_info_path.read_text(encoding="utf-8") not in (core_info, legacy_core):
+        if not core_info_path.is_file() or core_info_path.read_text(encoding="utf-8") != core_info:
             errors.append("core:official")
     else:
         core_info_path.write_text(core_info, encoding="utf-8")

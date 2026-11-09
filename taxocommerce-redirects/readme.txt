@@ -4,7 +4,7 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.13
+Stable tag: 0.1.14
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
@@ -142,3 +142,5 @@ retired and all native relationships have been verified.
 == External Services ==
 
 An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.
+
+The optional admin information panel defaults to this plugin's `Plugin URI`, the public project page. WordPress retrieves only its published excerpt via the WordPress REST API using a safe HTTPS request and transient cache. The administrator may replace the URL or explicitly clear it to disable remote requests; this does not affect plugin functionality.
