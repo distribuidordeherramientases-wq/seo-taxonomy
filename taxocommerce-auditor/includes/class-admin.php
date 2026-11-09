@@ -43,7 +43,8 @@ final class Admin {
                 'next'     => __( 'Próximo evento WP-Cron', 'taxocommerce-auditor' ),
                 'none'     => __( 'Sin datos', 'taxocommerce-auditor' ),
                 'overdue'  => __( 'WP-Cron está retrasado; este monitor recupera los lotes mientras permanezca abierto.', 'taxocommerce-auditor' ),
-                'disabled' => __( 'WP-Cron automático está desactivado; para continuar con la pantalla cerrada configura el cron del servidor.', 'taxocommerce-auditor' ),
+                'disabled' => __( 'WP-Cron está desactivado. La auditoría avanza desde esta pantalla; para continuar con ella cerrada necesitas un proceso programado en el servidor.', 'taxocommerce-auditor' ),
+                'continuous' => __( 'Ejecución encadenada: el siguiente lote se inicia automáticamente sin esperar a WP-Cron.', 'taxocommerce-auditor' ),
                 'failure'  => __( 'No se pudo consultar el progreso. Comprueba la conexión y vuelve a cargar la pantalla.', 'taxocommerce-auditor' ),
             )
         );
@@ -161,7 +162,7 @@ final class Admin {
         echo '</p>';
         if ( in_array( $status, array( 'queued', 'running' ), true ) ) {
             echo '<div class="taxocommerce-auditor-live" data-tca-live data-scope="' . esc_attr( $scope ) . '">';
-            echo '<p class="description" data-tca-progress>' . esc_html__( 'Monitor activo: la pantalla recupera los lotes que WP-Cron no ejecute. Para continuar con la pantalla cerrada, WP-Cron debe funcionar.', 'taxocommerce-auditor' ) . '</p>';
+            echo '<p class="description" data-tca-progress>' . esc_html__( 'Modo automático: cada lote lanza el siguiente desde esta pantalla sin esperar a WP-Cron. Mantén la pestaña abierta.', 'taxocommerce-auditor' ) . '</p>';
             echo '<p class="notice-inline" data-tca-warning hidden></p>';
             echo '</div>';
         }
@@ -677,23 +678,31 @@ final class Admin {
     }
 
     /**
-     * Browser monitor: runs at most one due batch per authenticated AJAX call.
-     * Native WP-Cron continues to run independently when it is healthy.
+     * Authenticated browser worker: execute one bounded batch per request.
+     * The next AJAX request follows the previous response. No WP-Cron
+     * timestamp is consulted before running; WP-Cron remains an optional
+     * background fallback for installations where it is available.
      */
     public static function handle_watch() {
         self::guard();
+        check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' );
         $scope = isset( $_POST['scope'] ) && is_string( $_POST['scope'] )
             ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
         if ( ! Runner::valid_scope( $scope ) ) {
             wp_send_json_error( array( 'message' => __( 'Bloque Auditor no reconocido.', 'taxocommerce-auditor' ) ), 400 );
         }
-        check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' );
 
-        if ( Runner::browser_batch_due( $scope ) ) {
+        $before = Runner::state( $scope );
+        if ( in_array( (string) ( $before['status'] ?? '' ), array( 'queued', 'running' ), true ) ) {
+            // run_batch() owns the existing per-scope atomic lock, budget,
+            // cursor and JSONL persistence; it also respects pause/error.
             Runner::run_batch( $scope );
         }
         $progress = Runner::progress( $scope );
+        $progress['batch_processed'] = max( 0, absint( $progress['processed'] ) - absint( $before['processed'] ?? 0 ) );
         $progress['status_label'] = self::state_label( $progress['status'] );
+        // Refresh the admin nonce during very long scans without reopening a tab.
+        $progress['nonce'] = wp_create_nonce( 'taxocommerce_auditor_watch' );
         wp_send_json_success( $progress );
     }
 
@@ -727,7 +736,8 @@ final class Admin {
             if ( ! Runner::start( $scope, $filters ) ) {
                 wp_die( esc_html__( 'Ya hay una auditoría de este bloque procesándose. Espera a que acabe el lote antes de reiniciarla.', 'taxocommerce-auditor' ), '', array( 'response' => 409 ) );
             }
-            // WP-Cron ejecutará el primer lote fuera de esta petición.
+            // The admin screen starts a browser-driven batch chain after redirect.
+            // WP-Cron is a secondary fallback only; no event must fire first.
         } elseif ( 'step' === $task ) {
             Runner::run_batch( $scope );
         } elseif ( 'pause' === $task ) {

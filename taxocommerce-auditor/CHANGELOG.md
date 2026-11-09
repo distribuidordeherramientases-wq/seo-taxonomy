@@ -1,3 +1,10 @@
+## [0.3.13] — 2026-11-09 — Auditoría continua AJAX independiente de WP-Cron (#2444)
+
+- Productos, categorías, entradas, páginas y FAQ: el navegador encadena lotes AJAX autenticados y acotados sin esperar a WP-Cron ni exigir pulsaciones manuales entre lotes.
+- Cinco velocidades independientes con tamaños de 5/10/20/30/40 objetos, presupuestos de 2/3/5/8/12 segundos y pausas de 6000/3500/2000/1000/300 ms; no representan cuotas de CPU garantizadas.
+- Conservadas pausa, reanudación, bloqueos atómicos, cursores de progreso, exportación JSONL y WP-Cron como respaldo opcional; con el navegador cerrado debe existir un trabajador de servidor.
+- Nuevo Autotest y prueba funcional de continuidad, incluida corrección de la prueba de velocidad; mantiene los cambios de 0.3.12 de la ficha oficial.
+
 ## [0.3.12] — 2026-11-08 — Extracto dinámico desde la página oficial (#2443)
 
 - La cabecera obtiene el excerpt de la página oficial definida por Plugin URI, sin copiar textos al plugin ni depender de Core. Puede personalizarse o desactivarse desde cada instalación.

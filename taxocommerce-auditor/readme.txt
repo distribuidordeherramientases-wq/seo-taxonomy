@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.12
+Stable tag: 0.3.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,7 +23,7 @@ TaxoCommerce Auditor provides independent read-only content reviews across five 
 * Pages and landings: content structure, WordPress-native SEO roles, hierarchy and potentially overlapping pages.
 * FAQs: ownership, questions, answers, target product categories and semantic consistency. The TaxoCommerce FAQs module is optional.
 
-Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits use bounded scheduled batches and may be paused or resumed. Each of the five scopes independently offers five workload speeds for full and filtered scans, adapting batch sizes, WP-Cron spacing, and request time budgets. These settings control workload throughput, not a server-wide CPU percentage. A protected browser-assisted progress monitor recovers overdue batches while the audit admin screen remains open if WP-Cron is not firing. When the browser is closed, background processing still requires working WP-Cron or a hosting cron job.
+Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits run as consecutive, bounded authenticated AJAX batches while the administrator keeps the audit screen open. Each successful response triggers the next batch without waiting for WP-Cron or manual clicks. Each of the five scopes has five independent workload speeds, adjusting batch sizes (5/10/20/30/40), per-request time budgets (2/3/5/8/12 seconds), and pauses between AJAX responses (6000/3500/2000/1000/300 milliseconds). The speeds are not a guaranteed percentage of server CPU usage. Pause, resume, filtered/full audits, progress and JSONL exports are preserved. WP-Cron remains an optional background fallback; when the admin tab is closed or a mobile browser suspends it, continued processing requires a working server-side scheduler.
 
 Complete audit results are streamed as JSON Lines files in WordPress uploads. Only a bounded sample is kept in WordPress options. Large exports stream the full results instead of loading the catalogue into memory.
 
@@ -56,6 +56,10 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.13 =
+* Continuous bounded AJAX audits across five scopes without waiting for WP-Cron, retaining five speeds, safe retries, progress, pause/resume and JSONL exports.
+
 
 = 0.3.11 =
 * Recover overdue audit batches from the authenticated admin screen without restarting cursors; atomic per-scope worker locks, live cron diagnostics, and safe retry pacing.

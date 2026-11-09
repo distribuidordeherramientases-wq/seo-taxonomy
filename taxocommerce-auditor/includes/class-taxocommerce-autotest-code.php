@@ -21,20 +21,20 @@ final class TaxoCommerce_Auditor_Autotest_Code {
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
     }
 
-    public static function assets() {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation selector, not data processing.
-        $section = isset( $_GET['tc_autotest_section'] ) && is_scalar( $_GET['tc_autotest_section'] )
-            ? sanitize_key( wp_unslash( $_GET['tc_autotest_section'] ) ) : '';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( 'code' === $section && current_user_can( 'manage_options' ) ) {
-            wp_enqueue_script(
-                'taxocommerce-auditor-autotest-code',
-                plugins_url( 'assets/autotest-code.js', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
-                array(),
-                '1.0.0',
-                true
-            );
+    public static function assets( $hook ) {
+        // The JavaScript exits if Code Check controls are not present.
+        // Inspect the admin screen hook without handling untrusted GET data.
+        if ( ! current_user_can( 'manage_options' )
+            || false === strpos( (string) $hook, 'taxocommerce-auditor' ) ) {
+            return;
         }
+        wp_enqueue_script(
+            'taxocommerce-auditor-autotest-code',
+            plugins_url( 'assets/autotest-code.js', dirname( __DIR__ ) . '/taxocommerce-auditor.php' ),
+            array(),
+            '1.0.0',
+            true
+        );
     }
 
     public static function speeds() {
