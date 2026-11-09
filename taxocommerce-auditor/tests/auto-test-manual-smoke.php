@@ -160,6 +160,7 @@ $watch_handler = explode( 'public static function handle_action()', explode( 'pu
 verify( false !== strpos( $watch_handler, 'Runner::run_batch( $scope );' ), 'Every authenticated browser request executes one bounded batch' );
 verify( false === strpos( $watch_handler, 'browser_batch_due' ), 'Browser worker never waits for WP-Cron due timestamp' );
 verify( false !== strpos( $watch_handler, 'batch_processed' ), 'Chaining receives actual batch progress' );
+verify( false !== strpos( $watch_handler, "wp_create_nonce( 'taxocommerce_auditor_watch' )" ), 'Long scans renew authenticated AJAX nonce' );
 verify( false !== strpos( $admin, "self::guard();" ), 'Browser recovery checks administrator capabilities' );
 $browser = file_get_contents( dirname( __DIR__ ) . '/assets/admin-watch.js' );
 verify( false !== strpos( $browser, 'nextDelay = Math.min(60000,' ), 'Failed AJAX requests back off' );
