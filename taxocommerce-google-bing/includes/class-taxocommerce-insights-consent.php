@@ -398,15 +398,15 @@ final class TaxoCommerce_Insights_Consent {
             echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Antes de activar, revisa el texto legal y añade una URL válida de política de cookies.', 'taxocommerce-google-bing' ) . '</p></div>';
         } elseif ( 'imported' === $notice ) {
             echo '<div class="notice notice-success inline"><p>' .
-                esc_html__( 'JSON importado correctamente. Los textos se han guardado en wp_options y ya aparecen en el formulario. El banner continúa desactivado y la revisión legal sigue pendiente.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'Configuración JSON restaurada en wp_options: textos, páginas legales y casillas. La activación del banner sigue exactamente el estado restaurado tras las verificaciones de seguridad.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         } elseif ( 'import_unchanged' === $notice ) {
             echo '<div class="notice notice-info inline"><p>' .
                 esc_html__( 'El JSON es válido, pero no contiene cambios respecto a los valores actuales.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
-        } elseif ( 'import_active' === $notice ) {
+        } elseif ( 'import_review_required' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
-                esc_html__( 'No se puede importar mientras el banner esté activo o los textos consten como revisados. Desactiva el banner y desmarca la revisión legal antes de importar.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'Para restaurar una revisión legal confirmada en el JSON, marca la confirmación de revisión de esta instalación junto al botón Importar.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         } elseif ( 'import_failed' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
@@ -414,9 +414,10 @@ final class TaxoCommerce_Insights_Consent {
                 '</p></div>';
         } elseif ( 'import_invalid' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
-                esc_html__( 'JSON no válido: debe ser un archivo .json de hasta 64 KB, con 5 idiomas y los 13 campos de texto de cada idioma. Solo se admite una URL HTTPS.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'No se pudo restaurar el JSON: comprueba el formato (5 idiomas y 13 campos), las URL HTTPS y, si se solicita activar el banner, que estén publicadas y bien asociadas las cinco políticas de cookies.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         }
+        TaxoCommerce_Insights_Consent_Seed::render_export_link();
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tci_consent_save">';
         wp_nonce_field( self::NONCE );
@@ -476,7 +477,6 @@ final class TaxoCommerce_Insights_Consent {
         echo '<p class="description">' . esc_html__( 'Los textos se guardan en wp_options y las decisiones en una tabla SQL persistente. Desactivar o desinstalar el plugin no elimina las evidencias. Las preferencias del navegador se guardan durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( __( 'Guardar textos y consentimientos', 'taxocommerce-google-bing' ) );
         echo '</form>';
-        TaxoCommerce_Insights_Consent_Seed::render_export_link();
         echo '</div>';
         TaxoCommerce_Insights_Consent_Ledger::render();
     }
