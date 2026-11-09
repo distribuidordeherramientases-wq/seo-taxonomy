@@ -414,8 +414,11 @@ final class TaxoCommerce_Insights_Consent_Seed {
         }
         $previous = get_option( TaxoCommerce_Insights_Consent::OPTION, false );
         $current = TaxoCommerce_Insights_Consent::settings();
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The import nonce is verified above.
-        $confirm_site_legal_review = ! empty( $_POST['tci_confirm_legal_review'] );
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- The import nonce is verified above.
+        $confirm_raw = isset( $_POST['tci_confirm_legal_review'] ) && is_string( $_POST['tci_confirm_legal_review'] )
+            ? sanitize_text_field( wp_unslash( $_POST['tci_confirm_legal_review'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+        $confirm_site_legal_review = '1' === $confirm_raw;
         if ( ! empty( $payload['legal_reviewed'] ) && ! $confirm_site_legal_review ) {
             self::import_redirect( 'import_review_required' );
         }
