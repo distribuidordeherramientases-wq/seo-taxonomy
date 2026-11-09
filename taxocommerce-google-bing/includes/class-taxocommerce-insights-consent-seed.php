@@ -186,7 +186,9 @@ final class TaxoCommerce_Insights_Consent_Seed {
             'legal_reviewed'      => 0,
             'revision'            => 0,
             'cookie_policy_url'   => '',
-            'cookie_policy_pages' => TaxoCommerce_Insights_Consent::policy_page_defaults(),
+            'cookie_policy_pages' => array_fill_keys(
+                array_keys( TaxoCommerce_Insights_Consent::policy_page_defaults() ), ''
+            ),
             'texts'               => $texts,
         );
     }
