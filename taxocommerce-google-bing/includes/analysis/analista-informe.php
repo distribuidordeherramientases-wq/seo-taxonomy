@@ -8,13 +8,11 @@
 defined('ABSPATH') || exit;
 
 
-if (!function_exists('seo_analista_enqueue_report_assets')) {
+if (!function_exists('taxocommerce_insights_enqueue_analysis_styles')) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
-    function seo_analista_enqueue_report_assets() {
+    function taxocommerce_insights_enqueue_analysis_styles() {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin asset routing.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
-        $tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : '';
-
         $tgb_tab = isset($_GET['tgb_tab']) ? sanitize_key(wp_unslash($_GET['tgb_tab'])) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ('taxocommerce-google-bing' !== $page || 'analysis' !== $tgb_tab) {
@@ -22,14 +20,14 @@ if (!function_exists('seo_analista_enqueue_report_assets')) {
         }
 
         wp_enqueue_style(
-            'seo-analista-informe',
+            'taxocommerce-insights-analysis',
             TAXOCOMMERCE_GOOGLE_BING_URL . 'includes/analysis/assets/analista-informe.css',
             array(),
             defined('TAXOCOMMERCE_GOOGLE_BING_VERSION') ? TAXOCOMMERCE_GOOGLE_BING_VERSION : null
         );
     }
 }
-add_action('admin_enqueue_scripts', 'seo_analista_enqueue_report_assets');
+add_action('admin_enqueue_scripts', 'taxocommerce_insights_enqueue_analysis_styles');
 
 if (!function_exists('seo_analista_metric_delta')) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
