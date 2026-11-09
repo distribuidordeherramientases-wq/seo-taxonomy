@@ -23,6 +23,12 @@ function sanitize_text_field( $value ) { return trim( strip_tags( (string) $valu
 function get_option( $name, $default = false ) { return $GLOBALS['tca_options'][ $name ] ?? $default; }
 function update_option( $name, $value ) {
     ++$GLOBALS['tca_written'];
+    // The isolated WordPress option stub must persist an administrator's
+    // workload setting, just as update_option() does on a real site.
+    if ( 'taxocommerce_auditor_workload' === $name ) {
+        $GLOBALS['tca_options'][ $name ] = $value;
+        return true;
+    }
     return false;
 }
 function current_time( $format, $gmt = false ) { return '2026-10-31 22:30:00'; }

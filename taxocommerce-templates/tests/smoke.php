@@ -258,6 +258,20 @@ if ( is_file( $legacy_cluster ) ) {
     // The request-local SQL cache has the same query result contract as wpdb.
     // Normalize its method name only for this legacy source-equivalence check.
     $normalized_cluster = str_replace( 'TCT_DB::get_col(', '$wpdb->get_col(', $normalized_cluster );
+    // Modular international templates now contain optional consent/footer
+    // links that did not exist in the legacy monolith. Their presence is
+    // intentional; normalize only those two additions in the parity test.
+    tct_assert( false !== strpos( $cluster_view, "require_once __DIR__ . '/template-cookie-footer.php';" )
+        && false !== strpos( $cluster_view, 'dht_template_render_cookie_footer_links( $market );' ),
+        'International privacy links remain present in the modular renderer.' );
+    $normalized_cluster = str_replace(
+        array(
+            "require_once __DIR__ . '/template-cookie-footer.php';" . "\n",
+            '<?php dht_template_render_cookie_footer_links( $market ); ?>' . "\n",
+        ),
+        '',
+        $normalized_cluster
+    );
     tct_assert( file_get_contents( $legacy_cluster ) === $normalized_cluster,
         'Legacy and modular international cluster renderers must match except for the stylesheet version.' );
 }

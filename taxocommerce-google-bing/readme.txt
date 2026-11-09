@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.31
+Stable tag: 1.1.33
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,6 +56,14 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.33 =
+* Complete JSON roundtrip for consent settings: 65 translated fields, five country-specific WordPress legal page slugs, browser banner and legal review flags. Backups are portable between staging and production without changing page IDs; legal review and five published country-matched policy pages are required before enabling tracking.
+
+
+= 1.1.32 =
+* Consentimientos: downloadable JSON with current settings, blank template (65 text fields in ES/EN/FR/DE/NL), and secure JSON upload to populate the form and save into wp_options. Strict schema, nonce, administrator permission, HTTPS URL, rollback backup and legal revision. JSON never activates banner or confirms legal review.
+
 
 = 1.1.31 =
 * One-time safe import of 65 consent form strings (ES/EN/FR/DE/NL) from bundled JSON into WordPress wp_options, with backup and a secure JSON export action. Preserves custom edits, does not activate tracking or approve legal review.
@@ -205,3 +213,7 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 == External Services ==
 
 Optional: if an administrator enters an HTTPS URL to an official WordPress page, the plugin requests that site's public `/wp-json/wp/v2/pages` endpoint with the page slug to read only its published excerpt and link. No visitor identity or credentials are submitted. A 12-hour cache (15 minutes after failure) avoids repeated requests. The administrator chooses and should review the source site's privacy policy and terms. No provider is configured by default.
+
+== Official excerpt ==
+
+The optional admin information panel defaults to this plugin's `Plugin URI`, a public project page. Only its published excerpt is retrieved via safe WordPress REST HTTPS and cached locally. Administrators may override or explicitly clear the URL to disable requests. No network dependency for core functionality.

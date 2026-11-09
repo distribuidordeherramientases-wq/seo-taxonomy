@@ -1,3 +1,8 @@
+## [0.3.12] — 2026-11-08 — Extracto dinámico desde la página oficial (#2443)
+
+- La cabecera obtiene el excerpt de la página oficial definida por Plugin URI, sin copiar textos al plugin ni depender de Core. Puede personalizarse o desactivarse desde cada instalación.
+- Corregida la lectura/sanitización del URL y la compatibilidad de los chequeos estáticos. Caché y fallback cuando la fuente no responde. Historial CHANGELOG.md intacto.
+
 ## [0.3.11] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
 
 - Desplegable izquierdo para obtener el extracto público de una página WordPress oficial, únicamente cuando el administrador configura su URL HTTPS, con enlace a la ficha de origen.

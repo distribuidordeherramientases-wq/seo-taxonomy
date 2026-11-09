@@ -15,7 +15,7 @@ return new class() {
     }
 
     private function action_name( $slug ) {
-        return 'tc_save_official_page_' . str_replace( '-', '_', sanitize_key( $slug ) );
+        return 'tc_save_official_page_' . preg_replace( '/[^a-z0-9_]/', '', str_replace( '-', '_', strtolower( $slug ) ) );
     }
 
     public function register( $slug ) {
@@ -35,7 +35,7 @@ return new class() {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
         $submitted = isset( $_POST['tc_official_url'] ) && is_string( $_POST['tc_official_url'] )
-            ? trim( wp_unslash( $_POST['tc_official_url'] ) ) : '';
+            ? trim( sanitize_text_field( wp_unslash( $_POST['tc_official_url'] ) ) ) : '';
         $url = $submitted ? esc_url_raw( $submitted, array( 'https' ) ) : '';
         $parts = $url ? wp_parse_url( $url ) : array();
         if ( $submitted && ( ! is_array( $parts )
@@ -129,8 +129,19 @@ return new class() {
 
     public function render( $slug, $locale ) {
         $words = $this->labels( $locale );
-        $page = get_option( $this->option_name( $slug ), '' );
-        $page = is_string( $page ) ? esc_url_raw( $page, array( 'https' ) ) : '';
+        // A plugin's own Plugin URI is its canonical documentation page, not a
+        // dependency on TaxoCommerce Core or a store-specific configuration.
+        // Explicitly saving an empty option disables the external excerpt.
+        $saved_page = get_option( $this->option_name( $slug ), null );
+        $default_page = '';
+        $plugin_file = dirname( __DIR__ ) . '/' . basename( dirname( __DIR__ ) ) . '.php';
+        if ( null === $saved_page && is_readable( $plugin_file ) ) {
+            $headers = get_file_data( $plugin_file, array( 'uri' => 'Plugin URI' ), 'plugin' );
+            $default_page = isset( $headers['uri'] ) && is_string( $headers['uri'] )
+                ? $headers['uri'] : '';
+        }
+        $page = is_string( $saved_page ) ? $saved_page : $default_page;
+        $page = $page ? esc_url_raw( $page, array( 'https' ) ) : '';
         $excerpt = $page ? $this->excerpt( $page ) : '';
 
         echo '<details class="tc-family-info">';
