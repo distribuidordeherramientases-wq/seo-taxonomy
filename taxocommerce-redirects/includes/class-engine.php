@@ -46,11 +46,26 @@ final class Engine {
      * @return mixed
      */
     public static function claim_opnv_redirects( $owner ) {
+        if ( '' !== self::external_owner() ) {
+            return $owner; // The admin gave redirects to another plugin.
+        }
         if ( '1' !== (string) get_option( 'tc_redirects_schema_ready', '' ) || ! Store::table_exists() ) {
             return $owner;
         }
 
         return 'taxocommerce';
+    }
+
+    /**
+     * Another plugin serving redirects by the admin's choice, asked through
+     * `taxocommerce_redirects_owner` (OPNV answers 'opnv' when chosen there).
+     *
+     * @return string '' when this plugin serves redirects, otherwise the owner id.
+     */
+    public static function external_owner() {
+        $owner = sanitize_key( (string) apply_filters( 'taxocommerce_redirects_owner', 'taxocommerce' ) );
+
+        return ( '' === $owner || 'taxocommerce' === $owner ) ? '' : $owner;
     }
 
     public static function disable_legacy_runtime() {
@@ -69,6 +84,9 @@ final class Engine {
     }
 
     public static function maybe_redirect() {
+        if ( '' !== self::external_owner() ) {
+            return;
+        }
         if ( is_admin() || wp_doing_ajax() || wp_doing_cron()
             || ( defined( 'REST_REQUEST' ) && REST_REQUEST )
             || ( defined( 'WP_CLI' ) && WP_CLI ) ) {

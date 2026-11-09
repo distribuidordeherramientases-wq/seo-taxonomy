@@ -19,6 +19,10 @@ namespace {
     function add_action( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks'][ $name ][] = $callback; }
     function add_filter( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks'][ $name ][] = $callback; }
     function get_option( $name, $default = false ) { return $GLOBALS['options'][ $name ] ?? $default; }
+    function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) ); }
+    $GLOBALS['tc_owner'] = 'taxocommerce';
+    function apply_filters( $name, $value ) { return 'taxocommerce_redirects_owner' === $name ? $GLOBALS['tc_owner'] : $value; }
+    function is_admin() { throw new RuntimeException( 'An external owner must return before inspecting the request.' ); }
     function owner_now() {
         $owner = 'opnv';
         foreach ( $GLOBALS['hooks']['opnv_redirects_owner'] ?? array() as $cb ) { $owner = call_user_func( $cb, $owner ); }
@@ -44,6 +48,14 @@ namespace {
     check_redirect_owner( 'taxocommerce' === owner_now(), 'Claims redirects once storage is ready' );
     $slug();
     check_redirect_owner( array( array( '/viejo/', '/nuevo/', 301 ) ) === $GLOBALS['saved'], 'Slug changes from OPNV are stored here once claimed' );
+
+    // The admin chose OPNV for redirects: this engine stands down and claims nothing.
+    $GLOBALS['tc_owner'] = 'opnv';
+    check_redirect_owner( 'opnv' === \TaxoCommerce\Redirects\Engine::external_owner(), 'Admin choice of another owner is seen' );
+    check_redirect_owner( 'opnv' === owner_now(), 'No claim when the admin chose OPNV' );
+    \TaxoCommerce\Redirects\Engine::maybe_redirect(); // Must return before is_admin().
+    $GLOBALS['saved'] = array(); $slug();
+    check_redirect_owner( array() === $GLOBALS['saved'], 'Slug changes are not stored here when OPNV owns redirects' );
 
     echo "OPNV redirects owner: PASS\n";
 }
