@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.33
+Stable tag: 1.1.34
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,8 +57,13 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
+= 1.1.34 =
+* Restore the white/blue Analysis dashboard styles independently of the legacy SEO Analista callback; preserve all consent JSON settings of 1.1.33.
+
+
 = 1.1.33 =
-* Fix Analysis/Resumen styling when the former SEO Analista is also loaded: local CSS has an independent callback and WordPress handle. Restores white cards, blue unfilled lines and responsive chart layouts without changing reporting data.
+* Complete JSON roundtrip for consent settings: 65 translated fields, five country-specific WordPress legal page slugs, browser banner and legal review flags. Backups are portable between staging and production without changing page IDs; legal review and five published country-matched policy pages are required before enabling tracking.
+
 
 = 1.1.32 =
 * Consentimientos: downloadable JSON with current settings, blank template (65 text fields in ES/EN/FR/DE/NL), and secure JSON upload to populate the form and save into wp_options. Strict schema, nonce, administrator permission, HTTPS URL, rollback backup and legal revision. JSON never activates banner or confirms legal review.

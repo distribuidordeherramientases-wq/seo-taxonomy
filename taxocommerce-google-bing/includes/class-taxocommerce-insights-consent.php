@@ -13,6 +13,86 @@ final class TaxoCommerce_Insights_Consent {
     const NONCE = 'tci_consent_save';
     const DAYS = 180;
 
+    /** Stable slugs travel safely between STAGING, Focazul and production. */
+    public static function policy_page_defaults() {
+        return array(
+            'ES' => 'politica-de-cookies',
+            'US' => 'cookie-policy-us',
+            'FR' => 'politique-de-cookies-fr',
+            'DE' => 'cookie-richtlinie-de',
+            'NL' => 'cookiebeleid-nl',
+        );
+    }
+
+    /** Do not infer an international market from WordPress' admin language. */
+    public static function market() {
+        $supported = self::policy_page_defaults();
+        foreach ( array( 'dht_cookie_policy_market', 'dht_pilot_market_active', 'dht_pilot_market' ) as $key ) {
+            $value = strtoupper( (string) ( $GLOBALS[ $key ] ?? '' ) );
+            if ( isset( $supported[ $value ] ) ) {
+                return $value;
+            }
+        }
+        if ( function_exists( 'get_queried_object_id' ) ) {
+            $id = (int) get_queried_object_id();
+            if ( $id > 0 ) {
+                $value = strtoupper( trim( (string) get_post_meta( $id, '_seo_pais_origen', true ) ) );
+                if ( isset( $supported[ $value ] ) ) {
+                    return $value;
+                }
+            }
+        }
+        if ( class_exists( 'TCT_Pilot_Router', false ) && method_exists( 'TCT_Pilot_Router', 'market_for_request' ) ) {
+            $value = strtoupper( (string) TCT_Pilot_Router::market_for_request() );
+            if ( isset( $supported[ $value ] ) ) {
+                return $value;
+            }
+        }
+        return 'ES';
+    }
+
+    /** Resolve only a published WordPress page from the matching market. */
+    public static function policy_url_for_market( $market, $config = null ) {
+        $market = strtoupper( (string) $market );
+        if ( ! isset( self::policy_page_defaults()[ $market ] ) ) {
+            return '';
+        }
+        $config = is_array( $config ) ? $config : self::settings();
+        $page_map = isset( $config['cookie_policy_pages'] ) && is_array( $config['cookie_policy_pages'] )
+            ? $config['cookie_policy_pages'] : self::policy_page_defaults();
+        $slug = isset( $page_map[ $market ] ) && is_string( $page_map[ $market ] )
+            ? sanitize_title( $page_map[ $market ] ) : '';
+        if ( '' !== $slug && function_exists( 'get_page_by_path' ) ) {
+            $page = get_page_by_path( $slug, OBJECT, 'page' );
+            if ( $page instanceof WP_Post && 'publish' === $page->post_status
+                && $market === strtoupper( trim( (string) get_post_meta( $page->ID, '_seo_pais_origen', true ) ) ) ) {
+                $url = get_permalink( $page );
+                if ( is_string( $url ) && '' !== $url && ! is_wp_error( $url ) ) {
+                    return $url;
+                }
+            }
+        }
+        // Older Spanish installations may still use the single explicit URL.
+        if ( 'ES' === $market && ! empty( $config['cookie_policy_url'] ) ) {
+            return (string) $config['cookie_policy_url'];
+        }
+        return '';
+    }
+
+    /** A new opt-in cannot be enabled unless all five legal pages are published. */
+    public static function policies_ready( $config ) {
+        // A newly restored banner requires all five real, published pages.
+        // The legacy Spanish global URL must not satisfy this activation gate.
+        $local = is_array( $config ) ? $config : array();
+        $local['cookie_policy_url'] = '';
+        foreach ( array_keys( self::policy_page_defaults() ) as $market ) {
+            if ( '' === self::policy_url_for_market( $market, $local ) ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static function languages() {
         return array(
             'es' => 'Español',
@@ -115,6 +195,7 @@ final class TaxoCommerce_Insights_Consent {
             'legal_reviewed' => 0,
             'revision' => 1,
             'cookie_policy_url' => '',
+            'cookie_policy_pages' => self::policy_page_defaults(),
             'texts' => $texts,
         );
     }
@@ -142,6 +223,10 @@ final class TaxoCommerce_Insights_Consent {
         $saved = is_array( $saved ) ? $saved : array();
         $defaults = self::defaults();
         $config = wp_parse_args( $saved, $defaults );
+        $config['cookie_policy_pages'] = wp_parse_args(
+            is_array( $config['cookie_policy_pages'] ?? null ) ? $config['cookie_policy_pages'] : array(),
+            self::policy_page_defaults()
+        );
         $config['texts'] = is_array( $config['texts'] ) ? $config['texts'] : array();
         foreach ( array_keys( self::languages() ) as $lang ) {
             $row = isset( $config['texts'][ $lang ] ) && is_array( $config['texts'][ $lang ] )
@@ -152,6 +237,11 @@ final class TaxoCommerce_Insights_Consent {
     }
 
     public static function language() {
+        $markets = array( 'US' => 'en', 'FR' => 'fr', 'DE' => 'de', 'NL' => 'nl' );
+        $market = self::market();
+        if ( isset( $markets[ $market ] ) ) {
+            return $markets[ $market ];
+        }
         $locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
         $code = strtolower( substr( (string) $locale, 0, 2 ) );
         $languages = self::languages();
@@ -183,7 +273,7 @@ final class TaxoCommerce_Insights_Consent {
     public static function active() {
         $cfg = self::settings();
         return ! empty( $cfg['enabled'] ) && ! empty( $cfg['legal_reviewed'] )
-            && ! empty( $cfg['cookie_policy_url'] );
+            && '' !== self::policy_url_for_market( self::market(), $cfg );
     }
 
     public static function has_consent( $category ) {
@@ -263,9 +353,23 @@ final class TaxoCommerce_Insights_Consent {
         }
         $policy_url = isset( $_POST['cookie_policy_url'] ) && is_string( $_POST['cookie_policy_url'] )
             ? esc_url_raw( wp_unslash( $_POST['cookie_policy_url'] ) ) : '';
+        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Array is immediately unslashed and each validated slug is sanitized below.
+        $posted_pages = isset( $_POST['cookie_policy_pages'] ) && is_array( $_POST['cookie_policy_pages'] )
+            ? wp_unslash( $_POST['cookie_policy_pages'] ) : array();
+        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        $pages = array();
+        foreach ( self::policy_page_defaults() as $market => $default_slug ) {
+            $raw_slug = $posted_pages[ $market ] ?? $default_slug;
+            $pages[ $market ] = is_string( $raw_slug )
+                ? sanitize_title( $raw_slug ) : $default_slug;
+        }
         $reviewed = ! empty( $_POST['legal_reviewed'] ) ? 1 : 0;
         $enabled = ! empty( $_POST['enabled'] ) ? 1 : 0;
-        if ( $enabled && ( ! $reviewed || '' === $policy_url ) ) {
+        $proposed = array(
+            'cookie_policy_pages' => $pages,
+            'cookie_policy_url' => $policy_url,
+        );
+        if ( $enabled && ( ! $reviewed || ! self::policies_ready( $proposed ) ) ) {
             wp_safe_redirect( self::url( 'review_required' ) );
             exit;
         }
@@ -273,6 +377,7 @@ final class TaxoCommerce_Insights_Consent {
             'enabled' => $enabled,
             'legal_reviewed' => $reviewed,
             'cookie_policy_url' => $policy_url,
+            'cookie_policy_pages' => $pages,
             'texts' => $texts,
             // A change to legal wording or purpose requires a new affirmative choice.
             'revision' => max( 1, (int) $old['revision'] + 1 ),
@@ -300,15 +405,15 @@ final class TaxoCommerce_Insights_Consent {
             echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Antes de activar, revisa el texto legal y añade una URL válida de política de cookies.', 'taxocommerce-google-bing' ) . '</p></div>';
         } elseif ( 'imported' === $notice ) {
             echo '<div class="notice notice-success inline"><p>' .
-                esc_html__( 'JSON importado correctamente. Los textos se han guardado en wp_options y ya aparecen en el formulario. El banner continúa desactivado y la revisión legal sigue pendiente.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'Configuración JSON restaurada en wp_options: textos, páginas legales y casillas. La activación del banner sigue exactamente el estado restaurado tras las verificaciones de seguridad.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         } elseif ( 'import_unchanged' === $notice ) {
             echo '<div class="notice notice-info inline"><p>' .
                 esc_html__( 'El JSON es válido, pero no contiene cambios respecto a los valores actuales.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
-        } elseif ( 'import_active' === $notice ) {
+        } elseif ( 'import_review_required' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
-                esc_html__( 'No se puede importar mientras el banner esté activo o los textos consten como revisados. Desactiva el banner y desmarca la revisión legal antes de importar.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'Para restaurar una revisión legal confirmada en el JSON, marca la confirmación de revisión de esta instalación junto al botón Importar.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         } elseif ( 'import_failed' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
@@ -316,9 +421,10 @@ final class TaxoCommerce_Insights_Consent {
                 '</p></div>';
         } elseif ( 'import_invalid' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' .
-                esc_html__( 'JSON no válido: debe ser un archivo .json de hasta 64 KB, con 5 idiomas y los 13 campos de texto de cada idioma. Solo se admite una URL HTTPS.', 'taxocommerce-google-bing' ) .
+                esc_html__( 'No se pudo restaurar el JSON: comprueba el formato (5 idiomas y 13 campos), las URL HTTPS y, si se solicita activar el banner, que estén publicadas y bien asociadas las cinco políticas de cookies.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
         }
+        TaxoCommerce_Insights_Consent_Seed::render_export_link();
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="tci_consent_save">';
         wp_nonce_field( self::NONCE );
@@ -327,6 +433,25 @@ final class TaxoCommerce_Insights_Consent {
         echo '<p><label for="tci-policy"><strong>' . esc_html__( 'URL de la política de cookies', 'taxocommerce-google-bing' ) . '</strong></label><br>';
         echo '<input id="tci-policy" class="large-text" type="url" name="cookie_policy_url" value="' . esc_attr( $cfg['cookie_policy_url'] ) . '" placeholder="https://ejemplo.es/politica-de-cookies/"></p>';
         echo '<p class="description">' . esc_html__( 'La política debe identificar los proveedores, las finalidades y los periodos de conservación reales. Los textos iniciales son ejemplos que el titular de la web debe revisar.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<fieldset style="padding:12px;border:1px solid #dcdcde;margin:14px 0"><legend><strong>'
+            . esc_html__( 'Páginas de política de cookies por país', 'taxocommerce-google-bing' ) . '</strong></legend>';
+        echo '<p class="description">' . esc_html__( 'Indica los slugs de las páginas creadas en WordPress. Los enlaces se resuelven automáticamente en cada sitio y solo se muestran si la página está publicada y pertenece al país.', 'taxocommerce-google-bing' ) . '</p>';
+        foreach ( self::policy_page_defaults() as $market => $default_slug ) {
+            $slug = (string) ( $cfg['cookie_policy_pages'][ $market ] ?? $default_slug );
+            $url = self::policy_url_for_market( $market, $cfg );
+            echo '<p><label for="tci-policy-' . esc_attr( strtolower( $market ) ) . '"><strong>'
+                . esc_html( $market ) . '</strong></label><br>';
+            echo '<input id="tci-policy-' . esc_attr( strtolower( $market ) ) . '" type="text" class="regular-text"'
+                . ' name="cookie_policy_pages[' . esc_attr( $market ) . ']" value="' . esc_attr( $slug ) . '"> ';
+            if ( $url ) {
+                echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">'
+                    . esc_html__( 'Página publicada', 'taxocommerce-google-bing' ) . '</a>';
+            } else {
+                echo '<span class="description">' . esc_html__( 'Pendiente de publicación o de asociación al país', 'taxocommerce-google-bing' ) . '</span>';
+            }
+            echo '</p>';
+        }
+        echo '</fieldset>';
         $current = self::language();
         foreach ( self::languages() as $lang => $name ) {
             echo '<details style="margin:14px 0;padding:12px;border:1px solid #dcdcde;border-radius:4px"' . ( $lang === $current ? ' open' : '' ) . '>';
@@ -359,7 +484,6 @@ final class TaxoCommerce_Insights_Consent {
         echo '<p class="description">' . esc_html__( 'Los textos se guardan en wp_options y las decisiones en una tabla SQL persistente. Desactivar o desinstalar el plugin no elimina las evidencias. Las preferencias del navegador se guardan durante 180 días.', 'taxocommerce-google-bing' ) . '</p>';
         submit_button( __( 'Guardar textos y consentimientos', 'taxocommerce-google-bing' ) );
         echo '</form>';
-        TaxoCommerce_Insights_Consent_Seed::render_export_link();
         echo '</div>';
         TaxoCommerce_Insights_Consent_Ledger::render();
     }
@@ -450,7 +574,11 @@ final class TaxoCommerce_Insights_Consent {
                 . esc_html( $t[ $category ] ) . '</label></p>';
         }
         echo '<p><button type="button" class="tci-consent-btn" data-tci-consent="save">' . esc_html( $t['save'] ) . '</button></p></div>';
-        echo '<p><a href="' . esc_url( $settings['cookie_policy_url'] ) . '" rel="noopener noreferrer">' . esc_html( $t['policy'] ) . '</a></p>';
+        $policy_url = self::policy_url_for_market( self::market(), $settings );
+        if ( $policy_url ) {
+            echo '<p><a href="' . esc_url( $policy_url ) . '" rel="noopener noreferrer">'
+                . esc_html( $t['policy'] ) . '</a></p>';
+        }
         echo '</aside>';
         echo '<button id="tci-consent-reopen" class="tci-consent-reopen" type="button">' . esc_html( $t['reopen'] ) . '</button>';
     }

@@ -1,8 +1,17 @@
-## [1.1.33] — 2026-11-09 — Restaurar diseño de Análisis/Resumen (#2470)
+## [1.1.34] — 2026-11-09 — Restaurar diseño blanco y azul de Análisis/Resumen (#2470)
 
-- Evita la colisión de `seo_analista_enqueue_report_assets` con el módulo SEO anterior: Insights registra un callback propio que carga únicamente su CSS en su pestaña Analysis.
-- Recupera tarjetas blancas, gráficas SVG azules sin relleno y diseño adaptable sin modificar datos, AJAX, credenciales ni estadísticas.
-- Refuerza el test de regresión autónomo de recursos y reglas de presentación.
+- Evita la colisión del callback legacy `seo_analista_enqueue_report_assets`: Insights emplea el callback y handle CSS propios `taxocommerce_insights_enqueue_analysis_styles` / `taxocommerce-insights-analysis`.
+- Recupera tarjetas blancas y gráficos SVG azules sin modificar consentimientos, credenciales ni datos analíticos.
+- Incluye regresión autónoma para la convivencia con el antiguo analista.
+
+## [1.1.33] — 2026-11-09 — Copia y restauración completa de Consentimientos mediante JSON (#2468)
+
+- Exportar JSON del estado real y restaurar todos los valores de configuración en wp_options: 65 cadenas ES/EN/FR/DE/NL, casillas enabled y legal_reviewed, URL heredada y páginas por país (ES/US/FR/DE/NL) identificadas por slug para portabilidad entre WordPress.
+- Plantilla vacía no destructiva, compatibilidad con JSON anterior (schema 1) y formato completo de copia/restauración (schema 2, mode replace). JSON preparado para importar sin teclear: config/consent-settings-complete-20261109.json (65 cadenas y cinco páginas por slug; banner desactivado mientras siguen en borrador).
+- El banner selecciona el idioma y la política correspondiente al país de la página. No enlaza políticas ajenas, en borrador o de otro país. El administrador puede comprobar el estado publicado de las cinco páginas desde Consentimientos.
+- El estado de activación y revisión legal del JSON puede restaurarse mediante importación del administrador; la revisión legal requiere confirmación expresa de este sitio y el banner no puede activarse sin las cinco políticas publicadas. Nunca se importan elecciones ni evidencias individuales de visitantes.
+- Versión del consentimiento incrementada al cambiar la configuración (no se reutiliza una revisión arbitraria del JSON); copia anterior en wp_options y archivo de versiones legales.
+- La zona Importar/Exportar aparece al inicio del formulario y cuenta con pruebas automáticas de restauración, cinco políticas, validaciones y bloqueo preventivo.
 
 ## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
 
