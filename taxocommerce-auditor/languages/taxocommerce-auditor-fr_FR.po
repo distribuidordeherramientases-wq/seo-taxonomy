@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Auditor 0.3.11\n"
+"Project-Id-Version: TaxoCommerce Auditor 0.3.12\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2647,3 +2647,31 @@ msgstr "Si WP-Cron ne traite pas les événements à temps, laissez l’onglet d
 #: includes/class-admin.php includes/class-manual.php
 msgid "La recuperación alternativa registra wp_ajax_taxocommerce_auditor_watch, exige manage_options y un nonce, verifica el cursor y la demora del ámbito, y procesa como máximo un lote por petición AJAX. WP-Cron mantiene el trabajo de fondo. La opción de bloqueo atómico taxocommerce_auditor_worker_{scope} evita ejecución concurrente con el cron; el monitor retrocede ante errores de red y muestra el último lote y siguiente evento. No ejecuta peticiones externas."
 msgstr "Le mécanisme de secours enregistre wp_ajax_taxocommerce_auditor_watch, exige manage_options et un nonce, vérifie le curseur et le délai de la section, et traite au maximum un lot par requête AJAX. WP-Cron reste le moteur en arrière-plan. Le verrou atomique taxocommerce_auditor_worker_{scope} empêche une exécution simultanée avec cron ; le moniteur ralentit en cas d’erreur réseau et affiche le dernier lot et le prochain événement. Aucun appel externe n’est effectué."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "WP-Cron está desactivado. La auditoría avanza desde esta pantalla; para continuar con ella cerrada necesitas un proceso programado en el servidor."
+msgstr "WP-Cron est désactivé. Cette page permet à l’audit de progresser ; pour continuer après sa fermeture, une tâche planifiée sur le serveur est nécessaire."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Ejecución encadenada: el siguiente lote se inicia automáticamente sin esperar a WP-Cron."
+msgstr "Exécution en chaîne : le lot suivant démarre automatiquement sans attendre WP-Cron."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Modo automático: cada lote lanza el siguiente desde esta pantalla sin esperar a WP-Cron. Mantén la pestaña abierta."
+msgstr "Mode automatique : chaque lot lance le suivant depuis cette page sans attendre WP-Cron. Gardez cet onglet ouvert."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid ". La auditoría avanza con lotes AJAX consecutivos mientras la pantalla esté abierta, sin esperar a WP-Cron. No reinicies un ámbito activo."
+msgstr ". L’audit progresse par lots AJAX successifs tant que cette page reste ouverte, sans attendre WP-Cron. Ne redémarrez pas une section active."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Mantén abierta la pestaña para ejecutar automáticamente cada lote tras la respuesta del anterior. Los cinco niveles controlan tamaño de lote, tiempo máximo por petición y pausa entre peticiones; no representan un porcentaje exacto de CPU. Si el navegador se cierra o el móvil suspende la pestaña, solo podrá continuar un trabajador de fondo configurado en el servidor. Action Scheduler pertenece a WooCommerce y no gobierna Auditor."
+msgstr "Gardez l’onglet ouvert afin que chaque lot soit exécuté automatiquement après la réponse du précédent. Les cinq niveaux règlent la taille des lots, la durée maximale des requêtes et la pause entre elles ; ils ne correspondent pas à un pourcentage exact du processeur. Si le navigateur se ferme ou si le mobile suspend l’onglet, seul un processus serveur configuré pourra poursuivre le travail. Action Scheduler appartient à WooCommerce et ne pilote pas Auditor."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "La pantalla registra wp_ajax_taxocommerce_auditor_watch, exige manage_options y un nonce, ejecuta como máximo un lote por petición AJAX y programa la siguiente solo después de recibir la respuesta; no consulta el vencimiento de WP-Cron. La pausa entre respuestas depende de Workload::client_delay_ms(), además del límite de objetos y tiempo del motor. La opción taxocommerce_auditor_worker_{scope} evita concurrencia con el cron auxiliar, y los fallos de red se reintentan con espera creciente. No solicita servicios externos."
+msgstr "La page enregistre wp_ajax_taxocommerce_auditor_watch, exige manage_options et un nonce, exécute au maximum un lot par requête AJAX et ne planifie la suivante qu’après réception de la réponse ; elle ne vérifie pas l’échéance de WP-Cron. La pause entre réponses dépend de Workload::client_delay_ms(), en plus des limites de volume et de temps du moteur. L’option taxocommerce_auditor_worker_{scope} évite la concurrence avec le cron auxiliaire, et les erreurs réseau sont réessayées avec un délai croissant. Aucun service externe n’est sollicité."
+
+#: includes/class-admin.php includes/class-manual.php
+msgid "Un Auto Test satisfactorio significa que los componentes y contratos están disponibles; no sustituye una auditoría completa de prueba ni verifica que se puedan exportar y recuperar datos desde el filesystem real. Para anomalías: verifica permisos, respuesta de admin-ajax.php, nonce, límites de alojamiento, instalación de WooCommerce, espacio para el JSONL y errores PHP. WP-Cron solo es necesario si se desea continuar con la pestaña cerrada. Si falla una fuente opcional de FAQs, consulta las dependencias antes de modificar código."
+msgstr "Un Auto Test réussi confirme la disponibilité des composants et des contrats ; il ne remplace pas un audit de test complet et ne vérifie pas les exportations réelles sur le système de fichiers. En cas d’anomalie, vérifiez les droits, la réponse de admin-ajax.php, le nonce, les limites de l’hébergement, WooCommerce, l’espace JSONL et les erreurs PHP. WP-Cron n’est nécessaire que si le traitement doit continuer après la fermeture de l’onglet. En cas d’échec d’une source FAQ facultative, vérifiez ses dépendances avant de modifier le code."
