@@ -56,6 +56,17 @@ foreach ( $template['texts'] as $lang => $fields ) {
     }
 }
 assert_json( $template === $io::parse_import( json_encode( $template ) ), 'Template re-imports unchanged' );
+$prepared_file = dirname( __DIR__ ) . '/config/consent-settings-complete-20261109.json';
+$prepared = $io::parse_import( file_get_contents( $prepared_file ) );
+assert_json( is_array( $prepared ) && 2 === $prepared['schema']
+    && 'replace' === $prepared['mode'], 'Ready-to-import full JSON valid' );
+assert_json( count( $prepared['texts'] ) === 5
+    && count( $prepared['cookie_policy_pages'] ) === 5, 'Prepared JSON contains all countries and texts' );
+foreach ( $prepared['texts'] as $language => $fields ) {
+    foreach ( $fields as $field => $value ) {
+        assert_json( '' !== trim( $value ), 'Prepared JSON complete: ' . $language . '/' . $field );
+    }
+}
 $seed = $io::seed();
 assert_json( is_array( $seed ) && is_array( $io::parse_import( json_encode( $seed ) ) ), 'Legacy v1 seed accepted' );
 $legacy = $io::parse_import( json_encode( $seed ) );
