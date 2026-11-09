@@ -46,6 +46,9 @@ assert_json( 0 === $template['enabled'] && 0 === $template['legal_reviewed']
     && '' === $template['cookie_policy_url'], 'Disabled blank template' );
 assert_json( count( $template['texts'] ) === 5, 'Five languages' );
 assert_json( count( $template['cookie_policy_pages'] ) === 5, 'Five country-linked legal pages' );
+foreach ( $template['cookie_policy_pages'] as $slug ) {
+    assert_json( '' === $slug, 'Blank country-page field is editable' );
+}
 foreach ( $template['texts'] as $lang => $fields ) {
     assert_json( 13 === count( $fields ), 'All 13 fields in ' . $lang );
     foreach ( $fields as $field => $value ) {
@@ -84,6 +87,10 @@ assert_json( $next['revision'] === 1, 'Old JSON revision is never trusted' );
 assert_json( $next['cookie_policy_pages'] === $con::policy_page_defaults(), 'Five mapped policies persist' );
 assert_json( $io::merge_import( $old, $io::parse_import( json_encode( $template ) ) ) === $old,
     'Blank template does not remove existing fields' );
+$custom = $old;
+$custom['cookie_policy_pages']['NL'] = 'cookiebeleid-custom';
+assert_json( $io::merge_import( $custom, $io::parse_import( json_encode( $template ) ) ) === $custom,
+    'Blank template retains custom country page reference' );
 
 // A complete export uses replace and faithfully restores all editable settings.
 $snapshot = array_merge( $old, array(
@@ -141,7 +148,7 @@ $GLOBALS['policy_markets'][ 23 ] = 'US';
 assert_json( ! $con::policies_ready( $active ), 'Wrong country metadata cannot be linked' );
 assert_json( false === $io::merge_import( $old, $active_payload, true ),
     'Import refuses a policy assigned to another country' );
-$GLOBALS['policy_markets'][ 23 ] = 'DE';
+$GLOBALS['policy_markets'][ 23 ] = 'FR';
 $enabled_before = $old;
 $enabled_before['enabled'] = 1;
 $enabled_before['legal_reviewed'] = 1;
