@@ -615,7 +615,11 @@ final class TaxoCommerce_Logistica_Auto_Test {
                     <?php if ( $before ) : ?>
                         <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-logistica' ); ?></strong> <?php echo esc_html( ( function_exists( 'wp_date' ) ? wp_date( 'd/m/Y H:i:s T', strtotime( (string) $before['date_utc'] ) ) : gmdate( 'd/m/Y H:i:s', strtotime( (string) $before['date_utc'] ) ) . ' UTC' ) ); ?></p>
                         <p><?php echo esc_html( (string) $before['date_utc'] . ' · v' . (string) $before['version'] ); ?></p>
-                        <p><?php echo esc_html( sprintf( __( '%1$d correctas · %2$d errores', 'taxocommerce-logistica' ), absint( $before['totals']['pass'] ), absint( $before['totals']['fail'] ) ) ); ?></p>
+                        <?php
+                        /* translators: 1: Number of passing checks, 2: number of failing checks. */
+                        $tc_log_pass_fail_format = __( '%1$d correctas · %2$d errores', 'taxocommerce-logistica' );
+                        ?>
+                        <p><?php echo esc_html( sprintf( $tc_log_pass_fail_format, absint( $before['totals']['pass'] ), absint( $before['totals']['fail'] ) ) ); ?></p>
                         <?php self::download_button( 'before', __( 'Descargar ANTES (JSON)', 'taxocommerce-logistica' ) ); ?>
                     <?php else : ?>
                         <p><?php esc_html_e( 'Todavía no hay referencia guardada.', 'taxocommerce-logistica' ); ?></p>
@@ -641,9 +645,17 @@ final class TaxoCommerce_Logistica_Auto_Test {
             <?php if ( $diff ) : ?>
                 <div class="tc-log-at-comparison" role="status">
                     <h3><?php esc_html_e( 'Comparación ANTES / DESPUÉS', 'taxocommerce-logistica' ); ?></h3>
-                    <p><?php echo esc_html( sprintf( __( 'Regresiones: %1$d · Corregidas: %2$d · Persistentes: %3$d · Cobertura perdida: %4$d · Pruebas nuevas: %5$d', 'taxocommerce-logistica' ), count( $diff['new_failures'] ), count( $diff['resolved'] ), count( $diff['existing_failures'] ), count( $diff['lost_coverage'] ), count( $diff['new_checks'] ) ) ); ?></p>
+                    <?php
+                    /* translators: 1: New regressions, 2: resolved issues, 3: existing issues, 4: lost coverage, 5: new tests. */
+                    $tc_log_diff_format = __( 'Regresiones: %1$d · Corregidas: %2$d · Persistentes: %3$d · Cobertura perdida: %4$d · Pruebas nuevas: %5$d', 'taxocommerce-logistica' );
+                    ?>
+                    <p><?php echo esc_html( sprintf( $tc_log_diff_format, count( $diff['new_failures'] ), count( $diff['resolved'] ), count( $diff['existing_failures'] ), count( $diff['lost_coverage'] ), count( $diff['new_checks'] ) ) ); ?></p>
                     <?php if ( $diff['new_failures'] || $diff['lost_coverage'] ) : ?>
-                        <p class="tc-log-at-danger"><?php echo esc_html( sprintf( __( 'Revisar: %s', 'taxocommerce-logistica' ), implode( ', ', array_unique( array_merge( $diff['new_failures'], $diff['lost_coverage'] ) ) ) ) ); ?></p>
+                        <?php
+                        /* translators: %s: Comma-separated list of regressions or lost test coverage. */
+                        $tc_log_review_format = __( 'Revisar: %s', 'taxocommerce-logistica' );
+                        ?>
+                        <p class="tc-log-at-danger"><?php echo esc_html( sprintf( $tc_log_review_format, implode( ', ', array_unique( array_merge( $diff['new_failures'], $diff['lost_coverage'] ) ) ) ) ); ?></p>
                     <?php endif; ?>
                 </div>
             <?php elseif ( $before && $latest ) : ?>
@@ -658,7 +670,13 @@ final class TaxoCommerce_Logistica_Auto_Test {
                 }
                 ?>
                 <details class="tc-log-at-group" <?php echo $failures || ! $latest ? 'open' : ''; ?>>
-                    <summary><?php echo esc_html( sprintf( __( '%1$s · %2$d pruebas%3$s', 'taxocommerce-logistica' ), $name, count( $subset ), $failures ? sprintf( __( ' · %d errores', 'taxocommerce-logistica' ), $failures ) : '' ) ); ?></summary>
+                    <?php
+                    /* translators: 1: Name of the test group, 2: Number of tests, 3: Optional suffix reporting failures. */
+                    $tc_log_group_format = __( '%1$s · %2$d pruebas%3$s', 'taxocommerce-logistica' );
+                    /* translators: %d: Number of failed tests in this group. */
+                    $tc_log_group_failure_format = __( ' · %d errores', 'taxocommerce-logistica' );
+                    ?>
+                    <summary><?php echo esc_html( sprintf( $tc_log_group_format, $name, count( $subset ), $failures ? sprintf( $tc_log_group_failure_format, $failures ) : '' ) ); ?></summary>
                     <div class="tc-log-at-group-actions"><?php self::run_button( $group, 'check', __( 'Comprobar grupo', 'taxocommerce-logistica' ) ); ?></div>
                     <?php foreach ( $subset as $id => $case ) : ?>
                         <?php $row = $rows[ $id ] ?? array( 'status'=>'not_run', 'message'=>__( 'No ejecutada.', 'taxocommerce-logistica' ) ); ?>

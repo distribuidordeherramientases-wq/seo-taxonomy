@@ -1,8 +1,9 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce Assistant
+ * Plugin URI: https://asociacionfocazul.com/taxocommerce-dependiente/
  * Description: Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates.
- * Version: 0.3.34
+ * Version: 0.3.35
  * Release Date: 2026-11-08
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -18,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Dependiente_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.34' );
+define( 'TAXOCOMMERCE_DEPENDIENTE_VERSION', '0.3.35' );
 define( 'TAXOCOMMERCE_DEPENDIENTE_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_DEPENDIENTE_PATH', plugin_dir_path( __FILE__ ) );
 

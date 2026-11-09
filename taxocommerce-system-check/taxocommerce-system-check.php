@@ -1,8 +1,9 @@
 <?php
 /**
  * Plugin Name: TaxoCommerce System Check
+ * Plugin URI: https://asociacionfocazul.com/taxocommerce-system-check/
  * Description: Independent WordPress, server and plugin diagnostics with local checks, reports and optional administrator notifications.
- * Version: 0.2.26
+ * Version: 0.2.27
  * Release Date: 2026-11-08
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -17,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/includes/admin-branding.php';
 
-define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.26' );
+define( 'TAXOCOMMERCE_SYSTEM_CHECK_VERSION', '0.2.27' );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SYSTEM_CHECK_URL', plugin_dir_url( __FILE__ ) );
@@ -231,12 +232,12 @@ function taxocommerce_system_check_enqueue_assets() {
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
     if ( 'taxocommerce-system-check' === $page
         && 'auto-test' === taxocommerce_system_check_active_tab() ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Navigation-only subtab.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only tab selectors; mutations require independent nonce checks.
         $section = isset( $_GET['tcs_subtab'] ) && is_scalar( $_GET['tcs_subtab'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_subtab'] ) ) : '';
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Legacy navigation-only tab.
         $legacy_tab = isset( $_GET['tcs_tab'] ) && is_scalar( $_GET['tcs_tab'] )
             ? sanitize_key( wp_unslash( $_GET['tcs_tab'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'code' === $section || 'code-check' === $legacy_tab ) {
         wp_enqueue_script(
             'taxocommerce-system-check-code-check',
