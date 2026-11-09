@@ -11,27 +11,27 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-dependiente.php
 msgid "TaxoCommerce Assistant"
-msgstr ""
+msgstr "TaxoCommerce Assistant"
 
 #. Description of the plugin
 #: taxocommerce-dependiente.php
 msgid ""
 "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic "
 "interpretation, L9 memory, and continuous updates."
-msgstr ""
+msgstr "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic interpretation, L9 memory, and continuous updates."
 
 #. Author of the plugin
 #: taxocommerce-dependiente.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "TaxoCommerce Sales Assistant"
-msgstr ""
+msgstr "TaxoCommerce Sales Assistant"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "Sales Assistant"
-msgstr ""
+msgstr "Sales Assistant"
 
 #: includes/class-tcd-admin.php:73
 msgid ""
@@ -43,31 +43,31 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:86
 msgid "Último lote:"
-msgstr ""
+msgstr "Último lote:"
 
 #: includes/class-tcd-admin.php:108
 msgid ""
 "Comprobación de solo lectura. No cambia el contenido de las FAQs ni el "
 "estado del aprendizaje."
-msgstr ""
+msgstr "Comprobación de solo lectura. No cambia el contenido de las FAQs ni el estado del aprendizaje."
 
 #: includes/class-tcd-admin.php:115
 msgid "Diagnóstico M11 · Intérprete"
-msgstr ""
+msgstr "Diagnóstico M11 · Intérprete"
 
 #: includes/class-tcd-admin.php:118
 msgid ""
 "Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola "
 "de procesos y el último error; no reinicies las lecciones L1–L10."
-msgstr ""
+msgstr "Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola de procesos y el último error; no reinicies las lecciones L1–L10."
 
 #: includes/class-tcd-admin.php:120
 msgid "Log independiente del Intérprete"
-msgstr ""
+msgstr "Log independiente del Intérprete"
 
 #: includes/class-tcd-admin.php:123
 msgid "Eventos recientes del proceso"
-msgstr ""
+msgstr "Eventos recientes del proceso"
 
 #: includes/class-tcd-admin.php:124
 msgid ""
@@ -78,23 +78,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:125
 msgid "Fecha (UTC)"
-msgstr ""
+msgstr "Fecha (UTC)"
 
 #: includes/class-tcd-admin.php:125
 msgid "Evento"
-msgstr ""
+msgstr "Evento"
 
 #: includes/class-tcd-admin.php:125
 msgid "Detalles"
-msgstr ""
+msgstr "Detalles"
 
 #: includes/class-tcd-admin.php:132
 msgid "Aún no hay eventos de Academia registrados."
-msgstr ""
+msgstr "Aún no hay eventos de Academia registrados."
 
 #: includes/class-tcd-admin.php:136
 msgid "Log bruto para diagnóstico"
-msgstr ""
+msgstr "Log bruto para diagnóstico"
 
 #: includes/class-tcd-admin.php:137
 msgid ""
@@ -111,19 +111,19 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:175
 msgid "La fuente sí se aprendió."
-msgstr ""
+msgstr "La fuente sí se aprendió."
 
 #: includes/class-tcd-admin.php:175
 msgid "El fallo corresponde al examen de recuperación/interpretación."
-msgstr ""
+msgstr "El fallo corresponde al examen de recuperación/interpretación."
 
 #: includes/class-tcd-admin.php:185
 msgid "Auditoría antigua o sin versión verificable:"
-msgstr ""
+msgstr "Auditoría antigua o sin versión verificable:"
 
 #: includes/class-tcd-admin.php:185
 msgid "este resultado no acredita el ranking actual."
-msgstr ""
+msgstr "este resultado no acredita el ranking actual."
 
 #: includes/class-tcd-admin.php:186
 msgid ""
@@ -133,11 +133,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:187
 msgid "No reinicies las diez lecciones."
-msgstr ""
+msgstr "No reinicies las diez lecciones."
 
 #: includes/class-tcd-admin.php:191
 msgid "Regresiones L9 examinadas con preguntas reconstruidas:"
-msgstr ""
+msgstr "Regresiones L9 examinadas con preguntas reconstruidas:"
 
 #: includes/class-tcd-admin.php:203
 msgid ""
@@ -156,23 +156,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:223 includes/class-tcd-admin.php:230
 msgid "Qué hacer"
-msgstr ""
+msgstr "Qué hacer"
 
 #: includes/class-tcd-admin.php:229
 msgid "Primeros casos que fallaron"
-msgstr ""
+msgstr "Primeros casos que fallaron"
 
 #: includes/class-tcd-admin.php:230
 msgid "Tipo / ID"
-msgstr ""
+msgstr "Tipo / ID"
 
 #: includes/class-tcd-admin.php:230
 msgid "Esperado"
-msgstr ""
+msgstr "Esperado"
 
 #: includes/class-tcd-admin.php:230
 msgid "Posición"
-msgstr ""
+msgstr "Posición"
 
 #: includes/class-tcd-admin.php:230
 msgid "Origen"
@@ -180,11 +180,11 @@ msgstr "Origen"
 
 #: includes/class-tcd-admin.php:230
 msgid "Por qué"
-msgstr ""
+msgstr "Por qué"
 
 #: includes/class-tcd-admin.php:254
 msgid "Intérprete original v1.2.0 · formación lingüística"
-msgstr ""
+msgstr "Intérprete original v1.2.0 · formación lingüística"
 
 #: includes/class-tcd-admin.php:255
 msgid ""
@@ -208,19 +208,19 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:281
 msgid "TaxoCommerce Dependiente"
-msgstr ""
+msgstr "TaxoCommerce Dependiente"
 
 #: includes/class-tcd-admin.php:330
 msgid "Dependiente utiliza un único flujo interno:"
-msgstr ""
+msgstr "Dependiente utiliza un único flujo interno:"
 
 #: includes/class-tcd-admin.php:330
 msgid "para aprender y evaluar el catálogo,"
-msgstr ""
+msgstr "para aprender y evaluar el catálogo,"
 
 #: includes/class-tcd-admin.php:330
 msgid "para construir y validar el Intérprete y"
-msgstr ""
+msgstr "para construir y validar el Intérprete y"
 
 #: includes/class-tcd-admin.php:330
 msgid "para mantener el conocimiento actualizado. Cada L1-L10 conserva una"
@@ -228,7 +228,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:330
 msgid "foto fija auditable"
-msgstr ""
+msgstr "foto fija auditable"
 
 #: includes/class-tcd-admin.php:330
 msgid ""
@@ -245,7 +245,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:342 includes/class-tcd-manual.php:323
 msgid "Umbrales de calidad por lección"
-msgstr ""
+msgstr "Umbrales de calidad por lección"
 
 #: includes/class-tcd-admin.php:343
 msgid ""
@@ -255,7 +255,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:350
 msgid "Guardar umbrales"
-msgstr ""
+msgstr "Guardar umbrales"
 
 #: includes/class-tcd-admin.php:351
 msgid ""
@@ -266,15 +266,15 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:359
 msgid "Prioridad de Dependiente"
-msgstr ""
+msgstr "Prioridad de Dependiente"
 
 #: includes/class-tcd-admin.php:361
 msgid "1 · Suave"
-msgstr ""
+msgstr "1 · Suave"
 
 #: includes/class-tcd-admin.php:363
 msgid "5 · Máxima"
-msgstr ""
+msgstr "5 · Máxima"
 
 #: includes/class-tcd-admin.php:366
 msgid ""
@@ -285,11 +285,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:367
 msgid "Guardar prioridad"
-msgstr ""
+msgstr "Guardar prioridad"
 
 #: includes/class-tcd-admin.php:425
 msgid "Detener"
-msgstr ""
+msgstr "Detener"
 
 #: includes/class-tcd-admin.php:425
 msgid "conserva la foto fija y el progreso. Si una lección falla calidad,"
@@ -297,7 +297,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:425
 msgid "Revisar correcciones y reevaluar"
-msgstr ""
+msgstr "Revisar correcciones y reevaluar"
 
 #: includes/class-tcd-admin.php:425
 msgid ""
@@ -307,7 +307,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:425
 msgid "Reiniciar"
-msgstr ""
+msgstr "Reiniciar"
 
 #: includes/class-tcd-admin.php:425
 msgid ""
@@ -317,27 +317,27 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:428
 msgid "Las diez lecciones"
-msgstr ""
+msgstr "Las diez lecciones"
 
 #: includes/class-tcd-admin.php:429 includes/class-tcd-manual.php:171
 msgid "Lección"
-msgstr ""
+msgstr "Lección"
 
 #: includes/class-tcd-admin.php:429 includes/class-tcd-manual.php:171
 msgid "Qué aprende"
-msgstr ""
+msgstr "Qué aprende"
 
 #: includes/class-tcd-admin.php:429
 msgid "Foto fija / progreso"
-msgstr ""
+msgstr "Foto fija / progreso"
 
 #: includes/class-tcd-admin.php:429
 msgid "Aprendidos"
-msgstr ""
+msgstr "Aprendidos"
 
 #: includes/class-tcd-admin.php:429
 msgid "No aprendidos"
-msgstr ""
+msgstr "No aprendidos"
 
 #: includes/class-tcd-admin.php:429
 msgid "Calidad"
@@ -345,7 +345,7 @@ msgstr "Calidad"
 
 #: includes/class-tcd-admin.php:429
 msgid "Auditoría"
-msgstr ""
+msgstr "Auditoría"
 
 #: includes/class-tcd-admin.php:482
 msgid ""
@@ -365,11 +365,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:548
 msgid "M11 · Intérprete original y M12 · Actualización"
-msgstr ""
+msgstr "M11 · Intérprete original y M12 · Actualización"
 
 #: includes/class-tcd-admin.php:549
 msgid "Módulo"
-msgstr ""
+msgstr "Módulo"
 
 #: includes/class-tcd-admin.php:549 includes/class-tcd-admin.php:558
 msgid "Estado"
@@ -381,7 +381,7 @@ msgstr "Resultado"
 
 #: includes/class-tcd-admin.php:550
 msgid "M11 · Lingüista original v1.2.0"
-msgstr ""
+msgstr "M11 · Lingüista original v1.2.0"
 
 #: includes/class-tcd-admin.php:555
 msgid ""
@@ -391,7 +391,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:556
 msgid "L11 · Fases de comprensión lingüística y evolución"
-msgstr ""
+msgstr "L11 · Fases de comprensión lingüística y evolución"
 
 #: includes/class-tcd-admin.php:557
 msgid ""
@@ -401,23 +401,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:558
 msgid "Fase"
-msgstr ""
+msgstr "Fase"
 
 #: includes/class-tcd-admin.php:558
 msgid "Progreso"
-msgstr ""
+msgstr "Progreso"
 
 #: includes/class-tcd-admin.php:558
 msgid "Aprendidas"
-msgstr ""
+msgstr "Aprendidas"
 
 #: includes/class-tcd-admin.php:558
 msgid "Rechazadas"
-msgstr ""
+msgstr "Rechazadas"
 
 #: includes/class-tcd-admin.php:572
 msgid "M12 · Feedback de clientes"
-msgstr ""
+msgstr "M12 · Feedback de clientes"
 
 #: includes/class-tcd-admin.php:582
 msgid ""
@@ -427,7 +427,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:585
 msgid "Asistente e integración"
-msgstr ""
+msgstr "Asistente e integración"
 
 #: includes/class-tcd-admin.php:587
 msgid "PHP para una plantilla:"
@@ -447,7 +447,7 @@ msgstr "No tienes permisos para ejecutar Auto Test."
 
 #: includes/class-tcd-auto-test.php:613
 msgid "No tienes permisos para abrir Auto Test."
-msgstr ""
+msgstr "No tienes permisos para abrir Auto Test."
 
 #: includes/class-tcd-auto-test.php:626 includes/class-tcd-manual.php:236
 msgid "Auto Test"
@@ -461,31 +461,31 @@ msgstr ""
 
 #: includes/class-tcd-auto-test.php:647
 msgid "Ejecutar Auto Test completo"
-msgstr ""
+msgstr "Ejecutar Auto Test completo"
 
 #: includes/class-tcd-auto-test.php:648
 msgid ""
 "Solo lectura, sin reiniciar formación ni alterar productos, memoria o "
 "workers."
-msgstr ""
+msgstr "Solo lectura, sin reiniciar formación ni alterar productos, memoria o workers."
 
 #: includes/class-tcd-auto-test.php:653
 msgid ""
 "Aún no hay resultados de esta versión. Ejecuta una prueba para ver el "
 "estado."
-msgstr ""
+msgstr "Aún no hay resultados de esta versión. Ejecuta una prueba para ver el estado."
 
 #: includes/class-tcd-auto-test.php:656
 msgid "Correctas"
-msgstr ""
+msgstr "Correctas"
 
 #: includes/class-tcd-auto-test.php:657
 msgid "Errores"
-msgstr ""
+msgstr "Errores"
 
 #: includes/class-tcd-auto-test.php:658
 msgid "No aplicables / sin datos"
-msgstr ""
+msgstr "No aplicables / sin datos"
 
 #: includes/class-tcd-auto-test.php:659
 msgid "Sin ejecutar"
@@ -493,7 +493,7 @@ msgstr "Sin ejecutar"
 
 #: includes/class-tcd-auto-test.php:673
 msgid "Ejecutar este grupo"
-msgstr ""
+msgstr "Ejecutar este grupo"
 
 #: includes/class-tcd-auto-test.php:686
 msgid ""
@@ -505,7 +505,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:141
 msgid "Backup / Restaurar Dependiente"
-msgstr ""
+msgstr "Backup / Restaurar Dependiente"
 
 #: includes/class-tcd-backup.php:142
 msgid ""
@@ -517,7 +517,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:143
 msgid "Diferencia con Conocimiento / Importar–Exportar:"
-msgstr ""
+msgstr "Diferencia con Conocimiento / Importar–Exportar:"
 
 #: includes/class-tcd-backup.php:143
 msgid ""
@@ -528,24 +528,24 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:145
 msgid "Qué queda protegido por el backup"
-msgstr ""
+msgstr "Qué queda protegido por el backup"
 
 #: includes/class-tcd-backup.php:147
 msgid "Protegido"
-msgstr ""
+msgstr "Protegido"
 
 #: includes/class-tcd-backup.php:147 includes/class-tcd-backup.php:230
 #: includes/class-tcd-knowledge-transfer.php:388
 msgid "Bloque"
-msgstr ""
+msgstr "Bloque"
 
 #: includes/class-tcd-backup.php:147
 msgid "Filas actuales"
-msgstr ""
+msgstr "Filas actuales"
 
 #: includes/class-tcd-backup.php:147
 msgid "Qué recupera"
-msgstr ""
+msgstr "Qué recupera"
 
 #: includes/class-tcd-backup.php:161
 msgid "Sí"
@@ -553,7 +553,7 @@ msgstr "Sí"
 
 #: includes/class-tcd-backup.php:169
 msgid "Descargar backup completo"
-msgstr ""
+msgstr "Descargar backup completo"
 
 #: includes/class-tcd-backup.php:170
 msgid ""
@@ -562,19 +562,19 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:174
 msgid "Qué NO se incluye y por qué"
-msgstr ""
+msgstr "Qué NO se incluye y por qué"
 
 #: includes/class-tcd-backup.php:176
 msgid "No incluido"
-msgstr ""
+msgstr "No incluido"
 
 #: includes/class-tcd-backup.php:176
 msgid "Motivo"
-msgstr ""
+msgstr "Motivo"
 
 #: includes/class-tcd-backup.php:187
 msgid "1. Analizar backup"
-msgstr ""
+msgstr "1. Analizar backup"
 
 #: includes/class-tcd-backup.php:188
 msgid ""
@@ -584,11 +584,11 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:193
 msgid "Analizar backup sin modificar datos"
-msgstr ""
+msgstr "Analizar backup sin modificar datos"
 
 #: includes/class-tcd-backup.php:197
 msgid "2. Restaurar copia exacta"
-msgstr ""
+msgstr "2. Restaurar copia exacta"
 
 #: includes/class-tcd-backup.php:198
 msgid ""
@@ -617,20 +617,20 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:208
 msgid "Restaurar backup completo"
-msgstr ""
+msgstr "Restaurar backup completo"
 
 #: includes/class-tcd-backup.php:215
 msgid "Último análisis / restauración"
-msgstr ""
+msgstr "Último análisis / restauración"
 
 #: includes/class-tcd-backup.php:220
 #: includes/class-tcd-knowledge-transfer.php:385
 msgid "Formato:"
-msgstr ""
+msgstr "Formato:"
 
 #: includes/class-tcd-backup.php:221
 msgid "Versión origen:"
-msgstr ""
+msgstr "Versión origen:"
 
 #: includes/class-tcd-backup.php:222
 msgid "Generado:"

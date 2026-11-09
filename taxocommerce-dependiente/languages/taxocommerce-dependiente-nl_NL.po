@@ -11,27 +11,27 @@ msgstr ""
 #. Plugin Name of the plugin
 #: taxocommerce-dependiente.php
 msgid "TaxoCommerce Assistant"
-msgstr ""
+msgstr "TaxoCommerce Assistant"
 
 #. Description of the plugin
 #: taxocommerce-dependiente.php
 msgid ""
 "Intelligent WooCommerce assistant with auditable L1-L10 lessons, semantic "
 "interpretation, L9 memory, and continuous updates."
-msgstr ""
+msgstr "Intelligente WooCommerce-assistent met controleerbare L1–L10-lessen, semantische interpretatie, L9-geheugen en doorlopende updates."
 
 #. Author of the plugin
 #: taxocommerce-dependiente.php
 msgid "David Perez"
-msgstr ""
+msgstr "David Perez"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "TaxoCommerce Sales Assistant"
-msgstr ""
+msgstr "TaxoCommerce-verkoopassistent"
 
 #: includes/class-tcd-admin.php:11 includes/class-tcd-admin.php:14
 msgid "Sales Assistant"
-msgstr ""
+msgstr "Verkoopassistent"
 
 #: includes/class-tcd-admin.php:73
 msgid ""
@@ -43,31 +43,31 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:86
 msgid "Último lote:"
-msgstr ""
+msgstr "Laatste batch:"
 
 #: includes/class-tcd-admin.php:108
 msgid ""
 "Comprobación de solo lectura. No cambia el contenido de las FAQs ni el "
 "estado del aprendizaje."
-msgstr ""
+msgstr "Alleen-lezencontrole. Wijzigt de FAQ-inhoud of leerstatus niet."
 
 #: includes/class-tcd-admin.php:115
 msgid "Diagnóstico M11 · Intérprete"
-msgstr ""
+msgstr "M11-diagnose · Interpreter"
 
 #: includes/class-tcd-admin.php:118
 msgid ""
 "Sin actividad del Intérprete desde hace más de 3 minutos. Comprueba la cola "
 "de procesos y el último error; no reinicies las lecciones L1–L10."
-msgstr ""
+msgstr "De Interpreter is al meer dan 3 minuten inactief. Controleer de takenwachtrij en de laatste fout; start de lessen L1–L10 niet opnieuw."
 
 #: includes/class-tcd-admin.php:120
 msgid "Log independiente del Intérprete"
-msgstr ""
+msgstr "Afzonderlijk Interpreter-logboek"
 
 #: includes/class-tcd-admin.php:123
 msgid "Eventos recientes del proceso"
-msgstr ""
+msgstr "Recente procesgebeurtenissen"
 
 #: includes/class-tcd-admin.php:124
 msgid ""
@@ -78,23 +78,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:125
 msgid "Fecha (UTC)"
-msgstr ""
+msgstr "Datum (UTC)"
 
 #: includes/class-tcd-admin.php:125
 msgid "Evento"
-msgstr ""
+msgstr "Gebeurtenis"
 
 #: includes/class-tcd-admin.php:125
 msgid "Detalles"
-msgstr ""
+msgstr "Details"
 
 #: includes/class-tcd-admin.php:132
 msgid "Aún no hay eventos de Academia registrados."
-msgstr ""
+msgstr "Er zijn nog geen Academie-gebeurtenissen geregistreerd."
 
 #: includes/class-tcd-admin.php:136
 msgid "Log bruto para diagnóstico"
-msgstr ""
+msgstr "Ruw diagnoselogboek"
 
 #: includes/class-tcd-admin.php:137
 msgid ""
@@ -111,19 +111,19 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:175
 msgid "La fuente sí se aprendió."
-msgstr ""
+msgstr "De bron is met succes geleerd."
 
 #: includes/class-tcd-admin.php:175
 msgid "El fallo corresponde al examen de recuperación/interpretación."
-msgstr ""
+msgstr "De fout deed zich voor tijdens de ophaal- of interpretatietest."
 
 #: includes/class-tcd-admin.php:185
 msgid "Auditoría antigua o sin versión verificable:"
-msgstr ""
+msgstr "Oude audit of niet-verifieerbare versie:"
 
 #: includes/class-tcd-admin.php:185
 msgid "este resultado no acredita el ranking actual."
-msgstr ""
+msgstr "dit resultaat bevestigt de huidige rangschikking niet."
 
 #: includes/class-tcd-admin.php:186
 msgid ""
@@ -133,11 +133,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:187
 msgid "No reinicies las diez lecciones."
-msgstr ""
+msgstr "Start niet alle tien lessen opnieuw."
 
 #: includes/class-tcd-admin.php:191
 msgid "Regresiones L9 examinadas con preguntas reconstruidas:"
-msgstr ""
+msgstr "L9-regressies onderzocht met gereconstrueerde vragen:"
 
 #: includes/class-tcd-admin.php:203
 msgid ""
@@ -156,23 +156,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:223 includes/class-tcd-admin.php:230
 msgid "Qué hacer"
-msgstr ""
+msgstr "Wat te doen"
 
 #: includes/class-tcd-admin.php:229
 msgid "Primeros casos que fallaron"
-msgstr ""
+msgstr "Eerste mislukte gevallen"
 
 #: includes/class-tcd-admin.php:230
 msgid "Tipo / ID"
-msgstr ""
+msgstr "Type / ID"
 
 #: includes/class-tcd-admin.php:230
 msgid "Esperado"
-msgstr ""
+msgstr "Verwacht"
 
 #: includes/class-tcd-admin.php:230
 msgid "Posición"
-msgstr ""
+msgstr "Positie"
 
 #: includes/class-tcd-admin.php:230
 msgid "Origen"
@@ -180,11 +180,11 @@ msgstr "Bron"
 
 #: includes/class-tcd-admin.php:230
 msgid "Por qué"
-msgstr ""
+msgstr "Waarom"
 
 #: includes/class-tcd-admin.php:254
 msgid "Intérprete original v1.2.0 · formación lingüística"
-msgstr ""
+msgstr "Oorspronkelijke Interpreter v1.2.0 · taaltraining"
 
 #: includes/class-tcd-admin.php:255
 msgid ""
@@ -208,19 +208,19 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:281
 msgid "TaxoCommerce Dependiente"
-msgstr ""
+msgstr "TaxoCommerce Dependiente"
 
 #: includes/class-tcd-admin.php:330
 msgid "Dependiente utiliza un único flujo interno:"
-msgstr ""
+msgstr "Dependiente gebruikt één interne werkstroom:"
 
 #: includes/class-tcd-admin.php:330
 msgid "para aprender y evaluar el catálogo,"
-msgstr ""
+msgstr "om de catalogus te leren en te beoordelen,"
 
 #: includes/class-tcd-admin.php:330
 msgid "para construir y validar el Intérprete y"
-msgstr ""
+msgstr "om de Interpreter op te bouwen en te valideren en"
 
 #: includes/class-tcd-admin.php:330
 msgid "para mantener el conocimiento actualizado. Cada L1-L10 conserva una"
@@ -228,7 +228,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:330
 msgid "foto fija auditable"
-msgstr ""
+msgstr "controleerbare momentopname"
 
 #: includes/class-tcd-admin.php:330
 msgid ""
@@ -245,7 +245,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:342 includes/class-tcd-manual.php:323
 msgid "Umbrales de calidad por lección"
-msgstr ""
+msgstr "Kwaliteitsdrempels per les"
 
 #: includes/class-tcd-admin.php:343
 msgid ""
@@ -255,7 +255,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:350
 msgid "Guardar umbrales"
-msgstr ""
+msgstr "Drempels opslaan"
 
 #: includes/class-tcd-admin.php:351
 msgid ""
@@ -266,15 +266,15 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:359
 msgid "Prioridad de Dependiente"
-msgstr ""
+msgstr "Prioriteit van Dependiente"
 
 #: includes/class-tcd-admin.php:361
 msgid "1 · Suave"
-msgstr ""
+msgstr "1 · Rustig"
 
 #: includes/class-tcd-admin.php:363
 msgid "5 · Máxima"
-msgstr ""
+msgstr "5 · Maximaal"
 
 #: includes/class-tcd-admin.php:366
 msgid ""
@@ -285,11 +285,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:367
 msgid "Guardar prioridad"
-msgstr ""
+msgstr "Prioriteit opslaan"
 
 #: includes/class-tcd-admin.php:425
 msgid "Detener"
-msgstr ""
+msgstr "Stoppen"
 
 #: includes/class-tcd-admin.php:425
 msgid "conserva la foto fija y el progreso. Si una lección falla calidad,"
@@ -297,7 +297,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:425
 msgid "Revisar correcciones y reevaluar"
-msgstr ""
+msgstr "Correcties controleren en opnieuw beoordelen"
 
 #: includes/class-tcd-admin.php:425
 msgid ""
@@ -307,7 +307,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:425
 msgid "Reiniciar"
-msgstr ""
+msgstr "Opnieuw starten"
 
 #: includes/class-tcd-admin.php:425
 msgid ""
@@ -317,27 +317,27 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:428
 msgid "Las diez lecciones"
-msgstr ""
+msgstr "De tien lessen"
 
 #: includes/class-tcd-admin.php:429 includes/class-tcd-manual.php:171
 msgid "Lección"
-msgstr ""
+msgstr "Les"
 
 #: includes/class-tcd-admin.php:429 includes/class-tcd-manual.php:171
 msgid "Qué aprende"
-msgstr ""
+msgstr "Wat wordt geleerd"
 
 #: includes/class-tcd-admin.php:429
 msgid "Foto fija / progreso"
-msgstr ""
+msgstr "Momentopname / voortgang"
 
 #: includes/class-tcd-admin.php:429
 msgid "Aprendidos"
-msgstr ""
+msgstr "Geleerd"
 
 #: includes/class-tcd-admin.php:429
 msgid "No aprendidos"
-msgstr ""
+msgstr "Niet geleerd"
 
 #: includes/class-tcd-admin.php:429
 msgid "Calidad"
@@ -345,7 +345,7 @@ msgstr "Kwaliteit"
 
 #: includes/class-tcd-admin.php:429
 msgid "Auditoría"
-msgstr ""
+msgstr "Audit"
 
 #: includes/class-tcd-admin.php:482
 msgid ""
@@ -365,11 +365,11 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:548
 msgid "M11 · Intérprete original y M12 · Actualización"
-msgstr ""
+msgstr "M11 · Oorspronkelijke Interpreter en M12 · Update"
 
 #: includes/class-tcd-admin.php:549
 msgid "Módulo"
-msgstr ""
+msgstr "Module"
 
 #: includes/class-tcd-admin.php:549 includes/class-tcd-admin.php:558
 msgid "Estado"
@@ -381,7 +381,7 @@ msgstr "Resultaat"
 
 #: includes/class-tcd-admin.php:550
 msgid "M11 · Lingüista original v1.2.0"
-msgstr ""
+msgstr "M11 · Oorspronkelijke taalkundige v1.2.0"
 
 #: includes/class-tcd-admin.php:555
 msgid ""
@@ -391,7 +391,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:556
 msgid "L11 · Fases de comprensión lingüística y evolución"
-msgstr ""
+msgstr "L11 · Fasen van taalbegrip en ontwikkeling"
 
 #: includes/class-tcd-admin.php:557
 msgid ""
@@ -401,23 +401,23 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:558
 msgid "Fase"
-msgstr ""
+msgstr "Fase"
 
 #: includes/class-tcd-admin.php:558
 msgid "Progreso"
-msgstr ""
+msgstr "Voortgang"
 
 #: includes/class-tcd-admin.php:558
 msgid "Aprendidas"
-msgstr ""
+msgstr "Geleerd"
 
 #: includes/class-tcd-admin.php:558
 msgid "Rechazadas"
-msgstr ""
+msgstr "Afgewezen"
 
 #: includes/class-tcd-admin.php:572
 msgid "M12 · Feedback de clientes"
-msgstr ""
+msgstr "M12 · Klantfeedback"
 
 #: includes/class-tcd-admin.php:582
 msgid ""
@@ -427,7 +427,7 @@ msgstr ""
 
 #: includes/class-tcd-admin.php:585
 msgid "Asistente e integración"
-msgstr ""
+msgstr "Assistent en integratie"
 
 #: includes/class-tcd-admin.php:587
 msgid "PHP para una plantilla:"
@@ -447,11 +447,11 @@ msgstr "Je hebt geen toestemming om de Auto Test uit te voeren."
 
 #: includes/class-tcd-auto-test.php:613
 msgid "No tienes permisos para abrir Auto Test."
-msgstr ""
+msgstr "Je hebt geen toestemming om Auto Test te openen."
 
 #: includes/class-tcd-auto-test.php:626 includes/class-tcd-manual.php:236
 msgid "Auto Test"
-msgstr ""
+msgstr "Auto Test"
 
 #: includes/class-tcd-auto-test.php:627
 msgid ""
@@ -461,31 +461,31 @@ msgstr ""
 
 #: includes/class-tcd-auto-test.php:647
 msgid "Ejecutar Auto Test completo"
-msgstr ""
+msgstr "Volledige Auto Test uitvoeren"
 
 #: includes/class-tcd-auto-test.php:648
 msgid ""
 "Solo lectura, sin reiniciar formación ni alterar productos, memoria o "
 "workers."
-msgstr ""
+msgstr "Alleen-lezen; start de training niet opnieuw en wijzigt geen producten, geheugen of workers."
 
 #: includes/class-tcd-auto-test.php:653
 msgid ""
 "Aún no hay resultados de esta versión. Ejecuta una prueba para ver el "
 "estado."
-msgstr ""
+msgstr "Nog geen resultaten voor deze versie. Voer een test uit om de status te zien."
 
 #: includes/class-tcd-auto-test.php:656
 msgid "Correctas"
-msgstr ""
+msgstr "Geslaagd"
 
 #: includes/class-tcd-auto-test.php:657
 msgid "Errores"
-msgstr ""
+msgstr "Fouten"
 
 #: includes/class-tcd-auto-test.php:658
 msgid "No aplicables / sin datos"
-msgstr ""
+msgstr "Niet van toepassing / geen gegevens"
 
 #: includes/class-tcd-auto-test.php:659
 msgid "Sin ejecutar"
@@ -493,7 +493,7 @@ msgstr "Niet uitgevoerd"
 
 #: includes/class-tcd-auto-test.php:673
 msgid "Ejecutar este grupo"
-msgstr ""
+msgstr "Deze groep uitvoeren"
 
 #: includes/class-tcd-auto-test.php:686
 msgid ""
@@ -505,7 +505,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:141
 msgid "Backup / Restaurar Dependiente"
-msgstr ""
+msgstr "Back-up maken / Dependiente herstellen"
 
 #: includes/class-tcd-backup.php:142
 msgid ""
@@ -517,7 +517,7 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:143
 msgid "Diferencia con Conocimiento / Importar–Exportar:"
-msgstr ""
+msgstr "Verschil met Kennis / Import–Export:"
 
 #: includes/class-tcd-backup.php:143
 msgid ""
@@ -528,24 +528,24 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:145
 msgid "Qué queda protegido por el backup"
-msgstr ""
+msgstr "Wat de back-up beschermt"
 
 #: includes/class-tcd-backup.php:147
 msgid "Protegido"
-msgstr ""
+msgstr "Beschermd"
 
 #: includes/class-tcd-backup.php:147 includes/class-tcd-backup.php:230
 #: includes/class-tcd-knowledge-transfer.php:388
 msgid "Bloque"
-msgstr ""
+msgstr "Blok"
 
 #: includes/class-tcd-backup.php:147
 msgid "Filas actuales"
-msgstr ""
+msgstr "Huidige rijen"
 
 #: includes/class-tcd-backup.php:147
 msgid "Qué recupera"
-msgstr ""
+msgstr "Wat wordt hersteld"
 
 #: includes/class-tcd-backup.php:161
 msgid "Sí"
@@ -553,7 +553,7 @@ msgstr "Ja"
 
 #: includes/class-tcd-backup.php:169
 msgid "Descargar backup completo"
-msgstr ""
+msgstr "Volledige back-up downloaden"
 
 #: includes/class-tcd-backup.php:170
 msgid ""
@@ -562,19 +562,19 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:174
 msgid "Qué NO se incluye y por qué"
-msgstr ""
+msgstr "Wat NIET is inbegrepen en waarom"
 
 #: includes/class-tcd-backup.php:176
 msgid "No incluido"
-msgstr ""
+msgstr "Niet inbegrepen"
 
 #: includes/class-tcd-backup.php:176
 msgid "Motivo"
-msgstr ""
+msgstr "Reden"
 
 #: includes/class-tcd-backup.php:187
 msgid "1. Analizar backup"
-msgstr ""
+msgstr "1. Back-up analyseren"
 
 #: includes/class-tcd-backup.php:188
 msgid ""
@@ -584,11 +584,11 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:193
 msgid "Analizar backup sin modificar datos"
-msgstr ""
+msgstr "Back-up analyseren zonder gegevens te wijzigen"
 
 #: includes/class-tcd-backup.php:197
 msgid "2. Restaurar copia exacta"
-msgstr ""
+msgstr "2. Exacte back-up herstellen"
 
 #: includes/class-tcd-backup.php:198
 msgid ""
@@ -617,20 +617,20 @@ msgstr ""
 
 #: includes/class-tcd-backup.php:208
 msgid "Restaurar backup completo"
-msgstr ""
+msgstr "Volledige back-up herstellen"
 
 #: includes/class-tcd-backup.php:215
 msgid "Último análisis / restauración"
-msgstr ""
+msgstr "Laatste analyse / herstelactie"
 
 #: includes/class-tcd-backup.php:220
 #: includes/class-tcd-knowledge-transfer.php:385
 msgid "Formato:"
-msgstr ""
+msgstr "Formaat:"
 
 #: includes/class-tcd-backup.php:221
 msgid "Versión origen:"
-msgstr ""
+msgstr "Bronversie:"
 
 #: includes/class-tcd-backup.php:222
 msgid "Generado:"
