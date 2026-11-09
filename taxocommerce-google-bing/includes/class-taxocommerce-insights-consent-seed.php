@@ -358,9 +358,17 @@ final class TaxoCommerce_Insights_Consent_Seed {
         if ( $next['legal_reviewed'] && ! $confirm_site_legal_review ) {
             return false;
         }
-        if ( $next['enabled'] &&
-            ( ! $next['legal_reviewed'] || ! TaxoCommerce_Insights_Consent::policies_ready( $next ) ) ) {
-            return false;
+        if ( $next['enabled'] ) {
+            if ( ! $next['legal_reviewed'] || ! TaxoCommerce_Insights_Consent::policies_ready( $next ) ) {
+                return false;
+            }
+            foreach ( $next['texts'] as $language => $fields ) {
+                foreach ( TaxoCommerce_Insights_Consent::defaults_for_locale( $language ) as $field => $default ) {
+                    if ( ! isset( $fields[ $field ] ) || '' === trim( (string) $fields[ $field ] ) ) {
+                        return false;
+                    }
+                }
+            }
         }
         // Imported revision is informational. The caller increments the
         // destination's revision once if any setting changes, invalidating old
@@ -406,6 +414,9 @@ final class TaxoCommerce_Insights_Consent_Seed {
         $current = TaxoCommerce_Insights_Consent::settings();
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The import nonce is verified above.
         $confirm_site_legal_review = ! empty( $_POST['tci_confirm_legal_review'] );
+        if ( ! empty( $payload['legal_reviewed'] ) && ! $confirm_site_legal_review ) {
+            self::import_redirect( 'import_review_required' );
+        }
         $next = self::merge_import( $current, $payload, $confirm_site_legal_review );
         if ( false === $next ) {
             self::import_redirect( 'import_invalid' );
