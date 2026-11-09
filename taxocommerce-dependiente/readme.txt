@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.35
+Stable tag: 0.3.36
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,6 +66,10 @@ No. Core provides optional grouped administration.
 A new installation creates the Assistant's learning/lexicon/evidence schemas empty; it does NOT insert example tools, synonyms or knowledge from the developer's store. Only technical configuration, lesson definitions and generic language processing rules are bundled. On a first installation only, if the site's WooCommerce catalogue contains at least one published product, the plugin schedules its bounded L1-L10 learning through WordPress cron; training is not run synchronously during activation. If there are no published products, it stays idle until the administrator starts learning. Reactivation or updates never restart training automatically. After catalog learning, the Interpreter/Linguist builds evidence-backed lexical relationships from local products and taxonomy. Plugin upgrades do not erase existing learning. No sample dataset is installed automatically.
 
 == Changelog ==
+
+= 0.3.36 =
+* Additional translated administration controls and diagnostics ES/EN/FR/DE/NL with five rebuilt MO catalogs and regression smoke test; preserves official excerpt feature.
+
 
 = 0.3.32 =
 * Added an optional, collapsed version history beneath the admin header title, reading only this plugin's bundled CHANGELOG.md. No new admin tab, Core dependency, data changes or external requests.
