@@ -1,3 +1,12 @@
+## [1.1.33] — 2026-11-09 — Copia y restauración completa de Consentimientos mediante JSON (#2468)
+
+- Exportar JSON del estado real y restaurar todos los valores de configuración en wp_options: 65 cadenas ES/EN/FR/DE/NL, casillas enabled y legal_reviewed, URL heredada y páginas por país (ES/US/FR/DE/NL) identificadas por slug para portabilidad entre WordPress.
+- Plantilla vacía no destructiva, compatibilidad con JSON anterior (schema 1) y formato completo de copia/restauración (schema 2, mode replace).
+- El banner selecciona el idioma y la política correspondiente al país de la página. No enlaza políticas ajenas, en borrador o de otro país. El administrador puede comprobar el estado publicado de las cinco páginas desde Consentimientos.
+- El estado de activación y revisión legal del JSON puede restaurarse mediante importación del administrador; la revisión legal requiere confirmación expresa de este sitio y el banner no puede activarse sin las cinco políticas publicadas. Nunca se importan elecciones ni evidencias individuales de visitantes.
+- Versión del consentimiento incrementada al cambiar la configuración (no se reutiliza una revisión arbitraria del JSON); copia anterior en wp_options y archivo de versiones legales.
+- La zona Importar/Exportar aparece al inicio del formulario y cuenta con pruebas automáticas de restauración, cinco políticas, validaciones y bloqueo preventivo.
+
 ## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
 
 - Botón de exportación del estado actual y descarga independiente de una plantilla JSON con los 65 campos de texto vacíos en ES/EN/FR/DE/NL, más URL de política y valores informativos de estado.
