@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.67
+Stable tag: 0.4.68
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,11 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.68 =
+* WordPress.org pre-review: replace inline admin CSS with WordPress stylesheet APIs; use the native upload handler for administrator-selected extension ZIPs. Keep explicit per-extension activation and deactivation permissions and nonces.
+* Confirm `taxocommerce-core` as the requested WordPress.org permalink and existing gettext domain. No WooCommerce hard dependency: WP content functions remain available without WooCommerce. Issue #2481.
+
 
 = 0.4.67 =
 * Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.

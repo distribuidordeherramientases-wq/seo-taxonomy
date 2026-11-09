@@ -15,6 +15,9 @@ class TaxoCommerce_Core_User_Guide {
 }
 function __( $message, $domain = '' ) { return $message; }
 function apply_filters( $hook, $default ) { return $default; }
+$GLOBALS['tc_inline_css'] = array();
+function wp_style_is( $handle, $status ) { return 'taxocommerce-core-admin' === $handle && 'enqueued' === $status; }
+function wp_add_inline_style( $handle, $css ) { $GLOBALS['tc_inline_css'][] = array( 'handle' => $handle, 'css' => $css ); return true; }
 
 $GLOBALS['menu'] = array();
 $GLOBALS['submenu'] = array();
@@ -66,9 +69,10 @@ foreach ( $internal as $slug ) {
 // admin.php?page=... links and validate user capabilities.
 $core->hide_core_internal_submenus();
 check( $initial === menu_slugs(), 'Core submenu registry must remain intact' );
-ob_start();
+$GLOBALS['tc_inline_css'] = array();
 $core->hide_sidebar_submenu();
-$style = ob_get_clean();
+check( 1 === count( $GLOBALS['tc_inline_css'] ), 'Core must use WordPress enqueued styles' );
+$style = $GLOBALS['tc_inline_css'][0]['css'];
 check( false !== strpos( $style, 'display:none' ), 'Core-only sidebar must stay compact' );
 
 // With other plugins active, their menu items stay visible.
@@ -84,9 +88,10 @@ check( $expected === array_values( menu_slugs() ), 'WordPress route registry ret
 foreach ( $internal as $slug ) {
     check( isset( $GLOBALS['tc_registered_pages'][ $slug ] ), 'Hiding sidebar must not unregister Core routes: ' . $slug );
 }
-ob_start();
+$GLOBALS['tc_inline_css'] = array();
 $core->hide_sidebar_submenu();
-$style = ob_get_clean();
+check( 1 === count( $GLOBALS['tc_inline_css'] ), 'Core must use WordPress enqueued styles' );
+$style = $GLOBALS['tc_inline_css'][0]['css'];
 check( false !== strpos( $style, 'page=taxocommerce-core-content' ), 'Core internal pages are hidden visually, not unregistered' );
 check( false === strpos( $style, '> ul.wp-submenu{display:none' ), 'Other plugin entries must remain visible' );
 
