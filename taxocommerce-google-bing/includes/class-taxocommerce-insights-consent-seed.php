@@ -320,7 +320,7 @@ final class TaxoCommerce_Insights_Consent_Seed {
             || ! isset( $file['size'], $file['name'], $file['tmp_name'] )
             || ! is_string( $file['name'] ) || ! is_string( $file['tmp_name'] )
             || (int) $file['size'] < 1 || (int) $file['size'] > self::MAX_IMPORT_BYTES
-            || 'json' !== strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) )
+            || 'json' !== strtolower( pathinfo( sanitize_file_name( $file['name'] ), PATHINFO_EXTENSION ) )
             || ! is_uploaded_file( $file['tmp_name'] ) ) {
             self::import_redirect( 'import_invalid' );
         }
@@ -348,11 +348,15 @@ final class TaxoCommerce_Insights_Consent_Seed {
         $next['legal_reviewed'] = 0;
         // This backup is intentionally overwritten at each import. The
         // separately archived legal history continues to keep every revision.
-        update_option( self::IMPORT_BACKUP, array(
+        $backup = array(
             'had_option' => is_array( $previous ),
             'previous' => $previous,
             'saved_at' => current_time( 'mysql', true ),
-        ), false );
+        );
+        $backed_up = update_option( self::IMPORT_BACKUP, $backup, false );
+        if ( ! $backed_up && get_option( self::IMPORT_BACKUP ) !== $backup ) {
+            self::import_redirect( 'import_failed' );
+        }
         TaxoCommerce_Insights_Consent_Ledger::archive( $current );
         $saved = update_option( TaxoCommerce_Insights_Consent::OPTION, $next, false );
         if ( ! $saved && get_option( TaxoCommerce_Insights_Consent::OPTION ) !== $next ) {
