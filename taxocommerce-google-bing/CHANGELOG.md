@@ -1,3 +1,9 @@
+## [1.1.33] — 2026-11-09 — Restaurar diseño de Análisis/Resumen (#2470)
+
+- Evita la colisión de `seo_analista_enqueue_report_assets` con el módulo SEO anterior: Insights registra un callback propio que carga únicamente su CSS en su pestaña Analysis.
+- Recupera tarjetas blancas, gráficas SVG azules sin relleno y diseño adaptable sin modificar datos, AJAX, credenciales ni estadísticas.
+- Refuerza el test de regresión autónomo de recursos y reglas de presentación.
+
 ## [1.1.32] — 2026-11-09 — Importación y exportación JSON en Consentimientos (#2463)
 
 - Botón de exportación del estado actual y descarga independiente de una plantilla JSON con los 65 campos de texto vacíos en ES/EN/FR/DE/NL, más URL de política y valores informativos de estado.
