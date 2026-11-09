@@ -312,10 +312,10 @@ final class TaxoCommerce_Insights_Consent_Seed {
             wp_die( esc_html__( 'Permisos insuficientes.', 'taxocommerce-google-bing' ) );
         }
         check_admin_referer( self::IMPORT_NONCE );
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked above; file upload never executes content.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The nonce is checked above. PHP-generated upload metadata must stay intact for is_uploaded_file(); the filename is sanitized and every JSON field is validated before use.
         $file = isset( $_FILES['tci_consent_json'] ) && is_array( $_FILES['tci_consent_json'] )
             ? $_FILES['tci_consent_json'] : array();
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         if ( UPLOAD_ERR_OK !== ( $file['error'] ?? UPLOAD_ERR_NO_FILE )
             || ! isset( $file['size'], $file['name'], $file['tmp_name'] )
             || ! is_string( $file['name'] ) || ! is_string( $file['tmp_name'] )
