@@ -1,3 +1,12 @@
+## [0.3.12] — 2026-11-09 — Auditoría continua independiente de WP-Cron (#2444)
+
+- Productos, categorías, entradas, páginas y FAQ: la pantalla encadena peticiones AJAX autenticadas; cada respuesta ejecuta un lote acotado y lanza el siguiente mientras siga la auditoría, sin esperar al vencimiento de WP-Cron ni pulsar manualmente «Procesar siguiente lote».
+- Los cinco niveles de velocidad regulan el tamaño del lote (5/10/20/30/40), presupuesto máximo por petición (2/3/5/8/12 s) y pausa del navegador entre respuestas (6000/3500/2000/1000/300 ms). No representan un porcentaje de CPU reservado.
+- Autenticación mediante nonce y manage_options, ejecución secuencial y bloqueo atómico compartido con el cron auxiliar, evitando solapamientos y reprocesamiento de cursores. Ante peticiones sin progreso o fallos de red, la espera aumenta para proteger el alojamiento.
+- Estado, contador y último lote se actualizan sin refrescar la página; pausa, reanudación, auditorías filtradas/completas, JSONL y exportación se conservan. Un informe se considera completo únicamente cuando la fuente se ha agotado o alcanza el límite solicitado.
+- WP-Cron permanece como mecanismo auxiliar de compatibilidad para quien tenga un trabajador programado; si se cierra la pestaña y no hay otro trabajador, el navegador no puede garantizar la continuidad (especialmente en móvil).
+- Pruebas funcionales, Autocheck, documentación e idiomas actualizados. Seguimiento en #2444 y PR #2452; despliegues y comprobación funcional pendientes hasta los controles de calidad.
+
 ## [0.3.11] — 2026-11-08 — Extracto comercial remoto configurable en cabecera (#2443)
 
 - Desplegable izquierdo para obtener el extracto público de una página WordPress oficial, únicamente cuando el administrador configura su URL HTTPS, con enlace a la ficha de origen.
