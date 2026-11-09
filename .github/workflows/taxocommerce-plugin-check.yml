@@ -126,6 +126,13 @@ jobs:
           if [ -f "$PLUGIN/tests/standalone-bootstrap-smoke.php" ]; then
             php "$PLUGIN/tests/standalone-bootstrap-smoke.php"
           fi
+          # Consent configuration JSON is part of Insights' public runtime:
+          # test full export/restore and five published-country gates on every PR.
+          if [ "$PLUGIN" = 'taxocommerce-google-bing' ]; then
+            php "$PLUGIN/tests/consent-json-import-smoke.php"
+            php "$PLUGIN/tests/consent-wpoptions-seed-smoke.php"
+            php "$PLUGIN/tests/consent-smoke.php"
+          fi
           python3 .github/scripts/taxocommerce_family_readme_check.py "$PLUGIN" "build/$PLUGIN"
           ( cd build && zip -qr "../$PLUGIN-plugin-check.zip" "$PLUGIN" )
           unzip -t "$PLUGIN-plugin-check.zip"
