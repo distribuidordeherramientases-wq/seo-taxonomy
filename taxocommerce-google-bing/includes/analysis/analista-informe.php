@@ -9,7 +9,6 @@ defined('ABSPATH') || exit;
 
 
 if (!function_exists('taxocommerce_insights_enqueue_analysis_styles')) {
-    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
     function taxocommerce_insights_enqueue_analysis_styles() {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin asset routing.
         $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
