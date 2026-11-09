@@ -5,7 +5,7 @@
  * revision, XSS escaping, Clarity Consent V2, and cache separation.
  */
 define( 'ABSPATH', __DIR__ );
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.26' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.33' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', 'https://shop.test/wp-content/plugins/taxocommerce-google-bing/' );
 $GLOBALS['opts'] = array();
 $GLOBALS['locale'] = 'es_ES';
