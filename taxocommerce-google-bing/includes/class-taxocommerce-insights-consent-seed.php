@@ -147,17 +147,22 @@ final class TaxoCommerce_Insights_Consent_Seed {
         }
         check_admin_referer( self::EXPORT_NONCE );
         $settings = TaxoCommerce_Insights_Consent::settings();
-        $data = array_merge( array(
-            'schema'      => 1,
-            'option'      => TaxoCommerce_Insights_Consent::OPTION,
-            'exported_at' => gmdate( 'c' ),
-        ), $settings );
-        nocache_headers();
-        header( 'Content-Type: application/json; charset=utf-8' );
-        header( 'X-Content-Type-Options: nosniff' );
-        header( 'Content-Disposition: attachment; filename="taxocommerce-insights-consent-' . gmdate( 'Ymd-His' ) . '.json"' );
-        echo wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-        exit;
+        $urls = array();
+        foreach ( array_keys( TaxoCommerce_Insights_Consent::policy_page_defaults() ) as $country ) {
+            $urls[ $country ] = TaxoCommerce_Insights_Consent::policy_url_for_market( $country, $settings );
+        }
+        $data = array_merge(
+            array(
+                'schema'        => 2,
+                'option'        => TaxoCommerce_Insights_Consent::OPTION,
+                'mode'          => 'replace',
+                'exported_at'   => gmdate( 'c' ),
+            ),
+            $settings
+        );
+        // Informational URLs are NOT portable. Slugs in cookie_policy_pages are.
+        $data['resolved_policy_urls'] = $urls;
+        self::download( $data, 'taxocommerce-insights-consent-completo-' . gmdate( 'Ymd-His' ) . '.json' );
     }
 
     /**
@@ -174,13 +179,15 @@ final class TaxoCommerce_Insights_Consent_Seed {
             }
         }
         return array(
-            'schema'            => 1,
-            'option'            => TaxoCommerce_Insights_Consent::OPTION,
-            'enabled'           => 0,
-            'legal_reviewed'    => 0,
-            'revision'          => 0,
-            'cookie_policy_url' => '',
-            'texts'             => $texts,
+            'schema'              => 2,
+            'option'              => TaxoCommerce_Insights_Consent::OPTION,
+            'mode'                => 'merge',
+            'enabled'             => 0,
+            'legal_reviewed'      => 0,
+            'revision'            => 0,
+            'cookie_policy_url'   => '',
+            'cookie_policy_pages' => TaxoCommerce_Insights_Consent::policy_page_defaults(),
+            'texts'               => $texts,
         );
     }
 
@@ -214,7 +221,7 @@ final class TaxoCommerce_Insights_Consent_Seed {
         }
         $data = json_decode( $content, true );
         if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $data )
-            || 1 !== ( $data['schema'] ?? null )
+            || ! in_array( $data['schema'] ?? null, array( 1, 2 ), true )
             || TaxoCommerce_Insights_Consent::OPTION !== ( $data['option'] ?? null )
             || ! isset( $data['texts'] ) || ! is_array( $data['texts'] ) ) {
             return false;
@@ -246,6 +253,42 @@ final class TaxoCommerce_Insights_Consent_Seed {
             && ( ! is_string( $data['cookie_policy_url'] ) || strlen( $data['cookie_policy_url'] ) > 2048 ) ) {
             return false;
         }
+        // Legacy v1 files only contained texts and one URL: merge without
+        // assuming the site-specific legal review and banner can be copied.
+        if ( 1 === $data['schema'] ) {
+            $data['mode'] = 'merge';
+            $data['enabled'] = 0;
+            $data['legal_reviewed'] = 0;
+            $data['cookie_policy_pages'] = null;
+            return $data;
+        }
+        if ( ! in_array( $data['mode'] ?? null, array( 'merge', 'replace' ), true ) ) {
+            return false;
+        }
+        foreach ( array( 'enabled', 'legal_reviewed' ) as $key ) {
+            if ( ! array_key_exists( $key, $data )
+                || ! in_array( $data[ $key ], array( 0, 1, true, false ), true ) ) {
+                return false;
+            }
+        }
+        if ( ! isset( $data['cookie_policy_pages'] ) || ! is_array( $data['cookie_policy_pages'] ) ) {
+            return false;
+        }
+        $markets = TaxoCommerce_Insights_Consent::policy_page_defaults();
+        if ( count( $data['cookie_policy_pages'] ) !== count( $markets ) ) {
+            return false;
+        }
+        foreach ( $markets as $market => $default_slug ) {
+            if ( ! isset( $data['cookie_policy_pages'][ $market ] )
+                || ! is_string( $data['cookie_policy_pages'][ $market ] )
+                || strlen( $data['cookie_policy_pages'][ $market ] ) > 200 ) {
+                return false;
+            }
+            $slug = $data['cookie_policy_pages'][ $market ];
+            if ( '' !== $slug && ! preg_match( '/\A[a-z0-9][a-z0-9-]*\z/D', $slug ) ) {
+                return false;
+            }
+        }
         return $data;
     }
 
@@ -256,43 +299,73 @@ final class TaxoCommerce_Insights_Consent_Seed {
      *
      * @return array|false New configuration or false when protected.
      */
-    public static function merge_import( $current, $payload ) {
-        if ( ! is_array( $current ) || ! is_array( $payload )
-            || ! empty( $current['enabled'] ) || ! empty( $current['legal_reviewed'] ) ) {
+    public static function merge_import( $current, $payload, $confirm_site_legal_review = false ) {
+        if ( ! is_array( $current ) || ! is_array( $payload ) ) {
             return false;
         }
+        $replace = 'replace' === ( $payload['mode'] ?? 'merge' );
         $next = $current;
-        if ( ! isset( $next['texts'] ) || ! is_array( $next['texts'] ) ) {
-            $next['texts'] = array();
-        }
+        $next['texts'] = isset( $next['texts'] ) && is_array( $next['texts'] ) ? $next['texts'] : array();
         foreach ( array_keys( TaxoCommerce_Insights_Consent::languages() ) as $language ) {
             $existing = isset( $next['texts'][ $language ] ) && is_array( $next['texts'][ $language ] )
                 ? $next['texts'][ $language ] : TaxoCommerce_Insights_Consent::defaults_for_locale( $language );
             foreach ( array_keys( TaxoCommerce_Insights_Consent::defaults_for_locale( $language ) ) as $field ) {
                 $value = $payload['texts'][ $language ][ $field ];
-                if ( '' === trim( $value ) ) {
+                if ( '' === trim( $value ) && ! $replace ) {
                     continue;
                 }
                 $sanitized = in_array( $field, array( 'intro', 'legal' ), true )
                     ? sanitize_textarea_field( $value ) : sanitize_text_field( $value );
-                if ( '' !== trim( $sanitized ) ) {
-                    $existing[ $field ] = $sanitized;
-                }
+                $existing[ $field ] = $sanitized;
             }
             $next['texts'][ $language ] = $existing;
         }
+
+        $current_pages = isset( $next['cookie_policy_pages'] ) && is_array( $next['cookie_policy_pages'] )
+            ? $next['cookie_policy_pages'] : TaxoCommerce_Insights_Consent::policy_page_defaults();
+        if ( is_array( $payload['cookie_policy_pages'] ?? null ) ) {
+            foreach ( TaxoCommerce_Insights_Consent::policy_page_defaults() as $market => $default_slug ) {
+                $slug = $payload['cookie_policy_pages'][ $market ];
+                if ( '' === $slug && ! $replace ) {
+                    continue;
+                }
+                $current_pages[ $market ] = sanitize_title( $slug );
+            }
+        }
+        $next['cookie_policy_pages'] = $current_pages;
+
         $url = $payload['cookie_policy_url'] ?? '';
-        if ( '' !== trim( $url ) ) {
-            $safe = esc_url_raw( $url, array( 'https' ) );
-            $parts = wp_parse_url( $safe );
-            if ( ! is_array( $parts ) || empty( $parts['host'] )
-                || 'https' !== ( $parts['scheme'] ?? '' )
-                || isset( $parts['user'] ) || isset( $parts['pass'] )
-                || ! filter_var( $safe, FILTER_VALIDATE_URL ) ) {
+        if ( '' !== trim( $url ) || $replace ) {
+            $safe = '' === trim( $url ) ? '' : esc_url_raw( $url, array( 'https' ) );
+            if ( '' !== $safe ) {
+                $parts = wp_parse_url( $safe );
+                if ( ! is_array( $parts ) || empty( $parts['host'] )
+                    || 'https' !== ( $parts['scheme'] ?? '' )
+                    || isset( $parts['user'] ) || isset( $parts['pass'] )
+                    || ! filter_var( $safe, FILTER_VALIDATE_URL ) ) {
+                    return false;
+                }
+            } elseif ( '' !== trim( $url ) ) {
                 return false;
             }
             $next['cookie_policy_url'] = $safe;
         }
+
+        // Explicit admin import restores every switch from JSON. Signing off
+        // a legal review on THIS installation also needs an explicit checkbox.
+        $next['enabled'] = ! empty( $payload['enabled'] ) ? 1 : 0;
+        $next['legal_reviewed'] = ! empty( $payload['legal_reviewed'] ) ? 1 : 0;
+        if ( $next['legal_reviewed'] && ! $confirm_site_legal_review ) {
+            return false;
+        }
+        if ( $next['enabled'] &&
+            ( ! $next['legal_reviewed'] || ! TaxoCommerce_Insights_Consent::policies_ready( $next ) ) ) {
+            return false;
+        }
+        // Imported revision is informational. The caller increments the
+        // destination's revision once if any setting changes, invalidating old
+        // affirmative client choices instead of reusing an old cookie version.
+        $next['revision'] = (int) ( $current['revision'] ?? 1 );
         return $next;
     }
 
@@ -331,10 +404,9 @@ final class TaxoCommerce_Insights_Consent_Seed {
         }
         $previous = get_option( TaxoCommerce_Insights_Consent::OPTION, false );
         $current = TaxoCommerce_Insights_Consent::settings();
-        if ( ! empty( $current['enabled'] ) || ! empty( $current['legal_reviewed'] ) ) {
-            self::import_redirect( 'import_active' );
-        }
-        $next = self::merge_import( $current, $payload );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The import nonce is verified above.
+        $confirm_site_legal_review = ! empty( $_POST['tci_confirm_legal_review'] );
+        $next = self::merge_import( $current, $payload, $confirm_site_legal_review );
         if ( false === $next ) {
             self::import_redirect( 'import_invalid' );
         }
@@ -344,8 +416,7 @@ final class TaxoCommerce_Insights_Consent_Seed {
         // Never restore the old JSON's revision, enable flag or legal-approval
         // flag. Force any earlier browser preferences to become stale.
         $next['revision'] = max( 1, (int) ( $current['revision'] ?? 0 ) + 1 );
-        $next['enabled'] = 0;
-        $next['legal_reviewed'] = 0;
+        // Explicitly restored flags passed the legal-page gate above.
         // This backup is intentionally overwritten at each import. The
         // separately archived legal history continues to keep every revision.
         $backup = array(
@@ -380,7 +451,7 @@ final class TaxoCommerce_Insights_Consent_Seed {
         );
         echo '<div class="card" style="max-width:1200px;padding:18px;margin-top:16px">';
         echo '<h3>' . esc_html__( 'Importar y exportar consentimientos (JSON)', 'taxocommerce-google-bing' ) . '</h3>';
-        echo '<p>' . esc_html__( 'Descarga los valores actuales o una plantilla con los 65 textos vacíos. Puedes completarla y volver a importarla aquí.', 'taxocommerce-google-bing' ) . '</p>';
+        echo '<p>' . esc_html__( 'Copia de seguridad completa: textos, enlaces a las cinco páginas por país, casillas, activación y revisión legal. El JSON exportado restaura toda la configuración; la plantilla vacía permite rellenar solo lo necesario.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<p><a class="button button-secondary" href="' . esc_url( $url ) . '">'
             . esc_html__( 'Exportar configuración actual (JSON)', 'taxocommerce-google-bing' ) . '</a> ';
         echo '<a class="button button-secondary" href="' . esc_url( $template_url ) . '">'
@@ -392,10 +463,13 @@ final class TaxoCommerce_Insights_Consent_Seed {
             esc_html__( 'Archivo JSON de consentimientos (máximo 64 KB)', 'taxocommerce-google-bing' ) .
             '</strong></label><br>';
         echo '<input type="file" id="tci-consent-json" name="tci_consent_json" accept=".json,application/json" required></p>';
-        submit_button( __( 'Importar JSON y guardar en wp_options', 'taxocommerce-google-bing' ), 'secondary', 'submit', false );
+        echo '<p><label><input type="checkbox" name="tci_confirm_legal_review" value="1"> ' .
+            esc_html__( 'Confirmo que he revisado las políticas legales de esta instalación: permitir restaurar la casilla de revisión legal si figura activada en el JSON.', 'taxocommerce-google-bing' ) .
+            '</label></p>';
+                submit_button( __( 'Importar JSON y guardar en wp_options', 'taxocommerce-google-bing' ), 'secondary', 'submit', false );
         echo '</form>';
         echo '<p class="description">' .
-            esc_html__( 'La importación actualiza los textos y, si se indica, la URL HTTPS de la política. Los valores vacíos no eliminan textos existentes. No activa el banner ni confirma la revisión legal; conserva la configuración anterior como respaldo y renueva la revisión del consentimiento cuando hay cambios.', 'taxocommerce-google-bing' )
+            esc_html__( 'El JSON completo restaura los campos y casillas; los enlaces usan slugs de páginas locales, portables entre entornos. La importación solo activa el banner si se ha confirmado la revisión legal y están publicadas las cinco políticas del país correcto. Una revisión restaurada exige marcar expresamente la confirmación anterior. Las decisiones de visitantes NO se importan.', 'taxocommerce-google-bing' )
             . '</p>';
         $marker = get_option( self::MARKER, array() );
         if ( is_array( $marker ) && ! empty( $marker['completed'] ) ) {
