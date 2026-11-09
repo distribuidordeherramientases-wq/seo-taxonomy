@@ -141,6 +141,7 @@ final class Runner {
             'last_batch_timestamp'=> absint( $state['last_batch_timestamp'] ?? 0 ),
             'next_event_timestamp'=> $next,
             'speed_delay_seconds' => Workload::delay_seconds( $scope ),
+            'client_delay_ms'     => Workload::client_delay_ms( $scope ),
             'cron_disabled'       => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
             'cron_overdue'        => $running && $next > 0 && $next < time() - 60,
             'reason'              => sanitize_text_field( (string) ( $state['reason'] ?? '' ) ),
