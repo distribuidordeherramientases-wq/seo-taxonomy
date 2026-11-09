@@ -100,16 +100,20 @@ foreach ( $scopes as $scope ) {
 }
 $size_previous = 0;
 $delay_previous = PHP_INT_MAX;
+$client_previous = PHP_INT_MAX;
 foreach ( array( 1, 2, 3, 4, 5 ) as $speed ) {
     $GLOBALS['tca_options'][ $workload::OPTION ] = array( 'products' => $speed );
     $size = $workload::batch_size( 'products' );
     $delay = $workload::delay_seconds( 'products' );
+    $client = $workload::client_delay_ms( 'products' );
     verify( $size > $size_previous && $size <= \TaxoCommerce\Auditor\Runner::BATCH_SIZE, 'Increasing speed raises bounded batch size' );
-    verify( $delay < $delay_previous && $delay >= 12, 'Increasing speed lowers cron spacing' );
+    verify( $delay < $delay_previous && $delay >= 12, 'Increasing speed lowers optional cron spacing' );
+    verify( $client < $client_previous && $client >= 300, 'Increasing speed shortens independent browser chaining delay' );
     verify( $workload::budget_seconds( 'products' ) >= 1, 'Request budget remains bounded' );
     verify( 3 === $workload::speed( 'pages' ), 'Changing products never changes pages' );
     $size_previous = $size;
     $delay_previous = $delay;
+    $client_previous = $client;
 }
 verify( ! $workload::set_speed( 'products', array( 5 ) ), 'Array input rejected' );
 verify( ! $workload::set_speed( 'products', '6' ), 'Speed outside range rejected' );
@@ -141,7 +145,8 @@ verify( $runner::browser_batch_due( 'categories' ), 'Stalled category audit can 
 $progress = $runner::progress( 'products' );
 verify( 200 === $progress['processed'] && 28426 === $progress['total'], 'Progress preserves the live 200/28426 state' );
 verify( 0 === $runner::progress( 'categories' )['processed'], 'Category scope starts at its own cursor' );
-verify( 60 === $progress['speed_delay_seconds'], 'Recovery uses the configured product speed' );
+verify( 60 === $progress['speed_delay_seconds'], 'Optional WP-Cron keeps the configured product speed' );
+verify( 3500 === $progress['client_delay_ms'], 'Chained AJAX uses its own level-two delay, independently of WP-Cron' );
 verify( 0 === $progress['next_event_timestamp'], 'Missing WP-Cron event is diagnosed without a fatal error' );
 verify( false === $runner::browser_batch_due( 'unknown' ), 'Unknown scope cannot execute work' );
 $GLOBALS['tca_options']['taxocommerce_auditor_state_products']['last_batch_timestamp'] = $now;
@@ -151,9 +156,16 @@ verify( ! $runner::browser_batch_due( 'products' ), 'Pausing prevents browser-tr
 verify( false !== strpos( $runner_source, 'add_option( $worker_option' ), 'Cron and browser share an atomic worker lock' );
 verify( false !== strpos( $runner_source, 'delete_option( $worker_option )' ), 'Worker lock is released on exit' );
 verify( false !== strpos( $admin, "check_ajax_referer( 'taxocommerce_auditor_watch', 'nonce' )" ), 'Browser recovery verifies nonce' );
+$watch_handler = explode( 'public static function handle_action()', explode( 'public static function handle_watch()', $admin )[1] )[0];
+verify( false !== strpos( $watch_handler, 'Runner::run_batch( $scope );' ), 'Every authenticated browser request executes one bounded batch' );
+verify( false === strpos( $watch_handler, 'browser_batch_due' ), 'Browser worker never waits for WP-Cron due timestamp' );
+verify( false !== strpos( $watch_handler, 'batch_processed' ), 'Chaining receives actual batch progress' );
 verify( false !== strpos( $admin, "self::guard();" ), 'Browser recovery checks administrator capabilities' );
 $browser = file_get_contents( dirname( __DIR__ ) . '/assets/admin-watch.js' );
-verify( false !== strpos( $browser, 'schedule(Math.min(60000,' ), 'Failed AJAX requests back off' );
+verify( false !== strpos( $browser, 'nextDelay = Math.min(60000,' ), 'Failed AJAX requests back off' );
+verify( false !== strpos( $browser, 'schedule(nextDelay)' ), 'Next browser batch follows the response' );
+verify( false !== strpos( $browser, 'data.client_delay_ms' ), 'Browser speed, not WP-Cron delay, governs the next batch' );
+verify( false === strpos( $browser, 'data.speed_delay_seconds' ), 'Browser never waits for WP-Cron interval' );
 verify( false !== strpos( $browser, "data.status === 'completed'" ), 'Completed audits automatically refresh the report' );
 $code_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php' );
 $code_assets = explode( 'public static function speeds()', explode( 'public static function assets(', $code_source )[1] )[0];
