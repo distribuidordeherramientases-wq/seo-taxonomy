@@ -73,7 +73,7 @@ final class TaxoCommerce_Insights_Consent {
             }
         }
         // Older Spanish installations may still use the single explicit URL.
-        if ( 'ES' === $market && '' === $slug && ! empty( $config['cookie_policy_url'] ) ) {
+        if ( 'ES' === $market && ! empty( $config['cookie_policy_url'] ) ) {
             return (string) $config['cookie_policy_url'];
         }
         return '';
