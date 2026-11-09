@@ -126,6 +126,8 @@ final class TaxoCommerce_Core_Dashboard {
 						<p class="tcc-eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 						<h1 id="tcc-dashboard-title"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
 						<p><?php esc_html_e( 'El núcleo modular para gestionar la arquitectura, los contenidos y las operaciones de tu tienda WooCommerce.', 'taxocommerce-core' ); ?></p>
+					</div>
+				</div>
                         <div class="tcc-hero__panels">
                             <?php $tc_official_info->render( 'taxocommerce-core', $tc_locale ); ?>
                         <?php if ( is_string( $tc_history ) && '' !== trim( $tc_history ) ) : ?>
@@ -135,8 +137,6 @@ final class TaxoCommerce_Core_Dashboard {
                             </details>
                         <?php endif; ?>
                         </div>
-					</div>
-				</div>
 				<div class="tcc-hero__metadata">
                     <span><?php echo esc_html( $tc_version_label . ' ' . TAXOCOMMERCE_CORE_VERSION ); ?></span>
                     <span><?php echo esc_html( $tc_updated_label . ': ' . TAXOCOMMERCE_CORE_RELEASE_DATE ); ?></span>

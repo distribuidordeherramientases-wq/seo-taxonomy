@@ -5,7 +5,7 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.3.36
+Stable tag: 0.3.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,8 @@ An auditable catalog assistant for WooCommerce, with independent learning, seman
 
 == Description ==
 
-* Optional official WordPress page excerpt in a collapsed header panel (left of the local version history), fetched through a safe HTTPS REST request only after its URL is configured by an administrator; cached and never required to run the plugin.
+* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
+
 
 
 Auto Test: 51 independent read-only checks grouped by runtime, schema, L1-L10 sources/quality, M11, search/feedback, M12 and backup. Reports are per-user transients; no new tables or background jobs. Expensive or destructive UAT remains explicitly unexecuted.
@@ -66,6 +67,9 @@ No. Core provides optional grouped administration.
 A new installation creates the Assistant's learning/lexicon/evidence schemas empty; it does NOT insert example tools, synonyms or knowledge from the developer's store. Only technical configuration, lesson definitions and generic language processing rules are bundled. On a first installation only, if the site's WooCommerce catalogue contains at least one published product, the plugin schedules its bounded L1-L10 learning through WordPress cron; training is not run synchronously during activation. If there are no published products, it stays idle until the administrator starts learning. Reactivation or updates never restart training automatically. After catalog learning, the Interpreter/Linguist builds evidence-backed lexical relationships from local products and taxonomy. Plugin upgrades do not erase existing learning. No sample dataset is installed automatically.
 
 == Changelog ==
+
+= 0.3.37 =
+* Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
 
 = 0.3.36 =
 * Additional translated administration controls and diagnostics ES/EN/FR/DE/NL with five rebuilt MO catalogs and regression smoke test; preserves official excerpt feature.
