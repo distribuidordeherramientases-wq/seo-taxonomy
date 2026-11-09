@@ -298,7 +298,7 @@ final class TaxoCommerce_Insights_Consent {
             echo '<div class="notice notice-success inline"><p>' . esc_html__( 'Configuración guardada. Las decisiones antiguas deberán renovarse.', 'taxocommerce-google-bing' ) . '</p></div>';
         } elseif ( 'review_required' === $notice ) {
             echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Antes de activar, revisa el texto legal y añade una URL válida de política de cookies.', 'taxocommerce-google-bing' ) . '</p></div>';
-        elseif ( 'imported' === $notice ) {
+        } elseif ( 'imported' === $notice ) {
             echo '<div class="notice notice-success inline"><p>' .
                 esc_html__( 'JSON importado correctamente. Los textos se han guardado en wp_options y ya aparecen en el formulario. El banner continúa desactivado y la revisión legal sigue pendiente.', 'taxocommerce-google-bing' ) .
                 '</p></div>';
