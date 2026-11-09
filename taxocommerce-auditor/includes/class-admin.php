@@ -701,6 +701,8 @@ final class Admin {
         $progress = Runner::progress( $scope );
         $progress['batch_processed'] = max( 0, absint( $progress['processed'] ) - absint( $before['processed'] ?? 0 ) );
         $progress['status_label'] = self::state_label( $progress['status'] );
+        // Refresh the admin nonce during very long scans without reopening a tab.
+        $progress['nonce'] = wp_create_nonce( 'taxocommerce_auditor_watch' );
         wp_send_json_success( $progress );
     }
 
