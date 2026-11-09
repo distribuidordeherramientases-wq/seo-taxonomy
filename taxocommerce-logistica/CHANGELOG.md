@@ -2,6 +2,7 @@
 
 - El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.
 - Formulario sanitizado; soporte para desactivación y funcionamiento sin servicios externos. Historial local sin cambios.
+- Corregidos los avisos estrictos de Plugin Check: comentarios para los marcadores de traducción y documentación de compatibilidad del filtro de envío heredado, sin alterar sus resultados ni integraciones.
 
 ## [0.2.12] — 2026-11-08 — Extracto público remoto opcional (#2443)
 
