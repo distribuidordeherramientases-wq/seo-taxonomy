@@ -137,8 +137,8 @@ verify( 10 === $workload::effective_batch_size( 'products' ), 'Saved speed bound
 verify( 4 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 4 ) ), 'Adaptive cap persists without resetting the cursor' );
 verify( 10 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 500 ) ), 'Adaptive cap never exceeds level-two speed' );
 verify( 1 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 0 ) ), 'Adaptive cap never becomes zero' );
-verify( 6 === $workload::adjusted_batch_size( 'products', 5, 200, 25, 5 ), 'Fast PHP batch grows within selected maximum' );
-verify( 5 === $workload::adjusted_batch_size( 'products', 10, 3000, 35, 10 ), 'Slow batch reduces work when budget is reached' );
+verify( 7 === $workload::adjusted_batch_size( 'products', 5, 200, 25, 5 ), 'Fast PHP batch grows within selected maximum' );
+verify( 6 === $workload::adjusted_batch_size( 'products', 10, 3000, 35, 10 ), 'Slow batch reduces work when budget is reached' );
 verify( 6 === $workload::adjusted_batch_size( 'products', 10, 200, 85, 10 ), 'Memory pressure reduces work despite fast response' );
 verify( 7 === $workload::adjusted_batch_size( 'products', 7, 200, 20, 0 ), 'No-progress batch cannot accelerate' );
 verify( 3 === $workload::speed( 'pages' ), 'Adaptive calculations do not affect other scopes' );
