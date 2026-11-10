@@ -5,13 +5,15 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.1.17
+Stable tag: 0.1.18
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Publish WooCommerce commercial feeds and professional XML sitemaps with bounded background processing.
 
 == Description ==
+
+* An administrator checkbox in Distribution > Sitemaps enables or relinquishes TaxoCommerce XML sitemap publication. With it disabled, native WordPress or another plugin can publish sitemaps; commercial feeds are unaffected. The existing WordPress filter continues to support third-party ownership.
 
 * The admin header shows the plugin's bundled `Description` and links to its `Plugin URI`, without network requests or caching. Version history uses the bundled `CHANGELOG.md`.
 
