@@ -133,9 +133,22 @@ verify( $workload::set_speed( 'products', '2' ), 'Valid speed saved through the 
 // The read-only test stub counts writes but does not persist them.
 $GLOBALS['tca_options'][ $workload::OPTION ] = array( 'products' => 2 );
 verify( 3 === $workload::speed( 'pages' ), 'Independent scope keeps its saved speed' );
+verify( 10 === $workload::effective_batch_size( 'products' ), 'Saved speed bounds the first product batch' );
+verify( 4 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 4 ) ), 'Adaptive cap persists without resetting the cursor' );
+verify( 10 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 500 ) ), 'Adaptive cap never exceeds level-two speed' );
+verify( 1 === $workload::effective_batch_size( 'products', array( 'adaptive_batch_size' => 0 ) ), 'Adaptive cap never becomes zero' );
+verify( 6 === $workload::adjusted_batch_size( 'products', 5, 200, 25, 5 ), 'Fast PHP batch grows within selected maximum' );
+verify( 5 === $workload::adjusted_batch_size( 'products', 10, 3000, 35, 10 ), 'Slow batch reduces work when budget is reached' );
+verify( 6 === $workload::adjusted_batch_size( 'products', 10, 200, 85, 10 ), 'Memory pressure reduces work despite fast response' );
+verify( 7 === $workload::adjusted_batch_size( 'products', 7, 200, 20, 0 ), 'No-progress batch cannot accelerate' );
+verify( 3 === $workload::speed( 'pages' ), 'Adaptive calculations do not affect other scopes' );
 $runner_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-runner.php' );
 verify( strpos( $runner_source, '$processed_batch' ) !== false, 'Category offset tracks only processed objects under time budgets' );
 verify( strpos( $runner_source, '$requested_batch' ) !== false, 'Completion compares the batch limit captured before fetching' );
+verify( false !== strpos( $runner_source, "Workload::effective_batch_size( \$scope, \$state )" ), 'Runner applies per-scope adaptive batch cap' );
+verify( false !== strpos( $runner_source, "Workload::adjusted_batch_size(" ), 'Runner adjusts the next batch after the previous one' );
+verify( false !== strpos( $runner_source, "Workload::memory_pressure_percent()" ), 'Runner uses PHP memory pressure as a safety signal' );
+verify( false !== strpos( $runner_source, "'last_batch_duration_ms'" ), 'Runner stores real batch duration for progress' );
 verify( strpos( $admin, "wp_nonce_field( 'taxocommerce_auditor_action_' . \$scope )" ) !== false, 'Workload uses existing scope-specific nonce' );
 verify( strpos( $admin, 'Workload::set_speed( $scope, $raw_speed )' ) !== false, 'Workload update routes through validated controls' );
 
@@ -158,6 +171,9 @@ verify( 200 === $progress['processed'] && 28426 === $progress['total'], 'Progres
 verify( 0 === $runner::progress( 'categories' )['processed'], 'Category scope starts at its own cursor' );
 verify( 60 === $progress['speed_delay_seconds'], 'Optional WP-Cron keeps the configured product speed' );
 verify( 3500 === $progress['client_delay_ms'], 'Chained AJAX uses its own level-two delay, independently of WP-Cron' );
+verify( 3000 === $progress['batch_budget_ms'], 'Browser receives the selected server-side budget' );
+verify( 10 === $progress['effective_batch_size'], 'Progress exposes the level-two adaptive cap' );
+verify( 0 === $progress['batch_duration_ms'], 'Existing audit without telemetry remains compatible' );
 verify( 0 === $progress['next_event_timestamp'], 'Missing WP-Cron event is diagnosed without a fatal error' );
 verify( false === $runner::browser_batch_due( 'unknown' ), 'Unknown scope cannot execute work' );
 $GLOBALS['tca_options']['taxocommerce_auditor_state_products']['last_batch_timestamp'] = $now;
@@ -177,6 +193,9 @@ $browser = file_get_contents( dirname( __DIR__ ) . '/assets/admin-watch.js' );
 verify( false !== strpos( $browser, 'nextDelay = Math.min(60000,' ), 'Failed AJAX requests back off' );
 verify( false !== strpos( $browser, 'schedule(nextDelay)' ), 'Next browser batch follows the response' );
 verify( false !== strpos( $browser, 'data.client_delay_ms' ), 'Browser speed, not WP-Cron delay, governs the next batch' );
+verify( false !== strpos( $browser, 'data.batch_duration_ms' ), 'Adaptive browser pacing reads real PHP batch duration' );
+verify( false !== strpos( $browser, 'data.memory_pressure_percent' ), 'Adaptive browser pacing reads the PHP memory signal' );
+verify( false === strpos( $browser, 'data.cron_disabled' ) && false === strpos( $browser, 'data.cron_overdue' ), 'UI never warns about irrelevant cron status' );
 verify( false === strpos( $browser, 'data.speed_delay_seconds' ), 'Browser never waits for WP-Cron interval' );
 verify( false !== strpos( $browser, "data.status === 'completed'" ), 'Completed audits automatically refresh the report' );
 $code_source = file_get_contents( dirname( __DIR__ ) . '/includes/class-taxocommerce-autotest-code.php' );
