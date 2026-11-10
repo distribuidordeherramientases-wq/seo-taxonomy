@@ -221,6 +221,8 @@ jobs:
       - name: Core PHP syntax and regression tests
         run: |
           php -l taxocommerce-core/taxocommerce-core.php
+          php -l taxocommerce-core/tests/action-scheduler-notice-smoke.php
+          php taxocommerce-core/tests/action-scheduler-notice-smoke.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-anomalies.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-country.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-hierarchy.php

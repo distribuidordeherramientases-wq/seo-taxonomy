@@ -4,13 +4,15 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.72
+Stable tag: 0.4.73
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Manage WooCommerce catalog structure and WordPress content from a modular dashboard with optional independent extensions.
 
 == Description ==
+
+* Hides only the Action Scheduler overdue-actions admin notice. Scheduled actions and other notices remain unchanged.
 
 * The administration header shows Core's local PHP `Description` and links to its developer `Plugin URI` without HTTP, optional consent actions or cached remote excerpts. The version history is read from the plugin's own `CHANGELOG.md`.
 
