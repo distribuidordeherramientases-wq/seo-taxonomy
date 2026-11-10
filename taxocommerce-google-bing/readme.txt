@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.37
+Stable tag: 1.1.38
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,10 @@ External connections, manual provider data downloads, and the restored legacy An
 
 == Description ==
 
-* The admin header shows the plugin's bundled `Description` and links to its `Plugin URI`, without network requests or caching. Version history uses the bundled `CHANGELOG.md`.
+* Executive Reports: a concise read-only decision summary of existing saved Google Search, Analytics and Bing reports and the existing Analista task history. Opening the executive tab neither calls external services nor duplicates downloaded data. Shows source freshness and confidence limitations, with links to technical evidence.
+
+
+* The admin header shows the local bundled Description and Plugin URI metadata without external requests or excerpt caching. CHANGELOG.md provides independent version history.
 
 
 
@@ -58,8 +61,8 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Changelog ==
 
-= 1.1.37 =
-* Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.
+= 1.1.38 =
+* Local Description and Plugin URI replace the REST excerpt in the header, preserving executive reports and data integrations. Issue #2494.
 
 
 = 1.1.36 =
@@ -229,4 +232,4 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 
 == Local plugin information ==
 
-The developer information panel shows only bundled `Description` metadata and an outbound `Plugin URI` link. No external request is made.
+The header displays locally bundled Description and a link to the developer Plugin URI, without external requests. Google, Bing and other actual data connections remain independent and documented in the sections above.

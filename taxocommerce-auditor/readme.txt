@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.17
+Stable tag: 0.3.19
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 == Description ==
 
-* Admin plugin information reads the local PHP `Description` and links to `Plugin URI`; no REST request, external cache or plugin dependency. The separate version history is bundled in `CHANGELOG.md`.
+* The admin panel reads the local PHP Description and Plugin URI metadata with no external request or cache; bundled CHANGELOG.md provides the version history.
 
-* Collapsible local plugin information beside the independent version history.
+* Collapsible plugin information and independent version history are available without configuring external services.
 
 
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
@@ -25,7 +25,7 @@ TaxoCommerce Auditor provides independent read-only content reviews across five 
 * Pages and landings: content structure, WordPress-native SEO roles, hierarchy and potentially overlapping pages.
 * FAQs: ownership, questions, answers, target product categories and semantic consistency. The TaxoCommerce FAQs module is optional.
 
-Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. Audits run as consecutive, bounded authenticated AJAX batches while the administrator keeps the audit screen open. Each successful response triggers the next batch without waiting for WP-Cron or manual clicks. The admin screen reliably loads its footer worker even under a custom WordPress menu, and active or paused scopes cannot start duplicate audits. The manual next-batch button is not shown; only Pause and Resume remain available during a run. Each of the five scopes has five independent workload speeds, adjusting batch sizes (5/10/20/30/40), per-request time budgets (2/3/5/8/12 seconds), and pauses between AJAX responses (6000/3500/2000/1000/300 milliseconds). The speeds are not a guaranteed percentage of server CPU usage. Pause, resume, filtered/full audits, progress and JSONL exports are preserved. WP-Cron remains an optional background fallback; when the admin tab is closed or a mobile browser suspends it, continued processing requires a working server-side scheduler.
+Each scope has volume and quality indicators, severity counts, a prioritised review queue and complete exportable JSON findings. A selected workload speed is a hard upper bound: the next batch's item count adapts to actual PHP execution time and observed PHP memory pressure. Browser AJAX pacing also adapts to measured response latency. These are safe load proxies and **not** a measurement of server-wide CPU utilisation. WP-Cron warnings are not displayed in the active audit, but network and authentication errors remain visible. Audits run as consecutive, bounded authenticated AJAX batches while the administrator keeps the audit screen open. Each successful response triggers the next batch without waiting for WP-Cron or manual clicks. The admin screen reliably loads its footer worker even under a custom WordPress menu, and active or paused scopes cannot start duplicate audits. The manual next-batch button is not shown; only Pause and Resume remain available during a run. Each of the five scopes has five independent adaptive workload speeds, adjusting batch ceilings (40/90/180/300/500), per-request time budgets (2/3/5/8/12 seconds), and pauses between AJAX responses (6000/3500/2000/1000/300 milliseconds). Each audit starts conservatively and grows only when the time/memory/optional PHP-worker CPU feedback allows; these figures are not a measurement of total host CPU usage. Pause, resume, filtered/full audits, progress and JSONL exports are preserved. WP-Cron remains an optional background fallback; when the admin tab is closed or a mobile browser suspends it, continued processing requires a working server-side scheduler.
 
 Complete audit results are streamed as JSON Lines files in WordPress uploads. Only a bounded sample is kept in WordPress options. Large exports stream the full results instead of loading the catalogue into memory.
 
@@ -59,8 +59,16 @@ No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
 
+= 0.3.19 =
+* Use Description and Plugin URI from the local plugin header, without HTTP or cached REST excerpts. Issue #2494.
+
+
+= 0.3.18 =
+* Conservative adaptive batch limits up to 500 objects; optional PHP CPU time from getrusage and memory/latency feedback, without WP-Cron notices in the active screen.
+
+
 = 0.3.17 =
-* Use local Description and Plugin URI for the administration header, with no external excerpt queries or cache. Keep the official link and independent version history. Issue #2494.
+* Automatically adjust the next AJAX batch size and pause using actual execution time, request latency and PHP memory pressure, within the configured speed cap. Remove misleading WP-Cron warnings from the audit screen; preserve genuine errors and retries.
 
 
 = 0.3.16 =
@@ -144,5 +152,4 @@ No. It reads already-saved local evidence; no third-party requests are started.
 
 == External Services ==
 
-
-The plugin information panel displays only the local PHP `Description` and an outbound link to its `Plugin URI`. No HTTP request is sent to show this panel.
+The administration header reads only the local Description and Plugin URI fields. No external services are contacted for the plugin information header.

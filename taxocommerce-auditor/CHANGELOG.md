@@ -1,7 +1,25 @@
-## [0.3.17] — 2026-11-10 — Información del plugin sin consultas externas (#2494)
+## [0.3.19] - 2026-11-10 - Cabecera local sin peticiones REST (#2494)
 
-- El panel utiliza `Description` y `Plugin URI` locales, sin peticiones REST ni cachés.
-- Se conservan el enlace oficial, el historial y las funciones existentes.
+- El encabezado utiliza solo Description y Plugin URI del propio plugin, sin HTTP ni caché de extractos.
+- Se conserva íntegro el control de CPU de Auditor 0.3.18 y el historial de versiones.
+
+## [0.3.18] - 2026-11-10 - CPU real del proceso PHP y techos de 40-500 (#2496, #2500)
+
+- Amplía el regulador adaptativo de Auditor 0.3.17: los cinco niveles permiten hasta 40, 90, 180, 300 y 500 objetos, pero cada ejecución inicia con una consulta conservadora y solo aumenta cuando tiempo, memoria y CPU del trabajador PHP dejan margen.
+- Si getrusage() está disponible, la CPU de usuario y sistema del proceso PHP se mide en milisegundos por lote y también influye en el ajuste de frecuencia del navegador. No se presenta ni se infiere la CPU global del alojamiento compartido.
+- Mantiene el límite temporal de cada nivel, un solo lote AJAX por petición, los cursores e índices persistidos, pausas, JSONL completo y bloqueo de concurrencia. La consulta y el umbral de finalización mantienen el mismo tamaño efectivo.
+- El texto de progreso deja de mencionar WP-Cron; las comunicaciones fallidas siguen siendo diagnosticables, y se conserva WP-Cron exclusivamente como mecanismo auxiliar opcional.
+- Ajustadas las pruebas PHP/JS, Autocheck, manual, documentación, versión y traducciones. No hay modificaciones de contenidos ni de otros plugins.
+
+## [0.3.17] — 2026-11-10 — Control adaptativo de carga y diagnóstico sin WP-Cron (#2498)
+
+- Eliminados de la pantalla de Auditor los avisos amarillos por WP-Cron desactivado o retrasado: no gobiernan la cadena AJAX y daban una impresión equivocada de bloqueo.
+- Se conserva el aviso real de error de red, HTTP, nonce o procesamiento, con reintentos controlados. WP-Cron sigue siendo solo una alternativa opcional para la ejecución con la pestaña cerrada.
+- El controlador de carga mide la duración completa de cada lote (incluidas las consultas de WordPress) y estima la presión de memoria PHP cuando se conoce su límite. Ajusta el tamaño del lote siguiente en el rango seguro de la velocidad 1–5 elegida, sin reiniciar cursor ni JSONL.
+- La interfaz ajusta también automáticamente la pausa entre respuestas según duración del lote, latencia observada y memoria: acelera en lotes ligeros y retrocede cuando están cerca de su presupuesto o con presión elevada. Los niveles 1–5 siguen siendo límites superiores, no porcentajes de CPU.
+- Se muestra el tamaño previsto del lote y la duración anterior como diagnóstico no intrusivo. Auditor no puede conocer el porcentaje global real de CPU en un alojamiento compartido.
+- Autotest, pruebas PHP y JavaScript de lotes rápidos/lentos, categorías, cron deshabilitado, pausa y reintentos; manual y traducciones nativas ES/EN/FR/DE/NL actualizados.
+- Issue #2498; no modifica catálogo, precios, stock, contenidos ni relaciones comerciales.
 
 ## [0.3.16] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 

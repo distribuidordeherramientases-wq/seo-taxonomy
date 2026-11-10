@@ -1,7 +1,15 @@
-## [1.1.37] — 2026-11-10 — Ficha local en el encabezado (#2494)
+## [1.1.38] - 2026-11-10 - Ficha local sin REST en el encabezado (#2494)
 
-- Elimina consultas REST/caché del extracto y usa `Description` y `Plugin URI` locales.
-- Conserva el enlace oficial y el historial, sin alterar servicios existentes.
+- La cabecera emplea Description y Plugin URI locales, sin REST ni caché externa.
+- Conserva la pestaña Informes ejecutivos de 1.1.37, las conexiones, el Analista, las descargas y el historial.
+
+## [1.1.37] - 2026-11-10 - Informe ejecutivo de snapshots existentes (#2497)
+
+- Nueva pestaña «Informes ejecutivos»: resume señales contrastables de Search Console, GA4 y Bing sin repetir paneles técnicos.
+- Lectura exclusivamente de los snapshots privados que ya guarda Insights: cero peticiones a proveedores, cero nuevas tablas/opciones/copies y ningún recálculo del Plan de acción al abrir.
+- Advertencias de frescura y fechas no alineadas, umbral mínimo de muestras, exclusión de métricas ausentes y acceso directo al informe técnico de origen.
+- Prioridades limitadas a cinco tareas ya existentes en el historial de Analista, excluyendo las ejecutadas y descartadas.
+- Pruebas de ausencia de datos, comparativas, caducidad y no mutación; conservadas todas las pestañas y descargas anteriores.
 
 ## [1.1.36] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
