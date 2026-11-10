@@ -31,6 +31,10 @@ function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function current_user_can( $capability ) { return 'manage_options' === $capability; }
 function wp_nonce_field( $name ) { echo '<input type="hidden" name="_wpnonce" value="test">'; }
 function get_option( $key, $default = '' ) { return $GLOBALS['tc_test_options'][ $key ] ?? $default; }
+function update_option( $key, $value, $autoload = null ) {
+    $GLOBALS['tc_test_options'][ $key ] = $value;
+    return true;
+}
 function get_transient( $key ) { return $GLOBALS['tc_test_transients'][ $key ] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['tc_test_transients'][ $key ] = $value; return true; }
 function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
@@ -38,6 +42,12 @@ function sanitize_title( $text ) { return strtolower( preg_replace( '/[^a-z0-9-]
 function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
 function wp_safe_remote_get( $url, $args = array() ) {
     $GLOBALS['tc_test_remote_calls'][] = $url;
+    if ( 'http_error' === ( $GLOBALS['tc_test_remote_mode'] ?? '' ) ) {
+        return array( 'code' => 503, 'body' => 'Unavailable' );
+    }
+    if ( 'invalid_json' === ( $GLOBALS['tc_test_remote_mode'] ?? '' ) ) {
+        return array( 'code' => 200, 'body' => 'not valid JSON' );
+    }
     $url_parts = parse_url( $url );
     parse_str( $url_parts['query'] ?? '', $query_parts );
     $slug = $query_parts['slug'] ?? '';
@@ -217,6 +227,54 @@ ob_start();
 foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
 ob_end_clean();
 tc_test_assert( 1 === count( $GLOBALS['tc_test_remote_calls'] ), 'Repeated visits read from transient cache.' );
+
+// The previous release cached empty results for 15 minutes. Versioned keys
+// bypass those legacy negative caches, without changing the official source.
+$legacy_key = 'tc_official_excerpt_' . md5( $official['uri'] );
+$cache_key  = 'tc_official_excerpt_v2_' . md5( $official['uri'] );
+$last_key   = 'tc_official_excerpt_good_' . md5( $official['uri'] );
+tc_test_assert( ! empty( $GLOBALS['tc_test_options'][ $last_key ] ), 'Successful REST excerpt persists as verified last-good text.' );
+$GLOBALS['tc_test_transients'][ $legacy_key ] = array( 'text' => '' );
+unset( $GLOBALS['tc_test_transients'][ $cache_key ] );
+$GLOBALS['tc_test_remote_mode'] = 'http_error';
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+$stale_markup = ob_get_clean();
+tc_test_assert( 2 === count( $GLOBALS['tc_test_remote_calls'] ), 'Retry must ignore negative transients from an earlier release.' );
+tc_test_assert( false !== strpos( $stale_markup, 'Dynamic &amp; safe excerpt' ), 'Network failure shows last verified developer excerpt.' );
+tc_test_assert( false === strpos( $stale_markup, 'temporalmente no disponible' ), 'Do not show empty excerpt while last-good exists.' );
+
+// A fresh installation with an unreachable official API must still show
+// the author's own plugin Description, never content from the customer site.
+unset( $GLOBALS['tc_test_transients'][ $cache_key ], $GLOBALS['tc_test_options'][ $last_key ] );
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+$offline_markup = ob_get_clean();
+$plugin_description = get_file_data( $root . '/taxocommerce-auditor/taxocommerce-auditor.php', array( 'description' => 'Description' ) );
+tc_test_assert( false !== strpos( $offline_markup, esc_html( $plugin_description['description'] ) ), 'Offline fallback uses plugin-author Description.' );
+tc_test_assert( false === strpos( $offline_markup, 'Extracto temporalmente no disponible.' ), 'Offline fallback hides misleading missing-excerpt warning.' );
+tc_test_assert( false === strpos( $offline_markup, 'https://client.example' ), 'Customer site never supplies official excerpt.' );
+$before = count( $GLOBALS['tc_test_remote_calls'] );
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+ob_end_clean();
+tc_test_assert( $before === count( $GLOBALS['tc_test_remote_calls'] ), 'Briefly cached failures prevent repeated HTTP calls.' );
+
+unset( $GLOBALS['tc_test_transients'][ $cache_key ] );
+$GLOBALS['tc_test_remote_mode'] = 'invalid_json';
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+$bad_json_markup = ob_get_clean();
+tc_test_assert( false !== strpos( $bad_json_markup, esc_html( $plugin_description['description'] ) ), 'Malformed remote JSON still uses author fallback.' );
+
+unset( $GLOBALS['tc_test_transients'][ $cache_key ] );
+$GLOBALS['tc_test_remote_mode'] = '';
+ob_start();
+foreach ( $tc_test_actions['admin_notices'] as $callback ) { $callback(); }
+$recovered_markup = ob_get_clean();
+tc_test_assert( false !== strpos( $recovered_markup, 'Dynamic &amp; safe excerpt' ), 'Recovered REST endpoint replaces fallback and last-good.' );
+tc_test_assert( false !== strpos( $recovered_markup, esc_html( $official['uri'] ) ), 'Official developer URL preserved after offline recovery.' );
+unset( $GLOBALS['tc_test_remote_mode'] );
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
 ob_start();
