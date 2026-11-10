@@ -23,7 +23,7 @@ tgb_assert_mobile( false === strpos( $main, "seo_analista_render_report();" ), '
 tgb_assert_mobile( false !== strpos( $main, "wp_create_nonce( 'taxocommerce_insights_analysis' )" ), 'Insights screen produces the matching nonce.' );
 tgb_assert_mobile( false !== strpos( $bridge, "check_ajax_referer( 'taxocommerce_insights_analysis', 'nonce' )" ), 'Insights AJAX verifies same nonce.' );
 tgb_assert_mobile( false !== strpos( $client, "action: 'taxocommerce_insights_analysis'" ), 'Browser uses Insights AJAX route.' );
-tgb_assert_mobile( false !== strpos( $bridge, "taxocommerce_insights_action_plan_export( $plan, $days )" ), 'Plan export reuses same decision plan.' );
+tgb_assert_mobile( false !== strpos( $bridge, 'taxocommerce_insights_action_plan_export( $plan, $days )' ), 'Plan export reuses same decision plan.' );
 tgb_assert_mobile( false !== strpos( $client, 'showPlanJson(reportContainer, response.data)' ), 'Plan download is added after report succeeds.' );
 tgb_assert_mobile( false !== strpos( $client, 'new Blob([content]' ), 'Plan downloaded from already computed JSON without AJAX replay.' );
 tgb_assert_mobile( false !== strpos( $client, "target: '_blank', rel: 'noopener noreferrer'" ), 'Mobile can open JSON directly.' );
