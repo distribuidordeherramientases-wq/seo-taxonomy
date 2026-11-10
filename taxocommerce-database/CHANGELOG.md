@@ -1,3 +1,8 @@
+## [0.4.18] — 2026-11-10 — Ficha local en el encabezado (#2494)
+
+- Elimina consultas REST/caché del extracto y usa `Description` y `Plugin URI` locales.
+- Conserva el enlace oficial y el historial, sin alterar servicios existentes.
+
 ## [0.4.17] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
 - Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.
