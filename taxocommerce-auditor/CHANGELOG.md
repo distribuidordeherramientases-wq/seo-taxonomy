@@ -1,3 +1,8 @@
+## [0.3.17] — 2026-11-10 — Información del plugin sin consultas externas (#2494)
+
+- El panel utiliza `Description` y `Plugin URI` locales, sin peticiones REST ni cachés.
+- Se conservan el enlace oficial, el historial y las funciones existentes.
+
 ## [0.3.16] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
 - Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.

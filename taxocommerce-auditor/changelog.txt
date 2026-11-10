@@ -1,3 +1,6 @@
+= 0.3.17 (2026-11-10) =
+* Use local Description and Plugin URI in header; remove external excerpt requests, preserve link and history. Issue #2494.
+
 == 0.3.14 ==
 * Remove the manual next-batch button in all audit screens and load the AJAX worker reliably from WordPress custom menus. Automatic batches retain progress, five CPU throughput speeds, pause and resume. Issue #2475.
 

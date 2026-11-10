@@ -4,7 +4,7 @@ Tags: woocommerce, audit, seo, content, quality
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.3.16
+Stable tag: 0.3.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Audit WordPress and WooCommerce content quality, structure, duplicate risks and 
 
 == Description ==
 
-* The developer's Plugin URI is the only official source; the public REST excerpt is cached and its last verified value survives connection failures. On a first-install offline shop, the plugin author's bundled Description is displayed until connectivity returns. The client cannot edit the official URL. History remains local and separate.
+* Admin plugin information reads the local PHP `Description` and links to `Plugin URI`; no REST request, external cache or plugin dependency. The separate version history is bundled in `CHANGELOG.md`.
 
-* Optional collapsible official-page excerpt beside the version history. Administrators can configure an HTTPS WordPress page URL; only that page's published REST excerpt and link are retrieved using a safe request and a transient cache. No URL or service is preset.
+* Collapsible local plugin information beside the independent version history.
 
 
 TaxoCommerce Auditor provides independent read-only content reviews across five scopes:
@@ -58,6 +58,10 @@ No. Core and other TaxoCommerce modules provide optional integrations.
 No. It reads already-saved local evidence; no third-party requests are started.
 
 == Changelog ==
+
+= 0.3.17 =
+* Use local Description and Plugin URI for the administration header, with no external excerpt queries or cache. Keep the official link and independent version history. Issue #2494.
+
 
 = 0.3.16 =
 * Display the last verified official excerpt from the developer's Plugin URI during HTTP errors; avoid stale negative cache and show bundled author Description on first-install network failure. No dependency on customer content. Issue #2489.
@@ -140,6 +144,5 @@ No. It reads already-saved local evidence; no third-party requests are started.
 
 == External Services ==
 
-An optional administrator-configured HTTPS WordPress website may be queried at its public `/wp-json/wp/v2/pages` endpoint (page slug, excerpt and link) to display that site's published description. It is not contacted until an administrator supplies its URL; no visitor identifiers or credentials are transmitted. Requests are cached locally for 12 hours (failures for 15 minutes), and outgoing links point to the chosen site. Review that site's privacy policy and terms before configuring it. This plugin requires no predefined external provider.
 
-The optional admin information panel defaults to this plugin's `Plugin URI`, the public project page. WordPress retrieves only its published excerpt via the WordPress REST API using a safe HTTPS request and transient cache. The administrator may replace the URL or explicitly clear it to disable remote requests; this does not affect plugin functionality.
+The plugin information panel displays only the local PHP `Description` and an outbound link to its `Plugin URI`. No HTTP request is sent to show this panel.
