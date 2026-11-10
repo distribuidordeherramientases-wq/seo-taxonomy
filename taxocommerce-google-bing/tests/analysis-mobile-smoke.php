@@ -24,9 +24,15 @@ tgb_assert_mobile( false !== strpos( $main, "wp_create_nonce( 'taxocommerce_insi
 tgb_assert_mobile( false !== strpos( $bridge, "check_ajax_referer( 'taxocommerce_insights_analysis', 'nonce' )" ), 'Insights AJAX verifies same nonce.' );
 tgb_assert_mobile( false !== strpos( $client, "action: 'taxocommerce_insights_analysis'" ), 'Browser uses Insights AJAX route.' );
 tgb_assert_mobile( false !== strpos( $bridge, 'taxocommerce_insights_action_plan_export( $plan, $days )' ), 'Plan export reuses same decision plan.' );
-tgb_assert_mobile( false !== strpos( $client, 'showPlanJson(reportContainer, response.data)' ), 'Plan download is added after report succeeds.' );
-tgb_assert_mobile( false !== strpos( $client, 'new Blob([content]' ), 'Plan downloaded from already computed JSON without AJAX replay.' );
-tgb_assert_mobile( false !== strpos( $client, "target: '_blank', rel: 'noopener noreferrer'" ), 'Mobile can open JSON directly.' );
+tgb_assert_mobile( false !== strpos( $client, 'showSavedPlanDate(response.data)' ), 'Plan download date is updated after report succeeds.' );
+tgb_assert_mobile( false === strpos( $client, 'showPlanJson(' ), 'Plan download must not be appended after the report.' );
+tgb_assert_mobile( false === strpos( $client, 'new Blob([content]' ), 'Plan download uses a saved server-side JSON without a browser Blob.' );
+tgb_assert_mobile( false !== strpos( $main, 'id="tgb-plan-json-download"' ), 'The separate plan JSON button appears in the top report controls.' );
+tgb_assert_mobile( false !== strpos( $main, 'tgb-plan-json-date' ), 'Top download button contains the last saved JSON timestamp.' );
+tgb_assert_mobile( false !== strpos( $main, "'planDownloadUrl' => taxocommerce_insights_plan_json_download_url()" ), 'Signed download URL supplied to client.' );
+tgb_assert_mobile( false !== strpos( $bridge, "add_action( 'admin_post_taxocommerce_insights_plan_json_download'" ), 'Separate authenticated admin-post download endpoint.' );
+tgb_assert_mobile( false !== strpos( $bridge, "check_admin_referer( 'taxocommerce_insights_plan_json_download' )" ), 'Plan download requires its own nonce.' );
+tgb_assert_mobile( false !== strpos( $bridge, "get_option( 'taxocommerce_insights_last_plan_json', array() )" ), 'Plan download reads saved JSON, not a new analysis.' );
 tgb_assert_mobile( false !== strpos( $main, "'planDownloadLabel' =>" ), 'Download label passed to client.' );
 tgb_assert_mobile( false !== strpos( $main, 'id="tgb-analysis-run-all"' ), 'Complete Analysis button present.' );
 tgb_assert_mobile( false !== strpos( $main, 'id="tgb-analysis-cancel"' ), 'Cancel button present.' );
