@@ -99,6 +99,68 @@ function taxocommerce_insights_action_plan_export( array $plan, $days ) {
         : $export;
 }
 
+
+/**
+ * Latest completed, site-local action plan. Never regenerate reports on read.
+ *
+ * @return array Stored, validated plan or an empty array.
+ */
+function taxocommerce_insights_last_plan_export() {
+    $export = get_option( 'taxocommerce_insights_last_plan_json', array() );
+    if ( ! is_array( $export )
+        || 'taxocommerce-insights-plan-accion' !== ( $export['schema']['name'] ?? '' )
+        || ! isset( $export['generated_at'], $export['plan_accion'] )
+        || ! is_array( $export['plan_accion'] )
+        || false === strtotime( (string) $export['generated_at'] ) ) {
+        return array();
+    }
+    return $export;
+}
+
+/**
+ * Protected download URL, independent of the report-execution AJAX call.
+ *
+ * @return string
+ */
+function taxocommerce_insights_plan_json_download_url() {
+    return wp_nonce_url(
+        admin_url( 'admin-post.php?action=taxocommerce_insights_plan_json_download' ),
+        'taxocommerce_insights_plan_json_download'
+    );
+}
+
+/**
+ * Download the last saved plan without running any SEO analysis.
+ *
+ * @return void
+ */
+function taxocommerce_insights_plan_json_download() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No tienes permisos suficientes.', 'taxocommerce-google-bing' ), '', array( 'response' => 403 ) );
+    }
+    check_admin_referer( 'taxocommerce_insights_plan_json_download' );
+
+    $export = taxocommerce_insights_last_plan_export();
+    if ( empty( $export ) ) {
+        wp_die( esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ), '', array( 'response' => 404 ) );
+    }
+
+    $json = wp_json_encode( $export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo preparar el JSON del plan de acción.', 'taxocommerce-google-bing' ), '', array( 'response' => 500 ) );
+    }
+
+    $stamp = gmdate( 'YmdHis', strtotime( (string) $export['generated_at'] ) );
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-plan-de-accion-' . $stamp . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- This is a JSON attachment, not HTML. All values use the existing sanitized export contract.
+    echo $json;
+    exit;
+}
+add_action( 'admin_post_taxocommerce_insights_plan_json_download', 'taxocommerce_insights_plan_json_download' );
+
 /**
  * This AJAX handler renders the merged Insights view only on click. All other
  * specialist reports retain their original renderer. Never create work when
@@ -157,6 +219,17 @@ function taxocommerce_insights_analysis_ajax() {
     );
     if ( null !== $plan_export ) {
         $response['plan_export'] = $plan_export;
+
+        // One per-site snapshot, excluded from autoload. The full analysis
+        // stays on demand and this export is not mixed with other reports.
+        update_option( 'taxocommerce_insights_last_plan_json', $plan_export, false );
+        $stored = taxocommerce_insights_last_plan_export();
+        if ( $stored === $plan_export ) {
+            $response['plan_saved_at_display'] = wp_date(
+                'd/m/Y H:i',
+                strtotime( (string) $stored['generated_at'] )
+            );
+        }
     }
     wp_send_json_success( $response );
 }
