@@ -1,3 +1,9 @@
+## 2026-11-10 - Redirects: control administrativo del motor (#2485)
+
+- Añadida casilla independiente para activar/desactivar el motor de redirecciones de TaxoCommerce Redirects; activada por defecto para no alterar tiendas existentes.
+- La desactivación respeta al otro gestor cuando exista, conserva todas las reglas y no habilita automáticamente ningún plugin. Mantiene las mejoras de interoperabilidad aportadas en PR #2516.
+- Ampliadas las pruebas del contrato entre motores y el workflow existente; versión de Redirects 0.1.19. Sin publicación a producción.
+
 ## 2026-11-10 - Distribution: gestión opcional del sitemap XML (#2484)
 
 - Añadida casilla propia en TaxoCommerce Distribution para activar o ceder la publicación XML; sin dependencia obligatoria de OPNV ni de Core.
