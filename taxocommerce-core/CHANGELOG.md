@@ -1,3 +1,8 @@
+## [0.4.72] — 2026-11-10 — Descripción visible desde el plugin (#2494)
+
+- La descripción inmediatamente debajo del título administrativo procede de `Description:` del archivo principal, sin textos duplicados ni consultas externas.
+- Se mantienen el enlace estático `Plugin URI`, el historial local y las funcionalidades anteriores.
+
 ## [0.4.71] — 2026-11-10 — Ficha estática sin conexión remota (#2494)
 
 - El encabezado muestra únicamente `Description` y `Plugin URI` de Core, sin consultas REST, botones de consentimiento ni caché de extractos.
