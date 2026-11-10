@@ -4,7 +4,7 @@ Tags: tasks, calendar, productivity, dashboard, admin
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.13
+Stable tag: 0.1.14
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ A private task agenda with categories, priorities, assignments, calendar and ind
 
 == Description ==
 
-* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
+* The developer's Plugin URI is the only official source; the public REST excerpt is cached and its last verified value survives connection failures. On a first-install offline shop, the plugin author's bundled Description is displayed until connectivity returns. The client cannot edit the official URL. History remains local and separate.
 
 
 
@@ -60,6 +60,11 @@ No. It is standalone.
 When TaxoCommerce Core is active, Tasks appears within its administration submenu and its Extensions overview. Without Core, Tasks provides its own standalone administration menu. The private task tables and page slug remain unchanged.
 
 == Changelog ==
+
+= 0.1.14 =
+* Display the last verified official excerpt from the developer's Plugin URI during HTTP errors; avoid stale negative cache and show bundled author Description on first-install network failure. No dependency on customer content. Issue #2489.
+
+
 
 = 0.1.13 =
 * Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.

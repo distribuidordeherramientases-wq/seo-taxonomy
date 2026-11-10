@@ -36,14 +36,22 @@ return new class() {
     }
 
     /**
-     * Fetch only the public REST excerpt at the developer-supplied Plugin URI.
-     * Cached by site and source; errors are cached too to protect performance.
+     * Fetch the official excerpt from the developer's public REST endpoint.
+     *
+     * Do not use the customer store as a source. Remember the last verified
+     * excerpt locally so network interruptions never erase known information.
+     * Cache failures only briefly, without persisting their empty response.
      */
     private function excerpt( $url ) {
-        $key = 'tc_official_excerpt_' . md5( $url );
-        $cached = get_transient( $key );
-        if ( is_array( $cached ) && isset( $cached['text'] ) ) {
-            return $cached['text'];
+        // v2 deliberately bypasses negative transients made by older releases.
+        $hash     = md5( $url );
+        $key      = 'tc_official_excerpt_v2_' . $hash;
+        $last_key = 'tc_official_excerpt_good_' . $hash;
+        $last     = get_option( $last_key, '' );
+        $last     = is_string( $last ) ? $last : '';
+        $cached   = get_transient( $key );
+        if ( is_array( $cached ) && isset( $cached['text'] ) && is_string( $cached['text'] ) ) {
+            return '' !== trim( $cached['text'] ) ? $cached['text'] : $last;
         }
 
         $parts = wp_parse_url( $url );
@@ -80,8 +88,12 @@ return new class() {
                 }
             }
         }
-        set_transient( $key, array( 'text' => $text ), $text ? 12 * HOUR_IN_SECONDS : 15 * MINUTE_IN_SECONDS );
-        return $text;
+        if ( '' !== trim( $text ) && $text !== $last ) {
+            // A bounded, sanitized excerpt from the developer's own URL.
+            update_option( $last_key, $text, false );
+        }
+        set_transient( $key, array( 'text' => $text ), $text ? 12 * HOUR_IN_SECONDS : 5 * MINUTE_IN_SECONDS );
+        return '' !== trim( $text ) ? $text : $last;
     }
 
     public function render( $slug, $locale ) {
@@ -90,12 +102,24 @@ return new class() {
         // cannot change the official documentation source from this screen.
         $plugin_file = dirname( __DIR__ ) . '/' . basename( dirname( __DIR__ ) ) . '.php';
         $page = '';
+        $fallback = '';
         if ( is_readable( $plugin_file ) ) {
-            $headers = get_file_data( $plugin_file, array( 'uri' => 'Plugin URI' ), 'plugin' );
+            $headers = get_file_data(
+                $plugin_file,
+                array( 'uri' => 'Plugin URI', 'description' => 'Description' ),
+                'plugin'
+            );
             $page = isset( $headers['uri'] ) && is_string( $headers['uri'] ) ? $headers['uri'] : '';
+            $fallback = isset( $headers['description'] ) && is_string( $headers['description'] )
+                ? wp_html_excerpt( wp_strip_all_tags( $headers['description'] ), 300, '…' ) : '';
         }
         $page = $page ? esc_url_raw( $page, array( 'https' ) ) : '';
         $excerpt = $page ? $this->excerpt( $page ) : '';
+        // Offline first-install fallback: the plugin author's own Description.
+        // Never substitute the customer site's posts or excerpt fields.
+        if ( '' === trim( $excerpt ) && $page ) {
+            $excerpt = $fallback;
+        }
 
         echo '<details class="tc-family-info">';
         echo '<summary>' . esc_html( $words[0] ) . '</summary>';

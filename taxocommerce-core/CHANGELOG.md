@@ -1,3 +1,10 @@
+## [0.4.69] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
+
+- Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.
+- Conserva el último extracto oficial comprobado; los fallos de red no borran el texto. Caché de errores reducida a 5 minutos y versión nueva de clave para ignorar fallos antiguos cacheados.
+- Si nunca se ha obtenido un extracto, muestra provisionalmente la Description incluida por el autor en el plugin; permite abrir la ficha oficial. No cambia operaciones comerciales ni requiere Core.
+- Pruebas para recuperación tras fallos HTTP, JSON inválido y caché negativa; compatibles con la familia completa.
+
 ## [0.4.68] — 2026-11-09 — WordPress.org pre-review: styles, ZIP uploads, security (#2481)
 
 - Move three in-page CSS blocks (Autocheck, classic hierarchy, SEO hierarchy) to the existing enqueued `assets/admin.css` while preserving selectors, styles and responsive rules.
