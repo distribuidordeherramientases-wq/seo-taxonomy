@@ -4,6 +4,7 @@
 - Tras ejecutar el informe aparece «Descargar JSON del plan de acción», con alternativa para abrirlo en el navegador móvil.
 - El JSON independiente contiene exclusivamente el resumen y todas las recomendaciones del plan calculado (prioridad, objetivo, incidencia, destino, acción, estado, trazabilidad y fechas de revisión); excluye los demás informes de Insights.
 - Reutiliza el mismo cálculo AJAX, sin segunda consulta, cron ni almacenamiento adicional. Mantiene intactos «Descargar JSON completo», el resto de informes y las comprobaciones de seguridad.
+- Controles de descarga traducidos mediante los catálogos nativos PO/MO en ES/EN/FR/DE/NL.
 
 ## [1.1.43] — 2026-11-10 — Gráficos GA4 del carrito y artículos (#2514)
 
