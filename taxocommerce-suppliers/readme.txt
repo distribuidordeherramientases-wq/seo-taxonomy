@@ -4,14 +4,14 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.15
+Stable tag: 0.2.16
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
 
 == Description ==
 
-* The developer's Plugin URI provides the official plugin information (read-only for shop administrators). Its public excerpt appears to the left of the locally bundled version history, both centered in the three-zone admin header.
+* The developer's Plugin URI is the only official source; the public REST excerpt is cached and its last verified value survives connection failures. On a first-install offline shop, the plugin author's bundled Description is displayed until connectivity returns. The client cannot edit the official URL. History remains local and separate.
 
 
 
@@ -40,6 +40,11 @@ Explicitly excluded:
 * Automatic supplier website extraction.
 
 == Changelog ==
+
+= 0.2.16 =
+* Display the last verified official excerpt from the developer's Plugin URI during HTTP errors; avoid stale negative cache and show bundled author Description on first-install network failure. No dependency on customer content. Issue #2489.
+
+
 
 = 0.2.15 =
 * Three-zone responsive admin header, centered official developer information and own Markdown history; remove shop administrator URL configuration. Issue #2476.
