@@ -4,7 +4,7 @@ Tags: redirects, redirection, seo, woocommerce, delete
 Requires at least: 6.5
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 0.1.19
+Stable tag: 0.1.20
 License: GPLv2 or later
 
 Manage SEO redirects and assisted content deletion for WordPress and WooCommerce.
@@ -19,6 +19,8 @@ Manage SEO redirects and assisted content deletion for WordPress and WooCommerce
 
 
 Independent WordPress/WooCommerce 301/302 manager with assisted deletion.
+
+* Administrators can enable or disable the TaxoCommerce redirect engine from a checkbox in Redirects. Existing sites default to enabled. Disabling stops TaxoCommerce-owned redirects and ownership claims, preserves saved rules and management features, and does not automatically enable another plugin.
 
 == Installation ==
 
