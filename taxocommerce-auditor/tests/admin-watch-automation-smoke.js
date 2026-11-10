@@ -23,7 +23,8 @@ async function scenario(responses, options = {}) {
         progress: { textContent: '' },
         warning: { textContent: '', hidden: true },
         status: { textContent: '' },
-        counter: { textContent: '' }
+        counter: { textContent: '' },
+        load: { textContent: '' }
     };
     let id = 0;
     let reloads = 0;
@@ -38,7 +39,8 @@ async function scenario(responses, options = {}) {
         },
         querySelector: function (selector) {
             return selector === '[data-tca-progress]' ? elements.progress :
-                selector === '[data-tca-warning]' ? elements.warning : null;
+                selector === '[data-tca-warning]' ? elements.warning :
+                selector === '[data-tca-workload]' ? elements.load : null;
         }
     };
 
@@ -48,6 +50,7 @@ async function scenario(responses, options = {}) {
         latest: 'Último lote',
         none: 'Sin datos',
         continuous: 'Ritmo adaptativo',
+        load: 'Lote: %1$d objetos · Espera: %2$d ms · CPU PHP: %3$s · Memoria PHP: %4$s',
         nextBatch: 'Próximo lote',
         duration: 'Duración',
         cpu: 'CPU PHP',
@@ -137,7 +140,7 @@ async function scenario(responses, options = {}) {
 async function run() {
     const active = await scenario([
         { status: 'queued', processed: 0, total: 120, status_label: 'En cola', client_delay_ms: 6000, batch_processed: 0, nonce: 'rotated-1' },
-        { status: 'running', processed: 20, total: 120, status_label: 'En curso', client_delay_ms: 300, batch_processed: 20, nonce: 'rotated-2' },
+        { status: 'running', processed: 20, total: 120, status_label: 'En curso', client_delay_ms: 300, batch_limit: 180, last_cpu_ms: 43, last_memory_pct: 34, cron_disabled: true, cron_overdue: true, batch_processed: 20, nonce: 'rotated-2' },
         { status: 'completed', processed: 120, total: 120, status_label: 'Completado', batch_processed: 100, nonce: 'rotated-3' }
     ]);
 
@@ -149,6 +152,10 @@ async function run() {
     await active.tick();
     assert.equal(active.fetchCount, 3);
     assert.equal(active.sent[2].nonce, 'rotated-2', 'Subsequent batches reuse refreshed nonce');
+    assert.equal(active.elements.warning.hidden, true, 'Cron disabled/overdue is not an AJAX error');
+    assert.match(active.elements.load.textContent, /Lote: 180 objetos/, 'Actual adaptive limit is visible');
+    assert.match(active.elements.load.textContent, /CPU PHP: 43 ms/, 'PHP worker CPU feedback is visible');
+    assert.match(active.elements.load.textContent, /Memoria PHP: 34%/, 'PHP memory feedback is visible');
     assert.equal(active.reloads, 1, 'Completion refreshes the final report');
     assert.equal(active.timers.size, 0, 'No new batches once completed');
     assert.equal(active.maxPending, 1, 'Workers do not overlap');
