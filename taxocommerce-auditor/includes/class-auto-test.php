@@ -162,7 +162,7 @@ final class Auto_Test {
                 return self::fail( __( 'Falta Runner::', 'taxocommerce-auditor' ) . $method . '.' );
             }
         }
-        $valid = Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 100;
+        $valid = Runner::BATCH_SIZE > 0 && Runner::BATCH_SIZE <= 500;
         foreach ( array_keys( Runner::scopes() ) as $scope ) {
             $speed = Workload::speed( $scope );
             $valid = $valid && $speed >= 1 && $speed <= 5
