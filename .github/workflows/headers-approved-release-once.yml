@@ -44,6 +44,29 @@ jobs:
           test -n "$latest"
           test "$latest" = "$GITHUB_SHA"
 
+      - name: Cancel superseded approved revision before release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          previous=42895397391
+          status="$(gh run view "$previous" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')"
+          if [ "$status" != "completed" ]; then
+            gh run cancel "$previous" --repo "$GITHUB_REPOSITORY"
+            for attempt in $(seq 1 48); do
+              status="$(gh run view "$previous" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')"
+              if [ "$status" = "completed" ]; then
+                break
+              fi
+              sleep 5
+            done
+            if [ "$status" != "completed" ]; then
+              echo "::error::The old revision is still running. New release blocked."
+              exit 1
+            fi
+          fi
+
       - name: Dispatch existing mandatory STAGING -> Plugin Check -> PRO workflow
         shell: bash
         env:
