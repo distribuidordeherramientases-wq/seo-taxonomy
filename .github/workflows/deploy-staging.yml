@@ -171,6 +171,8 @@ jobs:
           php taxocommerce-import-export/tests/auto-test-smoke.php
           php taxocommerce-logistica/tests/auto-test-smoke.php
           php taxocommerce-redirects/tests/auto-test-smoke.php
+          php -l taxocommerce-redirects/tests/opnv-redirects-owner-smoke.php
+          php taxocommerce-redirects/tests/opnv-redirects-owner-smoke.php
           php taxocommerce-scrappers/tests/manual-autotest-smoke.php
           php -l taxocommerce-scrappers/tests/lifecycle-smoke.php
           php taxocommerce-scrappers/tests/lifecycle-smoke.php
