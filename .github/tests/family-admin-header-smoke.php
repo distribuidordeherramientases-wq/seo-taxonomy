@@ -203,7 +203,7 @@ foreach ( $tc_test_actions['admin_notices'] as $callback ) {
     $callback();
 }
 $static_markup = ob_get_clean();
-tc_test_assert( 0 === $GLOBALS['tc_test_remote_calls'], 'No HTTP requests for plugin information.' );
+tc_test_assert( 0 === count( $GLOBALS['tc_test_remote_calls'] ), 'No HTTP requests for plugin information.' );
 tc_test_assert( false !== strpos( $static_markup, esc_html( $official['description'] ) ), 'The PHP plugin Description is authoritative.' );
 tc_test_assert( false !== strpos( $static_markup, esc_html( $official['uri'] ) ), 'The official developer URL is linked.' );
 tc_test_assert( false === strpos( $static_markup, 'https://client.example' ), 'Shop-specific legacy options cannot override the developer URL.' );
@@ -214,7 +214,7 @@ foreach ( $tc_test_actions['admin_notices'] as $callback ) {
     $callback();
 }
 ob_end_clean();
-tc_test_assert( 0 === $GLOBALS['tc_test_remote_calls'], 'Repeated admin visits cannot contact the developer website.' );
+tc_test_assert( 0 === count( $GLOBALS['tc_test_remote_calls'] ), 'Repeated admin visits cannot contact the developer website.' );
 
 unset( $GLOBALS['tc_test_locale'] );
 unset( $_GET['page'] );
