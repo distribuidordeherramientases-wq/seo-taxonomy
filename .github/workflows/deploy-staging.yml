@@ -100,6 +100,9 @@ jobs:
           php .github/tests/legacy-scrappers-coexistence-smoke.php
           php -l .github/tests/legacy-loaders-smoke.php
           php .github/tests/legacy-loaders-smoke.php
+          php -l includes/ojeador/class-ojeador-admin.php
+          php -l .github/tests/legacy-ojeador-allowlist-smoke.php
+          php .github/tests/legacy-ojeador-allowlist-smoke.php
           php -l taxocommerce-dependiente/tests/i18n-catalog-smoke.php
           php taxocommerce-dependiente/tests/i18n-catalog-smoke.php
           for entry in bootstrap.php seo-marketing.php includes/header.php includes/dependiente/clonador/clonador-bootstrap.php; do php -l "$entry"; done
@@ -239,6 +242,9 @@ jobs:
           php -l taxocommerce-distribution/tests/sitemap-daily-smoke.php
           php taxocommerce-distribution/tests/sitemap-daily-smoke.php
           php taxocommerce-distribution/tests/sitemap-daily-smoke.php legacy
+          php -l taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php
+          php taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php
+          php taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php legacy
           php .github/tests/taxocommerce-core/auto-test-smoke.php
           php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-functional-smoke.php

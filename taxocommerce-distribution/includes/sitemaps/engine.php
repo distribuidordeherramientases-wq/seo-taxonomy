@@ -36,6 +36,41 @@ function tcdist_sitemap_sitemap_filename_is_allowed($filename)
 }
 
 /**
+ * Who publishes the public XML sitemap.
+ *
+ * Distribution owns /sitemap.xml by default. Another plugin can claim it with
+ * the `taxocommerce_sitemap_owner` filter (OPNV returns 'opnv'). Then this
+ * module stops serving the files, editing robots.txt and disabling the
+ * WordPress sitemap, and offers its category URLs to that owner instead
+ * (see tcdist_sitemap_offer_groups_to_opnv()).
+ *
+ * @return string '' when Distribution owns the public sitemap, otherwise the owner id.
+ */
+/**
+ * Administrator preference. Existing stores keep publishing until disabled.
+ *
+ * @return bool
+ */
+function tcdist_sitemap_enabled() {
+    return 'no' !== get_option( 'tcdist_sitemap_enabled', 'yes' );
+}
+
+function tcdist_sitemap_external_owner()
+{
+    if (defined('TCDIST_LEGACY_SITEMAP_ACTIVE') && TCDIST_LEGACY_SITEMAP_ACTIVE) {
+        return '';
+    }
+
+    $owner = sanitize_key((string) apply_filters('taxocommerce_sitemap_owner', 'taxocommerce'));
+
+    if ( ! tcdist_sitemap_enabled() && ( '' === $owner || 'taxocommerce' === $owner ) ) {
+        return 'wordpress';
+    }
+
+    return ($owner === '' || $owner === 'taxocommerce') ? '' : $owner;
+}
+
+/**
  * Canonical public URL for a sitemap.
  *
  * @param string $filename
@@ -57,6 +92,10 @@ function tcdist_sitemap_sitemap_public_url($filename)
  */
 function tcdist_sitemap_register_sitemap_rewrite_rules()
 {
+    if (tcdist_sitemap_external_owner() !== '') {
+        return;
+    }
+
     // Main index, historical aliases, and generated child sitemaps.
     add_rewrite_rule(
         '^(wp-sitemap\.xml|sitemap(?:[_-][a-z0-9-]+)?\.xml)$',
@@ -66,14 +105,28 @@ function tcdist_sitemap_register_sitemap_rewrite_rules()
 }
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_action('init', 'tcdist_sitemap_register_sitemap_rewrite_rules', 1); }
 
+/** Remove stale Distribution rules during a settings-change rewrite flush. */
+function tcdist_sitemap_filter_rewrite_rules( $rules ) {
+    if ( '' !== tcdist_sitemap_external_owner() && is_array( $rules ) ) {
+        unset( $rules['^(wp-sitemap\\.xml|sitemap(?:[_-][a-z0-9-]+)?\\.xml)$'] );
+    }
+    return $rules;
+}
+add_filter( 'rewrite_rules_array', 'tcdist_sitemap_filter_rewrite_rules', 100 );
+
 /**
  * Disables the native WordPress sitemap. This module is the only public
  * sitemap source and keeps /wp-sitemap.xml as a compatible alias.
  *
+ * @param bool $enabled
  * @return bool
  */
-function tcdist_sitemap_disable_wordpress_core_sitemaps()
+function tcdist_sitemap_disable_wordpress_core_sitemaps($enabled = true)
 {
+    if (tcdist_sitemap_external_owner() !== '') {
+        return $enabled; // The sitemap owner decides.
+    }
+
     return false;
 }
 if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('wp_sitemaps_enabled', 'tcdist_sitemap_disable_wordpress_core_sitemaps', 100); }
@@ -160,6 +213,10 @@ function tcdist_sitemap_get_requested_sitemap_filename()
  */
 function tcdist_sitemap_maybe_serve_sitemap()
 {
+    if (tcdist_sitemap_external_owner() !== '') {
+        return;
+    }
+
     $filename = tcdist_sitemap_get_requested_sitemap_filename();
 
     if ($filename === '') {
@@ -223,7 +280,7 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
  */
 function tcdist_sitemap_add_sitemap_to_robots($output, $public)
 {
-    if (!$public) {
+    if (!$public || tcdist_sitemap_external_owner() !== '') {
         return $output;
     }
 
@@ -1069,6 +1126,27 @@ function tcdist_sitemap_get_product_category_sitemap_urls()
 }
 
 /**
+ * When OPNV owns the public sitemap, TaxoCommerce still decides which product
+ * categories are worth indexing: it hands OPNV the same list it would publish
+ * (same `tcdist_sitemap_sitemap_include_term` rules and lastmod per category).
+ * OPNV prints them as /opnv-sitemap-product-categories.xml.
+ *
+ * @param mixed $groups Map of group slug => callable returning list<array{loc:string, lastmod?:string}>.
+ * @return array
+ */
+function tcdist_sitemap_offer_groups_to_opnv($groups)
+{
+    $groups = is_array($groups) ? $groups : array();
+    if (tcdist_sitemap_external_owner() !== 'opnv') {
+        return $groups;
+    }
+    $groups['product-categories'] = 'tcdist_sitemap_get_product_category_sitemap_urls';
+
+    return $groups;
+}
+if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTIVE ) { add_filter('opnv_sitemap_groups', 'tcdist_sitemap_offer_groups_to_opnv'); }
+
+/**
  * @param array $ids
  * @return int[]
  */
@@ -1328,6 +1406,10 @@ function tcdist_sitemap_get_existing_sitemaps()
  */
 function tcdist_sitemap_schedule_sitemap_regeneration($post_id = 0)
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $post_id = absint($post_id);
 
     if (
@@ -1364,6 +1446,10 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
  */
 function tcdist_sitemap_regenerate_sitemaps_silent()
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $result = tcdist_sitemap_create_sitemaps();
 
     if (!is_array($result) || ($result['type'] ?? '') !== 'success') {
@@ -1383,6 +1469,10 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
  */
 function tcdist_sitemap_ensure_initial_sitemap_generation()
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $storage = tcdist_sitemap_sitemap_storage();
     if (is_wp_error($storage) || is_file($storage['dir'] . 'sitemap.xml')) {
         return;

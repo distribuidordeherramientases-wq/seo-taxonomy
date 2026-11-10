@@ -1,10 +1,24 @@
-## [1.1.41] — 2026-11-10 — Gráficos GA4 de carrito y productos (#2514)
+## [1.1.43] — 2026-11-10 — Gráficos GA4 del carrito y artículos (#2514)
 
-- Incorpora en Google Analytics un gráfico comparativo del embudo por eventos y un desglose por artículo (unidades vistas, añadidas y compradas) con gráfica y tabla.
-- El desglose por artículo se obtiene de Google Analytics Data API solo cuando el administrador pulsa «Actualizar datos», y se guarda en el snapshot existente; abrir informes y cambiar fechas sigue sin consultas externas.
-- Mantiene los nueve informes GA4 existentes sin modificación. La petición por artículos es opcional: si la API no ofrece métricas compatibles o falla, el resto del informe continúa disponible.
-- Los snapshots anteriores muestran una indicación de actualización y no inventan productos. No se modifica el checkout, el seguimiento de eventos ni las demás pestañas.
-- Distingue recuentos de eventos, cantidades por artículo y compras, sin inferir carritos abandonados.
+- Incorpora el gráfico comparativo de eventos del embudo de compra y el desglose por producto (vistas, unidades añadidas y compradas) con gráfica y tabla en Google Analytics.
+- El desglose por artículo se obtiene de GA4 Data API solo al pulsar «Actualizar datos» y se guarda en el snapshot existente; consultar informes no lanza peticiones externas.
+- La petición de artículos es opcional y no bloquea los nueve informes GA4 existentes; los snapshots anteriores no inventan artículos.
+- Distingue eventos agregados, unidades y compras sin inferir carritos abandonados; escapa datos externos en las gráficas y tablas.
+- Reconciliado con 1.1.41 (segundo chequeo editorial) y 1.1.42 (encabezado administrativo), sin perder sus cambios.
+
+## [1.1.42] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
+
+- Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
+- Centro: desplegable más ancho con el historial local `CHANGELOG.md`, cerrado inicialmente.
+- Derecha: versión y fecha reales del propio plugin.
+- Se retira la segunda caja «Información del plugin», sin cambios en servicios, menús ni consultas externas.
+
+## [1.1.41] — 2026-11-10 — Segundo chequeo por fecha en el Plan de acción (#2518)
+
+- El Plan de acción evita repetir correcciones editoriales sustentadas en Search Console cuando el contenido local se modificó después de la última fecha de esos datos: pasa la tarea a Vigilar, no a corregida/verificada.
+- Usa fechas ya disponibles en WordPress y, cuando existen, las marcas de actualización de descripciones/excerpts en seo_nodes; no reanaliza contenido ni añade consultas externas o cron.
+- Se conservan tareas técnicas, comerciales y casos sin fechas fiables, así como las acciones ejecutadas que ya controla el seguimiento existente.
+- La fecha de modificación, la fecha GSC y el resultado de la revisión quedan en el contrato JSON. Se añaden pruebas de regresión independientes.
 
 ## [1.1.40] — 2026-11-10 — Analysis completo y JSON móvil (#2507)
 

@@ -128,10 +128,10 @@ final class TaxoCommerce_Core_Dashboard {
 						<p class="tcc-eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
 						<h1 id="tcc-dashboard-title"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></h1>
 						<p><?php echo esc_html( $tc_plugin_description ); ?></p>
+                        <?php $tc_official_info->render( 'taxocommerce-core', $tc_locale ); ?>
 					</div>
 				</div>
-                        <div class="tcc-hero__panels">
-                            <?php $tc_official_info->render( 'taxocommerce-core', $tc_locale ); ?>
+                        <div class="tcc-hero__history-zone">
                         <?php if ( is_string( $tc_history ) && '' !== trim( $tc_history ) ) : ?>
                             <details class="tcc-hero__history">
                                 <summary><?php echo esc_html( $tc_history_label ); ?></summary>

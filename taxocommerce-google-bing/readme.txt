@@ -4,13 +4,15 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.40
+Stable tag: 1.1.43
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and the restored legacy Analysis dashboard.
 
 == Description ==
+
+* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
 * Analysis: individual reports or a complete sequential run (mobile-friendly) using authenticated AJAX, and unified JSON download or browser-view fallback.
 
@@ -22,7 +24,7 @@ TaxoCommerce Insights keeps external service connections and manual data downloa
 
 * Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, Amazon and Pinterest.
 * Google Search downloads.
-* Google Analytics downloads.
+* Google Analytics downloads; optional GA4 product add-to-cart item chart and ecommerce event comparison in saved reports.
 * Bing downloads.
 * Optional IndexNow notifications for public URL changes, independent of Cloudflare; disabled by default to avoid duplicate providers. Configure in Connections > Bing. Uses WP-Cron, so regular scheduled execution is required.
 * Google Trends automatically compares all Spanish clusters (up to 5 per chart), then separately compares each cluster's primary hubs on page load. The underlying SEO hierarchy is dynamic, category and secondary-hub consultations remain manual; five-speed browser load controller, pause/resume/stop, and links to Google Explore. Charts are visual and do not provide machine-readable growth scores or verification of search term meaning. Historical RSS snapshots remain supported.
@@ -59,6 +61,16 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.43 =
+* GA4 ecommerce event chart and product-level quantities added to carts and purchases, saved in the existing Analytics snapshot. Uses optional manual Google Data API retrieval; snapshots without item data remain supported. Issue #2514.
+
+= 1.1.42 =
+* Restore a three-zone admin header, with plugin title/description/link, collapsed version history and version/date, without duplicate content. Issue #2521.
+
+= 1.1.41 =
+* The Analysis action plan watches editorial recommendations when local content was updated after the latest Search Console data. No extra content crawl, no automatic verified-fix claim. Issue #2518.
+
 
 = 1.1.38 =
 * Local Description and Plugin URI replace the REST excerpt in the header, preserving executive reports and data integrations. Issue #2494.
