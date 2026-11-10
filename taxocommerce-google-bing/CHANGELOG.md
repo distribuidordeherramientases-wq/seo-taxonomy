@@ -1,3 +1,17 @@
+## [1.1.42] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
+
+- Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
+- Centro: desplegable más ancho con el historial local `CHANGELOG.md`, cerrado inicialmente.
+- Derecha: versión y fecha reales del propio plugin.
+- Se retira la segunda caja «Información del plugin», sin cambios en servicios, menús ni consultas externas.
+
+## [1.1.41] — 2026-11-10 — Segundo chequeo por fecha en el Plan de acción (#2518)
+
+- El Plan de acción evita repetir correcciones editoriales sustentadas en Search Console cuando el contenido local se modificó después de la última fecha de esos datos: pasa la tarea a Vigilar, no a corregida/verificada.
+- Usa fechas ya disponibles en WordPress y, cuando existen, las marcas de actualización de descripciones/excerpts en seo_nodes; no reanaliza contenido ni añade consultas externas o cron.
+- Se conservan tareas técnicas, comerciales y casos sin fechas fiables, así como las acciones ejecutadas que ya controla el seguimiento existente.
+- La fecha de modificación, la fecha GSC y el resultado de la revisión quedan en el contrato JSON. Se añaden pruebas de regresión independientes.
+
 ## [1.1.40] — 2026-11-10 — Analysis completo y JSON móvil (#2507)
 
 - La pestaña Analysis activa usa su controlador AJAX y nonce de Insights, evitando rechazos al ejecutar informes.
