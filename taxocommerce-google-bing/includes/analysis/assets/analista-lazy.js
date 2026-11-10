@@ -11,40 +11,16 @@ jQuery(function ($) {
     var running = false;
     var cancelled = false;
     var pending = null;
-    var planDownloadUrl = null;
+    var planDownload = $('#tgb-plan-json-download');
 
-    function releasePlanJson() {
-        if (planDownloadUrl !== null && window.URL && window.URL.revokeObjectURL) {
-            window.URL.revokeObjectURL(planDownloadUrl);
-        }
-        planDownloadUrl = null;
-    }
-
-    function showPlanJson(container, data) {
-        if (!data || !data.plan_export || !Array.isArray(data.plan_export.plan_accion)) {
+    function showSavedPlanDate(data) {
+        if (!planDownload.length || !data || !data.plan_saved_at_display || !config.planDownloadUrl) {
             return;
         }
-        try {
-            var content = JSON.stringify(data.plan_export, null, 2);
-            if (typeof Blob === 'undefined' || !window.URL || !window.URL.createObjectURL) {
-                container.append($('<p>').addClass('description').text('Este navegador no permite descargar el JSON del plan de acción.'));
-                return;
-            }
-            planDownloadUrl = window.URL.createObjectURL(new Blob([content], {
-                type: 'application/json;charset=utf-8'
-            }));
-            var stamp = String(data.plan_export.generated_at || '').replace(/[^0-9]/g, '').slice(0, 14);
-            var filename = 'taxocommerce-plan-de-accion-' + (stamp || 'actual') + '.json';
-            var download = $('<a>').addClass('button button-secondary')
-                .attr({ href: planDownloadUrl, download: filename })
-                .text(config.planDownloadLabel || 'Descargar JSON del plan de acción');
-            var open = $('<a>').addClass('button')
-                .attr({ href: planDownloadUrl, target: '_blank', rel: 'noopener noreferrer' })
-                .text(config.planOpenLabel || 'Abrir JSON del plan (móvil)');
-            container.append($('<div>').addClass('tgb-plan-json-actions').append(download, ' ', open));
-        } catch (error) {
-            container.append($('<p>').addClass('description').text('No se pudo preparar el JSON del plan de acción.'));
-        }
+        planDownload.removeClass('disabled')
+            .attr('href', config.planDownloadUrl)
+            .attr('aria-disabled', 'false');
+        planDownload.find('.tgb-plan-json-date').text(data.plan_saved_at_display);
     }
 
     function setBusy(busy) {
@@ -82,7 +58,6 @@ jQuery(function ($) {
         }
 
         cancelled = false;
-        releasePlanJson();
         setBusy(true);
         result.empty();
         var finished = 0;
@@ -131,7 +106,7 @@ jQuery(function ($) {
                     .attr('data-report', item.report).html(response.data.html);
                 result.append(reportContainer);
                 if (item.report === 'directrices') {
-                    showPlanJson(reportContainer, response.data);
+                    showSavedPlanDate(response.data);
                 }
                 finished++;
                 next();

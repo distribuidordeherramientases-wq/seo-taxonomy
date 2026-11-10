@@ -1,3 +1,10 @@
+## [1.1.45] — 2026-11-10 — Dos botones superiores y último JSON fechado (#2537)
+
+- El botón «Plan de acción» y «Descargar JSON del plan de acción» aparecen juntos arriba, antes de los resultados; la descarga inferior se elimina.
+- El segundo botón muestra la fecha y hora del último JSON generado, accesible tras recargar la pantalla. Si todavía no hay un JSON guardado, se muestra inhabilitado hasta completar un informe.
+- Se conserva solamente el último plan por instalación en `wp_options` sin autoload. La descarga autenticada por nonce y `manage_options` reutiliza ese JSON, sin ejecutar Analista ni consultar servicios externos.
+- No se cambia el JSON completo de Insights, las demás tarjetas ni el motor del Plan de acción. Se conserva la compatibilidad del JSON existente y las traducciones de los dos rótulos.
+
 ## [1.1.44] — 2026-11-10 — Plan de acción: botón y JSON independiente (#2528)
 
 - Renombra únicamente el botón combinado de Insights > Analysis como «Plan de acción», conservando sus contenidos comerciales, SEO/GEO y el listado de trabajos.
