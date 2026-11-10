@@ -156,9 +156,9 @@ final class TaxoCommerce_Insights_Executive {
         echo '<p>' . esc_html__( 'Lectura de dirección basada exclusivamente en informes ya descargados. No genera consultas externas, copias de estadísticas ni tareas nuevas.', 'taxocommerce-google-bing' ) . '</p>';
         echo '<div class="tci-executive-grid">';
         foreach ( $model['sources'] as $source => $entry ) {
-            $label = esc_html( $entry['label'] );
-            $link = esc_url( self::link( $entry['tab'] ) );
-            echo '<section class="tci-executive-card"><h3>' . $label . '</h3>';
+            $label = $entry['label'];
+            $link = self::link( $entry['tab'] );
+            echo '<section class="tci-executive-card"><h3>' . esc_html( $label ) . '</h3>';
             if ( ! $entry['available'] ) {
                 echo '<p>' . esc_html__( 'Sin informe guardado. Actualiza la fuente desde su pestaña técnica.', 'taxocommerce-google-bing' ) . '</p>';
             } else {
@@ -169,7 +169,7 @@ final class TaxoCommerce_Insights_Executive {
                     echo '<p>' . esc_html__( 'Datos descargados recientemente.', 'taxocommerce-google-bing' ) . '</p>';
                 }
             }
-            echo '<p><a href="' . $link . '">' . esc_html__( 'Ver datos técnicos', 'taxocommerce-google-bing' ) . '</a></p></section>';
+            echo '<p><a href="' . esc_url( $link ) . '">' . esc_html__( 'Ver datos técnicos', 'taxocommerce-google-bing' ) . '</a></p></section>';
         }
         echo '</div>';
         if ( ! $model['aligned'] ) {
