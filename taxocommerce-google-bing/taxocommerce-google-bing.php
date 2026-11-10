@@ -258,8 +258,8 @@ function taxocommerce_google_bing_analysis_screen() {
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'nonce'   => wp_create_nonce( 'taxocommerce_insights_analysis' ),
                 'days'    => $days,
-                'planDownloadLabel' => __( 'Download', 'default' ) . ' JSON · ' . __( 'Plan de acción', 'taxocommerce-google-bing' ),
-                'planOpenLabel' => __( 'View', 'default' ) . ' JSON · ' . __( 'Plan de acción', 'taxocommerce-google-bing' ),
+                'planDownloadLabel' => __( 'Descargar JSON del plan de acción', 'taxocommerce-google-bing' ),
+                'planOpenLabel' => __( 'Abrir JSON del plan (móvil)', 'taxocommerce-google-bing' ),
             ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT ) . ';',
             'before'
         );
