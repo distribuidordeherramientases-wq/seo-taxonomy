@@ -154,7 +154,7 @@ foreach ( $slugs as $slug ) {
     }
     tc_test_assert( 1 === count( $tc_test_styles ), 'No cross-plugin styles enqueued on ' . $slug );
     $styles = reset( $tc_test_styles );
-    tc_test_assert( false !== strpos( $styles['css'], '@media(max-width:600px)' ), 'Responsive header on ' . $slug );
+    tc_test_assert( false !== strpos( $styles['css'], '@media(max-width:700px)' ), 'Responsive header on ' . $slug );
     tc_test_assert( false !== strpos( $styles['css'], '.nav-tab-wrapper' ), 'Existing tabs retained on ' . $slug );
     tc_test_assert( false !== strpos( $styles['css'], 'grid-template-columns:74px minmax(' ), 'Three-zone centered header: ' . $slug );
 }
