@@ -239,6 +239,9 @@ jobs:
           php -l taxocommerce-distribution/tests/sitemap-daily-smoke.php
           php taxocommerce-distribution/tests/sitemap-daily-smoke.php
           php taxocommerce-distribution/tests/sitemap-daily-smoke.php legacy
+          php -l taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php
+          php taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php
+          php taxocommerce-distribution/tests/opnv-sitemap-owner-smoke.php legacy
           php .github/tests/taxocommerce-core/auto-test-smoke.php
           php -l .github/tests/taxocommerce-core/autocheck-functional-smoke.php
           php .github/tests/taxocommerce-core/autocheck-functional-smoke.php
