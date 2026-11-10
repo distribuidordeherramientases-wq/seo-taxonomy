@@ -510,14 +510,16 @@ final class TaxoCommerce_Google_Bing_Reports {
 
         echo '<div class="tgb-rank-card"><h3>' . esc_html__( 'Interacciones de compra (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
         echo '<p class="description">' . esc_html__( 'Eventos agregados: no representan compradores únicos ni pasos consecutivos del mismo usuario.', 'taxocommerce-google-bing' ) . '</p>';
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- These private chart/legend builders escape SVG attributes, chart labels and HTML labels before returning trusted markup.
         echo self::svg_bar_chart( $labels, array(
             array( 'label' => __( 'Periodo actual', 'taxocommerce-google-bing' ), 'values' => $now ),
             array( 'label' => __( 'Periodo anterior', 'taxocommerce-google-bing' ), 'values' => $before, 'previous' => true ),
-        ), __( 'Eventos', 'taxocommerce-google-bing' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG values are escaped in the chart builder.
+        ), __( 'Eventos', 'taxocommerce-google-bing' ) );
         echo self::legend( array(
             array( 'label' => __( 'Periodo actual', 'taxocommerce-google-bing' ) ),
             array( 'label' => __( 'Periodo anterior', 'taxocommerce-google-bing' ), 'previous' => true ),
-        ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Legend labels are escaped.
+        ) );
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '</div>';
 
         echo '<div class="tgb-rank-card"><h3>' . esc_html__( 'Productos añadidos al carrito (GA4)', 'taxocommerce-google-bing' ) . '</h3>';
@@ -544,14 +546,16 @@ final class TaxoCommerce_Google_Bing_Reports {
                 ? mb_strimwidth( (string) $item['name'], 0, 28, '…' )
                 : substr( (string) $item['name'], 0, 26 );
         }
+        // phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- These private chart/legend builders escape SVG attributes, chart labels and HTML labels before returning trusted markup.
         echo self::svg_bar_chart( $short_labels, array(
             array( 'label' => __( 'Unidades añadidas', 'taxocommerce-google-bing' ), 'values' => array_column( $top, 'added' ) ),
             array( 'label' => __( 'Unidades compradas', 'taxocommerce-google-bing' ), 'values' => array_column( $top, 'purchased' ) ),
-        ), __( 'Unidades', 'taxocommerce-google-bing' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG values are escaped in the chart builder.
+        ), __( 'Unidades', 'taxocommerce-google-bing' ) );
         echo self::legend( array(
             array( 'label' => __( 'Unidades añadidas', 'taxocommerce-google-bing' ) ),
             array( 'label' => __( 'Unidades compradas', 'taxocommerce-google-bing' ) ),
-        ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Legend labels are escaped.
+        ) );
+        // phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '<div class="tgb-table-scroll"><table class="widefat striped"><thead><tr>';
         echo '<th>' . esc_html__( 'Producto', 'taxocommerce-google-bing' ) . '</th>';
         echo '<th>' . esc_html__( 'ID de GA4', 'taxocommerce-google-bing' ) . '</th>';
