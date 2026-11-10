@@ -1,3 +1,11 @@
+## [1.1.43] — 2026-11-10 — Gráficos GA4 del carrito y artículos (#2514)
+
+- Incorpora el gráfico comparativo de eventos del embudo de compra y el desglose por producto (vistas, unidades añadidas y compradas) con gráfica y tabla en Google Analytics.
+- El desglose por artículo se obtiene de GA4 Data API solo al pulsar «Actualizar datos» y se guarda en el snapshot existente; consultar informes no lanza peticiones externas.
+- La petición de artículos es opcional y no bloquea los nueve informes GA4 existentes; los snapshots anteriores no inventan artículos.
+- Distingue eventos agregados, unidades y compras sin inferir carritos abandonados; escapa datos externos en las gráficas y tablas.
+- Reconciliado con 1.1.41 (segundo chequeo editorial) y 1.1.42 (encabezado administrativo), sin perder sus cambios.
+
 ## [1.1.42] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
