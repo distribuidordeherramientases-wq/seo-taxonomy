@@ -81,6 +81,18 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn("ftp-deploy-sync-state", text)
         self.assertIn(".taxocommerce-deploy", text)
 
+    def test_runtime_changelog_is_packaged_for_every_plugin(self):
+        """Markdown docs stay excluded, but the admin-history file is mandatory."""
+        text = self.workflow
+        self.assertIn("-x '*.md'", text)
+        self.assertIn('if [ ! -f "$module/CHANGELOG.md" ]; then', text)
+        self.assertIn('( cd "$module" && zip -q "$package" CHANGELOG.md )', text)
+        self.assertIn('unzip -Z1 "$package" | grep -Fx \'CHANGELOG.md\' >/dev/null', text)
+        modules = sorted(d for d in ROOT.glob("taxocommerce-*")
+                         if d.is_dir() and MODULE.fullmatch(d.name))
+        for module in modules:
+            self.assertTrue((module / "CHANGELOG.md").is_file(), module.name)
+
     def test_every_source_module_has_version_and_stable_tag(self):
         modules = sorted(
             d for d in ROOT.glob("taxocommerce-*")

@@ -251,6 +251,13 @@ jobs:
                 -x '*/.*' \
                 -x '*.bak'
             )
+            # The admin header reads CHANGELOG.md for its collapsible version history.
+            # Keep other development Markdown excluded but always ship this runtime file.
+            if [ ! -f "$module/CHANGELOG.md" ]; then
+              echo "::error::$module missing CHANGELOG.md required by the admin header"
+              exit 1
+            fi
+            ( cd "$module" && zip -q "$package" CHANGELOG.md )
             unzip -t "$package" >/dev/null
             # Never ship FTP sync-state files, hidden handoff data or Git metadata.
             if unzip -Z1 "$package" | grep -E '(^|/)(\.ftp-deploy-sync-state\.json|\.taxocommerce-deploy)(/|$)'; then
@@ -259,6 +266,7 @@ jobs:
             fi
             unzip -Z1 "$package" | grep -Fx "$module.php" >/dev/null
             unzip -Z1 "$package" | grep -Fx 'readme.txt' >/dev/null
+            unzip -Z1 "$package" | grep -Fx 'CHANGELOG.md' >/dev/null
 
             echo "Subiendo un único paquete temporal para $module..."
             lftp -u "$FTP_USERNAME","$FTP_PASSWORD" -p 21 "$FTP_SERVER" <<EOF
