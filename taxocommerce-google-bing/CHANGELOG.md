@@ -1,3 +1,10 @@
+## [1.1.41] — 2026-11-10 — Segundo chequeo por fecha en el Plan de acción (#2518)
+
+- El Plan de acción evita repetir correcciones editoriales sustentadas en Search Console cuando el contenido local se modificó después de la última fecha de esos datos: pasa la tarea a Vigilar, no a corregida/verificada.
+- Usa fechas ya disponibles en WordPress y, cuando existen, las marcas de actualización de descripciones/excerpts en seo_nodes; no reanaliza contenido ni añade consultas externas o cron.
+- Se conservan tareas técnicas, comerciales y casos sin fechas fiables, así como las acciones ejecutadas que ya controla el seguimiento existente.
+- La fecha de modificación, la fecha GSC y el resultado de la revisión quedan en el contrato JSON. Se añaden pruebas de regresión independientes.
+
 ## [1.1.40] — 2026-11-10 — Analysis completo y JSON móvil (#2507)
 
 - La pestaña Analysis activa usa su controlador AJAX y nonce de Insights, evitando rechazos al ejecutar informes.

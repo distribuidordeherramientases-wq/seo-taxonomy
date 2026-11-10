@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.40
+Stable tag: 1.1.41
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.41 =
+* The Analysis action plan watches editorial recommendations when local content was updated after the latest Search Console data. No extra content crawl, no automatic verified-fix claim. Issue #2518.
+
 
 = 1.1.38 =
 * Local Description and Plugin URI replace the REST excerpt in the header, preserving executive reports and data integrations. Issue #2494.
