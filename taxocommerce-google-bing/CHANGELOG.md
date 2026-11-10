@@ -1,3 +1,10 @@
+## [1.1.44] — 2026-11-10 — Plan de acción: botón y JSON independiente (#2528)
+
+- Renombra únicamente el botón combinado de Insights > Analysis como «Plan de acción», conservando sus contenidos comerciales, SEO/GEO y el listado de trabajos.
+- Tras ejecutar el informe aparece «Descargar JSON del plan de acción», con alternativa para abrirlo en el navegador móvil.
+- El JSON independiente contiene exclusivamente el resumen y todas las recomendaciones del plan calculado (prioridad, objetivo, incidencia, destino, acción, estado, trazabilidad y fechas de revisión); excluye los demás informes de Insights.
+- Reutiliza el mismo cálculo AJAX, sin segunda consulta, cron ni almacenamiento adicional. Mantiene intactos «Descargar JSON completo», el resto de informes y las comprobaciones de seguridad.
+
 ## [1.1.43] — 2026-11-10 — Gráficos GA4 del carrito y artículos (#2514)
 
 - Incorpora el gráfico comparativo de eventos del embudo de compra y el desglose por producto (vistas, unidades añadidas y compradas) con gráfica y tabla en Google Analytics.
