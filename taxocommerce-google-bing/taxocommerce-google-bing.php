@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.36
+ * Version: 1.1.37
  * Release Date: 2026-11-10
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.36' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.37' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -64,6 +64,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insigh
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/ecommerce/ga4-events.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-bootstrap.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-geo-bridge.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-insights-executive.php';
 
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
@@ -154,7 +155,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'executive', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -164,6 +165,7 @@ function taxocommerce_google_bing_screen() {
     foreach (
         array(
             'connections'      => 'Connections',
+            'executive'        => __( 'Informes ejecutivos', 'taxocommerce-google-bing' ),
             'analysis'         => 'Analysis',
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
@@ -200,6 +202,8 @@ function taxocommerce_google_bing_screen() {
         TaxoCommerce_Google_Bing_Auto_Test::render();
     } elseif ( 'user_guide' === $tab ) {
         TaxoCommerce_Google_Bing_User_Guide::render();
+    } elseif ( 'executive' === $tab ) {
+        TaxoCommerce_Insights_Executive::render();
     } elseif ( 'analysis' === $tab ) {
         seo_analista_render_report();
     } elseif ( 'google_trends' === $tab ) {
