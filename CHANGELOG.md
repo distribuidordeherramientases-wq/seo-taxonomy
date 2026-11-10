@@ -1,3 +1,10 @@
+## 2026-11-10 - Import-Export 0.4.29: eliminar programación de colas propias (#2530)
+
+- Quitadas las llamadas que creaban tareas programadas de importación/exportación en Action Scheduler y WP-Cron. Se mantiene la secuencia HTTP interna con regulador de carga, los controles y el watchdog activado con el tráfico.
+- Se cancelan únicamente acciones programadas antiguas de los dos hooks del plugin. No se borran CSV, estados, ni otras tareas del sitio.
+- El rastreador de proveedores heredado sigue usando seo_supplier_crawl_tick para avanzar: no se modifica al no existir sustituto funcional validado.
+- Actualizados contrato de regresión, versiones y documentación. Ningún despliegue a PRO antes del YAML.
+
 ## 2026-11-10 - Redirects 0.1.20: control de propiedad y conflicto de PR (#2485)
 
 - Nueva casilla para activar o ceder la gestión de redirecciones. Activada por defecto; al desmarcar, el motor deja de responder rutas y reclamar la propiedad a OPNV, sin borrar reglas ni informes.
