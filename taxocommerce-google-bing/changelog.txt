@@ -1,3 +1,6 @@
+= 1.1.42 (2026-11-10) =
+* Three-zone admin header: unique local Description and static link on left, wider collapsed CHANGELOG.md in center, version/date on right; no duplicate panel. Issue #2521.
+
 = 1.1.40 (2026-11-10) =
 * Analysis uses its authenticated Insights AJAX screen; sequential complete report, mobile-friendly JSON browser fallback and removal of redundant executive tab. Issue #2507.
 

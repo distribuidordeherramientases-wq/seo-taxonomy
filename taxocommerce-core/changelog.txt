@@ -1,3 +1,6 @@
+= 0.4.74 (2026-11-10) =
+* Three-zone admin header: unique local Description and static link on left, wider collapsed CHANGELOG.md in center, version/date on right; no duplicate panel. Issue #2521.
+
 = 0.4.73 (2026-11-10) =
 * Hide only Action Scheduler's past-due admin notice through its public filter, without changing scheduled tasks or other notices. Issue #2510.
 
