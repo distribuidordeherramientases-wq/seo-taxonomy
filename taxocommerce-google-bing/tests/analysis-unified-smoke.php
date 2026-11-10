@@ -28,6 +28,7 @@ function absint( $value ) { return abs( (int) $value ); }
 function sanitize_text_field( $value ) { return strip_tags( (string) $value ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_html__( $value, $domain ) { return esc_html( $value ); }
+function __( $value, $domain ) { return $value; }
 function number_format_i18n( $value ) { return number_format( (float) $value ); }
 function wp_send_json_success( $payload ) {
     $GLOBALS['last_response'] = array( 'success' => true, 'data' => $payload );
@@ -58,7 +59,7 @@ function seo_analista_lazy_render_partial( $report, $days ) {
 function seo_analista_decision_plan( $days, $limit ) {
     $GLOBALS['invocations']['decision_plan']++;
     insights_check( 40 === $limit, 'full portfolio limit preserved' );
-    return array( array( 'work_bucket' => 'INVESTIGAR', 'topic' => 'Prueba' ) );
+    return array( array( 'work_bucket' => 'INVESTIGAR', 'topic' => 'Prueba', 'reason' => 'Datos insuficientes', 'issues' => array( 'Sin asociación fiable' ), 'recommended_changes' => array( 'Revisar la asociación' ) ) );
 }
 function seo_analista_google_snapshot( $days, $refresh ) {
     $GLOBALS['invocations']['google_snapshot']++;
@@ -74,6 +75,7 @@ function taxocommerce_google_bing_geo_render_summary( $days, array $ga4 = array(
 function seo_analista_plan_consistency_report( $plan ) {
     return array( 'ok' => false, 'issues' => array( array( 'code' => 'TEST' ) ) );
 }
+function seo_analista_task_contract( $row ) { return array( 'task_id' => 'task-example', 'final_bucket' => $row['work_bucket'], 'primary_action' => array( 'type' => 'INVESTIGAR', 'executable' => false ) ); }
 function seo_analista_plan_summary( $plan ) {
     return array( 'investigar' => count( $plan ), 'hacer_ahora' => 0 );
 }
@@ -92,7 +94,7 @@ $reports = taxocommerce_google_bing_analysis_reports();
 insights_check( 2 === count( $reports ), 'one fewer report in Insights' );
 insights_check( ! isset( $reports['trabajo'] ), 'separate work button removed' );
 insights_check( isset( seo_analista_lazy_reports()['trabajo'] ), 'legacy report catalog untouched' );
-insights_check( false !== strpos( $reports['directrices']['label'], 'plan de acción' ), 'merged button is clear' );
+insights_check( 'Plan de acción' === $reports['directrices']['label'], 'single Plan de acción label, without duplicate titles' );
 
 $_POST = array( 'report' => 'directrices', 'days' => '28' );
 try {
@@ -106,6 +108,15 @@ insights_check( false !== strpos( $html, 'Qué hacer para vender más' ), 'comme
 insights_check( false !== strpos( $html, 'Hasta cinco mejoras prioritarias verificables' ), 'GEO included even if tasks are not executable' );
 insights_check( false !== strpos( $html, 'Plan de acción' ), 'roadmap included' );
 insights_check( false !== strpos( $html, 'Plan de acción incoherente' ), 'roadmap consistency warning retained' );
+$export = $result['data']['plan_export'] ?? array();
+insights_check( 'taxocommerce-insights-plan-accion' === (string) ( $export['schema']['name'] ?? '' ), 'dedicated JSON schema' );
+insights_check( 28 === (int) ( $export['period_days'] ?? 0 ), 'same period as visible report' );
+insights_check( 1 === (int) ( $export['total'] ?? 0 ) && count( $export['plan_accion'] ?? array() ) === 1, 'only generated action plan items exported' );
+insights_check( 'task-example' === (string) ( $export['plan_accion'][0]['task_id'] ?? '' ), 'action contract retained' );
+insights_check( 'Datos insuficientes' === (string) ( $export['plan_accion'][0]['reason'] ?? '' ), 'plan motive retained' );
+insights_check( 'Revisar la asociación' === (string) ( $export['plan_accion'][0]['recommended_changes'][0] ?? '' ), 'plan instructions retained' );
+insights_check( 1 === (int) ( $export['summary']['investigar'] ?? 0 ), 'plan counters retained' );
+insights_check( ! isset( $export['ga4'], $export['providers'] ) && ! isset( $export['estrategia'] ) && ! isset( $export['campaigns'] ), 'no full Insights reports in plan JSON' );
 insights_check( 1 === $GLOBALS['invocations']['decision_plan'], 'decision plan computed exactly once' );
 insights_check( 1 === $GLOBALS['invocations']['directrices'], 'commercial report rendered once' );
 insights_check( 1 === $GLOBALS['invocations']['geo'], 'GEO rendered once' );
@@ -117,6 +128,7 @@ try {
 } catch ( Insights_Stop_Response $stop ) {
 }
 insights_check( true === $GLOBALS['last_response']['success'], 'specialist report still available' );
+insights_check( ! isset( $GLOBALS['last_response']['data']['plan_export'] ), 'specialist report contains no plan JSON' );
 insights_check( 1 === $GLOBALS['invocations']['decision_plan'], 'specialist report does not compute executive plan' );
 insights_check( 1 === $GLOBALS['invocations']['geo'], 'specialist report does not append GEO' );
 

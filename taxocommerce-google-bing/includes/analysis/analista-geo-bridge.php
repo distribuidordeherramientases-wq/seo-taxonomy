@@ -18,7 +18,7 @@ function taxocommerce_google_bing_analysis_reports() {
     $reports = (array) seo_analista_lazy_reports();
     unset( $reports['trabajo'] );
     if ( isset( $reports['directrices'] ) ) {
-        $reports['directrices']['label'] = 'Qué hacer y plan de acción';
+        $reports['directrices']['label'] = __( 'Plan de acción', 'taxocommerce-google-bing' );
         $reports['directrices']['description'] = 'Ventas, mejoras SEO/GEO verificables y tareas priorizadas en un solo informe.';
     }
     return $reports;
@@ -50,6 +50,55 @@ function taxocommerce_google_bing_analysis_render_work( $days, array $plan ) {
     );
 }
 
+
+/**
+ * JSON for the action plan already computed by the combined AJAX report.
+ * No second decision-plan call, provider download or complete Insights export.
+ *
+ * @param array $plan The same validated plan rendered on screen.
+ * @param int   $days Reporting window.
+ * @return array
+ */
+function taxocommerce_insights_action_plan_export( array $plan, $days ) {
+    $actions = array();
+    foreach ( $plan as $row ) {
+        if ( ! is_array( $row ) ) {
+            continue;
+        }
+        $contract = function_exists( 'seo_analista_task_contract' )
+            ? (array) seo_analista_task_contract( $row )
+            : array(
+                'work_bucket'  => (string) ( $row['work_bucket'] ?? '' ),
+                'primary_action'=> (array) ( $row['primary_action'] ?? array() ),
+            );
+        $actions[] = array_merge(
+            array(
+                'topic'               => (string) ( $row['topic'] ?? '' ),
+                'reason'              => (string) ( $row['reason'] ?? '' ),
+                'issues'              => (array) ( $row['issues'] ?? array() ),
+                'source'              => (string) ( $row['source'] ?? '' ),
+                'sources'             => (array) ( $row['sources'] ?? array() ),
+                'recommended_changes' => (array) ( $row['recommended_changes'] ?? array() ),
+            ),
+            $contract
+        );
+    }
+
+    $export = array(
+        'schema'       => array( 'name' => 'taxocommerce-insights-plan-accion', 'version' => 1 ),
+        'generated_at' => gmdate( 'c' ),
+        'period_days'  => absint( $days ),
+        'total'        => count( $actions ),
+        'summary'      => function_exists( 'seo_analista_plan_summary' ) ? seo_analista_plan_summary( $plan ) : array(),
+        'plan_accion'  => $actions,
+    );
+
+    // Existing sanitized JSON contract also protects the lightweight export.
+    return function_exists( 'seo_analista_json_clean_value' )
+        ? seo_analista_json_clean_value( $export )
+        : $export;
+}
+
 /**
  * This AJAX handler renders the merged Insights view only on click. All other
  * specialist reports retain their original renderer. Never create work when
@@ -73,6 +122,7 @@ function taxocommerce_insights_analysis_ajax() {
         return;
     }
     $started = microtime( true );
+    $plan_export = null;
     ob_start();
     try {
         // Original commercial and specialist reports, without changing SEO.
@@ -89,6 +139,7 @@ function taxocommerce_insights_analysis_ajax() {
                 taxocommerce_google_bing_geo_render_summary( $days, $ga4, $plan );
             }
             taxocommerce_google_bing_analysis_render_work( $days, $plan );
+            $plan_export = taxocommerce_insights_action_plan_export( $plan, $days );
         }
         $html = ob_get_clean();
     } catch ( Throwable $error ) {
@@ -98,11 +149,15 @@ function taxocommerce_insights_analysis_ajax() {
         ), 500 );
         return;
     }
-    wp_send_json_success( array(
+    $response = array(
         'report' => $report,
         'html' => $html,
         'seconds' => round( microtime( true ) - $started, 2 ),
         'version' => defined( 'SEO_ANALISTA_VERSION' ) ? SEO_ANALISTA_VERSION : '',
-    ) );
+    );
+    if ( null !== $plan_export ) {
+        $response['plan_export'] = $plan_export;
+    }
+    wp_send_json_success( $response );
 }
 add_action( 'wp_ajax_taxocommerce_insights_analysis', 'taxocommerce_insights_analysis_ajax' );
