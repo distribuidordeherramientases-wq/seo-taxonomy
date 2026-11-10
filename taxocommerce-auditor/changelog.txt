@@ -1,3 +1,6 @@
+= 0.3.20 (2026-11-10) =
+* Admin subtitle uses bundled Description metadata; static Plugin URI and local version history retained. Issue #2494.
+
 == 0.3.19 ==
 * Local Description and Plugin URI replace remote REST header excerpts. Preserve the 0.3.18 CPU controller and version history. Issue #2494.
 
