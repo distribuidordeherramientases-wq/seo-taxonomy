@@ -1,3 +1,11 @@
+## [1.1.41] — 2026-11-10 — Gráficos GA4 de carrito y productos (#2514)
+
+- Incorpora en Google Analytics un gráfico comparativo del embudo por eventos y un desglose por artículo (unidades vistas, añadidas y compradas) con gráfica y tabla.
+- El desglose por artículo se obtiene de Google Analytics Data API solo cuando el administrador pulsa «Actualizar datos», y se guarda en el snapshot existente; abrir informes y cambiar fechas sigue sin consultas externas.
+- Mantiene los nueve informes GA4 existentes sin modificación. La petición por artículos es opcional: si la API no ofrece métricas compatibles o falla, el resto del informe continúa disponible.
+- Los snapshots anteriores muestran una indicación de actualización y no inventan productos. No se modifica el checkout, el seguimiento de eventos ni las demás pestañas.
+- Distingue recuentos de eventos, cantidades por artículo y compras, sin inferir carritos abandonados.
+
 ## [1.1.40] — 2026-11-10 — Analysis completo y JSON móvil (#2507)
 
 - La pestaña Analysis activa usa su controlador AJAX y nonce de Insights, evitando rechazos al ejecutar informes.
