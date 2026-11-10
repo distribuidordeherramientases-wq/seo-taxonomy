@@ -92,7 +92,9 @@ function taxocommerce_distribution_save_sitemap_ownership() {
     taxocommerce_distribution_guard();
     check_admin_referer( 'tcdist_sitemap_ownership' );
 
-    $enabled = isset( $_POST['tcdist_sitemap_enabled'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['tcdist_sitemap_enabled'] ) );
+    $enabled = isset( $_POST['tcdist_sitemap_enabled'] )
+        && is_string( $_POST['tcdist_sitemap_enabled'] )
+        && '1' === sanitize_text_field( wp_unslash( $_POST['tcdist_sitemap_enabled'] ) );
     $previous = tcdist_sitemap_enabled();
 
     // A running publisher must be stopped explicitly before switching owners.
