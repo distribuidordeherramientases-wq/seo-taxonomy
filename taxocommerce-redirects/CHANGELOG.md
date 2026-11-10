@@ -1,3 +1,10 @@
+## [0.1.19] - 2026-11-10 - Activar o ceder el motor de redirecciones (#2485)
+
+- Nueva casilla «TaxoCommerce gestiona las redirecciones» con el estado activado por defecto para conservar el funcionamiento anterior.
+- Al desactivarla, el motor deja de responder rutas y reclamar la propiedad frente a otros gestores; no se borran las reglas, informes ni importaciones, y no se activa automáticamente ningún otro plugin.
+- Conserva el mecanismo de coordinación y recepción de cambios de slug aportado por David en PR #2516, sin depender de OPNV ni TaxoCommerce Core.
+- Control administrativo con capability y nonce, test del contrato OPNV (activado/desactivado/reactivado), documentación y Plugin Check.
+
 ## [0.1.18] — 2026-11-10 — Descripción visible desde el plugin (#2494)
 
 - La descripción inmediatamente debajo del título administrativo procede de `Description:` del archivo principal, sin textos duplicados ni consultas externas.
