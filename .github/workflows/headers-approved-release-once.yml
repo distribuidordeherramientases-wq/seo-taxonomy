@@ -1,0 +1,57 @@
+name: One-time approved family headers release
+
+# This file is intentionally introduced in the release PR once; it does not
+# change the existing staged Plugin Check or production delivery gates.
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - .github/workflows/headers-approved-release-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch-approved-release:
+    if: github.repository == 'distribuidordeherramientases-wq/seo-taxonomy'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout exactly the approved staging revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify 20 plugin headers and bundled changelogs
+        shell: bash
+        run: |
+          set -euo pipefail
+          php .github/tests/family-admin-header-smoke.php
+          for main in taxocommerce-*/taxocommerce-*.php; do
+            slug="${main%%/*}"
+            test -f "$slug/CHANGELOG.md"
+            test -s "$slug/CHANGELOG.md"
+          done
+
+      - name: Require that staging has not changed during validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/staging | cut -f1)"
+          test -n "$latest"
+          test "$latest" = "$GITHUB_SHA"
+
+      - name: Dispatch existing mandatory STAGING -> Plugin Check -> PRO workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run staging_check_subida_a_pro.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref staging \
+            -f full_sync=false \
+            -f deploy_pro=true
