@@ -23,6 +23,81 @@ final class TaxoCommerce_Core_Dashboard {
 		 * @param bool  $woocommerce Whether WooCommerce is loaded.
 	 * @return void
 	 */
+    /**
+     * Display the official information without contacting external servers on
+     * an ordinary dashboard visit. Only an administrator-initiated, nonce-
+     * protected POST can refresh the developer's public REST excerpt.
+     *
+     * @param object $official_info Standalone official information renderer.
+     * @param string $locale        Two-letter administration language.
+     * @return void
+     */
+    private static function render_official_info( $official_info, $locale ) {
+        $headers = get_file_data(
+            TAXOCOMMERCE_CORE_FILE,
+            array( 'uri' => 'Plugin URI', 'description' => 'Description' ),
+            'plugin'
+        );
+        $page = isset( $headers['uri'] ) ? esc_url_raw( $headers['uri'], array( 'https' ) ) : '';
+        $fallback = isset( $headers['description'] ) ? wp_html_excerpt( wp_strip_all_tags( $headers['description'] ), 300, '…' ) : '';
+        $hash = md5( $page );
+        $cache_key = 'tc_official_excerpt_v2_' . $hash;
+        $last = $page ? get_option( 'tc_official_excerpt_good_' . $hash, '' ) : '';
+        $last = is_string( $last ) ? $last : '';
+
+        // The request is unique to Core; unrelated admin forms never trigger a connection.
+        $requested = isset( $_POST['tc_core_load_official_excerpt'] )
+            && '1' === sanitize_text_field( wp_unslash( $_POST['tc_core_load_official_excerpt'] ) );
+        $nonce = isset( $_POST['tc_core_official_excerpt_nonce'] )
+            ? sanitize_text_field( wp_unslash( $_POST['tc_core_official_excerpt_nonce'] ) )
+            : '';
+        $approved = $requested
+            && current_user_can( 'manage_options' )
+            && wp_verify_nonce( $nonce, 'tc_core_load_official_excerpt' );
+
+        $cached = $page ? get_transient( $cache_key ) : false;
+        if ( $approved && $page ) {
+            // Explicit requests may retry after an earlier empty/error cache entry.
+            delete_transient( $cache_key );
+        }
+
+        if ( $page && ( $approved || ( is_array( $cached ) && isset( $cached['text'] ) && is_string( $cached['text'] ) ) ) ) {
+            // The shared renderer uses a populated cache without any HTTP request.
+            $official_info->render( 'taxocommerce-core', $locale );
+            return;
+        }
+
+        // An external visit is optional. The plugin remains usable offline.
+        $texts = array(
+            'en' => array( 'Plugin information', 'Load developer excerpt', 'Loads information by HTTPS from the developer website. Your server IP may be logged.', 'Official plugin page' ),
+            'es' => array( 'Información del plugin', 'Cargar extracto del desarrollador', 'La consulta HTTPS al sitio del desarrollador puede registrar la IP del servidor.', 'Ver ficha oficial' ),
+            'fr' => array( 'Informations sur le plugin', 'Charger le résumé du développeur', 'La requête HTTPS vers le site du développeur peut enregistrer l’adresse IP du serveur.', 'Voir la fiche officielle' ),
+            'de' => array( 'Plugininformationen', 'Entwicklerauszug laden', 'Die HTTPS-Abfrage an die Entwicklerwebsite kann die Server-IP protokollieren.', 'Offizielle Pluginseite' ),
+            'nl' => array( 'Plugininformatie', 'Ontwikkelaarssamenvatting laden', 'Het HTTPS-verzoek naar de ontwikkelaarswebsite kan het server-IP-adres registreren.', 'Officiële pluginpagina' ),
+        );
+        $language = strtolower( substr( (string) $locale, 0, 2 ) );
+        $labels = isset( $texts[ $language ] ) ? $texts[ $language ] : $texts['en'];
+
+        echo '<details class="tc-family-info">';
+        echo '<summary>' . esc_html( $labels[0] ) . '</summary>';
+        echo '<div class="tc-family-info__content">';
+        if ( $page ) {
+            // On an offline visit display the verified last good value or the
+            // developer's own Description, without making any HTTP request.
+            $offline_excerpt = '' !== trim( $last ) ? $last : $fallback;
+            if ( '' !== trim( $offline_excerpt ) ) {
+                echo '<p>' . esc_html( $offline_excerpt ) . '</p>';
+            }
+            echo '<p>' . esc_html( $labels[2] ) . '</p>';
+            echo '<form method="post">';
+            wp_nonce_field( 'tc_core_load_official_excerpt', 'tc_core_official_excerpt_nonce' );
+            echo '<button type="submit" class="button button-secondary" name="tc_core_load_official_excerpt" value="1">' . esc_html( $labels[1] ) . '</button>';
+            echo '</form>';
+            echo '<p><a href="' . esc_url( $page ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $labels[3] ) . '</a></p>';
+        }
+        echo '</div></details>';
+    }
+
 	public static function render( $modules, $woocommerce, $extensions_renderer = null ) {
 		$modules     = is_array( $modules ) ? $modules : array();
 		$woocommerce = (bool) $woocommerce;
@@ -129,7 +204,7 @@ final class TaxoCommerce_Core_Dashboard {
 					</div>
 				</div>
                         <div class="tcc-hero__panels">
-                            <?php $tc_official_info->render( 'taxocommerce-core', $tc_locale ); ?>
+                            <?php self::render_official_info( $tc_official_info, $tc_locale ); ?>
                         <?php if ( is_string( $tc_history ) && '' !== trim( $tc_history ) ) : ?>
                             <details class="tcc-hero__history">
                                 <summary><?php echo esc_html( $tc_history_label ); ?></summary>

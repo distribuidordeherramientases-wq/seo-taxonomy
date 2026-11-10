@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.69
+Stable tag: 0.4.70
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Manage WooCommerce catalog structure and WordPress content from a modular dashbo
 
 == Description ==
 
-* The developer's Plugin URI is the only official source; the public REST excerpt is cached and its last verified value survives connection failures. On a first-install offline shop, the plugin author's bundled Description is displayed until connectivity returns. The client cannot edit the official URL. History remains local and separate.
+* The developer's Plugin URI is the only official source; its public REST excerpt is fetched only on explicit administrator request. Cached verified text remains available when offline. On a first-install offline shop, the plugin author's bundled Description is displayed until an administrator requests the official excerpt. The client cannot edit the official URL. History remains local and separate.
 
 
 
@@ -38,6 +38,10 @@ Editorial guidance does not create or modify content automatically. Only authori
 
 TaxoCommerce Core uses the WordPress gettext domain `taxocommerce-core` and the plugin `/languages` directory. The WordPress administration locale determines the language automatically. Bundled gettext catalogs cover Spanish (Spain), English (US), French, German and Dutch, with full coverage of the strings currently extracted in each gettext template; technical names and catalog content remain unchanged. The untranslated PHP/JavaScript surface and locale-specific administration display still require functional verification. WordPress.org language packs will be supported once translations are approved.
 
+== External services and privacy ==
+
+Core does not contact the developer's website on activation or normal administration visits. The optional "Load developer excerpt" button on the Core dashboard makes a single HTTPS GET request from the hosting server to the public WordPress REST API at https://asociacionfocazul.com/wp-json/wp/v2/pages, with query parameters for the publicly published page slug (taxocommerce-core), result limit and requested fields. This displays the public excerpt and caches it locally; the last verified excerpt remains available if the site is offline. The request does not intentionally send any customer, order, catalog, login, admin email or shop URL data; standard server connection information (including server IP and HTTP headers) may be received and logged by the destination. A WordPress administrator explicitly chooses whether to make the request. No account or API key is needed. The source is the developer page at https://asociacionfocazul.com/taxocommerce-core/. External requests are not required to use Core. Uninstalling Core removes its cached developer excerpt and last verified copy; store content and other plugins' caches are not touched.
+
 == Installation ==
 
 1. Install and activate TaxoCommerce Core on WordPress 6.5 or newer.
@@ -61,6 +65,12 @@ No. Editors and guidance preserve manual author control.
 Yes. Administrators may explicitly upload a verified module ZIP through Core's extension panel. Native WordPress installation APIs install the package after temporary validation.
 
 == Changelog ==
+
+= 0.4.70 =
+* The developer excerpt requires explicit administrator consent (button, nonce and capability); no HTTP requests occur on ordinary visits, even after cache expiry. Last verified excerpt and bundled Description remain available offline.
+* External API URL, purpose and connection details documented for WordPress.org guideline 7. Issue #2491.
+
+
 
 = 0.4.69 =
 * Display the last verified official excerpt from the developer's Plugin URI during HTTP errors; avoid stale negative cache and show bundled author Description on first-install network failure. No dependency on customer content. Issue #2489.

@@ -1,3 +1,12 @@
+## [0.4.70] — 2026-11-10 — Consentimiento en la ficha del desarrollador (#2491)
+
+- La portada Core no consulta servidores externos al abrirse, aunque expire el caché.
+- La carga del extracto exige acción explícita, `manage_options` y nonce válido; no hay llamadas con peticiones no autorizadas.
+- Se conserva el extracto de la caché, el último extracto verificado por #2489 y el fallback a Description de autor sin llamadas externas.
+- `readme.txt` declara el endpoint, propósito y datos recibidos por el proveedor; se conserva el enlace y la cabecera de tres zonas.
+- Regresión nueva para permisos, nonce, caché y funcionamiento offline.
+- Al desinstalar, elimina exclusivamente la opción del último extracto verificado y sus cachés Core (incluidos los históricos); conserva los datos canónicos de WordPress y WooCommerce.
+
 ## [0.4.69] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
 - Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.
