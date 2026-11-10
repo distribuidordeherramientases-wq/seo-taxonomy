@@ -4,13 +4,15 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.41
+Stable tag: 1.1.42
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and the restored legacy Analysis dashboard.
 
 == Description ==
+
+* Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
 * Analysis: individual reports or a complete sequential run (mobile-friendly) using authenticated AJAX, and unified JSON download or browser-view fallback.
 
