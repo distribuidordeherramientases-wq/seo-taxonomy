@@ -1,3 +1,9 @@
+## 2026-11-10 - Distribution: gestión opcional del sitemap XML (#2484)
+
+- Añadida casilla propia en TaxoCommerce Distribution para activar o ceder la publicación XML; sin dependencia obligatoria de OPNV ni de Core.
+- Mantiene los feeds comerciales, la publicación previa y el mecanismo de propiedad por filtros. Limpia las tareas de sitemap al desactivar, actualiza las reglas públicas y evita cambios con generaciones activas.
+- Incorporadas pruebas de regresión sobre propiedad y cesión a WordPress para validar compatibilidad. Producción excluida de esta entrega.
+
 ## 2026-11-10 — Extractos oficiales resistentes a errores HTTP en los 20 plugins (#2489)
 
 - La captura de una tienda cliente evidencia «Excerpt temporarily unavailable» pese a que la API REST pública de asociacionfocazul.com sirve la ficha oficial. Ningún cliente define URLs de documentación.
