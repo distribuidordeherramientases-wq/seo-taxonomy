@@ -1,3 +1,10 @@
+## [1.1.40] — 2026-11-10 — Analysis completo y JSON móvil (#2507)
+
+- La pestaña Analysis activa usa su controlador AJAX y nonce de Insights, evitando rechazos al ejecutar informes.
+- Se incorpora «Ejecutar informe completo» en bloques secuenciales con progreso y cancelación, además de los informes individuales.
+- Conserva «Descargar JSON completo» y ofrece «Abrir JSON en el navegador (móvil)» como alternativa cuando el navegador no maneja la descarga.
+- Se retira exclusivamente la pestaña y los archivos de «Informes ejecutivos»; no se alteran conexiones, informes originales ni datos.
+
 ## [1.1.39] — 2026-11-10 — Descripción visible desde el plugin (#2494)
 
 - La descripción inmediatamente debajo del título administrativo procede de `Description:` del archivo principal, sin textos duplicados ni consultas externas.

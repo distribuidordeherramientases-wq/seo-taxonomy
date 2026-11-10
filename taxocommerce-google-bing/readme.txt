@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.39
+Stable tag: 1.1.40
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,8 +12,7 @@ External connections, manual provider data downloads, and the restored legacy An
 
 == Description ==
 
-* Executive Reports: a concise read-only decision summary of existing saved Google Search, Analytics and Bing reports and the existing Analista task history. Opening the executive tab neither calls external services nor duplicates downloaded data. Shows source freshness and confidence limitations, with links to technical evidence.
-
+* Analysis: individual reports or a complete sequential run (mobile-friendly) using authenticated AJAX, and unified JSON download or browser-view fallback.
 
 * The admin header shows the local bundled Description and Plugin URI metadata without external requests or excerpt caching. CHANGELOG.md provides independent version history.
 
