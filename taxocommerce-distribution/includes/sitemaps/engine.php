@@ -46,6 +46,18 @@ function tcdist_sitemap_sitemap_filename_is_allowed($filename)
  *
  * @return string '' when Distribution owns the public sitemap, otherwise the owner id.
  */
+/**
+ * Whether this installation allows Distribution to publish XML sitemaps.
+ *
+ * Existing installations retain their current behavior until the setting is
+ * explicitly changed. No dependency on Core or an external SEO plugin.
+ *
+ * @return bool
+ */
+function tcdist_sitemap_enabled() {
+    return 'no' !== get_option( 'tcdist_sitemap_enabled', 'yes' );
+}
+
 function tcdist_sitemap_external_owner()
 {
     if (defined('TCDIST_LEGACY_SITEMAP_ACTIVE') && TCDIST_LEGACY_SITEMAP_ACTIVE) {
@@ -53,6 +65,12 @@ function tcdist_sitemap_external_owner()
     }
 
     $owner = sanitize_key((string) apply_filters('taxocommerce_sitemap_owner', 'taxocommerce'));
+
+    // A disabled Distribution leaves the native WordPress sitemap available
+    // unless another installed plugin explicitly claims this channel.
+    if ( ! tcdist_sitemap_enabled() && ( '' === $owner || 'taxocommerce' === $owner ) ) {
+        return 'wordpress';
+    }
 
     return ($owner === '' || $owner === 'taxocommerce') ? '' : $owner;
 }
@@ -1384,6 +1402,10 @@ function tcdist_sitemap_get_existing_sitemaps()
  */
 function tcdist_sitemap_schedule_sitemap_regeneration($post_id = 0)
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $post_id = absint($post_id);
 
     if (
@@ -1420,6 +1442,10 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
  */
 function tcdist_sitemap_regenerate_sitemaps_silent()
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $result = tcdist_sitemap_create_sitemaps();
 
     if (!is_array($result) || ($result['type'] ?? '') !== 'success') {
@@ -1439,6 +1465,10 @@ if ( ! defined( 'TCDIST_LEGACY_SITEMAP_ACTIVE' ) || ! TCDIST_LEGACY_SITEMAP_ACTI
  */
 function tcdist_sitemap_ensure_initial_sitemap_generation()
 {
+    if ( '' !== tcdist_sitemap_external_owner() ) {
+        return;
+    }
+
     $storage = tcdist_sitemap_sitemap_storage();
     if (is_wp_error($storage) || is_file($storage['dir'] . 'sitemap.xml')) {
         return;
