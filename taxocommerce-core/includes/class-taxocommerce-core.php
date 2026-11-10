@@ -110,7 +110,7 @@ final class TaxoCommerce_Core {
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 5 );
 		add_action( 'admin_menu', array( $this, 'normalize_family_submenu_labels' ), 9999 );
-		add_action( 'admin_head', array( $this, 'hide_sidebar_submenu' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'hide_sidebar_submenu' ), 999 );
 		add_action( 'admin_init', array( $this, 'redirect_legacy_family_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_old_extensions_page' ) );
 		add_action( 'admin_init', array( $this, 'redirect_old_auto_test_page' ) );
@@ -336,7 +336,10 @@ final class TaxoCommerce_Core {
 		if ( ! $has_extensions ) {
 			$style .= '#toplevel_page_taxocommerce-core > ul.wp-submenu{display:none!important;}';
 		}
-		echo '<style id="taxocommerce-core-sidebar">' . $style . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated from fixed internal slug constants.
+		// Use WordPress' stylesheet API; never print an unmanaged style tag.
+		if ( wp_style_is( 'taxocommerce-core-admin', 'enqueued' ) ) {
+			wp_add_inline_style( 'taxocommerce-core-admin', $style );
+		}
 	}
 
 	/**
@@ -774,14 +777,19 @@ final class TaxoCommerce_Core {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
-		$temp_dir  = trailingslashit( get_temp_dir() );
-		$temp_name = wp_unique_filename( $temp_dir, $name );
-		$temp_file = $temp_dir . $temp_name;
-
-		// phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- Verified uploaded ZIP must be moved to a private OS temp directory for Plugin_Upgrader, not a web-accessible media directory.
-        if ( ! move_uploaded_file( $tmp_name, $temp_file ) ) {
+// Let WordPress validate and store the ZIP using the standard upload API.
+		// test_form=false is required because this is a protected admin-post action.
+		$uploaded = wp_handle_upload(
+			$file,
+			array(
+				'test_form' => false,
+				'mimes'     => array( 'zip' => 'application/zip' ),
+			)
+		);
+		if ( ! is_array( $uploaded ) || ! empty( $uploaded['error'] ) || empty( $uploaded['file'] ) ) {
 			$this->redirect_extension_result( 'error', __( 'WordPress could not prepare the ZIP temporarily.', 'taxocommerce-core' ) );
 		}
+		$temp_file = (string) $uploaded['file'];
 
 		$zip   = new ZipArchive();
 		$valid = false;

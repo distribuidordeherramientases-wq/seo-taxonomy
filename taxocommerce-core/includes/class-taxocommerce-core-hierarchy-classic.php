@@ -598,51 +598,6 @@ final class TaxoCommerce_Core_Hierarchy_Classic {
             echo '<div class="notice notice-error"><p>' . esc_html__( 'Falta la tabla seo_relations. Activa de nuevo TaxoCommerce Core para crearla sin borrar datos.', 'taxocommerce-core' ) . '</p></div>';
             return;
         }
-
-        echo '<style>
-          .tc-classic-tree{max-width:1100px}
-          .tc-classic-node{border:1px solid #dcdcde;background:#fff;border-radius:8px;margin:10px 0;min-width:0}
-          .tc-classic-node[open]{border-color:#b8c2cf}
-          .tc-classic-node summary{cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 16px;min-height:32px;list-style:none}
-          .tc-classic-node summary::-webkit-details-marker{display:none}
-          .tc-classic-node summary:before{content:"▸";color:#646970;flex:none;font-size:15px}
-          .tc-classic-node[open]>summary:before{content:"▾"}
-          .tc-classic-node summary:hover{background:#f6f7f7}
-          .tc-classic-node summary:focus-visible{outline:2px solid #2271b1;outline-offset:-3px}
-          .tc-classic-node__label{font-weight:650;font-size:14px;min-width:0;overflow-wrap:anywhere}
-          .tc-classic-node__role{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.045em;color:#50575e;background:#f0f0f1;padding:4px 7px;border-radius:5px;white-space:nowrap}
-          .tc-classic-node__count{margin-left:auto;color:#646970;font-size:12px;white-space:nowrap}
-          .tc-classic-node__body{padding:0 16px 16px;border-top:1px solid #f0f0f1;min-width:0}
-          .tc-classic-node__meta{font-size:12px;color:#646970;margin:11px 0}
-          .tc-classic-node--child{margin:11px 0 0 17px;border-left:3px solid #ccd5df}
-          .tc-classic-node--secondary{border-left-color:#b6cabb}
-          .tc-classic-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px}
-          .tc-classic-group{border:1px solid #e0e0e0;border-radius:7px;background:#fafafa;padding:12px;min-width:0}
-          .tc-classic-group h4{margin:0 0 10px;font-size:13px;color:#1d2327}
-          .tc-classic-selected,.tc-classic-available{background:#fff;border:1px solid #dcdcde;border-radius:5px;padding:7px;max-height:178px;min-height:42px;overflow-y:auto}
-          .tc-classic-selected{border-color:#b8d1ba;background:#f4faf4;max-height:140px}
-          .tc-classic-check{display:flex;align-items:flex-start;gap:7px;padding:5px 4px;font-size:13px;line-height:1.4;border-radius:4px}
-          .tc-classic-check:hover{background:#f0f4f8}
-          .tc-classic-check input{margin-top:2px;flex:none}
-          .tc-classic-check small{color:#646970;margin-left:auto;padding-left:8px;white-space:nowrap}
-          .tc-classic-search{width:100%;max-width:none;margin:8px 0;min-height:36px}
-          .tc-classic-none{display:block;font-size:12px;color:#646970;padding:8px 4px}
-          .tc-classic-group .button-primary{margin-top:12px;min-height:34px}
-          .tc-classic-section-title{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:16px}
-          .tc-classic-orphans{border-top:1px solid #dcdcde;padding-top:15px;margin-top:20px}
-          .tc-classic-orphans>details{border:1px solid #dcdcde;border-radius:6px;margin-bottom:9px;background:#f6f7f7}
-          .tc-classic-orphans>details>summary{padding:12px;cursor:pointer;font-weight:650}
-          .tc-classic-orphans__body{padding:6px 12px 12px}
-          .tc-classic-children{margin-left:18px;border-left:2px solid #dcdcde;padding-left:12px}
-          @media(max-width:782px){
-            .tc-classic-node--child{margin-left:6px}
-            .tc-classic-node__body{padding:0 8px 12px}
-            .tc-classic-node summary{flex-wrap:wrap;padding:11px 10px}
-            .tc-classic-node__count{margin-left:0}
-            .tc-classic-groups{grid-template-columns:minmax(0,1fr)}
-          }
-        </style>';
-
         $focus      = isset( $_GET['tc_focus'] ) ? absint( $_GET['tc_focus'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only focus.
         $defs       = self::definitions();
         $clusters   = self::country_pages( 'cluster', $country );

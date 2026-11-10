@@ -1,3 +1,17 @@
+## [0.4.68] — 2026-11-09 — WordPress.org pre-review: styles, ZIP uploads, security (#2481)
+
+- Move three in-page CSS blocks (Autocheck, classic hierarchy, SEO hierarchy) to the existing enqueued `assets/admin.css` while preserving selectors, styles and responsive rules.
+- Replace admin-head sidebar `<style>` with `wp_add_inline_style()` on the already-enqueued Core style handle; do not change registered menu entries or user permissions.
+- Replace direct `move_uploaded_file()` handling of administrator-selected plugin ZIPs with native `wp_handle_upload()`, maintaining ZIP and expected plugin basename checks, capabilities, nonce and Plugin_Upgrader installation.
+- Keep explicit administrator-initiated extension installation, activation and deactivation with nonce/capability validation; WooCommerce remains optional for native WP content functionality.
+- WordPress.org approval request: propose `taxocommerce-core` as the reserved directory slug matching the existing plugin basename and gettext domain. This request must be explicitly stated in the review email.
+
+## [0.4.67] — 2026-11-09 — Ficha oficial del desarrollador y cabecera centrada en tres zonas (#2476)
+
+- La cabecera distribuye identificación a la izquierda, dos desplegables alineados y centrados (extracto oficial a la izquierda e historial local a la derecha), y versión y fecha a la derecha; distribución adaptable a móvil.
+- El enlace oficial se obtiene exclusivamente de Plugin URI, definido por el autor del plugin. Eliminados el formulario de URL y su acción de guardado; los ajustes antiguos de la tienda no pueden sobrescribirlo.
+- El historial se lee del CHANGELOG.md incluido, plegado de inicio. Sin dependencias obligatorias entre plugins ni cambios en productos, pedidos, datos o funcionalidades existentes.
+
 ## [0.4.66] — 2026-11-08 — Información dinámica desde ficha oficial (#2443)
 
 - El desplegable izquierdo consulta el excerpt publicado en la página Plugin URI, con caché y configuración independiente.

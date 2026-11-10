@@ -308,30 +308,6 @@ final class TaxoCommerce_Core_Hierarchy {
 					<?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?>
 				</a>
 			</nav>
-			<style>
-				.taxocommerce-hierarchy-admin{max-width:1440px}
-				.taxocommerce-hierarchy-admin .nav-tab-wrapper{margin-top:22px}
-				.taxocommerce-hierarchy-admin .nav-tab{padding:11px 19px;font-weight:600}
-				.taxocommerce-hierarchy-admin .nav-tab-active{background:#fff;border-bottom-color:#fff}
-				.tc-hierarchy-panel{background:#fff;border:1px solid #dcdcde;border-top:0;padding:22px 24px;min-height:280px}
-				.tc-hierarchy-panel>h2{margin:0 0 8px;font-size:20px}
-				.tc-hierarchy-panel>.description{max-width:860px;margin:0 0 19px;color:#646970}
-				.tc-hierarchy-roles-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
-				.tc-hierarchy-roles-filter input[type=search]{width:min(330px,100%);min-height:38px}
-				.tc-hierarchy-roles-filter select{min-height:38px}
-				.tc-hierarchy-panel .widefat th{font-weight:650}
-				.tc-hierarchy-panel .widefat td{vertical-align:middle;padding:11px 12px}
-				.tc-hierarchy-panel .widefat form{flex-wrap:wrap}
-				.tc-hierarchy-panel .widefat select{min-width:150px;max-width:220px}
-				.tc-hierarchy-panel .tc-hierarchy-preview{margin-top:24px;border-top:1px solid #dcdcde;padding-top:18px}
-				.tc-hierarchy-preview>summary{font-weight:600;cursor:pointer}
-				@media(max-width:782px){
-					.tc-hierarchy-panel{padding:15px 12px}
-					.taxocommerce-hierarchy-admin .nav-tab{padding:10px 11px}
-					.tc-hierarchy-panel .widefat{display:block;overflow-x:auto}
-				}
-			</style>
-
 			<?php $this->render_notices(); ?>
             <form method="get" style="display:flex;align-items:center;gap:10px;margin:14px 0;flex-wrap:wrap;">
                 <input type="hidden" name="page" value="taxocommerce-core-hierarchy">

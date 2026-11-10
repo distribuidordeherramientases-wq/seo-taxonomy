@@ -1,3 +1,9 @@
+## 2026-11-09 — Cabeceras TaxoCommerce en tres zonas (#2476)
+
+- Actualizados los veinte plugins autónomos: identificación a la izquierda, información oficial y cambios históricos centrados en la misma línea, y versión y fecha a la derecha. Reorganización adaptable para pantallas estrechas.
+- Fuente oficial del extracto: Plugin URI definido por el autor; sin formulario de modificación por el administrador de la tienda ni acciones admin_post para guardarlo. El historial permanece dentro del CHANGELOG.md propio de cada plugin y plegado por defecto.
+- Plantillas de generación, test de regresión de cabeceras y versiones/readme de cada plugin actualizados. Mantener PRO fuera de este despliegue.
+
 ## 2026-11-08 — Desbloquear entregas FTPS de pruebas durante Plugin Check (#2376)
 
 - Eliminada la exclusión mutua del pipeline completo: el chequeo oficial de 20 plugins no monopoliza la cola de las siguientes entregas a STAGING y Focazul.

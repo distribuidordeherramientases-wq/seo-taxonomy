@@ -241,6 +241,95 @@ body.tcc-family-admin .tcc-guide-article h3{font-size:17px;line-height:1.35;marg
 .tcc-hero__panels .tc-family-info summary{padding:9px 12px;cursor:pointer;font-size:13px;font-weight:600}
 .tcc-hero__panels .tc-family-info summary:focus-visible{outline:2px solid #1769de;outline-offset:2px}
 .tcc-hero__panels .tc-family-info__content{padding:12px;border-top:1px solid #e4e9f0;font-size:13px;line-height:1.6}
-.tcc-hero__panels .tc-family-info__content form{display:grid;gap:5px}
-.tcc-hero__panels .tc-family-info__content input{width:100%;max-width:100%}
 @media(max-width:720px){.tcc-hero__panels{grid-template-columns:1fr}}
+
+/* #2476: three independent header zones; two centered controls. */
+.tcc-hero{display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(340px,1.4fr) max-content;align-items:center;gap:22px}
+.tcc-hero__identity{min-width:0;max-width:none;width:100%}
+.tcc-hero__copy{min-width:0}
+.tcc-hero__panels{position:relative;z-index:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:center;justify-self:center;width:100%;max-width:640px;margin:0;min-width:0}
+.tcc-hero__panels .tc-family-info,.tcc-hero__panels .tcc-hero__history{width:100%;min-width:0;max-width:none;margin:0}
+.tcc-hero__panels .tc-family-info summary,.tcc-hero__panels .tcc-hero__history summary{display:flex;align-items:center;min-height:43px;padding:10px 12px}
+.tcc-hero__panels .tc-family-info__content,.tcc-hero__panels .tcc-hero__history-content{max-height:300px;overflow:auto}
+.tcc-hero__metadata{margin:0;flex-direction:column;align-items:flex-end;flex-wrap:nowrap;justify-self:end;white-space:nowrap}
+@media(max-width:1200px){.tcc-hero{grid-template-columns:minmax(0,1fr) max-content}.tcc-hero__identity{grid-column:1;grid-row:1}.tcc-hero__metadata{grid-column:2;grid-row:1}.tcc-hero__panels{grid-column:1/-1;grid-row:2}}
+@media(max-width:700px){.tcc-hero{grid-template-columns:minmax(0,1fr);gap:12px}.tcc-hero__identity{grid-column:1;grid-row:1}.tcc-hero__metadata{grid-column:1;grid-row:2;justify-self:start;align-items:flex-start;white-space:normal}.tcc-hero__panels{grid-column:1;grid-row:3;grid-template-columns:1fr}}
+
+
+/* WordPress.org review #2481: previously inlined Core-only admin presentation. */
+#tc-core-autotest .tc-at-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}
+            #tc-core-autotest .tc-at-summary{display:flex;gap:12px;flex-wrap:wrap;margin:15px 0}
+            #tc-core-autotest .tc-at-summary span{padding:12px 18px;border:1px solid #dcdcde;background:#fff;border-radius:5px}
+            #tc-core-autotest .tc-at-row{display:flex;gap:12px;align-items:flex-start;padding:12px 15px;border:1px solid #dcdcde;border-bottom:0;background:#fff;max-width:1050px}
+            #tc-core-autotest .tc-at-row:last-child{border-bottom:1px solid #dcdcde}
+            #tc-core-autotest .tc-at-dot{display:inline-block;flex:0 0 13px;width:13px;height:13px;margin-top:4px;border-radius:50%;background:#777}
+            #tc-core-autotest .tc-at-dot--pass{background:#188038}#tc-core-autotest .tc-at-dot--fail{background:#c5221f}
+            #tc-core-autotest .tc-at-row strong{display:block}#tc-core-autotest .tc-at-row p{margin:4px 0;overflow-wrap:anywhere}
+            #tc-core-autotest .tc-at-row--fail p{color:#b32d2e;font-weight:600}
+            #tc-core-autotest .tc-at-small{font-size:12px;color:#50575e}
+
+/* Classic hierarchy editor */
+.tc-classic-tree{max-width:1100px}
+          .tc-classic-node{border:1px solid #dcdcde;background:#fff;border-radius:8px;margin:10px 0;min-width:0}
+          .tc-classic-node[open]{border-color:#b8c2cf}
+          .tc-classic-node summary{cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 16px;min-height:32px;list-style:none}
+          .tc-classic-node summary::-webkit-details-marker{display:none}
+          .tc-classic-node summary:before{content:"▸";color:#646970;flex:none;font-size:15px}
+          .tc-classic-node[open]>summary:before{content:"▾"}
+          .tc-classic-node summary:hover{background:#f6f7f7}
+          .tc-classic-node summary:focus-visible{outline:2px solid #2271b1;outline-offset:-3px}
+          .tc-classic-node__label{font-weight:650;font-size:14px;min-width:0;overflow-wrap:anywhere}
+          .tc-classic-node__role{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.045em;color:#50575e;background:#f0f0f1;padding:4px 7px;border-radius:5px;white-space:nowrap}
+          .tc-classic-node__count{margin-left:auto;color:#646970;font-size:12px;white-space:nowrap}
+          .tc-classic-node__body{padding:0 16px 16px;border-top:1px solid #f0f0f1;min-width:0}
+          .tc-classic-node__meta{font-size:12px;color:#646970;margin:11px 0}
+          .tc-classic-node--child{margin:11px 0 0 17px;border-left:3px solid #ccd5df}
+          .tc-classic-node--secondary{border-left-color:#b6cabb}
+          .tc-classic-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px}
+          .tc-classic-group{border:1px solid #e0e0e0;border-radius:7px;background:#fafafa;padding:12px;min-width:0}
+          .tc-classic-group h4{margin:0 0 10px;font-size:13px;color:#1d2327}
+          .tc-classic-selected,.tc-classic-available{background:#fff;border:1px solid #dcdcde;border-radius:5px;padding:7px;max-height:178px;min-height:42px;overflow-y:auto}
+          .tc-classic-selected{border-color:#b8d1ba;background:#f4faf4;max-height:140px}
+          .tc-classic-check{display:flex;align-items:flex-start;gap:7px;padding:5px 4px;font-size:13px;line-height:1.4;border-radius:4px}
+          .tc-classic-check:hover{background:#f0f4f8}
+          .tc-classic-check input{margin-top:2px;flex:none}
+          .tc-classic-check small{color:#646970;margin-left:auto;padding-left:8px;white-space:nowrap}
+          .tc-classic-search{width:100%;max-width:none;margin:8px 0;min-height:36px}
+          .tc-classic-none{display:block;font-size:12px;color:#646970;padding:8px 4px}
+          .tc-classic-group .button-primary{margin-top:12px;min-height:34px}
+          .tc-classic-section-title{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:16px}
+          .tc-classic-orphans{border-top:1px solid #dcdcde;padding-top:15px;margin-top:20px}
+          .tc-classic-orphans>details{border:1px solid #dcdcde;border-radius:6px;margin-bottom:9px;background:#f6f7f7}
+          .tc-classic-orphans>details>summary{padding:12px;cursor:pointer;font-weight:650}
+          .tc-classic-orphans__body{padding:6px 12px 12px}
+          .tc-classic-children{margin-left:18px;border-left:2px solid #dcdcde;padding-left:12px}
+          @media(max-width:782px){
+            .tc-classic-node--child{margin-left:6px}
+            .tc-classic-node__body{padding:0 8px 12px}
+            .tc-classic-node summary{flex-wrap:wrap;padding:11px 10px}
+            .tc-classic-node__count{margin-left:0}
+            .tc-classic-groups{grid-template-columns:minmax(0,1fr)}
+          }
+
+/* SEO hierarchy management */
+.taxocommerce-hierarchy-admin{max-width:1440px}
+				.taxocommerce-hierarchy-admin .nav-tab-wrapper{margin-top:22px}
+				.taxocommerce-hierarchy-admin .nav-tab{padding:11px 19px;font-weight:600}
+				.taxocommerce-hierarchy-admin .nav-tab-active{background:#fff;border-bottom-color:#fff}
+				.tc-hierarchy-panel{background:#fff;border:1px solid #dcdcde;border-top:0;padding:22px 24px;min-height:280px}
+				.tc-hierarchy-panel>h2{margin:0 0 8px;font-size:20px}
+				.tc-hierarchy-panel>.description{max-width:860px;margin:0 0 19px;color:#646970}
+				.tc-hierarchy-roles-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
+				.tc-hierarchy-roles-filter input[type=search]{width:min(330px,100%);min-height:38px}
+				.tc-hierarchy-roles-filter select{min-height:38px}
+				.tc-hierarchy-panel .widefat th{font-weight:650}
+				.tc-hierarchy-panel .widefat td{vertical-align:middle;padding:11px 12px}
+				.tc-hierarchy-panel .widefat form{flex-wrap:wrap}
+				.tc-hierarchy-panel .widefat select{min-width:150px;max-width:220px}
+				.tc-hierarchy-panel .tc-hierarchy-preview{margin-top:24px;border-top:1px solid #dcdcde;padding-top:18px}
+				.tc-hierarchy-preview>summary{font-weight:600;cursor:pointer}
+				@media(max-width:782px){
+					.tc-hierarchy-panel{padding:15px 12px}
+					.taxocommerce-hierarchy-admin .nav-tab{padding:10px 11px}
+					.tc-hierarchy-panel .widefat{display:block;overflow-x:auto}
+				}

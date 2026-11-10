@@ -1,3 +1,9 @@
+## [0.3.15] — 2026-11-09 — Ficha oficial del desarrollador y cabecera centrada en tres zonas (#2476)
+
+- La cabecera distribuye identificación a la izquierda, dos desplegables alineados y centrados (extracto oficial a la izquierda e historial local a la derecha), y versión y fecha a la derecha; distribución adaptable a móvil.
+- El enlace oficial se obtiene exclusivamente de Plugin URI, definido por el autor del plugin. Eliminados el formulario de URL y su acción de guardado; los ajustes antiguos de la tienda no pueden sobrescribirlo.
+- El historial se lee del CHANGELOG.md incluido, plegado de inicio. Sin dependencias obligatorias entre plugins ni cambios en productos, pedidos, datos o funcionalidades existentes.
+
 ## [0.3.14] — 2026-11-09 — Auditoría automática sin botón Siguiente lote (#2475)
 
 - Retirado «Procesar siguiente lote» de las cinco pestañas de auditoría; cada respuesta AJAX continúa automáticamente la cola con el control independiente de cinco velocidades, presupuesto por petición y retroceso en caso de error.
