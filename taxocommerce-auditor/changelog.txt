@@ -1,3 +1,6 @@
+== 0.3.19 ==
+* Local Description and Plugin URI replace remote REST header excerpts. Preserve the 0.3.18 CPU controller and version history. Issue #2494.
+
 == 0.3.18 ==
 * Adaptive batch ceilings of 40/90/180/300/500 records, with conservative first queries and optional measured PHP worker CPU time. Show worker CPU rather than Cron in progress; preserve all cursors, JSONL and fallback. Issues #2496/#2500.
 

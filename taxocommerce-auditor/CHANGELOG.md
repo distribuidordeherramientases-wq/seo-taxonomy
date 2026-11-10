@@ -1,3 +1,8 @@
+## [0.3.19] - 2026-11-10 - Cabecera local sin peticiones REST (#2494)
+
+- El encabezado utiliza solo Description y Plugin URI del propio plugin, sin HTTP ni caché de extractos.
+- Se conserva íntegro el control de CPU de Auditor 0.3.18 y el historial de versiones.
+
 ## [0.3.18] - 2026-11-10 - CPU real del proceso PHP y techos de 40-500 (#2496, #2500)
 
 - Amplía el regulador adaptativo de Auditor 0.3.17: los cinco niveles permiten hasta 40, 90, 180, 300 y 500 objetos, pero cada ejecución inicia con una consulta conservadora y solo aumenta cuando tiempo, memoria y CPU del trabajador PHP dejan margen.

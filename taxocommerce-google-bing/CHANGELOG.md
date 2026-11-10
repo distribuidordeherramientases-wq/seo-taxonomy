@@ -1,3 +1,8 @@
+## [1.1.38] - 2026-11-10 - Ficha local sin REST en el encabezado (#2494)
+
+- La cabecera emplea Description y Plugin URI locales, sin REST ni caché externa.
+- Conserva la pestaña Informes ejecutivos de 1.1.37, las conexiones, el Analista, las descargas y el historial.
+
 ## [1.1.37] - 2026-11-10 - Informe ejecutivo de snapshots existentes (#2497)
 
 - Nueva pestaña «Informes ejecutivos»: resume señales contrastables de Search Console, GA4 y Bing sin repetir paneles técnicos.

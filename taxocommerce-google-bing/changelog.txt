@@ -1,3 +1,6 @@
+= 1.1.37 (2026-11-10) =
+* Local Description and Plugin URI replace developer excerpt requests and caching. Issue #2494.
+
 = 1.1.25 (2026-11-08) =
 * Consentimientos: textos legales, mensajes y botones editables por idioma, URL de política, aceptación/rechazo por finalidad, guardado en wp_options y borrado exclusivo al desinstalar. Issue #2366.
 

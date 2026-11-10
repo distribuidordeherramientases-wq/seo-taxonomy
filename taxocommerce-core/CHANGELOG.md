@@ -1,3 +1,9 @@
+## [0.4.71] — 2026-11-10 — Ficha estática sin conexión remota (#2494)
+
+- El encabezado muestra únicamente `Description` y `Plugin URI` de Core, sin consultas REST, botones de consentimiento ni caché de extractos.
+- Mantiene el enlace a la ficha oficial, historial local y todas las funciones, sin dependencias nuevas.
+- `uninstall.php` conserva la eliminación de los cachés históricos de versiones anteriores.
+
 ## [0.4.70] — 2026-11-10 — Consentimiento en la ficha del desarrollador (#2491)
 
 - La portada Core no consulta servidores externos al abrirse, aunque expire el caché.

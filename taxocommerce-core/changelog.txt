@@ -1,3 +1,6 @@
+= 0.4.71 (2026-11-10) =
+* Static local Description and Plugin URI replace Core developer excerpt requests and button; preserve link, local history and legacy uninstall cache cleanup. Issue #2494.
+
 = 0.4.70 (2026-11-10) =
 * Optional official developer excerpt requires explicit administrator action; no automatic external requests. Preserve resilient last verified excerpt and local Description from #2489. Readme discloses destination and data sent. Issue #2491.
 

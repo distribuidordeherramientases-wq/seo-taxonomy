@@ -1,3 +1,8 @@
+## [0.1.17] — 2026-11-10 — Información local del plugin (#2494)
+
+- Encabezado local mediante `Description` y `Plugin URI`, sin REST ni caché.
+- Enlace, historial y funcionalidad conservados.
+
 ## [0.1.16] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
 - Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.
