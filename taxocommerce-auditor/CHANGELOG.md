@@ -1,3 +1,13 @@
+## [0.3.17] — 2026-11-10 — Control adaptativo de carga y diagnóstico sin WP-Cron (#2498)
+
+- Eliminados de la pantalla de Auditor los avisos amarillos por WP-Cron desactivado o retrasado: no gobiernan la cadena AJAX y daban una impresión equivocada de bloqueo.
+- Se conserva el aviso real de error de red, HTTP, nonce o procesamiento, con reintentos controlados. WP-Cron sigue siendo solo una alternativa opcional para la ejecución con la pestaña cerrada.
+- El controlador de carga mide la duración completa de cada lote (incluidas las consultas de WordPress) y estima la presión de memoria PHP cuando se conoce su límite. Ajusta el tamaño del lote siguiente en el rango seguro de la velocidad 1–5 elegida, sin reiniciar cursor ni JSONL.
+- La interfaz ajusta también automáticamente la pausa entre respuestas según duración del lote, latencia observada y memoria: acelera en lotes ligeros y retrocede cuando están cerca de su presupuesto o con presión elevada. Los niveles 1–5 siguen siendo límites superiores, no porcentajes de CPU.
+- Se muestra el tamaño previsto del lote y la duración anterior como diagnóstico no intrusivo. Auditor no puede conocer el porcentaje global real de CPU en un alojamiento compartido.
+- Autotest, pruebas PHP y JavaScript de lotes rápidos/lentos, categorías, cron deshabilitado, pausa y reintentos; manual y traducciones nativas ES/EN/FR/DE/NL actualizados.
+- Issue #2498; no modifica catálogo, precios, stock, contenidos ni relaciones comerciales.
+
 ## [0.3.16] - 2026-11-10 - Resiliencia del extracto oficial (#2489)
 
 - Consulta exclusivamente la API REST pública de la página indicada en Plugin URI (autor del plugin), nunca páginas de la tienda del cliente.

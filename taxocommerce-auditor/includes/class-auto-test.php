@@ -171,7 +171,16 @@ final class Auto_Test {
                 && Workload::delay_seconds( $scope ) >= 12
                 && Workload::budget_seconds( $scope ) >= 1
                 && Workload::client_delay_ms( $scope ) >= 300
-                && Workload::client_delay_ms( $scope ) <= 6000;
+                && Workload::client_delay_ms( $scope ) <= 6000
+                && Workload::effective_batch_size( $scope ) >= 1
+                && Workload::effective_batch_size( $scope ) <= Workload::batch_size( $scope )
+                && Workload::adjusted_batch_size(
+                    $scope,
+                    Workload::effective_batch_size( $scope ),
+                    Workload::budget_seconds( $scope ) * 1000,
+                    85,
+                    1
+                ) <= Workload::batch_size( $scope );
         }
         return $valid
             ? self::pass( __( 'Ejecución por lotes y controles disponibles; ningún cron se dispara.', 'taxocommerce-auditor' ) )

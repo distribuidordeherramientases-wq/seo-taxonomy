@@ -54,12 +54,11 @@ final class Admin {
                 'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
                 'nonce'    => wp_create_nonce( 'taxocommerce_auditor_watch' ),
                 'latest'   => __( 'Último lote', 'taxocommerce-auditor' ),
-                'next'     => __( 'Próximo evento WP-Cron', 'taxocommerce-auditor' ),
-                'none'     => __( 'Sin datos', 'taxocommerce-auditor' ),
-                'overdue'  => __( 'WP-Cron está retrasado; este monitor recupera los lotes mientras permanezca abierto.', 'taxocommerce-auditor' ),
-                'disabled' => __( 'WP-Cron está desactivado. La auditoría avanza desde esta pantalla; para continuar con ella cerrada necesitas un proceso programado en el servidor.', 'taxocommerce-auditor' ),
-                'continuous' => __( 'Ejecución encadenada: el siguiente lote se inicia automáticamente sin esperar a WP-Cron.', 'taxocommerce-auditor' ),
-                'failure'  => __( 'No se pudo consultar el progreso. Comprueba la conexión y vuelve a cargar la pantalla.', 'taxocommerce-auditor' ),
+                'none'       => __( 'Sin datos', 'taxocommerce-auditor' ),
+                'continuous' => __( 'Ejecución automática con regulación adaptativa de carga.', 'taxocommerce-auditor' ),
+                'nextBatch'  => __( 'Próximo lote', 'taxocommerce-auditor' ),
+                'duration'   => __( 'Duración', 'taxocommerce-auditor' ),
+                'failure'    => __( 'No se pudo procesar el siguiente lote. Comprueba la conexión; el sistema lo reintentará.', 'taxocommerce-auditor' ),
             )
         );
     }
@@ -214,7 +213,7 @@ final class Admin {
                 . esc_html( (string) $speed . ' · ' . Workload::label( $speed ) ) . '</option>';
         }
         echo '</select> <button type="submit" class="button">' . esc_html__( 'Guardar velocidad', 'taxocommerce-auditor' ) . '</button>';
-        echo '<p class="description">' . esc_html__( 'Regula el tamaño y frecuencia de los lotes de este bloque (auditorías completas, filtradas y manuales). Los cambios no reinician el progreso. No representa un porcentaje de CPU del servidor.', 'taxocommerce-auditor' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'El nivel establece la carga máxima. El sistema ajusta automáticamente tamaño y frecuencia según duración y memoria de cada lote. Los cambios no reinician el progreso. No mide el porcentaje global de CPU.', 'taxocommerce-auditor' ) . '</p>';
         echo '</form>';
 
         // Do not offer a second start while a scope is already active or
