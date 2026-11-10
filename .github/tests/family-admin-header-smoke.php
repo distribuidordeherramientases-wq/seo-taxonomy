@@ -124,6 +124,7 @@ foreach ( $slugs as $slug ) {
     tc_test_assert( false === strpos( $html, 'name="tc_official_url"' ), 'The developer-owned link cannot be changed by a shop administrator: ' . $slug );
     $headers = get_file_data( $root . '/taxocommerce-' . $slug . '/taxocommerce-' . $slug . '.php', array( 'uri' => 'Plugin URI', 'description' => 'Description' ) );
     tc_test_assert( false !== strpos( $html, esc_html( wp_strip_all_tags( $headers['description'] ) ) ), 'Local plugin Description shown: ' . $slug );
+    tc_test_assert( false !== strpos( $html, '<p class="tc-family-hero__desc">' . esc_html( wp_strip_all_tags( $headers['description'] ) ) . '</p>' ), 'Visible subtitle follows local plugin Description: ' . $slug );
     tc_test_assert( false !== strpos( $html, esc_html( $headers['uri'] ) ), 'Local Plugin URI linked: ' . $slug );
     tc_test_assert( strpos( $html, '<details class="tc-family-info">' ) < strpos( $html, '<details class="tc-family-history">' ), 'Official excerpt at left of local history: ' . $slug );
     tc_test_assert( false !== strpos( $html, '<summary>Información del plugin</summary>' ), 'Official excerpt translated in Spanish: ' . $slug );
@@ -240,6 +241,8 @@ tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__metadata' ) && false !== 
 tc_test_assert( false !== strpos( $core_ui, 'tcc-hero__panels' ), 'Core presents the developer information and local changelog in a separate centered zone.' );
 tc_test_assert( false !== strpos( $core_ui, '<details class="tcc-hero__history">' ), 'Core has a collapsed history on its own dashboard.' );
 tc_test_assert( false !== strpos( $core_ui, "dirname( __DIR__ ) . '/CHANGELOG.md'" ), 'Core reads its own local changelog.' );
+tc_test_assert( false !== strpos( $core_ui, "'description' => 'Description'" ), 'Core title subtitle reads bundled plugin Description.' );
+tc_test_assert( false !== strpos( $core_ui, 'esc_html( $tc_plugin_description )' ), 'Core renders local Description under the title.' );
 tc_test_assert( false !== strpos( $core_ui, 'esc_html( $tc_history )' ), 'Core history is HTML-escaped.' );
 tc_test_assert( is_readable( $root . '/taxocommerce-core/CHANGELOG.md' ), 'Core changelog must be included in the release.' );
 tc_test_assert( false !== strpos( $tasks_ui, "require_once __DIR__ . '/includes/admin-branding.php';" ), 'Tasks loads the shared autonomous visual header' );

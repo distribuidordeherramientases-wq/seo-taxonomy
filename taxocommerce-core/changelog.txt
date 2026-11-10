@@ -1,3 +1,6 @@
+= 0.4.72 (2026-11-10) =
+* Admin subtitle uses bundled Description metadata; static Plugin URI and local version history retained. Issue #2494.
+
 = 0.4.71 (2026-11-10) =
 * Static local Description and Plugin URI replace Core developer excerpt requests and button; preserve link, local history and legacy uninstall cache cleanup. Issue #2494.
 

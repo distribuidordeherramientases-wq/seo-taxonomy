@@ -1,3 +1,8 @@
+## [0.3.40] — 2026-11-10 — Descripción visible desde el plugin (#2494)
+
+- La descripción inmediatamente debajo del título administrativo procede de `Description:` del archivo principal, sin textos duplicados ni consultas externas.
+- Se mantienen el enlace estático `Plugin URI`, el historial local y las funcionalidades anteriores.
+
 ## [0.3.39] — 2026-11-10 — Ficha local en el encabezado (#2494)
 
 - Elimina consultas REST/caché del extracto y usa `Description` y `Plugin URI` locales.
