@@ -50,6 +50,7 @@ async function scenario(responses, options = {}) {
         continuous: 'Ritmo adaptativo',
         nextBatch: 'Próximo lote',
         duration: 'Duración',
+        cpu: 'CPU PHP',
         failure: 'No se pudo procesar el siguiente lote'
     };
 
@@ -175,7 +176,7 @@ async function run() {
     const healthyNoCron = await scenario([
         { status: 'running', processed: 15, total: 100, status_label: 'En curso',
             batch_processed: 15, client_delay_ms: 2000, batch_budget_ms: 5000,
-            batch_duration_ms: 100, effective_batch_size: 19,
+            batch_duration_ms: 100, batch_cpu_ms: 75, effective_batch_size: 19,
             memory_pressure_percent: 25, cron_disabled: true, cron_overdue: true },
         { status: 'completed', processed: 100, total: 100, status_label: 'Completado', batch_processed: 85 }
     ]);
@@ -183,6 +184,7 @@ async function run() {
     assert.equal(healthyNoCron.elements.warning.hidden, true, 'Cron health is not a browser audit warning');
     assert.ok(healthyNoCron.scheduled.includes(1300), 'Fast PHP batch accelerates AJAX within its configured cap');
     assert.match(healthyNoCron.elements.progress.textContent, /Próximo lote: 19/, 'Adaptive batch size is visible');
+    assert.match(healthyNoCron.elements.progress.textContent, /CPU PHP: 75 ms/, 'Measured PHP CPU time is visible');
     await healthyNoCron.tick();
     assert.equal(healthyNoCron.reloads, 1, 'Cron-disabled audits complete autonomously');
 

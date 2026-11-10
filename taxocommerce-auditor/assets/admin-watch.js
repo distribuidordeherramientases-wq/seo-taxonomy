@@ -52,6 +52,8 @@
 
         var budgetMs = Number(data.batch_budget_ms);
         var workMs = Number(data.batch_duration_ms);
+        var cpuMs = data.batch_cpu_ms === null || data.batch_cpu_ms === undefined
+            ? NaN : Number(data.batch_cpu_ms);
         var memoryPercent = Number(data.memory_pressure_percent);
         var observed = Math.max(
             Number.isFinite(workMs) ? workMs : 0,
@@ -64,7 +66,8 @@
 
         // Execution time + PHP memory are observable resource proxies, not
         // global server CPU percentage. The selected speed is the upper cap.
-        var ratio = observed / budgetMs;
+        var ratio = Math.max(observed / budgetMs,
+            Number.isFinite(cpuMs) ? (cpuMs / budgetMs) * 1.15 : 0);
         if ((Number.isFinite(memoryPercent) && memoryPercent >= 80) || ratio >= 0.8) {
             return Math.min(30000, Math.ceil(baseline * 2.5));
         }
@@ -136,6 +139,9 @@
                 progress.textContent += ' · ' + config.nextBatch + ': ' +
                     Number(data.effective_batch_size) + ' · ' + config.duration + ': ' +
                     (Number(data.batch_duration_ms) / 1000).toFixed(1) + ' s';
+                if (data.batch_cpu_ms !== null && data.batch_cpu_ms !== undefined) {
+                    progress.textContent += ' · ' + config.cpu + ': ' + Number(data.batch_cpu_ms) + ' ms';
+                }
             }
 
             warning.hidden = true;

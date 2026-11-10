@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Runner {
     const HOOK       = 'taxocommerce_auditor_process_batch';
-    const BATCH_SIZE = 40;
+    const BATCH_SIZE = 500;
     const MAX_STORED_FINDINGS = 400;
     const MAX_QUALITY_ROWS    = 100;
     const MAX_INDEXED_TITLES  = 25000;
@@ -144,6 +144,7 @@ final class Runner {
             'client_delay_ms'     => Workload::client_delay_ms( $scope ),
             'batch_budget_ms'     => Workload::budget_seconds( $scope ) * 1000,
             'batch_duration_ms'   => absint( $state['last_batch_duration_ms'] ?? 0 ),
+            'batch_cpu_ms'        => isset( $state['last_batch_cpu_ms'] ) ? absint( $state['last_batch_cpu_ms'] ) : null,
             'last_batch_objects'  => absint( $state['last_batch_objects'] ?? 0 ),
             'effective_batch_size'=> Workload::effective_batch_size( $scope, $state ),
             'memory_pressure_percent' => absint( $state['memory_pressure_percent'] ?? 0 ),
@@ -820,6 +821,7 @@ final class Runner {
             $requested_batch = min( $maximum_batch, null === $remaining ? $maximum_batch : max( 1, $remaining ) );
             // Include query and object hydration, not just per-item inspection,
             // when measuring load and enforcing the existing time budget.
+            $batch_cpu_started = Workload::process_cpu_ms();
             $batch_started = microtime( true );
             $objects = self::batch( $scope, absint( $state['cursor'] ), (array) ( $state['filters'] ?? array() ), $remaining, $requested_batch );
             $processed_batch = 0;
@@ -1019,6 +1021,9 @@ final class Runner {
 
             $state['last_batch_timestamp'] = time();
             $state['last_batch_duration_ms'] = max( 1, (int) round( ( microtime( true ) - $batch_started ) * 1000 ) );
+            $batch_cpu_finished = Workload::process_cpu_ms();
+            $state['last_batch_cpu_ms'] = null !== $batch_cpu_started && null !== $batch_cpu_finished
+                ? max( 0, $batch_cpu_finished - $batch_cpu_started ) : null;
             $state['last_batch_objects'] = absint( $processed_batch );
             $state['memory_pressure_percent'] = Workload::memory_pressure_percent();
             $state['adaptive_batch_size'] = Workload::adjusted_batch_size(
@@ -1026,7 +1031,8 @@ final class Runner {
                 $requested_batch,
                 $state['last_batch_duration_ms'],
                 $state['memory_pressure_percent'],
-                $processed_batch
+                $processed_batch,
+                $state['last_batch_cpu_ms']
             );
             self::trim_samples( $state );
             $full = 'full' === (string) ( $state['filters']['mode'] ?? 'filtered' );

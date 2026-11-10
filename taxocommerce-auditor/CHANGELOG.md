@@ -1,3 +1,11 @@
+## [0.3.18] - 2026-11-10 - CPU real del proceso PHP y techos de 40-500 (#2496, #2500)
+
+- Amplía el regulador adaptativo de Auditor 0.3.17: los cinco niveles permiten hasta 40, 90, 180, 300 y 500 objetos, pero cada ejecución inicia con una consulta conservadora y solo aumenta cuando tiempo, memoria y CPU del trabajador PHP dejan margen.
+- Si getrusage() está disponible, la CPU de usuario y sistema del proceso PHP se mide en milisegundos por lote y también influye en el ajuste de frecuencia del navegador. No se presenta ni se infiere la CPU global del alojamiento compartido.
+- Mantiene el límite temporal de cada nivel, un solo lote AJAX por petición, los cursores e índices persistidos, pausas, JSONL completo y bloqueo de concurrencia. La consulta y el umbral de finalización mantienen el mismo tamaño efectivo.
+- El texto de progreso deja de mencionar WP-Cron; las comunicaciones fallidas siguen siendo diagnosticables, y se conserva WP-Cron exclusivamente como mecanismo auxiliar opcional.
+- Ajustadas las pruebas PHP/JS, Autocheck, manual, documentación, versión y traducciones. No hay modificaciones de contenidos ni de otros plugins.
+
 ## [0.3.17] — 2026-11-10 — Control adaptativo de carga y diagnóstico sin WP-Cron (#2498)
 
 - Eliminados de la pantalla de Auditor los avisos amarillos por WP-Cron desactivado o retrasado: no gobiernan la cadena AJAX y daban una impresión equivocada de bloqueo.
