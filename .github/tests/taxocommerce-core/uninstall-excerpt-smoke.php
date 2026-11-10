@@ -22,7 +22,7 @@ function esc_url_raw( $uri, $protocols = array() ) { return $uri; }
 function delete_option( $name ) { unset( $GLOBALS['options'][ $name ] ); return true; }
 function delete_transient( $name ) { unset( $GLOBALS['transients'][ $name ] ); return true; }
 require dirname( __DIR__, 3 ) . '/taxocommerce-core/uninstall.php';
-if ( isset( $GLOBALS['options']['taxocommerce_core_version'], $GLOBALS['options']['tc_official_excerpt_good_' . $hash] ) ) {
+if ( isset( $GLOBALS['options']['taxocommerce_core_version'] ) ) {
     throw new RuntimeException( 'Core options were not cleared.' );
 }
 if ( isset( $GLOBALS['options']['tc_official_excerpt_good_' . $hash] )
