@@ -1,3 +1,9 @@
+## 2026-11-10 - Ojeador heredado: exportación SQL con lista cerrada (#2487)
+
+- Integrada la contribución de @fermatacordis-create para `includes/ojeador/class-ojeador-admin.php`: `stream_table_json()` limita los órdenes y filtros a valores autorizados y parametriza LIMIT/OFFSET.
+- La tabla se valida como identificador alfanumérico compatible con WordPress 5.8-6.1, evitando exigir el marcador `%i` introducido en WordPress 6.2.
+- Cambio exclusivo del plugin monolítico anterior; TaxoCommerce Scrappers ya dispone de protección equivalente y no se modifica. Sin seguimiento funcional adicional del monolito ni despliegue a producción.
+
 ## 2026-11-10 - Distribution: gestión opcional del sitemap XML (#2484)
 
 - Añadida casilla propia en TaxoCommerce Distribution para activar o ceder la publicación XML; sin dependencia obligatoria de OPNV ni de Core.
