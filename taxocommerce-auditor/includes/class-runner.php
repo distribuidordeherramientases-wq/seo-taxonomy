@@ -142,6 +142,7 @@ final class Runner {
             'next_event_timestamp'=> $next,
             'speed_delay_seconds' => Workload::delay_seconds( $scope ),
             'client_delay_ms'     => Workload::client_delay_ms( $scope ),
+            'batch_budget_ms'     => Workload::budget_seconds( $scope ) * 1000,
             'batch_duration_ms'   => absint( $state['last_batch_duration_ms'] ?? 0 ),
             'last_batch_objects'  => absint( $state['last_batch_objects'] ?? 0 ),
             'effective_batch_size'=> Workload::effective_batch_size( $scope, $state ),
