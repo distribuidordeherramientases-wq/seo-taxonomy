@@ -1,3 +1,10 @@
+## [0.4.29] — 2026-11-10 — Sin tareas programadas propias de importación/exportación (#2530)
+
+- Eliminada la creación de acciones de Action Scheduler y WP-Cron para exportación CSV y cola de importación; conservados el procesamiento por bloques, autollamadas internas autenticadas, control adaptativo, pausas y cancelación.
+- El watchdog reanuda un trabajo interrumpido al recibir nuevas peticiones a WordPress; ya no existe recuperación automática mediante tareas programadas si fallan las autollamadas internas.
+- Limpieza puntual de los hooks de calendario anteriores del plugin, sin borrar datos, colas, CSV ni acciones de WooCommerce u otros plugins.
+- seo_supplier_crawl_tick del monolito no se altera: necesita sustitución de su mecanismo de ejecución antes de retirarlo.
+
 ## [0.4.28] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.

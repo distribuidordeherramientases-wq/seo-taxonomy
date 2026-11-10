@@ -5,13 +5,15 @@ Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: woocommerce
-Stable tag: 0.4.28
+Stable tag: 0.4.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Import and export catalog, content and Media for WordPress/WooCommerce.
 
 == Description ==
+
+* CSV batch imports and exports continue through private internal HTTP requests with adaptive load limiting. This plugin no longer creates its own Action Scheduler or WP-Cron jobs. If a loopback fails, recovery requires a later WordPress request or an explicit administrator retry.
 
 * Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
