@@ -256,6 +256,7 @@ jobs:
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
           php .github/tests/taxocommerce-core/sidebar-plugins-smoke.php
           php .github/tests/taxocommerce-core/official-excerpt-consent-smoke.php
+          php .github/tests/taxocommerce-core/uninstall-excerpt-smoke.php
           php -l .github/tests/taxocommerce-core/family-catalog-availability-smoke.php
           php .github/tests/taxocommerce-core/family-catalog-availability-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-editor-ui-smoke.php
