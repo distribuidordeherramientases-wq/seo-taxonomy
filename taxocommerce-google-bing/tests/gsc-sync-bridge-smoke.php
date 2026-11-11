@@ -85,7 +85,7 @@ tgb_sync_assert( 'oauth' === $chosen['auth'], 'OAuth should be selected first wh
 tgb_sync_assert( 'sc-domain:new.test' === $bridge::settings( array( 'property_id' => 'sc-domain:legacy.test' ) )['property_id'], 'Analysis must use modern property' );
 tgb_sync_assert( 'oauth-token' === $bridge::access_token(), 'Importer must use modern OAuth token' );
 $bridge::record_completed();
-tgb_sync_assert( '2026-11-11 12:00:00' === get_option( 'tgb_gsc_sync_last_v1' ), 'Last sync tracked in new option' );
+tgb_sync_assert( '2026-11-11 12:00:00' === get_option( 'taxocommerce_google_bing_gsc_sync_last_v1' ), 'Last sync tracked in new option' );
 tgb_sync_assert( ! in_array( 'seo_google_intelligence_settings', $GLOBALS['tgb_sync_writes'], true ), 'Legacy credentials must never be rewritten' );
 tgb_sync_assert( ! in_array( 'seo_google_intelligence_tokens', $GLOBALS['tgb_sync_writes'], true ), 'Legacy OAuth token must never be rewritten' );
 
@@ -100,7 +100,7 @@ tgb_sync_assert( 2 === count( $GLOBALS['tgb_sync_requests'] ), 'Should probe OAu
 tgb_sync_reset();
 $denied = $bridge::verify_and_select();
 tgb_sync_assert( is_wp_error( $denied ), 'Must fail closed when neither Google credential/property pair works' );
-tgb_sync_assert( ! isset( $GLOBALS['tgb_sync_options']['tgb_gsc_sync_selection_v1'] ), 'Failed connection cannot persist a verified property' );
+tgb_sync_assert( ! isset( $GLOBALS['tgb_sync_options']['taxocommerce_google_bing_gsc_sync_selection_v1'] ), 'Failed connection cannot persist a verified property' );
 tgb_sync_assert( 'DO-NOT-TOUCH' === $GLOBALS['tgb_sync_options']['seo_google_intelligence_tokens']['refresh_token'], 'Legacy saved refresh token remains intact' );
 
 // Source-level regression: the old SQL importer must be loaded only once,
@@ -112,9 +112,9 @@ $service = file_get_contents( $root . '/includes/class-taxocommerce-google-bing-
 tgb_sync_assert( false !== strpos( $main, "if ( ! function_exists( 'seo_google_get_settings' ) )" ), 'Do not load duplicate Google Intelligence engine' );
 tgb_sync_assert( false !== strpos( $main, "require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php'" ), 'Standalone Insights must load the missing SQL importer' );
 tgb_sync_assert( false !== strpos( $main, 'seo_google_render_sync_status();' ), 'Manual sync UI must be accessible in Insights' );
-tgb_sync_assert( false !== strpos( $sync, "apply_filters('tgb_gsc_sync_verify_start', true)" ), 'Import must check actual Google access before writing' );
-tgb_sync_assert( false !== strpos( $sync, "apply_filters('tgb_gsc_sync_access_token', null)" ), 'Importer must use current Google tokens' );
-tgb_sync_assert( false !== strpos( $sync, "do_action('tgb_gsc_sync_completed')" ), 'Do not overwrite legacy credentials upon completion' );
+tgb_sync_assert( false !== strpos( $sync, "apply_filters('taxocommerce_google_bing_gsc_sync_verify_start', true)" ), 'Import must check actual Google access before writing' );
+tgb_sync_assert( false !== strpos( $sync, "apply_filters('taxocommerce_google_bing_gsc_sync_access_token', null)" ), 'Importer must use current Google tokens' );
+tgb_sync_assert( false !== strpos( $sync, "do_action('taxocommerce_google_bing_gsc_sync_completed')" ), 'Do not overwrite legacy credentials upon completion' );
 tgb_sync_assert( false !== strpos( $service, "':runReport'" ), 'GA4 Analysis must use Data API runReport instead of missing method' );
 tgb_sync_assert( false !== strpos( $service, "'https://www.googleapis.com/auth/analytics.readonly'" ), 'GA4 must use analytics scope' );
 tgb_sync_assert( false === strpos( $service, '::google_analytics_report(' ), 'The old undefined Google Analytics method cannot remain' );
