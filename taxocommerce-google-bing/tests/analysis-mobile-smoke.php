@@ -27,8 +27,8 @@ tgb_assert_mobile( false !== strpos( $bridge, 'taxocommerce_insights_action_plan
 tgb_assert_mobile( false !== strpos( $client, 'showSavedPlanDate(response.data)' ), 'Plan download date is updated after report succeeds.' );
 tgb_assert_mobile( false === strpos( $client, 'showPlanJson(' ), 'Plan download must not be appended after the report.' );
 tgb_assert_mobile( false === strpos( $client, 'new Blob([content]' ), 'Plan download uses a saved server-side JSON without a browser Blob.' );
-tgb_assert_mobile( false !== strpos( $main, 'id="tgb-plan-json-download"' ), 'The separate plan JSON button appears in the top report controls.' );
-tgb_assert_mobile( false !== strpos( $main, 'tgb-plan-json-date' ), 'Top download button contains the last saved JSON timestamp.' );
+tgb_assert_mobile( false !== strpos( $main, 'id="tgb-plan-json-download"' ), 'The plan has a JSON download button inside its card.' );
+tgb_assert_mobile( false !== strpos( $main, 'tgb-report-date' ), 'Each report card displays the last generated report timestamp.' );
 tgb_assert_mobile( false !== strpos( $main, "'planDownloadUrl' => taxocommerce_insights_plan_json_download_url()" ), 'Signed download URL supplied to client.' );
 tgb_assert_mobile( false !== strpos( $bridge, "add_action( 'admin_post_taxocommerce_insights_plan_json_download'" ), 'Separate authenticated admin-post download endpoint.' );
 tgb_assert_mobile( false !== strpos( $bridge, "check_admin_referer( 'taxocommerce_insights_plan_json_download' )" ), 'Plan download requires its own nonce.' );
@@ -46,4 +46,14 @@ tgb_assert_mobile( false !== strpos( $export, "'inline' : 'attachment'" ), 'Expo
 tgb_assert_mobile( false === strpos( $main, "'executive'        =>" ), 'Redundant executive navigation removed.' );
 tgb_assert_mobile( false === strpos( $main, 'class-taxocommerce-insights-executive.php' ), 'Executive component is not loaded.' );
 tgb_assert_mobile( false === strpos( $workflow, '/tests/executive-smoke.php' ), 'Removed feature not required by deployment CI.' );
+tgb_assert_mobile( false !== strpos( $main, 'seo-analista-report-grid' ), 'All ten reports share a single card grid.' );
+tgb_assert_mobile( false !== strpos( $main, '<article class="seo-analista-report-card"' ), 'Cards are non-interactive articles, not oversized buttons.' );
+tgb_assert_mobile( false !== strpos( $main, 'Crear informe' ), 'Every report has its own create button.' );
+tgb_assert_mobile( false !== strpos( $main, 'tgb-report-json-button' ), 'Every report has its own JSON download link.' );
+tgb_assert_mobile( false !== strpos( $bridge, 'taxocommerce_insights_last_report_export' ), 'Last generated specialist reports are cached separately.' );
+tgb_assert_mobile( false !== strpos( $bridge, "add_action( 'admin_post_taxocommerce_insights_report_json_download'" ), 'Individual JSON downloads use an authenticated WordPress endpoint.' );
+tgb_assert_mobile( false !== strpos( $bridge, "check_admin_referer( 'taxocommerce_insights_report_json_download' )" ), 'Individual downloads check their nonce.' );
+tgb_assert_mobile( false !== strpos( $client, 'showSavedReport(item, response.data)' ), 'Individual creation updates its saved download without rerunning reports.' );
+$styles = file_get_contents( $root . '/includes/analysis/assets/analista-informe.css' );
+tgb_assert_mobile( false !== strpos( $styles, 'grid-template-columns:repeat(5,minmax(0,1fr))' ), 'Desktop displays five report columns.' );
 echo "PASS: unified mobile Analysis, matching AJAX nonce, sequential reports and full JSON export.\n";

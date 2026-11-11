@@ -37,6 +37,8 @@ function wp_date( $format, $timestamp ) { return gmdate( $format, $timestamp ); 
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_nonce_url( $url, $action ) { return $url . '&_wpnonce=' . rawurlencode( $action ); }
 function sanitize_text_field( $value ) { return strip_tags( (string) $value ); }
+function wp_strip_all_tags( $html ) { return strip_tags( (string) $html ); }
+function add_query_arg( $args, $url ) { return $url . '?' . http_build_query( $args ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_html__( $value, $domain ) { return esc_html( $value ); }
 function __( $value, $domain ) { return $value; }
@@ -105,7 +107,7 @@ $reports = taxocommerce_google_bing_analysis_reports();
 insights_check( 2 === count( $reports ), 'one fewer report in Insights' );
 insights_check( ! isset( $reports['trabajo'] ), 'separate work button removed' );
 insights_check( isset( seo_analista_lazy_reports()['trabajo'] ), 'legacy report catalog untouched' );
-insights_check( 'Plan de acción' === $reports['directrices']['label'], 'single Plan de acción label, without duplicate titles' );
+insights_check( 'Plan de trabajo' === $reports['directrices']['label'], 'single Plan de trabajo label, without duplicate titles' );
 
 $_POST = array( 'report' => 'directrices', 'days' => '28' );
 try {
@@ -144,6 +146,9 @@ try {
 } catch ( Insights_Stop_Response $stop ) {
 }
 insights_check( true === $GLOBALS['last_response']['success'], 'specialist report still available' );
+insights_check( 60 === taxocommerce_insights_last_report_export( 'resumen', 60 )['period_days'], 'specialist report persisted by period' );
+insights_check( ! empty( $GLOBALS['last_response']['data']['report_saved_at_display'] ), 'specialist report date returned' );
+insights_check( false !== strpos( $GLOBALS['last_response']['data']['report_download_url'], 'taxocommerce_insights_report_json_download' ), 'specialist report download URL returned' );
 insights_check( ! isset( $GLOBALS['last_response']['data']['plan_export'] ), 'specialist report contains no plan JSON' );
 insights_check( 1 === $GLOBALS['invocations']['decision_plan'], 'specialist report does not compute executive plan' );
 insights_check( 1 === $GLOBALS['invocations']['geo'], 'specialist report does not append GEO' );

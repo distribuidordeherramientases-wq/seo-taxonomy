@@ -18,7 +18,7 @@ function taxocommerce_google_bing_analysis_reports() {
     $reports = (array) seo_analista_lazy_reports();
     unset( $reports['trabajo'] );
     if ( isset( $reports['directrices'] ) ) {
-        $reports['directrices']['label'] = __( 'Plan de acción', 'taxocommerce-google-bing' );
+        $reports['directrices']['label'] = __( 'Plan de trabajo', 'taxocommerce-google-bing' );
         $reports['directrices']['description'] = 'Ventas, mejoras SEO/GEO verificables y tareas priorizadas en un solo informe.';
     }
     return $reports;
@@ -162,6 +162,86 @@ function taxocommerce_insights_plan_json_download() {
 add_action( 'admin_post_taxocommerce_insights_plan_json_download', 'taxocommerce_insights_plan_json_download' );
 
 /**
+ * Read the last generated JSON snapshot of a single specialist report.
+ * This is a cached presentation snapshot, not a fresh provider query.
+ *
+ * @param string $report Specialist report key.
+ * @param int    $days   Reporting period.
+ * @return array
+ */
+function taxocommerce_insights_last_report_export( $report, $days ) {
+    $report = sanitize_key( $report );
+    $days   = absint( $days );
+    if ( 'directrices' === $report || ! in_array( $days, array( 28, 60, 90 ), true )
+        || ! array_key_exists( $report, taxocommerce_google_bing_analysis_reports() ) ) {
+        return array();
+    }
+    $stored = get_option( 'taxocommerce_insights_report_' . $report . '_' . $days, array() );
+    if ( ! is_array( $stored )
+        || 'taxocommerce-insights-report' !== ( $stored['schema']['name'] ?? '' )
+        || $report !== ( $stored['report'] ?? '' )
+        || $days !== ( $stored['period_days'] ?? 0 )
+        || empty( $stored['generated_at'] ) || ! isset( $stored['html'] ) ) {
+        return array();
+    }
+    return $stored;
+}
+
+/**
+ * Download link for a previously generated specialist report.
+ *
+ * @param string $report Report key.
+ * @param int    $days   Reporting period.
+ * @return string
+ */
+function taxocommerce_insights_report_json_download_url( $report, $days ) {
+    return wp_nonce_url(
+        add_query_arg(
+            array(
+                'action' => 'taxocommerce_insights_report_json_download',
+                'report' => sanitize_key( $report ),
+                'days'   => absint( $days ),
+            ),
+            admin_url( 'admin-post.php' )
+        ),
+        'taxocommerce_insights_report_json_download'
+    );
+}
+
+/**
+ * Return only the saved report. The JSON preserves the generated HTML and its
+ * plain-text reading for clients which cannot render WordPress markup.
+ *
+ * @return void
+ */
+function taxocommerce_insights_report_json_download() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'No tienes permisos suficientes.', 'taxocommerce-google-bing' ), '', array( 'response' => 403 ) );
+    }
+    check_admin_referer( 'taxocommerce_insights_report_json_download' );
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified above.
+    $report = isset( $_GET['report'] ) ? sanitize_key( wp_unslash( $_GET['report'] ) ) : '';
+    $days   = isset( $_GET['days'] ) ? absint( wp_unslash( $_GET['days'] ) ) : 28;
+    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+    $export = taxocommerce_insights_last_report_export( $report, $days );
+    if ( ! $export ) {
+        wp_die( esc_html__( 'Ningún informe cargado.', 'taxocommerce-google-bing' ), '', array( 'response' => 404 ) );
+    }
+    $json = wp_json_encode( $export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+    if ( ! is_string( $json ) ) {
+        wp_die( esc_html__( 'No se pudo preparar el JSON.', 'taxocommerce-google-bing' ), '', array( 'response' => 500 ) );
+    }
+    nocache_headers();
+    header( 'Content-Type: application/json; charset=utf-8' );
+    header( 'X-Content-Type-Options: nosniff' );
+    header( 'Content-Disposition: attachment; filename="taxocommerce-' . $report . '-' . $days . 'd-' . gmdate( 'YmdHis', strtotime( $export['generated_at'] ) ) . '.json"' );
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Encoded JSON attachment, not HTML.
+    echo $json;
+    exit;
+}
+add_action( 'admin_post_taxocommerce_insights_report_json_download', 'taxocommerce_insights_report_json_download' );
+
+/**
  * This AJAX handler renders the merged Insights view only on click. All other
  * specialist reports retain their original renderer. Never create work when
  * the legacy plan has no tasks with executable/validated destinations.
@@ -217,6 +297,24 @@ function taxocommerce_insights_analysis_ajax() {
         'seconds' => round( microtime( true ) - $started, 2 ),
         'version' => defined( 'SEO_ANALISTA_VERSION' ) ? SEO_ANALISTA_VERSION : '',
     );
+    if ( 'directrices' !== $report ) {
+        $definition = $reports[ $report ];
+        $saved_report = array(
+            'schema'       => array( 'name' => 'taxocommerce-insights-report', 'version' => 1 ),
+            'report'       => $report,
+            'title'        => (string) ( $definition['label'] ?? '' ),
+            'description'  => (string) ( $definition['description'] ?? '' ),
+            'generated_at' => gmdate( 'c' ),
+            'period_days'  => $days,
+            'html'         => $html,
+            'text'         => trim( wp_strip_all_tags( $html ) ),
+        );
+        update_option( 'taxocommerce_insights_report_' . $report . '_' . $days, $saved_report, false );
+        if ( taxocommerce_insights_last_report_export( $report, $days ) === $saved_report ) {
+            $response['report_saved_at_display'] = wp_date( 'd/m/Y H:i', strtotime( $saved_report['generated_at'] ) );
+            $response['report_download_url'] = taxocommerce_insights_report_json_download_url( $report, $days );
+        }
+    }
     if ( null !== $plan_export ) {
         $response['plan_export'] = $plan_export;
 
