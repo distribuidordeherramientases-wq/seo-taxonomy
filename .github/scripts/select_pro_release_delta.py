@@ -41,7 +41,7 @@ def last_successful_source(repo: str, token: str) -> str:
             continue
         jobs = api_json(repo, f"actions/runs/{run['id']}/jobs?per_page=100", token).get("jobs", [])
         for job in jobs:
-            if job.get("conclusion") != "success" or not job.get("name", "").startswith("Publicar plugins"):
+            if job.get("conclusion") != "success" or not job.get("name", "").startswith(("Publicar plugins", "Publicar SOLO")):
                 continue
             request = urllib.request.Request(
                 f"https://api.github.com/repos/{repo}/actions/jobs/{job['id']}/logs",
