@@ -1,3 +1,10 @@
+## [0.4.76] — 2026-11-11 — Preparar documentación WordPress.org (#2557)
+
+- Se simplifica `readme.txt`, conservando descripción, funcionalidades, instalación, preguntas frecuentes e historial reciente; el histórico completo sigue en `CHANGELOG.md` y `changelog.txt`.
+- Se documenta la versión 0.4.75 omitida en `changelog.txt` y se alinea la versión 0.4.76 con el `Stable tag` de WordPress.org.
+- No se modifica el slug ni el text domain: su aceptación debe confirmarse con WordPress.org mediante el correo de revisión.
+- Sin cambios de comportamiento, formularios, datos, permisos ni interfaces del plugin.
+
 ## [0.4.75] — 2026-11-11 — Descarga completa JSON de Core → Contenidos → Anomalías
 
 - Nuevo botón «Descargar JSON de todas las anomalías» junto a «Mostrar todas las comprobaciones», siempre visible cuando la arquitectura está configurada.
