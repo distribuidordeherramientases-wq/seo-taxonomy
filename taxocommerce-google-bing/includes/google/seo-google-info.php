@@ -218,6 +218,11 @@ function seo_google_update_option($option_name, $value) {
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_connection_status() {
+    // The active Insights OAuth authorization takes precedence over historical token copies.
+    if ( class_exists( 'TaxoCommerce_Google_Bing_OAuth', false )
+        && 'connected' === TaxoCommerce_Google_Bing_OAuth::status() ) {
+        return 'connected';
+    }
     $settings = seo_google_get_settings();
     $tokens   = seo_google_get_tokens();
 
