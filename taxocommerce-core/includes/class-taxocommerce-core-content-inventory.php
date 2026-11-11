@@ -113,7 +113,7 @@ final class TaxoCommerce_Core_Content_Inventory {
 
     public static function handle_refresh() {
         if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-            wp_die( esc_html__( 'No tienes permisos para consultar el inventario.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'No tienes permisos para consultar el inventario.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         check_admin_referer( 'taxocommerce_core_refresh_inventory', 'tc_inventory_nonce' );
         delete_transient( self::CACHE_KEY );
@@ -133,7 +133,7 @@ final class TaxoCommerce_Core_Content_Inventory {
         echo '<span>' . esc_html( $label ) . '</span>';
         echo '<strong>' . esc_html( number_format_i18n( absint( $value ) ) ) . '</strong>';
         echo '<small>' . esc_html( $detail ) . '</small>';
-        echo '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Ver contenidos', 'taxocommerce-core' ) . '</a>';
+        echo '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Ver contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</a>';
         echo '</div>';
     }
 
@@ -144,59 +144,59 @@ final class TaxoCommerce_Core_Content_Inventory {
         $data = self::snapshot();
         $types = $data['types'];
 
-        echo '<section class="tc-content-inventory" aria-label="' . esc_attr__( 'Inventario de contenidos', 'taxocommerce-core' ) . '">';
-        echo '<div class="tc-inventory-tools"><div><h2>' . esc_html__( 'Resumen general de contenidos', 'taxocommerce-core' ) . '</h2>';
-        echo '<p class="description">' . esc_html__( 'Recuento de los datos reales de WordPress y WooCommerce. No ejecuta una auditoría completa ni modifica contenidos.', 'taxocommerce-core' ) . '</p>';
+        echo '<section class="tc-content-inventory" aria-label="' . esc_attr__( 'Inventario de contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '">';
+        echo '<div class="tc-inventory-tools"><div><h2>' . esc_html__( 'Resumen general de contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</h2>';
+        echo '<p class="description">' . esc_html__( 'Recuento de los datos reales de WordPress y WooCommerce. No ejecuta una auditoría completa ni modifica contenidos.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p>';
         echo '<p class="description">' . esc_html( sprintf(
             /* translators: %s: date and time of latest cached inventory. */
-            __( 'Actualizado: %s · Caché de 15 minutos', 'taxocommerce-core' ),
+            __( 'Actualizado: %s · Caché de 15 minutos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
             wp_date( 'd/m/Y H:i', (int) $data['generated_at'] )
         ) ) . '</p></div>';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         echo '<input type="hidden" name="action" value="taxocommerce_core_refresh_inventory">';
         wp_nonce_field( 'taxocommerce_core_refresh_inventory', 'tc_inventory_nonce' );
-        echo '<button class="button" type="submit">' . esc_html__( 'Actualizar inventario', 'taxocommerce-core' ) . '</button></form></div>';
+        echo '<button class="button" type="submit">' . esc_html__( 'Actualizar inventario', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</button></form></div>';
 
         echo '<div class="tc-inventory-grid">';
         foreach ( array(
-            'products' => __( 'Productos', 'taxocommerce-core' ),
-            'posts' => __( 'Entradas', 'taxocommerce-core' ),
-            'pages' => __( 'Páginas', 'taxocommerce-core' ),
+            'products' => __( 'Productos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+            'posts' => __( 'Entradas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+            'pages' => __( 'Páginas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
         ) as $key => $label ) {
             if ( ! is_array( $types[ $key ] ) ) {
                 continue;
             }
             self::card( $label, $types[ $key ]['total'], sprintf(
                 /* translators: %d: published content count. */
-                __( '%d publicados', 'taxocommerce-core' ),
+                __( '%d publicados', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
                 $types[ $key ]['publish']
             ), self::tab_url( $key ) );
         }
         if ( is_array( $data['product_cats'] ) ) {
-            self::card( __( 'Categorías de producto', 'taxocommerce-core' ), $data['product_cats']['total'], sprintf(
+            self::card( __( 'Categorías de producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), $data['product_cats']['total'], sprintf(
                 /* translators: %d: empty product categories. */
-                __( '%d sin productos', 'taxocommerce-core' ),
+                __( '%d sin productos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
                 $data['product_cats']['empty']
             ), self::tab_url( 'categories' ) );
         }
         if ( is_array( $data['blog_cats'] ) ) {
-            self::card( __( 'Categorías de entradas', 'taxocommerce-core' ), $data['blog_cats']['total'], sprintf(
+            self::card( __( 'Categorías de entradas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), $data['blog_cats']['total'], sprintf(
                 /* translators: %d: categories with content. */
-                __( '%d con entradas', 'taxocommerce-core' ),
+                __( '%d con entradas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
                 $data['blog_cats']['used']
             ), admin_url( 'edit-tags.php?taxonomy=category' ) );
         }
-        self::card( __( 'Archivos multimedia', 'taxocommerce-core' ), $data['media'], __( 'Elementos en la biblioteca', 'taxocommerce-core' ), admin_url( 'upload.php' ) );
+        self::card( __( 'Archivos multimedia', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), $data['media'], __( 'Elementos en la biblioteca', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), admin_url( 'upload.php' ) );
         if ( is_array( $data['faqs'] ) ) {
-            self::card( __( 'FAQs', 'taxocommerce-core' ), $data['faqs']['total'], sprintf(
+            self::card( __( 'FAQs', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), $data['faqs']['total'], sprintf(
                 /* translators: %d: enabled FAQ count. */
-                __( '%d activas', 'taxocommerce-core' ),
+                __( '%d activas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
                 $data['faqs']['active']
             ), self::tab_url( 'faqs' ) );
         }
         echo '</div>';
 
-        echo '<div class="tcc-family-panel"><h2>' . esc_html__( 'Estados editoriales', 'taxocommerce-core' ) . '</h2>';
+        echo '<div class="tcc-family-panel"><h2>' . esc_html__( 'Estados editoriales', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</h2>';
         echo '<div class="tc-inventory-table-scroll"><table class="widefat striped tc-inventory-table"><thead><tr>';
         foreach ( array( 'Tipo', 'Publicados', 'Borradores', 'Pendientes', 'Privados', 'Programados', 'Papelera', 'Total' ) as $title ) {
             echo '<th scope="col">' . esc_html( $title ) . '</th>';
@@ -212,11 +212,11 @@ final class TaxoCommerce_Core_Content_Inventory {
             }
             echo '</tr>';
         }
-        echo '</tbody></table></div><p class="description">' . esc_html__( 'Los totales incluyen contenidos en papelera y excluyen los borradores automáticos de WordPress.', 'taxocommerce-core' ) . '</p></div>';
+        echo '</tbody></table></div><p class="description">' . esc_html__( 'Los totales incluyen contenidos en papelera y excluyen los borradores automáticos de WordPress.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p></div>';
 
-        echo '<div class="tc-inventory-actions"><a class="button" href="#tc-architecture-report">' . esc_html__( 'Arquitectura SEO', 'taxocommerce-core' ) . '</a>';
-        echo '<a class="button" href="' . esc_url( self::tab_url( 'anomalies' ) ) . '">' . esc_html__( 'Revisar anomalías', 'taxocommerce-core' ) . '</a></div>';
-        echo '<p class="description">' . esc_html__( 'Para calidad, gravedad de errores, recomendaciones y exportaciones completas utiliza TaxoCommerce Auditor.', 'taxocommerce-core' ) . '</p>';
+        echo '<div class="tc-inventory-actions"><a class="button" href="#tc-architecture-report">' . esc_html__( 'Arquitectura SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</a>';
+        echo '<a class="button" href="' . esc_url( self::tab_url( 'anomalies' ) ) . '">' . esc_html__( 'Revisar anomalías', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</a></div>';
+        echo '<p class="description">' . esc_html__( 'Para calidad, gravedad de errores, recomendaciones y exportaciones completas utiliza TaxoCommerce Auditor.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p>';
         echo '</section>';
         // One canonical Content summary: inventory followed by SEO architecture.
         TaxoCommerce_Core_Architecture_Report::render();
