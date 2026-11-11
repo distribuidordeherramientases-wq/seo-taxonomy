@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.47
+Stable tag: 1.1.48
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.48 =
+* Analysis shows ten report cards in a five-column desktop grid, each with Create report, Download JSON and the date of the last generated report. Specialist JSON snapshots are stored only after running their reports, and downloads never request new provider data. The action plan retains its dedicated JSON.
 
 = 1.1.47 =
 * GA4 Analysis uses a self-contained window through yesterday; no longer inherits stale Search Console SQL dates. Existing GSC synchronization bridge and stored Google credentials are unchanged.

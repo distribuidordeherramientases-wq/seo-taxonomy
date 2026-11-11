@@ -11,16 +11,26 @@ jQuery(function ($) {
     var running = false;
     var cancelled = false;
     var pending = null;
-    var planDownload = $('#tgb-plan-json-download');
-
-    function showSavedPlanDate(data) {
-        if (!planDownload.length || !data || !data.plan_saved_at_display || !config.planDownloadUrl) {
+    function showSavedReport(item, data) {
+        var card = $('.seo-analista-report-card').filter(function () {
+            return $(this).attr('data-report') === item.report;
+        });
+        if (!card.length || !data) {
             return;
         }
-        planDownload.removeClass('disabled')
-            .attr('href', config.planDownloadUrl)
-            .attr('aria-disabled', 'false');
-        planDownload.find('.tgb-plan-json-date').text(data.plan_saved_at_display);
+        var isPlan = item.report === 'directrices';
+        var date = isPlan ? data.plan_saved_at_display : data.report_saved_at_display;
+        var url = isPlan ? config.planDownloadUrl : data.report_download_url;
+        if (!date || !url) {
+            return;
+        }
+        card.find('.tgb-report-date').text(date);
+        card.find('.tgb-report-json-button').removeClass('disabled')
+            .attr('href', url).attr('aria-disabled', 'false');
+    }
+
+    function showSavedPlanDate(data) {
+        showSavedReport({ report: 'directrices' }, data);
     }
 
     function setBusy(busy) {
@@ -43,7 +53,7 @@ jQuery(function ($) {
             var button = $(this);
             return {
                 report: String(button.attr('data-report') || ''),
-                label: button.find('strong').first().text()
+                label: button.closest('.seo-analista-report-card').find('h3').first().text()
             };
         }).get().filter(function (item) { return item.report !== ''; });
     }
@@ -107,6 +117,8 @@ jQuery(function ($) {
                 result.append(reportContainer);
                 if (item.report === 'directrices') {
                     showSavedPlanDate(response.data);
+                } else {
+                    showSavedReport(item, response.data);
                 }
                 finished++;
                 next();

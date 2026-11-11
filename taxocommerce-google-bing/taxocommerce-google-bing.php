@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.47
+ * Version: 1.1.48
  * Release Date: 2026-11-11
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.47' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.48' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -309,9 +309,6 @@ function taxocommerce_google_bing_analysis_screen() {
     // click handler again and issue two AJAX requests per button click.
     $reports = taxocommerce_google_bing_analysis_reports();
     $last_plan = taxocommerce_insights_last_plan_export();
-    $last_plan_date = $last_plan
-        ? wp_date( 'd/m/Y H:i', strtotime( (string) $last_plan['generated_at'] ) )
-        : '';
     echo '<div class="seo-analista-lazy-controls">';
     echo '<button type="button" id="tgb-analysis-run-all" class="button button-primary">' . esc_html__( 'Ejecutar informe completo', 'taxocommerce-google-bing' ) . '</button>';
     echo '<button type="button" id="tgb-analysis-cancel" class="button" disabled>' . esc_html__( 'Detener', 'taxocommerce-google-bing' ) . '</button>';
@@ -319,27 +316,32 @@ function taxocommerce_google_bing_analysis_screen() {
     echo '<div class="seo-analista-lazy-intro"><strong>Analista '
         . esc_html( defined( 'SEO_ANALISTA_VERSION' ) ? SEO_ANALISTA_VERSION : '' )
         . '</strong> · carga bajo demanda<p>Ejecuta únicamente el informe elegido.</p></div>';
-    echo '<div class="seo-analista-lazy-controls">';
+    echo '<div class="seo-analista-lazy-controls seo-analista-report-grid">';
     foreach ( $reports as $key => $report ) {
-        // Keep the two Plan de acción controls together at the top, not
-        // below the rendered (often very long) analysis output.
-        $button_class = 'directrices' === $key
-            ? 'button button-primary seo-analista-lazy-button'
-            : 'button seo-analista-lazy-button';
-        echo '<button type="button" class="' . esc_attr( $button_class ) . '" data-report="' . esc_attr( (string) $key ) . '">';
-        echo '<strong>' . esc_html( (string) ( $report['label'] ?? '' ) ) . '</strong>';
-        echo '<span>' . esc_html( (string) ( $report['description'] ?? '' ) ) . '</span>';
-        echo '</button>';
+        $is_plan = 'directrices' === $key;
+        $stored = $is_plan ? $last_plan : taxocommerce_insights_last_report_export( $key, $days );
+        $saved_date = $stored
+            ? wp_date( 'd/m/Y H:i', strtotime( (string) $stored['generated_at'] ) )
+            : '';
+        $download_url = $is_plan
+            ? taxocommerce_insights_plan_json_download_url()
+            : taxocommerce_insights_report_json_download_url( $key, $days );
 
-        if ( 'directrices' === $key ) {
-            $download_class = $last_plan ? 'button tgb-plan-json-button' : 'button tgb-plan-json-button disabled';
-            echo '<a id="tgb-plan-json-download" class="' . esc_attr( $download_class ) . '"'
-                . ( $last_plan ? ' href="' . esc_url( taxocommerce_insights_plan_json_download_url() ) . '"' : '' )
-                . ' aria-disabled="' . ( $last_plan ? 'false' : 'true' ) . '">';
-            echo '<strong>' . esc_html__( 'Descargar JSON del plan de acción', 'taxocommerce-google-bing' ) . '</strong>';
-            echo '<span class="tgb-plan-json-date">' . esc_html( $last_plan_date ) . '</span>';
-            echo '</a>';
-        }
+        echo '<article class="seo-analista-report-card" data-report="' . esc_attr( (string) $key ) . '">';
+        echo '<h3>' . esc_html( (string) ( $report['label'] ?? '' ) ) . '</h3>';
+        echo '<p>' . esc_html( (string) ( $report['description'] ?? '' ) ) . '</p>';
+        echo '<div class="seo-analista-report-meta"><strong>' . esc_html__( 'Último informe:', 'taxocommerce-google-bing' )
+            . '</strong> <time class="tgb-report-date">' . esc_html( $saved_date ) . '</time></div>';
+        echo '<div class="seo-analista-report-actions">';
+        echo '<button type="button" class="button button-primary seo-analista-lazy-button" data-report="'
+            . esc_attr( (string) $key ) . '">' . esc_html__( 'Crear informe', 'taxocommerce-google-bing' ) . '</button>';
+        $download_class = $stored ? 'button tgb-report-json-button' : 'button tgb-report-json-button disabled';
+        echo '<a ' . ( $is_plan ? 'id="tgb-plan-json-download" ' : '' ) . 'class="' . esc_attr( $download_class )
+            . '" data-report="' . esc_attr( (string) $key ) . '"'
+            . ( $stored ? ' href="' . esc_url( $download_url ) . '"' : '' )
+            . ' aria-disabled="' . ( $stored ? 'false' : 'true' ) . '">'
+            . esc_html__( 'Descargar JSON', 'taxocommerce-google-bing' ) . '</a>';
+        echo '</div></article>';
     }
     echo '</div>';
     echo '<div id="seo-analista-lazy-status" class="seo-analista-lazy-status" aria-live="polite"></div>';

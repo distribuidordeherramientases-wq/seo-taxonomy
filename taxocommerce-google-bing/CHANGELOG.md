@@ -1,3 +1,11 @@
+## [1.1.48] — 2026-11-11 — Tarjetas de Analysis con dos acciones independientes (#2546)
+
+- Diez informes en una cuadrícula de cinco columnas por dos filas en escritorio, adaptable a móvil.
+- Cada tarjeta deja de ser un botón: muestra título, descripción, fecha del último informe y las acciones «Crear informe» y «Descargar JSON».
+- Se elimina la tarjeta duplicada del JSON del plan; su descarga autenticada conserva el contrato y el almacenamiento existentes.
+- Los informes especializados guardan individualmente la última representación generada, con periodo, fecha, HTML y texto, y la descargan como JSON sin nuevas consultas ni cálculos. La acción de creación conserva el AJAX original.
+- No se modifica el motor de análisis, ni las conexiones de proveedores, ni las descargas completas.
+
 ## [1.1.47] — 2026-11-11 — Fecha independiente para GA4
 
 - Los informes GA4 de Analysis, Fuentes, Estrategia y Competencia consultan su propio periodo finalizado hasta ayer; la última fecha SQL de Search Console ya no recorta las métricas GA4.
