@@ -31,7 +31,23 @@ def adapt_gettext_calls(source: str) -> tuple[str, int]:
     changes: list[tuple[int, int]] = []
     index = 0
     length = len(source)
+    in_php = False
     while index < length:
+        if not in_php:
+            start = source.find("<?", index)
+            if start < 0:
+                break
+            index = start + 2
+            if source[index:index + 3].lower() == "php":
+                index += 3
+            frames.clear()
+            in_php = True
+            continue
+        if source.startswith("?>", index):
+            in_php = False
+            frames.clear()
+            index += 2
+            continue
         char = source[index]
         nxt = source[index + 1] if index + 1 < length else ""
         if char == "/" and nxt == "/":
