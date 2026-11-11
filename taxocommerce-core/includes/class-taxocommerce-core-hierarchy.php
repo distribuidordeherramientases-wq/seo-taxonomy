@@ -111,11 +111,11 @@ final class TaxoCommerce_Core_Hierarchy {
 	 */
 	public function roles() {
 		return array(
-			'cluster'        => __( 'Cluster', 'taxocommerce-core' ),
-			'hub_primary'    => __( 'Hub primario', 'taxocommerce-core' ),
-			'hub_secondary'  => __( 'Hub secundario', 'taxocommerce-core' ),
-			'landing'        => __( 'Landing', 'taxocommerce-core' ),
-			'corporate_page' => __( 'Página corporativa', 'taxocommerce-core' ),
+			'cluster'        => __( 'Cluster', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'hub_primary'    => __( 'Hub primario', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'hub_secondary'  => __( 'Hub secundario', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'landing'        => __( 'Landing', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'corporate_page' => __( 'Página corporativa', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
 		);
 	}
 
@@ -142,11 +142,11 @@ final class TaxoCommerce_Core_Hierarchy {
 		$role    = sanitize_key( (string) $role );
 
 		if ( ! $page_id || 'page' !== get_post_type( $page_id ) ) {
-			return new WP_Error( 'taxocommerce_core_invalid_page', __( 'La página indicada no existe.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_invalid_page', __( 'La página indicada no existe.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 
 		if ( '' !== $role && ! isset( $this->roles()[ $role ] ) ) {
-			return new WP_Error( 'taxocommerce_core_invalid_role', __( 'El rol SEO indicado no es válido.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_invalid_role', __( 'El rol SEO indicado no es válido.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 
 		$current = $this->get_page_role( $page_id );
@@ -157,7 +157,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		if ( $current && $this->page_has_hierarchy_links( $page_id ) ) {
 			return new WP_Error(
 				'taxocommerce_core_role_has_links',
-				__( 'Esta página ya participa en la jerarquía. Desvincúlala antes de cambiar o quitar su rol.', 'taxocommerce-core' )
+				__( 'Esta página ya participa en la jerarquía. Desvincúlala antes de cambiar o quitar su rol.', 'taxocommerce-core-catalog-content-management-for-woocommerce' )
 			);
 		}
 
@@ -166,7 +166,7 @@ final class TaxoCommerce_Core_Hierarchy {
 			delete_post_meta( $page_id, self::ROLE_META );
 		} elseif ( ! update_post_meta( $page_id, self::ROLE_META, $role )
 			&& (string) get_post_meta( $page_id, self::ROLE_META, true ) !== $role ) {
-			return new WP_Error( 'taxocommerce_core_role_save_failed', __( 'No se pudo guardar el rol en WordPress.', 'taxocommerce-core' ) );
+			return new WP_Error( 'taxocommerce_core_role_save_failed', __( 'No se pudo guardar el rol en WordPress.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		$saved = TaxoCommerce_Core_Hierarchy_Classic::save_role_node( $page_id, $role );
 		if ( is_wp_error( $saved ) ) {
@@ -294,18 +294,18 @@ final class TaxoCommerce_Core_Hierarchy {
             <header class="tcc-page-header">
                 <span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-networking"></span></span>
                 <div class="tcc-page-header__content">
-                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
-                    <h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?></h1>
-                    <p><?php echo esc_html__( 'Clasifica los contenidos y organiza las relaciones SEO de la tienda.', 'taxocommerce-core' ); ?></p>
+                    <p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+                    <h1><?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h1>
+                    <p><?php echo esc_html__( 'Clasifica los contenidos y organiza las relaciones SEO de la tienda.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
                 </div>
             </header>
 
 			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de jerarquía SEO', 'taxocommerce-core' ); ?>">
 				<a href="<?php echo esc_url( $hierarchy_url ); ?>" class="nav-tab <?php echo 'hierarchy' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'hierarchy' === $tab ? 'aria-current="page"' : ''; ?>>
-					<?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core' ); ?>
+					<?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>
 				</a>
 				<a href="<?php echo esc_url( $roles_url ); ?>" class="nav-tab <?php echo 'roles' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'roles' === $tab ? 'aria-current="page"' : ''; ?>>
-					<?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?>
+					<?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>
 				</a>
 			</nav>
 			<?php $this->render_notices(); ?>
@@ -318,15 +318,15 @@ final class TaxoCommerce_Core_Hierarchy {
             </form>
 			<section class="tc-hierarchy-panel">
 				<?php if ( 'roles' === $tab ) : ?>
-					<h2><?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core' ); ?></h2>
-					<p class="description"><?php echo esc_html__( 'Primero clasifica cada página como Cluster, Hub primario, Hub secundario, Landing o Corporativa. Después podrás vincularla desde la pestaña Jerarquía SEO.', 'taxocommerce-core' ); ?></p>
+					<h2><?php echo esc_html__( 'Asignación de roles', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Primero clasifica cada página como Cluster, Hub primario, Hub secundario, Landing o Corporativa. Después podrás vincularla desde la pestaña Jerarquía SEO.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 					<?php $this->render_page_roles(); ?>
 				<?php else : ?>
-					<h2><?php echo esc_html__( 'Organización de la jerarquía', 'taxocommerce-core' ); ?></h2>
-					<p class="description"><?php echo esc_html__( 'Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado.', 'taxocommerce-core' ); ?></p>
+					<h2><?php echo esc_html__( 'Organización de la jerarquía', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+					<p class="description"><?php echo esc_html__( 'Abre un cluster y sus hubs para asignar elementos mediante casillas. Los ya asignados aparecen arriba y los disponibles debajo. Cada bloque se guarda por separado.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 					<?php TaxoCommerce_Core_Hierarchy_Classic::render( $this, $this->country_request() ); ?>
 					<details class="tc-hierarchy-preview">
-						<summary><?php echo esc_html__( 'Ver árbol SEO completo (solo lectura)', 'taxocommerce-core' ); ?></summary>
+						<summary><?php echo esc_html__( 'Ver árbol SEO completo (solo lectura)', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></summary>
 						<?php TaxoCommerce_Core_Hierarchy_Classic::render_tree( $this, $this->country_request() ); ?>
 					</details>
 				<?php endif; ?>
@@ -455,19 +455,19 @@ final class TaxoCommerce_Core_Hierarchy {
 			<input type="hidden" name="tab" value="roles"><input type="hidden" name="tc_country" value="<?php echo esc_attr( $this->country_request() ); ?>">
 			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar página', 'taxocommerce-core' ); ?>">
 			<select name="role">
-				<option value=""><?php echo esc_html__( 'Todos los roles', 'taxocommerce-core' ); ?></option>
+				<option value=""><?php echo esc_html__( 'Todos los roles', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></option>
 				<?php foreach ( $this->roles() as $role => $label ) : ?>
 					<option value="<?php echo esc_attr( $role ); ?>" <?php selected( $filter, $role ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
-			<button class="button"><?php echo esc_html__( 'Filtrar', 'taxocommerce-core' ); ?></button>
+			<button class="button"><?php echo esc_html__( 'Filtrar', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></button>
 		</form>
 
 		<table class="widefat striped">
-			<thead><tr><th><?php echo esc_html__( 'Página', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core' ); ?></th><th>País</th><th><?php echo esc_html__( 'Rol SEO', 'taxocommerce-core' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core' ); ?></th></tr></thead>
+			<thead><tr><th><?php echo esc_html__( 'Página', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></th><th><?php echo esc_html__( 'Estado', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></th><th>País</th><th><?php echo esc_html__( 'Rol SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></th><th><?php echo esc_html__( 'Acción', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></th></tr></thead>
 			<tbody>
 			<?php if ( empty( $query->posts ) ) : ?>
-				<tr><td colspan="5"><?php echo esc_html__( 'No se han encontrado páginas.', 'taxocommerce-core' ); ?></td></tr>
+				<tr><td colspan="5"><?php echo esc_html__( 'No se han encontrado páginas.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></td></tr>
 			<?php else : ?>
 				<?php foreach ( $query->posts as $page ) : ?>
 					<?php $current = $this->get_page_role( $page->ID ); ?>
@@ -480,17 +480,17 @@ final class TaxoCommerce_Core_Hierarchy {
 								<input type="hidden" name="page_id" value="<?php echo esc_attr( (string) $page->ID ); ?>">
 								<?php wp_nonce_field( 'taxocommerce_core_save_page_role', 'taxocommerce_core_nonce' ); ?>
 								<select name="seo_role">
-									<option value=""><?php echo esc_html__( 'Sin rol', 'taxocommerce-core' ); ?></option>
+									<option value=""><?php echo esc_html__( 'Sin rol', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></option>
 									<?php foreach ( $this->roles() as $role => $label ) : ?>
 										<option value="<?php echo esc_attr( $role ); ?>" <?php selected( $current, $role ); ?>><?php echo esc_html( $label ); ?></option>
 									<?php endforeach; ?>
 								</select>
 								<label class="screen-reader-text" for="tc-role-country-<?php echo absint( $page->ID ); ?>">País</label>
                                 <select name="tc_country" id="tc-role-country-<?php echo absint( $page->ID ); ?>"><?php TaxoCommerce_Core_Country::options( get_post_meta( $page->ID, TaxoCommerce_Core_Country::META, true ), true ); ?></select>
-                                <button class="button button-small"><?php echo esc_html__( 'Guardar', 'taxocommerce-core' ); ?></button>
+                                <button class="button button-small"><?php echo esc_html__( 'Guardar', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></button>
 							</form>
 						</td>
-						<td><a href="<?php echo esc_url( get_edit_post_link( $page->ID, '' ) ); ?>"><?php echo esc_html__( 'Editar página', 'taxocommerce-core' ); ?></a></td>
+						<td><a href="<?php echo esc_url( get_edit_post_link( $page->ID, '' ) ); ?>"><?php echo esc_html__( 'Editar página', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></td>
 					</tr>
 				<?php endforeach; ?>
 			<?php endif; ?>
@@ -519,9 +519,9 @@ final class TaxoCommerce_Core_Hierarchy {
 		$categories = is_wp_error( $categories ) ? array() : $categories;
 		?>
 		<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;">
-			<?php $this->render_relation_card( __( 'Cluster → Hub primario', 'taxocommerce-core' ), 'cluster_to_primary', $clusters, $primaries, false ); ?>
-			<?php $this->render_relation_card( __( 'Hub primario → Hub secundario', 'taxocommerce-core' ), 'primary_to_secondary', $primaries, $secondaries, false ); ?>
-			<?php $this->render_relation_card( __( 'Hub secundario → Categoría', 'taxocommerce-core' ), 'secondary_to_category', $secondaries, $categories, true ); ?>
+			<?php $this->render_relation_card( __( 'Cluster → Hub primario', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), 'cluster_to_primary', $clusters, $primaries, false ); ?>
+			<?php $this->render_relation_card( __( 'Hub primario → Hub secundario', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), 'primary_to_secondary', $primaries, $secondaries, false ); ?>
+			<?php $this->render_relation_card( __( 'Hub secundario → Categoría', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), 'secondary_to_category', $secondaries, $categories, true ); ?>
 		</div>
 		<?php
 	}
@@ -544,9 +544,9 @@ final class TaxoCommerce_Core_Hierarchy {
 				<input type="hidden" name="action" value="taxocommerce_core_add_hierarchy_relation">
 				<input type="hidden" name="relation_type" value="<?php echo esc_attr( $type ); ?>">
 				<?php wp_nonce_field( 'taxocommerce_core_add_hierarchy_relation', 'taxocommerce_core_nonce' ); ?>
-				<p><select name="source_id" style="width:100%;"><option value=""><?php echo esc_html__( 'Seleccionar origen', 'taxocommerce-core' ); ?></option><?php foreach ( $sources as $source ) : ?><option value="<?php echo esc_attr( (string) $source->ID ); ?>"><?php echo esc_html( get_the_title( $source ) ); ?></option><?php endforeach; ?></select></p>
-				<p><select name="target_id" style="width:100%;"><option value=""><?php echo esc_html__( 'Seleccionar destino', 'taxocommerce-core' ); ?></option><?php foreach ( $targets as $target ) : ?><?php $target_id = $target_term ? absint( $target->term_id ) : absint( $target->ID ); $target_name = $target_term ? $target->name : get_the_title( $target ); ?><option value="<?php echo esc_attr( (string) $target_id ); ?>"><?php echo esc_html( $target_name ); ?></option><?php endforeach; ?></select></p>
-				<p><button class="button button-primary"><?php echo esc_html__( 'Asociar', 'taxocommerce-core' ); ?></button></p>
+				<p><select name="source_id" style="width:100%;"><option value=""><?php echo esc_html__( 'Seleccionar origen', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></option><?php foreach ( $sources as $source ) : ?><option value="<?php echo esc_attr( (string) $source->ID ); ?>"><?php echo esc_html( get_the_title( $source ) ); ?></option><?php endforeach; ?></select></p>
+				<p><select name="target_id" style="width:100%;"><option value=""><?php echo esc_html__( 'Seleccionar destino', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></option><?php foreach ( $targets as $target ) : ?><?php $target_id = $target_term ? absint( $target->term_id ) : absint( $target->ID ); $target_name = $target_term ? $target->name : get_the_title( $target ); ?><option value="<?php echo esc_attr( (string) $target_id ); ?>"><?php echo esc_html( $target_name ); ?></option><?php endforeach; ?></select></p>
+				<p><button class="button button-primary"><?php echo esc_html__( 'Asociar', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></button></p>
 			</form>
 		</div>
 		<?php
@@ -586,7 +586,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		}
 
 		if ( empty( $clusters ) ) {
-			echo '<p>' . esc_html__( 'Todavía no hay páginas con rol Cluster.', 'taxocommerce-core' ) . '</p>';
+			echo '<p>' . esc_html__( 'Todavía no hay páginas con rol Cluster.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p>';
 			return;
 		}
 
@@ -597,7 +597,7 @@ final class TaxoCommerce_Core_Hierarchy {
 
 			$cluster_primaries = $primary_by_cluster[ $cluster->ID ] ?? array();
 			if ( empty( $cluster_primaries ) ) {
-				echo '<p><em>' . esc_html__( 'Sin hubs primarios asociados.', 'taxocommerce-core' ) . '</em></p>';
+				echo '<p><em>' . esc_html__( 'Sin hubs primarios asociados.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</em></p>';
 			}
 
 			foreach ( $cluster_primaries as $primary ) {
@@ -615,7 +615,7 @@ final class TaxoCommerce_Core_Hierarchy {
 
 					$secondary_categories = $category_by_secondary[ $secondary->ID ] ?? array();
 					if ( empty( $secondary_categories ) ) {
-						echo '<p style="margin-left:20px;"><em>' . esc_html__( 'Sin categorías asociadas.', 'taxocommerce-core' ) . '</em></p>';
+						echo '<p style="margin-left:20px;"><em>' . esc_html__( 'Sin categorías asociadas.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</em></p>';
 					} else {
 						echo '<ul style="margin-left:35px;list-style:disc;">';
 						foreach ( $secondary_categories as $category ) {
@@ -650,7 +650,7 @@ final class TaxoCommerce_Core_Hierarchy {
 			<input type="hidden" name="source_id" value="<?php echo esc_attr( (string) absint( $source_id ) ); ?>">
 			<input type="hidden" name="target_id" value="<?php echo esc_attr( (string) absint( $target_id ) ); ?>">
 			<?php wp_nonce_field( 'taxocommerce_core_delete_hierarchy_relation', 'taxocommerce_core_nonce' ); ?>
-			<button class="button-link-delete" type="submit"><?php echo esc_html__( 'Desvincular', 'taxocommerce-core' ); ?></button>
+			<button class="button-link-delete" type="submit"><?php echo esc_html__( 'Desvincular', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></button>
 		</form>
 		<?php
 	}
@@ -671,7 +671,7 @@ final class TaxoCommerce_Core_Hierarchy {
 			$linked_categories[ absint( $row['target_id'] ) ] = true;
 		}
 		$linked_categories = count( $linked_categories );
-		$cards[ __( 'Categorías vinculadas', 'taxocommerce-core' ) ] = $linked_categories;
+		$cards[ __( 'Categorías vinculadas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ] = $linked_categories;
 		?>
 		<div style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;">
 			<?php foreach ( $cards as $label => $value ) : ?>
@@ -691,7 +691,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		$msg    = isset( $_GET['tc_message'] ) ? sanitize_text_field( wp_unslash( $_GET['tc_message'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect notice.
 
 		if ( 'ok' === $result ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Jerarquía actualizada.', 'taxocommerce-core' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Jerarquía actualizada.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p></div>';
 		} elseif ( 'error' === $result && $msg ) {
 			echo '<div class="notice notice-error"><p>' . esc_html( $msg ) . '</p></div>';
 		}
@@ -856,7 +856,7 @@ final class TaxoCommerce_Core_Hierarchy {
 	 */
 	private function guard() {
 		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 	}
 }
