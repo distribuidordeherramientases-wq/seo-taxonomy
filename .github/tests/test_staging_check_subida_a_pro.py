@@ -72,7 +72,7 @@ class GatedPipelineContract(unittest.TestCase):
         self.assertIn("uses: ./.github/workflows/deploy-staging.yml", self.pipeline)
         self.assertIn("uses: ./.github/workflows/taxocommerce-plugin-check.yml", self.pipeline)
         self.assertIn("uses: ./.github/workflows/despliege_de_main_a_pro.yml", self.pipeline)
-        self.assertIn("plugin: all", self.pipeline)
+        self.assertIn("plugin: changed", self.pipeline)
         self.assertIn("needs: staging", self.pipeline)
         self.assertIn("needs: [staging, plugin-check]", self.pipeline)
         self.assertIn("needs.plugin-check.result == 'success'", self.pipeline)

@@ -17,7 +17,7 @@ return new class() {
      * @return string
      */
     private function label( $locale ) {
-        $label = __( 'Official plugin page', 'taxocommerce-core-catalog-content-management-for-woocommerce' );
+        $label = __( 'Official plugin page', 'taxocommerce-core' );
         if ( 'Official plugin page' !== $label ) {
             return $label;
         }
