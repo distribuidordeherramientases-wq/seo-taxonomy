@@ -131,7 +131,7 @@ final class TaxoCommerce_Core_Autotest_Code {
                     $wp[] = array( 'rule' => 'missing_plugin_header', 'field' => $field );
                 }
             }
-            if ( ! preg_match( '/^\s*\*\s*Text Domain:\s*taxocommerce-core\s*$/mi', $source ) ) {
+            if ( ! preg_match( '/^\s*\*\s*Text Domain:\s*taxocommerce-core-catalog-content-management-for-woocommerce\s*$/mi', $source ) ) {
                 $wp[] = array( 'rule' => 'incorrect_text_domain' );
             }
             if ( ! is_readable( $root . '/readme.txt' ) ) {
