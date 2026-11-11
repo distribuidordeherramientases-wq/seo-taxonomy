@@ -83,4 +83,37 @@ tci_analysis_check( false !== strpos( $css_owner, "'taxocommerce-insights-analys
 tci_analysis_check( false === strpos( $css_owner, "if (!function_exists('seo_analista_enqueue_report_assets'))" ), 'Legacy callback collision remains' );
 tci_analysis_check( false !== strpos( $stylesheet, '.seo-analista-chart .line{fill:none;stroke:#2271b1' ), 'Blue SVG line style absent' );
 tci_analysis_check( false !== strpos( $stylesheet, '.seo-analista-card,.seo-analista-section,.seo-analista-chart{background:#fff' ), 'White cards style absent' );
+
+$google_sync = tci_analysis_source( $root, 'includes/google/seo-google-info.php' );
+$google_analysis = tci_analysis_source( $root, 'includes/analysis/analista-google.php' );
+$ga4_source = tci_analysis_source( $root, 'includes/analysis/analista-fuentes.php' );
+$strategy = tci_analysis_source( $root, 'includes/analysis/analista-estrategia.php' );
+$competitive = tci_analysis_source( $root, 'includes/analysis/analista-competitivo.php' );
+
+tci_analysis_check(
+    false !== strpos( $main, "'includes/google/seo-google-info.php'" ) &&
+    false !== strpos( $main, "'includes/class-taxocommerce-google-bing-google-service.php'" ) &&
+    false !== strpos( $main, "'sync'             =>" ) &&
+    false !== strpos( $main, 'seo_google_render_sync_status()' ),
+    'Standalone GSC sync engine, reporting adapter or admin tab missing'
+);
+tci_analysis_check(
+    false !== strpos( $google_sync, "TaxoCommerce_Google_Bing_OAuth::settings()" ) &&
+    false !== strpos( $google_sync, "TaxoCommerce_Google_Bing_OAuth::access_token()" ) &&
+    false !== strpos( $google_sync, "function seo_google_sync_day_handler()" ),
+    'GSC sync must reuse active modular OAuth credentials and retain day-by-day processing'
+);
+tci_analysis_check(
+    false !== strpos( $google_analysis, 'seo_analista_ga4_snapshot($days);' ) &&
+    false !== strpos( $strategy, 'seo_analista_ga4_snapshot($days) : array();' ) &&
+    false !== strpos( $competitive, 'seo_analista_ga4_snapshot($days) : array();' ) &&
+    false === strpos( $google_analysis, "seo_analista_ga4_snapshot($days, $gsc_period" ),
+    'GA4 reports must not inherit stale GSC dates'
+);
+tci_analysis_check(
+    false !== strpos( $ga4_source, "new DateTimeImmutable('yesterday', wp_timezone())" ) &&
+    false !== strpos( $ga4_source, "'seo_analista_ga4_v4_'" ),
+    'GA4 must use a completed date and invalidate the legacy date cache'
+);
+
 echo "Standalone Insights Analysis: 11 report definitions, own CSS, JS, AJAX, no SEO monolith references: OK\n";
