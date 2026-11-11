@@ -172,7 +172,7 @@ function seo_google_get_settings() {
 
     $settings = get_option(SEO_GOOGLE_OPTION_SETTINGS, array());
 
-    return apply_filters('tgb_gsc_sync_settings', wp_parse_args(is_array($settings) ? $settings : array(), $defaults));
+    return apply_filters('taxocommerce_google_bing_gsc_sync_settings', wp_parse_args(is_array($settings) ? $settings : array(), $defaults));
 }
 
 /**
@@ -211,7 +211,7 @@ function seo_google_update_option($option_name, $value) {
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_connection_status() {
-    $modern_status = apply_filters('tgb_gsc_sync_status', null);
+    $modern_status = apply_filters('taxocommerce_google_bing_gsc_sync_status', null);
     if (null !== $modern_status) {
         return $modern_status;
     }
@@ -486,7 +486,7 @@ function seo_google_oauth_callback_handler() {
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_access_token() {
-    $modern_token = apply_filters('tgb_gsc_sync_access_token', null);
+    $modern_token = apply_filters('taxocommerce_google_bing_gsc_sync_access_token', null);
     if (null !== $modern_token) {
         return $modern_token;
     }
@@ -1375,7 +1375,7 @@ function seo_google_sync_start_handler() {
     }
 
     // Verify a real GSC query using the current OAuth/service-account pair before SQL writes.
-    $verified = apply_filters('tgb_gsc_sync_verify_start', true);
+    $verified = apply_filters('taxocommerce_google_bing_gsc_sync_verify_start', true);
     if (is_wp_error($verified)) {
         seo_google_ajax_error(array('message' => $verified->get_error_message()), 400);
     }
@@ -1716,9 +1716,9 @@ function seo_google_sync_day_handler() {
     $wpdb->update($runs_table, $update, array('id' => $run_id), $formats, array('%d'));
 
     if ($done) {
-        if (has_action('tgb_gsc_sync_completed')) {
+        if (has_action('taxocommerce_google_bing_gsc_sync_completed')) {
             // Insights owns last-sync metadata; never write modern or legacy OAuth secrets.
-            do_action('tgb_gsc_sync_completed');
+            do_action('taxocommerce_google_bing_gsc_sync_completed');
         } else {
             $settings              = seo_google_get_settings();
             $settings['last_sync'] = current_time('mysql');
