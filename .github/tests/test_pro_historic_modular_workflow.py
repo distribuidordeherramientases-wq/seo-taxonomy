@@ -75,6 +75,7 @@ class HistoricModularDeployTests(unittest.TestCase):
         text = self.workflow
         selector = (ROOT / '.github/scripts/select_pro_release_delta.py').read_text(encoding='utf-8')
         self.assertIn('select_pro_release_delta.py', text)
+        self.assertIn('fetch-depth: 0', text)
         self.assertIn("selected_count != '0'", text)
         self.assertIn('for module in "${selected_modules[@]}"; do', text)
         self.assertIn('zip -q "$package" "${changed_files[@]}"', text)
