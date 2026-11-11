@@ -140,7 +140,7 @@ jQuery(function ($) {
         var button = $(this);
         run([{
             report: String(button.attr('data-report') || ''),
-            label: button.find('strong').first().text()
+            label: button.closest('.seo-analista-report-card').find('h3').first().text()
         }], false);
     });
 
