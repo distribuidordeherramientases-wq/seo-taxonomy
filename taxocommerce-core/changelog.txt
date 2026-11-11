@@ -1,3 +1,9 @@
+= 0.4.76 (2026-11-11) =
+* Concise WordPress.org readme with coherent version metadata and changelogs. Runtime features and catalog data are unchanged. Issue #2557.
+
+= 0.4.75 (2026-11-11) =
+* Added complete read-only JSON download for Core > Content > Anomalies, preserving the separate editorial report.
+
 = 0.4.74 (2026-11-10) =
 * Three-zone admin header: unique local Description and static link on left, wider collapsed CHANGELOG.md in center, version/date on right; no duplicate panel. Issue #2521.
 
