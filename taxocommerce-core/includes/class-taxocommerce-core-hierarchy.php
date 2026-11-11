@@ -300,7 +300,7 @@ final class TaxoCommerce_Core_Hierarchy {
                 </div>
             </header>
 
-			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de jerarquía SEO', 'taxocommerce-core' ); ?>">
+			<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Secciones de jerarquía SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<a href="<?php echo esc_url( $hierarchy_url ); ?>" class="nav-tab <?php echo 'hierarchy' === $tab ? 'nav-tab-active' : ''; ?>" <?php echo 'hierarchy' === $tab ? 'aria-current="page"' : ''; ?>>
 					<?php echo esc_html__( 'Jerarquía SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>
 				</a>
@@ -453,7 +453,7 @@ final class TaxoCommerce_Core_Hierarchy {
 		<form class="tc-hierarchy-roles-filter" method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 			<input type="hidden" name="page" value="taxocommerce-core-hierarchy">
 			<input type="hidden" name="tab" value="roles"><input type="hidden" name="tc_country" value="<?php echo esc_attr( $this->country_request() ); ?>">
-			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar página', 'taxocommerce-core' ); ?>">
+			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Buscar página', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 			<select name="role">
 				<option value=""><?php echo esc_html__( 'Todos los roles', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></option>
 				<?php foreach ( $this->roles() as $role => $label ) : ?>

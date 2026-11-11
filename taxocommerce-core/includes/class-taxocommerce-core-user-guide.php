@@ -33,12 +33,12 @@ final class TaxoCommerce_Core_User_Guide {
 					<p><?php esc_html_e( 'Documentación de Core: manual de usuario y manual técnico, en una misma sección.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 				</div>
 			</header>
-			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 			</nav>
-			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core' ); ?>">
+			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 				<a class="tcc-guide-manual-tab<?php echo 'technical' === $manual ? ' is-active' : ''; ?>" <?php echo 'technical' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( add_query_arg( 'manual', 'technical', $base_url ) ); ?>"><?php esc_html_e( 'Technical Manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 			</nav>
@@ -46,7 +46,7 @@ final class TaxoCommerce_Core_User_Guide {
 				<?php TaxoCommerce_Core_Technical_Guide::render(); ?>
 			<?php else : ?>
 			<div class="tcc-guide-layout">
-				<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual', 'taxocommerce-core' ); ?>">
+				<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 					<strong><?php esc_html_e( 'En esta guía', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></strong>
 					<ol>
 						<li><a href="#tc-guide-intro"><?php esc_html_e( '¿Para qué sirve?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
@@ -92,7 +92,7 @@ final class TaxoCommerce_Core_User_Guide {
 					<section id="tc-guide-hierarchy">
 						<h2><?php esc_html_e( '4. SEO Hierarchy: organizar la arquitectura', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
 						<p><?php esc_html_e( 'La jerarquía relaciona las páginas que presentan grandes áreas temáticas con las categorías y los productos de la tienda.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
-						<div class="tcc-guide-chain" role="img" aria-label="<?php esc_attr_e( 'Cluster, Hub primario, Hub secundario, Categoría, Producto', 'taxocommerce-core' ); ?>"><?php esc_html_e( 'Cluster → Hub primario → Hub secundario → Categoría → Producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></div>
+						<div class="tcc-guide-chain" role="img" aria-label="<?php esc_attr_e( 'Cluster, Hub primario, Hub secundario, Categoría, Producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>"><?php esc_html_e( 'Cluster → Hub primario → Hub secundario → Categoría → Producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></div>
 						<h3><?php esc_html_e( 'Cómo utilizarla', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
 						<p><?php esc_html_e( 'Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-hierarchy', __( 'Abrir SEO Hierarchy', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ) ); ?></p>

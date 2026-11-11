@@ -138,7 +138,7 @@ final class TaxoCommerce_Core_Editorial_Guide {
 		$guide = $guides[ $type ];
 		$expanded = 'editor' !== $context;
 		?>
-		<section class="tc-editorial-guidance" aria-label="<?php esc_attr_e( 'Normas editoriales de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
+		<section class="tc-editorial-guidance" aria-label="<?php esc_attr_e( 'Normas editoriales de TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 			<details class="tc-editorial-guide" <?php echo $expanded ? 'open' : ''; ?>>
 				<summary class="tc-editorial-guide__summary">
 					<span class="dashicons dashicons-welcome-write-blog" aria-hidden="true"></span>

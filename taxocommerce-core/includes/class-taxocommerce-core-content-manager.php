@@ -211,7 +211,7 @@ final class TaxoCommerce_Core_Content_Manager {
             'anomalies'  => __( 'Anomalías', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
 		);
 		?>
-		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Opciones de contenidos', 'taxocommerce-core' ); ?>">
+		<nav class="nav-tab-wrapper" aria-label="<?php echo esc_attr__( 'Opciones de contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 			<?php foreach ( $tabs as $type => $label ) : if ( '' === $label ) { continue; } ?>
 				<?php
 				$url   = add_query_arg( array( 'page' => self::PAGE_SLUG, 'tc_type' => $type ), admin_url( 'admin.php' ) );
@@ -292,7 +292,7 @@ final class TaxoCommerce_Core_Content_Manager {
             <input type="hidden" name="tc_type" value="<?php echo esc_attr( $content_type ); ?>">
             <div class="tc-content-filter-field tc-content-filter-search">
                 <label for="tc-content-search"><?php echo esc_html__( 'Buscar contenido', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></label>
-                <input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Título o descripción…', 'taxocommerce-core' ); ?>">
+                <input id="tc-content-search" type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php echo esc_attr__( 'Título o descripción…', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
             </div>
 
             <?php if ( 'categories' !== $content_type ) : ?>

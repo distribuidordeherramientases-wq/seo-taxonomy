@@ -32,7 +32,7 @@ add_action( 'taxocommerce_core_register_modules', function ( $core ) {
 PHP;
 		?>
 		<div class="tcc-guide-layout tcc-technical-guide">
-			<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual técnico', 'taxocommerce-core' ); ?>">
+			<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual técnico', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<strong><?php esc_html_e( 'Manual técnico', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></strong>
 				<ol>
 					<li><a href="#tc-tech-overview"><?php esc_html_e( 'Alcance y requisitos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>

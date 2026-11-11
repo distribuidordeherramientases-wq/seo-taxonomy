@@ -888,7 +888,7 @@ final class TaxoCommerce_Core_Auto_Test {
                 <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h1>
                 <p><?php esc_html_e( 'Comprueba las funciones principales de esta instalación después de actualizar Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
             </div></header>
-            <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
+            <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
                 <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
                 <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>

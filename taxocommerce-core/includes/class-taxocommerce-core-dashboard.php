@@ -146,13 +146,13 @@ final class TaxoCommerce_Core_Dashboard {
 				<div class="tcc-hero__art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
 			</header>
 
-			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 			</nav>
 
-			<section class="tcc-metrics" aria-label="<?php esc_attr_e( 'Estado del sistema', 'taxocommerce-core' ); ?>">
+			<section class="tcc-metrics" aria-label="<?php esc_attr_e( 'Estado del sistema', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
 				<?php foreach ( $metrics as $metric ) : ?>
 					<div class="tcc-metric">
 						<span class="tcc-metric__icon dashicons <?php echo esc_attr( $metric['icon'] ); ?>" aria-hidden="true"></span>
@@ -185,7 +185,7 @@ final class TaxoCommerce_Core_Dashboard {
 								<span class="tcc-status tcc-status--<?php echo esc_attr( $module['tone'] ); ?>"><?php echo esc_html( $module['state'] ); ?></span>
 								<a class="tcc-button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $module['slug'] ) ); ?>" aria-label="<?php
                                     /* translators: %s: title of the module displayed on the dashboard. */
-                                    echo esc_attr( sprintf( __( 'Abrir %s', 'taxocommerce-core' ), $module['title'] ) );
+                                    echo esc_attr( sprintf( __( 'Abrir %s', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), $module['title'] ) );
                                 ?>"><?php esc_html_e( 'Abrir', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?> <span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span></a>
 							</div>
 						</article>
