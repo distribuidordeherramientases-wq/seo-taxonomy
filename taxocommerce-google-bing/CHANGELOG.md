@@ -1,3 +1,12 @@
+## [1.1.46] — 2026-11-11 — Recuperar conexión y sincronización real de Google en Insights
+
+- Analysis vuelve a cargar el módulo de datos SQL de Search Console que se perdió al independizar el plugin, con su sincronización manual por días vía AJAX y sin cron.
+- Un puente utiliza las credenciales y la propiedad verificadas de Connections (OAuth o cuenta de servicio) sin copiar, borrar ni reescribir los secretos heredados o actuales.
+- El inicio de sincronización comprueba con una petición real a Google que la pareja credencial/propiedad tiene acceso antes de escribir datos; si falla OAuth prueba la cuenta de servicio.
+- Google Analytics en Analysis vuelve a consultar `properties/{property}:runReport`, con el ámbito OAuth `analytics.readonly`, en lugar de una llamada a un método inexistente.
+- Mantiene las estadísticas almacenadas, los informes guardados, los botones de descarga JSON, el Plan de acción y el resto de las integraciones sin alterarlos.
+- Añadida prueba de regresión offline para selección OAuth/cuenta de servicio y preservación de opciones, e incorporada al workflow de validación.
+
 ## [1.1.45] — 2026-11-10 — Dos botones superiores y último JSON fechado (#2537)
 
 - El botón «Plan de acción» y «Descargar JSON del plan de acción» aparecen juntos arriba, antes de los resultados; la descarga inferior se elimina.

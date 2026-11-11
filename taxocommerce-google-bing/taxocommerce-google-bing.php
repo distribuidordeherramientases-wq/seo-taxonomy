@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Insights
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-google-bing/
  * Description: External connections, provider data downloads, and the restored legacy Analysis dashboard.
- * Version: 1.1.45
+ * Version: 1.1.46
  * Release Date: 2026-11-10
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.45' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.46' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -48,6 +48,7 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connec
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends-hierarchy.php';
@@ -68,6 +69,19 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/analysis/analista-geo-bri
 function taxocommerce_google_bing_boot() {
     TaxoCommerce_Google_Bing_Connections::register();
     TaxoCommerce_Google_Bing_OAuth::register();
+
+    // The historical Google Intelligence tables feed Analysis. Restore their
+    // manual importer only when no other plugin already owns these functions.
+    // Credentials are read from modern Connections without rewriting them.
+    if ( ! function_exists( 'seo_google_get_settings' ) ) {
+        require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc-sync-bridge.php';
+        add_filter( 'taxocommerce_google_bing_gsc_sync_settings', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'settings' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_status', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'status' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_access_token', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'access_token' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_verify_start', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'verify_and_select' ) );
+        add_action( 'taxocommerce_google_bing_gsc_sync_completed', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'record_completed' ) );
+        require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
+    }
 
     // Connections now belongs to Insights. These boot methods preserve the
     // historical public helpers and admin-post contracts for Amazon/Pinterest.
@@ -207,6 +221,11 @@ function taxocommerce_google_bing_screen() {
     } else {
         $source = 'google_search' === $tab ? 'search' : ( 'google_analytics' === $tab ? 'analytics' : 'bing' );
         TaxoCommerce_Google_Bing_Reports::render( $source );
+        if ( 'google_search' === $tab && function_exists( 'seo_google_render_sync_status' ) ) {
+            echo '<hr><h2>' . esc_html__( 'Sincronización de Search Console para Analysis', 'taxocommerce-google-bing' ) . '</h2>';
+            echo '<p>' . esc_html__( 'Actualiza las tablas históricas que utiliza Analysis. Es independiente de los informes guardados y utiliza las credenciales actuales de Connections.', 'taxocommerce-google-bing' ) . '</p>';
+            seo_google_render_sync_status();
+        }
     }
 
     echo '</div>';
