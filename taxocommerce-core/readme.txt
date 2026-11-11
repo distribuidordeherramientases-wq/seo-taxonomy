@@ -4,7 +4,7 @@ Tags: woocommerce, catalog, content, management, seo
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.74
+Stable tag: 0.4.75
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,7 @@ TaxoCommerce Core provides a modular foundation for WordPress and WooCommerce ca
 * The Core Extensions catalog lists all 19 current independent TaxoCommerce modules even when absent or inactive, including Tasks; each card reports its actual WordPress installation and activation status. Retired Connections is incorporated in Insights and is not offered separately.
 * Optional extension discovery for the other TaxoCommerce modules.
 * Built-in, read-only User Guide tab containing a user manual and a technical manual for Core.
+* Complete read-only JSON download from Core > Content > Anomalies, including all structural, editorial, category, hub and optional FAQ finding sections from the live report. The existing editorial-only JSON remains separate.
 * Read-only Autocheck with authenticated JSON download of the last user-specific report, including site URL, Core version, pass/fail/skipped results and detailed messages for independent comparison between installations.
 
 Editorial guidance does not create or modify content automatically. Only authorised administrators can upload an optional extension ZIP through Core.

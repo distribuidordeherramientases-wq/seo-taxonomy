@@ -1,3 +1,12 @@
+## [0.4.75] — 2026-11-11 — Descarga completa JSON de Core → Contenidos → Anomalías
+
+- Nuevo botón «Descargar JSON de todas las anomalías» junto a «Mostrar todas las comprobaciones», siempre visible cuando la arquitectura está configurada.
+- La exportación recupera en tiempo real las mismas secciones con incidencias que genera el informe de Anomalías. Incluye relaciones SEO, hubs, categorías, entradas/landings, contadores de categorías y FAQs cuando existan.
+- Solo lectura, sin duplicar reglas SQL ni incluir código HTML, formularios ni nonces en el JSON. No limita la cantidad de líneas de evidencia ni depende de «Mostrar todas».
+- Conserva la exportación JSON editorial ya existente, separada del informe completo.
+- Nueva regresión para el contenido exportado y la ausencia de tokens de seguridad; incluida en las validaciones de despliegue.
+- No modifica categorías, sus relaciones, productos ni otros módulos.
+
 ## [0.4.74] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
