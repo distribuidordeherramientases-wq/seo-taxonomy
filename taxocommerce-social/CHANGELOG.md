@@ -1,3 +1,10 @@
+## [0.1.16] — 2026-11-11 — Recuperación de importación/exportación CSV en Calendario
+
+- Recuperados en Calendario los controles Descargar plantilla CSV, Exportar contenidos, Exportar agenda, Exportar historial y Validar CSV antes de importar.
+- Registradas las tres acciones administrativas heredadas de exportación, validación y confirmación, que habían quedado sin conectar al migrar la navegación independiente.
+- La importación solo programa tras confirmación expresa; se mantienen la deduplicación por contenido/red, las validaciones y el programador manual existente.
+- Añadida prueba de regresión para los botones, acciones y documentación, sin modificar publicaciones ni credenciales.
+
 ## [0.1.15] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
