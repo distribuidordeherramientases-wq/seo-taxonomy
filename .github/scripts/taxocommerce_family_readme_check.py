@@ -50,7 +50,9 @@ def check(slug: str, folder: Path) -> int:
         errors.append('Missing License in readme.txt')
     if not php_headers.get('text domain'):
         errors.append('Missing Text Domain in PHP header')
-    elif php_headers['text domain'] != slug:
+    elif php_headers['text domain'] != (
+        'taxocommerce-core-catalog-content-management-for-woocommerce' if slug == 'taxocommerce-core' else slug
+    ):
         errors.append(f'Text Domain {php_headers["text domain"]!r} does not match folder {slug!r}')
     tags = [s.strip() for s in readme_headers.get('tags', '').split(',') if s.strip()]
     if len(tags) > 5:

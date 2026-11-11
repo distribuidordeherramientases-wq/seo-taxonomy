@@ -95,10 +95,10 @@ final class TaxoCommerce_Core_Vocabulary {
 
     public static function render( $content_type, $object_id ) {
         echo '<section class="tc-editor-card tc-vocabulary-card">';
-        echo '<div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'TaxoCommerce Vocabulary', 'taxocommerce-core' ) . '</span><h2>' . esc_html__( 'Etiquetas transversales', 'taxocommerce-core' ) . '</h2>';
-        echo '<p>' . esc_html__( 'Clasificación semántica compartida entre productos, categorías, posts y páginas.', 'taxocommerce-core' ) . '</p></div></div>';
+        echo '<div class="tc-card-heading"><div><span class="tc-eyebrow">' . esc_html__( 'TaxoCommerce Vocabulary', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</span><h2>' . esc_html__( 'Etiquetas transversales', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Clasificación semántica compartida entre productos, categorías, posts y páginas.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p></div></div>';
         if ( ! self::available() ) {
-            echo '<div class="tc-editor-note tc-editor-note--info"><strong>' . esc_html__( 'Vocabulary todavía no está disponible.', 'taxocommerce-core' ) . '</strong> Instala o activa la extensión Vocabulary desde TaxoCommerce Core. Este formulario no cambiará las asignaciones existentes.</div></section>';
+            echo '<div class="tc-editor-note tc-editor-note--info"><strong>' . esc_html__( 'Vocabulary todavía no está disponible.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</strong> Instala o activa la extensión Vocabulary desde TaxoCommerce Core. Este formulario no cambiará las asignaciones existentes.</div></section>';
             return;
         }
         $selected = self::assignments( $content_type, $object_id );
@@ -119,7 +119,7 @@ final class TaxoCommerce_Core_Vocabulary {
             echo '</div>';
         }
         echo '</div>';
-        echo '<p class="tc-field-help">' . esc_html__( 'Usa términos existentes del vocabulario canónico. Las etiquetas asignadas por procesos automáticos se muestran protegidas y no se sobrescriben aquí.', 'taxocommerce-core' ) . '</p>';
+        echo '<p class="tc-field-help">' . esc_html__( 'Usa términos existentes del vocabulario canónico. Las etiquetas asignadas por procesos automáticos se muestran protegidas y no se sobrescriben aquí.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p>';
         echo '</section>';
     }
 
