@@ -67,7 +67,11 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(result, encoding="utf-8")
     core_info_path = ROOT / "taxocommerce-core/includes/official-excerpt.php"
-    core_info = official_template.replace("__TC_DOMAIN__", "taxocommerce-core")
+    # Core's WP.org archive uses the official long slug as directory name,
+    # but its existing main file remains taxocommerce-core.php in every installation.
+    core_info = (official_template
+                 .replace("__TC_DOMAIN__", "taxocommerce-core-catalog-content-management-for-woocommerce")
+                 .replace("$plugin_file = $plugin_dir . '/' . basename( $plugin_dir ) . '.php';", "$plugin_file = $plugin_dir . '/taxocommerce-core.php';"))
     if args.check:
         if not core_info_path.is_file() or core_info_path.read_text(encoding="utf-8") != core_info:
             errors.append("core:official")

@@ -41,7 +41,7 @@ return new class() {
      */
     public function render( $slug, $locale ) {
         $plugin_dir  = dirname( __DIR__ );
-        $plugin_file = $plugin_dir . '/' . basename( $plugin_dir ) . '.php';
+        $plugin_file = $plugin_dir . '/taxocommerce-core.php';
         $headers     = is_readable( $plugin_file )
             ? get_file_data( $plugin_file, array( 'uri' => 'Plugin URI' ), 'plugin' )
             : array();
