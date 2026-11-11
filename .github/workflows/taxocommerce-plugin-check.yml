@@ -138,6 +138,7 @@ jobs:
               --exclude='uploads/' --exclude='*.bak' --exclude='*.log' \
               --exclude='*.pyc' --exclude='*.pot' --include='/CHANGELOG.md' --exclude='*.md' \
               "$PLUGIN/" "build/$PLUGIN/"
+            php "$PLUGIN/tests/slug-compatibility-smoke.php"
             python3 -m unittest discover -s .github/tests -p test_package_core_wordpress_org.py -v
             python3 .github/scripts/package_core_wordpress_org.py "build/$TARGET_SLUG"
             # Do not ship official-slug catalogs in the short-slug smoke package.
