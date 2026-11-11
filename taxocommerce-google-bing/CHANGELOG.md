@@ -1,3 +1,10 @@
+## [1.1.46] — 2026-11-11 — Recuperar sincronización de Google y frescura independiente GA4
+
+- Insights vuelve a cargar su motor de sincronización por día de Search Console en una pestaña independiente, con historial y errores visibles. No depende del monolítico para leer Google ni para actualizar las tablas utilizadas por Analysis.
+- La sincronización usa la propiedad y token OAuth activos del plugin modular; las credenciales históricas se conservan como respaldo, sin sobrescribir ni desconectar servicios.
+- Analysis advierte cuando sus datos locales de Search Console no llegan al último día finalizado y enlaza a la sincronización manual.
+- GA4 consulta un periodo propio hasta ayer, aunque Search Console esté atrasado; renueva su espacio de caché para no servir periodos anteriores. Los informes manuales de Google Search y Analytics siguen siendo independientes.
+
 ## [1.1.45] — 2026-11-10 — Dos botones superiores y último JSON fechado (#2537)
 
 - El botón «Plan de acción» y «Descargar JSON del plan de acción» aparecen juntos arriba, antes de los resultados; la descarga inferior se elimina.
