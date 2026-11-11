@@ -43,7 +43,7 @@ final class TaxoCommerce_Core_Auto_Test {
     /** Keep the historical manual admin-post endpoint for bookmarked forms. */
     public static function handle_run() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'Sin permisos para ejecutar autocheck.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'Sin permisos para ejecutar autocheck.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         check_admin_referer( self::NONCE, 'tc_autotest_nonce' );
         set_transient( self::REPORT_PREFIX . get_current_user_id(), self::run_suite(), DAY_IN_SECONDS );
@@ -136,17 +136,17 @@ final class TaxoCommerce_Core_Auto_Test {
     /** Download only the signed-in user's last stored report, without rerunning the suite. */
     public static function handle_export_json() {
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'Sin permisos para descargar el autocheck.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         check_admin_referer( self::EXPORT_NONCE, 'tc_autotest_export_nonce' );
         $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
         $payload = self::export_payload( $report );
         if ( null === $payload ) {
-            wp_die( esc_html__( 'No hay un informe de Autocheck válido. Ejecuta el chequeo primero.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'No hay un informe de Autocheck válido. Ejecuta el chequeo primero.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         $json = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE );
         if ( ! is_string( $json ) ) {
-            wp_die( esc_html__( 'No se pudo generar el archivo JSON.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'No se pudo generar el archivo JSON.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         $host = (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST );
         $host = sanitize_file_name( $host );
@@ -878,41 +878,41 @@ final class TaxoCommerce_Core_Auto_Test {
     public static function render() {
         if ( \TaxoCommerce_Core_Autotest_Code::render_subtabs() ) { return; }
         if ( ! self::allowed() ) {
-            wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'Acceso denegado a Autocheck.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         $report = get_transient( self::REPORT_PREFIX . get_current_user_id() );
         $totals = is_array( $report ) && isset( $report['totals'], $report['rows'] ) ? $report['totals'] : null;
         ?>
         <div class="wrap tcc-family-screen" id="tc-core-autotest">
             <header class="tcc-page-header"><div class="tcc-page-header__content">
-                <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></h1>
-                <p><?php esc_html_e( 'Comprueba las funciones principales de esta instalación después de actualizar Core.', 'taxocommerce-core' ); ?></p>
+                <p>TaxoCommerce Core</p><h1><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h1>
+                <p><?php esc_html_e( 'Comprueba las funciones principales de esta instalación después de actualizar Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
             </div></header>
             <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
-                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
-                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
-                <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
+                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
+                <a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=' . TaxoCommerce_Core_User_Guide::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
+                <a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'autocheck' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
             </nav>            <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core&tab=autocheck' ) ); ?>" method="post">
                 <input type="hidden" name="tc_autotest_manual_run" value="1">
                 <?php wp_nonce_field( self::NONCE, 'tc_autotest_nonce' ); ?>
-                <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core' ), 'primary', 'submit', false ); ?>
-                <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core' ); ?></span>
+                <?php submit_button( __( 'Ejecutar autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), 'primary', 'submit', false ); ?>
+                <span><?php esc_html_e( 'Sin cambios en el catálogo, la jerarquía ni los menús.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></span>
             </form>
             <?php if ( null !== $totals ) : ?>
                 <form class="tc-at-actions" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
                     <input type="hidden" name="action" value="<?php echo esc_attr( self::EXPORT_ACTION ); ?>">
                     <?php wp_nonce_field( self::EXPORT_NONCE, 'tc_autotest_export_nonce' ); ?>
-                    <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-core' ), 'secondary', 'submit', false ); ?>
+                    <?php submit_button( __( 'Descargar resultados (JSON)', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), 'secondary', 'submit', false ); ?>
                 </form>
             <?php endif; ?>
             <?php if ( null === $totals ) : ?>
-                <p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core.', 'taxocommerce-core' ); ?></p>
+                <p><?php esc_html_e( 'No existen resultados todavía. Ejecuta el chequeo para ver el estado de Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
             <?php else : ?>
-                <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-core' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
+                <p><strong><?php esc_html_e( 'Fecha de ejecución:', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?> <?php echo esc_html( $report['date'] ); ?></strong> · <?php echo esc_html( $report['version'] ); ?> · <?php echo esc_html( absint( $report['ms'] ) . ' ms' ); ?></p>
                 <div class="tc-at-summary">
-                    <span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-core' ); ?></span>
-                    <span><strong style="color:#c5221f"><?php echo esc_html( absint( $totals['fail'] ) ); ?></strong> <?php esc_html_e( 'Errores', 'taxocommerce-core' ); ?></span>
-                    <span><strong><?php echo esc_html( absint( $totals['skip'] ) ); ?></strong> <?php esc_html_e( 'No ejecutadas', 'taxocommerce-core' ); ?></span>
+                    <span><strong style="color:#188038"><?php echo esc_html( absint( $totals['pass'] ) ); ?></strong> <?php esc_html_e( 'Correctas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></span>
+                    <span><strong style="color:#c5221f"><?php echo esc_html( absint( $totals['fail'] ) ); ?></strong> <?php esc_html_e( 'Errores', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></span>
+                    <span><strong><?php echo esc_html( absint( $totals['skip'] ) ); ?></strong> <?php esc_html_e( 'No ejecutadas', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></span>
                 </div>
                 <?php foreach ( $report['rows'] as $row ) : ?>
                     <div class="tc-at-row tc-at-row--<?php echo esc_attr( $row['status'] ); ?>">
@@ -929,7 +929,7 @@ final class TaxoCommerce_Core_Auto_Test {
                             <span class="tc-at-small"><?php echo esc_html( absint( $row['ms'] ) . ' ms' ); ?></span></div>
                     </div>
                 <?php endforeach; ?>
-                <p class="description"><?php esc_html_e( 'Verde significa que pasó la comprobación indicada. Gris significa no aplicable o no ejecutado. Los resultados basados en muestras no sustituyen una auditoría completa ni las UAT de escritura en staging.', 'taxocommerce-core' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Verde significa que pasó la comprobación indicada. Gris significa no aplicable o no ejecutado. Los resultados basados en muestras no sustituyen una auditoría completa ni las UAT de escritura en staging.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
             <?php endif; ?>
         </div>
         <?php
