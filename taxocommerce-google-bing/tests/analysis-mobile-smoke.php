@@ -56,4 +56,10 @@ tgb_assert_mobile( false !== strpos( $bridge, "check_admin_referer( 'taxocommerc
 tgb_assert_mobile( false !== strpos( $client, 'showSavedReport(item, response.data)' ), 'Individual creation updates its saved download without rerunning reports.' );
 $styles = file_get_contents( $root . '/includes/analysis/assets/analista-informe.css' );
 tgb_assert_mobile( false !== strpos( $styles, 'grid-template-columns:repeat(5,minmax(0,1fr))' ), 'Desktop displays five report columns.' );
+tgb_assert_mobile( false !== strpos( $main, 'seo-analista-toolbar-actions' ), 'Full run and stop controls use compact action layout.' );
+tgb_assert_mobile( false !== strpos( $styles, '.seo-analista-wrap .seo-analista-report-actions .button.button-primary{background:#2271b1;border-color:#2271b1;color:#fff}' ), 'Create report text is readable against a visible primary background.' );
+tgb_assert_mobile( false !== strpos( $styles, '.seo-analista-wrap .seo-analista-toolbar-actions .button.button-primary' ), 'Full-report button also overrides the white-on-white legacy style.' );
+tgb_assert_mobile( false !== strpos( $styles, '.seo-analista-wrap .seo-analista-report-actions .button.disabled{color:#646970;background:#f6f7f7;border-color:#c3c4c7;opacity:1}' ), 'Disabled JSON downloads remain readable.' );
+tgb_assert_mobile( false !== strpos( $client, "label: button.closest('.seo-analista-report-card').find('h3').first().text()" ), 'Running an individual report uses its visible card heading for status.' );
+tgb_assert_mobile( false === strpos( $client, "label: button.find('strong').first().text()" ), 'No stale title lookup from the old full-card buttons.' );
 echo "PASS: unified mobile Analysis, matching AJAX nonce, sequential reports and full JSON export.\n";
