@@ -170,6 +170,13 @@ function seo_google_get_settings() {
         'last_sync'      => '',
     );
 
+    // The standalone Insights OAuth connection owns the active credentials.
+    // Never overwrite its options with historical values.
+    if ( class_exists( 'TaxoCommerce_Google_Bing_OAuth', false )
+        && 'connected' === TaxoCommerce_Google_Bing_OAuth::status() ) {
+        return wp_parse_args( TaxoCommerce_Google_Bing_OAuth::settings(), $defaults );
+    }
+
     $settings = get_option(SEO_GOOGLE_OPTION_SETTINGS, array());
 
     return wp_parse_args(is_array($settings) ? $settings : array(), $defaults);
@@ -481,6 +488,13 @@ function seo_google_oauth_callback_handler() {
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Legacy callable name is used by existing modules; changing it requires a coordinated migration.
 function seo_google_get_access_token() {
+    // Reuse the live OAuth token from Insights. In particular do not read an
+    // expired monolith token after a successful standalone OAuth migration.
+    if ( class_exists( 'TaxoCommerce_Google_Bing_OAuth', false )
+        && 'connected' === TaxoCommerce_Google_Bing_OAuth::status() ) {
+        return TaxoCommerce_Google_Bing_OAuth::access_token();
+    }
+
     $settings = seo_google_get_settings();
     $tokens   = seo_google_get_tokens();
 
