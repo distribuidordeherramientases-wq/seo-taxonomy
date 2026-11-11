@@ -244,17 +244,17 @@ final class TaxoCommerce_Core_Menu {
 		$tree = $trees[ $country ];
 		?>
 		<details class="tc-menu-proposal">
-			<summary><?php esc_html_e( 'Propuesta automática', 'taxocommerce-core' ); ?></summary>
-			<p><?php esc_html_e( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core' ); ?></p>
+			<summary><?php esc_html_e( 'Propuesta automática', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></summary>
+			<p><?php esc_html_e( 'Esta vista no modifica nada. Muestra lo que se generará al sincronizar.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 			<form method="get">
 				<input type="hidden" name="page" value="taxocommerce-core-menu">
-				<label for="tc-seo-country"><?php esc_html_e( 'País del menú', 'taxocommerce-core' ); ?></label>
+				<label for="tc-seo-country"><?php esc_html_e( 'País del menú', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></label>
 				<select id="tc-seo-country" name="tc_country">
 					<?php foreach ( $trees as $market => $unused_tree ) : ?>
 						<option value="<?php echo esc_attr( $market ); ?>"<?php selected( $market, $country ); ?>><?php echo esc_html( $available[ $market ] ); ?></option>
 					<?php endforeach; ?>
 				</select>
-				<button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core' ); ?></button>
+				<button type="submit" class="button"><?php esc_html_e( 'Seleccionar menú', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></button>
 			</form>
 			<?php $this->render_kpis( $tree, $menu_id ); ?>
 			<?php $this->render_tree( $tree ); ?>
@@ -263,7 +263,7 @@ final class TaxoCommerce_Core_Menu {
 				<input type="hidden" name="tc_country" value="<?php echo esc_attr( $country ); ?>">
 				<?php wp_nonce_field( 'taxocommerce_core_sync_menu', 'taxocommerce_core_nonce' ); ?>
 				<button type="submit" class="button button-primary"><?php
-					echo esc_html( $menu_id ? __( 'Sincronizar propuesta', 'taxocommerce-core' ) : __( 'Crear menú desde la jerarquía', 'taxocommerce-core' ) );
+					echo esc_html( $menu_id ? __( 'Sincronizar propuesta', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) : __( 'Crear menú desde la jerarquía', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 				?></button>
 			</form>
 		</details>
@@ -285,11 +285,11 @@ final class TaxoCommerce_Core_Menu {
         $submitted = isset( $_POST['tc_country'] ) && is_string( $_POST['tc_country'] )
             ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['tc_country'] ) ) ) ) : '';
         if ( $submitted !== $country || ! array_key_exists( $country, self::available_countries() ) ) {
-            $this->redirect( 'error', __( 'País no válido.', 'taxocommerce-core' ) );
+            $this->redirect( 'error', __( 'País no válido.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
 		$tree = $this->build_tree( $country );
 		if ( ! $tree ) {
-			$this->redirect( 'error', __( 'No hay elementos disponibles.', 'taxocommerce-core' ) );
+			$this->redirect( 'error', __( 'No hay elementos disponibles.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
         $menu_id = $this->get_or_create_menu( $country );
 		if ( is_wp_error( $menu_id ) ) {
@@ -304,7 +304,7 @@ final class TaxoCommerce_Core_Menu {
 		}
 
 		$this->logger->info( 'Menú TaxoCommerce sincronizado desde la Jerarquía SEO.', array( 'menu_id' => absint( $menu_id ) ) );
-		$this->redirect( 'ok', __( 'Menú sincronizado. Los elementos manuales se han conservado.', 'taxocommerce-core' ) );
+		$this->redirect( 'ok', __( 'Menú sincronizado. Los elementos manuales se han conservado.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 	}
 
 	/**
@@ -317,14 +317,14 @@ final class TaxoCommerce_Core_Menu {
 		check_admin_referer( 'taxocommerce_core_activate_menu', 'taxocommerce_core_nonce' );
 
 		if ( ! current_user_can( 'edit_theme_options' ) ) {
-            wp_die( esc_html__( 'No tienes permisos para asignar menús al tema.', 'taxocommerce-core' ) );
+            wp_die( esc_html__( 'No tienes permisos para asignar menús al tema.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
         }
         $menu_id   = TaxoCommerce_Core_Menu_Editor::target_menu_id();
         $location  = isset( $_POST['menu_location'] ) ? sanitize_key( wp_unslash( $_POST['menu_location'] ) ) : '';
 		$locations = get_registered_nav_menus();
 
 		if ( is_wp_error( $menu_id ) || ! $menu_id || ! isset( $locations[ $location ] ) ) {
-			$this->redirect( 'error', __( 'La ubicación de menú seleccionada no es válida.', 'taxocommerce-core' ) );
+			$this->redirect( 'error', __( 'La ubicación de menú seleccionada no es válida.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 
 		$current = get_theme_mod( 'nav_menu_locations', array() );
@@ -345,7 +345,7 @@ final class TaxoCommerce_Core_Menu {
 		$current[ $location ] = absint( $menu_id );
 		set_theme_mod( 'nav_menu_locations', $current );
 
-		$this->redirect( 'ok', __( 'Menú TaxoCommerce activado en la ubicación seleccionada.', 'taxocommerce-core' ) );
+		$this->redirect( 'ok', __( 'Menú TaxoCommerce activado en la ubicación seleccionada.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 	}
 
 	/**
@@ -359,13 +359,13 @@ final class TaxoCommerce_Core_Menu {
 
 		$backup = get_option( self::BACKUP_OPTION, array() );
 		if ( ! is_array( $backup ) || empty( $backup['locations'] ) || ( $backup['stylesheet'] ?? '' ) !== get_stylesheet() ) {
-			$this->redirect( 'error', __( 'No existe una copia válida de las ubicaciones anteriores.', 'taxocommerce-core' ) );
+			$this->redirect( 'error', __( 'No existe una copia válida de las ubicaciones anteriores.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 
 		set_theme_mod( 'nav_menu_locations', (array) $backup['locations'] );
 		delete_option( self::BACKUP_OPTION );
 
-		$this->redirect( 'ok', __( 'Se han restaurado las ubicaciones de menú anteriores.', 'taxocommerce-core' ) );
+		$this->redirect( 'ok', __( 'Se han restaurado las ubicaciones de menú anteriores.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 	}
 
 	/**
@@ -443,7 +443,7 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	private function render_tree( $tree ) {
 		if ( empty( $tree ) ) {
-			echo '<p>' . esc_html__( 'No hay una jerarquía suficiente para proponer el menú.', 'taxocommerce-core' ) . '</p>';
+			echo '<p>' . esc_html__( 'No hay una jerarquía suficiente para proponer el menú.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</p>';
 			return;
 		}
 
@@ -452,7 +452,7 @@ final class TaxoCommerce_Core_Menu {
 			echo '<div class="card" style="max-width:none;margin-bottom:12px;">';
 			echo '<strong>' . esc_html( get_the_title( $cluster['page'] ) ) . '</strong>';
 			if ( empty( $cluster['primaries'] ) ) {
-				echo '<p><em>' . esc_html__( 'Sin hubs primarios.', 'taxocommerce-core' ) . '</em></p>';
+				echo '<p><em>' . esc_html__( 'Sin hubs primarios.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</em></p>';
 			}
 			foreach ( $cluster['primaries'] as $primary ) {
 				echo '<div style="margin:8px 0 0 20px;">↳ <strong>' . esc_html( get_the_title( $primary['page'] ) ) . '</strong>';
@@ -679,11 +679,11 @@ final class TaxoCommerce_Core_Menu {
 		}
 		$items = $menu_id ? count( (array) wp_get_nav_menu_items( $menu_id ) ) : 0;
 		$cards = array(
-			__( 'Clusters', 'taxocommerce-core' )        => $clusters,
-			__( 'Hubs primarios', 'taxocommerce-core' )  => $primaries,
-			__( 'Hubs secundarios', 'taxocommerce-core' )=> $secondaries,
-			__( 'Categorías', 'taxocommerce-core' )      => $categories,
-			__( 'Elementos publicados', 'taxocommerce-core' ) => $items,
+			__( 'Clusters', 'taxocommerce-core-catalog-content-management-for-woocommerce' )        => $clusters,
+			__( 'Hubs primarios', 'taxocommerce-core-catalog-content-management-for-woocommerce' )  => $primaries,
+			__( 'Hubs secundarios', 'taxocommerce-core-catalog-content-management-for-woocommerce' )=> $secondaries,
+			__( 'Categorías', 'taxocommerce-core-catalog-content-management-for-woocommerce' )      => $categories,
+			__( 'Elementos publicados', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) => $items,
 		);
 		?>
 		<div style="display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;">
@@ -724,7 +724,7 @@ final class TaxoCommerce_Core_Menu {
 	 */
 	private function guard() {
 		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'No tienes permisos para gestionar TaxoCommerce Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 	}
 }

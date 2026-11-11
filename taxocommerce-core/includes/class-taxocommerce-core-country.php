@@ -16,11 +16,11 @@ final class TaxoCommerce_Core_Country {
 
 	public static function countries() {
 		return array(
-			'ES' => __( 'España', 'taxocommerce-core' ),
-			'US' => __( 'Estados Unidos', 'taxocommerce-core' ),
-			'FR' => __( 'Francia', 'taxocommerce-core' ),
-			'DE' => __( 'Alemania', 'taxocommerce-core' ),
-			'NL' => __( 'Países Bajos', 'taxocommerce-core' ),
+			'ES' => __( 'España', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'US' => __( 'Estados Unidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'FR' => __( 'Francia', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'DE' => __( 'Alemania', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
+			'NL' => __( 'Países Bajos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ),
 		);
 	}
 
@@ -31,7 +31,7 @@ final class TaxoCommerce_Core_Country {
 	 * @return array<string,string>
 	 */
 	public static function page_countries() {
-		$choices = array( '' => __( 'Global (sin país)', 'taxocommerce-core' ) );
+		$choices = array( '' => __( 'Global (sin país)', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical page country filter; admin selector uses only relevant page IDs.
 		$page_ids = get_posts( array(
 			'post_type' => 'page',
@@ -158,12 +158,12 @@ final class TaxoCommerce_Core_Country {
 	public static function field( $country, $name = self::FIELD ) {
 		$country = self::normalize( $country );
 		echo '<div class="tc-field"><label class="tc-field-label" for="tc-edit-country">' .
-			esc_html__( 'País', 'taxocommerce-core' ) . '</label>';
+			esc_html__( 'País', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</label>';
 		// Text + datalist lets the first page introduce a country without a fixed list.
 		// An empty value is Global and removes country postmeta when saved.
 		echo '<input class="tc-input" type="text" id="tc-edit-country" name="' . esc_attr( $name ) .
 			'" value="' . esc_attr( $country ) . '" list="tc-country-page-options" maxlength="2" pattern="[A-Za-z]{2}" placeholder="' .
-			esc_attr( __( 'Global (sin país)', 'taxocommerce-core' ) ) . '">';
+			esc_attr( __( 'Global (sin país)', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ) . '">';
 		echo '<datalist id="tc-country-page-options">';
 		foreach ( self::page_countries() as $code => $label ) {
 			if ( '' !== $code ) {
@@ -171,14 +171,14 @@ final class TaxoCommerce_Core_Country {
 			}
 		}
 		echo '</datalist><p class="tc-field-help">' .
-			esc_html__( 'Define el mercado de este contenido. No cambia la URL, el idioma ni sus relaciones SEO.', 'taxocommerce-core' ) .
+			esc_html__( 'Define el mercado de este contenido. No cambia la URL, el idioma ni sus relaciones SEO.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) .
 			'</p></div>';
 	}
 
 	public static function label( $country ) {
 		$country = self::normalize( $country );
 		$all = self::countries();
-		return $country ? ( $all[ $country ] ?? $country ) . ' (' . $country . ')' : __( 'Global (sin país)', 'taxocommerce-core' );
+		return $country ? ( $all[ $country ] ?? $country ) . ' (' . $country . ')' : __( 'Global (sin país)', 'taxocommerce-core-catalog-content-management-for-woocommerce' );
 	}
 
 	public static function read_posted( $name = self::FIELD ) {
@@ -188,23 +188,23 @@ final class TaxoCommerce_Core_Country {
 		$value = strtoupper( trim( sanitize_text_field( wp_unslash( $_POST[ $name ] ) ) ) );
 		return '' === $value || self::valid( $value )
 			? $value
-			: new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core' ) );
+			: new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 	}
 
 	public static function set_post( $id, $country ) {
 		$id = absint( $id );
 		if ( ! current_user_can( 'edit_post', $id ) || ( '' !== $country && ! self::valid( $country ) ) ) {
-			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de este contenido.', 'taxocommerce-core' ) );
+			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de este contenido.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		$current = (string) get_post_meta( $id, self::META, true );
 		if ( '' === $country ) {
 			// Global means no stored country, not a synthetic market.
 			if ( '' !== $current && false === delete_post_meta( $id, self::META ) ) {
-				return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+				return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 			}
 		} elseif ( self::normalize( $current ) !== $country
 			&& false === update_post_meta( $id, self::META, $country ) ) {
-			return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+			return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		// The role form can change the country and SEO role in one submission.
 		// Synchronise the country of the existing role node after saving postmeta.
@@ -218,24 +218,24 @@ final class TaxoCommerce_Core_Country {
 		$id = absint( $id );
 		$raw = strtoupper( trim( (string) $country ) );
 		if ( '' !== $raw && ! self::valid( $raw ) ) {
-			return new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core' ) );
+			return new WP_Error( 'tc_country_invalid', __( 'País no válido.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		$country = self::normalize( $raw );
 		$taxonomy = get_taxonomy( 'product_cat' );
 		if ( ! $taxonomy || ! current_user_can( $taxonomy->cap->edit_terms ) ) {
-			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de esta categoría.', 'taxocommerce-core' ) );
+			return new WP_Error( 'tc_country_permission', __( 'No se puede actualizar el país de esta categoría.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		$current = (string) get_term_meta( $id, self::META, true );
 		if ( '' === $country ) {
 			// Global is an absent assignment, not the ES market or an empty meta value.
 			if ( '' !== $current && false === delete_term_meta( $id, self::META ) ) {
-				return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+				return new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 			}
 			return true;
 		}
 		if ( self::normalize( $current ) === $country ) { return true; }
 		return false !== update_term_meta( $id, self::META, $country )
-			? true : new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core' ) );
+			? true : new WP_Error( 'tc_country_save', __( 'No se pudo guardar el país.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 	}
 
 	public static function register_hooks() {
@@ -250,7 +250,7 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function register_box( $post ) {
-		add_meta_box( 'tc-core-country', __( 'País', 'taxocommerce-core' ), array( __CLASS__, 'native_post_box' ), $post->post_type, 'side', 'default' );
+		add_meta_box( 'tc-core-country', __( 'País', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), array( __CLASS__, 'native_post_box' ), $post->post_type, 'side', 'default' );
 	}
 
 	public static function native_post_box( $post ) {
@@ -268,7 +268,7 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function add_category_field() {
-		echo '<div class="form-field"><label for="tc-edit-country">' . esc_html__( 'País', 'taxocommerce-core' ) . '</label>';
+		echo '<div class="form-field"><label for="tc-edit-country">' . esc_html__( 'País', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</label>';
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE );
 		echo '<select name="' . esc_attr( self::FIELD ) . '" id="tc-edit-country">';
 		self::options( '', true );
@@ -276,7 +276,7 @@ final class TaxoCommerce_Core_Country {
 	}
 
 	public static function edit_category_field( $term ) {
-		echo '<tr class="form-field"><th scope="row"><label for="tc-edit-country">' . esc_html__( 'País', 'taxocommerce-core' ) .
+		echo '<tr class="form-field"><th scope="row"><label for="tc-edit-country">' . esc_html__( 'País', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) .
 			'</label></th><td>';
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE );
 		echo '<select name="' . esc_attr( self::FIELD ) . '" id="tc-edit-country">';

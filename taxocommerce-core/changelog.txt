@@ -1,3 +1,6 @@
+= 0.4.77 (2026-11-11) =
+* Align gettext calls, plugin header, five bundled locale catalogs and WordPress.org ZIP folder with the assigned plugin slug; preserve existing admin URLs and data. Issue #2560.
+
 = 0.4.76 (2026-11-11) =
 * Concise WordPress.org readme with coherent version metadata and changelogs. Runtime features and catalog data are unchanged. Issue #2557.
 

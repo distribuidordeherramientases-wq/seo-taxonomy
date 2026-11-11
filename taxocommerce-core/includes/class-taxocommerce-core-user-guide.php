@@ -16,7 +16,7 @@ final class TaxoCommerce_Core_User_Guide {
 
 	public static function render() {
 		if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-			wp_die( esc_html__( 'No tienes permisos para consultar este manual.', 'taxocommerce-core' ) );
+			wp_die( esc_html__( 'No tienes permisos para consultar este manual.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
 		}
 		// Read-only navigation; no nonce is necessary for switching documents.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only manual selection.
@@ -28,118 +28,118 @@ final class TaxoCommerce_Core_User_Guide {
 			<header class="tcc-page-header">
 				<span class="tcc-page-header__icon" aria-hidden="true"><span class="dashicons dashicons-book"></span></span>
 				<div class="tcc-page-header__content">
-					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core' ); ?></p>
-					<h1><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></h1>
-					<p><?php esc_html_e( 'Documentación de Core: manual de usuario y manual técnico, en una misma sección.', 'taxocommerce-core' ); ?></p>
+					<p class="tcc-page-header__eyebrow"><?php esc_html_e( 'TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+					<h1><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h1>
+					<p><?php esc_html_e( 'Documentación de Core: manual de usuario y manual técnico, en una misma sección.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 				</div>
 			</header>
-			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core' ); ?>">
-				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core' ); ?></a>
-				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core' ); ?></a>
-				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a>
+			<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Navegación de TaxoCommerce Core', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
+				<a class="nav-tab" href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core' ) ); ?>"><?php esc_html_e( 'Overview', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
+				<a class="nav-tab nav-tab-active" aria-current="page" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'User Guide', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
+				<a class="nav-tab" href="<?php echo esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ); ?>"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 			</nav>
-			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core' ); ?>">
-				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core' ); ?></a>
-				<a class="tcc-guide-manual-tab<?php echo 'technical' === $manual ? ' is-active' : ''; ?>" <?php echo 'technical' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( add_query_arg( 'manual', 'technical', $base_url ) ); ?>"><?php esc_html_e( 'Technical Manual', 'taxocommerce-core' ); ?></a>
+			<nav class="tcc-guide-manual-tabs" aria-label="<?php esc_attr_e( 'Tipo de manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
+				<a class="tcc-guide-manual-tab<?php echo 'user' === $manual ? ' is-active' : ''; ?>" <?php echo 'user' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( $base_url ); ?>"><?php esc_html_e( 'User Manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
+				<a class="tcc-guide-manual-tab<?php echo 'technical' === $manual ? ' is-active' : ''; ?>" <?php echo 'technical' === $manual ? 'aria-current="page"' : ''; ?> href="<?php echo esc_url( add_query_arg( 'manual', 'technical', $base_url ) ); ?>"><?php esc_html_e( 'Technical Manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a>
 			</nav>
 			<?php if ( 'technical' === $manual ) : ?>
 				<?php TaxoCommerce_Core_Technical_Guide::render(); ?>
 			<?php else : ?>
 			<div class="tcc-guide-layout">
-				<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual', 'taxocommerce-core' ); ?>">
-					<strong><?php esc_html_e( 'En esta guía', 'taxocommerce-core' ); ?></strong>
+				<nav class="tcc-guide-index" aria-label="<?php esc_attr_e( 'Índice del manual', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>">
+					<strong><?php esc_html_e( 'En esta guía', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></strong>
 					<ol>
-						<li><a href="#tc-guide-intro"><?php esc_html_e( '¿Para qué sirve?', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-start"><?php esc_html_e( 'Primeros pasos', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-content"><?php esc_html_e( 'Contenidos', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-hierarchy"><?php esc_html_e( 'Jerarquía SEO', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-menus"><?php esc_html_e( 'Gestor de menús', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-test"><?php esc_html_e( 'Autocheck', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-extensions"><?php esc_html_e( 'Extensiones', 'taxocommerce-core' ); ?></a></li>
-						<li><a href="#tc-guide-help"><?php esc_html_e( 'Preguntas habituales', 'taxocommerce-core' ); ?></a></li>
+						<li><a href="#tc-guide-intro"><?php esc_html_e( '¿Para qué sirve?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-start"><?php esc_html_e( 'Primeros pasos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-content"><?php esc_html_e( 'Contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-hierarchy"><?php esc_html_e( 'Jerarquía SEO', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-menus"><?php esc_html_e( 'Gestor de menús', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-test"><?php esc_html_e( 'Autocheck', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-extensions"><?php esc_html_e( 'Extensiones', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
+						<li><a href="#tc-guide-help"><?php esc_html_e( 'Preguntas habituales', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></li>
 					</ol>
 				</nav>
 				<main class="tcc-guide-article">
 					<section id="tc-guide-intro">
-						<h2><?php esc_html_e( '1. ¿Para qué sirve TaxoCommerce Core?', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'TaxoCommerce Core organiza los contenidos, la estructura SEO y los menús de una tienda WordPress con WooCommerce. También muestra los módulos de la familia TaxoCommerce que puedes gestionar por separado.', 'taxocommerce-core' ); ?></p>
-						<p><?php esc_html_e( 'Trabaja sobre los productos, páginas, entradas y categorías reales de WordPress y WooCommerce: no crea una segunda copia independiente de tu catálogo.', 'taxocommerce-core' ); ?></p>
+						<h2><?php esc_html_e( '1. ¿Para qué sirve TaxoCommerce Core?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'TaxoCommerce Core organiza los contenidos, la estructura SEO y los menús de una tienda WordPress con WooCommerce. También muestra los módulos de la familia TaxoCommerce que puedes gestionar por separado.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php esc_html_e( 'Trabaja sobre los productos, páginas, entradas y categorías reales de WordPress y WooCommerce: no crea una segunda copia independiente de tu catálogo.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 					</section>
 					<section id="tc-guide-start">
-						<h2><?php esc_html_e( '2. Primeros pasos', 'taxocommerce-core' ); ?></h2>
+						<h2><?php esc_html_e( '2. Primeros pasos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
 						<ol>
 							<li><?php echo wp_kses_post( sprintf(
 							/* translators: %s: link to the Core dashboard. */
-							__( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
-							<li><?php esc_html_e( 'Entra en Content y revisa los contenidos y sus países antes de hacer cambios.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos.', 'taxocommerce-core' ); ?></li>
+							__( 'Abre %s para ver el estado general y los accesos a cada módulo.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ), self::link( 'taxocommerce-core', 'TaxoCommerce Core' ) ) ); ?></li>
+							<li><?php esc_html_e( 'Entra en Content y revisa los contenidos y sus países antes de hacer cambios.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Si vas a organizar la navegación por temas, configura primero SEO Hierarchy y después Menu Manager.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Ejecuta Auto Test para comprobar el funcionamiento básico sin cambiar contenidos.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
 						</ol>
 					</section>
 					<section id="tc-guide-content">
-						<h2><?php esc_html_e( '3. Content: gestionar contenidos', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'Desde Content puedes consultar y editar productos, categorías de producto, entradas y páginas. La vista de resumen presenta el inventario; Anomalías muestra problemas detectados en los contenidos.', 'taxocommerce-core' ); ?></p>
-						<h3><?php esc_html_e( 'Cómo editar un contenido', 'taxocommerce-core' ); ?></h3>
+						<h2><?php esc_html_e( '3. Content: gestionar contenidos', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'Desde Content puedes consultar y editar productos, categorías de producto, entradas y páginas. La vista de resumen presenta el inventario; Anomalías muestra problemas detectados en los contenidos.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<h3><?php esc_html_e( 'Cómo editar un contenido', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
 						<ol>
-							<li><?php esc_html_e( 'Selecciona Productos, Categorías de producto, Posts o Páginas.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Localiza el elemento y abre su editor.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Revisa el texto, el estado y el país del contenido; guarda únicamente los cambios deseados.', 'taxocommerce-core' ); ?></li>
+							<li><?php esc_html_e( 'Selecciona Productos, Categorías de producto, Posts o Páginas.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Localiza el elemento y abre su editor.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Revisa el texto, el estado y el país del contenido; guarda únicamente los cambios deseados.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
 						</ol>
-						<h3><?php esc_html_e( 'Países e internacionalización', 'taxocommerce-core' ); ?></h3>
-						<p><?php esc_html_e( 'El selector de país distingue ES, US, FR, DE y NL. Elegir un país identifica el mercado del contenido, pero no traduce textos ni cambia automáticamente su URL o sus relaciones SEO. Comprueba el país antes de guardar contenidos internacionales.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-content', __( 'Abrir Content', 'taxocommerce-core' ) ) ); ?></p>
+						<h3><?php esc_html_e( 'Países e internacionalización', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
+						<p><?php esc_html_e( 'El selector de país distingue ES, US, FR, DE y NL. Elegir un país identifica el mercado del contenido, pero no traduce textos ni cambia automáticamente su URL o sus relaciones SEO. Comprueba el país antes de guardar contenidos internacionales.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-content', __( 'Abrir Content', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-hierarchy">
-						<h2><?php esc_html_e( '4. SEO Hierarchy: organizar la arquitectura', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'La jerarquía relaciona las páginas que presentan grandes áreas temáticas con las categorías y los productos de la tienda.', 'taxocommerce-core' ); ?></p>
-						<div class="tcc-guide-chain" role="img" aria-label="<?php esc_attr_e( 'Cluster, Hub primario, Hub secundario, Categoría, Producto', 'taxocommerce-core' ); ?>"><?php esc_html_e( 'Cluster → Hub primario → Hub secundario → Categoría → Producto', 'taxocommerce-core' ); ?></div>
-						<h3><?php esc_html_e( 'Cómo utilizarla', 'taxocommerce-core' ); ?></h3>
-						<p><?php esc_html_e( 'Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-hierarchy', __( 'Abrir SEO Hierarchy', 'taxocommerce-core' ) ) ); ?></p>
+						<h2><?php esc_html_e( '4. SEO Hierarchy: organizar la arquitectura', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'La jerarquía relaciona las páginas que presentan grandes áreas temáticas con las categorías y los productos de la tienda.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<div class="tcc-guide-chain" role="img" aria-label="<?php esc_attr_e( 'Cluster, Hub primario, Hub secundario, Categoría, Producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?>"><?php esc_html_e( 'Cluster → Hub primario → Hub secundario → Categoría → Producto', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></div>
+						<h3><?php esc_html_e( 'Cómo utilizarla', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
+						<p><?php esc_html_e( 'Selecciona el país, asigna un papel SEO a las páginas y revisa las relaciones entre niveles. Guarda los cambios de forma controlada. Un contenido no debe relacionarse con otro de un país diferente.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-hierarchy', __( 'Abrir SEO Hierarchy', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-menus">
-						<h2><?php esc_html_e( '5. Menu Manager: construir la navegación', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'Gestor de menús incluye Menús SEO / WooCommerce y Menús WordPress, independientes entre sí.', 'taxocommerce-core' ); ?></p>
-                        <h3><?php esc_html_e( 'Menús WordPress (sin WooCommerce)', 'taxocommerce-core' ); ?></h3>
+						<h2><?php esc_html_e( '5. Menu Manager: construir la navegación', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'Gestor de menús incluye Menús SEO / WooCommerce y Menús WordPress, independientes entre sí.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+                        <h3><?php esc_html_e( 'Menús WordPress (sin WooCommerce)', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
                         <ol>
-                            <li><?php esc_html_e( 'En Gestor de menús, abre la pestaña Menús WordPress.', 'taxocommerce-core' ); ?></li>
-                            <li><?php esc_html_e( 'Carga un menú existente o crea uno nuevo; cargar no modifica los menús publicados.', 'taxocommerce-core' ); ?></li>
-                            <li><?php esc_html_e( 'Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y posición.', 'taxocommerce-core' ); ?></li>
-                            <li><?php esc_html_e( 'Pulsa Guardar menú para grabar juntos el nombre y los cambios de sus elementos. Hasta entonces son cambios sin guardar. Añadir o quitar un elemento sí se guarda al confirmar su operación.', 'taxocommerce-core' ); ?></li>
-                            <li><?php esc_html_e( 'Para eliminar un menú básico, selecciona ese menú y usa Eliminar menú; exige marcar la casilla y confirmar. No se permite borrar los menús SEO de país.', 'taxocommerce-core' ); ?></li>
-                            <li><?php esc_html_e( 'Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema.', 'taxocommerce-core' ); ?></li>
+                            <li><?php esc_html_e( 'En Gestor de menús, abre la pestaña Menús WordPress.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+                            <li><?php esc_html_e( 'Carga un menú existente o crea uno nuevo; cargar no modifica los menús publicados.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+                            <li><?php esc_html_e( 'Añade páginas, entradas, categorías y enlaces, y edita jerarquía, texto y posición.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+                            <li><?php esc_html_e( 'Pulsa Guardar menú para grabar juntos el nombre y los cambios de sus elementos. Hasta entonces son cambios sin guardar. Añadir o quitar un elemento sí se guarda al confirmar su operación.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+                            <li><?php esc_html_e( 'Para eliminar un menú básico, selecciona ese menú y usa Eliminar menú; exige marcar la casilla y confirmar. No se permite borrar los menús SEO de país.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+                            <li><?php esc_html_e( 'Para publicarlo en el sitio, asígnalo expresamente a una ubicación del tema.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
                         </ol>
-                        <p><?php esc_html_e( 'La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO.', 'taxocommerce-core' ); ?></p>
-						<h3><?php esc_html_e( 'Crear y publicar un menú', 'taxocommerce-core' ); ?></h3>
+                        <p><?php esc_html_e( 'La pestaña básica no requiere WooCommerce ni sincroniza la jerarquía SEO.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<h3><?php esc_html_e( 'Crear y publicar un menú', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
 						<ol>
-							<li><?php esc_html_e( 'Selecciona el país del menú.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Revisa la propuesta y pulsa Crear menú desde la jerarquía o Sincronizar propuesta cuando proceda.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Añade los elementos manuales que necesites. Se conservan al sincronizar.', 'taxocommerce-core' ); ?></li>
-							<li><?php esc_html_e( 'Selecciona una ubicación del tema y pulsa Activar en esta ubicación si deseas mostrarlo en la web.', 'taxocommerce-core' ); ?></li>
+							<li><?php esc_html_e( 'Selecciona el país del menú.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Revisa la propuesta y pulsa Crear menú desde la jerarquía o Sincronizar propuesta cuando proceda.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Añade los elementos manuales que necesites. Se conservan al sincronizar.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
+							<li><?php esc_html_e( 'Selecciona una ubicación del tema y pulsa Activar en esta ubicación si deseas mostrarlo en la web.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></li>
 						</ol>
-						<p><?php esc_html_e( 'Abrir esta pantalla no crea ni publica un menú. Los elementos generados automáticamente se organizan desde SEO Hierarchy. Puedes restaurar las ubicaciones anteriores si se ha guardado una copia válida.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-menu', __( 'Abrir Menu Manager', 'taxocommerce-core' ) ) ); ?></p>
+						<p><?php esc_html_e( 'Abrir esta pantalla no crea ni publica un menú. Los elementos generados automáticamente se organizan desde SEO Hierarchy. Puedes restaurar las ubicaciones anteriores si se ha guardado una copia válida.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php echo wp_kses_post( self::link( 'taxocommerce-core-menu', __( 'Abrir Menu Manager', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) ) ); ?></p>
 					</section>
 					<section id="tc-guide-test">
-						<h2><?php esc_html_e( '6. Auto Test: comprobar el sistema', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'Auto Test ejecuta comprobaciones bajo demanda de módulos, lectura de contenidos, países, jerarquía y menús. Presenta resultados correctos, fallidos o no ejecutados, con información para localizar incidencias.', 'taxocommerce-core' ); ?></p>
-						<p><?php esc_html_e( 'Las pruebas automáticas son de lectura: no sustituyen una prueba real de edición, publicación o sincronización en un entorno de pruebas.', 'taxocommerce-core' ); ?></p>
-						<p><?php echo '<a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Abrir Auto Test', 'taxocommerce-core' ) . '</a>'; ?></p>
+						<h2><?php esc_html_e( '6. Auto Test: comprobar el sistema', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'Auto Test ejecuta comprobaciones bajo demanda de módulos, lectura de contenidos, países, jerarquía y menús. Presenta resultados correctos, fallidos o no ejecutados, con información para localizar incidencias.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php esc_html_e( 'Las pruebas automáticas son de lectura: no sustituyen una prueba real de edición, publicación o sincronización en un entorno de pruebas.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php echo '<a href="' . esc_url( add_query_arg( array( 'page' => 'taxocommerce-core', 'tab' => 'auto-test' ), admin_url( 'admin.php' ) ) ) . '">' . esc_html__( 'Abrir Auto Test', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) . '</a>'; ?></p>
 					</section>
 					<section id="tc-guide-extensions">
-						<h2><?php esc_html_e( '7. Extensions: ampliar TaxoCommerce', 'taxocommerce-core' ); ?></h2>
-						<p><?php esc_html_e( 'En la parte inferior de la portada aparecen las extensiones independientes con su estado, versión y controles disponibles según tus permisos. Por ejemplo, Images, Suppliers, Database, Vocabulary o System Check se instalan y gestionan como plugins separados.', 'taxocommerce-core' ); ?></p>
-						<p><?php esc_html_e( 'Una extensión no instalada no añade automáticamente sus funciones a Core. Antes de instalar o activar un ZIP, comprueba que corresponda al plugin indicado y que sea compatible con tu instalación.', 'taxocommerce-core' ); ?></p>
-						<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core#tcc-extensions' ) ); ?>"><?php esc_html_e( 'Ver Extensions', 'taxocommerce-core' ); ?></a></p>
+						<h2><?php esc_html_e( '7. Extensions: ampliar TaxoCommerce', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<p><?php esc_html_e( 'En la parte inferior de la portada aparecen las extensiones independientes con su estado, versión y controles disponibles según tus permisos. Por ejemplo, Images, Suppliers, Database, Vocabulary o System Check se instalan y gestionan como plugins separados.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><?php esc_html_e( 'Una extensión no instalada no añade automáticamente sus funciones a Core. Antes de instalar o activar un ZIP, comprueba que corresponda al plugin indicado y que sea compatible con tu instalación.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<p><a href="<?php echo esc_url( admin_url( 'admin.php?page=taxocommerce-core#tcc-extensions' ) ); ?>"><?php esc_html_e( 'Ver Extensions', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></a></p>
 					</section>
 					<section id="tc-guide-help">
-						<h2><?php esc_html_e( '8. Preguntas habituales', 'taxocommerce-core' ); ?></h2>
-						<h3><?php esc_html_e( '¿Core cambia las fichas automáticamente?', 'taxocommerce-core' ); ?></h3>
-						<p><?php esc_html_e( 'No. El manual y las recomendaciones editoriales no modifican fichas. El editor guarda únicamente cuando realizas la acción correspondiente.', 'taxocommerce-core' ); ?></p>
-						<h3><?php esc_html_e( '¿Necesito todos los plugins TaxoCommerce?', 'taxocommerce-core' ); ?></h3>
-						<p><?php esc_html_e( 'No. Core funciona por separado y cada extensión aporta funciones adicionales cuando está instalada y activa.', 'taxocommerce-core' ); ?></p>
-						<h3><?php esc_html_e( '¿Por qué no veo una función mencionada en otra extensión?', 'taxocommerce-core' ); ?></h3>
-						<p><?php esc_html_e( 'Puede pertenecer a otro plugin, estar desactivada o requerir permisos específicos. Revisa el estado de la extensión en la portada de Core.', 'taxocommerce-core' ); ?></p>
+						<h2><?php esc_html_e( '8. Preguntas habituales', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h2>
+						<h3><?php esc_html_e( '¿Core cambia las fichas automáticamente?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
+						<p><?php esc_html_e( 'No. El manual y las recomendaciones editoriales no modifican fichas. El editor guarda únicamente cuando realizas la acción correspondiente.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<h3><?php esc_html_e( '¿Necesito todos los plugins TaxoCommerce?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
+						<p><?php esc_html_e( 'No. Core funciona por separado y cada extensión aporta funciones adicionales cuando está instalada y activa.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
+						<h3><?php esc_html_e( '¿Por qué no veo una función mencionada en otra extensión?', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></h3>
+						<p><?php esc_html_e( 'Puede pertenecer a otro plugin, estar desactivada o requerir permisos específicos. Revisa el estado de la extensión en la portada de Core.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ); ?></p>
 					</section>
 				</main>
 			</div>

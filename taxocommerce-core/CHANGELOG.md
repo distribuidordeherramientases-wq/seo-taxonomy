@@ -1,3 +1,10 @@
+## [0.4.77] — 2026-11-11 — Dominio gettext y slug de WordPress.org (#2560)
+
+- Se alinean las llamadas de traducción y la cabecera con el slug asignado `taxocommerce-core-catalog-content-management-for-woocommerce`, eliminando las causas de los 1.053 errores `TextDomainMismatch` comunicados.
+- Se incluyen catálogos de los cinco idiomas ES/EN/FR/DE/NL con el dominio oficial sin alterar los textos traducidos; los catálogos anteriores quedan disponibles para las instalaciones GitHub heredadas.
+- Se mantiene la ruta técnica de las instalaciones actuales, así como los slugs de administración, las tablas y las opciones, evitando desactivaciones.
+- Se valida y empaqueta Core para WordPress.org bajo su carpeta oficial, sin modificar los demás plugins ni el comportamiento de contenidos, menús o pedidos.
+
 ## [0.4.76] — 2026-11-11 — Preparar documentación WordPress.org (#2557)
 
 - Se simplifica `readme.txt`, conservando descripción, funcionalidades, instalación, preguntas frecuentes e historial reciente; el histórico completo sigue en `CHANGELOG.md` y `changelog.txt`.
