@@ -32,6 +32,18 @@ class CoreDistributionTests(unittest.TestCase):
         self.assertIn("$slug = 'taxocommerce-core';", result)
         self.assertIn("// __( 'Comment', 'taxocommerce-core' );", result)
 
+    def test_inline_php_in_html_attributes_is_translated_without_changing_html(self):
+        example = """<nav aria-label="<?php esc_attr_e( 'Nav', 'taxocommerce-core' ); ?>">
+        <input placeholder="<?php echo esc_attr__( 'Search', 'taxocommerce-core' ); ?>">
+        <?php $slug = 'taxocommerce-core'; ?>
+        """
+        result, count = MODULE.adapt_gettext_calls(example)
+        self.assertEqual(count, 2)
+        self.assertIn("esc_attr_e( 'Nav', '" + MODULE.OFFICIAL + "'", result)
+        self.assertIn("esc_attr__( 'Search', '" + MODULE.OFFICIAL + "'", result)
+        self.assertIn("$slug = 'taxocommerce-core';", result)
+        self.assertIn('<nav aria-label="<?php', result)
+
     def test_complete_official_archive_can_be_derived_without_editing_source(self):
         original = ROOT / MODULE.INSTALLED
         self.assertTrue((original / (MODULE.INSTALLED + ".php")).is_file())
