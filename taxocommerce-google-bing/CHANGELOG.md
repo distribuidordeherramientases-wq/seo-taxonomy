@@ -1,3 +1,8 @@
+## [1.1.47] — 2026-11-11 — Fecha independiente para GA4
+
+- Los informes GA4 de Analysis, Fuentes, Estrategia y Competencia consultan su propio periodo finalizado hasta ayer; la última fecha SQL de Search Console ya no recorta las métricas GA4.
+- Se invalida el antiguo espacio de caché GA4 para evitar mostrar informes con fechas antiguas. No se modifica la sincronización GSC restaurada en 1.1.46, las conexiones OAuth/cuentas de servicio ni los JSON guardados.
+
 ## [1.1.46] — 2026-11-11 — Recuperar conexión y sincronización real de Google en Insights
 
 - Analysis vuelve a cargar el módulo de datos SQL de Search Console que se perdió al independizar el plugin, con su sincronización manual por días vía AJAX y sin cron.
