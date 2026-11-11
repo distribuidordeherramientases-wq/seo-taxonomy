@@ -1,3 +1,11 @@
+## [1.1.49] — 2026-11-11 — Corrección visual de botones de Analysis (#2546)
+
+- Restablece el contraste de «Crear informe» y «Ejecutar informe completo» (fondo azul, texto blanco), antes ocultos por los estilos heredados de las tarjetas.
+- Coloca los controles superiores en una fila compacta y mantiene accesible «Descargar JSON», incluido su estado deshabilitado sin informe previo.
+- Recupera el título visible de la tarjeta al ejecutar el análisis individual por AJAX.
+- Conserva las diez tarjetas en cinco columnas por dos filas, la descarga del último JSON, el motor de informes y las demás pestañas sin cambios.
+- Amplía las comprobaciones estáticas para cubrir contraste, controles y etiqueta de ejecución.
+
 ## [1.1.48] — 2026-11-11 — Tarjetas de Analysis con dos acciones independientes (#2546)
 
 - Diez informes en una cuadrícula de cinco columnas por dos filas en escritorio, adaptable a móvil.
