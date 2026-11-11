@@ -85,7 +85,7 @@ tgb_sync_assert( 'oauth' === $chosen['auth'], 'OAuth should be selected first wh
 tgb_sync_assert( 'sc-domain:new.test' === $bridge::settings( array( 'property_id' => 'sc-domain:legacy.test' ) )['property_id'], 'Analysis must use modern property' );
 tgb_sync_assert( 'oauth-token' === $bridge::access_token(), 'Importer must use modern OAuth token' );
 $bridge::record_completed();
-tgb_sync_assert( '2026-11-11 12:00:00' === get_option( 'taxocommerce_google_bing_gsc_sync_last_v1' ), 'Last sync tracked in new option' );
+tgb_sync_assert( '2026-11-11 12:00:00' === get_option( 'tgb_gsc_sync_last_v1' ), 'Last sync tracked in new option' );
 tgb_sync_assert( ! in_array( 'seo_google_intelligence_settings', $GLOBALS['tgb_sync_writes'], true ), 'Legacy credentials must never be rewritten' );
 tgb_sync_assert( ! in_array( 'seo_google_intelligence_tokens', $GLOBALS['tgb_sync_writes'], true ), 'Legacy OAuth token must never be rewritten' );
 
@@ -100,7 +100,7 @@ tgb_sync_assert( 2 === count( $GLOBALS['tgb_sync_requests'] ), 'Should probe OAu
 tgb_sync_reset();
 $denied = $bridge::verify_and_select();
 tgb_sync_assert( is_wp_error( $denied ), 'Must fail closed when neither Google credential/property pair works' );
-tgb_sync_assert( ! isset( $GLOBALS['tgb_sync_options']['taxocommerce_google_bing_gsc_sync_selection_v1'] ), 'Failed connection cannot persist a verified property' );
+tgb_sync_assert( ! isset( $GLOBALS['tgb_sync_options']['tgb_gsc_sync_selection_v1'] ), 'Failed connection cannot persist a verified property' );
 tgb_sync_assert( 'DO-NOT-TOUCH' === $GLOBALS['tgb_sync_options']['seo_google_intelligence_tokens']['refresh_token'], 'Legacy saved refresh token remains intact' );
 
 // Source-level regression: the old SQL importer must be loaded only once,
