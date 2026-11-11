@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Insights_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.45' );
+define( 'TAXOCOMMERCE_GOOGLE_BING_VERSION', '1.1.46' );
 define( 'TAXOCOMMERCE_GOOGLE_BING_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_GOOGLE_BING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_GOOGLE_BING_URL', plugin_dir_url( __FILE__ ) );
@@ -48,6 +48,11 @@ require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-connec
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-connections.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-oauth.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc.php';
+// Reporting and Search Console sync are owned by Insights, not the retired SEO monolith.
+require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-google-service.php';
+if ( ! function_exists( 'seo_google_get_settings' ) ) {
+    require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
+}
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-reports.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends.php';
 require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-trends-hierarchy.php';
@@ -154,7 +159,7 @@ function taxocommerce_google_bing_screen() {
     } elseif ( 'search' === $tab ) {
         $tab = 'google_search';
     }
-    if ( ! in_array( $tab, array( 'connections', 'analysis', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
+    if ( ! in_array( $tab, array( 'connections', 'analysis', 'sync', 'google_search', 'google_analytics', 'bing', 'google_trends', 'head_tags', 'ecommerce', 'consent', 'user_guide', 'auto_test' ), true ) ) {
         $tab = 'connections';
     }
 
@@ -165,6 +170,7 @@ function taxocommerce_google_bing_screen() {
         array(
             'connections'      => 'Connections',
             'analysis'         => 'Analysis',
+            'sync'             => __( 'Sincronización GSC', 'taxocommerce-google-bing' ),
             'google_search'    => 'Google Search',
             'google_analytics' => 'Google Analytics',
             'bing'             => 'Bing',
@@ -202,6 +208,12 @@ function taxocommerce_google_bing_screen() {
         TaxoCommerce_Google_Bing_User_Guide::render();
     } elseif ( 'analysis' === $tab ) {
         taxocommerce_google_bing_analysis_screen();
+    } elseif ( 'sync' === $tab ) {
+        if ( function_exists( 'seo_google_render_sync_status' ) ) {
+            seo_google_render_sync_status();
+        } else {
+            echo '<div class="notice notice-error inline"><p>' . esc_html__( 'El motor de sincronización GSC no está disponible.', 'taxocommerce-google-bing' ) . '</p></div>';
+        }
     } elseif ( 'google_trends' === $tab ) {
         TaxoCommerce_Google_Bing_Trends::render();
     } else {
@@ -266,6 +278,30 @@ function taxocommerce_google_bing_analysis_screen() {
         );
 
     echo '<div class="seo-analista-wrap">';
+
+    // The Analyst reads local GSC tables, not the manual Google Search report snapshot.
+    // A successful API download in that other tab does not make this dataset current.
+    if ( function_exists( 'seo_analista_resolve_property_id' ) && function_exists( 'seo_google_latest_data_date' ) ) {
+        $gsc_property = seo_analista_resolve_property_id();
+        $gsc_latest = $gsc_property ? (string) seo_google_latest_data_date( $gsc_property ) : '';
+        $gsc_final_date = function_exists( 'seo_google_finalized_end_date' )
+            ? seo_google_finalized_end_date()
+            : ( new DateTimeImmutable( 'now', new DateTimeZone( 'America/Los_Angeles' ) ) )->modify( '-3 days' )->format( 'Y-m-d' );
+        if ( '' === $gsc_latest || $gsc_latest < $gsc_final_date ) {
+            $gsc_sync_url = add_query_arg(
+                array( 'page' => 'taxocommerce-google-bing', 'tgb_tab' => 'sync' ),
+                admin_url( 'admin.php' )
+            );
+            $last_label = '' !== $gsc_latest ? $gsc_latest : __( 'ninguno', 'taxocommerce-google-bing' );
+            echo '<div class="notice notice-warning inline"><p><strong>'
+                . esc_html__( 'Search Console no está sincronizado hasta el último día finalizado.', 'taxocommerce-google-bing' )
+                . '</strong> ' . esc_html__( 'Último día guardado:', 'taxocommerce-google-bing' ) . ' '
+                . esc_html( $last_label ) . '. '
+                . esc_html__( 'Analysis consulta tablas locales; actualizar la pestaña Google Search no actualiza esas tablas.', 'taxocommerce-google-bing' )
+                . ' <a href="' . esc_url( $gsc_sync_url ) . '">'
+                . esc_html__( 'Sincronizar GSC', 'taxocommerce-google-bing' ) . '</a></p></div>';
+        }
+    }
     echo '<div class="seo-analista-toolbar">';
     echo '<div>' . '<h2 style="margin:0 0 4px">' . esc_html__( 'Analysis', 'taxocommerce-google-bing' ) . '</h2>';
     echo '<p style="margin:0;color:#646970">' . esc_html__( 'El Plan de acción reúne recomendaciones y tareas priorizadas; el resto de informes sigue bajo demanda.', 'taxocommerce-google-bing' ) . '</p>' . '</div>';
