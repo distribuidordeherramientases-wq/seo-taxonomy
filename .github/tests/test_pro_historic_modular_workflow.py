@@ -59,7 +59,7 @@ class HistoricModularDeployTests(unittest.TestCase):
     def test_only_existing_modules_and_sha256_verified_by_wordpress(self):
         text = self.workflow
         self.assertIn("find . -maxdepth 1 -mindepth 1 -type d -name 'taxocommerce-*'", text)
-        self.assertIn('if [ ! -f "$module/$module.php" ]; then', text)
+        self.assertIn('test -f "$module/$module.php"', text)
         self.assertIn('for module in "${selected_modules[@]}"; do', text)
         self.assertIn('zip -q "$package" "${changed_files[@]}"', text)
         self.assertIn("unzip -t \"$package\"", text)
