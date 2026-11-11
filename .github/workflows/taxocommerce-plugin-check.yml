@@ -60,6 +60,16 @@ jobs:
               )
               if not selected:
                   raise SystemExit("No TaxoCommerce plugins found for strict gate")
+          elif os.environ.get("REQUESTED_PLUGIN") == "changed":
+              diff = subprocess.check_output(
+                  ["git", "diff", "--name-only", "-z", "HEAD^", "HEAD"]
+              ).decode("utf-8").split("\0")
+              selected = sorted({
+                  name.split("/", 1)[0]
+                  for name in diff
+                  if name.startswith("taxocommerce-") and "/" in name
+                  and (Path(name.split("/", 1)[0]) / (name.split("/", 1)[0] + ".php")).is_file()
+              })
           elif os.environ["EVENT_NAME"] == "workflow_dispatch":
               selected = [os.environ["REQUESTED_PLUGIN"]]
           else:
@@ -120,7 +130,18 @@ jobs:
             --exclude='uploads/' --exclude='*.bak' --exclude='*.log' \
             --exclude='*.pyc' --exclude='*.pot' --include='/CHANGELOG.md' --exclude='*.md' \
             "$PLUGIN/" "build/$TARGET_SLUG/"
-          test -f "build/$TARGET_SLUG/$PLUGIN.php"
+          if [ "$PLUGIN" = "taxocommerce-core" ]; then
+            # Check the already-installed short-slug directory *and* the
+            # assigned WordPress.org long-slug distribution independently.
+            mkdir -p "build/$PLUGIN"
+            rsync -a --exclude='tests/' --exclude='.*' --exclude='node_modules/' \
+              --exclude='uploads/' --exclude='*.bak' --exclude='*.log' \
+              --exclude='*.pyc' --exclude='*.pot' --include='/CHANGELOG.md' --exclude='*.md' \
+              "$PLUGIN/" "build/$PLUGIN/"
+            python3 .github/scripts/package_core_wordpress_org.py "build/$TARGET_SLUG"
+            test -f "build/$PLUGIN/$PLUGIN.php"
+          fi
+          test -f "build/$TARGET_SLUG/$TARGET_SLUG.php"
           test -f "build/$TARGET_SLUG/readme.txt"
           # All twenty independent plugins use their own bundled changelog.
           test -s "build/$TARGET_SLUG/CHANGELOG.md"
@@ -149,6 +170,16 @@ jobs:
             "$PLUGIN" "$GITHUB_SHA" "$GITHUB_RUN_ID" > "$PLUGIN-plugin-check-source.txt"
           echo "## Plugin Check: $PLUGIN" >> "$GITHUB_STEP_SUMMARY"
           echo "Candidate SHA: \`$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: Official WordPress Plugin Check - installed Core / 0 errors, 0 warnings
+        if: matrix.plugin == 'taxocommerce-core'
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: ./build/taxocommerce-core
+          slug: taxocommerce-core
+          wp-version: latest
+          ignore-warnings: false
+          ignore-errors: false
+          strict: true
       - name: Official WordPress Plugin Check - errors and warnings must pass
         uses: wordpress/plugin-check-action@v1
         with:
