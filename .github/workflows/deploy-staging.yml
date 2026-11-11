@@ -159,6 +159,9 @@ jobs:
           php -l taxocommerce-google-bing/includes/class-taxocommerce-insights-consent.php
           php taxocommerce-google-bing/tests/consent-smoke.php
           php taxocommerce-google-bing/tests/analysis-standalone-smoke.php
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-google-bing-gsc-sync-bridge.php
+          php -l taxocommerce-google-bing/includes/class-taxocommerce-google-bing-google-service.php
+          php taxocommerce-google-bing/tests/gsc-sync-bridge-smoke.php
           php taxocommerce-google-bing/tests/analysis-unified-smoke.php
           php -l taxocommerce-google-bing/tests/analysis-mobile-smoke.php
           php taxocommerce-google-bing/tests/analysis-mobile-smoke.php
@@ -266,6 +269,7 @@ jobs:
           php .github/tests/taxocommerce-core/category-hierarchy-native-smoke.php
           php -l taxocommerce-core/includes/class-taxocommerce-core-block-navigation.php
           php .github/tests/taxocommerce-core/anomalies-configured-smoke.php
+          php taxocommerce-core/tests/anomalies-complete-json-smoke.php
           php .github/tests/taxocommerce-core/block-navigation-smoke.php
           php .github/tests/taxocommerce-core/sidebar-plugins-smoke.php
           php .github/tests/taxocommerce-core/official-info-static-smoke.php

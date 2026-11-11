@@ -1,3 +1,17 @@
+## [1.1.47] — 2026-11-11 — Fecha independiente para GA4
+
+- Los informes GA4 de Analysis, Fuentes, Estrategia y Competencia consultan su propio periodo finalizado hasta ayer; la última fecha SQL de Search Console ya no recorta las métricas GA4.
+- Se invalida el antiguo espacio de caché GA4 para evitar mostrar informes con fechas antiguas. No se modifica la sincronización GSC restaurada en 1.1.46, las conexiones OAuth/cuentas de servicio ni los JSON guardados.
+
+## [1.1.46] — 2026-11-11 — Recuperar conexión y sincronización real de Google en Insights
+
+- Analysis vuelve a cargar el módulo de datos SQL de Search Console que se perdió al independizar el plugin, con su sincronización manual por días vía AJAX y sin cron.
+- Un puente utiliza las credenciales y la propiedad verificadas de Connections (OAuth o cuenta de servicio) sin copiar, borrar ni reescribir los secretos heredados o actuales.
+- El inicio de sincronización comprueba con una petición real a Google que la pareja credencial/propiedad tiene acceso antes de escribir datos; si falla OAuth prueba la cuenta de servicio.
+- Google Analytics en Analysis vuelve a consultar `properties/{property}:runReport`, con el ámbito OAuth `analytics.readonly`, en lugar de una llamada a un método inexistente.
+- Mantiene las estadísticas almacenadas, los informes guardados, los botones de descarga JSON, el Plan de acción y el resto de las integraciones sin alterarlos.
+- Añadida prueba de regresión offline para selección OAuth/cuenta de servicio y preservación de opciones, e incorporada al workflow de validación.
+
 ## [1.1.45] — 2026-11-10 — Dos botones superiores y último JSON fechado (#2537)
 
 - El botón «Plan de acción» y «Descargar JSON del plan de acción» aparecen juntos arriba, antes de los resultados; la descarga inferior se elimina.

@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.45
+Stable tag: 1.1.47
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,12 +23,12 @@ External connections, manual provider data downloads, and the restored legacy An
 TaxoCommerce Insights keeps external service connections and manual data downloads in one place.
 
 * Connections: Google Search Console, Google Analytics, Google Merchant Center, Bing Webmaster, Amazon and Pinterest.
-* Google Search downloads.
+* Google Search downloads and explicit day-by-day synchronization of the historical Search Console tables used by Analysis, authorized via current Connections OAuth or service-account credentials.
 * Google Analytics downloads; optional GA4 product add-to-cart item chart and ecommerce event comparison in saved reports.
 * Bing downloads.
 * Optional IndexNow notifications for public URL changes, independent of Cloudflare; disabled by default to avoid duplicate providers. Configure in Connections > Bing. Uses WP-Cron, so regular scheduled execution is required.
 * Google Trends automatically compares all Spanish clusters (up to 5 per chart), then separately compares each cluster's primary hubs on page load. The underlying SEO hierarchy is dynamic, category and secondary-hub consultations remain manual; five-speed browser load controller, pause/resume/stop, and links to Google Explore. Charts are visual and do not provide machine-readable growth scores or verification of search term meaning. Historical RSS snapshots remain supported.
-* Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views.
+* Analysis restores the previous working Analista engine inside Insights, including summary, content, structure, trends, comparison and work-plan views. Its historical GSC tables are refreshed by the separate Google Search synchronization button without WP-Cron. The GA4 Analysis adapter queries the live Data API through current Connections credentials.
 * User Guide contains read-only User Manual and Technical Manual explaining active features, integrations, data and maintenance.
 * The main technical folder remains taxocommerce-google-bing for compatibility; the displayed product name is TaxoCommerce Insights.
 
@@ -61,6 +61,10 @@ Only previously saved local information may be available. Live Google/Bing metri
 It is the continued plugin under the historical slug taxocommerce-google-bing, renamed to Insights and focused on unified connections and provider data downloads.
 
 == Changelog ==
+
+= 1.1.47 =
+* GA4 Analysis uses a self-contained window through yesterday; no longer inherits stale Search Console SQL dates. Existing GSC synchronization bridge and stored Google credentials are unchanged.
+
 
 = 1.1.45 =
 * Show two adjacent controls at the top of Analysis: run Plan de acción and download its latest saved JSON with its local generation date. Save only the last completed plan per site as a non-autoloaded WordPress option; authenticated nonce-protected download never recomputes reports. Remove lower-page JSON actions. Issue #2537.
