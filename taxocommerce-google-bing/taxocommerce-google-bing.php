@@ -75,11 +75,11 @@ function taxocommerce_google_bing_boot() {
     // Credentials are read from modern Connections without rewriting them.
     if ( ! function_exists( 'seo_google_get_settings' ) ) {
         require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/class-taxocommerce-google-bing-gsc-sync-bridge.php';
-        add_filter( 'tgb_gsc_sync_settings', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'settings' ) );
-        add_filter( 'tgb_gsc_sync_status', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'status' ) );
-        add_filter( 'tgb_gsc_sync_access_token', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'access_token' ) );
-        add_filter( 'tgb_gsc_sync_verify_start', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'verify_and_select' ) );
-        add_action( 'tgb_gsc_sync_completed', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'record_completed' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_settings', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'settings' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_status', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'status' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_access_token', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'access_token' ) );
+        add_filter( 'taxocommerce_google_bing_gsc_sync_verify_start', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'verify_and_select' ) );
+        add_action( 'taxocommerce_google_bing_gsc_sync_completed', array( 'TaxoCommerce_Google_Bing_GSC_Sync_Bridge', 'record_completed' ) );
         require_once TAXOCOMMERCE_GOOGLE_BING_PATH . 'includes/google/seo-google-info.php';
     }
 
