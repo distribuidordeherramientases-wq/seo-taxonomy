@@ -67,7 +67,7 @@ $total_cases = 0;
 
 foreach ( $slugs as $slug ) {
     $folder_slug = 'taxocommerce-' . $slug;
-    $domain = 'core' === $slug ? 'taxocommerce-core-catalog-content-management-for-woocommerce' : $folder_slug;
+    $domain = $folder_slug;
     $directory = $root . '/' . $folder_slug;
     $source = file_get_contents( $directory . '/' . $folder_slug . '.php' );
     verify( false !== $source, $domain . ' main PHP file missing' );

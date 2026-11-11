@@ -5,13 +5,13 @@
  */
 $root = dirname( __DIR__, 3 ) . '/taxocommerce-core';
 $main = file_get_contents( $root . '/taxocommerce-core.php' );
-if ( false === $main || false === strpos( $main, 'Text Domain: taxocommerce-core-catalog-content-management-for-woocommerce' ) || false === strpos( $main, 'Domain Path: /languages' ) ) {
+if ( false === $main || false === strpos( $main, 'Text Domain: taxocommerce-core' ) || false === strpos( $main, 'Domain Path: /languages' ) ) {
     throw new RuntimeException( 'Core textdomain metadata missing.' );
 }
 if ( false === strpos( $main, "add_action( 'init', 'taxocommerce_core_load_textdomain', 1 );" ) ) {
     throw new RuntimeException( 'Core translations must be loaded on init, not plugins_loaded.' );
 }
-$pot = file_get_contents( $root . '/languages/taxocommerce-core-catalog-content-management-for-woocommerce.pot' );
+$pot = file_get_contents( $root . '/languages/taxocommerce-core.pot' );
 if ( false === $pot || substr_count( $pot, 'msgid ' ) < 500 ) {
     throw new RuntimeException( 'Missing or incomplete gettext template.' );
 }
@@ -47,7 +47,7 @@ $locales = array(
     'nl_NL' => array( 'User Guide', 'Gebruikershandleiding' ),
 );
 foreach ( $locales as $locale => $sample ) {
-    $base = $root . '/languages/taxocommerce-core-catalog-content-management-for-woocommerce-' . $locale;
+    $base = $root . '/languages/taxocommerce-core-' . $locale;
     if ( ! is_file( $base . '.po' ) ) {
         throw new RuntimeException( 'PO is missing for ' . $locale );
     }
