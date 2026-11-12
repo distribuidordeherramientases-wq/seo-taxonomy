@@ -84,6 +84,8 @@ class HistoricModularDeployTests(unittest.TestCase):
         self.assertIn('manifest_sha256', text)
         self.assertIn('verified_files', text)
         self.assertIn('last_successful_source', selector)
+        self.assertNotIn('actions/jobs/', selector)
+        self.assertIn('branch=staging&status=success', selector)
         self.assertIn('merge-base', selector)
         for excluded in ('tests', 'uploads', 'node_modules', '.bak', '.log', '.pot'):
             self.assertIn(excluded, selector)
