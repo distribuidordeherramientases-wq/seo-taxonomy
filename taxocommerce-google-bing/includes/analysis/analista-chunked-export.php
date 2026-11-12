@@ -48,7 +48,6 @@ final class TaxoCommerce_Insights_Chunked_Export {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Permisos insuficientes.' ), 403 );
         }
-        check_ajax_referer( self::NONCE, 'nonce' );
     }
 
     private static function load() {
@@ -131,6 +130,8 @@ final class TaxoCommerce_Insights_Chunked_Export {
 
     public static function ajax() {
         self::authorize();
+        // Keep verification in the same entry point that reads POST fields.
+        check_ajax_referer( self::NONCE, 'nonce' );
         $op = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
         if ( 'start' === $op ) {
             $old = self::load();
@@ -177,8 +178,10 @@ final class TaxoCommerce_Insights_Chunked_Export {
         }
 
         // Prevent overlapping requests from appending the same step twice.
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- A private temporary stream needs an exclusive flock/read handle; WP_Filesystem has no locking or streaming API.
         $lock = fopen( $state['file'] . '.lock', 'c' );
         if ( ! $lock || ! flock( $lock, LOCK_EX | LOCK_NB ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
             if ( $lock ) fclose( $lock );
             wp_send_json_error( array( 'message' => 'Hay un bloque en curso. Reintentar.' ), 409 );
         }
@@ -239,6 +242,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
         }
         if ( ! self::append( $state['file'], $chunk ) ) {
             flock( $lock, LOCK_UN );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
             fclose( $lock );
             wp_send_json_error( array( 'message' => 'No se pudo guardar el bloque.' ), 500 );
         }
@@ -248,6 +252,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             $contents = file_get_contents( $state['file'] );
             if ( false === $contents ) {
                 flock( $lock, LOCK_UN );
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
                 fclose( $lock );
                 wp_send_json_error( array( 'message' => 'Error al leer el JSON final.' ), 500 );
             }
@@ -255,6 +260,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             unset( $contents );
             if ( JSON_ERROR_NONE !== json_last_error() ) {
                 flock( $lock, LOCK_UN );
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
                 fclose( $lock );
                 wp_send_json_error( array( 'message' => 'Los bloques no forman un JSON válido.' ), 500 );
             }
@@ -265,6 +271,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
         $after_cpu = self::cpu_ms();
         $cpu = null === $before_cpu || null === $after_cpu ? null : max( 0, $after_cpu - $before_cpu );
         flock( $lock, LOCK_UN );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
         fclose( $lock );
         wp_send_json_success( self::response( $state, $elapsed, $cpu ) );
     }
@@ -283,13 +290,15 @@ final class TaxoCommerce_Insights_Chunked_Export {
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="seo-analista-unificado-' . gmdate( 'Ymd-His' ) . '.json"' );
         header( 'Content-Length: ' . filesize( $state['file'] ) );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- A private temporary stream needs an exclusive flock/read handle; WP_Filesystem has no locking or streaming API.
         $handle = fopen( $state['file'], 'rb' );
         if ( $handle ) {
             while ( ! feof( $handle ) ) {
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Raw authenticated JSON stream.
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Stream raw private JSON via authenticated download; no filesystem alternative supports bounded output.
                 echo fread( $handle, 65536 );
                 flush();
             }
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the explicit temporary flock/stream handle before responding.
             fclose( $handle );
         }
         exit;
