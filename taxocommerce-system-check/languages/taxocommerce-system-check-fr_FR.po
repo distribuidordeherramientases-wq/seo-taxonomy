@@ -736,20 +736,20 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1773
 msgid "Análisis actualizado correctamente."
-msgstr ""
+msgstr "Analyse mise à jour avec succès."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1775
 #: includes/system-check/seo-system-diagnostics-reporting.php:1994
 msgid "No se pudo completar la actualización. Revisa el registro de errores."
-msgstr ""
+msgstr "Impossible de terminer la mise à jour. Consultez le journal des erreurs."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1779
 msgid "Global · todos los ámbitos"
-msgstr ""
+msgstr "Global · tous les domaines"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1780
 msgid "Resumen global de todos los chequeos"
-msgstr ""
+msgstr "Résumé général de tous les contrôles"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1781
 msgid ""
@@ -764,7 +764,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid "Estado global"
-msgstr ""
+msgstr "État général"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid ": consolidación ponderada de Servidor y SEO Core."
@@ -773,7 +773,7 @@ msgstr ""
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 #: includes/system-check/seo-system-server-status.php:2849
 msgid "Servidor"
-msgstr ""
+msgstr "Serveur"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 msgid ""
@@ -792,7 +792,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid "Contenido y FAQs"
-msgstr ""
+msgstr "Contenu et FAQ"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid ""
@@ -802,7 +802,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1852
 msgid "Contenido, categorías y FAQs"
-msgstr ""
+msgstr "Contenu, catégories et FAQ"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "No existe todavía una auditoría semántica. Pulsa"
@@ -826,11 +826,11 @@ msgstr "Modifications nécessaires"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1913
 msgid "No se han generado acciones editoriales prioritarias."
-msgstr ""
+msgstr "Aucune action éditoriale prioritaire n’a été générée."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Entidad / campo"
-msgstr ""
+msgstr "Entité / champ"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Registros"
@@ -848,7 +848,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1986
 msgid "Informe completo TaxoCommerce System Check"
-msgstr ""
+msgstr "Rapport complet de TaxoCommerce System Check"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1987
 msgid ""
@@ -862,19 +862,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1992
 msgid "Auditoría actualizada correctamente."
-msgstr ""
+msgstr "Audit mis à jour avec succès."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2029
 msgid "Incidencias principales"
-msgstr ""
+msgstr "Principales anomalies"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2031
 msgid "No hay incidencias en los chequeos disponibles."
-msgstr ""
+msgstr "Aucune anomalie dans les contrôles disponibles."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2045
 msgid "Interpretación"
-msgstr ""
+msgstr "Interprétation"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2046
 msgid ""
@@ -892,7 +892,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2054
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "Vous n’avez pas l’autorisation de mettre à jour ce rapport."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2104
 #: includes/system-check/seo-system-diagnostics-reporting.php:2116
@@ -903,11 +903,11 @@ msgstr "Vous n'avez pas l'autorisation de télécharger ce rapport."
 
 #: includes/system-check/seo-system-mysql-audit.php:294
 msgid "Necesita al menos 2 chequeos completos."
-msgstr ""
+msgstr "Au moins deux contrôles complets sont nécessaires."
 
 #: includes/system-check/seo-system-mysql-audit.php:320
 msgid "Evolución MySQL · fotografías del chequeo"
-msgstr ""
+msgstr "Évolution MySQL · instantanés des contrôles"
 
 #: includes/system-check/seo-system-mysql-audit.php:321
 msgid ""
@@ -917,7 +917,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:346
 msgid "Distribución de las tablas SEO más grandes"
-msgstr ""
+msgstr "Répartition des plus grandes tables SEO"
 
 #: includes/system-check/seo-system-mysql-audit.php:347
 msgid ""
@@ -931,19 +931,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señales globales del servidor MySQL"
-msgstr ""
+msgstr "Indicateurs globaux du serveur MySQL"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señal"
-msgstr ""
+msgstr "Indicateur"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Lectura"
-msgstr ""
+msgstr "Valeur observée"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "Tablas propias e índices"
-msgstr ""
+msgstr "Tables du module et index"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-mysql-audit.php:714
@@ -969,7 +969,7 @@ msgstr "Taille"
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Índices"
-msgstr ""
+msgstr "Index"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "PRIMARY"
@@ -977,7 +977,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid "Candidatos de índice"
-msgstr ""
+msgstr "Index potentiels"
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid ""
@@ -991,19 +991,19 @@ msgstr "Colonne"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índices duplicados exactos"
-msgstr ""
+msgstr "Index strictement dupliqués"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice A"
-msgstr ""
+msgstr "Index A"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice B"
-msgstr ""
+msgstr "Index B"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Columnas"
-msgstr ""
+msgstr "Colonnes"
 
 #: includes/system-check/seo-system-mysql-audit.php:729
 msgid "EXPLAIN de consultas representativas"
@@ -1016,7 +1016,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Consulta"
-msgstr ""
+msgstr "Requête"
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Filas"
@@ -1028,7 +1028,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:734
 msgid "No se pudieron construir planes para las tablas disponibles."
-msgstr ""
+msgstr "Impossible de générer des plans de requête pour les tables disponibles."
 
 #: includes/system-check/seo-system-mysql-audit.php:737
 msgid ""
@@ -1051,20 +1051,20 @@ msgstr ""
 msgid ""
 "Vista rápida sin guardar. Ejecuta el chequeo completo para crear una "
 "referencia y calcular tendencia."
-msgstr ""
+msgstr "Vue rapide sans enregistrement. Exécutez le contrôle complet pour créer une référence et calculer les tendances."
 
 #: includes/system-check/seo-system-server-status.php:291
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Chequeo"
-msgstr ""
+msgstr "Contrôle"
 
 #: includes/system-check/seo-system-server-status.php:291
 msgid "Observación"
-msgstr ""
+msgstr "Observation"
 
 #: includes/system-check/seo-system-server-status.php:957
 msgid "Configuración del monitor externo de GitHub"
-msgstr ""
+msgstr "Configuration du moniteur GitHub externe"
 
 #: includes/system-check/seo-system-server-status.php:958
 msgid ""
@@ -1074,7 +1074,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1014
 msgid "GitHub externo"
-msgstr ""
+msgstr "GitHub externe"
 
 #: includes/system-check/seo-system-server-status.php:1036
 msgid "Correcto"
@@ -1082,11 +1082,11 @@ msgstr "Réussi"
 
 #: includes/system-check/seo-system-server-status.php:1037
 msgid "Lento"
-msgstr ""
+msgstr "Lent"
 
 #: includes/system-check/seo-system-server-status.php:1038
 msgid "Importante"
-msgstr ""
+msgstr "Important"
 
 #: includes/system-check/seo-system-server-status.php:1039
 msgid "Error"
@@ -1104,7 +1104,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "Sin datos de seguridad:"
-msgstr ""
+msgstr "Aucune donnée de sécurité :"
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "ejecuta el chequeo completo para generar la nueva seccion."
@@ -1112,7 +1112,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Vista rapida:"
-msgstr ""
+msgstr "Vue rapide :"
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid ""
@@ -1122,11 +1122,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Ejecutar chequeo completo"
-msgstr ""
+msgstr "Exécuter le contrôle complet"
 
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Observacion"
-msgstr ""
+msgstr "Observation"
 
 #: includes/system-check/seo-system-server-status.php:2216
 msgid "el chequeo actual no contiene errores críticos, importantes ni avisos."
@@ -1134,11 +1134,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2232
 msgid "Salud por área"
-msgstr ""
+msgstr "État de santé par domaine"
 
 #: includes/system-check/seo-system-server-status.php:2268
 msgid "Resumen general"
-msgstr ""
+msgstr "Résumé général"
 
 #: includes/system-check/seo-system-server-status.php:2269
 msgid ""
@@ -1148,7 +1148,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid "Sugerencia:"
-msgstr ""
+msgstr "Suggestion :"
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid ""

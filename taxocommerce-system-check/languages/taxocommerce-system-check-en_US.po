@@ -736,20 +736,20 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1773
 msgid "Análisis actualizado correctamente."
-msgstr ""
+msgstr "Analysis updated successfully."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1775
 #: includes/system-check/seo-system-diagnostics-reporting.php:1994
 msgid "No se pudo completar la actualización. Revisa el registro de errores."
-msgstr ""
+msgstr "The update could not be completed. Check the error log."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1779
 msgid "Global · todos los ámbitos"
-msgstr ""
+msgstr "Global · all areas"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1780
 msgid "Resumen global de todos los chequeos"
-msgstr ""
+msgstr "Overall summary of all checks"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1781
 msgid ""
@@ -764,7 +764,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid "Estado global"
-msgstr ""
+msgstr "Overall status"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid ": consolidación ponderada de Servidor y SEO Core."
@@ -773,7 +773,7 @@ msgstr ""
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 #: includes/system-check/seo-system-server-status.php:2849
 msgid "Servidor"
-msgstr ""
+msgstr "Server"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 msgid ""
@@ -792,7 +792,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid "Contenido y FAQs"
-msgstr ""
+msgstr "Content and FAQs"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid ""
@@ -802,7 +802,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1852
 msgid "Contenido, categorías y FAQs"
-msgstr ""
+msgstr "Content, categories and FAQs"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "No existe todavía una auditoría semántica. Pulsa"
@@ -826,11 +826,11 @@ msgstr "What to change"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1913
 msgid "No se han generado acciones editoriales prioritarias."
-msgstr ""
+msgstr "No priority editorial actions have been generated."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Entidad / campo"
-msgstr ""
+msgstr "Entity / field"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Registros"
@@ -848,7 +848,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1986
 msgid "Informe completo TaxoCommerce System Check"
-msgstr ""
+msgstr "Full TaxoCommerce System Check report"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1987
 msgid ""
@@ -862,19 +862,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1992
 msgid "Auditoría actualizada correctamente."
-msgstr ""
+msgstr "Audit updated successfully."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2029
 msgid "Incidencias principales"
-msgstr ""
+msgstr "Main findings"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2031
 msgid "No hay incidencias en los chequeos disponibles."
-msgstr ""
+msgstr "No issues found in the available checks."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2045
 msgid "Interpretación"
-msgstr ""
+msgstr "Interpretation"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2046
 msgid ""
@@ -892,7 +892,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2054
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "You do not have permission to update this report."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2104
 #: includes/system-check/seo-system-diagnostics-reporting.php:2116
@@ -903,11 +903,11 @@ msgstr "You do not have permission to download this report."
 
 #: includes/system-check/seo-system-mysql-audit.php:294
 msgid "Necesita al menos 2 chequeos completos."
-msgstr ""
+msgstr "At least two full checks are required."
 
 #: includes/system-check/seo-system-mysql-audit.php:320
 msgid "Evolución MySQL · fotografías del chequeo"
-msgstr ""
+msgstr "MySQL trends · check snapshots"
 
 #: includes/system-check/seo-system-mysql-audit.php:321
 msgid ""
@@ -917,7 +917,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:346
 msgid "Distribución de las tablas SEO más grandes"
-msgstr ""
+msgstr "Distribution of the largest SEO tables"
 
 #: includes/system-check/seo-system-mysql-audit.php:347
 msgid ""
@@ -931,19 +931,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señales globales del servidor MySQL"
-msgstr ""
+msgstr "Overall MySQL server indicators"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señal"
-msgstr ""
+msgstr "Indicator"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Lectura"
-msgstr ""
+msgstr "Reading"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "Tablas propias e índices"
-msgstr ""
+msgstr "Plugin tables and indexes"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-mysql-audit.php:714
@@ -969,7 +969,7 @@ msgstr "Size"
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Índices"
-msgstr ""
+msgstr "Indexes"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "PRIMARY"
@@ -977,7 +977,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid "Candidatos de índice"
-msgstr ""
+msgstr "Index candidates"
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid ""
@@ -991,19 +991,19 @@ msgstr "Column"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índices duplicados exactos"
-msgstr ""
+msgstr "Identical duplicate indexes"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice A"
-msgstr ""
+msgstr "Index A"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice B"
-msgstr ""
+msgstr "Index B"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Columnas"
-msgstr ""
+msgstr "Columns"
 
 #: includes/system-check/seo-system-mysql-audit.php:729
 msgid "EXPLAIN de consultas representativas"
@@ -1016,7 +1016,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Consulta"
-msgstr ""
+msgstr "Query"
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Filas"
@@ -1028,7 +1028,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:734
 msgid "No se pudieron construir planes para las tablas disponibles."
-msgstr ""
+msgstr "Could not build query plans for the available tables."
 
 #: includes/system-check/seo-system-mysql-audit.php:737
 msgid ""
@@ -1051,20 +1051,20 @@ msgstr ""
 msgid ""
 "Vista rápida sin guardar. Ejecuta el chequeo completo para crear una "
 "referencia y calcular tendencia."
-msgstr ""
+msgstr "Quick view without saving. Run the full check to establish a baseline and calculate trends."
 
 #: includes/system-check/seo-system-server-status.php:291
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Chequeo"
-msgstr ""
+msgstr "Check"
 
 #: includes/system-check/seo-system-server-status.php:291
 msgid "Observación"
-msgstr ""
+msgstr "Observation"
 
 #: includes/system-check/seo-system-server-status.php:957
 msgid "Configuración del monitor externo de GitHub"
-msgstr ""
+msgstr "External GitHub monitor configuration"
 
 #: includes/system-check/seo-system-server-status.php:958
 msgid ""
@@ -1074,7 +1074,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1014
 msgid "GitHub externo"
-msgstr ""
+msgstr "External GitHub"
 
 #: includes/system-check/seo-system-server-status.php:1036
 msgid "Correcto"
@@ -1082,11 +1082,11 @@ msgstr "Passed"
 
 #: includes/system-check/seo-system-server-status.php:1037
 msgid "Lento"
-msgstr ""
+msgstr "Slow"
 
 #: includes/system-check/seo-system-server-status.php:1038
 msgid "Importante"
-msgstr ""
+msgstr "Important"
 
 #: includes/system-check/seo-system-server-status.php:1039
 msgid "Error"
@@ -1104,7 +1104,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "Sin datos de seguridad:"
-msgstr ""
+msgstr "No security data:"
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "ejecuta el chequeo completo para generar la nueva seccion."
@@ -1112,7 +1112,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Vista rapida:"
-msgstr ""
+msgstr "Quick view:"
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid ""
@@ -1122,11 +1122,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Ejecutar chequeo completo"
-msgstr ""
+msgstr "Run full check"
 
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Observacion"
-msgstr ""
+msgstr "Observation"
 
 #: includes/system-check/seo-system-server-status.php:2216
 msgid "el chequeo actual no contiene errores críticos, importantes ni avisos."
@@ -1134,11 +1134,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2232
 msgid "Salud por área"
-msgstr ""
+msgstr "Health by area"
 
 #: includes/system-check/seo-system-server-status.php:2268
 msgid "Resumen general"
-msgstr ""
+msgstr "Overview"
 
 #: includes/system-check/seo-system-server-status.php:2269
 msgid ""
@@ -1148,7 +1148,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid "Sugerencia:"
-msgstr ""
+msgstr "Suggestion:"
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid ""
@@ -1512,3 +1512,192 @@ msgstr ""
 #: taxocommerce-system-check.php:401
 msgid "El módulo de auditoría HTTP no se ha cargado."
 msgstr "The HTTP audit module has not been loaded."
+
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Very low"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Low"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Normal"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "High"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Maximum"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP parser mode is not available on this server."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax error detected by the local parser."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "PHP syntax accepted by this server version. Older versions are not tested."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Some WordPress structure conventions need review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "The inspected WordPress structure conventions are present."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potentially dangerous function calls need manual review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "No blocked function calls found; this does not certify security."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File unavailable or outside System Check."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File exceeds the 1 MB read limit."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to read the file."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to complete the PHP check."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Access denied."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not run"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Passed"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Failed"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Review"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Not checked"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check · System Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Only this plugin is inspected. Three independent checks: PHP syntax, WordPress conventions and security patterns. No other checker plugin is required."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This is a bounded local code review, not the official WordPress Plugin Check. Complex nonce, sanitization, escaping and compatibility cases still require manual review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "CPU speed"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Progress"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Stop"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Continue batch"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Resume"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Download JSON report"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "File"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Security"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Code Check before downloading results."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Unable to generate JSON."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Autocheck sections"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Functionality Check · System Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Run Functionality Check"
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "This code may use features newer than the declared minimum PHP version."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Code references and declarations require review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Potential security issues need a manual code-flow review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Possible duplicate PHP symbols need review."
+msgstr ""
+
+#: includes/class-taxocommerce-system-check-code-check.php
+msgid "Native local checks: PHP, literal include paths, duplicate declarations, WordPress conventions and security patterns. Full data flow, runtime and official Plugin Check remain unverified."
+msgstr ""

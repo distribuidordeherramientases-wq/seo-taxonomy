@@ -1,3 +1,10 @@
+## [0.2.33] — 2026-11-12 — Traducciones parciales y sincronización gettext (#2062)
+
+- Completa 45 etiquetas y mensajes adicionales en cada idioma ES/EN/FR/DE/NL: estados, informes, servidor, MySQL, seguridad y ejecución de comprobaciones (225 traducciones).
+- Recupera 47 claves gettext ausentes del catálogo en_US y sincroniza los cinco catálogos con 354 claves; incorpora 5 claves que faltaban en la plantilla POT.
+- Regenera los cinco archivos MO con cabecera gettext y 354 entradas traducibles por idioma, conservando los textos existentes.
+- Cambios limitados a catálogos, versión, documentación e inventario; no modifica los diagnósticos ni declara completada la internacionalización de la interfaz. Quedan cadenas vacías y requieren revisión los textos que no usan gettext.
+
 ## [0.2.32] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
