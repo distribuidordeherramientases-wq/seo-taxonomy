@@ -89,6 +89,7 @@ jobs:
           python3 -m py_compile .github/scripts/deploy_staging_delta.py
           python3 -m unittest discover -s .github/tests -p test_deploy_staging_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_pro_historic_modular_workflow.py -v
+          python3 -m unittest discover -s .github/tests -p test_select_pro_release_delta.py -v
           python3 -m unittest discover -s .github/tests -p test_staging_check_subida_a_pro.py -v
           python3 -m unittest discover -s .github/tests -p test_insights_head_tags_bootstrap.py -v
           python3 -m py_compile .github/scripts/audit_core_dual_sites.py
@@ -165,6 +166,8 @@ jobs:
           php taxocommerce-google-bing/tests/analysis-unified-smoke.php
           php -l taxocommerce-google-bing/tests/analysis-mobile-smoke.php
           php taxocommerce-google-bing/tests/analysis-mobile-smoke.php
+          php -l taxocommerce-google-bing/tests/analysis-chunked-json-smoke.php
+          php taxocommerce-google-bing/tests/analysis-chunked-json-smoke.php
           node --check taxocommerce-google-bing/includes/analysis/assets/analista-lazy.js
           php taxocommerce-google-bing/tests/geo-bridge-smoke.php
           node taxocommerce-google-bing/tests/head-tags-browser-smoke.js
