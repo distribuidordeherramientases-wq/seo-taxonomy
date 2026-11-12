@@ -4,13 +4,18 @@ Tags: diagnostics, security, performance, maintenance, monitoring
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.32
+Stable tag: 0.2.33
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Server, WordPress and plugin diagnostics with administrator-controlled reports and local checks.
 
 == Description ==
+
+## Actualización 0.2.33 — idiomas
+
+Se han ampliado las traducciones locales en es_ES, en_US, fr_FR, de_DE y nl_NL. El catálogo de inglés incorpora las claves que le faltaban y se han regenerado los archivos MO. La cobertura completa de la interfaz y la carga efectiva de traducciones siguen pendientes de validación.
+
 
 * Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
