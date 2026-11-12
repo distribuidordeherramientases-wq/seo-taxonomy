@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
+import urllib.error
 from pathlib import Path
 import subprocess
 import tempfile
@@ -100,6 +103,63 @@ class ProChangedFilesTests(unittest.TestCase):
         head = self.commit()
         with self.assertRaisesRegex(ValueError, "symlink"):
             self.select(head)
+
+    def test_last_verified_pro_run_is_selected_without_reading_job_logs(self):
+        older = "b" * 40
+        source_sha = "86eb8c50da24f73b4c288427e69cb6c876369c15"
+        payload = {"workflow_runs": [
+            {"status": "completed", "conclusion": "failure",
+             "head_branch": "staging", "head_sha": "c" * 40},
+            {"status": "completed", "conclusion": "success",
+             "head_branch": "main", "head_sha": older},
+            {"status": "completed", "conclusion": "success",
+             "head_branch": "staging", "head_sha": source_sha},
+        ]}
+        with mock.patch.object(MODULE, "api_json", return_value=payload) as api:
+            self.assertEqual(MODULE.last_successful_source("owner/repo", "token"), source_sha)
+        self.assertEqual(api.call_count, 1)
+        self.assertIn("branch=staging&status=success", api.call_args.args[1])
+        self.assertNotIn("/jobs", api.call_args.args[1])
+        self.assertNotIn("/logs", api.call_args.args[1])
+
+    def test_missing_valid_pro_release_fails_without_upload(self):
+        with mock.patch.object(MODULE, "api_json", return_value={
+            "workflow_runs": [
+                {"status": "completed", "conclusion": "failure",
+                 "head_branch": "staging", "head_sha": "a" * 40},
+                {"status": "completed", "conclusion": "success",
+                 "head_branch": "main", "head_sha": "b" * 40},
+                {"status": "completed", "conclusion": "success",
+                 "head_branch": "staging", "head_sha": "invalid"},
+            ]
+        }):
+            with self.assertRaisesRegex(ValueError, "Se cancela"):
+                MODULE.last_successful_source("owner/repo", "token")
+
+    def test_http_401_retries_only_public_metadata_read(self):
+        error = urllib.error.HTTPError(
+            "https://api.github.com/example", 401, "Unauthorized", {}, None
+        )
+        payload = {"workflow_runs": []}
+        with mock.patch.object(
+            MODULE.urllib.request, "urlopen",
+            side_effect=[error, io.BytesIO(json.dumps(payload).encode("utf-8"))],
+        ) as urlopen:
+            self.assertEqual(MODULE.api_json("owner/repo", "actions/example", "bad"), payload)
+        self.assertEqual(urlopen.call_count, 2)
+        first = urlopen.call_args_list[0].args[0]
+        second = urlopen.call_args_list[1].args[0]
+        self.assertIsNotNone(first.get_header("Authorization"))
+        self.assertIsNone(second.get_header("Authorization"))
+
+    def test_http_403_does_not_fall_back_to_unverified_release(self):
+        error = urllib.error.HTTPError(
+            "https://api.github.com/example", 403, "Forbidden", {}, None
+        )
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=error) as urlopen:
+            with self.assertRaises(urllib.error.HTTPError):
+                MODULE.api_json("owner/repo", "actions/example", "token")
+        self.assertEqual(urlopen.call_count, 1)
 
     def test_valid_and_excluded_paths(self):
         self.assertTrue(MODULE.installable("taxocommerce-core/includes/item.php"))
