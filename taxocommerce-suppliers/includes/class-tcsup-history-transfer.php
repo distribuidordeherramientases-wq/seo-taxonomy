@@ -51,63 +51,85 @@ final class TCSUP_History_Transfer {
 		);
 	}
 
-	private static function where( $filters, $cursor = null ) {
-		global $wpdb;
-		$clauses = array( '1=1' );
-		if ( '' !== $filters['supplier'] ) {
-			$clauses[] = $wpdb->prepare( 'c.proveedor=%s', $filters['supplier'] );
-		}
-		if ( '' !== $filters['search'] ) {
-			$like = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$clauses[] = $wpdb->prepare( '(c.nombre LIKE %s OR c.sku LIKE %s OR c.proveedor_id_externo LIKE %s)', $like, $like, $like );
-		}
-		if ( '' !== $filters['from'] ) {
-			$clauses[] = $wpdb->prepare( 'h.fecha >= %s', $filters['from'] . ' 00:00:00' );
-		}
-		if ( '' !== $filters['to'] ) {
-			$clauses[] = $wpdb->prepare( 'h.fecha <= %s', $filters['to'] . ' 23:59:59' );
-		}
-		if ( is_array( $cursor ) && ! empty( $cursor['fecha'] ) ) {
-			$clauses[] = $wpdb->prepare(
-				'(h.fecha > %s OR (h.fecha=%s AND h.id > %d))',
-				$cursor['fecha'],
-				$cursor['fecha'],
-				absint( $cursor['id'] ?? 0 )
-			);
-		}
-		return implode( ' AND ', $clauses );
-	}
-
 	private static function list_rows( $filters, $limit, $offset = 0, $cursor = null ) {
 		global $wpdb;
-		$history = $wpdb->prepare( '%i', TCSUP_Schema::history_table() );
-		$catalog = $wpdb->prepare( '%i', TCSUP_Schema::catalog_table() );
-		$where   = self::where( $filters, $cursor );
-		$sort    = null === $cursor ? 'DESC' : 'ASC';
-		$limit   = min( self::BATCH_MAX, max( 1, absint( $limit ) ) );
-		$offset  = min( 1000000, max( 0, absint( $offset ) ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Escaped table identifiers and individually prepared filter expressions; live read-only history.
-		$sql = "SELECT h.*,c.proveedor,c.proveedor_id_externo,c.pais_origen,c.source_row_key,c.sku,c.nombre,
-			(SELECT prev.precio_venta FROM {$history} prev
-			 WHERE prev.catalog_id=h.catalog_id AND (prev.fecha<h.fecha OR (prev.fecha=h.fecha AND prev.id<h.id))
-			 ORDER BY prev.fecha DESC,prev.id DESC LIMIT 1) AS precio_anterior,
-			(SELECT COALESCE(prev.precio_proveedor_con_iva,prev.precio_proveedor_sin_iva) FROM {$history} prev
-			 WHERE prev.catalog_id=h.catalog_id AND (prev.fecha<h.fecha OR (prev.fecha=h.fecha AND prev.id<h.id))
-			 ORDER BY prev.fecha DESC,prev.id DESC LIMIT 1) AS proveedor_anterior
-			FROM {$history} h JOIN {$catalog} c ON c.id=h.catalog_id WHERE {$where}
-			ORDER BY h.fecha {$sort},h.id {$sort} LIMIT %d OFFSET %d";
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read paginated live price history.
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $limit, $offset ), ARRAY_A );
+		$limit  = min( self::BATCH_MAX, max( 1, absint( $limit ) ) );
+		$offset = min( 1000000, max( 0, absint( $offset ) ) );
+		$like   = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
+		$from   = '' !== $filters['from'] ? $filters['from'] . ' 00:00:00' : '';
+		$to     = '' !== $filters['to'] ? $filters['to'] . ' 23:59:59' : '';
+		$cursor_date = isset( $cursor['fecha'] ) ? $cursor['fecha'] : '';
+		$cursor_id   = isset( $cursor['id'] ) ? absint( $cursor['id'] ) : 0;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Paginated read-only price history; each value is prepared.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT h.*,c.proveedor,c.proveedor_id_externo,c.pais_origen,c.source_row_key,c.sku,c.nombre,
+				(SELECT prev.precio_venta FROM %i prev
+				 WHERE prev.catalog_id=h.catalog_id AND (prev.fecha<h.fecha OR (prev.fecha=h.fecha AND prev.id<h.id))
+				 ORDER BY prev.fecha DESC,prev.id DESC LIMIT 1) AS precio_anterior,
+				(SELECT COALESCE(prev.precio_proveedor_con_iva,prev.precio_proveedor_sin_iva) FROM %i prev
+				 WHERE prev.catalog_id=h.catalog_id AND (prev.fecha<h.fecha OR (prev.fecha=h.fecha AND prev.id<h.id))
+				 ORDER BY prev.fecha DESC,prev.id DESC LIMIT 1) AS proveedor_anterior
+				FROM %i h JOIN %i c ON c.id=h.catalog_id
+				WHERE (%s='' OR c.proveedor=%s)
+				AND (%s='' OR c.nombre LIKE %s OR c.sku LIKE %s OR c.proveedor_id_externo LIKE %s)
+				AND (%s='' OR h.fecha >= %s)
+				AND (%s='' OR h.fecha <= %s)
+				AND (%s='' OR h.fecha < %s OR (h.fecha=%s AND h.id < %d))
+				ORDER BY h.fecha DESC,h.id DESC LIMIT %d OFFSET %d",
+				TCSUP_Schema::history_table(),
+				TCSUP_Schema::history_table(),
+				TCSUP_Schema::history_table(),
+				TCSUP_Schema::catalog_table(),
+				$filters['supplier'],
+				$filters['supplier'],
+				$filters['search'],
+				$like,
+				$like,
+				$like,
+				$from,
+				$from,
+				$to,
+				$to,
+				$cursor_date,
+				$cursor_date,
+				$cursor_date,
+				$cursor_id,
+				$limit,
+				$offset
+			),
+			ARRAY_A
+		);
 		return is_array( $rows ) ? $rows : array();
 	}
 
 	private static function count_rows( $filters ) {
 		global $wpdb;
-		$history = $wpdb->prepare( '%i', TCSUP_Schema::history_table() );
-		$catalog = $wpdb->prepare( '%i', TCSUP_Schema::catalog_table() );
-		$where   = self::where( $filters );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Safe quoted identifiers and prepared filter clauses.
-		return absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$history} h JOIN {$catalog} c ON c.id=h.catalog_id WHERE {$where}" ) );
+		$like = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
+		$from = '' !== $filters['from'] ? $filters['from'] . ' 00:00:00' : '';
+		$to   = '' !== $filters['to'] ? $filters['to'] . ' 23:59:59' : '';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only count of supplier price movements.
+		return absint( $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i h JOIN %i c ON c.id=h.catalog_id
+				WHERE (%s='' OR c.proveedor=%s)
+				AND (%s='' OR c.nombre LIKE %s OR c.sku LIKE %s OR c.proveedor_id_externo LIKE %s)
+				AND (%s='' OR h.fecha >= %s)
+				AND (%s='' OR h.fecha <= %s)",
+				TCSUP_Schema::history_table(),
+				TCSUP_Schema::catalog_table(),
+				$filters['supplier'],
+				$filters['supplier'],
+				$filters['search'],
+				$like,
+				$like,
+				$like,
+				$from,
+				$from,
+				$to,
+				$to
+			)
+		) );
 	}
 
 	private static function value( $value ) {
