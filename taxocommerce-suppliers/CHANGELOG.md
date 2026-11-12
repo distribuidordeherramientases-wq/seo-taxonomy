@@ -1,3 +1,8 @@
+## [0.2.21] — 2026-11-12 — Historial retrospectivo ordenado por fecha (#2596)
+
+- Consultas de precio vigente y vista histórica ordenadas por `fecha DESC, id DESC`, de modo que una importación retrospectiva no reemplace el último estado comercial al comparar.
+- Sin cambios en tarifas, margen, productos ni datos existentes.
+
 ## [0.2.20] — 2026-11-12 — Historial de precios vinculado al catálogo (#2589)
 
 - Añade `seo_proveedores_productos_historico` con migración automática, fecha, costes del proveedor, PVP normal, precio de oferta y precio efectivo.
