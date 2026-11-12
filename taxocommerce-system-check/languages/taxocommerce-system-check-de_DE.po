@@ -638,7 +638,7 @@ msgstr "Verzeichnis globaler Plugin-Funktionen"
 msgid ""
 "No se han encontrado funciones PHP en el plugin o no se ha podido leer la "
 "ruta."
-msgstr ""
+msgstr "Im Plugin wurden keine PHP-Funktionen gefunden oder der Pfad konnte nicht gelesen werden."
 
 #: includes/system-check/seo-core-validation.php:8735
 msgid "Funciones globales duplicadas"
@@ -684,15 +684,15 @@ msgstr ""
 
 #: includes/system-check/seo-health-scan.php:1262
 msgid "El inventario se construye solo con"
-msgstr ""
+msgstr "Das Inventar wird nur erstellt aus"
 
 #: includes/system-check/seo-health-scan.php:1262
 msgid "productos WooCommerce publicados"
-msgstr ""
+msgstr "veröffentlichten WooCommerce-Produkten"
 
 #: includes/system-check/seo-health-scan.php:1262
 msgid ". Se procesa por lotes seguros y los pendientes se cubren primero."
-msgstr ""
+msgstr ". Es wird in sicheren Blöcken verarbeitet, wobei ausstehende Elemente Vorrang haben."
 
 #: includes/system-check/seo-health-scan.php:1273
 #: includes/system-check/seo-health-scan.php:1275
@@ -732,7 +732,7 @@ msgstr "Keine Ergebnisse für diesen Filter."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1771
 msgid "Análisis actualizado y resumen enviado automáticamente."
-msgstr ""
+msgstr "Analyse aktualisiert und Zusammenfassung automatisch gesendet."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1773
 msgid "Análisis actualizado correctamente."
@@ -760,7 +760,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1828
 msgid "Cómo se compone este resumen y qué no se suma dos veces"
-msgstr ""
+msgstr "Wie diese Zusammenfassung berechnet wird und was nicht doppelt zählt"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid "Estado global"
@@ -768,7 +768,7 @@ msgstr "Gesamtstatus"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid ": consolidación ponderada de Servidor y SEO Core."
-msgstr ""
+msgstr ": gewichtete Zusammenfassung von Server und SEO Core."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 #: includes/system-check/seo-system-server-status.php:2849
@@ -778,17 +778,17 @@ msgstr "Server"
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 msgid ""
 ": diagnóstico general de alojamiento, PHP, MySQL, WordPress y recursos."
-msgstr ""
+msgstr ": allgemeine Diagnose von Hosting, PHP, MySQL, WordPress und Ressourcen."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1832
 msgid "SEO Core"
-msgstr ""
+msgstr "SEO Core"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1832
 msgid ""
 ": suma de todos los tests del plugin, aunque la interfaz los muestre "
 "concentrados en dos vistas."
-msgstr ""
+msgstr ": Summe aller Plugin-Tests, auch wenn die Oberfläche sie in zwei Ansichten zusammenfasst."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid "Contenido y FAQs"
@@ -798,7 +798,7 @@ msgstr "Inhalte und FAQs"
 msgid ""
 ": detalle informativo del bloque Datos, SEO y contenido; ya está incluido en"
 " SEO Core y no vuelve a sumarse."
-msgstr ""
+msgstr ": informative Einzelheiten des Bereichs Daten, SEO und Inhalte; bereits in SEO Core enthalten und nicht erneut gezählt."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1852
 msgid "Contenido, categorías y FAQs"
@@ -806,7 +806,7 @@ msgstr "Inhalte, Kategorien und FAQs"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "No existe todavía una auditoría semántica. Pulsa"
-msgstr ""
+msgstr "Noch keine semantische Prüfung verfügbar. Klicken Sie auf"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "Actualizar auditoría"
@@ -858,7 +858,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1990
 msgid "Auditoría actualizada y resumen enviado automáticamente."
-msgstr ""
+msgstr "Prüfung aktualisiert und Zusammenfassung automatisch gesendet."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1992
 msgid "Auditoría actualizada correctamente."
@@ -923,11 +923,11 @@ msgstr "Verteilung der größten SEO-Tabellen"
 msgid ""
 "Gráfico estático calculado con el inventario ya obtenido; no realiza "
 "consultas adicionales."
-msgstr ""
+msgstr "Statisches Diagramm aus dem bestehenden Inventar berechnet; keine weiteren Abfragen."
 
 #: includes/system-check/seo-system-mysql-audit.php:662
 msgid "Auditoría SQL de TaxoCommerce SEO"
-msgstr ""
+msgstr "SQL-Prüfung von TaxoCommerce SEO"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señales globales del servidor MySQL"
@@ -1007,12 +1007,12 @@ msgstr "Spalten"
 
 #: includes/system-check/seo-system-mysql-audit.php:729
 msgid "EXPLAIN de consultas representativas"
-msgstr ""
+msgstr "EXPLAIN für repräsentative Abfragen"
 
 #: includes/system-check/seo-system-mysql-audit.php:729
 msgid ""
 "EXPLAIN analiza el plan del optimizador sin ejecutar el SELECT de negocio."
-msgstr ""
+msgstr "EXPLAIN analysiert den Optimiererplan, ohne das geschäftliche SELECT auszuführen."
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Consulta"
@@ -1039,7 +1039,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:63
 msgid "Server Status"
-msgstr ""
+msgstr "Serverstatus"
 
 #: includes/system-check/seo-system-server-status.php:64
 msgid ""
@@ -1108,7 +1108,7 @@ msgstr "Keine Sicherheitsdaten:"
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "ejecuta el chequeo completo para generar la nueva seccion."
-msgstr ""
+msgstr "Führen Sie die vollständige Prüfung aus, um den neuen Abschnitt zu erstellen."
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Vista rapida:"
@@ -1130,7 +1130,7 @@ msgstr "Beobachtung"
 
 #: includes/system-check/seo-system-server-status.php:2216
 msgid "el chequeo actual no contiene errores críticos, importantes ni avisos."
-msgstr ""
+msgstr "Die aktuelle Prüfung enthält keine kritischen Fehler, wesentlichen Probleme oder Warnungen."
 
 #: includes/system-check/seo-system-server-status.php:2232
 msgid "Salud por área"
@@ -1168,7 +1168,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2562
 msgid "Recursos observables desde WordPress"
-msgstr ""
+msgstr "Über WordPress beobachtbare Ressourcen"
 
 #: includes/system-check/seo-system-server-status.php:2563
 msgid ""
@@ -1178,19 +1178,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2563
 msgid "load average / núcleos visibles"
-msgstr ""
+msgstr "Durchschnittslast / sichtbare Kerne"
 
 #: includes/system-check/seo-system-server-status.php:2563
 msgid "; no sustituye las métricas físicas de WePanel."
-msgstr ""
+msgstr "; dies ersetzt nicht die physischen Messwerte von WePanel."
 
 #: includes/system-check/seo-system-server-status.php:2605
 msgid "Rendimiento de consultas MySQL"
-msgstr ""
+msgstr "Leistung der MySQL-Abfragen"
 
 #: includes/system-check/seo-system-server-status.php:2630
 msgid "Lectura parcial:"
-msgstr ""
+msgstr "Unvollständige Auswertung:"
 
 #: includes/system-check/seo-system-server-status.php:2630
 msgid ""
@@ -1200,7 +1200,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2641
 msgid "MySQL / MariaDB"
-msgstr ""
+msgstr "MySQL / MariaDB"
 
 #: includes/system-check/seo-system-server-status.php:2642
 msgid ""
@@ -1210,11 +1210,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2653
 msgid "Configuracion MySQL / MariaDB"
-msgstr ""
+msgstr "MySQL-/MariaDB-Konfiguration"
 
 #: includes/system-check/seo-system-server-status.php:2718
 msgid "Estadisticas de MySQL / MariaDB"
-msgstr ""
+msgstr "MySQL-/MariaDB-Statistiken"
 
 #: includes/system-check/seo-system-server-status.php:2719
 msgid ""
@@ -1224,7 +1224,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2747
 msgid "Tablas más grandes"
-msgstr ""
+msgstr "Größte Tabellen"
 
 #: includes/system-check/seo-system-server-status.php:2748
 msgid ""
@@ -1234,16 +1234,16 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2751
 msgid "No se pudieron leer las tablas grandes."
-msgstr ""
+msgstr "Die größten Tabellen konnten nicht gelesen werden."
 
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Datos"
-msgstr ""
+msgstr "Daten"
 
 #: includes/system-check/seo-system-server-status.php:2756
 #: includes/system-check/seo-system-server-status.php:3200
 msgid "Total"
-msgstr ""
+msgstr "Gesamt"
 
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Motor"
@@ -1261,7 +1261,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2822
 msgid "wp_options y autoload"
-msgstr ""
+msgstr "wp_options und Autoload"
 
 #: includes/system-check/seo-system-server-status.php:2823
 msgid ""
@@ -1271,11 +1271,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2833
 msgid "Top opciones autoload más pesadas"
-msgstr ""
+msgstr "Größte Autoload-Optionen"
 
 #: includes/system-check/seo-system-server-status.php:2834
 msgid "Opción"
-msgstr ""
+msgstr "Option"
 
 #: includes/system-check/seo-system-server-status.php:2849
 msgid ""
@@ -1285,7 +1285,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2928
 msgid "Uso de espacio por directorios"
-msgstr ""
+msgstr "Speicherplatznutzung je Verzeichnis"
 
 #: includes/system-check/seo-system-server-status.php:2929
 msgid ""
@@ -1295,15 +1295,15 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2930
 msgid "Directorio"
-msgstr ""
+msgstr "Verzeichnis"
 
 #: includes/system-check/seo-system-server-status.php:2930
 msgid "Archivos revisados"
-msgstr ""
+msgstr "Geprüfte Dateien"
 
 #: includes/system-check/seo-system-server-status.php:2960
 msgid "Archivos grandes detectados"
-msgstr ""
+msgstr "Große Dateien gefunden"
 
 #: includes/system-check/seo-system-server-status.php:2961
 msgid ""
@@ -1319,19 +1319,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2969
 msgid "Modificado"
-msgstr ""
+msgstr "Geändert"
 
 #: includes/system-check/seo-system-server-status.php:2984
 msgid "WooCommerce"
-msgstr ""
+msgstr "WooCommerce"
 
 #: includes/system-check/seo-system-server-status.php:2984
 msgid "Chequeos básicos del catálogo, calidad de producto y colas internas."
-msgstr ""
+msgstr "Grundprüfungen von Katalog, Produktqualität und internen Warteschlangen."
 
 #: includes/system-check/seo-system-server-status.php:3191
 msgid "Detalle Action Scheduler"
-msgstr ""
+msgstr "Action-Scheduler-Details"
 
 #: includes/system-check/seo-system-server-status.php:3192
 msgid ""
@@ -1341,15 +1341,15 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3195
 msgid "No hay acciones pendientes o fallidas relevantes."
-msgstr ""
+msgstr "Keine relevanten ausstehenden oder fehlgeschlagenen Aktionen."
 
 #: includes/system-check/seo-system-server-status.php:3200
 msgid "Más antigua"
-msgstr ""
+msgstr "Älteste"
 
 #: includes/system-check/seo-system-server-status.php:3213
 msgid "Rendimiento"
-msgstr ""
+msgstr "Leistung"
 
 #: includes/system-check/seo-system-server-status.php:3214
 msgid ""
@@ -1359,11 +1359,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3226
 msgid "Logs"
-msgstr ""
+msgstr "Protokolle"
 
 #: includes/system-check/seo-system-server-status.php:3234
 msgid "Log PHP / sistema"
-msgstr ""
+msgstr "PHP-/Systemprotokoll"
 
 #: includes/system-check/seo-system-server-status.php:3235
 msgid ""
@@ -1376,12 +1376,12 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3286
 msgid "Como activar o cambiar el log PHP / sistema"
-msgstr ""
+msgstr "PHP-/Systemprotokoll aktivieren oder ändern"
 
 #: includes/system-check/seo-system-server-status.php:3294
 msgid ""
 "El log PHP es opcional, pero recomendable para diagnosticar errores fatales."
-msgstr ""
+msgstr "Das PHP-Protokoll ist optional, wird aber zur Diagnose schwerwiegender Fehler empfohlen."
 
 #: includes/system-check/seo-system-server-status.php:3297
 msgid ""
@@ -1391,7 +1391,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3300
 msgid "Recomendacion:"
-msgstr ""
+msgstr "Empfehlung:"
 
 #: includes/system-check/seo-system-server-status.php:3300
 msgid ""
@@ -1401,7 +1401,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3302
 msgid "Privacidad de la ruta no concluyente:"
-msgstr ""
+msgstr "Datenschutz des Protokollpfads nicht eindeutig:"
 
 #: includes/system-check/seo-system-server-status.php:3302
 msgid ""
@@ -1411,7 +1411,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3304
 msgid "Log PHP configurado pero aun sin archivo:"
-msgstr ""
+msgstr "PHP-Protokoll konfiguriert, aber Datei noch nicht erstellt:"
 
 #: includes/system-check/seo-system-server-status.php:3304
 msgid ""
@@ -1421,7 +1421,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3306
 msgid "Log PHP activo pero no legible desde WordPress:"
-msgstr ""
+msgstr "PHP-Protokoll aktiv, aber in WordPress nicht lesbar:"
 
 #: includes/system-check/seo-system-server-status.php:3306
 msgid ""
@@ -1431,7 +1431,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3308
 msgid "Destino gestionado por el sistema:"
-msgstr ""
+msgstr "Systemverwaltetes Ziel:"
 
 #: includes/system-check/seo-system-server-status.php:3308
 msgid ""
@@ -1448,48 +1448,48 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:3321
 msgid "Ultimas 120 lineas del log PHP / sistema"
-msgstr ""
+msgstr "Letzte 120 Zeilen des PHP-/Systemprotokolls"
 
 #: taxocommerce-system-check.php:119 taxocommerce-system-check.php:121
 msgid "System Check"
-msgstr ""
+msgstr "System Check"
 
 #: taxocommerce-system-check.php:123
 msgid "PHP independiente"
-msgstr ""
+msgstr "Eigenständiges PHP"
 
 #: taxocommerce-system-check.php:125 taxocommerce-system-check.php:133
 #: taxocommerce-system-check.php:291
 msgid "Estado del sistema"
-msgstr ""
+msgstr "Systemstatus"
 
 #: taxocommerce-system-check.php:127 taxocommerce-system-check.php:401
 msgid "Chequeos HTTP"
-msgstr ""
+msgstr "HTTP-Prüfungen"
 
 #: taxocommerce-system-check.php:238
 msgid "Familia TaxoCommerce"
-msgstr ""
+msgstr "TaxoCommerce-Familie"
 
 #: taxocommerce-system-check.php:240
 msgid ""
 "Diagnósticos del servidor, comprobación de plugins y auditorías HTTP desde "
 "una única interfaz."
-msgstr ""
+msgstr "Serverdiagnose, Plugin-Prüfungen und HTTP-Audits in einer Oberfläche."
 
 #: taxocommerce-system-check.php:291
 msgid "Motor original no disponible."
-msgstr ""
+msgstr "Ursprüngliche Engine nicht verfügbar."
 
 #: taxocommerce-system-check.php:376
 msgid "Plugin Validation · módulos activos"
-msgstr ""
+msgstr "Plugin-Validierung · aktive Module"
 
 #: taxocommerce-system-check.php:377
 msgid ""
 "Sin Core solo se comprueba System Check. Con Core se usan sus módulos "
 "activos; no hay una lista duplicada."
-msgstr ""
+msgstr "Ohne Core wird nur System Check geprüft. Mit Core werden die aktiven Module verwendet; es gibt keine doppelte Liste."
 
 #: taxocommerce-system-check.php:378
 msgid "Plugin"
@@ -1501,13 +1501,13 @@ msgstr "Version"
 
 #: taxocommerce-system-check.php:378
 msgid "Comprobación básica"
-msgstr ""
+msgstr "Grundprüfung"
 
 #: taxocommerce-system-check.php:389
 msgid ""
 "Comprobación de carga y servicios básicos de System Check. No sustituye "
 "todavía los chequeos profundos, que se adaptarán por módulo."
-msgstr ""
+msgstr "Grundlegende Lade- und Serviceprüfungen von System Check. Dies ersetzt nicht die tieferen Prüfungen, die je Modul angepasst werden."
 
 #: taxocommerce-system-check.php:401
 msgid "El módulo de auditoría HTTP no se ha cargado."
