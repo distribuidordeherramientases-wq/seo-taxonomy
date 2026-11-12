@@ -30,6 +30,8 @@ tcsup_assert( false !== strpos( $products, "precio_con_iva" ), 'supplier price s
 tcsup_assert( false !== strpos( $schema, 'seo_proveedores_productos_historico' ), 'history table is installed' );
 tcsup_assert( false !== strpos( $history, 'woocommerce_after_product_object_save' ) || false !== strpos( $main, 'woocommerce_after_product_object_save' ), 'WooCommerce price capture hook' );
 tcsup_assert( false !== strpos( $csv, 'TCSUP_Price_History::capture' ), 'CSV price history' );
+tcsup_assert( false !== strpos( $history, 'ORDER BY fecha DESC, id DESC LIMIT 1' ), 'latest snapshot uses observed date, not insert order' );
+tcsup_assert( false !== strpos( $history, 'ORDER BY fecha DESC, id DESC LIMIT %d' ), 'history viewer uses observed date' );
 tcsup_assert( false !== strpos( $admin, 'TCSUP_Price_History::recent' ), 'read-only inventory history view' );
 tcsup_assert( false !== strpos( $main, "class-tcsup-purchasing.php" ), 'purchasing bootstrap' );
 tcsup_assert( false !== strpos( $purchasing, "wc_get_orders" ), 'WooCommerce sales intake' );
