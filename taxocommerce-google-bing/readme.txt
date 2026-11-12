@@ -4,7 +4,7 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.51
+Stable tag: 1.1.52
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,3 +262,5 @@ It is the continued plugin under the historical slug taxocommerce-google-bing, r
 == Local plugin information ==
 
 The header displays locally bundled Description and a link to the developer Plugin URI, without external requests. Google, Bing and other actual data connections remain independent and documented in the sections above.
+
+* Competition: read-only Merchant best sellers and eligible category-level official competitor visibility, existing Trends and own Search Console/Bing. No scrapers, paid SERP providers or automatic competitor crawls; historical JSON remains available.

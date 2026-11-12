@@ -1,3 +1,12 @@
+## [1.1.52] — 2026-11-12 — Competencia sin scrapers, mercado y Merchant (#2576)
+
+- Sustituye el informe competitivo profundo que utilizaba SerpApi/ScraperAPI y rastreo HTML de otros dominios por un informe manual sobre Merchant Center, Google Trends, aceleraciones de Search Console, Bing y GA4 propios.
+- Utiliza snapshots existentes de productos populares y consulta como máximo tres categorías de visibilidad competitiva mediante Merchant Reports API oficial, únicamente al generar el informe, sin scraping ni dependencia de TaxoCommerce Scrappers.
+- Si faltan permisos, fuentes o datos competitivos, presenta N/D; elimina clasificaciones 5/5 sin evidencia contrastable.
+- Reutiliza el motor de Tendencias sin alterarlo; distingue productos ausentes del feed Merchant de productos ausentes de WooCommerce.
+- Mantiene configuración, histórico, botón de generación manual y exportación segura JSON; informa cuando un informe guardado procede del rastreo histórico.
+- Los tests confirman que no se realizan peticiones de scraping ni se requieren otros plugins.
+
 ## [1.1.51] — 2026-11-12 — Descarga completa JSON por bloques con control adaptativo
 - «Preparar JSON completo por bloques» sustituye la petición PHP monolítica que podía agotar tiempo o memoria.
 - AJAX autenticado por administrador: 21 pasos independientes, archivo temporal privado, progreso, detención y descarga final solo al completar y validar JSON.
