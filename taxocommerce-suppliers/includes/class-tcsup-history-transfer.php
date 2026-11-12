@@ -183,7 +183,7 @@ final class TCSUP_History_Transfer {
 					'ph_to'       => $filters['to'],
 				) ) );
 				$base = add_query_arg( $args, admin_url( 'admin.php' ) );
-				$base = add_query_arg( 'paged', '%#%', $base );
+				$base = str_replace( '999999999', '%#%', add_query_arg( 'paged', 999999999, $base ) );
 				echo '<div class="tablenav"><div class="tablenav-pages">';
 				echo wp_kses_post( paginate_links( array( 'base' => $base, 'current' => $page, 'total' => $pages, 'prev_text' => '‹', 'next_text' => '›' ) ) );
 				echo '</div></div>';
@@ -292,14 +292,14 @@ final class TCSUP_History_Transfer {
 		}, $headers );
 		$required = array( 'proveedor', 'proveedor_id_externo', 'pais_origen', 'source_row_key', 'fecha', 'moneda' );
 		$required = array_merge( $required, self::PRICE_FIELDS );
-		if ( array_diff( $required, $headers ) ) {
+		if ( array_diff( $required, $headers ) || count( $headers ) !== count( array_unique( $headers ) ) ) {
 			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close temporary import stream.
 			wp_delete_file( $path );
 			wp_send_json_error( array( 'message' => __( 'CSV columns do not match the history export format.', 'taxocommerce-suppliers' ) ), 400 );
 		}
 		$offset = ftell( $handle );
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close temporary import stream.
-		$token = wp_generate_password( 24, false, false );
+		$token = strtolower( wp_generate_password( 24, false, false ) );
 		set_transient( self::temp_key( $token ), array(
 			'path' => $path, 'offset' => $offset, 'headers' => $headers,
 			'delimiter' => $delimiter, 'size' => filesize( $path ),
