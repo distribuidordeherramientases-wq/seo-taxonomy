@@ -1,7 +1,7 @@
 ## [1.1.51] — 2026-11-12 — Descarga completa JSON por bloques con control adaptativo
 - «Preparar JSON completo por bloques» sustituye la petición PHP monolítica que podía agotar tiempo o memoria.
 - AJAX autenticado por administrador: 21 pasos independientes, archivo temporal privado, progreso, detención y descarga final solo al completar y validar JSON.
-- Pausa entre pasos basada en tiempo de respuesta, presión de memoria y tiempo de CPU del proceso PHP (no porcentaje de CPU global); sin cron y sin cambiar los diez informes individuales.
+- Cinco velocidades seleccionables para regular el intervalo entre pasos, con reducción adaptativa del ritmo según tiempo, presión de memoria y CPU del proceso PHP (no porcentaje de CPU global); sin cron ni cambios en los diez informes individuales.
 - Mantiene las claves y el esquema v9 del JSON unificado y suprime consultas de fuentes ajenas a cada fragmento.
 - No modifica productos, categorías, Auditor, credenciales, configuración OAuth ni producción.
 
