@@ -1,3 +1,9 @@
+## [1.1.55] — 2026-11-12 — Descargas JSON: nonce válido tras generar informe por AJAX (#2608)
+
+- Corrige «El enlace que has seguido ha caducado» en «Descargar JSON» de las tarjetas de Analysis después de «Crear informe». WordPress devuelve wp_nonce_url() escapada para HTML; JavaScript la asignaba literalmente al atributo href y el servidor recibía amp;_wpnonce en lugar de _wpnonce.
+- Las URL de descarga de informes especializados y Plan de Acción se generan sin entidades HTML para los datos JSON. Se mantiene esc_url() al imprimirlas en atributos HTML, así como los nonces, permisos y verificaciones originales del servidor.
+- Añade pruebas de regresión de ambos enlaces tras AJAX y de su parsing real como URL. No cambia el motor de Competencia, Merchant, datos guardados ni otros informes.
+
 ## [1.1.54] — 2026-11-12 — Traducción de controles y panel de Analista (#2062)
 
 - Completa 124 cadenas nuevas en español y 30 en cada uno de los otros cuatro idiomas (244 traducciones adicionales), conservando las 94 traducciones equivalentes ya presentes en EN/FR/DE/NL.
