@@ -1,3 +1,11 @@
+## [0.2.23] — 2026-11-12 — Inventario global e importación/exportación CSV de precios históricos (#2600)
+
+- Nueva pestaña «Historial de precios»: vista global paginada de movimientos de catálogo, proveedor, SKU, precio anterior, precio actual y variación, con filtros por proveedor, búsqueda y fechas.
+- Exportación CSV de todos los registros filtrados por lotes AJAX, sin limitarla a los 50 registros visibles ni depender de cron.
+- Importación CSV en lotes con cinco velocidades; verifica la identidad del catálogo, omite filas sin coincidencia, rechaza fechas/precios inválidos y detecta duplicados. Nunca cambia los precios actuales ni los márgenes.
+- Añade validaciones de permisos y nonce, archivo temporal fuera del directorio público y límites de tamaño. Mantiene compatibilidad con los cinco idiomas ES/EN/FR/DE/NL mediante POT/PO/MO sincronizados.
+- No altera el esquema histórico ni las funcionalidades existentes de Suppliers.
+
 ## [0.2.22] — 2026-11-12 — Catálogos i18n sincronizados en cinco idiomas (#2062)
 
 - Completa la traducción de las 335 entradas neerlandesas pendientes: recupera 179 claves que faltaban y traduce 156 mensajes que estaban vacíos. Se conservan todos los identificadores técnicos, tokens de formato y etiquetas HTML.
