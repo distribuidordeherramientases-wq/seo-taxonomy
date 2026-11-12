@@ -58,15 +58,15 @@ msgstr ""
 
 #: includes/analysis/analista-competitivo.php:849
 msgid "No tienes permisos para generar el informe competitivo."
-msgstr ""
+msgstr "You do not have permission to generate the competitor report."
 
 #: includes/analysis/analista-competitivo.php:881
 msgid "No tienes permisos para exportar el informe competitivo."
-msgstr ""
+msgstr "You do not have permission to export the competitor report."
 
 #: includes/analysis/analista-competitivo.php:887
 msgid "Todavía no existe un informe competitivo guardado."
-msgstr ""
+msgstr "No competitor report has been saved yet."
 
 #: includes/analysis/analista-competitivo.php:926
 msgid "Informe competitivo generado y guardado."
@@ -291,7 +291,7 @@ msgstr "Quick overview"
 
 #: includes/analysis/analista-informe.php:235
 msgid "Lo importante del periodo sin recorrer todos los informes."
-msgstr ""
+msgstr "Key information for the period without opening every report."
 
 #: includes/analysis/analista-informe.php:303
 msgid "Tráfico y conversión"
@@ -368,7 +368,7 @@ msgstr ""
 
 #: includes/analysis/analista-informe.php:393
 msgid "Todavía no has definido palabras clave de seguimiento."
-msgstr ""
+msgstr "No tracked keywords have been defined yet."
 
 #: includes/analysis/analista-informe.php:397
 msgid ""
@@ -416,7 +416,7 @@ msgstr "Projection"
 
 #: includes/analysis/analista-informe.php:427
 msgid "La comparación externa todavía no tiene posiciones disponibles."
-msgstr ""
+msgstr "External comparison positions are not available yet."
 
 #: includes/analysis/analista-informe.php:427
 msgid ""
@@ -519,7 +519,7 @@ msgstr "Type"
 msgid ""
 "No hay señales de Trends suficientemente relevantes almacenadas en este "
 "momento."
-msgstr ""
+msgstr "No sufficiently relevant Trends data is stored at this time."
 
 #: includes/analysis/analista-informe.php:476
 msgid "Configurar comparación"
@@ -577,11 +577,11 @@ msgstr "Tracking indicator"
 #: includes/analysis/analista-informe.php:616
 msgid ""
 "No hay directrices suficientes para este bloque con los datos actuales."
-msgstr ""
+msgstr "There is insufficient guidance for this section with the available data."
 
 #: includes/analysis/analista-informe.php:754
 msgid "Google Trends no está entregando señales almacenadas."
-msgstr ""
+msgstr "Google Trends is not providing stored signals."
 
 #: includes/analysis/analista-informe.php:754
 msgid ""
@@ -632,7 +632,7 @@ msgstr "Analista"
 msgid ""
 "La página ya no calcula todos los informes al abrirse. Ejecuta únicamente el"
 " bloque que necesites."
-msgstr ""
+msgstr "The page no longer calculates all reports on opening. Run only the section you need."
 
 #: includes/analysis/analista-informe.php:853
 #: includes/class-taxocommerce-google-bing-trends-hierarchy.php:289
@@ -647,7 +647,7 @@ msgstr "Change period"
 
 #: includes/analysis/analista-informe.php:862
 msgid "No se ha cargado el motor de informes parciales de Analista."
-msgstr ""
+msgstr "The partial report engine for Insights could not be loaded."
 
 #: includes/analysis/analista-json.php:255
 msgid "No tienes permisos para exportar Analista."
@@ -669,7 +669,7 @@ msgstr "No report loaded."
 
 #: includes/analysis/analista-lazy.php:88 taxocommerce-google-bing.php:288
 msgid "Pulsa uno de los botones anteriores para ejecutar solo ese análisis."
-msgstr ""
+msgstr "Click one of the buttons above to run only that analysis."
 
 #: includes/analysis/analista-lazy.php:124
 msgid "Qué hacer para vender más"
@@ -693,7 +693,7 @@ msgstr "Check tracking."
 
 #: includes/analysis/analista-lazy.php:137
 msgid "No hay sesiones suficientes para diagnosticar ventas."
-msgstr ""
+msgstr "Not enough sessions to diagnose sales."
 
 #: includes/analysis/analista-lazy.php:139
 msgid "Revisar el checkout."
@@ -766,7 +766,7 @@ msgstr ""
 
 #: includes/analysis/analista-lazy.php:161
 msgid "Search Console no tiene datos utilizables para este periodo."
-msgstr ""
+msgstr "Search Console has no usable data for this period."
 
 #: includes/analysis/analista-lazy.php:186
 msgid "Consultas principales"
@@ -788,19 +788,19 @@ msgstr "Query"
 #: includes/analysis/analista-lazy.php:187
 #: includes/analysis/analista-lazy.php:226
 msgid "Posición"
-msgstr ""
+msgstr "Position"
 
 #: includes/analysis/analista-lazy.php:187
 msgid "Intento"
-msgstr ""
+msgstr "Intent"
 
 #: includes/analysis/analista-lazy.php:221
 msgid "No hay directrices de catálogo disponibles para este periodo."
-msgstr ""
+msgstr "No catalogue guidance is available for this period."
 
 #: includes/analysis/analista-lazy.php:225
 msgid "Catálogo y demanda"
-msgstr ""
+msgstr "Catalogue and demand"
 
 #: includes/analysis/analista-lazy.php:225
 msgid ""
@@ -810,11 +810,11 @@ msgstr ""
 
 #: includes/analysis/analista-lazy.php:226
 msgid "Oportunidad"
-msgstr ""
+msgstr "Opportunity"
 
 #: includes/analysis/analista-lazy.php:226
 msgid "Decisión"
-msgstr ""
+msgstr "Decision"
 
 #: includes/analysis/analista-lazy.php:226
 #: includes/google/seo-google-demand-catalog.php:1669
@@ -823,43 +823,43 @@ msgstr "Products"
 
 #: includes/analysis/analista-lazy.php:267
 msgid "No hay datos de proveedores disponibles."
-msgstr ""
+msgstr "No supplier data is available."
 
 #: includes/analysis/analista-lazy.php:271
 msgid "Estado de proveedores"
-msgstr ""
+msgstr "Supplier status"
 
 #: includes/analysis/analista-lazy.php:271
 msgid "Este informe consulta únicamente la fuente local de proveedores."
-msgstr ""
+msgstr "This report queries only the local supplier data source."
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Proveedor"
-msgstr ""
+msgstr "Supplier"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Total"
-msgstr ""
+msgstr "Total"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Vinculados"
-msgstr ""
+msgstr "Linked"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Pendientes"
-msgstr ""
+msgstr "Pending"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Errores"
-msgstr ""
+msgstr "Errors"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Última importación"
-msgstr ""
+msgstr "Last import"
 
 #: includes/analysis/analista-lazy.php:272
 msgid "Última sincronización"
-msgstr ""
+msgstr "Last sync"
 
 #: includes/analysis/analista-lazy.php:307
 msgid "Frescura operativa · Action Scheduler"
