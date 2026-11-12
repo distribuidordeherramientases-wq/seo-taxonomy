@@ -1,3 +1,6 @@
+= 0.4.78 (2026-11-11) =
+* Fix local Plugin Check on existing stores: Core in taxocommerce-core/ uses its matching native gettext domain and five bundled catalogs. Build the public WordPress.org distribution from the same sources with its assigned long folder, entrypoint, gettext domain and catalogs, strictly checking both packages. Issue #2565.
+
 = 0.4.77 (2026-11-11) =
 * Align gettext calls, plugin header, five bundled locale catalogs and WordPress.org ZIP folder with the assigned plugin slug; preserve existing admin URLs and data. Issue #2560.
 

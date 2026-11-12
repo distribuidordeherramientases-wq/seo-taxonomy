@@ -1,3 +1,10 @@
+## [0.4.78] — 2026-11-11 — Corrige chequeo local y paquete WordPress.org (#2565)
+
+- Corrige los 1.022 errores y la advertencia de discrepancia de dominio de traducción identificados al comprobar Core instalado en `taxocommerce-core/`. El plugin instalado recupera el dominio nativo `taxocommerce-core`, sin modificar menús, tablas ni funciones.
+- El empaquetado de WordPress.org transforma **una copia** del mismo código: carpeta, archivo principal, dominio gettext y catálogos adoptan el slug `taxocommerce-core-catalog-content-management-for-woocommerce`, reservado durante la revisión.
+- La CI exige Plugin Check estricto independiente de **ambas distribuciones** (0 errores, 0 advertencias) y deja de examinar 20 plugins cuando solo cambia uno.
+- Se conservan las traducciones ES, EN, FR, DE y NL, los datos y los identificadores internos de cada tienda; no se toca otro plugin.
+
 ## [0.4.77] — 2026-11-11 — Dominio gettext y slug de WordPress.org (#2560)
 
 - Se alinean las llamadas de traducción y la cabecera con el slug asignado `taxocommerce-core-catalog-content-management-for-woocommerce`, eliminando las causas de los 1.053 errores `TextDomainMismatch` comunicados.

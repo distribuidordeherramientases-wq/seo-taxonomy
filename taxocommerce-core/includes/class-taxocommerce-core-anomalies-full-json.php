@@ -101,12 +101,12 @@ function taxocommerce_core_anomalies_full_json_build_document() {
 /** Authenticated, non-mutating JSON download. */
 function taxocommerce_core_anomalies_full_json_export_handler() {
     if ( ! current_user_can( apply_filters( 'taxocommerce_core_manage_capability', 'manage_options' ) ) ) {
-        wp_die( esc_html__( 'No tienes permisos para descargar las anomalías.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
+        wp_die( esc_html__( 'No tienes permisos para descargar las anomalías.', 'taxocommerce-core' ) );
     }
     check_admin_referer( 'taxocommerce_core_anomalies_full_json_export' );
 
     if ( ! taxocommerce_core_anomalies_table_exists( 'seo_relations' ) ) {
-        wp_die( esc_html__( 'No está disponible la tabla SEO de relaciones.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
+        wp_die( esc_html__( 'No está disponible la tabla SEO de relaciones.', 'taxocommerce-core' ) );
     }
 
     $configured_nodes = 0;
@@ -114,13 +114,13 @@ function taxocommerce_core_anomalies_full_json_export_handler() {
         $configured_nodes += count( TaxoCommerce_Core_Hierarchy_Classic::role_pages( $role ) );
     }
     if ( 0 === $configured_nodes ) {
-        wp_die( esc_html__( 'La arquitectura SEO todavía no está configurada.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
+        wp_die( esc_html__( 'La arquitectura SEO todavía no está configurada.', 'taxocommerce-core' ) );
     }
 
     $payload = taxocommerce_core_anomalies_full_json_build_document();
     $json = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
     if ( false === $json ) {
-        wp_die( esc_html__( 'No se pudo codificar el informe de anomalías.', 'taxocommerce-core-catalog-content-management-for-woocommerce' ) );
+        wp_die( esc_html__( 'No se pudo codificar el informe de anomalías.', 'taxocommerce-core' ) );
     }
 
     nocache_headers();
