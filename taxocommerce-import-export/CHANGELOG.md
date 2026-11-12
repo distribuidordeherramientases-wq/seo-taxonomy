@@ -1,3 +1,11 @@
+## [0.4.30] — 2026-11-12 — Internacionalización de los controles de importación/exportación (#2062)
+
+- Traduce 132 cadenas de interfaz previamente vacías en ES/EN/FR/DE/NL (660 entradas; dos de ellas incluyen las formas singular y plural, 670 valores gettext). Conserva textos, marcadores de formato y traducciones existentes.
+- Incluye permisos, cola CSV, carga y borrado de archivos, estados, diagnósticos, controles de velocidad, gestión de bloques, filtros de catálogo y exportación.
+- Regenera los cinco archivos MO sin incluir traducciones vacías, con índices válidos para el lector GNU gettext de WordPress.
+- Amplía el test de regresión de catálogos con las acciones principales en los cinco idiomas. No modifica la importación, la exportación, los trabajos, los datos, la política de CPU ni los permisos.
+- La internacionalización total sigue pendiente: 180/184/183/181/181 cadenas vacías (ES/EN/FR/DE/NL), además de revisar los textos PHP y JavaScript no extraídos.
+
 ## [0.4.29] — 2026-11-10 — Sin tareas programadas propias de importación/exportación (#2530)
 
 - Eliminada la creación de acciones de Action Scheduler y WP-Cron para exportación CSV y cola de importación; conservados el procesamiento por bloques, autollamadas internas autenticadas, control adaptativo, pausas y cancelación.
