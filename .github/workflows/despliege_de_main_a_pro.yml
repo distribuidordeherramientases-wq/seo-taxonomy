@@ -120,11 +120,30 @@ jobs:
         env:
           ALL_MODULES_JSON: ${{ steps.family.outputs.modules }}
           INSTALLED_MODULES_JSON: ${{ steps.installed.outputs.modules }}
-          GH_TOKEN: ${{ github.token }}
           TARGET_PLUGIN: ${{ inputs.target_plugin || '' }}
         run: |
           set -euo pipefail
+          # Read the last successful PRO release from PUBLIC run metadata.
+          # Job-log downloads caused HTTP 401 in runs #194 and #195.
+          # No GitHub token is needed and the release fails closed on missing data.
+          runs_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/despliege_de_main_a_pro.yml/runs?branch=staging&status=success&per_page=15"
+          base_sha="$(curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'User-Agent: TaxoCommerce-PRO-Deploy' \
+            "$runs_url" | jq -er '[.workflow_runs[]? | select(.status == "completed" and .conclusion == "success" and .head_branch == "staging") | .head_sha][0]')"
+          if ! [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::No se ha podido verificar el ultimo release PRO correcto.'
+            exit 1
+          fi
+          git cat-file -e "$base_sha^{commit}"
+          if ! git merge-base --is-ancestor "$base_sha" HEAD; then
+            echo "::error::El ultimo release PRO no es ancestro de STAGING: $base_sha"
+            exit 1
+          fi
+          echo "Base PRO verificada: $base_sha"
+
           python3 .github/scripts/select_pro_release_delta.py \
+            --base-sha "$base_sha" \
             --installed-json "$INSTALLED_MODULES_JSON" \
             --allowed-json "$ALL_MODULES_JSON" \
             --target-plugin "$TARGET_PLUGIN" \
