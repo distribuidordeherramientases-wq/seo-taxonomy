@@ -3,7 +3,7 @@
  * Plugin Name: TaxoCommerce Suppliers
  * Plugin URI: https://asociacionfocazul.com/taxocommerce-suppliers/
  * Description: Supplier catalogue intake, purchasing, product decisions, supplier prices, WooCommerce linking, and external image references.
- * Version: 0.2.22
+ * Version: 0.2.23
  * Release Date: 2026-11-12
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -21,13 +21,14 @@ require_once __DIR__ . '/includes/admin-branding.php';
 require_once __DIR__ . '/includes/class-taxocommerce-autotest-code.php';
 \TaxoCommerce_Suppliers_Autotest_Code::boot();
 
-define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.22' );
+define( 'TAXOCOMMERCE_SUPPLIERS_VERSION', '0.2.23' );
 define( 'TAXOCOMMERCE_SUPPLIERS_FILE', __FILE__ );
 define( 'TAXOCOMMERCE_SUPPLIERS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'TAXOCOMMERCE_SUPPLIERS_URL', plugin_dir_url( __FILE__ ) );
 
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-schema.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-price-history.php';
+require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-history-transfer.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-csv.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-products.php';
 require_once TAXOCOMMERCE_SUPPLIERS_DIR . 'includes/class-tcsup-purchasing.php';

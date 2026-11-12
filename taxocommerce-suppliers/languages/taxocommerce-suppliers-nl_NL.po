@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.21\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
 "Language: nl_NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1685,3 +1685,132 @@ msgstr "Prijsgeschiedenis"
 
 msgid "Official plugin page"
 msgstr "Officiële pluginpagina"
+
+msgid "1 - Very low"
+msgstr "1 - Zeer laag"
+
+msgid "2 - Low"
+msgstr "2 - Laag"
+
+msgid "3 - Normal"
+msgstr "3 - Normaal"
+
+msgid "4 - High"
+msgstr "4 - Hoog"
+
+msgid "5 - Maximum"
+msgstr "5 - Maximaal"
+
+msgid "Added: "
+msgstr "Toegevoegd: "
+
+msgid "CSV columns do not match the history export format."
+msgstr "De CSV-kolommen komen niet overeen met het exportformaat van de prijsgeschiedenis."
+
+msgid "CSV exported. Rows: "
+msgstr "CSV geëxporteerd. Rijen: "
+
+msgid "CSV file missing."
+msgstr "CSV-bestand ontbreekt."
+
+msgid "CSV header is missing."
+msgstr "CSV-kopregel ontbreekt."
+
+msgid "CSV identity uses supplier, external ID, country and source row key. Unmatched rows are skipped; duplicates are not re-imported. File limit: 15 MB."
+msgstr "De koppeling gebruikt leverancier, externe ID, land en rijsleutel. Niet-gevonden regels en duplicaten worden overgeslagen. Limiet: 15 MB."
+
+msgid "Cannot open the CSV file."
+msgstr "Kan het CSV-bestand niet openen."
+
+msgid "Cannot store temporary CSV file."
+msgstr "Kan tijdelijk CSV-bestand niet opslaan."
+
+msgid "Change"
+msgstr "Wijziging"
+
+msgid "Duplicates: "
+msgstr "Duplicaten: "
+
+msgid "Export history CSV"
+msgstr "Prijsgeschiedenis als CSV exporteren"
+
+msgid "Export the filtered history as CSV or import an exported CSV in batches. Existing prices and margins remain unchanged."
+msgstr "Exporteer gefilterde prijsgeschiedenis als CSV of importeer CSV in batches. Huidige prijzen en marges blijven ongewijzigd."
+
+msgid "Exporting price history..."
+msgstr "Prijsgeschiedenis wordt geëxporteerd..."
+
+msgid "From date"
+msgstr "Vanaf datum"
+
+msgid "History CSV file"
+msgstr "CSV-bestand met prijsgeschiedenis"
+
+msgid "Import / export historical prices"
+msgstr "Historische prijzen importeren / exporteren"
+
+msgid "Import finished. "
+msgstr "Import voltooid. "
+
+msgid "Import history CSV"
+msgstr "Prijsgeschiedenis uit CSV importeren"
+
+msgid "Import is already processing."
+msgstr "Er wordt al een import verwerkt."
+
+msgid "Import session expired. Upload the CSV again."
+msgstr "Importsessie verlopen. Upload de CSV opnieuw."
+
+msgid "Importing historical prices..."
+msgstr "Historische prijzen worden geïmporteerd..."
+
+msgid "Insufficient permissions."
+msgstr "Onvoldoende rechten."
+
+msgid "Invalid CSV file or file is larger than 15 MB."
+msgstr "Ongeldig CSV-bestand of groter dan 15 MB."
+
+msgid "Invalid import session."
+msgstr "Ongeldige importsessie."
+
+msgid "Invalid: "
+msgstr "Ongeldig: "
+
+msgid "No historical prices match these filters."
+msgstr "Geen historische prijzen gevonden voor deze filters."
+
+msgid "Previous selling price"
+msgstr "Vorige verkoopprijs"
+
+msgid "Previous supplier cost"
+msgstr "Vorige leverancierskosten"
+
+msgid "Price history inventory"
+msgstr "Overzicht van prijsgeschiedenis"
+
+msgid "Processing speed"
+msgstr "Verwerkingssnelheid"
+
+msgid "Product or SKU"
+msgstr "Product of SKU"
+
+msgid "Review price movements across all products. CSV import only adds historical observations; it never changes current catalogue or WooCommerce prices."
+msgstr "Bekijk prijswijzigingen van alle producten. CSV-import voegt alleen historische gegevens toe en wijzigt nooit actuele catalogus- of WooCommerce-prijzen."
+
+msgid "Selling price"
+msgstr "Verkoopprijs"
+
+msgid "Server request failed."
+msgstr "Serververzoek mislukt."
+
+msgid "Supplier cost"
+msgstr "Leverancierskosten"
+
+msgid "To date"
+msgstr "Tot datum"
+
+msgid "Unmatched: "
+msgstr "Niet gekoppeld: "
+
+msgid "historical observations matching the filters"
+msgstr "overeenkomende historische prijsregistraties"
