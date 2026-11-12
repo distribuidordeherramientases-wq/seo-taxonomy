@@ -164,10 +164,12 @@ final class TaxoCommerce_Images_Background {
 
 	/** Authenticated-by-HMAC server continuation independent of WP-Cron. */
 	public static function cleanup_worker() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- This is not a browser submission: both fields are immediately checked against a server-secret HMAC, the saved job UUID and the current scan UUID before any work can execute.
 		$run = isset( $_POST['run'] ) && is_scalar( $_POST['run'] )
 			? sanitize_text_field( wp_unslash( $_POST['run'] ) ) : '';
 		$signature = isset( $_POST['signature'] ) && is_scalar( $_POST['signature'] )
 			? sanitize_text_field( wp_unslash( $_POST['signature'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		$job = self::state( 'cleanup' );
 		$scan = TaxoCommerce_Images_Maintenance::state( 'cleanup' );
 		$expected = hash_hmac( 'sha256', $run, wp_salt( 'auth' ) );
