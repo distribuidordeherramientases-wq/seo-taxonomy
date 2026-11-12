@@ -1,3 +1,10 @@
+## [0.3.42] — 2026-11-12 — Traducciones de conocimiento, copias y controles de Dependiente (#2062)
+
+- Traduce 87 cadenas adicionales en los cinco idiomas ES/EN/FR/DE/NL (435 entradas gettext). Incluye restauración, backup, conocimiento portable, importación/fusión, aprendizaje, categorías de documentación y títulos de manuales.
+- Mantiene intactas las reglas de aprendizaje, la base de datos, procesos L1-L10/M11/M12, seguridad, API y los datos existentes. Los MO se regeneran con solo las cadenas traducidas y cabeceras válidas.
+- Amplía el test i18n para exigir la traducción de controles y documentación en los cinco idiomas.
+- Persisten 182/183/184/182/182 cadenas vacías en los PO (ES/EN/FR/DE/NL), principalmente textos descriptivos largos, más los textos todavía no extraídos desde PHP/JS.
+
 ## [0.3.41] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.
