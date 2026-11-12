@@ -112,4 +112,7 @@ tci_analysis_check(
     'Competition must use official Merchant sources without paid SERP/crawler dependency'
 );
 
+// Execute the new market report regression under the existing CI preflight.
+require_once __DIR__ . '/competition-market-smoke.php';
+
 echo "Standalone Insights Analysis: 11 report definitions, own CSS, JS, AJAX, no SEO monolith references: OK\n";
