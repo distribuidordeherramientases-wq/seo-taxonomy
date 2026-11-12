@@ -1,3 +1,9 @@
+= 1.1.50 (2026-11-12) =
+
+* Executive action plan now reports externally evidenced market opportunities, without editorial entity validation as an action blocker.
+* Compare GA4 AI-assistant referral sessions with the preceding period; preserve the distinction from AI mentions.
+* Retain legacy specialist reports, the secured plan JSON download, and all existing provider connections. Issue #2573.
+
 = 1.1.46 =
 
 * Restore GSC day-by-day SQL synchronization for Analysis using current Connections authentication.

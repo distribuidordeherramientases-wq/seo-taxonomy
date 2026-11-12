@@ -1,3 +1,11 @@
+## [1.1.50] — 2026-11-12 — Analista: inteligencia comercial y tráfico referido desde IA (#2573)
+
+- El Plan de acción ejecutivo prioriza oportunidades de demanda de Search Console, GA4, Google Trends y posiciones competitivas disponibles. La falta de coincidencia textual entre consulta y categoría ya no se presenta como incidencia editorial de mercado.
+- Añade comparación de sesiones que GA4 atribuye a asistentes IA con el periodo anterior equivalente, desglosada por fuente cuando se mide. No confunde referencias con menciones en IA ni atribuye visitas de AI Overviews sin evidencia.
+- Distingue expresamente las limitaciones de Clarity: el seguimiento configurado no equivale a disponibilidad de sus métricas en Analysis.
+- Mantiene los informes especializados y el motor heredado de auditoría para compatibilidad, sin cargarlo en el Plan de acción comercial.
+- Conserva el JSON independiente, su último snapshot y la descarga segura. No cambia datos de productos, categorías, Auditor ni configuraciones OAuth.
+
 ## [1.1.49] — 2026-11-11 — Corrección visual de botones de Analysis (#2546)
 
 - Restablece el contraste de «Crear informe» y «Ejecutar informe completo» (fondo azul, texto blanco), antes ocultos por los estilos heredados de las tarjetas.
