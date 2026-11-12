@@ -73,6 +73,19 @@ function seo_analista_lazy_render_partial( $report, $days ) {
         echo '<section>Informe especializado ' . esc_html( $report ) . '</section>';
     }
 }
+// The one-click Competition report introduced in Insights 1.1.54 builds
+// and saves before rendering. Stub its owned helpers in this offline test.
+function taxocommerce_insights_competitive_build_report( $days ) {
+    return array(
+        'schema' => array( 'name' => 'seo_analista_competitive_report', 'version' => 2 ),
+        'period_days' => (int) $days,
+        'opportunities' => array(),
+    );
+}
+function taxocommerce_insights_competitive_save_report( $report ) {
+    $GLOBALS['mock_options']['taxocommerce_insights_competitive_report_v2'] = $report;
+    return true;
+}
 function taxocommerce_insights_competitive_render_panel( $days ) {
     $GLOBALS['invocations']['competition']++;
     echo '<section><h2>Inteligencia competitiva · fuentes oficiales</h2><p>Mercado sin scrapers</p></section>';
