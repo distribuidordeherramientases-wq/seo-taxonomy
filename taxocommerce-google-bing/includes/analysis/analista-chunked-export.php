@@ -68,6 +68,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
         // Paths are created on the server; never take a path from user input.
         if ( $file && is_file( $file ) && 0 === strpos( basename( $file ), 'tgb-insights-' ) ) {
             wp_delete_file( $file );
+            if ( is_file( $file . '.lock' ) ) wp_delete_file( $file . '.lock' );
         }
         delete_option( self::key() );
     }
@@ -130,6 +131,9 @@ final class TaxoCommerce_Insights_Chunked_Export {
         $op = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
         if ( 'start' === $op ) {
             $old = self::load();
+            if ( $old && empty( $old['complete'] ) ) {
+                wp_send_json_success( self::response( $old ) );
+            }
             if ( $old ) self::remove( $old );
             $days = isset( $_POST['days'] ) ? seo_analista_days( absint( wp_unslash( $_POST['days'] ) ) ) : 28;
             $file = tempnam( get_temp_dir(), 'tgb-insights-' );
@@ -207,11 +211,25 @@ final class TaxoCommerce_Insights_Chunked_Export {
             $chunk .= self::encode( (string) $key ) . ':' . self::encode( $item );
             $first = false;
         }
+        if ( 'directrices' === $section ) {
+            $counts = isset( $state['directrices_counts'] ) ? (array) $state['directrices_counts'] : array();
+            $counts[$part] = is_array( $value ) ? count( $value ) : 0;
+            $state['directrices_counts'] = $counts;
+            if ( $next_section !== $section ) {
+                $summary = array(
+                    'literatura' => (int) ($counts['literatura'] ?? 0),
+                    'estructura' => (int) ($counts['estructura'] ?? 0),
+                    'tendencias' => (int) ($counts['tendencias'] ?? 0),
+                    'aceleraciones_search_console' => (int) ($counts['search_console_acceleration'] ?? 0),
+                );
+                $chunk .= ',"summary":' . self::encode( $summary );
+            }
+        }
         if ( 'meta' !== $section && '' !== $part && $next_section !== $section ) {
             $chunk .= '}';
         }
         if ( $index + 1 === count( $steps ) ) $chunk .= '}';
-        if ( false === strpos( $chunk, 'null' ) && '' === $chunk ) {
+        if ( '' === $chunk ) {
             wp_send_json_error( array( 'message' => 'Bloque vacío.' ), 500 );
         }
         if ( ! self::append( $state['file'], $chunk ) ) {
@@ -221,8 +239,20 @@ final class TaxoCommerce_Insights_Chunked_Export {
         }
         $state['next']++;
         if ( $state['next'] === count( $steps ) ) {
-            // Check JSON incrementally with a streaming-compatible final syntax
-            // check. File output is read only after all blocks are complete.
+            // Final validation is separate from the heavy source calculations.
+            $contents = file_get_contents( $state['file'] );
+            if ( false === $contents ) {
+                flock( $lock, LOCK_UN );
+                fclose( $lock );
+                wp_send_json_error( array( 'message' => 'Error al leer el JSON final.' ), 500 );
+            }
+            json_decode( $contents, true );
+            unset( $contents );
+            if ( JSON_ERROR_NONE !== json_last_error() ) {
+                flock( $lock, LOCK_UN );
+                fclose( $lock );
+                wp_send_json_error( array( 'message' => 'Los bloques no forman un JSON válido.' ), 500 );
+            }
             $state['complete'] = true;
         }
         update_option( self::key(), $state, false );
