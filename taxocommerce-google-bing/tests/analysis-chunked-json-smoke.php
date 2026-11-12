@@ -18,7 +18,8 @@ function tgb_chunked_assert( $condition, $message ) {
     }
 }
 tgb_chunked_assert( false !== strpos( $bootstrap, "'/analista-chunked-export.php'" ), 'Worker loaded in bootstrap.' );
-tgb_chunked_assert( false !== strpos( $plugin, "Version: 1.1.51" ), 'Version increased.' );
+preg_match( '/Version:\\s*(\\d+\\.\\d+\\.\\d+)/', $plugin, $plugin_version );
+tgb_chunked_assert( ! empty( $plugin_version[1] ) && version_compare( $plugin_version[1], '1.1.51', '>=' ), 'Version 1.1.51 or later.' );
 tgb_chunked_assert( false !== strpos( $plugin, 'id="tgb-chunked-json-start"' ), 'Chunked export UI exists.' );
 tgb_chunked_assert( false !== strpos( $plugin, 'id="tgb-chunked-json-stop"' ), 'Export can be cancelled.' );
 tgb_chunked_assert( false !== strpos( $plugin, 'id="tgb-chunked-json-download"' ), 'Completed download link exists.' );
