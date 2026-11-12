@@ -13,6 +13,8 @@ $csv  = file_get_contents( $root . '/includes/class-tcsup-csv.php' );
 $admin = file_get_contents( $root . '/includes/class-tcsup-admin.php' );
 $products = file_get_contents( $root . '/includes/class-tcsup-products.php' );
 $history = file_get_contents( $root . '/includes/class-tcsup-price-history.php' );
+$transfer = file_get_contents( $root . '/includes/class-tcsup-history-transfer.php' );
+$history_js = file_get_contents( $root . '/assets/price-history.js' );
 $schema = file_get_contents( $root . '/includes/class-tcsup-schema.php' );
 $purchasing = file_get_contents( $root . '/includes/class-tcsup-purchasing.php' );
 $manual = file_get_contents( $root . '/includes/class-tcsup-manual.php' );
@@ -96,6 +98,16 @@ tcsup_assert( 'canonical' === TCSUP_CSV::effective_mode( $generic_formats['canon
 tcsup_assert( 'canonical' === TCSUP_CSV::effective_mode( $generic_formats['canonical'], array( 'id', 'name' ), 'VEVOR' ), 'regional parser requires official header' );
 tcsup_assert( false === strpos( $admin, 'placeholder="e.g. SATKIT"' ), 'no foreign supplier example is prefilled in new stores' );
 tcsup_assert( false !== strpos( $admin, 'No templates have been created on this site.' ), 'empty template list has its own message' );
+
+tcsup_assert( false !== strpos( $main, 'class-tcsup-history-transfer.php' ), 'history transfer is loaded' );
+tcsup_assert( false !== strpos( $admin, "'history'   => __( 'Price history'" ), 'global historical inventory tab' );
+tcsup_assert( false !== strpos( $transfer, 'check_ajax_referer( self::ACTION_NONCE )' ), 'history CSV nonce' );
+tcsup_assert( false !== strpos( $transfer, "current_user_can( 'manage_woocommerce' )" ), 'history CSV permissions' );
+tcsup_assert( false !== strpos( $transfer, 'self::find_catalog( $data )' ), 'import matches catalog identity before storing history' );
+tcsup_assert( false !== strpos( $transfer, "'duplicates'" ), 'import reports existing observations' );
+tcsup_assert( false === strpos( $transfer, 'set_regular_price(' ) && false === strpos( $transfer, 'set_sale_price(' ), 'historical CSV never alters active selling prices' );
+tcsup_assert( false !== strpos( $history_js, 'tcsup_history_export_batch' ) && false !== strpos( $history_js, 'tcsup_history_import_batch' ), 'browser CSV chunk endpoints' );
+require_once __DIR__ . '/history-transfer-smoke.php';
 
 require_once __DIR__ . '/i18n-smoke.php';
 echo "OK\n";
