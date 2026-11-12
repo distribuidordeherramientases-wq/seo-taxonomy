@@ -209,6 +209,16 @@ final class TaxoCommerce_Images_Background {
 			}
 			$next = absint( $job['next_run'] ?? 0 );
 			if ( 'cleanup' === (string) ( $job['mode'] ?? '' ) ) {
+				// Upgrade old persisted jobs without discarding their Media cursor.
+				if ( empty( $job['scan_run'] ) ) {
+					$scan = TaxoCommerce_Images_Maintenance::state( 'cleanup' );
+					if ( 'running' === ( $scan['status'] ?? '' ) && ! empty( $scan['run'] ) ) {
+						$job['scan_run'] = (string) $scan['run'];
+						$job['processed'] = absint( $scan['scanned'] ?? 0 );
+						$job['total'] = absint( $scan['total'] ?? 0 );
+						self::save( 'cleanup', $job );
+					}
+				}
 				if ( ! wp_doing_ajax() && time() >= $next
 					&& time() - absint( $job['last_dispatch'] ?? 0 ) >= 20 ) {
 					self::dispatch_cleanup( $job );
