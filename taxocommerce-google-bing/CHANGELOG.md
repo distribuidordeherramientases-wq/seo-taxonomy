@@ -1,3 +1,10 @@
+## [1.1.51] — 2026-11-12 — Descarga completa JSON por bloques con control adaptativo
+- «Preparar JSON completo por bloques» sustituye la petición PHP monolítica que podía agotar tiempo o memoria.
+- AJAX autenticado por administrador: 21 pasos independientes, archivo temporal privado, progreso, detención y descarga final solo al completar y validar JSON.
+- Pausa entre pasos basada en tiempo de respuesta, presión de memoria y tiempo de CPU del proceso PHP (no porcentaje de CPU global); sin cron y sin cambiar los diez informes individuales.
+- Mantiene las claves y el esquema v9 del JSON unificado y suprime consultas de fuentes ajenas a cada fragmento.
+- No modifica productos, categorías, Auditor, credenciales, configuración OAuth ni producción.
+
 ## [1.1.50] — 2026-11-12 — Analista: inteligencia comercial y tráfico referido desde IA (#2573)
 
 - El Plan de acción ejecutivo prioriza oportunidades de demanda de Search Console, GA4, Google Trends y posiciones competitivas disponibles. La falta de coincidencia textual entre consulta y categoría ya no se presenta como incidencia editorial de mercado.
