@@ -13,50 +13,66 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 
 SLUG = re.compile(r"taxocommerce-[a-z0-9-]+\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-DEPLOY_LINE = re.compile(r"PRO source: staging @ ([0-9a-f]{40})")
 
 
 def api_json(repo: str, path: str, token: str):
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/{path}",
-        headers={"Authorization": f"Bearer {token}",
-                 "Accept": "application/vnd.github+json",
-                 "X-GitHub-Api-Version": "2022-11-28"},
-    )
-    with urllib.request.urlopen(request, timeout=20) as response:
-        return json.load(response)
+    """Read public release metadata; retry anonymous only on token HTTP 401."""
+    url = f"https://api.github.com/repos/{repo}/{path}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "TaxoCommerce-Pro-Delta/1.0",
+    }
+
+    def request(authorized: bool):
+        safe_headers = dict(headers)
+        if authorized:
+            safe_headers["Authorization"] = f"Bearer {token}"
+        with urllib.request.urlopen(
+            urllib.request.Request(url, headers=safe_headers), timeout=20
+        ) as response:
+            return json.load(response)
+
+    try:
+        return request(bool(token))
+    except urllib.error.HTTPError as exc:
+        if exc.code != 401 or not token:
+            raise
+        # Repository releases are publicly readable. Never require privileged
+        # job logs or substitute a guessed SHA after a failed API lookup.
+        return request(False)
 
 
 def last_successful_source(repo: str, token: str) -> str:
-    runs = api_json(
-        repo, "actions/workflows/despliege_de_main_a_pro.yml/runs?status=success&per_page=15",
+    """Read source revision from a completed, successful PRO workflow run."""
+    payload = api_json(
+        repo,
+        "actions/workflows/despliege_de_main_a_pro.yml/runs?"
+        "branch=staging&status=success&per_page=15",
         token,
-    ).get("workflow_runs", [])
+    )
+    runs = payload.get("workflow_runs", [])
+    if not isinstance(runs, list):
+        raise ValueError("Respuesta de GitHub Actions invalida")
     for run in runs:
-        if run.get("conclusion") != "success":
+        if not isinstance(run, dict):
             continue
-        jobs = api_json(repo, f"actions/runs/{run['id']}/jobs?per_page=100", token).get("jobs", [])
-        for job in jobs:
-            if job.get("conclusion") != "success" or not job.get("name", "").startswith(("Publicar plugins", "Publicar SOLO")):
-                continue
-            request = urllib.request.Request(
-                f"https://api.github.com/repos/{repo}/actions/jobs/{job['id']}/logs",
-                headers={"Authorization": f"Bearer {token}",
-                         "Accept": "application/vnd.github+json"},
-            )
-            with urllib.request.urlopen(request, timeout=30) as response:
-                log = response.read(6_000_000).decode("utf-8", errors="replace")
-            for line in log.splitlines():
-                if "PRO source: staging @" in line and not line.lstrip().startswith("echo "):
-                    matched = DEPLOY_LINE.search(line)
-                    if matched and SHA.fullmatch(matched.group(1)):
-                        return matched.group(1)
+        candidate = run.get("head_sha", "")
+        if (
+            run.get("status") == "completed"
+            and run.get("conclusion") == "success"
+            and run.get("head_branch") == "staging"
+            and isinstance(candidate, str)
+            and SHA.fullmatch(candidate)
+        ):
+            return candidate
     raise ValueError(
-        "No se ha podido recuperar el SHA del ultimo release PRO correcto. "
+        "No existe un SHA verificable del ultimo release PRO correcto en staging. "
         "Se cancela sin transferir archivos."
     )
 
