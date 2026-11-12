@@ -202,6 +202,28 @@ function taxocommerce_insights_market_plan( $days, array $google = array() ) {
             );
         }
     }
+    // Competitive keyword gaps are external market opportunities, not
+    // assertions that any local product/category has defective content.
+    if ( function_exists( 'seo_analista_competition_snapshot' ) ) {
+        $competition = (array) seo_analista_competition_snapshot( 12 );
+        if ( ! empty( $competition['available'] ) ) {
+            foreach ( array_slice( (array) ( $competition['keyword_gaps'] ?? array() ), 0, 3 ) as $gap ) {
+                $keyword = trim( (string) ( $gap['keyword'] ?? '' ) );
+                $competitor = (array) ( $gap['best_competitor'] ?? array() );
+                if ( '' === $keyword || (float) ( $competitor['position'] ?? 0 ) <= 0 ) {
+                    continue;
+                }
+                $plan[] = taxocommerce_insights_market_item(
+                    $keyword,
+                    'Competencia: posiciones externas',
+                    'Competidor ' . (string) ( $competitor['domain'] ?? '' ) . ' en posición ' . (float) ( $competitor['position'] ?? 0 ) . '; posición propia: ' . (float) ( $gap['own_position'] ?? 0 ) . '.',
+                    'Comparar catálogo, precio, demanda y presencia en buscadores antes de decidir cómo competir.',
+                    (int) ( $gap['priority'] ?? 50 ),
+                    'INVESTIGAR'
+                );
+            }
+        }
+    }
     usort( $plan, static function ( $left, $right ) {
         return (int) ( $right['priority_score'] ?? 0 ) <=> (int) ( $left['priority_score'] ?? 0 );
     } );
