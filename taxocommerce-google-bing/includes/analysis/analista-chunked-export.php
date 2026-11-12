@@ -93,6 +93,9 @@ final class TaxoCommerce_Insights_Chunked_Export {
         } elseif ( $elapsed > 3500 || $memory >= 65 || ( null !== $cpu && $cpu > 2500 ) ) {
             $delay = 1800;
         }
+        $speed = max( 1, min( 5, (int) ($state['speed'] ?? 3) ) );
+        $minimum_delays = array( 1 => 6000, 2 => 3500, 3 => 2000, 4 => 1000, 5 => 300 );
+        $delay = max( $delay, $minimum_delays[$speed] );
         return array(
             'id' => $state['id'],
             'done' => (int) $state['next'],
@@ -136,6 +139,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
             }
             if ( $old ) self::remove( $old );
             $days = isset( $_POST['days'] ) ? seo_analista_days( absint( wp_unslash( $_POST['days'] ) ) ) : 28;
+            $speed = isset( $_POST['speed'] ) ? max( 1, min( 5, absint( wp_unslash( $_POST['speed'] ) ) ) ) : 3;
             $file = tempnam( get_temp_dir(), 'tgb-insights-' );
             if ( ! $file || false === file_put_contents( $file, '{', LOCK_EX ) ) {
                 wp_send_json_error( array( 'message' => 'No se pudo crear el archivo temporal.' ), 500 );
@@ -144,6 +148,7 @@ final class TaxoCommerce_Insights_Chunked_Export {
                 'id' => wp_generate_password( 32, false, false ),
                 'created' => time(),
                 'days' => $days,
+                'speed' => $speed,
                 'file' => $file,
                 'next' => 0,
                 'complete' => false,
