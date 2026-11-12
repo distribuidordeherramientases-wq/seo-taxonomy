@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.9\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.21\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1599,3 +1599,90 @@ msgstr "Consulta de estados"
 
 msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
 msgstr "Filtro de estados cargado; no se consultan ni modifican pedidos."
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "Last updated"
+msgstr "Última actualización"
+
+msgid "Version history and improvements"
+msgstr "Historial de versiones y mejoras"
+
+msgid "Access denied."
+msgstr "Acceso denegado."
+
+msgid "Run Code Check first."
+msgstr "Ejecuta primero el chequeo de código."
+
+msgid "Unable to create JSON."
+msgstr "No se ha podido crear el JSON."
+
+msgid "Autotest sections"
+msgstr "Secciones de autochequeo"
+
+msgid "Functionality Check"
+msgstr "Chequeo de funcionalidades"
+
+msgid "Code Check"
+msgstr "Chequeo de código"
+
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr "Sintaxis PHP, estructura de WordPress e indicadores de seguridad solo de este plugin. No requiere otro comprobador. Los resultados no sustituyen al Plugin Check oficial ni a una auditoría de seguridad."
+
+msgid "CPU usage"
+msgstr "Uso de CPU"
+
+msgid "Run Code Check"
+msgstr "Ejecutar chequeo de código"
+
+msgid "Progress"
+msgstr "Progreso"
+
+msgid "Stop"
+msgstr "Detener"
+
+msgid "Continue batch"
+msgstr "Continuar bloque"
+
+msgid "Resume"
+msgstr "Reanudar"
+
+msgid "Download JSON"
+msgstr "Descargar JSON"
+
+msgid "File"
+msgstr "Archivo"
+
+msgid "Security"
+msgstr "Seguridad"
+
+msgid "Price history"
+msgstr "Historial de precios"
+
+msgid "Read-only price snapshots. The first entry reflects the first captured price, not a reconstructed earlier price."
+msgstr "Historial de precios de solo lectura. La primera entrada corresponde al primer precio registrado, no a un precio anterior reconstruido."
+
+msgid "Date"
+msgstr "Fecha"
+
+msgid "Supplier excl. tax"
+msgstr "Proveedor sin IVA"
+
+msgid "Supplier incl. tax"
+msgstr "Proveedor con IVA"
+
+msgid "Effective price"
+msgstr "Precio efectivo"
+
+msgid "Source"
+msgstr "Origen"
+
+msgid "No price changes have been recorded yet."
+msgstr "Todavía no se han registrado cambios de precio."
+
+msgid "Historial de precios"
+msgstr "Historial de precios"
+
+msgid "Official plugin page"
+msgstr "Ficha oficial del plugin"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.9\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.21\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1597,4 +1597,91 @@ msgid "Consulta de estados"
 msgstr ""
 
 msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
+msgstr ""
+
+msgid "Version"
+msgstr ""
+
+msgid "Last updated"
+msgstr ""
+
+msgid "Version history and improvements"
+msgstr ""
+
+msgid "Access denied."
+msgstr ""
+
+msgid "Run Code Check first."
+msgstr ""
+
+msgid "Unable to create JSON."
+msgstr ""
+
+msgid "Autotest sections"
+msgstr ""
+
+msgid "Functionality Check"
+msgstr ""
+
+msgid "Code Check"
+msgstr ""
+
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr ""
+
+msgid "CPU usage"
+msgstr ""
+
+msgid "Run Code Check"
+msgstr ""
+
+msgid "Progress"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Continue batch"
+msgstr ""
+
+msgid "Resume"
+msgstr ""
+
+msgid "Download JSON"
+msgstr ""
+
+msgid "File"
+msgstr ""
+
+msgid "Security"
+msgstr ""
+
+msgid "Price history"
+msgstr ""
+
+msgid "Read-only price snapshots. The first entry reflects the first captured price, not a reconstructed earlier price."
+msgstr ""
+
+msgid "Date"
+msgstr ""
+
+msgid "Supplier excl. tax"
+msgstr ""
+
+msgid "Supplier incl. tax"
+msgstr ""
+
+msgid "Effective price"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "No price changes have been recorded yet."
+msgstr ""
+
+msgid "Historial de precios"
+msgstr ""
+
+msgid "Official plugin page"
 msgstr ""

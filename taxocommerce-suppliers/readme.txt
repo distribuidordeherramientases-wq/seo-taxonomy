@@ -4,12 +4,15 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.21
+Stable tag: 0.2.22
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
 
 == Description ==
+
+Version 0.2.22 synchronizes the five local translation catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL), including supplier price-history controls and all gettext strings currently inventoried in the plugin. Menu labels, buttons, field labels, messages and both integrated manuals use the active WordPress locale. Further runtime validation is required for any interface text outside gettext.
+
 
 * Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
