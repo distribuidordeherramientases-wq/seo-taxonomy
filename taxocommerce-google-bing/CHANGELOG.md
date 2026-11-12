@@ -1,3 +1,17 @@
+## [1.1.54] — 2026-11-12 — Traducción de controles y panel de Analista (#2062)
+
+- Completa 124 cadenas nuevas en español y 30 en cada uno de los otros cuatro idiomas (244 traducciones adicionales), conservando las 94 traducciones equivalentes ya presentes en EN/FR/DE/NL.
+- Cinco PO/MO recompilados sin traducciones vacías: el contenido pendiente utiliza el fallback nativo de gettext. Incluye comparativas, SEO, tendencias, fuentes, palabras clave, conversiones, filtros, exportación y plan de acción.
+- Actualiza la prueba de IndexNow para comprobar las traducciones visibles y aceptar MO sin entradas vacías cuando un PO todavía está incompleto.
+- No modifica el contenido ni la lógica de los informes, las fuentes, conexiones o datos. Siguen pendientes 658/656/656/655/655 cadenas en ES/EN/FR/DE/NL y el barrido de textos PHP/JS no internacionalizados.
+
+## [1.1.53] — 2026-11-12 — Competencia: aislar Analista heredado y enlaces seguros (#2594)
+
+- Corrige la convivencia con el antiguo TaxoCommerce SEO: el AJAX de Insights ejecuta el renderizador competitivo propio, no la función global heredada que seguía mostrando SerpApi/ScraperAPI y puntuaciones sin evidencia.
+- Los informes Merchant/Trends se guardan en una opción independiente de Insights; se conserva intacto el informe histórico del monolítico y se advierte de su antigüedad.
+- Generar y exportar usan acciones y nonces propios, así como redirección directa a Insights > Analysis, sin depender de rutas o formularios del Analista anterior.
+- Pruebas de coexistencia, aislamiento de opciones y contratos de autenticación; no se modifican otros informes, Scrappers ni datos del catálogo.
+
 ## [1.1.52] — 2026-11-12 — Competencia sin scrapers, mercado y Merchant (#2576)
 
 - Sustituye el informe competitivo profundo que utilizaba SerpApi/ScraperAPI y rastreo HTML de otros dominios por un informe manual sobre Merchant Center, Google Trends, aceleraciones de Search Console, Bing y GA4 propios.

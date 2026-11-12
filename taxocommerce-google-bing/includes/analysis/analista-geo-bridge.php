@@ -277,10 +277,22 @@ function taxocommerce_insights_analysis_ajax() {
     }
     $started = microtime( true );
     $plan_export = null;
+    $competitive_export = null;
     ob_start();
     try {
         // Original commercial and specialist reports, without changing SEO.
-        seo_analista_lazy_render_partial( $report, $days );
+        // The old SEO monolith defines the same global lazy renderer. Never
+        // dispatch Competition through it: Insights owns the market report.
+        if ( 'competencia' === $report ) {
+            // "Crear informe" is the explicit refresh. Calculate, persist and
+            // display the same market evidence in this single AJAX request.
+            // Do not require a second form submission or follow a stale nonce.
+            $competitive_export = taxocommerce_insights_competitive_build_report( $days );
+            taxocommerce_insights_competitive_save_report( $competitive_export );
+            taxocommerce_insights_competitive_render_panel( $days );
+        } else {
+            seo_analista_lazy_render_partial( $report, $days );
+        }
 
         if ( 'directrices' === $report ) {
             // Market view: external demand, commercial outcomes and GA4 assistant
@@ -320,6 +332,11 @@ function taxocommerce_insights_analysis_ajax() {
             'html'         => $html,
             'text'         => trim( wp_strip_all_tags( $html ) ),
         );
+        if ( 'competencia' === $report && is_array( $competitive_export ) ) {
+            // A single downloadable JSON now contains the actual structured
+            // Merchant/Trends/GSC evidence, not just rendered admin HTML.
+            $saved_report['competitive_data'] = $competitive_export;
+        }
         update_option( 'taxocommerce_insights_report_' . $report . '_' . $days, $saved_report, false );
         if ( taxocommerce_insights_last_report_export( $report, $days ) === $saved_report ) {
             $response['report_saved_at_display'] = wp_date( 'd/m/Y H:i', strtotime( $saved_report['generated_at'] ) );

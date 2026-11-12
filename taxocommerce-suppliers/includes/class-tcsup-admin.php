@@ -29,6 +29,7 @@ final class TCSUP_Admin {
 		add_action( 'admin_post_tcsup_price_update', array( 'TCSUP_Products', 'handle_price_update' ) );
 		add_action( 'admin_post_tcsup_images_update', array( 'TCSUP_Products', 'handle_images_update' ) );
 		add_action( 'admin_post_tcsup_settings', array( __CLASS__, 'handle_settings' ) );
+		TCSUP_History_Transfer::boot();
 	}
 
 	public static function capability() {
@@ -63,6 +64,20 @@ final class TCSUP_Admin {
 		if ( false === strpos( (string) $hook, self::PAGE ) ) {
 			return;
 		}
+		if ( 'history' === self::active_tab() ) {
+			wp_enqueue_script( 'taxocommerce-suppliers-history', TAXOCOMMERCE_SUPPLIERS_URL . 'assets/price-history.js', array(), TAXOCOMMERCE_SUPPLIERS_VERSION, true );
+			wp_localize_script( 'taxocommerce-suppliers-history', 'tcsupHistoryStrings', array(
+				'exporting' => __( 'Exporting price history...', 'taxocommerce-suppliers' ),
+				'exportDone' => __( 'CSV exported. Rows: ', 'taxocommerce-suppliers' ),
+				'importing' => __( 'Importing historical prices...', 'taxocommerce-suppliers' ),
+				'importDone' => __( 'Import finished. ', 'taxocommerce-suppliers' ),
+				'inserted' => __( 'Added: ', 'taxocommerce-suppliers' ),
+				'duplicates' => __( 'Duplicates: ', 'taxocommerce-suppliers' ),
+				'unmatched' => __( 'Unmatched: ', 'taxocommerce-suppliers' ),
+				'invalid' => __( 'Invalid: ', 'taxocommerce-suppliers' ),
+				'serverError' => __( 'Server request failed.', 'taxocommerce-suppliers' ),
+			) );
+		}
 		wp_enqueue_style(
 			'taxocommerce-suppliers-admin',
 			TAXOCOMMERCE_SUPPLIERS_URL . 'assets/admin.css',
@@ -87,7 +102,7 @@ final class TCSUP_Admin {
 	private static function active_tab() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'import';
-		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'images', 'purchasing', 'manual', 'autotest' ), true ) ? $tab : 'import';
+		return in_array( $tab, array( 'import', 'templates', 'inventory', 'prices', 'history', 'images', 'purchasing', 'manual', 'autotest' ), true ) ? $tab : 'import';
 	}
 
 	public static function render() {
@@ -111,6 +126,7 @@ final class TCSUP_Admin {
 					'templates' => __( 'CSV Templates', 'taxocommerce-suppliers' ),
 					'inventory' => __( 'Inventory', 'taxocommerce-suppliers' ),
 					'prices'    => __( 'Prices', 'taxocommerce-suppliers' ),
+					'history'   => __( 'Price history', 'taxocommerce-suppliers' ),
 					'images'     => __( 'External Images', 'taxocommerce-suppliers' ),
 					'purchasing' => __( 'Purchasing', 'taxocommerce-suppliers' ),
 					'manual' => __( 'Manual', 'taxocommerce-suppliers' ),
@@ -137,6 +153,9 @@ final class TCSUP_Admin {
 					break;
 				case 'prices':
 					self::render_prices();
+					break;
+				case 'history':
+					TCSUP_History_Transfer::render();
 					break;
 				case 'images':
 					self::render_images();
@@ -733,6 +752,7 @@ final class TCSUP_Admin {
 		?>
 		<section class="tcsup-card">
 			<h2><?php esc_html_e( 'Price control', 'taxocommerce-suppliers' ); ?></h2>
+			<p><a class="button" href="<?php echo esc_url( self::tab_url( 'history' ) ); ?>"><?php esc_html_e( 'Price history', 'taxocommerce-suppliers' ); ?></a></p>
 			<p><?php esc_html_e( 'Supplier cost remains separate from the WooCommerce selling price. You can correct imported supplier prices without re-importing a CSV.', 'taxocommerce-suppliers' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcsup-settings">
 				<input type="hidden" name="action" value="tcsup_settings">

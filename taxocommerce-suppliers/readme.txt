@@ -4,12 +4,17 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.20
+Stable tag: 0.2.23
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
 
 == Description ==
+
+Version 0.2.23 adds a searchable, paginated global price-history inventory and CPU-batched CSV import/export. CSV exports preserve supplier identity, date, cost, regular/sale/effective prices and source; imports append history only after identity and duplicate checks, and never overwrite WooCommerce or supplier catalogue prices.
+
+Version 0.2.22 synchronizes the five local translation catalogs (es_ES, en_US, fr_FR, de_DE, nl_NL), including supplier price-history controls and all gettext strings currently inventoried in the plugin. Menu labels, buttons, field labels, messages and both integrated manuals use the active WordPress locale. Further runtime validation is required for any interface text outside gettext.
+
 
 * Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 
@@ -50,6 +55,12 @@ Explicitly excluded:
 4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
 
 == Changelog ==
+
+= 0.2.23 =
+* Global historical price inventory with supplier/product/date filters, previous price and change; batch CSV export/import with duplicate protection. Issue #2600.
+
+= 0.2.21 =
+* Sort retrospective price history by observed date, then ID, when importing older archived records. Issue #2596.
 
 = 0.2.20 =
 * Add an append-only price history table and read-only inventory price history view. Issue #2589.

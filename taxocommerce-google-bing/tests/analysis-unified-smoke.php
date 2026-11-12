@@ -9,7 +9,7 @@ define( 'SEO_ANALISTA_VERSION', '3.9.0' );
 class Insights_Stop_Response extends Exception {}
 $GLOBALS['invocations'] = array(
     'decision_plan' => 0, 'directrices' => 0, 'roadmap' => 0,
-    'geo' => 0, 'google_snapshot' => 0, 'other' => 0,
+    'geo' => 0, 'google_snapshot' => 0, 'other' => 0, 'competition' => 0,
 );
 function insights_check( $condition, $description ) {
     if ( ! $condition ) {
@@ -58,6 +58,7 @@ function seo_analista_lazy_reports() {
         'directrices' => array( 'label' => 'Qué hacer', 'description' => 'Comercial' ),
         'trabajo' => array( 'label' => 'Plan de acción', 'description' => 'Cartera' ),
         'resumen' => array( 'label' => 'Resumen', 'description' => 'Fuentes' ),
+        'competencia' => array( 'label' => 'Competencia', 'description' => 'Mercado' ),
     );
 }
 function seo_analista_lazy_render_partial( $report, $days ) {
@@ -68,6 +69,10 @@ function seo_analista_lazy_render_partial( $report, $days ) {
         $GLOBALS['invocations']['other']++;
         echo '<section>Informe especializado ' . esc_html( $report ) . '</section>';
     }
+}
+function taxocommerce_insights_competitive_render_panel( $days ) {
+    $GLOBALS['invocations']['competition']++;
+    echo '<section><h2>Inteligencia competitiva · fuentes oficiales</h2><p>Mercado sin scrapers</p></section>';
 }
 function seo_analista_decision_plan( $days, $limit ) {
     $GLOBALS['invocations']['decision_plan']++;
@@ -122,7 +127,7 @@ function add_action( $tag, $handler ) { return true; }
 require dirname( __DIR__ ) . '/includes/analysis/analista-geo-bridge.php';
 
 $reports = taxocommerce_google_bing_analysis_reports();
-insights_check( 2 === count( $reports ), 'existing unified report catalog retained' );
+insights_check( 3 === count( $reports ), 'existing unified report catalog retained' );
 insights_check( ! isset( $reports['trabajo'] ), 'duplicate work button remains absent' );
 insights_check( 'Plan de trabajo' === $reports['directrices']['label'], 'combined report label retained' );
 
@@ -164,6 +169,20 @@ insights_check( 60 === taxocommerce_insights_last_report_export( 'resumen', 60 )
 insights_check( ! isset( $GLOBALS['last_response']['data']['plan_export'] ), 'specialist report does not export market plan' );
 insights_check( $export === taxocommerce_insights_last_plan_export(), 'specialist does not replace last market plan' );
 insights_check( 0 === $GLOBALS['invocations']['decision_plan'], 'specialist report did not trigger editorial plan' );
+
+// Simulate legacy monolith's generic renderer already loaded. Competition
+// must use the Insights-owned callback and never emit historical SERP HTML.
+$other_before = $GLOBALS['invocations']['other'];
+$_POST = array( 'report' => 'competencia', 'days' => '28' );
+try {
+    taxocommerce_insights_analysis_ajax();
+} catch ( Insights_Stop_Response $stop ) {
+}
+insights_check( true === $GLOBALS['last_response']['success'], 'competition response succeeds with monolith renderer present' );
+insights_check( 1 === $GLOBALS['invocations']['competition'], 'Insights competition renderer executes exactly once' );
+insights_check( $other_before === $GLOBALS['invocations']['other'], 'legacy renderer never executes for competition' );
+insights_check( false !== strpos( $GLOBALS['last_response']['data']['html'], 'Inteligencia competitiva' ), 'new market report displayed' );
+insights_check( false === strpos( $GLOBALS['last_response']['data']['html'], 'SerpApi/ScraperAPI' ), 'old SERP report not displayed' );
 
 $_POST = array( 'report' => 'trabajo', 'days' => '28' );
 try {

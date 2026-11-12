@@ -4,13 +4,16 @@ Tags: analytics, search-console, bing, ecommerce, reporting
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.52
+Stable tag: 1.1.54
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 External connections, manual provider data downloads, and market intelligence for WooCommerce.
 
 == Description ==
+
+Version 1.1.54 adds five-language WordPress translations for 124 analyst dashboard strings: reports, keywords, competitor comparisons, positions, data quality, supplier tracking and export permissions. Untranslated messages continue to fall back to their original source text. Full translation of longer report guidance remains in progress under #2062.
+
 
 * Admin header: plugin title, a single local `Description` with the static `Plugin URI` link below it (left); a wider collapsed `CHANGELOG.md` history (center); local version and release date (right). No duplicated information panel or external requests.
 

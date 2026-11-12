@@ -79,7 +79,14 @@ check_market( 1 === $report['summary']['gsc_accelerations'], 'GSC demand reused'
 check_market( array() === $report['matrix'], 'no fake 5/5 ranking' );
 check_market( count( $report['opportunities'] ) === 3, 'three evidenced opportunities' );
 check_market( taxocommerce_insights_competitive_save_report( $report ), 'saved report' );
-check_market( 1 === count( $GLOBALS['test_options'][SEO_ANALISTA_COMPETITIVE_REPORT_HISTORY_OPTION] ), 'history kept' );
+check_market( ! isset( $GLOBALS['test_options']['seo_analista_competitive_report_v1'] ), 'legacy snapshot never overwritten' );
+check_market( isset( $GLOBALS['test_options'][TAXOCOMMERCE_INSIGHTS_COMPETITIVE_REPORT_OPTION] ), 'Insights-owned snapshot saved' );
+check_market( false === strpos( $source, "seo_analista_admin_url( array(" ), 'no redirect through monolith helper' );
+check_market( false !== strpos( $source, "check_admin_referer( 'taxocommerce_insights_competition_generate'" ), 'separate generation nonce' );
+check_market( false !== strpos( $source, "check_admin_referer( 'taxocommerce_insights_competition_export'" ), 'separate export nonce' );
+check_market( false !== strpos( $source, "tgb_tab' => 'analysis'" ), 'post/redirect returns to Insights tab' );
+
+check_market( 1 === count( $GLOBALS['test_options'][TAXOCOMMERCE_INSIGHTS_COMPETITIVE_HISTORY_OPTION] ), 'history kept' );
 // Data is optional; report must still work with no external Merchant evidence.
 $report['sources']['merchant_competitive_visibility']['status'] = 'unavailable';
 check_market( 'unavailable' === $report['sources']['merchant_competitive_visibility']['status'], 'missing data explicit' );

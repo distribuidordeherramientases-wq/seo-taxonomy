@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.9\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
 "Language: de_DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1599,3 +1599,219 @@ msgstr "Statusabfrage"
 
 msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
 msgstr "Statusfilter geladen; Bestellungen werden weder abgefragt noch geändert."
+
+msgid "Version"
+msgstr "Version"
+
+msgid "Last updated"
+msgstr "Zuletzt aktualisiert"
+
+msgid "Version history and improvements"
+msgstr "Versionsverlauf und Verbesserungen"
+
+msgid "Access denied."
+msgstr "Zugriff verweigert."
+
+msgid "Run Code Check first."
+msgstr "Führen Sie zuerst die Codeprüfung aus."
+
+msgid "Unable to create JSON."
+msgstr "JSON konnte nicht erstellt werden."
+
+msgid "Autotest sections"
+msgstr "Abschnitte des Selbsttests"
+
+msgid "Functionality Check"
+msgstr "Funktionsprüfung"
+
+msgid "Code Check"
+msgstr "Codeprüfung"
+
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr "PHP-Syntax, WordPress-Struktur und Sicherheitsindikatoren nur für dieses Plugin. Kein weiteres Prüfwerkzeug erforderlich. Die Ergebnisse ersetzen weder den offiziellen Plugin Check noch ein Sicherheitsaudit."
+
+msgid "CPU usage"
+msgstr "CPU-Auslastung"
+
+msgid "Run Code Check"
+msgstr "Codeprüfung ausführen"
+
+msgid "Progress"
+msgstr "Fortschritt"
+
+msgid "Stop"
+msgstr "Stoppen"
+
+msgid "Continue batch"
+msgstr "Stapel fortsetzen"
+
+msgid "Resume"
+msgstr "Fortsetzen"
+
+msgid "Download JSON"
+msgstr "JSON herunterladen"
+
+msgid "File"
+msgstr "Datei"
+
+msgid "Security"
+msgstr "Sicherheit"
+
+msgid "Price history"
+msgstr "Preisverlauf"
+
+msgid "Read-only price snapshots. The first entry reflects the first captured price, not a reconstructed earlier price."
+msgstr "Schreibgeschützter Preisverlauf. Der erste Eintrag zeigt den zuerst erfassten Preis, keinen rekonstruierten früheren Preis."
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Supplier excl. tax"
+msgstr "Lieferant ohne MwSt."
+
+msgid "Supplier incl. tax"
+msgstr "Lieferant inkl. MwSt."
+
+msgid "Effective price"
+msgstr "Tatsächlicher Preis"
+
+msgid "Source"
+msgstr "Quelle"
+
+msgid "No price changes have been recorded yet."
+msgstr "Es wurden noch keine Preisänderungen erfasst."
+
+msgid "Historial de precios"
+msgstr "Preisverlauf"
+
+msgid "Official plugin page"
+msgstr "Offizielle Plugin-Seite"
+
+msgid "1 - Very low"
+msgstr "1 - Sehr niedrig"
+
+msgid "2 - Low"
+msgstr "2 - Niedrig"
+
+msgid "3 - Normal"
+msgstr "3 - Normal"
+
+msgid "4 - High"
+msgstr "4 - Hoch"
+
+msgid "5 - Maximum"
+msgstr "5 - Maximal"
+
+msgid "Added: "
+msgstr "Hinzugefügt: "
+
+msgid "CSV columns do not match the history export format."
+msgstr "Die CSV-Spalten entsprechen nicht dem Exportformat des Preisverlaufs."
+
+msgid "CSV exported. Rows: "
+msgstr "CSV exportiert. Zeilen: "
+
+msgid "CSV file missing."
+msgstr "CSV-Datei fehlt."
+
+msgid "CSV header is missing."
+msgstr "CSV-Kopfzeile fehlt."
+
+msgid "CSV identity uses supplier, external ID, country and source row key. Unmatched rows are skipped; duplicates are not re-imported. File limit: 15 MB."
+msgstr "Die Zuordnung erfolgt über Lieferant, externe ID, Land und Zeilenschlüssel. Nicht zugeordnete Zeilen und Duplikate werden übersprungen. Limit: 15 MB."
+
+msgid "Cannot open the CSV file."
+msgstr "CSV-Datei kann nicht geöffnet werden."
+
+msgid "Cannot store temporary CSV file."
+msgstr "Temporäre CSV-Datei kann nicht gespeichert werden."
+
+msgid "Change"
+msgstr "Änderung"
+
+msgid "Duplicates: "
+msgstr "Duplikate: "
+
+msgid "Export history CSV"
+msgstr "Preisverlauf als CSV exportieren"
+
+msgid "Export the filtered history as CSV or import an exported CSV in batches. Existing prices and margins remain unchanged."
+msgstr "Gefilterten Preisverlauf als CSV exportieren oder CSV stapelweise importieren. Aktuelle Preise und Margen bleiben unverändert."
+
+msgid "Exporting price history..."
+msgstr "Preisverlauf wird exportiert..."
+
+msgid "From date"
+msgstr "Ab Datum"
+
+msgid "History CSV file"
+msgstr "CSV-Datei des Preisverlaufs"
+
+msgid "Import / export historical prices"
+msgstr "Historische Preise importieren / exportieren"
+
+msgid "Import finished. "
+msgstr "Import abgeschlossen. "
+
+msgid "Import history CSV"
+msgstr "Preisverlauf aus CSV importieren"
+
+msgid "Import is already processing."
+msgstr "Ein Import wird bereits verarbeitet."
+
+msgid "Import session expired. Upload the CSV again."
+msgstr "Importsitzung abgelaufen. CSV erneut hochladen."
+
+msgid "Importing historical prices..."
+msgstr "Historische Preise werden importiert..."
+
+msgid "Insufficient permissions."
+msgstr "Unzureichende Berechtigungen."
+
+msgid "Invalid CSV file or file is larger than 15 MB."
+msgstr "Ungültige CSV-Datei oder größer als 15 MB."
+
+msgid "Invalid import session."
+msgstr "Ungültige Importsitzung."
+
+msgid "Invalid: "
+msgstr "Ungültig: "
+
+msgid "No historical prices match these filters."
+msgstr "Keine historischen Preise entsprechen den Filtern."
+
+msgid "Previous selling price"
+msgstr "Vorheriger Verkaufspreis"
+
+msgid "Previous supplier cost"
+msgstr "Vorheriger Lieferantenpreis"
+
+msgid "Price history inventory"
+msgstr "Inventar des Preisverlaufs"
+
+msgid "Processing speed"
+msgstr "Verarbeitungsgeschwindigkeit"
+
+msgid "Product or SKU"
+msgstr "Produkt oder SKU"
+
+msgid "Review price movements across all products. CSV import only adds historical observations; it never changes current catalogue or WooCommerce prices."
+msgstr "Preisänderungen aller Produkte prüfen. Der CSV-Import fügt nur historische Einträge hinzu; aktuelle Katalog- und WooCommerce-Preise werden nie verändert."
+
+msgid "Selling price"
+msgstr "Verkaufspreis"
+
+msgid "Server request failed."
+msgstr "Serveranfrage fehlgeschlagen."
+
+msgid "Supplier cost"
+msgstr "Lieferantenpreis"
+
+msgid "To date"
+msgstr "Bis Datum"
+
+msgid "Unmatched: "
+msgstr "Nicht zugeordnet: "
+
+msgid "historical observations matching the filters"
+msgstr "passende historische Preisbeobachtungen"

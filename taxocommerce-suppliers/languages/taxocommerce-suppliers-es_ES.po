@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: TaxoCommerce Suppliers 0.2.9\n"
+"Project-Id-Version: TaxoCommerce Suppliers 0.2.23\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1599,3 +1599,219 @@ msgstr "Consulta de estados"
 
 msgid "Filtro de estados cargado; no se consultan ni modifican pedidos."
 msgstr "Filtro de estados cargado; no se consultan ni modifican pedidos."
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "Last updated"
+msgstr "Última actualización"
+
+msgid "Version history and improvements"
+msgstr "Historial de versiones y mejoras"
+
+msgid "Access denied."
+msgstr "Acceso denegado."
+
+msgid "Run Code Check first."
+msgstr "Ejecuta primero el chequeo de código."
+
+msgid "Unable to create JSON."
+msgstr "No se ha podido crear el JSON."
+
+msgid "Autotest sections"
+msgstr "Secciones de autochequeo"
+
+msgid "Functionality Check"
+msgstr "Chequeo de funcionalidades"
+
+msgid "Code Check"
+msgstr "Chequeo de código"
+
+msgid "PHP syntax, WordPress structure and security indicators for this plugin only. No other checker is required. Findings do not replace official Plugin Check or a security audit."
+msgstr "Sintaxis PHP, estructura de WordPress e indicadores de seguridad solo de este plugin. No requiere otro comprobador. Los resultados no sustituyen al Plugin Check oficial ni a una auditoría de seguridad."
+
+msgid "CPU usage"
+msgstr "Uso de CPU"
+
+msgid "Run Code Check"
+msgstr "Ejecutar chequeo de código"
+
+msgid "Progress"
+msgstr "Progreso"
+
+msgid "Stop"
+msgstr "Detener"
+
+msgid "Continue batch"
+msgstr "Continuar bloque"
+
+msgid "Resume"
+msgstr "Reanudar"
+
+msgid "Download JSON"
+msgstr "Descargar JSON"
+
+msgid "File"
+msgstr "Archivo"
+
+msgid "Security"
+msgstr "Seguridad"
+
+msgid "Price history"
+msgstr "Historial de precios"
+
+msgid "Read-only price snapshots. The first entry reflects the first captured price, not a reconstructed earlier price."
+msgstr "Historial de precios de solo lectura. La primera entrada corresponde al primer precio registrado, no a un precio anterior reconstruido."
+
+msgid "Date"
+msgstr "Fecha"
+
+msgid "Supplier excl. tax"
+msgstr "Proveedor sin IVA"
+
+msgid "Supplier incl. tax"
+msgstr "Proveedor con IVA"
+
+msgid "Effective price"
+msgstr "Precio efectivo"
+
+msgid "Source"
+msgstr "Origen"
+
+msgid "No price changes have been recorded yet."
+msgstr "Todavía no se han registrado cambios de precio."
+
+msgid "Historial de precios"
+msgstr "Historial de precios"
+
+msgid "Official plugin page"
+msgstr "Ficha oficial del plugin"
+
+msgid "1 - Very low"
+msgstr "1 - Muy baja"
+
+msgid "2 - Low"
+msgstr "2 - Baja"
+
+msgid "3 - Normal"
+msgstr "3 - Normal"
+
+msgid "4 - High"
+msgstr "4 - Alta"
+
+msgid "5 - Maximum"
+msgstr "5 - Máxima"
+
+msgid "Added: "
+msgstr "Añadidos: "
+
+msgid "CSV columns do not match the history export format."
+msgstr "Las columnas del CSV no coinciden con el formato de exportación del historial."
+
+msgid "CSV exported. Rows: "
+msgstr "CSV exportado. Filas: "
+
+msgid "CSV file missing."
+msgstr "Falta el archivo CSV."
+
+msgid "CSV header is missing."
+msgstr "El CSV no tiene cabecera."
+
+msgid "CSV identity uses supplier, external ID, country and source row key. Unmatched rows are skipped; duplicates are not re-imported. File limit: 15 MB."
+msgstr "La identificación utiliza proveedor, ID externo, país y clave de fila. Se omiten las filas sin coincidencia y los duplicados. Límite: 15 MB."
+
+msgid "Cannot open the CSV file."
+msgstr "No se puede abrir el archivo CSV."
+
+msgid "Cannot store temporary CSV file."
+msgstr "No se puede guardar el CSV temporal."
+
+msgid "Change"
+msgstr "Variación"
+
+msgid "Duplicates: "
+msgstr "Duplicados: "
+
+msgid "Export history CSV"
+msgstr "Exportar historial CSV"
+
+msgid "Export the filtered history as CSV or import an exported CSV in batches. Existing prices and margins remain unchanged."
+msgstr "Exporta el historial filtrado a CSV o importa un CSV exportado por bloques. Los precios y márgenes actuales no cambian."
+
+msgid "Exporting price history..."
+msgstr "Exportando historial de precios..."
+
+msgid "From date"
+msgstr "Desde"
+
+msgid "History CSV file"
+msgstr "Archivo CSV del historial"
+
+msgid "Import / export historical prices"
+msgstr "Importar / exportar precios históricos"
+
+msgid "Import finished. "
+msgstr "Importación finalizada. "
+
+msgid "Import history CSV"
+msgstr "Importar historial CSV"
+
+msgid "Import is already processing."
+msgstr "Ya hay una importación en curso."
+
+msgid "Import session expired. Upload the CSV again."
+msgstr "La sesión de importación ha caducado. Vuelve a subir el CSV."
+
+msgid "Importing historical prices..."
+msgstr "Importando precios históricos..."
+
+msgid "Insufficient permissions."
+msgstr "Permisos insuficientes."
+
+msgid "Invalid CSV file or file is larger than 15 MB."
+msgstr "CSV no válido o mayor de 15 MB."
+
+msgid "Invalid import session."
+msgstr "Sesión de importación no válida."
+
+msgid "Invalid: "
+msgstr "No válidos: "
+
+msgid "No historical prices match these filters."
+msgstr "No hay precios históricos que coincidan con los filtros."
+
+msgid "Previous selling price"
+msgstr "PVP anterior"
+
+msgid "Previous supplier cost"
+msgstr "Coste proveedor anterior"
+
+msgid "Price history inventory"
+msgstr "Inventario histórico de precios"
+
+msgid "Processing speed"
+msgstr "Velocidad del proceso"
+
+msgid "Product or SKU"
+msgstr "Producto o SKU"
+
+msgid "Review price movements across all products. CSV import only adds historical observations; it never changes current catalogue or WooCommerce prices."
+msgstr "Consulta los cambios de precio de todos los productos. La importación CSV solo añade registros históricos: nunca modifica los precios actuales del catálogo ni de WooCommerce."
+
+msgid "Selling price"
+msgstr "PVP"
+
+msgid "Server request failed."
+msgstr "Ha fallado la solicitud al servidor."
+
+msgid "Supplier cost"
+msgstr "Coste proveedor"
+
+msgid "To date"
+msgstr "Hasta"
+
+msgid "Unmatched: "
+msgstr "Sin coincidencia: "
+
+msgid "historical observations matching the filters"
+msgstr "observaciones históricas coincidentes"

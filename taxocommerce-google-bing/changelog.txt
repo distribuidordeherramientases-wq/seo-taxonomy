@@ -1,3 +1,9 @@
+= 1.1.53 (2026-11-12) =
+
+* Competition AJAX invokes Insights' independent Merchant/Trends renderer even when legacy SEO is active.
+* Isolate options, generation/download nonce and admin URLs from old SEO Analista. Preserve legacy historical reports.
+* Add coexistence regression and secure action contract. Issue #2594.
+
 = 1.1.52 (2026-11-12) =
 
 * Rebuild Competition report around cached Merchant Best Sellers, bounded official Merchant competitive visibility, Trends and own Search Console/Bing data.
