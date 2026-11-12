@@ -199,8 +199,8 @@ final class TaxoCommerce_Insights_Chunked_Export {
         $chunk = '';
         if ( 'meta' !== $section ) {
             if ( $previous !== $section ) {
-                $chunk .= (0 === $index ? '' : ',') . self::encode( $section ) . ':';
-                if ( '' !== $part ) $chunk .= '{';
+                $chunk .= (0 === $index ? '' : ',');
+                if ( '' !== $part ) $chunk .= self::encode( $section ) . ':{';
             } else {
                 $chunk .= ',';
             }
