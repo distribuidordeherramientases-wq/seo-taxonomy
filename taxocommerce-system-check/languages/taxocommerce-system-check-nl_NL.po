@@ -736,20 +736,20 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1773
 msgid "Análisis actualizado correctamente."
-msgstr ""
+msgstr "Analyse bijgewerkt."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1775
 #: includes/system-check/seo-system-diagnostics-reporting.php:1994
 msgid "No se pudo completar la actualización. Revisa el registro de errores."
-msgstr ""
+msgstr "De update kon niet worden voltooid. Controleer het foutenlogboek."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1779
 msgid "Global · todos los ámbitos"
-msgstr ""
+msgstr "Algemeen · alle onderdelen"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1780
 msgid "Resumen global de todos los chequeos"
-msgstr ""
+msgstr "Algemeen overzicht van alle controles"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1781
 msgid ""
@@ -764,7 +764,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid "Estado global"
-msgstr ""
+msgstr "Algemene status"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1830
 msgid ": consolidación ponderada de Servidor y SEO Core."
@@ -773,7 +773,7 @@ msgstr ""
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 #: includes/system-check/seo-system-server-status.php:2849
 msgid "Servidor"
-msgstr ""
+msgstr "Server"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1831
 msgid ""
@@ -792,7 +792,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid "Contenido y FAQs"
-msgstr ""
+msgstr "Inhoud en veelgestelde vragen"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1833
 msgid ""
@@ -802,7 +802,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1852
 msgid "Contenido, categorías y FAQs"
-msgstr ""
+msgstr "Inhoud, categorieën en veelgestelde vragen"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1855
 msgid "No existe todavía una auditoría semántica. Pulsa"
@@ -826,11 +826,11 @@ msgstr "Wat moet worden aangepast"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1913
 msgid "No se han generado acciones editoriales prioritarias."
-msgstr ""
+msgstr "Er zijn geen redactionele acties met hoge prioriteit gegenereerd."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Entidad / campo"
-msgstr ""
+msgstr "Entiteit / veld"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1915
 msgid "Registros"
@@ -848,7 +848,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1986
 msgid "Informe completo TaxoCommerce System Check"
-msgstr ""
+msgstr "Volledig TaxoCommerce System Check-rapport"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1987
 msgid ""
@@ -862,19 +862,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:1992
 msgid "Auditoría actualizada correctamente."
-msgstr ""
+msgstr "Controle bijgewerkt."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2029
 msgid "Incidencias principales"
-msgstr ""
+msgstr "Belangrijkste problemen"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2031
 msgid "No hay incidencias en los chequeos disponibles."
-msgstr ""
+msgstr "Geen problemen gevonden in de beschikbare controles."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2045
 msgid "Interpretación"
-msgstr ""
+msgstr "Interpretatie"
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2046
 msgid ""
@@ -892,7 +892,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2054
 msgid "No tienes permisos para actualizar este informe."
-msgstr ""
+msgstr "U hebt geen toestemming om dit rapport bij te werken."
 
 #: includes/system-check/seo-system-diagnostics-reporting.php:2104
 #: includes/system-check/seo-system-diagnostics-reporting.php:2116
@@ -903,11 +903,11 @@ msgstr "Je hebt geen toestemming om dit rapport te downloaden."
 
 #: includes/system-check/seo-system-mysql-audit.php:294
 msgid "Necesita al menos 2 chequeos completos."
-msgstr ""
+msgstr "Er zijn minimaal twee volledige controles nodig."
 
 #: includes/system-check/seo-system-mysql-audit.php:320
 msgid "Evolución MySQL · fotografías del chequeo"
-msgstr ""
+msgstr "MySQL-trends · momentopnamen van controles"
 
 #: includes/system-check/seo-system-mysql-audit.php:321
 msgid ""
@@ -917,7 +917,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:346
 msgid "Distribución de las tablas SEO más grandes"
-msgstr ""
+msgstr "Verdeling van de grootste SEO-tabellen"
 
 #: includes/system-check/seo-system-mysql-audit.php:347
 msgid ""
@@ -931,19 +931,19 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señales globales del servidor MySQL"
-msgstr ""
+msgstr "Algemene indicatoren van de MySQL-server"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Señal"
-msgstr ""
+msgstr "Indicator"
 
 #: includes/system-check/seo-system-mysql-audit.php:699
 msgid "Lectura"
-msgstr ""
+msgstr "Waarde"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "Tablas propias e índices"
-msgstr ""
+msgstr "Eigen tabellen en indexen"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-mysql-audit.php:714
@@ -969,7 +969,7 @@ msgstr "Grootte"
 #: includes/system-check/seo-system-mysql-audit.php:705
 #: includes/system-check/seo-system-server-status.php:2756
 msgid "Índices"
-msgstr ""
+msgstr "Indexen"
 
 #: includes/system-check/seo-system-mysql-audit.php:705
 msgid "PRIMARY"
@@ -977,7 +977,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid "Candidatos de índice"
-msgstr ""
+msgstr "Indexkandidaten"
 
 #: includes/system-check/seo-system-mysql-audit.php:713
 msgid ""
@@ -991,19 +991,19 @@ msgstr "Kolom"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índices duplicados exactos"
-msgstr ""
+msgstr "Exact dubbele indexen"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice A"
-msgstr ""
+msgstr "Index A"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Índice B"
-msgstr ""
+msgstr "Index B"
 
 #: includes/system-check/seo-system-mysql-audit.php:722
 msgid "Columnas"
-msgstr ""
+msgstr "Kolommen"
 
 #: includes/system-check/seo-system-mysql-audit.php:729
 msgid "EXPLAIN de consultas representativas"
@@ -1016,7 +1016,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Consulta"
-msgstr ""
+msgstr "Query"
 
 #: includes/system-check/seo-system-mysql-audit.php:730
 msgid "Filas"
@@ -1028,7 +1028,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-mysql-audit.php:734
 msgid "No se pudieron construir planes para las tablas disponibles."
-msgstr ""
+msgstr "Er konden geen queryplannen worden gemaakt voor de beschikbare tabellen."
 
 #: includes/system-check/seo-system-mysql-audit.php:737
 msgid ""
@@ -1051,20 +1051,20 @@ msgstr ""
 msgid ""
 "Vista rápida sin guardar. Ejecuta el chequeo completo para crear una "
 "referencia y calcular tendencia."
-msgstr ""
+msgstr "Snelle weergave zonder opslaan. Voer de volledige controle uit om een referentie vast te leggen en trends te berekenen."
 
 #: includes/system-check/seo-system-server-status.php:291
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Chequeo"
-msgstr ""
+msgstr "Controle"
 
 #: includes/system-check/seo-system-server-status.php:291
 msgid "Observación"
-msgstr ""
+msgstr "Opmerking"
 
 #: includes/system-check/seo-system-server-status.php:957
 msgid "Configuración del monitor externo de GitHub"
-msgstr ""
+msgstr "Configuratie van de externe GitHub-monitor"
 
 #: includes/system-check/seo-system-server-status.php:958
 msgid ""
@@ -1074,7 +1074,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1014
 msgid "GitHub externo"
-msgstr ""
+msgstr "Externe GitHub"
 
 #: includes/system-check/seo-system-server-status.php:1036
 msgid "Correcto"
@@ -1082,11 +1082,11 @@ msgstr "Geslaagd"
 
 #: includes/system-check/seo-system-server-status.php:1037
 msgid "Lento"
-msgstr ""
+msgstr "Traag"
 
 #: includes/system-check/seo-system-server-status.php:1038
 msgid "Importante"
-msgstr ""
+msgstr "Belangrijk"
 
 #: includes/system-check/seo-system-server-status.php:1039
 msgid "Error"
@@ -1104,7 +1104,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "Sin datos de seguridad:"
-msgstr ""
+msgstr "Geen beveiligingsgegevens:"
 
 #: includes/system-check/seo-system-server-status.php:1948
 msgid "ejecuta el chequeo completo para generar la nueva seccion."
@@ -1112,7 +1112,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Vista rapida:"
-msgstr ""
+msgstr "Snelle weergave:"
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid ""
@@ -1122,11 +1122,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:1961
 msgid "Ejecutar chequeo completo"
-msgstr ""
+msgstr "Volledige controle uitvoeren"
 
 #: includes/system-check/seo-system-server-status.php:1981
 msgid "Observacion"
-msgstr ""
+msgstr "Opmerking"
 
 #: includes/system-check/seo-system-server-status.php:2216
 msgid "el chequeo actual no contiene errores críticos, importantes ni avisos."
@@ -1134,11 +1134,11 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2232
 msgid "Salud por área"
-msgstr ""
+msgstr "Status per onderdeel"
 
 #: includes/system-check/seo-system-server-status.php:2268
 msgid "Resumen general"
-msgstr ""
+msgstr "Algemeen overzicht"
 
 #: includes/system-check/seo-system-server-status.php:2269
 msgid ""
@@ -1148,7 +1148,7 @@ msgstr ""
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid "Sugerencia:"
-msgstr ""
+msgstr "Suggestie:"
 
 #: includes/system-check/seo-system-server-status.php:2308
 msgid ""
