@@ -1,3 +1,9 @@
+= 1.1.55 (2026-11-12) =
+
+* Fix expired-link error on Analysis JSON download buttons after AJAX refresh: generate raw nonce URLs for JavaScript, escape only at HTML output.
+* Preserve WordPress nonce checks, administrator permissions, historical data and all report types.
+* Add regression test for both single-report JSON and action-plan JSON download URLs. Issue #2608.
+
 = 1.1.53 (2026-11-12) =
 
 * Competition AJAX invokes Insights' independent Merchant/Trends renderer even when legacy SEO is active.
