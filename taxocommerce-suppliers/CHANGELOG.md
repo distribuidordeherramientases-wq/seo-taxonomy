@@ -1,3 +1,10 @@
+## [0.2.20] — 2026-11-12 — Historial de precios vinculado al catálogo (#2589)
+
+- Añade `seo_proveedores_productos_historico` con migración automática, fecha, costes del proveedor, PVP normal, precio de oferta y precio efectivo.
+- Registra cambios de CSV, ediciones manuales y guardados de WooCommerce; conserva la primera captura como referencia de inicio sin inventar fechas anteriores.
+- Incluye consulta de solo lectura «Price history» por producto en Inventario y chequeo de tabla en Autotest.
+- No altera el cálculo existente de márgenes ni aplica descuentos.
+
 ## [0.2.19] — 2026-11-10 — Cabecera en tres zonas sin contenido duplicado (#2521)
 
 - Izquierda: nombre, descripción local del plugin y un único enlace estático `Plugin URI` bajo el texto.

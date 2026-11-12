@@ -632,6 +632,9 @@ final class TCSUP_Admin {
 	}
 
 	private static function render_inventory() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only history selector.
+		$history_id = isset( $_GET['history_id'] ) ? absint( $_GET['history_id'] ) : 0;
+		$history_row = $history_id ? TCSUP_Products::row( $history_id ) : false;
 		$result = self::catalogue_query( 50, false );
 		$rows = $result['rows'];
 		?>
@@ -671,12 +674,43 @@ final class TCSUP_Admin {
 								<button class="button button-small button-primary" name="row_action" value="accept:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Accept', 'taxocommerce-suppliers' ); ?></button>
 								<button class="button button-small" name="row_action" value="review:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Review', 'taxocommerce-suppliers' ); ?></button>
 								<button class="button button-small" name="row_action" value="discard:<?php echo esc_attr( $row['id'] ); ?>"><?php esc_html_e( 'Discard', 'taxocommerce-suppliers' ); ?></button>
+								<a class="button button-small" href="<?php echo esc_url( self::tab_url( 'inventory', array( 'history_id' => absint( $row['id'] ) ) ) ); ?>"><?php esc_html_e( 'Price history', 'taxocommerce-suppliers' ); ?></a>
 							</td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
 				</table></div>
 			</form>
+			<?php if ( $history_row ) : ?>
+				<section class="tcsup-card" id="tcsup-price-history">
+					<h3><?php echo esc_html__( 'Price history', 'taxocommerce-suppliers' ) . ': ' . esc_html( $history_row['nombre'] ); ?></h3>
+					<p><?php esc_html_e( 'Read-only price snapshots. The first entry reflects the first captured price, not a reconstructed earlier price.', 'taxocommerce-suppliers' ); ?></p>
+					<div class="tcsup-scroll"><table class="widefat striped">
+						<thead><tr>
+							<th><?php esc_html_e( 'Date', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Supplier excl. tax', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Supplier incl. tax', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Woo regular', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Woo sale', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Effective price', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Currency', 'taxocommerce-suppliers' ); ?></th>
+							<th><?php esc_html_e( 'Source', 'taxocommerce-suppliers' ); ?></th>
+						</tr></thead>
+						<tbody>
+							<?php $history = TCSUP_Price_History::recent( $history_id ); ?>
+							<?php if ( ! $history ) : ?><tr><td colspan="8"><?php esc_html_e( 'No price changes have been recorded yet.', 'taxocommerce-suppliers' ); ?></td></tr><?php endif; ?>
+							<?php foreach ( $history as $entry ) : ?>
+								<tr>
+									<td><?php echo esc_html( get_date_from_gmt( $entry['fecha'], 'Y-m-d H:i:s' ) ); ?></td>
+									<?php foreach ( array( 'precio_proveedor_sin_iva', 'precio_proveedor_con_iva', 'precio_normal', 'precio_oferta', 'precio_venta', 'moneda', 'origen' ) as $field ) : ?>
+										<td><?php echo esc_html( null === $entry[ $field ] || '' === (string) $entry[ $field ] ? '—' : $entry[ $field ] ); ?></td>
+									<?php endforeach; ?>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table></div>
+				</section>
+			<?php endif; ?>
 			<script>
 			(function(){
 				var toggle=document.getElementById('tcsup-select-page');

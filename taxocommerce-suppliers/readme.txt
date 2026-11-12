@@ -4,7 +4,7 @@ Tags: woocommerce, suppliers, csv, inventory, prices
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.2.19
+Stable tag: 0.2.20
 License: GPLv2 or later
 
 CSV-only supplier catalogue management for the TaxoCommerce family.
@@ -27,6 +27,7 @@ Included:
 * Intermediate inventory with pending, review, accepted, and discarded decisions.
 * WooCommerce product linking/creation on acceptance.
 * Supplier price correction and optional WooCommerce price updates.
+* Append-only supplier and selling-price snapshots, with a read-only history viewer for each inventory row.
 * External supplier image references stored without downloading to Media.
 * Purchasing view that matches active WooCommerce sales to accepted supplier sources.
 * Compatibility with the existing seo_proveedores_productos and seo_supplier_images tables.
@@ -41,7 +42,17 @@ Explicitly excluded:
 * Cloud Run jobs.
 * Automatic supplier website extraction.
 
+== Installation ==
+
+1. Install and activate WooCommerce.
+2. Upload and activate TaxoCommerce Suppliers using WordPress Plugins.
+3. Open TaxoCommerce Suppliers, then import a supplier CSV or inspect the Inventory tab.
+4. The plugin installs its own supplier price history table automatically; history starts at the first captured observation.
+
 == Changelog ==
+
+= 0.2.20 =
+* Add an append-only price history table and read-only inventory price history view. Issue #2589.
 
 = 0.2.17 =
 * Local Description and Plugin URI replace REST excerpt requests and caches in the header. Issue #2494.
