@@ -275,11 +275,27 @@ final class TCSUP_History_Transfer {
 		return 'tcsup_his_csv_' . get_current_user_id() . '_' . $token;
 	}
 
+	/**
+	 * Route this single validated CSV upload into the private server temp directory.
+	 */
+	public static function temporary_upload_dir( $uploads ) {
+		$path = untrailingslashit( get_temp_dir() );
+		$uploads['path'] = $path;
+		$uploads['basedir'] = $path;
+		$uploads['url'] = '';
+		$uploads['baseurl'] = '';
+		$uploads['subdir'] = '';
+		return $uploads;
+	}
+
 	public static function import_start() {
 		self::authorize();
+		check_ajax_referer( self::ACTION_NONCE );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce checked above.
 		if ( ! isset( $_FILES['history_file'] ) || ! is_array( $_FILES['history_file'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'CSV file missing.', 'taxocommerce-suppliers' ) ), 400 );
 		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Core wp_handle_upload checks upload origin, MIME and sanitized filename; permission/nonce verified.
 		$file = $_FILES['history_file'];
 		if ( UPLOAD_ERR_OK !== (int) ( $file['error'] ?? -1 )
 			|| ! is_uploaded_file( $file['tmp_name'] ?? '' )
@@ -289,10 +305,18 @@ final class TCSUP_History_Transfer {
 		) {
 			wp_send_json_error( array( 'message' => __( 'Invalid CSV file or file is larger than 15 MB.', 'taxocommerce-suppliers' ) ), 400 );
 		}
-		$path = wp_tempnam( 'tcsup-history-' . get_current_user_id() . '.csv' );
-		if ( ! $path || ! move_uploaded_file( $file['tmp_name'], $path ) ) {
+		add_filter( 'upload_dir', array( __CLASS__, 'temporary_upload_dir' ) );
+		$uploaded = wp_handle_upload( $file, array(
+			'test_form' => false,
+			'mimes' => array( 'csv' => 'text/csv|text/plain|application/vnd.ms-excel' ),
+		) );
+		remove_filter( 'upload_dir', array( __CLASS__, 'temporary_upload_dir' ) );
+		$path = isset( $uploaded['file'] ) ? $uploaded['file'] : '';
+		if ( ! $path ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot store temporary CSV file.', 'taxocommerce-suppliers' ) ), 500 );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Uploaded supplier prices remain private in the server temp directory.
+		chmod( $path, 0600 );
 		$handle = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Binary offset streaming requires a real seekable local file.
 		if ( false === $handle ) {
 			wp_delete_file( $path );
